@@ -16,7 +16,7 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
-// Proxy endpoint for Claude API
+// Proxy endpoint for Claude API with Prompt Caching
 app.post('/api/chat', async (req, res) => {
   try {
     const { apiKey, messages, systemPrompt } = req.body;
@@ -25,20 +25,51 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'API key required' });
     }
 
-    console.log('📡 Proxying request to Claude API...');
+    console.log('📡 Proxying request to Claude API with prompt caching...');
+
+    // Build request with prompt caching
+    // System prompt cached for 1 hour, last message cached for 5 minutes
+    const systemCached = [
+      {
+        type: 'text',
+        text: systemPrompt,
+        cache_control: { type: 'ephemeral' }  // Cache for 5 minutes (default)
+      }
+    ];
+
+    // Transform messages to content blocks format with caching
+    const structuredMessages = messages.map((msg, index) => {
+      const contentBlocks = [
+        {
+          type: 'text',
+          text: msg.content
+        }
+      ];
+
+      // Cache last message for 5 minutes
+      if (index === messages.length - 1 && messages.length > 1) {
+        contentBlocks[0].cache_control = { type: 'ephemeral' };
+      }
+
+      return {
+        role: msg.role,
+        content: contentBlocks
+      };
+    });
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31'  // Enable prompt caching
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20250929',  // Updated to latest Sonnet 4.5
         max_tokens: 200,
-        system: systemPrompt,
-        messages: messages
+        system: systemCached,
+        messages: structuredMessages
       })
     });
 
@@ -49,7 +80,13 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const data = await response.json();
+
+    // Log cache usage statistics
+    const usage = data.usage || {};
     console.log('✅ Claude API response received');
+    console.log(`📊 Tokens: input=${usage.input_tokens || 0}, output=${usage.output_tokens || 0}`);
+    console.log(`💾 Cache: read=${usage.cache_read_input_tokens || 0}, created=${usage.cache_creation_input_tokens || 0}`);
+
     res.json(data);
 
   } catch (error) {
