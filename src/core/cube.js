@@ -173,9 +173,12 @@ export class Cube {
     const swayAngle = Math.sin(this.time * currentAnimSpeed) * (20 * Math.PI / 180); // 20°
     this.mesh.rotation.y = swayAngle;
 
-    // Tilt to follow mouse (up-down)
-    const tiltAngle = -mouseY * (15 * Math.PI / 180); // 15°
-    this.mesh.rotation.x = tiltAngle;
+    // Subtle forward-backward tilt (X-axis) for living, breathing feel
+    const subtleTiltX = Math.sin(this.time * currentAnimSpeed * 0.7) * (8 * Math.PI / 180); // 8° slower than Y sway
+
+    // Tilt to follow mouse (up-down) + subtle breathing tilt
+    const mouseTiltAngle = -mouseY * (15 * Math.PI / 180); // 15°
+    this.mesh.rotation.x = mouseTiltAngle + subtleTiltX;
 
     // Breathing effect (pulsing glow with interpolated speed)
     const breathingIntensity = currentGlowIntensity +
