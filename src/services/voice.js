@@ -12,8 +12,28 @@ class VoiceService {
     this.isListening = false;
     this.onTranscriptCallback = null;
     this.onErrorCallback = null;
+    this.recognitionTimeout = null;
+    this.currentLanguage = 'en-US'; // Default language
+    this.voicesLoaded = false;
 
     this.initRecognition();
+    this.initVoices();
+  }
+
+  /**
+   * Initialize voices (load asynchronously)
+   */
+  initVoices() {
+    // Voices might load asynchronously
+    if (this.synthesis.getVoices().length > 0) {
+      this.voicesLoaded = true;
+    }
+
+    // Listen for voices loaded event
+    this.synthesis.addEventListener('voiceschanged', () => {
+      this.voicesLoaded = true;
+      console.log('✅ Voices loaded:', this.synthesis.getVoices().length);
+    });
   }
 
   /**
@@ -31,27 +51,57 @@ class VoiceService {
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = false;      // Single utterance
     this.recognition.interimResults = false;  // Only final results
-    this.recognition.lang = 'en-US';          // Language (can be made dynamic)
+    this.recognition.lang = this.currentLanguage;
+    this.recognition.maxAlternatives = 1;     // Only best match
 
     // Event handlers
     this.recognition.onresult = (event) => {
+      clearTimeout(this.recognitionTimeout);
       const transcript = event.results[0][0].transcript;
+      const confidence = event.results[0][0].confidence;
+
+      console.log(`🎤 Transcript: "${transcript}" (confidence: ${(confidence * 100).toFixed(1)}%)`);
+
       if (this.onTranscriptCallback) {
         this.onTranscriptCallback(transcript);
       }
     };
 
     this.recognition.onerror = (event) => {
+      clearTimeout(this.recognitionTimeout);
       console.error('Speech recognition error:', event.error);
       this.isListening = false;
+
+      // Handle specific errors
+      if (event.error === 'no-speech') {
+        console.warn('No speech detected');
+      } else if (event.error === 'audio-capture') {
+        console.error('Microphone not accessible');
+      } else if (event.error === 'not-allowed') {
+        console.error('Microphone permission denied');
+      }
 
       if (this.onErrorCallback) {
         this.onErrorCallback(event.error);
       }
     };
 
+    this.recognition.onstart = () => {
+      console.log('🎤 Listening started...');
+      // Safety timeout: stop after 10 seconds if no result
+      this.recognitionTimeout = setTimeout(() => {
+        if (this.isListening) {
+          console.warn('Recognition timeout, stopping...');
+          this.stopListening();
+          this.onErrorCallback?.('timeout');
+        }
+      }, 10000);
+    };
+
     this.recognition.onend = () => {
+      clearTimeout(this.recognitionTimeout);
       this.isListening = false;
+      console.log('🎤 Listening stopped');
     };
   }
 
@@ -105,31 +155,71 @@ class VoiceService {
       const utterance = new SpeechSynthesisUtterance(text);
 
       // Configuration
-      utterance.rate = options.rate || 1.0;      // Speed (0.1 to 10)
+      utterance.rate = options.rate || 0.95;     // Slightly slower for clarity
       utterance.pitch = options.pitch || 1.0;    // Pitch (0 to 2)
       utterance.volume = options.volume || 1.0;  // Volume (0 to 1)
-      utterance.lang = options.lang || 'en-US';
+      utterance.lang = options.lang || this.currentLanguage;
 
-      // Select voice (prefer female voice if available)
+      // Select best voice
       const voices = this.synthesis.getVoices();
-      const preferredVoice = voices.find(voice =>
-        voice.lang.startsWith('en') && voice.name.includes('Female')
-      ) || voices.find(voice => voice.lang.startsWith('en'));
+      const voice = this.selectBestVoice(voices, utterance.lang);
 
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
+      if (voice) {
+        utterance.voice = voice;
+        console.log(`🔊 Using voice: ${voice.name} (${voice.lang})`);
       }
 
       // Event handlers
-      utterance.onend = () => resolve();
+      utterance.onstart = () => {
+        console.log(`🔊 Speaking: "${text.substring(0, 50)}..."`);
+      };
+
+      utterance.onend = () => {
+        console.log('🔊 Speech ended');
+        resolve();
+      };
+
       utterance.onerror = (error) => {
         console.error('TTS error:', error);
         reject(error);
       };
 
-      // Speak
-      this.synthesis.speak(utterance);
+      // Speak (iOS fix: small delay)
+      setTimeout(() => {
+        this.synthesis.speak(utterance);
+      }, 100);
     });
+  }
+
+  /**
+   * Select best voice for given language
+   */
+  selectBestVoice(voices, lang) {
+    const langPrefix = lang.split('-')[0]; // 'en' from 'en-US'
+
+    // Priority order: local premium voices > online voices > any matching voice
+    const priorities = [
+      // Premium voices (often named with 'Premium', 'Enhanced', 'Natural')
+      voices.filter(v => v.lang.startsWith(langPrefix) && v.localService &&
+        (v.name.includes('Premium') || v.name.includes('Enhanced') || v.name.includes('Natural'))),
+      // Local voices (better quality, no internet needed)
+      voices.filter(v => v.lang.startsWith(langPrefix) && v.localService),
+      // Female voices (warmer tone)
+      voices.filter(v => v.lang.startsWith(langPrefix) &&
+        (v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Karen'))),
+      // Any matching language
+      voices.filter(v => v.lang.startsWith(langPrefix)),
+      // Default
+      voices.filter(v => v.default)
+    ];
+
+    for (const group of priorities) {
+      if (group.length > 0) {
+        return group[0];
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -154,15 +244,58 @@ class VoiceService {
    * This is CRITICAL for iOS compatibility!
    */
   activateAudioContext() {
-    // Load voices (required on some browsers)
-    if (this.synthesis.getVoices().length === 0) {
-      // Trigger voices loading
-      const utterance = new SpeechSynthesisUtterance('');
-      this.synthesis.speak(utterance);
-      this.synthesis.cancel();
+    // iOS requires user interaction to unlock audio
+    // This should be called on first user tap/click
+
+    // Method 1: Trigger empty utterance to unlock audio
+    const utterance = new SpeechSynthesisUtterance('');
+    utterance.volume = 0;
+    this.synthesis.speak(utterance);
+    this.synthesis.cancel();
+
+    // Method 2: Force voices loading
+    const voices = this.synthesis.getVoices();
+    if (voices.length === 0) {
+      // Wait for voices to load
+      setTimeout(() => {
+        this.synthesis.getVoices();
+      }, 100);
     }
 
+    console.log('🔓 Audio context activated for iOS');
     return true;
+  }
+
+  /**
+   * Set language for recognition and synthesis
+   * @param {string} lang - Language code (e.g., 'en-US', 'ru-RU')
+   */
+  setLanguage(lang) {
+    this.currentLanguage = lang;
+    if (this.recognition) {
+      this.recognition.lang = lang;
+    }
+    console.log(`🌍 Language set to: ${lang}`);
+  }
+
+  /**
+   * Get current language
+   */
+  getLanguage() {
+    return this.currentLanguage;
+  }
+
+  /**
+   * Get available voices for a language
+   * @param {string} lang - Language code (optional)
+   */
+  getAvailableVoices(lang = null) {
+    const voices = this.synthesis.getVoices();
+    if (lang) {
+      const langPrefix = lang.split('-')[0];
+      return voices.filter(v => v.lang.startsWith(langPrefix));
+    }
+    return voices;
   }
 }
 
