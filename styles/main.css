@@ -17,6 +17,15 @@ body {
   color: #fff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* iOS safe area support */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+
+  /* Prevent pull-to-refresh on mobile */
+  overscroll-behavior: none;
+
+  /* Improve touch responsiveness */
+  touch-action: pan-x pan-y;
 }
 
 /* Canvas container */
@@ -29,7 +38,7 @@ body {
 /* Color controls */
 #controls {
   position: absolute;
-  bottom: 40px;
+  bottom: max(40px, env(safe-area-inset-bottom, 0px) + 20px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -155,15 +164,47 @@ body {
   opacity: 1;
 }
 
-/* Loading state */
-.loading {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+/* Loading screen */
+#loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+#loading-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top: 4px solid #FF9100;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+.loading-text {
   color: rgba(255, 255, 255, 0.8);
   font-size: 18px;
-  z-index: 100;
+  text-align: center;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Error message */
@@ -182,7 +223,21 @@ body {
   z-index: 100;
 }
 
-/* Mobile responsive */
+/* Tablet responsive (601px - 900px) */
+@media (max-width: 900px) and (min-width: 601px) {
+  .color-btn {
+    width: 55px;
+    height: 55px;
+  }
+
+  #voice-btn {
+    width: 75px;
+    height: 75px;
+    font-size: 30px;
+  }
+}
+
+/* Mobile responsive (max 600px) */
 @media (max-width: 600px) {
   .color-btn {
     width: 50px;
@@ -191,7 +246,7 @@ body {
 
   #controls {
     gap: 8px;
-    bottom: 20px;
+    bottom: max(20px, env(safe-area-inset-bottom, 0px) + 10px);
   }
 
   #voice-btn {
@@ -211,10 +266,21 @@ body {
   }
 }
 
-/* Landscape mode on mobile */
-@media (max-width: 900px) and (orientation: landscape) {
+/* Very small screens (max 360px) */
+@media (max-width: 360px) {
+  .color-btn {
+    width: 45px;
+    height: 45px;
+  }
+
   #controls {
-    bottom: 20px;
+    gap: 6px;
+  }
+
+  #voice-btn {
+    width: 65px;
+    height: 65px;
+    font-size: 24px;
   }
 
   #voice-ui {
@@ -222,6 +288,53 @@ body {
   }
 
   #transcript {
-    top: 20px;
+    font-size: 13px;
+    padding: 10px 16px;
+  }
+}
+
+/* Landscape mode on mobile */
+@media (max-width: 900px) and (orientation: landscape) {
+  #controls {
+    bottom: max(15px, env(safe-area-inset-bottom, 0px) + 10px);
+    gap: 10px;
+  }
+
+  .color-btn {
+    width: 45px;
+    height: 45px;
+  }
+
+  #voice-ui {
+    bottom: 90px;
+  }
+
+  #voice-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+  }
+
+  #transcript {
+    top: max(20px, env(safe-area-inset-top, 0px) + 10px);
+    font-size: 13px;
+    padding: 10px 16px;
+  }
+}
+
+/* Improve touch targets on all mobile devices */
+@media (hover: none) and (pointer: coarse) {
+  .color-btn, #voice-btn {
+    /* Increase touch target size without changing visual size */
+    position: relative;
+  }
+
+  .color-btn::after, #voice-btn::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    bottom: -8px;
+    left: -8px;
   }
 }

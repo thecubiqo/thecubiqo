@@ -34,31 +34,66 @@ class CubiqoApp {
   async init() {
     console.log('🎨 Initializing Cubiqo...');
 
-    // Setup Three.js scene
-    const container = document.getElementById('canvas-container');
-    this.scene = new SceneManager(container);
+    try {
+      // Setup Three.js scene
+      const container = document.getElementById('canvas-container');
+      this.scene = new SceneManager(container);
 
-    // Create the cube
-    this.cube = new Cube();
-    this.scene.add(this.cube.getMesh());
+      // Create the cube
+      this.cube = new Cube();
+      this.scene.add(this.cube.getMesh());
 
-    // Setup clock for animations
-    this.clock = new THREE.Clock();
+      // Setup clock for animations
+      this.clock = new THREE.Clock();
 
-    // Setup UI event listeners
-    this.setupUI();
+      // Setup UI event listeners
+      this.setupUI();
 
-    // Setup mouse/touch tracking
-    this.setupInputTracking();
+      // Setup mouse/touch tracking
+      this.setupInputTracking();
 
-    // Check API key
-    this.checkAPIKey();
+      // Check API key
+      this.checkAPIKey();
 
-    // Start animation loop
-    this.animate();
+      // Start animation loop
+      this.animate();
 
-    this.isInitialized = true;
-    console.log('✅ Cubiqo initialized successfully');
+      this.isInitialized = true;
+      console.log('✅ Cubiqo initialized successfully');
+
+      // Hide loading screen
+      this.hideLoadingScreen();
+
+    } catch (error) {
+      console.error('❌ Initialization error:', error);
+      this.showError('Failed to initialize Cubiqo. Please refresh the page.');
+    }
+  }
+
+  /**
+   * Hide loading screen with smooth transition
+   */
+  hideLoadingScreen() {
+    const loadingScreen = document.getElementById('loading-screen');
+    if (loadingScreen) {
+      setTimeout(() => {
+        loadingScreen.classList.add('hidden');
+      }, 500); // Small delay to ensure everything is loaded
+    }
+  }
+
+  /**
+   * Show error message
+   */
+  showError(message) {
+    const loadingScreen = document.getElementById('loading-screen');
+    if (loadingScreen) {
+      loadingScreen.innerHTML = `
+        <div class="error">
+          <p>${message}</p>
+        </div>
+      `;
+    }
   }
 
   /**

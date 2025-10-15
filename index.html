@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Cubiqo - A conscious cube between light and code">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Cubiqo - Emotional AI Companion</title>
 
     <!-- Styles -->
@@ -20,6 +22,12 @@
     </script>
 </head>
 <body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Initializing consciousness...</div>
+    </div>
+
     <!-- 3D Canvas Container -->
     <div id="canvas-container"></div>
 
