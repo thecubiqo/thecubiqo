@@ -122,23 +122,37 @@ export class Cube {
   update(deltaTime, mouseX = 0, mouseY = 0) {
     this.time += deltaTime;
 
-    // Base floating animation (sine wave)
+    // Base floating animation (sine wave - always smooth)
     const baseY = Math.sin(this.time * Math.PI * 2) * 0.2;
     this.mesh.position.y = baseY;
 
-    // Idle sway animation (gentle left-right rotation)
-    const swaySpeed = this.currentColor.animationSpeed || 0.4;
-    const swayAngle = Math.sin(this.time * swaySpeed) * (20 * Math.PI / 180); // 20°
+    // Lerp animation speed during transition for smooth animation changes
+    let currentAnimSpeed = this.currentColor.animationSpeed || 0.4;
+    let currentBreathSpeed = this.currentColor.breathingSpeed || 1.5;
+    let currentGlowIntensity = this.currentColor.glowIntensity || 0.5;
+
+    if (this.colorTransitionProgress < 1) {
+      // Smoothly interpolate animation parameters
+      const targetAnimSpeed = this.targetColor.animationSpeed || 0.4;
+      const targetBreathSpeed = this.targetColor.breathingSpeed || 1.5;
+      const targetGlowIntensity = this.targetColor.glowIntensity || 0.5;
+
+      currentAnimSpeed = this.lerp(currentAnimSpeed, targetAnimSpeed, this.colorTransitionProgress);
+      currentBreathSpeed = this.lerp(currentBreathSpeed, targetBreathSpeed, this.colorTransitionProgress);
+      currentGlowIntensity = this.lerp(currentGlowIntensity, targetGlowIntensity, this.colorTransitionProgress);
+    }
+
+    // Idle sway animation (gentle left-right rotation with interpolated speed)
+    const swayAngle = Math.sin(this.time * currentAnimSpeed) * (20 * Math.PI / 180); // 20°
     this.mesh.rotation.y = swayAngle;
 
     // Tilt to follow mouse (up-down)
     const tiltAngle = -mouseY * (15 * Math.PI / 180); // 15°
     this.mesh.rotation.x = tiltAngle;
 
-    // Breathing effect (pulsing glow)
-    const breathingSpeed = this.currentColor.breathingSpeed || 1.5;
-    const breathingIntensity = this.currentColor.glowIntensity +
-                               Math.sin(this.time * breathingSpeed) * 0.15;
+    // Breathing effect (pulsing glow with interpolated speed)
+    const breathingIntensity = currentGlowIntensity +
+                               Math.sin(this.time * currentBreathSpeed) * 0.15;
     this.material.emissiveIntensity = breathingIntensity;
 
     // Color transition
@@ -192,6 +206,13 @@ export class Cube {
         this.rightEye.scale.y = scaleY;
       }
     }
+  }
+
+  /**
+   * Linear interpolation helper
+   */
+  lerp(start, end, t) {
+    return start + (end - start) * t;
   }
 
   /**
