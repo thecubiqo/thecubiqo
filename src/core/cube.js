@@ -45,8 +45,12 @@ export class Cube {
    * Initialize the cube
    */
   init() {
-    // Create rounded box geometry (softer, more friendly than sharp cube)
-    const geometry = new RoundedBoxGeometry(2, 2, 2, 4, 0.15);
+    // Detect mobile for performance optimization
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    // Create rounded box geometry (reduce segments on mobile for performance)
+    const segments = isMobile ? 3 : 4; // Lower geometry detail on mobile
+    const geometry = new RoundedBoxGeometry(2, 2, 2, segments, 0.15);
 
     // Create hybrid material: satin-metal + semi-transparent polymer
     this.material = new THREE.MeshPhysicalMaterial({
@@ -75,10 +79,14 @@ export class Cube {
    * Create eye elements
    */
   createEyes() {
+    // Detect mobile for performance optimization
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const circleSegments = isMobile ? 16 : 32; // Reduce circle segments on mobile
+
     this.eyeGroup = new THREE.Group();
 
     // Left eye
-    const eyeGeometry = new THREE.CircleGeometry(0.15, 32);
+    const eyeGeometry = new THREE.CircleGeometry(0.15, circleSegments);
     const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
     this.leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
     this.leftEye.position.set(-0.3, 0.3, 1.01);
@@ -90,7 +98,7 @@ export class Cube {
     this.eyeGroup.add(this.rightEye);
 
     // Left pupil
-    const pupilGeometry = new THREE.CircleGeometry(0.08, 32);
+    const pupilGeometry = new THREE.CircleGeometry(0.08, circleSegments);
     const pupilMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
     this.leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
     this.leftPupil.position.set(-0.3, 0.3, 1.02);

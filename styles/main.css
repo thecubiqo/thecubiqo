@@ -33,6 +33,11 @@ body {
   width: 100vw;
   height: 100vh;
   position: relative;
+
+  /* GPU acceleration hints */
+  will-change: contents;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 /* Color controls */
@@ -57,6 +62,11 @@ body {
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
+
+  /* GPU acceleration for smooth animations */
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .color-btn::before {
@@ -115,6 +125,11 @@ body {
   font-size: 32px;
   color: #fff;
   transition: all 0.3s ease;
+
+  /* GPU acceleration */
+  will-change: transform, box-shadow, border-color;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 #voice-btn:hover {
