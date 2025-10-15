@@ -154,11 +154,11 @@ class VoiceService {
 
       const utterance = new SpeechSynthesisUtterance(text);
 
-      // Configuration
-      utterance.rate = options.rate || 0.95;     // Slightly slower for clarity
-      utterance.pitch = options.pitch || 1.0;    // Pitch (0 to 2)
-      utterance.volume = options.volume || 1.0;  // Volume (0 to 1)
-      utterance.lang = options.lang || this.currentLanguage;
+      // Configuration - optimized for better quality
+      utterance.rate = options.rate || 0.92;     // Slightly slower for emotional delivery
+      utterance.pitch = options.pitch || 1.05;   // Slightly higher for warmth
+      utterance.volume = options.volume || 1.0;  // Max volume
+      utterance.lang = options.lang || 'en-US';  // Force US English for consistency
 
       // Select best voice
       const voices = this.synthesis.getVoices();
@@ -197,19 +197,31 @@ class VoiceService {
   selectBestVoice(voices, lang) {
     const langPrefix = lang.split('-')[0]; // 'en' from 'en-US'
 
-    // Priority order: local premium voices > online voices > any matching voice
+    // Priority order: US premium > US local > US female > any English
     const priorities = [
-      // Premium voices (often named with 'Premium', 'Enhanced', 'Natural')
-      voices.filter(v => v.lang.startsWith(langPrefix) && v.localService &&
-        (v.name.includes('Premium') || v.name.includes('Enhanced') || v.name.includes('Natural'))),
-      // Local voices (better quality, no internet needed)
+      // 1. US Premium voices (Samantha, Zira Enhanced, etc.)
+      voices.filter(v => v.lang === 'en-US' && v.localService &&
+        (v.name.includes('Premium') || v.name.includes('Enhanced') ||
+         v.name.includes('Samantha') || v.name.includes('Natural'))),
+
+      // 2. US Female voices (Samantha, Zira, Google US)
+      voices.filter(v => v.lang === 'en-US' &&
+        (v.name.includes('Samantha') || v.name.includes('Zira') ||
+         v.name.includes('Google US English Female') || v.name.includes('Female'))),
+
+      // 3. Any US local voice
+      voices.filter(v => v.lang === 'en-US' && v.localService),
+
+      // 4. Any US voice
+      voices.filter(v => v.lang === 'en-US'),
+
+      // 5. Any English local voice
       voices.filter(v => v.lang.startsWith(langPrefix) && v.localService),
-      // Female voices (warmer tone)
-      voices.filter(v => v.lang.startsWith(langPrefix) &&
-        (v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Karen'))),
-      // Any matching language
+
+      // 6. Any English voice
       voices.filter(v => v.lang.startsWith(langPrefix)),
-      // Default
+
+      // 7. Default
       voices.filter(v => v.default)
     ];
 
