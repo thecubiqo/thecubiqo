@@ -197,17 +197,24 @@ class VoiceService {
   selectBestVoice(voices, lang) {
     const langPrefix = lang.split('-')[0]; // 'en' from 'en-US'
 
-    // Priority order: US premium > US local > US female > any English
-    const priorities = [
-      // 1. US Premium voices (Samantha, Zira Enhanced, etc.)
-      voices.filter(v => v.lang === 'en-US' && v.localService &&
-        (v.name.includes('Premium') || v.name.includes('Enhanced') ||
-         v.name.includes('Samantha') || v.name.includes('Natural'))),
+    // Debug: log all available voices (only once)
+    if (!this._voicesLogged && voices.length > 0) {
+      console.log('🎤 Available voices:');
+      voices.filter(v => v.lang.startsWith('en')).forEach(v => {
+        console.log(`  - ${v.name} (${v.lang}) ${v.localService ? '[LOCAL]' : '[ONLINE]'}`);
+      });
+      this._voicesLogged = true;
+    }
 
-      // 2. US Female voices (Samantha, Zira, Google US)
-      voices.filter(v => v.lang === 'en-US' &&
-        (v.name.includes('Samantha') || v.name.includes('Zira') ||
-         v.name.includes('Google US English Female') || v.name.includes('Female'))),
+    // Priority order: Best male US > other US voices
+    const priorities = [
+      // 1. Best male US voices (Reed, Aaron, Fred)
+      voices.filter(v => v.lang === 'en-US' && v.localService &&
+        (v.name.includes('Reed') || v.name.includes('Aaron') || v.name.includes('Fred'))),
+
+      // 2. Other quality US voices (Eddy, Samantha)
+      voices.filter(v => v.lang === 'en-US' && v.localService &&
+        (v.name.includes('Eddy') || v.name.includes('Samantha'))),
 
       // 3. Any US local voice
       voices.filter(v => v.lang === 'en-US' && v.localService),
