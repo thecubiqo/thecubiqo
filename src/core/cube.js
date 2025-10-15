@@ -27,6 +27,10 @@ export class Cube {
     this.bounceDuration = 0.6; // seconds
     this.bounceHeight = 0.3; // how high to jump
 
+    // Voice listening state
+    this.isListening = false;
+    this.listeningIntensity = 0; // 0-1, for pulsing effect
+
     // Eyes
     this.eyeGroup = null;
     this.leftEye = null;
@@ -125,6 +129,22 @@ export class Cube {
   }
 
   /**
+   * Start listening mode (visual feedback)
+   */
+  startListening() {
+    this.isListening = true;
+    this.listeningIntensity = 0;
+  }
+
+  /**
+   * Stop listening mode
+   */
+  stopListening() {
+    this.isListening = false;
+    this.listeningIntensity = 0;
+  }
+
+  /**
    * Update pupils to follow mouse/touch
    */
   updatePupilPosition(normalizedX, normalizedY) {
@@ -189,8 +209,23 @@ export class Cube {
     this.mesh.rotation.x = mouseTiltAngle + subtleTiltX;
 
     // Breathing effect (pulsing glow with interpolated speed)
-    const breathingIntensity = currentGlowIntensity +
-                               Math.sin(this.time * currentBreathSpeed) * 0.15;
+    let breathingIntensity = currentGlowIntensity +
+                             Math.sin(this.time * currentBreathSpeed) * 0.15;
+
+    // Listening mode: add pulsing effect
+    if (this.isListening) {
+      this.listeningIntensity += deltaTime * 3; // Increase intensity
+      const listeningPulse = Math.sin(this.listeningIntensity * 4) * 0.3; // Fast pulse
+      breathingIntensity += listeningPulse;
+
+      // Add subtle scale pulsing while listening
+      const scalePulse = 1 + Math.sin(this.listeningIntensity * 4) * 0.02; // 2% scale variation
+      this.mesh.scale.setScalar(scalePulse);
+    } else {
+      // Reset scale when not listening
+      this.mesh.scale.setScalar(1);
+    }
+
     this.material.emissiveIntensity = breathingIntensity;
 
     // Color transition

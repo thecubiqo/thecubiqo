@@ -166,10 +166,13 @@ class CubiqoApp {
     // iOS Safari: Activate audio context on user gesture
     voiceService.activateAudioContext();
 
-    // Start listening
+    // Start listening - UI feedback
     this.voiceBtn.classList.add('listening');
     this.voiceBtn.textContent = '🎙️';
     this.showTranscript('Listening...', 0);
+
+    // Start cube listening animation
+    this.cube.startListening();
 
     voiceService.startListening(
       (transcript) => this.handleTranscript(transcript),
@@ -182,6 +185,9 @@ class CubiqoApp {
    */
   async handleTranscript(transcript) {
     console.log('Transcript:', transcript);
+
+    // Stop listening animation
+    this.cube.stopListening();
 
     this.voiceBtn.classList.remove('listening');
     this.voiceBtn.textContent = '🎤';
@@ -227,9 +233,26 @@ class CubiqoApp {
    */
   handleVoiceError(error) {
     console.error('Voice error:', error);
+
+    // Stop listening animation
+    this.cube.stopListening();
+
     this.voiceBtn.classList.remove('listening');
     this.voiceBtn.textContent = '🎤';
-    this.showTranscript(`Voice error: ${error}`, 3000);
+
+    // User-friendly error messages
+    let errorMessage = 'Voice error';
+    if (error === 'no-speech') {
+      errorMessage = 'No speech detected. Try again!';
+    } else if (error === 'audio-capture') {
+      errorMessage = 'Microphone not found';
+    } else if (error === 'not-allowed') {
+      errorMessage = 'Microphone permission denied';
+    } else if (error === 'timeout') {
+      errorMessage = 'Listening timeout. Try again!';
+    }
+
+    this.showTranscript(errorMessage, 3000);
   }
 
   /**
