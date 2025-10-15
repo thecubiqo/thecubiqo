@@ -14,6 +14,7 @@ export class SceneManager {
     this.camera = null;
     this.renderer = null;
     this.lights = {};
+    this.shadowPlane = null;
 
     this.init();
   }
@@ -34,6 +35,9 @@ export class SceneManager {
 
     // Setup lighting
     this.setupLighting();
+
+    // Setup shadow plane
+    this.setupShadowPlane();
 
     // Handle window resize
     window.addEventListener('resize', () => this.onWindowResize());
@@ -90,6 +94,39 @@ export class SceneManager {
     this.lights.fill = new THREE.PointLight(0xffffff, 0.5, 100);
     this.lights.fill.position.set(-3, 2, -3);
     this.scene.add(this.lights.fill);
+  }
+
+  /**
+   * Setup shadow plane (subtle shadow under cube)
+   */
+  setupShadowPlane() {
+    const shadowGeometry = new THREE.CircleGeometry(2.5, 32);
+    const shadowMaterial = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.3
+    });
+
+    this.shadowPlane = new THREE.Mesh(shadowGeometry, shadowMaterial);
+    this.shadowPlane.rotation.x = -Math.PI / 2; // Rotate to be horizontal
+    this.shadowPlane.position.y = -2; // Below the cube
+    this.shadowPlane.receiveShadow = true;
+
+    this.scene.add(this.shadowPlane);
+  }
+
+  /**
+   * Update shadow based on cube position (call from render loop)
+   */
+  updateShadow(cubeYPosition) {
+    if (this.shadowPlane) {
+      // Shadow grows/shrinks based on cube height
+      const scale = 1 + cubeYPosition * 0.05;
+      this.shadowPlane.scale.setScalar(scale);
+
+      // Shadow fades when cube is higher
+      this.shadowPlane.material.opacity = 0.3 - cubeYPosition * 0.05;
+    }
   }
 
   /**

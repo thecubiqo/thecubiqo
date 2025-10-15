@@ -21,6 +21,12 @@ export class Cube {
     this.colorTransitionProgress = 1; // 1 = transition complete
     this.colorTransitionDuration = 1; // 1 second transition
 
+    // Bounce animation state (when changing color)
+    this.bounceProgress = 0;
+    this.isBouncing = false;
+    this.bounceDuration = 0.6; // seconds
+    this.bounceHeight = 0.3; // how high to jump
+
     // Eyes
     this.eyeGroup = null;
     this.leftEye = null;
@@ -103,6 +109,10 @@ export class Cube {
   setColor(colorName) {
     this.targetColor = getColor(colorName);
     this.colorTransitionProgress = 0; // Start transition
+
+    // Trigger bounce animation
+    this.isBouncing = true;
+    this.bounceProgress = 0;
   }
 
   /**
@@ -123,7 +133,23 @@ export class Cube {
     this.time += deltaTime;
 
     // Base floating animation (sine wave - always smooth)
-    const baseY = Math.sin(this.time * Math.PI * 2) * 0.2;
+    let baseY = Math.sin(this.time * Math.PI * 2) * 0.2;
+
+    // Bounce animation (when changing color)
+    if (this.isBouncing) {
+      this.bounceProgress += deltaTime / this.bounceDuration;
+
+      if (this.bounceProgress >= 1) {
+        this.bounceProgress = 0;
+        this.isBouncing = false;
+      } else {
+        // Spring bounce effect (ease-out bounce)
+        const t = this.bounceProgress;
+        const bounceEffect = Math.sin(t * Math.PI * 3) * (1 - t) * this.bounceHeight;
+        baseY += bounceEffect;
+      }
+    }
+
     this.mesh.position.y = baseY;
 
     // Lerp animation speed during transition for smooth animation changes

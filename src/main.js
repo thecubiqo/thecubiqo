@@ -263,6 +263,10 @@ class CubiqoApp {
     // Update cube
     this.cube.update(deltaTime, this.mouse.x, this.mouse.y);
 
+    // Update shadow based on cube position
+    const cubeYPos = this.cube.getMesh().position.y;
+    this.scene.updateShadow(cubeYPos);
+
     // Render scene
     this.scene.render();
   }
