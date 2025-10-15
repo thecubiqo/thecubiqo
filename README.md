@@ -40,29 +40,44 @@ The cube embodies four emotional dimensions:
 
 ### Local Development
 
+**⚠️ TEMPORARY SETUP (until Vercel deployment is ready)**
+
 1. Clone the repository:
 ```bash
 git clone https://github.com/your-username/cubiqo-mvp.git
 cd cubiqo-mvp
 ```
 
-2. Serve locally (any static file server):
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start the proxy server (required to avoid CORS):
+```bash
+npm run dev
+```
+This starts a proxy server on port 3000.
+
+4. In a **separate terminal**, serve the static files:
 ```bash
 # Option 1: Python
-python -m http.server 8000
+python -m http.server 8001
 
 # Option 2: Node.js
-npx serve
+npx serve -p 8001
 
 # Option 3: VS Code Live Server extension
 ```
 
-3. Open in browser:
+5. Open in browser:
 ```
-http://localhost:8000
+http://localhost:8001
 ```
 
-4. Enter your Anthropic API key when prompted
+6. Enter your Anthropic API key when prompted
+
+**Note**: The proxy server (server.js) is only for local development. In production on Vercel, this will be replaced with Vercel Serverless Functions.
 
 ### Deployment
 
