@@ -1,0 +1,211 @@
+/**
+ * 🧊 Cube Component
+ *
+ * The heart of Cubiqo - a living, breathing, emotionally-aware 3D cube
+ * Animations and behavior change based on emotional state (color)
+ */
+
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { getColor } from '../config/colors.js';
+
+export class Cube {
+  constructor() {
+    this.mesh = null;
+    this.material = null;
+    this.currentColor = getColor('ORANGE'); // Start with ORANGE (Fourth Way)
+    this.targetColor = this.currentColor;
+
+    // Animation state
+    this.time = 0;
+    this.colorTransitionProgress = 1; // 1 = transition complete
+    this.colorTransitionDuration = 1; // 1 second transition
+
+    // Eyes
+    this.eyeGroup = null;
+    this.leftEye = null;
+    this.rightEye = null;
+    this.leftPupil = null;
+    this.rightPupil = null;
+    this.blinkTimer = 0;
+    this.isBlinking = false;
+    this.nextBlinkTime = 3 + Math.random() * 4;
+
+    this.init();
+  }
+
+  /**
+   * Initialize the cube
+   */
+  init() {
+    // Create rounded box geometry (softer, more friendly than sharp cube)
+    const geometry = new RoundedBoxGeometry(2, 2, 2, 4, 0.15);
+
+    // Create hybrid material: satin-metal + semi-transparent polymer
+    this.material = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      metalness: 0.4,           // Satin-metallic effect
+      roughness: 0.3,           // Satin texture (not too glossy)
+      transparent: true,
+      opacity: 0.85,            // Semi-transparent (85%)
+      transmission: 0.3,        // Glass/polymer transparency
+      thickness: 0.5,           // Material thickness
+      clearcoat: 0.5,           // Lacquer coating on top
+      clearcoatRoughness: 0.2,  // Slightly matte coating
+      emissive: this.currentColor.emissive,
+      emissiveIntensity: this.currentColor.glowIntensity,
+      ior: 1.5                  // Index of refraction (like plastic)
+    });
+
+    this.mesh = new THREE.Mesh(geometry, this.material);
+    this.mesh.castShadow = true;
+
+    // Create eyes
+    this.createEyes();
+  }
+
+  /**
+   * Create eye elements
+   */
+  createEyes() {
+    this.eyeGroup = new THREE.Group();
+
+    // Left eye
+    const eyeGeometry = new THREE.CircleGeometry(0.15, 32);
+    const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    this.leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+    this.leftEye.position.set(-0.3, 0.3, 1.01);
+    this.eyeGroup.add(this.leftEye);
+
+    // Right eye
+    this.rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+    this.rightEye.position.set(0.3, 0.3, 1.01);
+    this.eyeGroup.add(this.rightEye);
+
+    // Left pupil
+    const pupilGeometry = new THREE.CircleGeometry(0.08, 32);
+    const pupilMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    this.leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+    this.leftPupil.position.set(-0.3, 0.3, 1.02);
+    this.eyeGroup.add(this.leftPupil);
+
+    // Right pupil
+    this.rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+    this.rightPupil.position.set(0.3, 0.3, 1.02);
+    this.eyeGroup.add(this.rightPupil);
+
+    this.mesh.add(this.eyeGroup);
+  }
+
+  /**
+   * Set target color (smooth transition)
+   */
+  setColor(colorName) {
+    this.targetColor = getColor(colorName);
+    this.colorTransitionProgress = 0; // Start transition
+  }
+
+  /**
+   * Update pupils to follow mouse/touch
+   */
+  updatePupilPosition(normalizedX, normalizedY) {
+    const pupilRange = 0.04;
+    this.leftPupil.position.x = -0.3 + normalizedX * pupilRange;
+    this.leftPupil.position.y = 0.3 + normalizedY * pupilRange;
+    this.rightPupil.position.x = 0.3 + normalizedX * pupilRange;
+    this.rightPupil.position.y = 0.3 + normalizedY * pupilRange;
+  }
+
+  /**
+   * Animation update loop
+   */
+  update(deltaTime, mouseX = 0, mouseY = 0) {
+    this.time += deltaTime;
+
+    // Base floating animation (sine wave)
+    const baseY = Math.sin(this.time * Math.PI * 2) * 0.2;
+    this.mesh.position.y = baseY;
+
+    // Idle sway animation (gentle left-right rotation)
+    const swaySpeed = this.currentColor.animationSpeed || 0.4;
+    const swayAngle = Math.sin(this.time * swaySpeed) * (20 * Math.PI / 180); // 20°
+    this.mesh.rotation.y = swayAngle;
+
+    // Tilt to follow mouse (up-down)
+    const tiltAngle = -mouseY * (15 * Math.PI / 180); // 15°
+    this.mesh.rotation.x = tiltAngle;
+
+    // Breathing effect (pulsing glow)
+    const breathingSpeed = this.currentColor.breathingSpeed || 1.5;
+    const breathingIntensity = this.currentColor.glowIntensity +
+                               Math.sin(this.time * breathingSpeed) * 0.15;
+    this.material.emissiveIntensity = breathingIntensity;
+
+    // Color transition
+    if (this.colorTransitionProgress < 1) {
+      this.colorTransitionProgress += deltaTime / this.colorTransitionDuration;
+      this.colorTransitionProgress = Math.min(this.colorTransitionProgress, 1);
+
+      // Lerp between current and target color
+      const currentEmissive = new THREE.Color(this.currentColor.emissive);
+      const targetEmissive = new THREE.Color(this.targetColor.emissive);
+      currentEmissive.lerp(targetEmissive, this.colorTransitionProgress);
+      this.material.emissive.copy(currentEmissive);
+
+      if (this.colorTransitionProgress >= 1) {
+        this.currentColor = this.targetColor;
+      }
+    }
+
+    // Blinking animation
+    this.updateBlinking(deltaTime);
+
+    // Update pupil position
+    this.updatePupilPosition(mouseX, mouseY);
+  }
+
+  /**
+   * Update blinking animation
+   */
+  updateBlinking(deltaTime) {
+    this.blinkTimer += deltaTime;
+
+    if (!this.isBlinking && this.blinkTimer >= this.nextBlinkTime) {
+      this.isBlinking = true;
+      this.blinkTimer = 0;
+    }
+
+    if (this.isBlinking) {
+      const blinkDuration = 0.15;
+      const blinkProgress = this.blinkTimer / blinkDuration;
+
+      if (blinkProgress >= 1) {
+        this.isBlinking = false;
+        this.blinkTimer = 0;
+        this.nextBlinkTime = 3 + Math.random() * 4;
+        this.leftEye.scale.y = 1;
+        this.rightEye.scale.y = 1;
+      } else {
+        // Close and open eyes (sine wave)
+        const scaleY = Math.abs(Math.sin(blinkProgress * Math.PI));
+        this.leftEye.scale.y = scaleY;
+        this.rightEye.scale.y = scaleY;
+      }
+    }
+  }
+
+  /**
+   * Get the THREE.js mesh object
+   */
+  getMesh() {
+    return this.mesh;
+  }
+
+  /**
+   * Dispose and cleanup
+   */
+  dispose() {
+    this.mesh.geometry.dispose();
+    this.material.dispose();
+  }
+}

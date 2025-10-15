@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cubiqo - A conscious cube between light and code">
+    <title>Cubiqo - Emotional AI Companion</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="./styles/main.css">
+
+    <!-- Three.js Import Map -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Voice Control UI -->
+    <div id="voice-ui">
+        <button id="voice-btn" aria-label="Voice input">🎤</button>
+    </div>
+
+    <!-- Color Controls -->
+    <div id="controls">
+        <button class="color-btn red" data-color="RED" aria-label="Red - Desire"></button>
+        <button class="color-btn yellow" data-color="YELLOW" aria-label="Yellow - Comfort"></button>
+        <button class="color-btn greenBlue" data-color="GREEN_BLUE" aria-label="Green-Blue - Growth"></button>
+        <button class="color-btn orange active" data-color="ORANGE" aria-label="Orange - Stillness"></button>
+    </div>
+
+    <!-- Transcript Display -->
+    <div id="transcript"></div>
+
+    <!-- Main Application -->
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>
