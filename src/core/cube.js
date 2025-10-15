@@ -36,6 +36,7 @@ export class Cube {
     this.blinkTimer = 0;
     this.isBlinking = false;
     this.nextBlinkTime = 3 + Math.random() * 4;
+    this.blinkCount = 0; // For double blink in RED mode
 
     this.init();
   }
@@ -205,28 +206,43 @@ export class Cube {
   }
 
   /**
-   * Update blinking animation
+   * Update blinking animation (adapts to color mode)
    */
   updateBlinking(deltaTime) {
     this.blinkTimer += deltaTime;
 
+    // Get blink parameters from current color
+    const blinkStyle = this.currentColor.blinkStyle || 'steady';
+    const blinkSpeed = this.currentColor.blinkSpeed || 0.15;
+
     if (!this.isBlinking && this.blinkTimer >= this.nextBlinkTime) {
       this.isBlinking = true;
       this.blinkTimer = 0;
+      this.blinkCount = 0;
     }
 
     if (this.isBlinking) {
-      const blinkDuration = 0.15;
-      const blinkProgress = this.blinkTimer / blinkDuration;
+      const blinkProgress = this.blinkTimer / blinkSpeed;
 
       if (blinkProgress >= 1) {
-        this.isBlinking = false;
-        this.blinkTimer = 0;
-        this.nextBlinkTime = 3 + Math.random() * 4;
-        this.leftEye.scale.y = 1;
-        this.rightEye.scale.y = 1;
+        // Handle double blink for RED mode
+        if (blinkStyle === 'double' && this.blinkCount === 0) {
+          this.blinkCount = 1;
+          this.blinkTimer = 0;
+          // Short pause before second blink
+          this.leftEye.scale.y = 1;
+          this.rightEye.scale.y = 1;
+        } else {
+          // Blink complete
+          this.isBlinking = false;
+          this.blinkTimer = 0;
+          this.blinkCount = 0;
+          this.nextBlinkTime = 3 + Math.random() * 4;
+          this.leftEye.scale.y = 1;
+          this.rightEye.scale.y = 1;
+        }
       } else {
-        // Close and open eyes (sine wave)
+        // Animate blink (close and open)
         const scaleY = Math.abs(Math.sin(blinkProgress * Math.PI));
         this.leftEye.scale.y = scaleY;
         this.rightEye.scale.y = scaleY;
