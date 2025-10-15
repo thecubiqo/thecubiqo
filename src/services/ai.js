@@ -7,7 +7,12 @@
 
 import { getColorNames } from '../config/colors.js';
 
-const API_URL = 'https://api.anthropic.com/v1/messages';
+// Use proxy server for development (avoids CORS)
+// In production (Vercel), this will be replaced with serverless function
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:3000/api/chat'  // Development proxy
+  : '/api/chat';                       // Production serverless function
+
 const MODEL = 'claude-sonnet-4-20250514'; // Latest Sonnet model
 
 // System prompt: Defines Cubiqo's personality and color selection logic
@@ -88,14 +93,11 @@ class AIService {
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: MODEL,
-          max_tokens: 200,  // Keep responses concise
-          system: SYSTEM_PROMPT,
+          apiKey: this.apiKey,
+          systemPrompt: SYSTEM_PROMPT,
           messages: messages
         })
       });
