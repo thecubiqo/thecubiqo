@@ -5,6 +5,7 @@
  * "Between light and code, consciousness takes form"
  */
 
+import * as THREE from 'three';
 import { SceneManager } from './core/scene.js';
 import { Cube } from './core/cube.js';
 import voiceService from './services/voice.js';
