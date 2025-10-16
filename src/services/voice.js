@@ -95,6 +95,7 @@ class VoiceService {
     // Track interim results
     this.lastInterimTime = 0;
     this.finalTranscript = '';
+    this.lastInterimTranscript = ''; // Keep last interim for fallback
 
     // Event handlers
     this.recognition.onresult = (event) => {
@@ -113,6 +114,11 @@ class VoiceService {
         }
       }
 
+      // Save last interim for fallback
+      if (interimTranscript) {
+        this.lastInterimTranscript = interimTranscript;
+      }
+
       // Clear no-speech timeout since we got speech
       clearTimeout(this.noSpeechTimeout);
 
@@ -129,12 +135,17 @@ class VoiceService {
       // Reset silence timeout - stop 2.5 seconds after last speech
       clearTimeout(this.silenceTimeout);
       this.silenceTimeout = setTimeout(() => {
-        if (this.isListening && this.finalTranscript.trim()) {
-          console.log(`🎤 Final Transcript: "${this.finalTranscript.trim()}"`);
-          this.updateDebug('🤐 Silence (2.5s), sending...', this.finalTranscript.trim());
-          this.stopListening();
-          if (this.onTranscriptCallback) {
-            this.onTranscriptCallback(this.finalTranscript.trim());
+        if (this.isListening) {
+          // Use final transcript if available, otherwise use last interim
+          const textToSend = this.finalTranscript.trim() || this.lastInterimTranscript.trim();
+
+          if (textToSend) {
+            console.log(`🎤 Final Transcript: "${textToSend}"`);
+            this.updateDebug('🤐 Silence (2.5s), sending...', textToSend);
+            this.stopListening();
+            if (this.onTranscriptCallback) {
+              this.onTranscriptCallback(textToSend);
+            }
           }
         }
       }, 2500); // 2.5 seconds of silence = done speaking
@@ -221,6 +232,7 @@ class VoiceService {
     this.onTranscriptCallback = onTranscript;
     this.onErrorCallback = onError;
     this.finalTranscript = ''; // Reset transcript
+    this.lastInterimTranscript = ''; // Reset interim
 
     try {
       this.recognition.start();
