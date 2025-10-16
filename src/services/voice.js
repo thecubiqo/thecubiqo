@@ -49,22 +49,48 @@ class VoiceService {
     }
 
     this.recognition = new SpeechRecognition();
-    this.recognition.continuous = false;      // Single utterance
-    this.recognition.interimResults = false;  // Only final results
+    this.recognition.continuous = true;       // Keep listening (don't stop on pause)
+    this.recognition.interimResults = true;   // Get interim results to know user is speaking
     this.recognition.lang = this.currentLanguage;
     this.recognition.maxAlternatives = 1;     // Only best match
 
+    // Track interim results
+    this.lastInterimTime = 0;
+    this.finalTranscript = '';
+
     // Event handlers
     this.recognition.onresult = (event) => {
-      clearTimeout(this.recognitionTimeout);
-      const transcript = event.results[0][0].transcript;
-      const confidence = event.results[0][0].confidence;
+      this.lastInterimTime = Date.now();
 
-      console.log(`🎤 Transcript: "${transcript}" (confidence: ${(confidence * 100).toFixed(1)}%)`);
+      // Build final transcript from all results
+      let interimTranscript = '';
+      this.finalTranscript = '';
 
-      if (this.onTranscriptCallback) {
-        this.onTranscriptCallback(transcript);
+      for (let i = 0; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          this.finalTranscript += transcript + ' ';
+        } else {
+          interimTranscript += transcript;
+        }
       }
+
+      // Log interim results
+      if (interimTranscript) {
+        console.log(`🎤 Interim: "${interimTranscript}"`);
+      }
+
+      // Reset silence timeout - stop 2.5 seconds after last speech
+      clearTimeout(this.silenceTimeout);
+      this.silenceTimeout = setTimeout(() => {
+        if (this.isListening && this.finalTranscript.trim()) {
+          console.log(`🎤 Final Transcript: "${this.finalTranscript.trim()}"`);
+          this.stopListening();
+          if (this.onTranscriptCallback) {
+            this.onTranscriptCallback(this.finalTranscript.trim());
+          }
+        }
+      }, 2500); // 2.5 seconds of silence = done speaking
     };
 
     this.recognition.onerror = (event) => {
@@ -88,14 +114,14 @@ class VoiceService {
 
     this.recognition.onstart = () => {
       console.log('🎤 Listening started...');
-      // Safety timeout: stop after 10 seconds if no result
+      // Safety timeout: stop after 15 seconds if no result (increased from 10s)
       this.recognitionTimeout = setTimeout(() => {
         if (this.isListening) {
           console.warn('Recognition timeout, stopping...');
           this.stopListening();
           this.onErrorCallback?.('timeout');
         }
-      }, 10000);
+      }, 15000);
     };
 
     this.recognition.onend = () => {
@@ -117,6 +143,7 @@ class VoiceService {
 
     this.onTranscriptCallback = onTranscript;
     this.onErrorCallback = onError;
+    this.finalTranscript = ''; // Reset transcript
 
     try {
       this.recognition.start();
@@ -138,6 +165,7 @@ class VoiceService {
    */
   stopListening() {
     if (this.recognition && this.isListening) {
+      clearTimeout(this.silenceTimeout);
       this.recognition.stop();
       this.isListening = false;
     }

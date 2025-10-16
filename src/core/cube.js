@@ -156,6 +156,8 @@ export class Cube {
   startListening() {
     this.isListening = true;
     this.listeningIntensity = 0;
+    // Reset blink to apply new interval immediately
+    this.nextBlinkTime = 2 + Math.random() * 1.5; // Match listening interval
   }
 
   /**
@@ -344,11 +346,11 @@ export class Cube {
     // Listening mode: add pulsing effect
     if (this.isListening) {
       this.listeningIntensity += deltaTime * 3; // Increase intensity
-      const listeningPulse = Math.sin(this.listeningIntensity * 4) * 0.3; // Fast pulse
+      const listeningPulse = Math.sin(this.listeningIntensity * 1.5) * 0.15; // Slower, gentler pulse (was *4 and *0.3)
       breathingIntensity += listeningPulse;
 
       // Add subtle scale pulsing while listening
-      const scalePulse = 1 + Math.sin(this.listeningIntensity * 4) * 0.02; // 2% scale variation
+      const scalePulse = 1 + Math.sin(this.listeningIntensity * 1.5) * 0.01; // Reduced scale (was *4 and *0.02)
       this.mesh.scale.setScalar(scalePulse);
     } else {
       // Reset scale when not listening
@@ -388,7 +390,12 @@ export class Cube {
 
     // Get blink parameters from current color
     const blinkStyle = this.currentColor.blinkStyle || 'steady';
-    const blinkSpeed = this.currentColor.blinkSpeed || 0.15;
+    let blinkSpeed = this.currentColor.blinkSpeed || 0.15;
+
+    // Slower blink speed when listening (looks more natural)
+    if (this.isListening) {
+      blinkSpeed = 0.25; // Slower blink (was 0.15)
+    }
 
     // Adjust blink frequency based on state
     let blinkInterval;
