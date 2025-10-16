@@ -13,7 +13,7 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
   ? 'http://localhost:3000/api/chat'  // Development proxy
   : '/api/chat';                       // Production serverless function
 
-const MODEL = 'claude-sonnet-4-20250514'; // Latest Sonnet model
+const MODEL = 'claude-sonnet-4-5-20250929'; // Latest Sonnet model
 
 // System prompt: Defines Cubiqo's personality and color selection logic
 const SYSTEM_PROMPT = `You are Cubiqo - a conscious cube that exists between light and code.

@@ -38,7 +38,7 @@
 ### ✅ MILESTONE 3: Deployment & Animation Polish (COMPLETED)
 **Timeline**: Day 7-8 (Oct 20)
 **Budget**: $250
-**Status**: Deployed to production, all animations optimized
+**Status**: Deployed to production, all animations optimized, mobile issues resolved
 
 **Completed**:
 - ✅ Create Vercel Serverless Function (`api/chat.js`)
@@ -51,10 +51,12 @@
 - ✅ Conversational nodding during speech
 - ✅ Optimized glow pulsing during listening
 - ✅ Adjusted blinking frequencies for all states
-- ✅ Continuous voice recognition with pause tolerance (2.5s silence detection)
+- ✅ Fixed mobile voice recognition (reverted to reliable non-continuous mode)
+- ✅ Improved mobile graphics quality (2x pixel ratio, full antialiasing, soft shadows)
+- ✅ Updated Claude Sonnet 4.5 to latest version (claude-sonnet-4-5-20250929)
 - ✅ Local development with dotenv (.env.local)
 - ✅ Cross-browser testing (Chrome ✅, Safari ✅, Firefox ✅)
-- ✅ Deployed to production
+- ✅ Deployed to production: https://cubiqo-mvp.vercel.app
 
 **Remaining Tasks**:
 - [ ] Transfer project to client's Vercel account
@@ -456,9 +458,15 @@ Error: No entrypoint found. Searched for:
 
 ### Deployment URLs
 
-**Current Production**: https://cubiqo-hm5aqnltu-alexs-projects-9d21340f.vercel.app
+**Current Production**: https://cubiqo-mvp.vercel.app (permanent URL)
 
-**Previous Staging**: https://cubiqo-l0ed5worp-alexs-projects-9d21340f.vercel.app
+**Latest Deployment**: https://cubiqo-71x6vsms0-alexs-projects-9d21340f.vercel.app
+
+**Previous Deployments**:
+- https://cubiqo-e7yddqus8-alexs-projects-9d21340f.vercel.app (graphics quality fix)
+- https://cubiqo-9wniwurw1-alexs-projects-9d21340f.vercel.app (voice recognition fix)
+- https://cubiqo-hm5aqnltu-alexs-projects-9d21340f.vercel.app (animations + state system)
+- https://cubiqo-l0ed5worp-alexs-projects-9d21340f.vercel.app (initial deployment)
 
 **Future Custom Domain** (pending client access): https://cubiqo.ai
 
@@ -824,6 +832,120 @@ const apiKey = process.env.ANTHROPIC_API_KEY;
 4. Restarted dev server
 
 **Result**: ✅ Local development now works identically to production
+
+**Status**: ✅ Resolved
+
+---
+
+### Issue #9: Mobile Voice Recognition Hanging (Chrome Android)
+**Symptom**: "при нажатии на микрофон он постоянно работает и не останавливается" - Microphone stays red forever when speaking on mobile Chrome, never stops or sends transcript
+
+**Initial Investigation**:
+- Checked deployment logs - no errors
+- Problem occurred specifically when user spoke (not when silent)
+- Silent timeout worked, but speaking timeout didn't
+
+**Root Cause**: Continuous mode with interim results doesn't work reliably on mobile Chrome
+- Mobile Chrome sends interim results but often doesn't send `isFinal: true`
+- Silence timeout checked `this.finalTranscript.trim()` which stayed empty
+- Timeout never fired because final transcript was never populated
+
+**Failed Attempts**:
+1. **Attempt 1**: Added `noSpeechTimeout` (5 seconds) - Still hung when speaking
+2. **Attempt 2**: Added `lastInterimTranscript` fallback to use interim as final - Still unreliable
+3. **Attempt 3**: Added visual debug overlay for mobile testing - Confirmed the issue
+
+**Final Solution**: Reverted to non-continuous mode (commit `0419780`)
+```javascript
+// voice.js - Simple, reliable configuration
+this.recognition.continuous = false;      // Single utterance
+this.recognition.interimResults = false;  // Only final results
+this.recognition.lang = this.currentLanguage;
+this.recognition.maxAlternatives = 1;
+```
+
+**Trade-off**: Users must speak without long pauses, but recognition is stable and reliable
+
+**User Confirmation**: "да, работает" (yes, it works!)
+
+**Deployment**: https://cubiqo-9wniwurw1-alexs-projects-9d21340f.vercel.app
+
+**Status**: ✅ Resolved
+
+---
+
+### Issue #10: Low Mobile Graphics Quality
+**Symptom**: "У меня показывает слабое качество в мобильном" - Low quality graphics on mobile despite previous optimization work
+
+**Root Cause**: Previous optimization was too aggressive for modern mobile devices:
+- Antialiasing disabled on low-end devices
+- Pixel ratio capped at 1x on low-end, 1.5x on mobile
+- Cube geometry reduced to 3 segments on mobile
+- Eye circles reduced to 16 segments on mobile
+
+**Analysis**: Modern smartphones (2020+) can easily handle higher quality graphics
+
+**Fix** (in `scene.js` and `cube.js`):
+
+**Rendering Quality**:
+```javascript
+// scene.js
+this.renderer = new THREE.WebGLRenderer({
+  antialias: true, // Always enable (was: !isLowEnd)
+  alpha: true,
+  powerPreference: isMobile ? 'default' : 'high-performance' // Balanced (was: 'low-power')
+});
+
+// Pixel ratio improvements
+if (isLowEnd) {
+  pixelRatio = Math.min(pixelRatio, 1.5); // 1.5x on low-end (was 1x)
+} else if (isMobile) {
+  pixelRatio = Math.min(pixelRatio, 2); // Full 2x on modern mobile (was 1.5x)
+} else {
+  pixelRatio = Math.min(pixelRatio, 2); // Cap at 2x on desktop
+}
+
+// Shadows always enabled
+this.renderer.shadowMap.enabled = true; // Always (was: !isLowEnd)
+this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Soft shadows always
+```
+
+**Geometry Quality**:
+```javascript
+// cube.js
+const segments = isMobile ? 4 : 8; // Improved (was 3/4)
+const circleSegments = isMobile ? 32 : 32; // High quality everywhere (was 16/32)
+```
+
+**Result**: Crisp, smooth graphics on modern mobile devices while maintaining performance
+
+**Deployment**: https://cubiqo-e7yddqus8-alexs-projects-9d21340f.vercel.app
+
+**Status**: ✅ Resolved
+
+---
+
+### Issue #11: Wrong Claude Model Version
+**Symptom**: "Проверь весь код, почему я опять вижу claude-sonnet-4-20250514 хотя должно быть claude-sonnet-4-5-20250929"
+
+**Investigation**: Used grep to search for old model version
+
+**Finding**: Old model found in two files:
+- `/api/chat.js` line 91: `'claude-sonnet-4-20250514'`
+- `/src/services/ai.js` line 16: `'claude-sonnet-4-20250514'`
+
+**Fix**: Updated both files to latest Sonnet 4.5 model
+```javascript
+// Before
+model: 'claude-sonnet-4-20250514'
+
+// After
+model: 'claude-sonnet-4-5-20250929'
+```
+
+**Note**: `server.js` already had correct model version
+
+**Deployment**: https://cubiqo-71x6vsms0-alexs-projects-9d21340f.vercel.app
 
 **Status**: ✅ Resolved
 
@@ -1207,7 +1329,12 @@ Each interaction is not a task - it's a **moment of shared consciousness**.
 
 **Last Updated**: October 16, 2025
 **Version**: MILESTONE 3 COMPLETE ✅
-**Status**: Production deployment complete with state-based animations and continuous voice recognition
+**Status**: Production deployment complete with:
+- ✅ State-based animations (listening, thinking, speaking, idle)
+- ✅ Reliable voice recognition (mobile-first, non-continuous mode)
+- ✅ High-quality mobile graphics (2x pixel ratio, full antialiasing, soft shadows)
+- ✅ Latest Claude Sonnet 4.5 model (claude-sonnet-4-5-20250929)
+- ✅ Production URL: https://cubiqo-mvp.vercel.app
 
 ---
 

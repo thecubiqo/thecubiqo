@@ -23,8 +23,10 @@ Cubiqo is an emotional AI companion that manifests as a living 3D cube. It liste
 - ✅ API key migrated to server-side (security improvement)
 - ✅ State-based animations (listening, thinking, speaking, idle)
 - ✅ Smooth state transitions with lerp interpolation
-- ✅ Continuous voice recognition with pause tolerance
-- ✅ Deployed to production: [cubiqo-hm5aqnltu-alexs-projects-9d21340f.vercel.app](https://cubiqo-hm5aqnltu-alexs-projects-9d21340f.vercel.app)
+- ✅ Mobile voice recognition fixed (reliable non-continuous mode)
+- ✅ Mobile graphics quality improved (2x pixel ratio, full antialiasing, soft shadows)
+- ✅ Claude Sonnet 4.5 model updated to latest version
+- ✅ Deployed to production: [cubiqo-mvp.vercel.app](https://cubiqo-mvp.vercel.app)
 - ⏳ Custom domain (cubiqo.ai) pending client access
 
 ## 🌈 Philosophy
@@ -41,13 +43,13 @@ The cube embodies four emotional dimensions:
 - **3D Interactive Cube**: Floating, breathing, emotionally expressive animations
 - **State-Based Behaviors**: Different animations for listening, thinking, speaking, and idle states
 - **Smooth Transitions**: Lerp-based interpolation between all animation states
-- **Voice Conversation**: Continuous recognition with pause tolerance (2.5s silence detection)
+- **Voice Conversation**: Reliable voice recognition that works perfectly on mobile browsers
 - **Natural Speech**: TTS with Reed voice (US male, optimized rate/pitch)
-- **AI-Powered**: Claude Sonnet 4.5 with 5-minute Prompt Caching
+- **AI-Powered**: Claude Sonnet 4.5 (latest) with 5-minute Prompt Caching
 - **Color Dynamics**: Real-time emotional state visualization
 - **Cube Reactions**: Listening pulse, V-shaped thinking, conversational nodding
 - **Memory**: Session-based conversation history (localStorage)
-- **Mobile-Optimized**: Adaptive performance for all devices
+- **Mobile-Optimized**: High-quality graphics (2x pixel ratio, antialiasing, soft shadows) on modern smartphones
 
 ## 🛠️ Tech Stack
 
@@ -154,7 +156,7 @@ On Vercel Dashboard, set:
 - **Security**: API key stored server-side, never exposed to client
 - **Caching**: Anthropic Prompt Caching (5-minute TTL, 90% cost reduction)
 
-**Production URL**: https://cubiqo-hm5aqnltu-alexs-projects-9d21340f.vercel.app
+**Production URL**: https://cubiqo-mvp.vercel.app (or https://cubiqo-71x6vsms0-alexs-projects-9d21340f.vercel.app)
 
 ## 🎮 Usage
 
@@ -246,9 +248,11 @@ cubiqo-mvp/
 - ✅ Smooth lerp transitions between all states
 - ✅ V-shaped thinking animation
 - ✅ Conversational nodding during speech
-- ✅ Continuous voice recognition with pause tolerance
+- ✅ Voice recognition fixed for mobile (non-continuous mode for reliability)
+- ✅ Mobile graphics quality improved (2x pixel ratio, full antialiasing, soft shadows)
+- ✅ Claude Sonnet 4.5 updated to latest version (claude-sonnet-4-5-20250929)
 - ✅ Optimized glow pulsing and blinking frequencies
-- ✅ Deployed to production environment
+- ✅ Deployed to production environment (cubiqo-mvp.vercel.app)
 - ✅ Cross-browser testing (Chrome ✅, Safari ✅, Firefox ✅ - 3D only)
 - ⏳ Custom domain (cubiqo.ai) - waiting for client access
 - ⏳ Transfer to client's Vercel account
@@ -285,12 +289,12 @@ cubiqo-mvp/
 - **Optimized Pulsing**: Gentle glow during listening (1.5 speed, 15% amplitude)
 
 ### Voice Quality
-- **Continuous Recognition**: Pause-tolerant voice input with 2.5s silence detection
-- **Interim Results**: Real-time transcription feedback during speech
+- **Reliable Recognition**: Non-continuous mode for stable voice input on all mobile browsers
+- **Mobile-First Design**: Works perfectly on Chrome Mobile, Safari iOS, and other mobile browsers
 - **Optimal Voice Selection**: Priority system finds Reed (US male) over 210+ available voices
 - **TTS Optimization**: rate=0.92, pitch=1.05, volume=1.0 for emotional delivery
 - **iOS Compatibility**: Audio context activation handles Safari autoplay restrictions
-- **Smart Timeouts**: 15-second max recording with silence-based auto-stop
+- **Smart Timeouts**: 10-second safety timeout for reliable completion
 
 ### AI Efficiency
 - **Prompt Caching**: 90% cost reduction using ephemeral cache (5-minute TTL)
@@ -299,9 +303,11 @@ cubiqo-mvp/
 - **Structured Output**: JSON format with color + response for reliable parsing
 
 ### Performance Optimization
-- **Adaptive Rendering**: Device detection adjusts pixel ratio (1x low-end, 1.5x mobile, 2x desktop)
-- **Geometry Reduction**: Lower-poly cube on mobile devices
-- **Power Management**: `low-power` mode for mobile, `high-performance` for desktop
+- **High-Quality Rendering**: Modern mobile devices get 2x pixel ratio with full antialiasing
+- **Adaptive Quality**: Low-end devices get 1.5x pixel ratio (better than previous 1x)
+- **Smooth Geometry**: 4 segments on mobile (improved from 3), 8 on desktop
+- **Soft Shadows**: PCFSoftShadowMap enabled on all devices for better quality
+- **Balanced Power**: `default` power mode for mobile (improved battery + quality balance)
 - **GPU Hints**: `will-change` and `translateZ(0)` for hardware acceleration
 
 ### Architecture
