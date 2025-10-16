@@ -16,8 +16,46 @@ class VoiceService {
     this.currentLanguage = 'en-US'; // Default language
     this.voicesLoaded = false;
 
+    // Debug overlay
+    this.debugOverlay = null;
+    this.debugStatus = null;
+    this.debugTimer = null;
+    this.debugTranscript = null;
+    this.startTime = 0;
+    this.debugInterval = null;
+
     this.initRecognition();
     this.initVoices();
+    this.initDebug();
+  }
+
+  /**
+   * Initialize debug overlay (for mobile testing)
+   */
+  initDebug() {
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => this.setupDebug());
+    } else {
+      this.setupDebug();
+    }
+  }
+
+  setupDebug() {
+    this.debugOverlay = document.getElementById('debug-overlay');
+    this.debugStatus = document.getElementById('debug-status');
+    this.debugTimer = document.getElementById('debug-timer');
+    this.debugTranscript = document.getElementById('debug-transcript');
+  }
+
+  updateDebug(status, transcript = null) {
+    if (!this.debugOverlay) return;
+
+    this.debugOverlay.style.display = 'block';
+    if (this.debugStatus) this.debugStatus.textContent = `Status: ${status}`;
+    if (transcript !== null && this.debugTranscript) {
+      this.debugTranscript.textContent = `Transcript: ${transcript || '-'}`;
+    }
   }
 
   /**
@@ -81,6 +119,11 @@ class VoiceService {
       // Log interim results
       if (interimTranscript) {
         console.log(`🎤 Interim: "${interimTranscript}"`);
+        this.updateDebug('🎤 Speaking...', interimTranscript);
+      }
+
+      if (this.finalTranscript.trim()) {
+        this.updateDebug('✅ Got text', this.finalTranscript.trim());
       }
 
       // Reset silence timeout - stop 2.5 seconds after last speech
@@ -88,6 +131,7 @@ class VoiceService {
       this.silenceTimeout = setTimeout(() => {
         if (this.isListening && this.finalTranscript.trim()) {
           console.log(`🎤 Final Transcript: "${this.finalTranscript.trim()}"`);
+          this.updateDebug('🤐 Silence (2.5s), sending...', this.finalTranscript.trim());
           this.stopListening();
           if (this.onTranscriptCallback) {
             this.onTranscriptCallback(this.finalTranscript.trim());
@@ -117,11 +161,20 @@ class VoiceService {
 
     this.recognition.onstart = () => {
       console.log('🎤 Listening started...');
+      this.updateDebug('🎤 Listening...', '');
+
+      // Start timer display
+      this.startTime = Date.now();
+      this.debugInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+        if (this.debugTimer) this.debugTimer.textContent = `Timer: ${elapsed}s`;
+      }, 100);
 
       // Safety timeout: stop after 15 seconds max
       this.recognitionTimeout = setTimeout(() => {
         if (this.isListening) {
           console.warn('⏱️ Max timeout (15s), stopping...');
+          this.updateDebug('⏱️ Max timeout (15s)');
           this.stopListening();
 
           // If we have transcript, send it
@@ -137,6 +190,7 @@ class VoiceService {
       this.noSpeechTimeout = setTimeout(() => {
         if (this.isListening && !this.finalTranscript.trim()) {
           console.warn('🔇 No speech detected (5s), stopping...');
+          this.updateDebug('🔇 No speech (5s)');
           this.stopListening();
           this.onErrorCallback?.('no-speech');
         }
@@ -147,8 +201,10 @@ class VoiceService {
       clearTimeout(this.recognitionTimeout);
       clearTimeout(this.noSpeechTimeout);
       clearTimeout(this.silenceTimeout);
+      clearInterval(this.debugInterval);
       this.isListening = false;
       console.log('🎤 Listening stopped');
+      this.updateDebug('⏹️ Stopped');
     };
   }
 
@@ -189,8 +245,10 @@ class VoiceService {
       clearTimeout(this.silenceTimeout);
       clearTimeout(this.noSpeechTimeout);
       clearTimeout(this.recognitionTimeout);
+      clearInterval(this.debugInterval);
       this.recognition.stop();
       this.isListening = false;
+      this.updateDebug('⏹️ Stopping...');
     }
   }
 
