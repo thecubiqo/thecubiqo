@@ -75,6 +75,9 @@ class VoiceService {
         }
       }
 
+      // Clear no-speech timeout since we got speech
+      clearTimeout(this.noSpeechTimeout);
+
       // Log interim results
       if (interimTranscript) {
         console.log(`🎤 Interim: "${interimTranscript}"`);
@@ -114,18 +117,36 @@ class VoiceService {
 
     this.recognition.onstart = () => {
       console.log('🎤 Listening started...');
-      // Safety timeout: stop after 15 seconds if no result (increased from 10s)
+
+      // Safety timeout: stop after 15 seconds max
       this.recognitionTimeout = setTimeout(() => {
         if (this.isListening) {
-          console.warn('Recognition timeout, stopping...');
+          console.warn('⏱️ Max timeout (15s), stopping...');
           this.stopListening();
-          this.onErrorCallback?.('timeout');
+
+          // If we have transcript, send it
+          if (this.finalTranscript.trim() && this.onTranscriptCallback) {
+            this.onTranscriptCallback(this.finalTranscript.trim());
+          } else {
+            this.onErrorCallback?.('timeout');
+          }
         }
       }, 15000);
+
+      // Silence timeout: stop after 5 seconds of no speech at all
+      this.noSpeechTimeout = setTimeout(() => {
+        if (this.isListening && !this.finalTranscript.trim()) {
+          console.warn('🔇 No speech detected (5s), stopping...');
+          this.stopListening();
+          this.onErrorCallback?.('no-speech');
+        }
+      }, 5000);
     };
 
     this.recognition.onend = () => {
       clearTimeout(this.recognitionTimeout);
+      clearTimeout(this.noSpeechTimeout);
+      clearTimeout(this.silenceTimeout);
       this.isListening = false;
       console.log('🎤 Listening stopped');
     };
@@ -166,6 +187,8 @@ class VoiceService {
   stopListening() {
     if (this.recognition && this.isListening) {
       clearTimeout(this.silenceTimeout);
+      clearTimeout(this.noSpeechTimeout);
+      clearTimeout(this.recognitionTimeout);
       this.recognition.stop();
       this.isListening = false;
     }
