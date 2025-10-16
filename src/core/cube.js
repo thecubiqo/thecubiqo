@@ -393,8 +393,8 @@ export class Cube {
     // Adjust blink frequency based on state
     let blinkInterval;
     if (this.isListening) {
-      // LISTENING: Very frequent blinking (alert, attentive)
-      blinkInterval = 0.8 + Math.random() * 0.7; // Blink every 0.8-1.5 seconds
+      // LISTENING: Moderate blinking (alert but not frantic)
+      blinkInterval = 2 + Math.random() * 1.5; // Blink every 2-3.5 seconds
     } else if (this.isThinking) {
       // THINKING: Very rare blinking (deep concentration)
       blinkInterval = 6 + Math.random() * 4; // Blink every 6-10 seconds
