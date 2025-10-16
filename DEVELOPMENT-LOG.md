@@ -2,7 +2,7 @@
 
 **Project**: Cubiqo - Emotional AI Companion
 **Dates**: October 15-20, 2025
-**Status**: MILESTONE 3 IN PROGRESS 🚧
+**Status**: MILESTONE 3 COMPLETED ✅
 
 ---
 
@@ -35,19 +35,26 @@
 - ✅ iOS Safari audio context compatibility
 - ✅ Development proxy server for CORS workaround
 
-### 🚧 MILESTONE 3: Deployment (IN PROGRESS)
+### ✅ MILESTONE 3: Deployment & Animation Polish (COMPLETED)
 **Timeline**: Day 7-8 (Oct 20)
 **Budget**: $250
-**Status**: Deployed to staging, waiting for client access for production
+**Status**: Deployed to production, all animations optimized
 
 **Completed**:
 - ✅ Create Vercel Serverless Function (`api/chat.js`)
 - ✅ Migrate API key from client-side to server-side
 - ✅ Configure `vercel.json` for production
 - ✅ Create `.vercelignore` for deployment exclusions
-- ✅ Deploy to staging (CLI deployment)
-- ✅ Disable caching for development
-- ✅ Cross-browser testing (Chrome ✅, Firefox ✅)
+- ✅ State-based animation system (listening, thinking, speaking, idle)
+- ✅ Smooth lerp transitions between all animation states
+- ✅ V-shaped thinking animation (user-requested)
+- ✅ Conversational nodding during speech
+- ✅ Optimized glow pulsing during listening
+- ✅ Adjusted blinking frequencies for all states
+- ✅ Continuous voice recognition with pause tolerance (2.5s silence detection)
+- ✅ Local development with dotenv (.env.local)
+- ✅ Cross-browser testing (Chrome ✅, Safari ✅, Firefox ✅)
+- ✅ Deployed to production
 
 **Remaining Tasks**:
 - [ ] Transfer project to client's Vercel account
@@ -449,9 +456,11 @@ Error: No entrypoint found. Searched for:
 
 ### Deployment URLs
 
-**Current Staging**: https://cubiqo-l0ed5worp-alexs-projects-9d21340f.vercel.app
+**Current Production**: https://cubiqo-hm5aqnltu-alexs-projects-9d21340f.vercel.app
 
-**Future Production** (pending client access): https://cubiqo.ai
+**Previous Staging**: https://cubiqo-l0ed5worp-alexs-projects-9d21340f.vercel.app
+
+**Future Custom Domain** (pending client access): https://cubiqo.ai
 
 ### Security Improvements
 
@@ -561,6 +570,262 @@ app.post('/api/chat', async (req, res) => {
 **Commit**: "Add development proxy server to fix CORS issue"
 **User Feedback**: "Ага, сработало" (Aha, it worked!)
 **Status**: ✅ Resolved (temporary solution, will be replaced with Vercel Serverless Function)
+
+---
+
+### Issue #4: Animation Polish & State Transitions
+**User Request**: "У меня есть отличная идея как нам улучшить кубик, надо изменить его поведение при действиях..."
+
+**Requirements**:
+1. 🎙️ Listening: More frequent blinking + nodding movement
+2. 🗣️ Speaking: Conversational nodding
+3. 💭 Thinking: Interesting movement (V-shaped suggested later)
+4. 🧘 Idle: Reduce blinking frequency
+5. **Critical**: Smooth transitions between states (no jarring changes)
+
+**Implementation Phase 1 - State System**:
+
+Created state management in `cube.js`:
+```javascript
+// Added state variables (lines 36-47)
+this.isThinking = false;
+this.thinkingTime = 0;
+this.isSpeaking = false;
+this.speakingTime = 0;
+
+// Smooth transition system
+this.currentStateRotation = { x: 0, y: 0, z: 0 };
+this.targetStateRotation = { x: 0, y: 0, z: 0 };
+this.rotationTransitionSpeed = 3; // Lerp speed
+```
+
+**User Feedback Round 1**: "слишком быстро кивает" (nodding too fast), "rotation is boring, want V-shaped", "reduce speaking amplitude", **"все это должно переходить от действующего состояния, без резкого изменения"** (smooth transitions critical!)
+
+**Implementation Phase 2 - Animation Refinement**:
+
+**Listening State** (lines 274-280):
+```javascript
+// BEFORE: speed 3, amplitude 15°
+// AFTER: speed 1.8, amplitude 10°
+const nodSpeed = 1.8;
+const nodAngle = Math.sin(this.listeningIntensity * nodSpeed) * (10 * Math.PI / 180);
+```
+
+**Thinking State - V-Shaped Movement** (lines 283-301):
+```javascript
+// User's specific request: V-shaped contemplative movement
+const vSpeed = 0.4; // Very slow
+const vProgress = (this.thinkingTime * vSpeed) % 2;
+
+let vAngle;
+if (vProgress < 1) {
+  // Down phase: 0 → -12° (looking down, thinking)
+  vAngle = -vProgress * (12 * Math.PI / 180);
+} else {
+  // Up phase: -12° → 0 (returning to center)
+  vAngle = -(2 - vProgress) * (12 * Math.PI / 180);
+}
+```
+
+**Speaking State** (lines 304-312):
+```javascript
+// BEFORE: 12° nod + 3° sway
+// AFTER: 7° nod + 2° sway
+const speakNodAngle = Math.sin(this.speakingTime * 2.5) * (7 * Math.PI / 180);
+this.targetStateRotation.z = Math.sin(this.speakingTime * 1.5) * (2 * Math.PI / 180);
+```
+
+**Smooth Lerp Transitions** (lines 314-329):
+```javascript
+// User's critical requirement: no jarring changes
+this.currentStateRotation.x = this.lerp(
+  this.currentStateRotation.x,
+  this.targetStateRotation.x,
+  deltaTime * this.rotationTransitionSpeed
+);
+// ... same for y and z
+```
+
+**Result**: ✅ Smooth, natural state transitions
+
+**User Confirmation**: "Отлично" (Excellent)
+
+---
+
+### Issue #5: Glow Pulsing Too Fast
+**Symptom**: "когда он слушает слишком сильно мигает" (blinks too much when listening)
+
+**Initial Misunderstanding**: Thought user meant eye blinking frequency
+
+**Actions Taken (Incorrect)**:
+- Changed eye blink interval from 0.8-1.5s to 2-3.5s
+- Slowed blink speed from 0.15s to 0.25s
+
+**User Clarification**: "неее, я не про моргаене!!! А про то что сам куб мигает во время когда слушает меня" (NO! Not eye blinking! The cube itself is flashing during listening!)
+
+**Root Cause**: Glow pulsing (emissive intensity) during listening mode
+
+**Fix** (lines 347-354 in `cube.js`):
+```javascript
+// BEFORE: Too fast and intense
+const listeningPulse = Math.sin(this.listeningIntensity * 4) * 0.3;
+const scalePulse = 1 + Math.sin(this.listeningIntensity * 4) * 0.02;
+
+// AFTER: Slower and gentler
+const listeningPulse = Math.sin(this.listeningIntensity * 1.5) * 0.15;
+const scalePulse = 1 + Math.sin(this.listeningIntensity * 1.5) * 0.01;
+```
+
+**Changes**:
+- Pulse speed: `* 4` → `* 1.5` (62% slower)
+- Pulse amplitude: `* 0.3` → `* 0.15` (50% gentler)
+- Scale variation: `* 0.02` → `* 0.01` (50% more subtle)
+
+**User Confirmation**: "Отлично, стало лучше" (Excellent, it got better)
+
+**Status**: ✅ Resolved
+
+---
+
+### Issue #6: Voice Recognition Stops on Pauses
+**Symptom**: "я буквально сделал паузу на 2 сек и он уже прекратил слушать и отправил запрос" (made a 2-second pause and it already stopped listening)
+
+**Initial Approach**: Increased timeout from 10s to 15s
+
+**Why It Didn't Work**: The issue wasn't the overall timeout, but `continuous: false` mode in Web Speech API - browser automatically stops recognition on short pauses (internal browser behavior, not controllable via timeout)
+
+**Root Cause Analysis**:
+- Non-continuous mode: `recognition.continuous = false`
+- Browser's internal silence detection (typically 1-2 seconds)
+- No way to configure browser's pause threshold
+
+**Solution**: Implement continuous recognition with manual silence detection
+
+**Implementation** (in `voice.js`):
+
+**1. Enable Continuous Mode** (lines 51-59):
+```javascript
+// BEFORE:
+this.recognition.continuous = false;
+this.recognition.interimResults = false;
+
+// AFTER:
+this.recognition.continuous = true;       // Keep listening through pauses
+this.recognition.interimResults = true;   // Get live feedback
+
+// Track transcript building
+this.lastInterimTime = 0;
+this.finalTranscript = '';
+```
+
+**2. Build Transcript from Multiple Results** (lines 62-94):
+```javascript
+this.recognition.onresult = (event) => {
+  this.lastInterimTime = Date.now();
+
+  // Aggregate all results
+  let interimTranscript = '';
+  this.finalTranscript = '';
+
+  for (let i = 0; i < event.results.length; i++) {
+    const transcript = event.results[i][0].transcript;
+    if (event.results[i].isFinal) {
+      this.finalTranscript += transcript + ' ';
+    } else {
+      interimTranscript += transcript;
+    }
+  }
+
+  // Log interim for user feedback
+  if (interimTranscript) {
+    console.log(`🎤 Interim: "${interimTranscript}"`);
+  }
+
+  // Manual silence detection: 2.5 seconds
+  clearTimeout(this.silenceTimeout);
+  this.silenceTimeout = setTimeout(() => {
+    if (this.isListening && this.finalTranscript.trim()) {
+      console.log(`🎤 Final Transcript: "${this.finalTranscript.trim()}"`);
+      this.stopListening();
+      if (this.onTranscriptCallback) {
+        this.onTranscriptCallback(this.finalTranscript.trim());
+      }
+    }
+  }, 2500); // 2.5 seconds of silence = done speaking
+};
+```
+
+**3. Cleanup on Stop** (lines 166-171):
+```javascript
+stopListening() {
+  if (this.recognition && this.isListening) {
+    clearTimeout(this.silenceTimeout);  // Clear silence timer
+    this.recognition.stop();
+    this.isListening = false;
+  }
+}
+```
+
+**4. Reset Transcript on Start** (line 146):
+```javascript
+startListening(onTranscript, onError) {
+  // ...
+  this.finalTranscript = ''; // Reset for new recording
+  // ...
+}
+```
+
+**Benefits**:
+- ✅ User can pause for 2+ seconds without stopping
+- ✅ Natural conversation flow
+- ✅ Real-time interim feedback (console logging)
+- ✅ Stops automatically after 2.5s of sustained silence
+- ✅ Safety timeout still active (15 seconds max)
+
+**Technical Details**:
+- Continuous mode: Doesn't auto-stop on pauses
+- Interim results: Shows live transcription progress
+- Silence threshold: 2.5 seconds (configurable)
+- Transcript aggregation: Handles multiple result events
+
+**User Testing**: Pending feedback
+
+**Status**: ✅ Implemented, deployed to production
+
+---
+
+### Issue #7: Debug Console Logs
+**User Request**: "Можно убрать BLINK из логов" (Can you remove BLINK from logs?)
+
+**Changes**:
+- Removed `console.log` from blinking code in `cube.js`
+- Kept essential logs (voice recognition, AI responses)
+- Cleaner console output
+
+**Status**: ✅ Completed
+
+---
+
+### Issue #8: Local Development API Key Error
+**Symptom**: `POST http://localhost:3000/api/chat 400 (Bad Request)` when testing locally
+
+**Root Cause**: `server.js` expected `apiKey` in request body, but we removed it during Vercel migration (security improvement)
+
+**Fix**:
+1. Installed dotenv: `npm install dotenv`
+2. Updated `server.js` to read from environment:
+```javascript
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+
+const apiKey = process.env.ANTHROPIC_API_KEY;
+```
+3. Created `.env.local` with API key
+4. Restarted dev server
+
+**Result**: ✅ Local development now works identically to production
+
+**Status**: ✅ Resolved
 
 ---
 
@@ -940,9 +1205,9 @@ Each interaction is not a task - it's a **moment of shared consciousness**.
 
 ---
 
-**Last Updated**: October 15, 2025
-**Version**: MILESTONE 2 COMPLETE
-**Next Update**: After MILESTONE 3 deployment
+**Last Updated**: October 16, 2025
+**Version**: MILESTONE 3 COMPLETE ✅
+**Status**: Production deployment complete with state-based animations and continuous voice recognition
 
 ---
 

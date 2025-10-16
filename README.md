@@ -4,7 +4,7 @@
 
 Cubiqo is an emotional AI companion that manifests as a living 3D cube. It listens, speaks, and changes color based on the emotional context of your conversation.
 
-## ✨ Current Status: MILESTONE 3 IN PROGRESS
+## ✨ Current Status: PHASE 3 COMPLETED
 
 **Phase 1 (Oct 15-19)**: ✅ **COMPLETED**
 - 3D Foundation with 4 emotional colors
@@ -18,11 +18,13 @@ Cubiqo is an emotional AI companion that manifests as a living 3D cube. It liste
 - Emotion-based color selection
 - Cube voice reactions (listening pulse, bounce effects)
 
-**Phase 3 (Oct 20)**: 🚧 **IN PROGRESS**
+**Phase 3 (Oct 20)**: ✅ **COMPLETED**
 - ✅ Vercel Serverless Function created (replaces dev proxy)
 - ✅ API key migrated to server-side (security improvement)
-- ✅ Deployed to staging: [cubiqo-l0ed5worp-alexs-projects-9d21340f.vercel.app](https://cubiqo-l0ed5worp-alexs-projects-9d21340f.vercel.app)
-- ⏳ Cross-browser testing pending
+- ✅ State-based animations (listening, thinking, speaking, idle)
+- ✅ Smooth state transitions with lerp interpolation
+- ✅ Continuous voice recognition with pause tolerance
+- ✅ Deployed to production: [cubiqo-hm5aqnltu-alexs-projects-9d21340f.vercel.app](https://cubiqo-hm5aqnltu-alexs-projects-9d21340f.vercel.app)
 - ⏳ Custom domain (cubiqo.ai) pending client access
 
 ## 🌈 Philosophy
@@ -37,10 +39,13 @@ The cube embodies four emotional dimensions:
 ## 🚀 Features
 
 - **3D Interactive Cube**: Floating, breathing, emotionally expressive animations
-- **Voice Conversation**: Real-time voice input/output with Reed (US male voice)
+- **State-Based Behaviors**: Different animations for listening, thinking, speaking, and idle states
+- **Smooth Transitions**: Lerp-based interpolation between all animation states
+- **Voice Conversation**: Continuous recognition with pause tolerance (2.5s silence detection)
+- **Natural Speech**: TTS with Reed voice (US male, optimized rate/pitch)
 - **AI-Powered**: Claude Sonnet 4.5 with 5-minute Prompt Caching
 - **Color Dynamics**: Real-time emotional state visualization
-- **Cube Reactions**: Listening pulse, bounce on response, color-specific behaviors
+- **Cube Reactions**: Listening pulse, V-shaped thinking, conversational nodding
 - **Memory**: Session-based conversation history (localStorage)
 - **Mobile-Optimized**: Adaptive performance for all devices
 
@@ -149,7 +154,7 @@ On Vercel Dashboard, set:
 - **Security**: API key stored server-side, never exposed to client
 - **Caching**: Anthropic Prompt Caching (5-minute TTL, 90% cost reduction)
 
-**Staging URL**: https://cubiqo-l0ed5worp-alexs-projects-9d21340f.vercel.app
+**Production URL**: https://cubiqo-hm5aqnltu-alexs-projects-9d21340f.vercel.app
 
 ## 🎮 Usage
 
@@ -234,11 +239,17 @@ cubiqo-mvp/
 - ✅ Session memory (localStorage)
 - ✅ iOS Safari compatibility
 
-### Phase 3: Deployment & Polish ✅ **COMPLETED (Staging)**
+### Phase 3: Deployment & Polish ✅ **COMPLETED**
 - ✅ Vercel Serverless Function (`api/chat.js`)
 - ✅ API key migrated to server-side (security)
-- ✅ Deployed to staging environment
-- ✅ Cross-browser testing (Chrome ✅, Firefox ✅ - 3D only)
+- ✅ State-based animations (listening, thinking, speaking, idle)
+- ✅ Smooth lerp transitions between all states
+- ✅ V-shaped thinking animation
+- ✅ Conversational nodding during speech
+- ✅ Continuous voice recognition with pause tolerance
+- ✅ Optimized glow pulsing and blinking frequencies
+- ✅ Deployed to production environment
+- ✅ Cross-browser testing (Chrome ✅, Safari ✅, Firefox ✅ - 3D only)
 - ⏳ Custom domain (cubiqo.ai) - waiting for client access
 - ⏳ Transfer to client's Vercel account
 - ⏳ GitHub repository setup
@@ -261,17 +272,25 @@ cubiqo-mvp/
 ## 🏆 Technical Achievements
 
 ### Animation & Physics
-- **Smooth Color Transitions**: Linear interpolation (lerp) prevents jarring animation changes
+- **Smooth State Transitions**: Lerp interpolation between all animation states (listening/thinking/speaking/idle)
+- **State-Based Behaviors**:
+  - 🎙️ Listening: Gentle nodding (1.8 speed, 10° amplitude) + subtle glow pulse
+  - 💭 Thinking: V-shaped contemplative movement (down to -12°, very slow 0.4 speed)
+  - 🗣️ Speaking: Conversational nodding (7° nod + 2° sway)
+  - 🧘 Idle: Calm breathing with reduced blinking
 - **Spring Physics Bounce**: Organic bounce effect using `Math.sin(t * π * 3) * (1 - t)` decay
 - **Dynamic Shadow**: Shadow plane responds to cube height with opacity and scale
 - **Breathing Animation**: Sine wave-based scale modulation (0.98-1.02 range)
 - **Philosophy-Based Movement**: Each color has unique animation speed and blink style
+- **Optimized Pulsing**: Gentle glow during listening (1.5 speed, 15% amplitude)
 
 ### Voice Quality
+- **Continuous Recognition**: Pause-tolerant voice input with 2.5s silence detection
+- **Interim Results**: Real-time transcription feedback during speech
 - **Optimal Voice Selection**: Priority system finds Reed (US male) over 210+ available voices
 - **TTS Optimization**: rate=0.92, pitch=1.05, volume=1.0 for emotional delivery
 - **iOS Compatibility**: Audio context activation handles Safari autoplay restrictions
-- **Recognition Timeout**: 10-second safety timeout with confidence logging
+- **Smart Timeouts**: 15-second max recording with silence-based auto-stop
 
 ### AI Efficiency
 - **Prompt Caching**: 90% cost reduction using ephemeral cache (5-minute TTL)
