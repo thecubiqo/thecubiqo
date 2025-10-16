@@ -47,14 +47,11 @@ class MemoryService {
 
   /**
    * Get recent conversation history for AI context
+   * Returns last N messages from ALL sessions (persistent memory)
    */
   async getRecentMemories(limit = CONTEXT_WINDOW) {
-    const sessionId = this.getSessionId();
-    const sessionConversations = this.conversations.filter(
-      conv => conv.sessionId === sessionId
-    );
-
-    const recent = sessionConversations.slice(-limit);
+    // Get last N messages from ALL conversations (across all sessions)
+    const recent = this.conversations.slice(-limit);
 
     // Phase 2: Replace with API call
     // const response = await fetch(`${API_URL}/conversations?limit=${limit}`);

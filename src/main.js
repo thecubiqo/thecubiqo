@@ -22,7 +22,6 @@ class CubiqoApp {
 
     // UI elements
     this.voiceBtn = null;
-    this.transcriptEl = null;
     this.colorButtons = [];
 
     this.init();
@@ -51,9 +50,6 @@ class CubiqoApp {
 
       // Setup mouse/touch tracking
       this.setupInputTracking();
-
-      // Check API key
-      this.checkAPIKey();
 
       // Start animation loop
       this.animate();
@@ -115,7 +111,6 @@ class CubiqoApp {
 
     // Voice button
     this.voiceBtn = document.getElementById('voice-btn');
-    this.transcriptEl = document.getElementById('transcript');
 
     if (this.voiceBtn) {
       this.voiceBtn.addEventListener('click', () => this.handleVoiceClick());
@@ -133,7 +128,7 @@ class CubiqoApp {
   }
 
   /**
-   * Setup mouse and touch tracking for pupil movement
+   * Setup mouse and touch tracking for pupil movement and cube interaction
    */
   setupInputTracking() {
     const handleMove = (clientX, clientY) => {
@@ -152,6 +147,19 @@ class CubiqoApp {
         handleMove(e.touches[0].clientX, e.touches[0].clientY);
       }
     });
+
+    // Click/Tap on cube for bounce
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      canvas.addEventListener('click', () => {
+        this.cube.triggerBounce();
+      });
+
+      canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // Prevent double-firing with click
+        this.cube.triggerBounce();
+      }, { passive: false });
+    }
   }
 
   /**
@@ -159,7 +167,7 @@ class CubiqoApp {
    */
   async handleVoiceClick() {
     if (!voiceService.isSupported().recognition) {
-      this.showTranscript('Voice input not supported', 3000);
+      alert('Voice input not supported in this browser.\n\nSupported browsers:\n• Chrome (Desktop & Mobile)\n• Safari (Desktop & iOS)\n• Edge\n\nFirefox does not support voice input yet.');
       return;
     }
 
@@ -168,8 +176,7 @@ class CubiqoApp {
 
     // Start listening - UI feedback
     this.voiceBtn.classList.add('listening');
-    this.voiceBtn.textContent = '🎙️';
-    this.showTranscript('Listening...', 0);
+    this.voiceBtn.textContent = '🎙️'; // Listening
 
     // Start cube listening animation
     this.cube.startListening();
@@ -188,29 +195,38 @@ class CubiqoApp {
 
     // Stop listening animation
     this.cube.stopListening();
-
     this.voiceBtn.classList.remove('listening');
-    this.voiceBtn.textContent = '🎤';
-    this.showTranscript(`You: ${transcript}`, 2000);
 
     // Get AI response
     try {
-      this.showTranscript('Thinking...', 0);
+      // Start thinking mode: cube rotates slowly, rare blinking
+      this.cube.startThinking();
+      this.voiceBtn.textContent = '💭'; // Thinking
+
+      // Get current cube color
+      const currentColor = this.cube.getCurrentColor();
 
       const history = await memoryService.getRecentMemories();
-      const response = await aiService.chat(transcript, history);
+      const response = await aiService.chat(transcript, history, currentColor);
 
       console.log('AI Response:', response);
+
+      // Stop thinking mode
+      this.cube.stopThinking();
 
       // Change cube color based on emotion
       this.changeCubeColor(response.color);
 
-      // Speak response
-      this.showTranscript(`Cubiqo: ${response.response}`, 0);
+      // Start speaking mode: rhythmic nodding
+      this.cube.startSpeaking();
+      this.voiceBtn.textContent = '🗣️'; // Speaking
 
       if (voiceService.isSupported().synthesis) {
         await voiceService.speak(response.response);
       }
+
+      // Stop speaking mode
+      this.cube.stopSpeaking();
 
       // Save to memory
       await memoryService.saveConversation({
@@ -219,12 +235,20 @@ class CubiqoApp {
         color: response.color
       });
 
-      // Hide transcript after speaking
-      setTimeout(() => this.hideTranscript(), 2000);
+      // Reset to ready state
+      this.voiceBtn.textContent = '🎤';
 
     } catch (error) {
       console.error('AI Error:', error);
-      this.showTranscript(`Error: ${error.message}`, 3000);
+
+      // Stop all animations on error
+      this.cube.stopThinking();
+      this.cube.stopSpeaking();
+
+      this.voiceBtn.textContent = '❌'; // Error
+      setTimeout(() => {
+        this.voiceBtn.textContent = '🎤';
+      }, 2000);
     }
   }
 
@@ -238,21 +262,13 @@ class CubiqoApp {
     this.cube.stopListening();
 
     this.voiceBtn.classList.remove('listening');
-    this.voiceBtn.textContent = '🎤';
 
-    // User-friendly error messages
-    let errorMessage = 'Voice error';
-    if (error === 'no-speech') {
-      errorMessage = 'No speech detected. Try again!';
-    } else if (error === 'audio-capture') {
-      errorMessage = 'Microphone not found';
-    } else if (error === 'not-allowed') {
-      errorMessage = 'Microphone permission denied';
-    } else if (error === 'timeout') {
-      errorMessage = 'Listening timeout. Try again!';
-    }
+    // Show error briefly
+    this.voiceBtn.textContent = '❌';
 
-    this.showTranscript(errorMessage, 3000);
+    setTimeout(() => {
+      this.voiceBtn.textContent = '🎤';
+    }, 2000);
   }
 
   /**
@@ -260,54 +276,6 @@ class CubiqoApp {
    */
   changeCubeColor(colorName) {
     this.cube.setColor(colorName);
-  }
-
-  /**
-   * Show transcript message
-   */
-  showTranscript(text, autohideMs = 0) {
-    if (!this.transcriptEl) return;
-
-    this.transcriptEl.textContent = text;
-    this.transcriptEl.classList.add('visible');
-
-    if (autohideMs > 0) {
-      setTimeout(() => this.hideTranscript(), autohideMs);
-    }
-  }
-
-  /**
-   * Hide transcript
-   */
-  hideTranscript() {
-    if (this.transcriptEl) {
-      this.transcriptEl.classList.remove('visible');
-    }
-  }
-
-  /**
-   * Check if API key is configured
-   */
-  checkAPIKey() {
-    // Try to get API key from localStorage or prompt user
-    let apiKey = localStorage.getItem('cubiqo_api_key');
-
-    if (!apiKey) {
-      // For now, we'll prompt the user (Phase 2 will have proper settings UI)
-      const message = 'Welcome to Cubiqo! To enable AI conversation, please enter your Anthropic API key (it will be stored locally):';
-      apiKey = prompt(message);
-
-      if (apiKey) {
-        localStorage.setItem('cubiqo_api_key', apiKey);
-      }
-    }
-
-    if (apiKey) {
-      aiService.setApiKey(apiKey);
-      console.log('✅ API key configured');
-    } else {
-      console.warn('⚠️ No API key provided. Voice features will not work.');
-    }
   }
 
   /**

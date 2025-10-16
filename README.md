@@ -4,31 +4,55 @@
 
 Cubiqo is an emotional AI companion that manifests as a living 3D cube. It listens, speaks, and changes color based on the emotional context of your conversation.
 
+## ✨ Current Status: MILESTONE 3 IN PROGRESS
+
+**Phase 1 (Oct 15-19)**: ✅ **COMPLETED**
+- 3D Foundation with 4 emotional colors
+- Philosophy-based animations and behaviors
+- Responsive design (desktop/tablet/mobile)
+- Performance optimization
+
+**Phase 2 (Oct 15-19)**: ✅ **COMPLETED**
+- Full voice conversation loop (input + output)
+- Claude Sonnet 4.5 with Prompt Caching (90% cost reduction)
+- Emotion-based color selection
+- Cube voice reactions (listening pulse, bounce effects)
+
+**Phase 3 (Oct 20)**: 🚧 **IN PROGRESS**
+- ✅ Vercel Serverless Function created (replaces dev proxy)
+- ✅ API key migrated to server-side (security improvement)
+- ✅ Deployed to staging: [cubiqo-l0ed5worp-alexs-projects-9d21340f.vercel.app](https://cubiqo-l0ed5worp-alexs-projects-9d21340f.vercel.app)
+- ⏳ Cross-browser testing pending
+- ⏳ Custom domain (cubiqo.ai) pending client access
+
 ## 🌈 Philosophy
 
 The cube embodies four emotional dimensions:
 
-- **🔴 RED**: Desire, indulgence, rebellion (Tamas)
-- **🟡 YELLOW**: Comfort, curiosity, habits (Rajas)
-- **🔵 GREEN-BLUE**: Ambition, wellness, growth (Sattva)
-- **🟠 ORANGE**: Stillness, awareness, reflection (The Fourth Way)
+- **🔴 RED**: Desire, indulgence, rebellion (Tamas) - Slow, sensual, double blink
+- **🟡 YELLOW**: Comfort, curiosity, habits (Rajas) - Warm, bouncy, rhythmic blink
+- **🔵 GREEN-BLUE**: Ambition, wellness, growth (Sattva) - Purposeful, steady blink
+- **🟠 ORANGE**: Stillness, awareness, reflection (The Fourth Way) - Meditative, slow blink
 
 ## 🚀 Features
 
-- **3D Interactive Cube**: Floating, breathing, and emotionally expressive
-- **Voice Conversation**: Speak with Cubiqo using your voice
-- **AI-Powered**: Claude Sonnet 4.5 understands context and emotion
-- **Color Dynamics**: Visual representation of emotional states
-- **Memory**: Remembers your conversation within the session
-- **Mobile-Optimized**: Works on iOS Safari and all modern browsers
+- **3D Interactive Cube**: Floating, breathing, emotionally expressive animations
+- **Voice Conversation**: Real-time voice input/output with Reed (US male voice)
+- **AI-Powered**: Claude Sonnet 4.5 with 5-minute Prompt Caching
+- **Color Dynamics**: Real-time emotional state visualization
+- **Cube Reactions**: Listening pulse, bounce on response, color-specific behaviors
+- **Memory**: Session-based conversation history (localStorage)
+- **Mobile-Optimized**: Adaptive performance for all devices
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: Vanilla JavaScript (ES6 Modules)
-- **3D Graphics**: Three.js
-- **Voice**: Web Speech API + SpeechSynthesis
-- **AI**: Claude API (Anthropic)
-- **Hosting**: Vercel
+- **3D Graphics**: Three.js (RoundedBoxGeometry, MeshPhysicalMaterial)
+- **Voice**: Web Speech API + SpeechSynthesis (Reed voice, en-US)
+- **AI**: Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`)
+- **Prompt Caching**: Anthropic's ephemeral cache (5-minute TTL, 90% cost reduction)
+- **Proxy**: Express.js (development) / Vercel Serverless Functions (production)
+- **Hosting**: Vercel (pending deployment)
 - **Storage**: localStorage (Phase 1)
 
 ## 📦 Setup
@@ -39,8 +63,6 @@ The cube embodies four emotional dimensions:
 - Modern browser (Chrome, Safari, Firefox, Edge)
 
 ### Local Development
-
-**⚠️ TEMPORARY SETUP (until Vercel deployment is ready)**
 
 1. Clone the repository:
 ```bash
@@ -53,13 +75,19 @@ cd cubiqo-mvp
 npm install
 ```
 
-3. Start the proxy server (required to avoid CORS):
+3. Create `.env.local` file with your API key:
+```bash
+# .env.local
+ANTHROPIC_API_KEY=your-api-key-here
+```
+
+4. Start the proxy server (required to avoid CORS):
 ```bash
 npm run dev
 ```
 This starts a proxy server on port 3000.
 
-4. In a **separate terminal**, serve the static files:
+5. In a **separate terminal**, serve the static files:
 ```bash
 # Option 1: Python
 python -m http.server 8001
@@ -70,24 +98,58 @@ npx serve -p 8001
 # Option 3: VS Code Live Server extension
 ```
 
-5. Open in browser:
+6. Open in browser:
 ```
 http://localhost:8001
 ```
 
-6. Enter your Anthropic API key when prompted
+**Note**: The proxy server (server.js) is only for local development. In production on Vercel, this is replaced with Vercel Serverless Functions.
 
-**Note**: The proxy server (server.js) is only for local development. In production on Vercel, this will be replaced with Vercel Serverless Functions.
+### Deployment to Vercel
 
-### Deployment
+#### Prerequisites
+- Vercel account
+- Vercel CLI installed: `npm install -g vercel`
+- Anthropic API key
 
-Deploy to Vercel with one command:
+#### Deploy
 
+1. **Login to Vercel CLI**:
+```bash
+vercel login
+```
+
+2. **Add API key to Vercel Dashboard**:
+   - Go to your project settings on Vercel
+   - Navigate to "Environment Variables"
+   - Add: `ANTHROPIC_API_KEY` = `your-api-key-here`
+
+3. **Deploy**:
 ```bash
 vercel --prod
 ```
 
-Or connect your GitHub repository to Vercel for automatic deployments.
+#### Environment Variables Required
+
+On Vercel Dashboard, set:
+- `ANTHROPIC_API_KEY` - Your Anthropic API key
+
+#### Custom Domain Setup
+
+1. Go to your Vercel project settings
+2. Navigate to "Domains"
+3. Add your custom domain (e.g., `cubiqo.ai`)
+4. Follow DNS configuration instructions
+5. SSL will be automatically configured
+
+#### Deployment Architecture
+
+- **Frontend**: Static files (HTML, CSS, JS) served by Vercel CDN
+- **API**: Serverless function at `/api/chat` (see `api/chat.js`)
+- **Security**: API key stored server-side, never exposed to client
+- **Caching**: Anthropic Prompt Caching (5-minute TTL, 90% cost reduction)
+
+**Staging URL**: https://cubiqo-l0ed5worp-alexs-projects-9d21340f.vercel.app
 
 ## 🎮 Usage
 
@@ -100,12 +162,18 @@ Or connect your GitHub repository to Vercel for automatic deployments.
 
 ## 📱 Browser Compatibility
 
-- ✅ Chrome Desktop & Mobile
-- ✅ Safari Desktop & iOS (special audio context handling)
-- ✅ Firefox Desktop & Mobile
-- ✅ Edge Desktop & Mobile
+### Full Support (Voice + 3D)
+- ✅ **Chrome Desktop & Mobile** - Full functionality
+- ✅ **Safari Desktop & iOS** - Full functionality (special audio context handling)
+- ✅ **Edge Desktop & Mobile** - Full functionality
 
-**Note**: Voice features require HTTPS (or localhost) and user permission.
+### Partial Support (3D only, no voice)
+- ⚠️ **Firefox Desktop & Mobile** - 3D cube works, but voice input NOT supported (Firefox doesn't support Web Speech API)
+
+**Note**:
+- Voice features require HTTPS (or localhost) and user permission
+- Firefox users can still see the 3D cube and manual color controls
+- For full voice experience, please use Chrome, Safari, or Edge
 
 ## 🏗️ Project Structure
 
@@ -123,27 +191,60 @@ cubiqo-mvp/
 │   │   └── cube.js         # Cube component & animations
 │   └── services/
 │       ├── voice.js        # Voice input/output
-│       ├── ai.js           # Claude API integration
+│       ├── ai.js           # Claude API integration (client-side)
 │       └── memory.js       # Conversation memory
+├── api/
+│   └── chat.js             # Vercel Serverless Function (server-side API)
+├── server.js               # Development proxy (local only)
+├── .env.local              # Environment variables (gitignored)
+├── .vercelignore           # Vercel deployment exclusions
 ├── vercel.json             # Vercel configuration
+├── package.json            # Dependencies
 └── README.md
 ```
 
 ## 🔐 Security
 
-- API keys are stored in browser localStorage (local only)
-- No data is sent to any server except Anthropic's API
-- Conversation history is stored locally in your browser
+- **API Key**: Stored server-side as environment variable (never exposed to client)
+- **HTTPS**: All communication encrypted (Vercel provides automatic SSL)
+- **CORS**: Properly configured in `vercel.json` for API endpoints
+- **Data**: Conversation history stored locally in browser (localStorage)
+- **Privacy**: No data sent to any server except Anthropic's API
+- **No Authentication**: Phase 1 MVP (user auth planned for Phase 2)
 
 ## 🎯 Roadmap
 
-### Phase 1 (Current)
-- ✅ 3D cube with 4 colors
-- ✅ Voice input/output
-- ✅ AI conversation
-- ✅ Session memory (localStorage)
+### Phase 1: 3D Foundation ✅ **COMPLETED**
+- ✅ 3D cube with 4 emotional colors
+- ✅ Philosophy-based animations (float, breathe, blink)
+- ✅ Color-specific behaviors (RED: double blink, ORANGE: slow meditative, etc.)
+- ✅ Bounce effect on color change with spring physics
+- ✅ Dynamic shadow plane
+- ✅ Responsive design (mobile/tablet/desktop)
+- ✅ Performance optimization (adaptive pixel ratio, device detection)
+- ✅ Loading screen and error boundaries
 
-### Phase 2 (Planned)
+### Phase 2: Voice + AI ✅ **COMPLETED**
+- ✅ Voice input with Web Speech API
+- ✅ Voice output with Reed (US male voice)
+- ✅ AI conversation with Claude Sonnet 4.5
+- ✅ Prompt caching (5-minute TTL, 90% cost reduction)
+- ✅ Emotion-based color selection
+- ✅ Cube voice reactions (listening pulse, bounce on response)
+- ✅ Session memory (localStorage)
+- ✅ iOS Safari compatibility
+
+### Phase 3: Deployment & Polish ✅ **COMPLETED (Staging)**
+- ✅ Vercel Serverless Function (`api/chat.js`)
+- ✅ API key migrated to server-side (security)
+- ✅ Deployed to staging environment
+- ✅ Cross-browser testing (Chrome ✅, Firefox ✅ - 3D only)
+- ⏳ Custom domain (cubiqo.ai) - waiting for client access
+- ⏳ Transfer to client's Vercel account
+- ⏳ GitHub repository setup
+- ⏳ Source code handoff
+
+### Phase 4: Advanced Features (Future)
 - [ ] Sphere ↔ Cube transformation
 - [ ] Facial expressions (eyes, mouth)
 - [ ] Backend database for long-term memory
@@ -151,11 +252,44 @@ cubiqo-mvp/
 - [ ] Journaling UI
 - [ ] Premium TTS (ElevenLabs)
 
-### Phase 3 (Future)
+### Phase 5: Scale (Vision)
 - [ ] Multi-user support
 - [ ] Mobile app
 - [ ] Advanced RAG system
 - [ ] Emotional analytics dashboard
+
+## 🏆 Technical Achievements
+
+### Animation & Physics
+- **Smooth Color Transitions**: Linear interpolation (lerp) prevents jarring animation changes
+- **Spring Physics Bounce**: Organic bounce effect using `Math.sin(t * π * 3) * (1 - t)` decay
+- **Dynamic Shadow**: Shadow plane responds to cube height with opacity and scale
+- **Breathing Animation**: Sine wave-based scale modulation (0.98-1.02 range)
+- **Philosophy-Based Movement**: Each color has unique animation speed and blink style
+
+### Voice Quality
+- **Optimal Voice Selection**: Priority system finds Reed (US male) over 210+ available voices
+- **TTS Optimization**: rate=0.92, pitch=1.05, volume=1.0 for emotional delivery
+- **iOS Compatibility**: Audio context activation handles Safari autoplay restrictions
+- **Recognition Timeout**: 10-second safety timeout with confidence logging
+
+### AI Efficiency
+- **Prompt Caching**: 90% cost reduction using ephemeral cache (5-minute TTL)
+- **Cache Strategy**: System prompt + last message cached, activates after 1K+ tokens
+- **Context Management**: Last 10 messages preserved for conversation continuity
+- **Structured Output**: JSON format with color + response for reliable parsing
+
+### Performance Optimization
+- **Adaptive Rendering**: Device detection adjusts pixel ratio (1x low-end, 1.5x mobile, 2x desktop)
+- **Geometry Reduction**: Lower-poly cube on mobile devices
+- **Power Management**: `low-power` mode for mobile, `high-performance` for desktop
+- **GPU Hints**: `will-change` and `translateZ(0)` for hardware acceleration
+
+### Architecture
+- **ES6 Modules**: Clean separation (config/core/services)
+- **Singleton Services**: voice.js, ai.js, memory.js export single instances
+- **Error Boundaries**: Graceful degradation with user-friendly error messages
+- **CORS Solution**: Development proxy (Express) → Production serverless (Vercel)
 
 ## 🤝 Contributing
 

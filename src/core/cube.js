@@ -21,15 +21,30 @@ export class Cube {
     this.colorTransitionProgress = 1; // 1 = transition complete
     this.colorTransitionDuration = 1; // 1 second transition
 
-    // Bounce animation state (when changing color)
+    // Bounce animation state (when changing color, tapping, or idle)
     this.bounceProgress = 0;
     this.isBouncing = false;
-    this.bounceDuration = 0.6; // seconds
-    this.bounceHeight = 0.3; // how high to jump
+    this.bounceDuration = 0.8; // seconds (slower, more elegant)
+    this.bounceHeight = 0.15; // how high to jump (reduced from 0.3)
+    this.idleBounceTimer = 0;
+    this.nextIdleBounceTime = 15 + Math.random() * 10; // Random bounce every 15-25 seconds
 
     // Voice listening state
     this.isListening = false;
     this.listeningIntensity = 0; // 0-1, for pulsing effect
+
+    // Thinking state
+    this.isThinking = false;
+    this.thinkingTime = 0;
+
+    // Speaking state
+    this.isSpeaking = false;
+    this.speakingTime = 0;
+
+    // Smooth transition between states (lerp for rotations)
+    this.currentStateRotation = { x: 0, y: 0, z: 0 };
+    this.targetStateRotation = { x: 0, y: 0, z: 0 };
+    this.rotationTransitionSpeed = 3; // How fast to transition (higher = faster)
 
     // Eyes
     this.eyeGroup = null;
@@ -124,6 +139,13 @@ export class Cube {
     this.colorTransitionProgress = 0; // Start transition
 
     // Trigger bounce animation
+    this.triggerBounce();
+  }
+
+  /**
+   * Trigger bounce animation (for color change, tap, idle)
+   */
+  triggerBounce() {
     this.isBouncing = true;
     this.bounceProgress = 0;
   }
@@ -145,6 +167,38 @@ export class Cube {
   }
 
   /**
+   * Start thinking mode (processing AI response)
+   */
+  startThinking() {
+    this.isThinking = true;
+    this.thinkingTime = 0;
+  }
+
+  /**
+   * Stop thinking mode
+   */
+  stopThinking() {
+    this.isThinking = false;
+    this.thinkingTime = 0;
+  }
+
+  /**
+   * Start speaking mode (voice output)
+   */
+  startSpeaking() {
+    this.isSpeaking = true;
+    this.speakingTime = 0;
+  }
+
+  /**
+   * Stop speaking mode
+   */
+  stopSpeaking() {
+    this.isSpeaking = false;
+    this.speakingTime = 0;
+  }
+
+  /**
    * Update pupils to follow mouse/touch
    */
   updatePupilPosition(normalizedX, normalizedY) {
@@ -161,10 +215,20 @@ export class Cube {
   update(deltaTime, mouseX = 0, mouseY = 0) {
     this.time += deltaTime;
 
-    // Base floating animation (sine wave - always smooth)
-    let baseY = Math.sin(this.time * Math.PI * 2) * 0.2;
+    // Subtle breathing position (very gentle, almost invisible)
+    let baseY = Math.sin(this.time * 0.5) * 0.03; // Much subtler than before
 
-    // Bounce animation (when changing color)
+    // Idle bounce timer (occasional spontaneous bounce)
+    if (!this.isBouncing) {
+      this.idleBounceTimer += deltaTime;
+      if (this.idleBounceTimer >= this.nextIdleBounceTime) {
+        this.triggerBounce();
+        this.idleBounceTimer = 0;
+        this.nextIdleBounceTime = 15 + Math.random() * 10; // Next bounce in 15-25 seconds
+      }
+    }
+
+    // Bounce animation (when changing color, tap, or idle)
     if (this.isBouncing) {
       this.bounceProgress += deltaTime / this.bounceDuration;
 
@@ -172,9 +236,9 @@ export class Cube {
         this.bounceProgress = 0;
         this.isBouncing = false;
       } else {
-        // Spring bounce effect (ease-out bounce)
+        // Gentle bounce effect (single smooth arc)
         const t = this.bounceProgress;
-        const bounceEffect = Math.sin(t * Math.PI * 3) * (1 - t) * this.bounceHeight;
+        const bounceEffect = Math.sin(t * Math.PI) * this.bounceHeight;
         baseY += bounceEffect;
       }
     }
@@ -197,16 +261,81 @@ export class Cube {
       currentGlowIntensity = this.lerp(currentGlowIntensity, targetGlowIntensity, this.colorTransitionProgress);
     }
 
-    // Idle sway animation (gentle left-right rotation with interpolated speed)
-    const swayAngle = Math.sin(this.time * currentAnimSpeed) * (20 * Math.PI / 180); // 20°
-    this.mesh.rotation.y = swayAngle;
+    // Idle sway animation (gentle rotation with interpolated speed)
+    let idleSwayY = Math.sin(this.time * currentAnimSpeed) * (10 * Math.PI / 180); // 10° reduced from 20°
+    let idleSwayX = Math.sin(this.time * currentAnimSpeed * 0.7) * (8 * Math.PI / 180); // 8° breathing tilt
 
-    // Subtle forward-backward tilt (X-axis) for living, breathing feel
-    const subtleTiltX = Math.sin(this.time * currentAnimSpeed * 0.7) * (8 * Math.PI / 180); // 8° slower than Y sway
+    // Calculate TARGET rotation for current state
+    this.targetStateRotation.x = 0;
+    this.targetStateRotation.y = 0;
+    this.targetStateRotation.z = 0;
 
-    // Tilt to follow mouse (up-down) + subtle breathing tilt
-    const mouseTiltAngle = -mouseY * (15 * Math.PI / 180); // 15°
-    this.mesh.rotation.x = mouseTiltAngle + subtleTiltX;
+    // LISTENING MODE: Slower, more human-like nodding
+    if (this.isListening) {
+      this.listeningIntensity += deltaTime * 3;
+      // Slower, more natural nod (like attentive listening)
+      const nodSpeed = 1.8; // Reduced from 3 (more human-like)
+      const nodAngle = Math.sin(this.listeningIntensity * nodSpeed) * (10 * Math.PI / 180); // Reduced from 15° to 10°
+      this.targetStateRotation.x = nodAngle;
+    }
+
+    // THINKING MODE: V-shaped movement (down → center → up → center, repeat)
+    if (this.isThinking) {
+      this.thinkingTime += deltaTime;
+      // V-shape movement: smooth down-up pattern
+      const vSpeed = 0.4; // Very slow, contemplative
+      const vProgress = (this.thinkingTime * vSpeed) % 2; // 0→2 loop
+
+      let vAngle;
+      if (vProgress < 1) {
+        // Down phase: 0 → -12° (looking down, thinking)
+        vAngle = -vProgress * (12 * Math.PI / 180);
+      } else {
+        // Up phase: -12° → 0 (returning to center)
+        vAngle = -(2 - vProgress) * (12 * Math.PI / 180);
+      }
+
+      this.targetStateRotation.x = vAngle;
+      // Slight side tilt for more natural thinking pose
+      this.targetStateRotation.z = Math.sin(this.thinkingTime * 0.3) * (3 * Math.PI / 180);
+    }
+
+    // SPEAKING MODE: Reduced amplitude, more subtle
+    if (this.isSpeaking) {
+      this.speakingTime += deltaTime;
+      // Gentler nod (up-down) synchronized with speech
+      const speakNodSpeed = 2.5;
+      const speakNodAngle = Math.sin(this.speakingTime * speakNodSpeed) * (7 * Math.PI / 180); // Reduced from 12° to 7°
+      this.targetStateRotation.x = speakNodAngle;
+      // Reduced side-to-side sway
+      this.targetStateRotation.z = Math.sin(this.speakingTime * 1.5) * (2 * Math.PI / 180); // Reduced from 3° to 2°
+    }
+
+    // SMOOTH TRANSITION: Lerp current rotation towards target (prevents jerky changes)
+    this.currentStateRotation.x = this.lerp(
+      this.currentStateRotation.x,
+      this.targetStateRotation.x,
+      deltaTime * this.rotationTransitionSpeed
+    );
+    this.currentStateRotation.y = this.lerp(
+      this.currentStateRotation.y,
+      this.targetStateRotation.y,
+      deltaTime * this.rotationTransitionSpeed
+    );
+    this.currentStateRotation.z = this.lerp(
+      this.currentStateRotation.z,
+      this.targetStateRotation.z,
+      deltaTime * this.rotationTransitionSpeed
+    );
+
+    // Mouse tracking (3D - both X and Y axis)
+    const mouseTiltX = -mouseY * (20 * Math.PI / 180); // Up-down: 20° range
+    const mouseTiltY = mouseX * (20 * Math.PI / 180);  // Left-right: 20° range
+
+    // Combine all rotations: idle sway + mouse tracking + smoothed state-based behavior
+    this.mesh.rotation.x = mouseTiltX + idleSwayX + this.currentStateRotation.x;
+    this.mesh.rotation.y = mouseTiltY + idleSwayY + this.currentStateRotation.y;
+    this.mesh.rotation.z = this.currentStateRotation.z;
 
     // Breathing effect (pulsing glow with interpolated speed)
     let breathingIntensity = currentGlowIntensity +
@@ -252,7 +381,7 @@ export class Cube {
   }
 
   /**
-   * Update blinking animation (adapts to color mode)
+   * Update blinking animation (adapts to color mode and state)
    */
   updateBlinking(deltaTime) {
     this.blinkTimer += deltaTime;
@@ -260,6 +389,22 @@ export class Cube {
     // Get blink parameters from current color
     const blinkStyle = this.currentColor.blinkStyle || 'steady';
     const blinkSpeed = this.currentColor.blinkSpeed || 0.15;
+
+    // Adjust blink frequency based on state
+    let blinkInterval;
+    if (this.isListening) {
+      // LISTENING: Very frequent blinking (alert, attentive)
+      blinkInterval = 0.8 + Math.random() * 0.7; // Blink every 0.8-1.5 seconds
+    } else if (this.isThinking) {
+      // THINKING: Very rare blinking (deep concentration)
+      blinkInterval = 6 + Math.random() * 4; // Blink every 6-10 seconds
+    } else if (this.isSpeaking) {
+      // SPEAKING: Moderate blinking (natural conversation)
+      blinkInterval = 2 + Math.random() * 2; // Blink every 2-4 seconds
+    } else {
+      // IDLE/CALM: Reduced frequency (peaceful)
+      blinkInterval = 4 + Math.random() * 5; // Blink every 4-9 seconds (increased from 3-7)
+    }
 
     if (!this.isBlinking && this.blinkTimer >= this.nextBlinkTime) {
       this.isBlinking = true;
@@ -283,7 +428,7 @@ export class Cube {
           this.isBlinking = false;
           this.blinkTimer = 0;
           this.blinkCount = 0;
-          this.nextBlinkTime = 3 + Math.random() * 4;
+          this.nextBlinkTime = blinkInterval; // Use state-based interval
           this.leftEye.scale.y = 1;
           this.rightEye.scale.y = 1;
         }
@@ -301,6 +446,13 @@ export class Cube {
    */
   lerp(start, end, t) {
     return start + (end - start) * t;
+  }
+
+  /**
+   * Get current color name
+   */
+  getCurrentColor() {
+    return this.currentColor.name;
   }
 
   /**

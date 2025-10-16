@@ -1,0 +1,21 @@
+# Dependencies (installed by Vercel)
+node_modules/
+
+# Development server (not needed in production)
+server.js
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore

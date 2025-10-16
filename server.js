@@ -8,6 +8,10 @@
 import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env.local
+dotenv.config({ path: '.env.local' });
 
 const app = express();
 const PORT = 3000;
@@ -19,10 +23,16 @@ app.use(express.json());
 // Proxy endpoint for Claude API with Prompt Caching
 app.post('/api/chat', async (req, res) => {
   try {
-    const { apiKey, messages, systemPrompt } = req.body;
+    const { messages, systemPrompt } = req.body;
+
+    // Get API key from environment variable (same as production)
+    const apiKey = process.env.ANTHROPIC_API_KEY;
 
     if (!apiKey) {
-      return res.status(400).json({ error: 'API key required' });
+      console.error('❌ ANTHROPIC_API_KEY not found in .env.local');
+      return res.status(500).json({
+        error: 'Server configuration error: API key not configured in .env.local'
+      });
     }
 
     console.log('📡 Proxying request to Claude API with prompt caching...');
