@@ -16,45 +16,24 @@ class VoiceService {
     this.currentLanguage = 'en-US'; // Default language
     this.voicesLoaded = false;
 
-    // Debug overlay
-    this.debugOverlay = null;
-    this.debugStatus = null;
-    this.debugTimer = null;
-    this.debugTranscript = null;
-    this.startTime = 0;
-    this.debugInterval = null;
-
     this.initRecognition();
     this.initVoices();
-    this.initDebug();
   }
 
   /**
-   * Initialize debug overlay (for mobile testing)
+   * Update debug overlay (simple version)
    */
-  initDebug() {
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => this.setupDebug());
-    } else {
-      this.setupDebug();
-    }
-  }
-
-  setupDebug() {
-    this.debugOverlay = document.getElementById('debug-overlay');
-    this.debugStatus = document.getElementById('debug-status');
-    this.debugTimer = document.getElementById('debug-timer');
-    this.debugTranscript = document.getElementById('debug-transcript');
-  }
-
   updateDebug(status, transcript = null) {
-    if (!this.debugOverlay) return;
+    const debugOverlay = document.getElementById('debug-overlay');
+    const debugStatus = document.getElementById('debug-status');
+    const debugTranscript = document.getElementById('debug-transcript');
 
-    this.debugOverlay.style.display = 'block';
-    if (this.debugStatus) this.debugStatus.textContent = `Status: ${status}`;
-    if (transcript !== null && this.debugTranscript) {
-      this.debugTranscript.textContent = `Transcript: ${transcript || '-'}`;
+    if (!debugOverlay) return;
+
+    debugOverlay.style.display = 'block';
+    if (debugStatus) debugStatus.textContent = `Status: ${status}`;
+    if (transcript !== null && debugTranscript) {
+      debugTranscript.textContent = `Text: ${transcript}`;
     }
   }
 
@@ -87,68 +66,23 @@ class VoiceService {
     }
 
     this.recognition = new SpeechRecognition();
-    this.recognition.continuous = true;       // Keep listening (don't stop on pause)
-    this.recognition.interimResults = true;   // Get interim results to know user is speaking
+    this.recognition.continuous = false;      // Single utterance
+    this.recognition.interimResults = false;  // Only final results
     this.recognition.lang = this.currentLanguage;
     this.recognition.maxAlternatives = 1;     // Only best match
 
-    // Track interim results
-    this.lastInterimTime = 0;
-    this.finalTranscript = '';
-    this.lastInterimTranscript = ''; // Keep last interim for fallback
-
     // Event handlers
     this.recognition.onresult = (event) => {
-      this.lastInterimTime = Date.now();
+      clearTimeout(this.recognitionTimeout);
+      const transcript = event.results[0][0].transcript;
+      const confidence = event.results[0][0].confidence;
 
-      // Build final transcript from all results
-      let interimTranscript = '';
-      this.finalTranscript = '';
+      console.log(`🎤 Transcript: "${transcript}" (confidence: ${(confidence * 100).toFixed(1)}%)`);
+      this.updateDebug('✅ Got result', transcript);
 
-      for (let i = 0; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          this.finalTranscript += transcript + ' ';
-        } else {
-          interimTranscript += transcript;
-        }
+      if (this.onTranscriptCallback) {
+        this.onTranscriptCallback(transcript);
       }
-
-      // Save last interim for fallback
-      if (interimTranscript) {
-        this.lastInterimTranscript = interimTranscript;
-      }
-
-      // Clear no-speech timeout since we got speech
-      clearTimeout(this.noSpeechTimeout);
-
-      // Log interim results
-      if (interimTranscript) {
-        console.log(`🎤 Interim: "${interimTranscript}"`);
-        this.updateDebug('🎤 Speaking...', interimTranscript);
-      }
-
-      if (this.finalTranscript.trim()) {
-        this.updateDebug('✅ Got text', this.finalTranscript.trim());
-      }
-
-      // Reset silence timeout - stop 2.5 seconds after last speech
-      clearTimeout(this.silenceTimeout);
-      this.silenceTimeout = setTimeout(() => {
-        if (this.isListening) {
-          // Use final transcript if available, otherwise use last interim
-          const textToSend = this.finalTranscript.trim() || this.lastInterimTranscript.trim();
-
-          if (textToSend) {
-            console.log(`🎤 Final Transcript: "${textToSend}"`);
-            this.updateDebug('🤐 Silence (2.5s), sending...', textToSend);
-            this.stopListening();
-            if (this.onTranscriptCallback) {
-              this.onTranscriptCallback(textToSend);
-            }
-          }
-        }
-      }, 2500); // 2.5 seconds of silence = done speaking
     };
 
     this.recognition.onerror = (event) => {
@@ -172,47 +106,20 @@ class VoiceService {
 
     this.recognition.onstart = () => {
       console.log('🎤 Listening started...');
-      this.updateDebug('🎤 Listening...', '');
-
-      // Start timer display
-      this.startTime = Date.now();
-      this.debugInterval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
-        if (this.debugTimer) this.debugTimer.textContent = `Timer: ${elapsed}s`;
-      }, 100);
-
-      // Safety timeout: stop after 15 seconds max
+      this.updateDebug('🎤 Listening (non-continuous)');
+      // Safety timeout: stop after 10 seconds if no result
       this.recognitionTimeout = setTimeout(() => {
         if (this.isListening) {
-          console.warn('⏱️ Max timeout (15s), stopping...');
-          this.updateDebug('⏱️ Max timeout (15s)');
+          console.warn('Recognition timeout, stopping...');
+          this.updateDebug('⏱️ Timeout (10s)');
           this.stopListening();
-
-          // If we have transcript, send it
-          if (this.finalTranscript.trim() && this.onTranscriptCallback) {
-            this.onTranscriptCallback(this.finalTranscript.trim());
-          } else {
-            this.onErrorCallback?.('timeout');
-          }
+          this.onErrorCallback?.('timeout');
         }
-      }, 15000);
-
-      // Silence timeout: stop after 5 seconds of no speech at all
-      this.noSpeechTimeout = setTimeout(() => {
-        if (this.isListening && !this.finalTranscript.trim()) {
-          console.warn('🔇 No speech detected (5s), stopping...');
-          this.updateDebug('🔇 No speech (5s)');
-          this.stopListening();
-          this.onErrorCallback?.('no-speech');
-        }
-      }, 5000);
+      }, 10000);
     };
 
     this.recognition.onend = () => {
       clearTimeout(this.recognitionTimeout);
-      clearTimeout(this.noSpeechTimeout);
-      clearTimeout(this.silenceTimeout);
-      clearInterval(this.debugInterval);
       this.isListening = false;
       console.log('🎤 Listening stopped');
       this.updateDebug('⏹️ Stopped');
@@ -231,8 +138,6 @@ class VoiceService {
 
     this.onTranscriptCallback = onTranscript;
     this.onErrorCallback = onError;
-    this.finalTranscript = ''; // Reset transcript
-    this.lastInterimTranscript = ''; // Reset interim
 
     try {
       this.recognition.start();
@@ -254,13 +159,8 @@ class VoiceService {
    */
   stopListening() {
     if (this.recognition && this.isListening) {
-      clearTimeout(this.silenceTimeout);
-      clearTimeout(this.noSpeechTimeout);
-      clearTimeout(this.recognitionTimeout);
-      clearInterval(this.debugInterval);
       this.recognition.stop();
       this.isListening = false;
-      this.updateDebug('⏹️ Stopping...');
     }
   }
 
