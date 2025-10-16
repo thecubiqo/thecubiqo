@@ -65,32 +65,32 @@ export class SceneManager {
     const isLowEnd = isMobile && (navigator.hardwareConcurrency <= 4 || navigator.deviceMemory <= 4);
 
     this.renderer = new THREE.WebGLRenderer({
-      antialias: !isLowEnd, // Disable AA on low-end devices
+      antialias: true, // Always enable antialiasing for better quality
       alpha: true,
-      powerPreference: isMobile ? 'low-power' : 'high-performance' // Battery optimization
+      powerPreference: isMobile ? 'default' : 'high-performance' // Balanced for mobile
     });
 
     this.renderer.setSize(window.innerWidth, window.innerHeight);
 
-    // Adaptive pixel ratio based on device
+    // Improved pixel ratio - use native resolution on mobile for crisp rendering
     let pixelRatio = window.devicePixelRatio;
     if (isLowEnd) {
-      pixelRatio = Math.min(pixelRatio, 1); // Cap at 1x on low-end devices
+      pixelRatio = Math.min(pixelRatio, 1.5); // 1.5x on low-end (better than 1x)
     } else if (isMobile) {
-      pixelRatio = Math.min(pixelRatio, 1.5); // Cap at 1.5x on mobile
+      pixelRatio = Math.min(pixelRatio, 2); // Full 2x on modern mobile
     } else {
       pixelRatio = Math.min(pixelRatio, 2); // Cap at 2x on desktop
     }
     this.renderer.setPixelRatio(pixelRatio);
 
-    // Shadow settings (adaptive based on device)
-    this.renderer.shadowMap.enabled = !isLowEnd; // Disable shadows on low-end devices
-    this.renderer.shadowMap.type = isLowEnd ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
+    // Shadow settings (keep enabled for quality)
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     // Append to container
     this.container.appendChild(this.renderer.domElement);
 
-    console.log(`📱 Renderer: ${isMobile ? 'Mobile' : 'Desktop'}, Pixel Ratio: ${pixelRatio.toFixed(1)}x, Shadows: ${!isLowEnd}`);
+    console.log(`📱 Renderer: ${isMobile ? 'Mobile' : 'Desktop'}, Pixel Ratio: ${pixelRatio.toFixed(1)}x, AA: true, Shadows: true`);
   }
 
   /**

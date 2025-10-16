@@ -67,8 +67,8 @@ export class Cube {
     // Detect mobile for performance optimization
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    // Create rounded box geometry (reduce segments on mobile for performance)
-    const segments = isMobile ? 3 : 4; // Lower geometry detail on mobile
+    // Create rounded box geometry (high quality on all devices)
+    const segments = isMobile ? 4 : 8; // Good quality on mobile, excellent on desktop
     const geometry = new RoundedBoxGeometry(2, 2, 2, segments, 0.15);
 
     // Create hybrid material: satin-metal + semi-transparent polymer
@@ -100,7 +100,7 @@ export class Cube {
   createEyes() {
     // Detect mobile for performance optimization
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const circleSegments = isMobile ? 16 : 32; // Reduce circle segments on mobile
+    const circleSegments = isMobile ? 32 : 32; // Keep high quality on all devices
 
     this.eyeGroup = new THREE.Group();
 

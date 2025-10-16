@@ -21,23 +21,6 @@ class VoiceService {
   }
 
   /**
-   * Update debug overlay (simple version)
-   */
-  updateDebug(status, transcript = null) {
-    const debugOverlay = document.getElementById('debug-overlay');
-    const debugStatus = document.getElementById('debug-status');
-    const debugTranscript = document.getElementById('debug-transcript');
-
-    if (!debugOverlay) return;
-
-    debugOverlay.style.display = 'block';
-    if (debugStatus) debugStatus.textContent = `Status: ${status}`;
-    if (transcript !== null && debugTranscript) {
-      debugTranscript.textContent = `Text: ${transcript}`;
-    }
-  }
-
-  /**
    * Initialize voices (load asynchronously)
    */
   initVoices() {
@@ -78,7 +61,6 @@ class VoiceService {
       const confidence = event.results[0][0].confidence;
 
       console.log(`🎤 Transcript: "${transcript}" (confidence: ${(confidence * 100).toFixed(1)}%)`);
-      this.updateDebug('✅ Got result', transcript);
 
       if (this.onTranscriptCallback) {
         this.onTranscriptCallback(transcript);
@@ -106,12 +88,10 @@ class VoiceService {
 
     this.recognition.onstart = () => {
       console.log('🎤 Listening started...');
-      this.updateDebug('🎤 Listening (non-continuous)');
       // Safety timeout: stop after 10 seconds if no result
       this.recognitionTimeout = setTimeout(() => {
         if (this.isListening) {
           console.warn('Recognition timeout, stopping...');
-          this.updateDebug('⏱️ Timeout (10s)');
           this.stopListening();
           this.onErrorCallback?.('timeout');
         }
@@ -122,7 +102,6 @@ class VoiceService {
       clearTimeout(this.recognitionTimeout);
       this.isListening = false;
       console.log('🎤 Listening stopped');
-      this.updateDebug('⏹️ Stopped');
     };
   }
 
