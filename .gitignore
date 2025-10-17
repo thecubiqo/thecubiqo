@@ -27,3 +27,7 @@ npm-debug.log*
 
 # Vercel
 .vercel
+
+# Confidential / NDA
+idea.md
+*.confidential.md
