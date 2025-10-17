@@ -31,3 +31,5 @@ npm-debug.log*
 # Confidential / NDA
 idea.md
 *.confidential.md
+README.md
+DEVELOPMENT-LOG.md
