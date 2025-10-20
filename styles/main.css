@@ -78,19 +78,19 @@ body {
 }
 
 .color-btn.red::before {
-  background: #FF1744;
+  background: #C2185B; /* Tamas - Indulgence • Desire */
 }
 
 .color-btn.yellow::before {
-  background: #FFD700;
+  background: #FFA000; /* Rajas - Activity • Energy */
 }
 
 .color-btn.greenBlue::before {
-  background: #00E5FF;
+  background: #00897B; /* Sattva - Growth • Wellness */
 }
 
 .color-btn.orange::before {
-  background: #FF9100;
+  background: #FF6F00; /* Fourth Way - Stillness • Awareness */
 }
 
 .color-btn:active {
@@ -138,19 +138,19 @@ body {
 }
 
 #voice-btn.listening {
-  border-color: #FF1744;
-  background: rgba(255, 23, 68, 0.2);
+  border-color: #C2185B; /* Tamas color for active listening */
+  background: rgba(194, 24, 91, 0.2);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes pulse {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(255, 23, 68, 0.7);
+    box-shadow: 0 0 0 0 rgba(194, 24, 91, 0.7);
   }
   50% {
     transform: scale(1.05);
-    box-shadow: 0 0 0 20px rgba(255, 23, 68, 0);
+    box-shadow: 0 0 0 20px rgba(194, 24, 91, 0);
   }
 }
 
@@ -185,7 +185,7 @@ body {
   width: 60px;
   height: 60px;
   border: 4px solid rgba(255, 255, 255, 0.2);
-  border-top: 4px solid #FF9100;
+  border-top: 4px solid #FF6F00; /* Fourth Way - default state */
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
