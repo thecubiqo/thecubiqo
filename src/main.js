@@ -96,6 +96,21 @@ class CubiqoApp {
    * Setup UI elements and event listeners
    */
   setupUI() {
+    // Manual Mode toggle
+    this.manualModeActive = false; // Start with AI-only mode
+    this.toggleManualModeBtn = document.getElementById('toggle-manual-mode');
+    this.controlsContainer = document.getElementById('controls');
+
+    if (this.toggleManualModeBtn) {
+      this.toggleManualModeBtn.addEventListener('click', () => {
+        this.manualModeActive = !this.manualModeActive;
+        this.toggleManualModeBtn.classList.toggle('active', this.manualModeActive);
+        this.controlsContainer.classList.toggle('manual-mode-hidden', !this.manualModeActive);
+
+        console.log(`Manual Mode: ${this.manualModeActive ? 'ON' : 'OFF'}`);
+      });
+    }
+
     // Color buttons
     this.colorButtons = document.querySelectorAll('.color-btn');
     this.colorButtons.forEach(btn => {

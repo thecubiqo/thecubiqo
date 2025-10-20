@@ -19,7 +19,8 @@ export const COLORS = {
     glowIntensity: 0.9,      // Strong, passionate glow
     breathingSpeed: 1.0,     // Slower breathing effect
     blinkStyle: 'double',    // Double blink before responding
-    blinkSpeed: 0.3          // Slow, seductive blink
+    blinkSpeed: 0.3,         // Slow, seductive blink
+    mouseFollowSpeed: 0.15   // Fast, eager to follow (impulsive desire)
   },
 
   YELLOW: {
@@ -35,7 +36,8 @@ export const COLORS = {
     glowIntensity: 0.7,      // Warm, inviting glow
     breathingSpeed: 1.5,     // Normal breathing
     blinkStyle: 'rhythmic',  // Rhythmic blinking
-    blinkSpeed: 0.15         // Normal blink speed
+    blinkSpeed: 0.15,        // Normal blink speed
+    mouseFollowSpeed: 0.10   // Moderate, curious following
   },
 
   GREEN_BLUE: {
@@ -51,7 +53,8 @@ export const COLORS = {
     glowIntensity: 0.6,      // Clear, focused glow
     breathingSpeed: 1.4,     // Calm, steady breathing
     blinkStyle: 'steady',    // Steady, focused blinking
-    blinkSpeed: 0.15         // Normal blink speed
+    blinkSpeed: 0.15,        // Normal blink speed
+    mouseFollowSpeed: 0.12   // Steady, balanced attention
   },
 
   ORANGE: {
@@ -67,7 +70,8 @@ export const COLORS = {
     glowIntensity: 0.5,      // Soft, grounding glow
     breathingSpeed: 0.8,     // Very slow, meditative breathing
     blinkStyle: 'slow',      // Very slow, mindful blinking
-    blinkSpeed: 0.25         // Slow, meditative blink
+    blinkSpeed: 0.25,        // Slow, meditative blink
+    mouseFollowSpeed: 0.05   // Very slow, independent, meditative (barely reacts)
   }
 };
 
