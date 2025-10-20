@@ -26,17 +26,9 @@ jobs:
         run: |
           URL=$(vercel deploy --yes --token=${{ secrets.VERCEL_TOKEN }})
           echo "deployment_url=$URL" >> $GITHUB_OUTPUT
+          echo "✅ Deployed successfully!"
+          echo "Preview URL: $URL"
+          echo "Staging URL: https://staging.cubiqo.ai (auto-assigned by Vercel)"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Assign staging.cubiqo.ai alias
-        run: vercel alias set ${{ steps.deploy.outputs.deployment_url }} staging.cubiqo.ai --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Comment deployment URL
-        run: |
-          echo "✅ Deployed to staging.cubiqo.ai"
-          echo "Preview URL: ${{ steps.deploy.outputs.deployment_url }}"
