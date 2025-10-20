@@ -103,15 +103,32 @@ class CubiqoApp {
    * Setup UI elements and event listeners
    */
   setupUI() {
-    // FPS Monitor
-    this.fpsMonitor = document.getElementById('fps-monitor');
+    // Check if we're on production
+    // For local testing: add ?production=true to URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceProduction = urlParams.get('production') === 'true';
+    const isProduction = window.location.hostname === 'cubiqo.ai' || forceProduction;
 
-    // Manual Mode toggle
+    // Hide dev features on production
+    if (isProduction) {
+      const fpsMonitor = document.getElementById('fps-monitor');
+      const manualModeToggle = document.getElementById('manual-mode-toggle');
+
+      if (fpsMonitor) fpsMonitor.style.display = 'none';
+      if (manualModeToggle) manualModeToggle.style.display = 'none';
+
+      console.log('🚀 Production mode: dev features hidden');
+    }
+
+    // FPS Monitor (only on staging/dev)
+    this.fpsMonitor = isProduction ? null : document.getElementById('fps-monitor');
+
+    // Manual Mode toggle (only on staging/dev)
     this.manualModeActive = false; // Start with AI-only mode
     this.toggleManualModeBtn = document.getElementById('toggle-manual-mode');
     this.controlsContainer = document.getElementById('controls');
 
-    if (this.toggleManualModeBtn) {
+    if (this.toggleManualModeBtn && !isProduction) {
       this.toggleManualModeBtn.addEventListener('click', () => {
         this.manualModeActive = !this.manualModeActive;
         this.toggleManualModeBtn.classList.toggle('active', this.manualModeActive);
