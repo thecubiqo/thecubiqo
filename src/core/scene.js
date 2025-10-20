@@ -15,6 +15,7 @@ export class SceneManager {
     this.renderer = null;
     this.lights = {};
     this.shadowPlane = null;
+    this.resizeTimeout = null; // For debouncing resize events
 
     this.init();
   }
@@ -39,8 +40,8 @@ export class SceneManager {
     // Setup shadow plane
     this.setupShadowPlane();
 
-    // Handle window resize
-    window.addEventListener('resize', () => this.onWindowResize());
+    // Handle window resize with debouncing (iOS Safari fires multiple events)
+    window.addEventListener('resize', () => this.handleResize());
   }
 
   /**
@@ -147,12 +148,53 @@ export class SceneManager {
   }
 
   /**
+   * Debounced resize handler (prevents multiple rapid calls on iOS)
+   */
+  handleResize() {
+    // Clear previous timeout
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
+
+    // Debounce resize calls (wait 150ms after last resize event)
+    this.resizeTimeout = setTimeout(() => {
+      this.onWindowResize();
+    }, 150);
+  }
+
+  /**
    * Handle window resize
    */
   onWindowResize() {
+    // Detect device capabilities for pixel ratio
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isLowEnd = isMobile && (navigator.hardwareConcurrency <= 4 || navigator.deviceMemory <= 4);
+
+    // Recalculate pixel ratio (important for orientation changes on iOS)
+    let pixelRatio = window.devicePixelRatio;
+    if (isLowEnd) {
+      pixelRatio = Math.min(pixelRatio, 1.5);
+    } else if (isMobile) {
+      pixelRatio = Math.min(pixelRatio, 2);
+    } else {
+      pixelRatio = Math.min(pixelRatio, 2);
+    }
+
+    // Update pixel ratio BEFORE setSize (prevents accumulation)
+    this.renderer.setPixelRatio(pixelRatio);
+
+    // Update camera aspect ratio
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+
+    // Update renderer size (false = don't update style, we control pixel ratio above)
+    this.renderer.setSize(window.innerWidth, window.innerHeight, false);
+
+    // Manually update canvas style to match window size
+    this.renderer.domElement.style.width = `${window.innerWidth}px`;
+    this.renderer.domElement.style.height = `${window.innerHeight}px`;
+
+    console.log(`🔄 Resize: ${window.innerWidth}x${window.innerHeight}, Pixel Ratio: ${pixelRatio.toFixed(1)}x`);
   }
 
   /**
@@ -180,7 +222,13 @@ export class SceneManager {
    * Cleanup and dispose
    */
   dispose() {
-    window.removeEventListener('resize', this.onWindowResize);
+    // Clear any pending resize timeout
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
+
+    // Remove event listener (note: we bound to handleResize, not onWindowResize)
+    window.removeEventListener('resize', this.handleResize);
     this.renderer.dispose();
     this.container.removeChild(this.renderer.domElement);
   }
