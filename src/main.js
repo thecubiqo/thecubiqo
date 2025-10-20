@@ -24,6 +24,13 @@ class CubiqoApp {
     this.voiceBtn = null;
     this.colorButtons = [];
 
+    // FPS monitoring
+    this.fpsHistory = [];
+    this.fpsHistoryMaxLength = 60; // Track last 60 frames
+    this.fpsUpdateCounter = 0;
+    this.fpsUpdateInterval = 10; // Update UI every 10 frames
+    this.fpsMonitor = null;
+
     this.init();
   }
 
@@ -96,6 +103,9 @@ class CubiqoApp {
    * Setup UI elements and event listeners
    */
   setupUI() {
+    // FPS Monitor
+    this.fpsMonitor = document.getElementById('fps-monitor');
+
     // Manual Mode toggle
     this.manualModeActive = false; // Start with AI-only mode
     this.toggleManualModeBtn = document.getElementById('toggle-manual-mode');
@@ -147,8 +157,12 @@ class CubiqoApp {
    */
   setupInputTracking() {
     const handleMove = (clientX, clientY) => {
-      this.mouse.x = (clientX / window.innerWidth) * 2 - 1;
-      this.mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+      // Use canvas dimensions for accurate mouse tracking (window.inner* can be buggy on iOS)
+      const canvas = this.scene.renderer.domElement;
+      const rect = canvas.getBoundingClientRect();
+
+      this.mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     };
 
     // Mouse
@@ -294,12 +308,59 @@ class CubiqoApp {
   }
 
   /**
+   * Update FPS display
+   */
+  updateFPS(deltaTime) {
+    // Calculate current FPS
+    const fps = deltaTime > 0 ? 1 / deltaTime : 0;
+
+    // Add to history
+    this.fpsHistory.push(fps);
+    if (this.fpsHistory.length > this.fpsHistoryMaxLength) {
+      this.fpsHistory.shift();
+    }
+
+    // Update UI every N frames to avoid DOM thrashing
+    this.fpsUpdateCounter++;
+    if (this.fpsUpdateCounter >= this.fpsUpdateInterval && this.fpsMonitor) {
+      this.fpsUpdateCounter = 0;
+
+      // Calculate average FPS
+      const avgFps = this.fpsHistory.reduce((sum, f) => sum + f, 0) / this.fpsHistory.length;
+
+      // Update display
+      const fpsCurrentEl = this.fpsMonitor.querySelector('.fps-current');
+      const fpsAvgEl = this.fpsMonitor.querySelector('.fps-avg');
+
+      if (fpsCurrentEl) {
+        fpsCurrentEl.textContent = `FPS: ${Math.round(fps)}`;
+      }
+      if (fpsAvgEl) {
+        fpsAvgEl.textContent = `Avg: ${Math.round(avgFps)}`;
+      }
+
+      // Update color based on average FPS
+      this.fpsMonitor.classList.remove('fps-good', 'fps-medium', 'fps-bad');
+      if (avgFps >= 50) {
+        this.fpsMonitor.classList.add('fps-good');
+      } else if (avgFps >= 30) {
+        this.fpsMonitor.classList.add('fps-medium');
+      } else {
+        this.fpsMonitor.classList.add('fps-bad');
+      }
+    }
+  }
+
+  /**
    * Main animation loop
    */
   animate() {
     requestAnimationFrame(() => this.animate());
 
     const deltaTime = this.clock.getDelta();
+
+    // Update FPS monitor
+    this.updateFPS(deltaTime);
 
     // Update cube
     this.cube.update(deltaTime, this.mouse.x, this.mouse.y);

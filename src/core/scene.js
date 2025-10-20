@@ -71,8 +71,6 @@ export class SceneManager {
       powerPreference: isMobile ? 'default' : 'high-performance' // Balanced for mobile
     });
 
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-
     // Improved pixel ratio - use native resolution on mobile for crisp rendering
     let pixelRatio = window.devicePixelRatio;
     if (isLowEnd) {
@@ -82,7 +80,12 @@ export class SceneManager {
     } else {
       pixelRatio = Math.min(pixelRatio, 2); // Cap at 2x on desktop
     }
+
+    // IMPORTANT: Set pixel ratio BEFORE setSize to prevent double multiplication
     this.renderer.setPixelRatio(pixelRatio);
+
+    // Now set size (will use pixel ratio set above)
+    this.renderer.setSize(window.innerWidth, window.innerHeight, true);
 
     // Shadow settings (keep enabled for quality)
     this.renderer.shadowMap.enabled = true;
@@ -166,9 +169,27 @@ export class SceneManager {
    * Handle window resize
    */
   onWindowResize() {
+    console.log('🎯 onWindowResize() called!'); // DEBUG: confirm function is running
+
     // Detect device capabilities for pixel ratio
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const isLowEnd = isMobile && (navigator.hardwareConcurrency <= 4 || navigator.deviceMemory <= 4);
+
+    // BEST PRACTICE: Use container dimensions (most reliable, no Safari bugs)
+    // The container has 100vw x 100vh in CSS, so its clientWidth/Height are accurate
+    const containerWidth = this.container.clientWidth;
+    const containerHeight = this.container.clientHeight;
+
+    // Fallback to window.inner* if container not available (shouldn't happen)
+    let width = containerWidth || window.innerWidth;
+    let height = containerHeight || window.innerHeight;
+
+    // Debug logging
+    const windowW = window.innerWidth;
+    const windowH = window.innerHeight;
+    if (windowW !== width || windowH !== height) {
+      console.warn(`⚠️ Window mismatch! window.inner: ${windowW}x${windowH}, container: ${width}x${height} (using container)`);
+    }
 
     // Recalculate pixel ratio (important for orientation changes on iOS)
     let pixelRatio = window.devicePixelRatio;
@@ -184,17 +205,15 @@ export class SceneManager {
     this.renderer.setPixelRatio(pixelRatio);
 
     // Update camera aspect ratio
-    this.camera.aspect = window.innerWidth / window.innerHeight;
+    this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
 
-    // Update renderer size (false = don't update style, we control pixel ratio above)
-    this.renderer.setSize(window.innerWidth, window.innerHeight, false);
+    // Update renderer size (true = update CSS style automatically)
+    // This ensures canvas buffer and CSS size are in sync
+    this.renderer.setSize(width, height, true);
 
-    // Manually update canvas style to match window size
-    this.renderer.domElement.style.width = `${window.innerWidth}px`;
-    this.renderer.domElement.style.height = `${window.innerHeight}px`;
-
-    console.log(`🔄 Resize: ${window.innerWidth}x${window.innerHeight}, Pixel Ratio: ${pixelRatio.toFixed(1)}x`);
+    // Simple logging
+    console.log(`✅ Resize: ${width}x${height}, Pixel Ratio: ${pixelRatio.toFixed(1)}x, Container: ${containerWidth}x${containerHeight}, window.inner: ${windowW}x${windowH}`);
   }
 
   /**

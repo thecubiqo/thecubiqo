@@ -9,7 +9,7 @@
     <title>Cubiqo - Emotional AI Companion</title>
 
     <!-- Styles -->
-    <link rel="stylesheet" href="./styles/main.css">
+    <link rel="stylesheet" href="./styles/main.css?v=8">
 
     <!-- Three.js Import Map -->
     <script type="importmap">
@@ -26,10 +26,17 @@
     <div id="loading-screen">
         <div class="loading-spinner"></div>
         <div class="loading-text">Initializing consciousness...</div>
+        <div class="loading-text" style="margin-top: 10px; font-size: 12px; opacity: 0.5;">v8.0-fps-monitor</div>
     </div>
 
     <!-- 3D Canvas Container -->
     <div id="canvas-container"></div>
+
+    <!-- FPS Monitor -->
+    <div id="fps-monitor">
+        <div class="fps-current">FPS: --</div>
+        <div class="fps-avg">Avg: --</div>
+    </div>
 
     <!-- Voice Control UI -->
     <div id="voice-ui">
@@ -56,6 +63,6 @@
     <div id="transcript"></div>
 
     <!-- Main Application -->
-    <script type="module" src="./src/main.js"></script>
+    <script type="module" src="./src/main.js?v=8"></script>
 </body>
 </html>
