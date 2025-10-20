@@ -9,7 +9,7 @@
     <title>Cubiqo - Emotional AI Companion</title>
 
     <!-- Styles -->
-    <link rel="stylesheet" href="./styles/main.css">
+    <link rel="stylesheet" href="./styles/main.css?v=8">
 
     <!-- Three.js Import Map -->
     <script type="importmap">
@@ -26,18 +26,33 @@
     <div id="loading-screen">
         <div class="loading-spinner"></div>
         <div class="loading-text">Initializing consciousness...</div>
+        <div class="loading-text" style="margin-top: 10px; font-size: 12px; opacity: 0.5;">v2.0-production-ready</div>
     </div>
 
     <!-- 3D Canvas Container -->
     <div id="canvas-container"></div>
+
+    <!-- FPS Monitor -->
+    <div id="fps-monitor">
+        <div class="fps-current">FPS: --</div>
+        <div class="fps-avg">Avg: --</div>
+    </div>
 
     <!-- Voice Control UI -->
     <div id="voice-ui">
         <button id="voice-btn" aria-label="Voice input">🎤</button>
     </div>
 
+    <!-- Manual Mode Toggle -->
+    <div id="manual-mode-toggle">
+        <button id="toggle-manual-mode" aria-label="Toggle Manual Mode">
+            <span class="toggle-icon">🎨</span>
+            <span class="toggle-text">Manual Mode</span>
+        </button>
+    </div>
+
     <!-- Color Controls -->
-    <div id="controls">
+    <div id="controls" class="manual-mode-hidden">
         <button class="color-btn red" data-color="RED" aria-label="Red - Desire"></button>
         <button class="color-btn yellow" data-color="YELLOW" aria-label="Yellow - Comfort"></button>
         <button class="color-btn greenBlue" data-color="GREEN_BLUE" aria-label="Green-Blue - Growth"></button>
@@ -48,6 +63,6 @@
     <div id="transcript"></div>
 
     <!-- Main Application -->
-    <script type="module" src="./src/main.js"></script>
+    <script type="module" src="./src/main.js?v=9"></script>
 </body>
 </html>

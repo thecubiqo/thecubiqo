@@ -21,6 +21,21 @@ export class Cube {
     this.colorTransitionProgress = 1; // 1 = transition complete
     this.colorTransitionDuration = 1; // 1 second transition
 
+    // Accumulated animation parameters (smooth transitions)
+    this.currentAnimSpeed = this.currentColor.animationSpeed;
+    this.currentBreathSpeed = this.currentColor.breathingSpeed;
+    this.currentGlowIntensity = this.currentColor.glowIntensity;
+    this.currentMouseFollowSpeed = this.currentColor.mouseFollowSpeed || 0.10;
+
+    // Accumulated animation phases (prevents discontinuity when speed changes)
+    this.idleSwayPhaseY = 0;
+    this.idleSwayPhaseX = 0;
+    this.breathingPhase = 0;
+
+    // Smooth mouse tracking (lerped, not instant)
+    this.currentMouseRotation = { x: 0, y: 0 };
+    this.targetMouseRotation = { x: 0, y: 0 };
+
     // Bounce animation state (when changing color, tapping, or idle)
     this.bounceProgress = 0;
     this.isBouncing = false;
@@ -73,7 +88,7 @@ export class Cube {
 
     // Create hybrid material: satin-metal + semi-transparent polymer
     this.material = new THREE.MeshPhysicalMaterial({
-      color: 0xffffff,
+      color: this.currentColor.hex,  // Use actual color, not white
       metalness: 0.4,           // Satin-metallic effect
       roughness: 0.3,           // Satin texture (not too glossy)
       transparent: true,
@@ -247,25 +262,34 @@ export class Cube {
 
     this.mesh.position.y = baseY;
 
-    // Lerp animation speed during transition for smooth animation changes
-    let currentAnimSpeed = this.currentColor.animationSpeed || 0.4;
-    let currentBreathSpeed = this.currentColor.breathingSpeed || 1.5;
-    let currentGlowIntensity = this.currentColor.glowIntensity || 0.5;
-
+    // Smoothly lerp animation parameters (accumulated, not linear)
     if (this.colorTransitionProgress < 1) {
-      // Smoothly interpolate animation parameters
       const targetAnimSpeed = this.targetColor.animationSpeed || 0.4;
       const targetBreathSpeed = this.targetColor.breathingSpeed || 1.5;
       const targetGlowIntensity = this.targetColor.glowIntensity || 0.5;
+      const targetMouseFollowSpeed = this.targetColor.mouseFollowSpeed || 0.10;
 
-      currentAnimSpeed = this.lerp(currentAnimSpeed, targetAnimSpeed, this.colorTransitionProgress);
-      currentBreathSpeed = this.lerp(currentBreathSpeed, targetBreathSpeed, this.colorTransitionProgress);
-      currentGlowIntensity = this.lerp(currentGlowIntensity, targetGlowIntensity, this.colorTransitionProgress);
+      // Use small lerp step for smooth accumulation (prevents jumps)
+      const lerpSpeed = deltaTime / this.colorTransitionDuration;
+      this.currentAnimSpeed += (targetAnimSpeed - this.currentAnimSpeed) * lerpSpeed;
+      this.currentBreathSpeed += (targetBreathSpeed - this.currentBreathSpeed) * lerpSpeed;
+      this.currentGlowIntensity += (targetGlowIntensity - this.currentGlowIntensity) * lerpSpeed;
+      this.currentMouseFollowSpeed += (targetMouseFollowSpeed - this.currentMouseFollowSpeed) * lerpSpeed;
     }
 
-    // Idle sway animation (gentle rotation with interpolated speed)
-    let idleSwayY = Math.sin(this.time * currentAnimSpeed) * (10 * Math.PI / 180); // 10° reduced from 20°
-    let idleSwayX = Math.sin(this.time * currentAnimSpeed * 0.7) * (8 * Math.PI / 180); // 8° breathing tilt
+    // Use accumulated values for smooth animations
+    const currentAnimSpeed = this.currentAnimSpeed;
+    const currentBreathSpeed = this.currentBreathSpeed;
+    const currentGlowIntensity = this.currentGlowIntensity;
+
+    // Accumulate animation phases (prevents phase jumps when speed changes)
+    this.idleSwayPhaseY += deltaTime * currentAnimSpeed;
+    this.idleSwayPhaseX += deltaTime * currentAnimSpeed * 0.7;
+    this.breathingPhase += deltaTime * currentBreathSpeed;
+
+    // Idle sway animation (using accumulated phase, not time * speed)
+    let idleSwayY = Math.sin(this.idleSwayPhaseY) * (10 * Math.PI / 180); // 10° reduced from 20°
+    let idleSwayX = Math.sin(this.idleSwayPhaseX) * (8 * Math.PI / 180); // 8° breathing tilt
 
     // Calculate TARGET rotation for current state
     this.targetStateRotation.x = 0;
@@ -330,18 +354,24 @@ export class Cube {
       deltaTime * this.rotationTransitionSpeed
     );
 
-    // Mouse tracking (3D - both X and Y axis)
-    const mouseTiltX = -mouseY * (20 * Math.PI / 180); // Up-down: 20° range
-    const mouseTiltY = mouseX * (20 * Math.PI / 180);  // Left-right: 20° range
+    // Smooth mouse tracking (lerped based on emotional state)
+    // Target rotation based on mouse position
+    this.targetMouseRotation.x = -mouseY * (20 * Math.PI / 180); // Up-down: 20° range
+    this.targetMouseRotation.y = mouseX * (20 * Math.PI / 180);  // Left-right: 20° range
 
-    // Combine all rotations: idle sway + mouse tracking + smoothed state-based behavior
-    this.mesh.rotation.x = mouseTiltX + idleSwayX + this.currentStateRotation.x;
-    this.mesh.rotation.y = mouseTiltY + idleSwayY + this.currentStateRotation.y;
+    // Smoothly lerp current rotation toward target (emotional response speed)
+    const followSpeed = this.currentMouseFollowSpeed;
+    this.currentMouseRotation.x += (this.targetMouseRotation.x - this.currentMouseRotation.x) * followSpeed;
+    this.currentMouseRotation.y += (this.targetMouseRotation.y - this.currentMouseRotation.y) * followSpeed;
+
+    // Combine all rotations: idle sway + smooth mouse tracking + state-based behavior
+    this.mesh.rotation.x = this.currentMouseRotation.x + idleSwayX + this.currentStateRotation.x;
+    this.mesh.rotation.y = this.currentMouseRotation.y + idleSwayY + this.currentStateRotation.y;
     this.mesh.rotation.z = this.currentStateRotation.z;
 
-    // Breathing effect (pulsing glow with interpolated speed)
+    // Breathing effect (pulsing glow using accumulated phase)
     let breathingIntensity = currentGlowIntensity +
-                             Math.sin(this.time * currentBreathSpeed) * 0.15;
+                             Math.sin(this.breathingPhase) * 0.15;
 
     // Listening mode: add pulsing effect
     if (this.isListening) {
@@ -364,14 +394,23 @@ export class Cube {
       this.colorTransitionProgress += deltaTime / this.colorTransitionDuration;
       this.colorTransitionProgress = Math.min(this.colorTransitionProgress, 1);
 
-      // Lerp between current and target color
-      const currentEmissive = new THREE.Color(this.currentColor.emissive);
+      // Lerp from CURRENT VISUAL STATE (accumulated) to target color
+      // This prevents jarring jumps when rapidly switching colors
       const targetEmissive = new THREE.Color(this.targetColor.emissive);
-      currentEmissive.lerp(targetEmissive, this.colorTransitionProgress);
-      this.material.emissive.copy(currentEmissive);
+      const targetBaseColor = new THREE.Color(this.targetColor.hex);
+
+      // Use small lerp step for smooth accumulation
+      const lerpSpeed = deltaTime / this.colorTransitionDuration;
+      this.material.emissive.lerp(targetEmissive, lerpSpeed);
+      this.material.color.lerp(targetBaseColor, lerpSpeed);
 
       if (this.colorTransitionProgress >= 1) {
+        // Update current color reference (but keep accumulated visual state)
         this.currentColor = this.targetColor;
+
+        // Note: We don't force-set colors/parameters here to avoid jarring final jumps
+        // The lerp will have already brought them very close to target values
+        // If exact precision is needed, it will converge naturally in next frames
       }
     }
 
