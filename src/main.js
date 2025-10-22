@@ -8,9 +8,11 @@
 import * as THREE from 'three';
 import { SceneManager } from './core/scene.js';
 import { Cube } from './core/cube.js';
-import voiceService from './services/voice.js';
-import aiService from './services/ai.js';
-import memoryService from './services/memory.js';
+
+// Lazy-loaded services (imported only when needed)
+let voiceServiceInstance = null;
+let aiServiceInstance = null;
+let memoryServiceInstance = null;
 
 class CubiqoApp {
   constructor() {
@@ -74,14 +76,13 @@ class CubiqoApp {
   }
 
   /**
-   * Hide loading screen with smooth transition
+   * Hide loading screen immediately (no delay for better performance)
    */
   hideLoadingScreen() {
     const loadingScreen = document.getElementById('loading-screen');
     if (loadingScreen) {
-      setTimeout(() => {
-        loadingScreen.classList.add('hidden');
-      }, 500); // Small delay to ensure everything is loaded
+      loadingScreen.classList.add('hidden');
+      // Removed 500ms delay for better Speed Index
     }
   }
 
@@ -147,9 +148,11 @@ class CubiqoApp {
       this.voiceBtn.addEventListener('click', () => this.handleVoiceClick());
     }
 
-    // Check voice support
-    const support = voiceService.isSupported();
-    if (!support.recognition || !support.synthesis) {
+    // Check voice support (without loading VoiceService yet)
+    const hasRecognition = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    const hasSynthesis = !!window.speechSynthesis;
+
+    if (!hasRecognition || !hasSynthesis) {
       console.warn('Voice features not fully supported');
       if (this.voiceBtn) {
         this.voiceBtn.style.opacity = '0.5';
@@ -199,15 +202,23 @@ class CubiqoApp {
 
   /**
    * Handle voice button click
+   * Lazy loads VoiceService on first click
    */
   async handleVoiceClick() {
-    if (!voiceService.isSupported().recognition) {
+    // Lazy load VoiceService on first use
+    if (!voiceServiceInstance) {
+      const VoiceService = (await import('./services/voice.js')).default;
+      voiceServiceInstance = new VoiceService();
+      console.log('🎤 VoiceService loaded lazily');
+    }
+
+    if (!voiceServiceInstance.isSupported().recognition) {
       alert('Voice input not supported in this browser.\n\nSupported browsers:\n• Chrome (Desktop & Mobile)\n• Safari (Desktop & iOS)\n• Edge\n\nFirefox does not support voice input yet.');
       return;
     }
 
     // iOS Safari: Activate audio context on user gesture
-    voiceService.activateAudioContext();
+    voiceServiceInstance.activateAudioContext();
 
     // Start listening - UI feedback
     this.voiceBtn.classList.add('listening');
@@ -216,7 +227,7 @@ class CubiqoApp {
     // Start cube listening animation
     this.cube.startListening();
 
-    voiceService.startListening(
+    voiceServiceInstance.startListening(
       (transcript) => this.handleTranscript(transcript),
       (error) => this.handleVoiceError(error)
     );
@@ -224,6 +235,7 @@ class CubiqoApp {
 
   /**
    * Handle voice transcript
+   * Lazy loads AI and Memory services on first use
    */
   async handleTranscript(transcript) {
     console.log('Transcript:', transcript);
@@ -234,6 +246,16 @@ class CubiqoApp {
 
     // Get AI response
     try {
+      // Lazy load AI and Memory services
+      if (!aiServiceInstance) {
+        aiServiceInstance = (await import('./services/ai.js')).default;
+        console.log('🤖 AI Service loaded lazily');
+      }
+      if (!memoryServiceInstance) {
+        memoryServiceInstance = (await import('./services/memory.js')).default;
+        console.log('💾 Memory Service loaded lazily');
+      }
+
       // Start thinking mode: cube rotates slowly, rare blinking
       this.cube.startThinking();
       this.voiceBtn.textContent = '💭'; // Thinking
@@ -241,8 +263,8 @@ class CubiqoApp {
       // Get current cube color
       const currentColor = this.cube.getCurrentColor();
 
-      const history = await memoryService.getRecentMemories();
-      const response = await aiService.chat(transcript, history, currentColor);
+      const history = await memoryServiceInstance.getRecentMemories();
+      const response = await aiServiceInstance.chat(transcript, history, currentColor);
 
       console.log('AI Response:', response);
 
@@ -256,15 +278,15 @@ class CubiqoApp {
       this.cube.startSpeaking();
       this.voiceBtn.textContent = '🗣️'; // Speaking
 
-      if (voiceService.isSupported().synthesis) {
-        await voiceService.speak(response.response);
+      if (voiceServiceInstance && voiceServiceInstance.isSupported().synthesis) {
+        await voiceServiceInstance.speak(response.response);
       }
 
       // Stop speaking mode
       this.cube.stopSpeaking();
 
       // Save to memory
-      await memoryService.saveConversation({
+      await memoryServiceInstance.saveConversation({
         userMessage: transcript,
         aiResponse: response.response,
         color: response.color
@@ -385,8 +407,12 @@ class CubiqoApp {
   dispose() {
     this.scene.dispose();
     this.cube.dispose();
-    voiceService.stopListening();
-    voiceService.stopSpeaking();
+
+    // Cleanup voice service if it was loaded
+    if (voiceServiceInstance) {
+      voiceServiceInstance.stopListening();
+      voiceServiceInstance.stopSpeaking();
+    }
   }
 }
 

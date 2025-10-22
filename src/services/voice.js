@@ -318,5 +318,6 @@ class VoiceService {
   }
 }
 
-// Export singleton instance
-export default new VoiceService();
+// Export class (not instance!) for lazy initialization
+// Instance will be created only when needed (on first microphone click)
+export default VoiceService;
