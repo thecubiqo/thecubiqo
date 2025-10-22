@@ -40,12 +40,18 @@ body {
   -webkit-transform: translateZ(0);
 }
 
-/* Manual Mode Toggle */
+/* Manual Mode Toggle - Hidden by default (production) */
 #manual-mode-toggle {
   position: absolute;
   top: 20px;
   right: 20px;
   z-index: 100;
+  display: none; /* Hidden by default */
+}
+
+/* Show on dev/staging only */
+html.dev-mode #manual-mode-toggle {
+  display: block;
 }
 
 #toggle-manual-mode {
@@ -371,7 +377,7 @@ body {
   }
 }
 
-/* FPS Monitor */
+/* FPS Monitor - Hidden by default (production) */
 #fps-monitor {
   position: fixed;
   top: 10px;
@@ -387,6 +393,12 @@ body {
   z-index: 1000;
   min-width: 140px;
   line-height: 1.5;
+  display: none; /* Hidden by default */
+}
+
+/* Show on dev/staging only */
+html.dev-mode #fps-monitor {
+  display: block;
 }
 
 #fps-monitor .fps-current {
