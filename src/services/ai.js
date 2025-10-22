@@ -172,6 +172,12 @@ class AIService {
    */
   formatFullTimestamp(timestamp) {
     const date = new Date(timestamp);
+    console.log('🕐 Formatting full timestamp:', {
+      input: timestamp,
+      parsed: date.toISOString(),
+      localTime: date.toLocaleString()
+    });
+
     const options = {
       weekday: 'long',
       year: 'numeric',
@@ -181,7 +187,9 @@ class AIService {
       minute: '2-digit',
       hour12: true
     };
-    return date.toLocaleString('en-US', options);
+    const formatted = date.toLocaleString('en-US', options);
+    console.log('✅ Formatted timestamp:', formatted);
+    return formatted;
   }
 
   /**
@@ -212,6 +220,9 @@ class AIService {
   buildMessages(currentMessage, history, currentColor) {
     const messages = [];
 
+    console.log('🕐 Building messages with temporal context...');
+    console.log('📊 History entries:', history.length);
+
     // Add conversation history (last 10 messages for context)
     history.forEach((entry, index) => {
       // First message gets FULL timestamp (for season/day context)
@@ -220,9 +231,13 @@ class AIService {
         ? `[${this.formatFullTimestamp(entry.timestamp)}]`
         : `[${this.formatTimeAgo(entry.timestamp)}]`;
 
+      const userContent = `${timePrefix} ${entry.userMessage}`;
+
+      console.log(`📝 Message ${index + 1}:`, userContent);
+
       messages.push({
         role: 'user',
-        content: `${timePrefix} ${entry.userMessage}`
+        content: userContent
       });
       messages.push({
         role: 'assistant',
@@ -234,10 +249,15 @@ class AIService {
     });
 
     // Add current message with color context and [Just now] timestamp
+    const currentContent = `[Just now] Current color: ${currentColor}\n\nUser message: ${currentMessage}`;
+    console.log('📝 Current message:', currentContent);
+
     messages.push({
       role: 'user',
-      content: `[Just now] Current color: ${currentColor}\n\nUser message: ${currentMessage}`
+      content: currentContent
     });
+
+    console.log('✅ Total messages to Claude:', messages.length);
 
     return messages;
   }
