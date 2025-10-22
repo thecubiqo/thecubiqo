@@ -26,6 +26,9 @@ class CubiqoApp {
     this.voiceBtn = null;
     this.colorButtons = [];
 
+    // Voice state management
+    this.appState = 'idle'; // 'idle' | 'listening' | 'thinking' | 'speaking'
+
     // FPS monitoring
     this.fpsHistory = [];
     this.fpsHistoryMaxLength = 60; // Track last 60 frames
@@ -207,7 +210,7 @@ class CubiqoApp {
   }
 
   /**
-   * Handle voice button click
+   * Handle voice button click with state management
    * Lazy loads VoiceService on first click
    */
   async handleVoiceClick() {
@@ -223,20 +226,47 @@ class CubiqoApp {
       return;
     }
 
-    // iOS Safari: Activate audio context on user gesture
-    voiceServiceInstance.activateAudioContext();
+    // State machine logic
+    switch (this.appState) {
+      case 'idle':
+        // Start listening
+        this.appState = 'listening';
+        voiceServiceInstance.activateAudioContext();
 
-    // Start listening - UI feedback
-    this.voiceBtn.classList.add('listening');
-    this.voiceBtn.textContent = '🎙️'; // Listening
+        this.voiceBtn.classList.add('listening');
+        this.voiceBtn.textContent = '🎙️';
+        this.cube.startListening();
 
-    // Start cube listening animation
-    this.cube.startListening();
+        voiceServiceInstance.startListening(
+          (transcript) => this.handleTranscript(transcript),
+          (error) => this.handleVoiceError(error)
+        );
+        break;
 
-    voiceServiceInstance.startListening(
-      (transcript) => this.handleTranscript(transcript),
-      (error) => this.handleVoiceError(error)
-    );
+      case 'listening':
+        // Stop listening, return to idle
+        this.appState = 'idle';
+        voiceServiceInstance.stopListening();
+        this.cube.stopListening();
+
+        this.voiceBtn.classList.remove('listening');
+        this.voiceBtn.textContent = '🎤';
+        break;
+
+      case 'thinking':
+        // Do nothing - cannot interrupt AI thinking
+        console.log('Cannot interrupt while AI is thinking');
+        break;
+
+      case 'speaking':
+        // Stop speaking, return to idle (do NOT start listening)
+        this.appState = 'idle';
+        voiceServiceInstance.stopSpeaking();
+        this.cube.stopSpeaking();
+
+        this.voiceBtn.textContent = '🎤';
+        break;
+    }
   }
 
   /**
@@ -249,6 +279,9 @@ class CubiqoApp {
     // Stop listening animation
     this.cube.stopListening();
     this.voiceBtn.classList.remove('listening');
+
+    // Transition to thinking state
+    this.appState = 'thinking';
 
     // Get AI response
     try {
@@ -280,6 +313,9 @@ class CubiqoApp {
       // Change cube color based on emotion
       this.changeCubeColor(response.color);
 
+      // Transition to speaking state
+      this.appState = 'speaking';
+
       // Start speaking mode: rhythmic nodding
       this.cube.startSpeaking();
       this.voiceBtn.textContent = '🗣️'; // Speaking
@@ -298,7 +334,8 @@ class CubiqoApp {
         color: response.color
       });
 
-      // Reset to ready state
+      // Return to idle state
+      this.appState = 'idle';
       this.voiceBtn.textContent = '🎤';
 
     } catch (error) {
@@ -307,6 +344,9 @@ class CubiqoApp {
       // Stop all animations on error
       this.cube.stopThinking();
       this.cube.stopSpeaking();
+
+      // Return to idle state
+      this.appState = 'idle';
 
       this.voiceBtn.textContent = '❌'; // Error
       setTimeout(() => {
@@ -325,6 +365,9 @@ class CubiqoApp {
     this.cube.stopListening();
 
     this.voiceBtn.classList.remove('listening');
+
+    // Return to idle state
+    this.appState = 'idle';
 
     // Show error briefly
     this.voiceBtn.textContent = '❌';
