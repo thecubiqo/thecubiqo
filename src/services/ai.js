@@ -172,12 +172,6 @@ class AIService {
    */
   formatFullTimestamp(timestamp) {
     const date = new Date(timestamp);
-    console.log('🕐 Formatting full timestamp:', {
-      input: timestamp,
-      parsed: date.toISOString(),
-      localTime: date.toLocaleString()
-    });
-
     const options = {
       weekday: 'long',
       year: 'numeric',
@@ -187,9 +181,7 @@ class AIService {
       minute: '2-digit',
       hour12: true
     };
-    const formatted = date.toLocaleString('en-US', options);
-    console.log('✅ Formatted timestamp:', formatted);
-    return formatted;
+    return date.toLocaleString('en-US', options);
   }
 
   /**
@@ -220,9 +212,6 @@ class AIService {
   buildMessages(currentMessage, history, currentColor) {
     const messages = [];
 
-    console.log('🕐 Building messages with temporal context...');
-    console.log('📊 History entries:', history.length);
-
     // Add conversation history (last 10 messages for context)
     history.forEach((entry, index) => {
       // First message gets FULL timestamp (for season/day context)
@@ -231,13 +220,9 @@ class AIService {
         ? `[${this.formatFullTimestamp(entry.timestamp)}]`
         : `[${this.formatTimeAgo(entry.timestamp)}]`;
 
-      const userContent = `${timePrefix} ${entry.userMessage}`;
-
-      console.log(`📝 Message ${index + 1}:`, userContent);
-
       messages.push({
         role: 'user',
-        content: userContent
+        content: `${timePrefix} ${entry.userMessage}`
       });
       messages.push({
         role: 'assistant',
@@ -251,14 +236,11 @@ class AIService {
     // Add current message with FULL timestamp (so Claude knows the current date/time)
     const currentTimestamp = this.formatFullTimestamp(new Date().toISOString());
     const currentContent = `[${currentTimestamp}] Current color: ${currentColor}\n\nUser message: ${currentMessage}`;
-    console.log('📝 Current message:', currentContent);
 
     messages.push({
       role: 'user',
       content: currentContent
     });
-
-    console.log('✅ Total messages to Claude:', messages.length);
 
     return messages;
   }
