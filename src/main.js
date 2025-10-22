@@ -145,6 +145,12 @@ class CubiqoApp {
     this.voiceBtn = document.getElementById('voice-btn');
 
     if (this.voiceBtn) {
+      // Prevent double-firing on touch devices (touchstart + click)
+      this.voiceBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        this.handleVoiceClick();
+      }, { passive: false });
+
       this.voiceBtn.addEventListener('click', () => this.handleVoiceClick());
     }
 
