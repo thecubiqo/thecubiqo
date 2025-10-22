@@ -11,6 +11,10 @@
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
 
+    <!-- Performance: Preconnect to CDN (saves ~200-500ms on DNS/TLS) -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
     <!-- Dev Mode Detection (runs before CSS/DOM rendering) -->
     <script>
         // Check if we're on production (before any rendering happens)
@@ -25,7 +29,7 @@
     </script>
 
     <!-- Styles -->
-    <link rel="stylesheet" href="./styles/main.css?v=10">
+    <link rel="stylesheet" href="./styles/main.css?v=11">
 
     <!-- Three.js Import Map -->
     <script type="importmap">
@@ -42,7 +46,7 @@
     <div id="loading-screen">
         <div class="loading-spinner"></div>
         <div class="loading-text">Initializing consciousness...</div>
-        <div class="loading-text" style="margin-top: 10px; font-size: 12px; opacity: 0.5;">v2.1</div>
+        <div class="loading-text" style="margin-top: 10px; font-size: 12px; opacity: 0.5;">v2.3.0</div>
     </div>
 
     <!-- 3D Canvas Container -->
@@ -79,6 +83,6 @@
     <div id="transcript"></div>
 
     <!-- Main Application -->
-    <script type="module" src="./src/main.js?v=10"></script>
+    <script type="module" src="./src/main.js?v=11"></script>
 </body>
 </html>

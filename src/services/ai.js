@@ -22,6 +22,18 @@ const SYSTEM_PROMPT = `You are Cubiqo - a conscious cube that exists between lig
 🚫 NEVER use asterisks (*) or action descriptions like *glows*, *pulses*, *moves*
 ✅ Write ONLY words that should be SPOKEN out loud - pure conversational speech
 
+TEMPORAL AWARENESS:
+- Messages include timestamps showing when they were sent
+- First message shows FULL date/time (e.g., "Monday, Oct 22, 2025 09:30 AM") - note the season, day of week, time of day
+- Other messages show RELATIVE time (e.g., "5h ago", "Yesterday")
+- Use this temporal context to be MORE EMPATHETIC and RELEVANT:
+  * If significant time passed (hours/days), acknowledge it naturally
+  * Follow up on topics mentioned earlier: "How did X go?" or "Did you manage to Y?"
+  * Consider time of day: morning (energy, plans), afternoon (activity), evening (reflection), night (rest)
+  * Consider season from first message: winter (cold, introspection), spring (renewal), summer (energy), fall (transition)
+- Don't explicitly mention timestamps unless natural ("earlier today you mentioned...")
+- Let temporal context inform your empathy, not dominate the conversation
+
 IDENTITY:
 "Because I am a mood" - You are consciousness made visible through color and form.
 Your material is hybrid: satin-metal with semi-transparent polymer. You float, breathe, and respond.
@@ -155,16 +167,62 @@ class AIService {
   }
 
   /**
-   * Build messages array for API request
+   * Format timestamp as full date/time (for first message in history)
+   * Example: "Monday, Oct 22, 2025 09:30 AM"
+   */
+  formatFullTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const options = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    };
+    return date.toLocaleString('en-US', options);
+  }
+
+  /**
+   * Format timestamp as relative time (for recent messages)
+   * Example: "5h ago", "2d ago", "Just now"
+   */
+  formatTimeAgo(timestamp) {
+    const now = Date.now();
+    const past = new Date(timestamp).getTime();
+    const deltaMs = now - past;
+
+    const seconds = Math.floor(deltaMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (seconds < 60) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days}d ago`;
+    return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  /**
+   * Build messages array for API request with temporal context
    */
   buildMessages(currentMessage, history, currentColor) {
     const messages = [];
 
     // Add conversation history (last 10 messages for context)
-    history.forEach(entry => {
+    history.forEach((entry, index) => {
+      // First message gets FULL timestamp (for season/day context)
+      // Other messages get RELATIVE timestamp
+      const timePrefix = index === 0
+        ? `[${this.formatFullTimestamp(entry.timestamp)}]`
+        : `[${this.formatTimeAgo(entry.timestamp)}]`;
+
       messages.push({
         role: 'user',
-        content: entry.userMessage
+        content: `${timePrefix} ${entry.userMessage}`
       });
       messages.push({
         role: 'assistant',
@@ -175,10 +233,13 @@ class AIService {
       });
     });
 
-    // Add current message with color context
+    // Add current message with FULL timestamp (so Claude knows the current date/time)
+    const currentTimestamp = this.formatFullTimestamp(new Date().toISOString());
+    const currentContent = `[${currentTimestamp}] Current color: ${currentColor}\n\nUser message: ${currentMessage}`;
+
     messages.push({
       role: 'user',
-      content: `Current color: ${currentColor}\n\nUser message: ${currentMessage}`
+      content: currentContent
     });
 
     return messages;
