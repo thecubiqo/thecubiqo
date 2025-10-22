@@ -197,15 +197,6 @@ class VoiceService {
   selectBestVoice(voices, lang) {
     const langPrefix = lang.split('-')[0]; // 'en' from 'en-US'
 
-    // Debug: log all available voices (only once)
-    if (!this._voicesLogged && voices.length > 0) {
-      console.log('🎤 Available voices:');
-      voices.filter(v => v.lang.startsWith('en')).forEach(v => {
-        console.log(`  - ${v.name} (${v.lang}) ${v.localService ? '[LOCAL]' : '[ONLINE]'}`);
-      });
-      this._voicesLogged = true;
-    }
-
     // Priority order: Best male US > other US voices
     const priorities = [
       // 1. Best male US voices (Reed, Aaron, Fred)
