@@ -11,8 +11,21 @@
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
 
+    <!-- Dev Mode Detection (runs before CSS/DOM rendering) -->
+    <script>
+        // Check if we're on production (before any rendering happens)
+        const urlParams = new URLSearchParams(window.location.search);
+        const forceProduction = urlParams.get('production') === 'true';
+        const isProduction = window.location.hostname === 'cubiqo.ai' || forceProduction;
+
+        // Add dev-mode class to <html> if NOT production
+        if (!isProduction) {
+            document.documentElement.classList.add('dev-mode');
+        }
+    </script>
+
     <!-- Styles -->
-    <link rel="stylesheet" href="./styles/main.css?v=8">
+    <link rel="stylesheet" href="./styles/main.css?v=10">
 
     <!-- Three.js Import Map -->
     <script type="importmap">
@@ -29,7 +42,7 @@
     <div id="loading-screen">
         <div class="loading-spinner"></div>
         <div class="loading-text">Initializing consciousness...</div>
-        <div class="loading-text" style="margin-top: 10px; font-size: 12px; opacity: 0.5;">v2.0-production-ready</div>
+        <div class="loading-text" style="margin-top: 10px; font-size: 12px; opacity: 0.5;">v2.1</div>
     </div>
 
     <!-- 3D Canvas Container -->
@@ -66,6 +79,6 @@
     <div id="transcript"></div>
 
     <!-- Main Application -->
-    <script type="module" src="./src/main.js?v=9"></script>
+    <script type="module" src="./src/main.js?v=10"></script>
 </body>
 </html>

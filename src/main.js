@@ -103,32 +103,18 @@ class CubiqoApp {
    * Setup UI elements and event listeners
    */
   setupUI() {
-    // Check if we're on production
-    // For local testing: add ?production=true to URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const forceProduction = urlParams.get('production') === 'true';
-    const isProduction = window.location.hostname === 'cubiqo.ai' || forceProduction;
+    // Check if we're in dev mode (determined by inline script in <head>)
+    const isDevMode = document.documentElement.classList.contains('dev-mode');
 
-    // Hide dev features on production
-    if (isProduction) {
-      const fpsMonitor = document.getElementById('fps-monitor');
-      const manualModeToggle = document.getElementById('manual-mode-toggle');
+    // FPS Monitor (only exists in dev mode via CSS)
+    this.fpsMonitor = isDevMode ? document.getElementById('fps-monitor') : null;
 
-      if (fpsMonitor) fpsMonitor.style.display = 'none';
-      if (manualModeToggle) manualModeToggle.style.display = 'none';
-
-      console.log('🚀 Production mode: dev features hidden');
-    }
-
-    // FPS Monitor (only on staging/dev)
-    this.fpsMonitor = isProduction ? null : document.getElementById('fps-monitor');
-
-    // Manual Mode toggle (only on staging/dev)
+    // Manual Mode toggle (only exists in dev mode via CSS)
     this.manualModeActive = false; // Start with AI-only mode
     this.toggleManualModeBtn = document.getElementById('toggle-manual-mode');
     this.controlsContainer = document.getElementById('controls');
 
-    if (this.toggleManualModeBtn && !isProduction) {
+    if (this.toggleManualModeBtn && isDevMode) {
       this.toggleManualModeBtn.addEventListener('click', () => {
         this.manualModeActive = !this.manualModeActive;
         this.toggleManualModeBtn.classList.toggle('active', this.manualModeActive);
@@ -137,6 +123,9 @@ class CubiqoApp {
         console.log(`Manual Mode: ${this.manualModeActive ? 'ON' : 'OFF'}`);
       });
     }
+
+    // Log mode for debugging
+    console.log(isDevMode ? '🛠️ Dev mode: FPS & Manual Mode enabled' : '🚀 Production mode: clean UI');
 
     // Color buttons
     this.colorButtons = document.querySelectorAll('.color-btn');
