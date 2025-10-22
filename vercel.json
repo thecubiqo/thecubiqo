@@ -8,6 +8,12 @@
       "maxDuration": 30
     }
   },
+  "routes": [
+    {
+      "src": "/(.*)\\.md$",
+      "status": 404
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
