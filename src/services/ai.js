@@ -248,8 +248,9 @@ class AIService {
       });
     });
 
-    // Add current message with color context and [Just now] timestamp
-    const currentContent = `[Just now] Current color: ${currentColor}\n\nUser message: ${currentMessage}`;
+    // Add current message with FULL timestamp (so Claude knows the current date/time)
+    const currentTimestamp = this.formatFullTimestamp(new Date().toISOString());
+    const currentContent = `[${currentTimestamp}] Current color: ${currentColor}\n\nUser message: ${currentMessage}`;
     console.log('📝 Current message:', currentContent);
 
     messages.push({
