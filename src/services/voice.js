@@ -180,8 +180,14 @@ class VoiceService {
       };
 
       utterance.onerror = (error) => {
-        console.error('TTS error:', error);
-        reject(error);
+        // 'interrupted' is normal when user stops speaking - not an error
+        if (error.error === 'interrupted') {
+          console.log('🔊 Speech interrupted by user');
+          resolve(); // Resolve, not reject
+        } else {
+          console.error('TTS error:', error);
+          reject(error);
+        }
       };
 
       // Speak (iOS fix: small delay)

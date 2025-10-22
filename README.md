@@ -551,7 +551,16 @@ Ctrl+Shift+R (Windows)
 
 ## Version History
 
-### v2.3.0 (Current - Oct 22, 2025)
+### v2.3.3 (Current - Oct 22, 2025)
+- ✅ Fixed 'interrupted' TTS error logging (treat as normal user action, not error)
+- ✅ Voice button returns to idle state after stopping speech
+
+### v2.3.2 (Oct 22, 2025)
+- ✅ Voice button state machine (idle/listening/thinking/speaking)
+- ✅ Ability to stop listening or speaking by clicking button
+- ✅ Block voice button during AI thinking phase
+
+### v2.3.0 (Oct 22, 2025)
 - ✅ Temporal context for AI conversations
 - ✅ Intelligent production deployment script
 - ✅ Cleaned console logs (removed verbose voice logging)
@@ -609,6 +618,7 @@ Proprietary - All rights reserved
 - [x] Temporal context feature
 - [x] Full documentation (README, ARCHITECTURE, API)
 - [x] Automated deployment script
+- [x] Voice button state machine with stop functionality
 
 **Future phases**: Phase 2-3 in discussion
 
