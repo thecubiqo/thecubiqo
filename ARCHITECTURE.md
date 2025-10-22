@@ -453,6 +453,9 @@ Transition complete (t = 1.0)
   isInitialized: boolean,
   manualModeActive: boolean,
 
+  // Voice interaction state
+  appState: 'idle' | 'listening' | 'thinking' | 'speaking',
+
   // Performance tracking
   fpsHistory: number[],
   fpsUpdateCounter: number,
@@ -462,6 +465,80 @@ Transition complete (t = 1.0)
 ```
 
 **State Persistence**: None (state resets on page reload)
+
+---
+
+### Voice Button State Machine
+
+**Location**: `main.js` (appState property)
+
+**Purpose**: Controls voice button behavior and prevents unwanted interruptions during AI processing.
+
+**States**:
+```javascript
+appState: 'idle' | 'listening' | 'thinking' | 'speaking'
+```
+
+**State Transitions**:
+```
+IDLE state:
+  ├─ User clicks voice button
+  └─► LISTENING (start recording)
+
+LISTENING state:
+  ├─ User clicks voice button
+  ├─► IDLE (stop recording, return to idle)
+  │
+  ├─ Transcript received
+  └─► THINKING (process with AI)
+
+THINKING state:
+  ├─ User clicks voice button
+  └─► BLOCKED (cannot interrupt AI processing)
+
+SPEAKING state:
+  ├─ User clicks voice button
+  ├─► IDLE (stop TTS, return to idle, do NOT start listening)
+  │
+  ├─ Speech completed
+  └─► IDLE (return to idle automatically)
+```
+
+**Implementation**:
+```javascript
+async handleVoiceClick() {
+  switch (this.appState) {
+    case 'idle':
+      // Start listening
+      this.appState = 'listening';
+      voiceServiceInstance.startListening(...);
+      break;
+
+    case 'listening':
+      // Stop listening, return to idle
+      this.appState = 'idle';
+      voiceServiceInstance.stopListening();
+      break;
+
+    case 'thinking':
+      // Do nothing - cannot interrupt AI thinking
+      console.log('Cannot interrupt while AI is thinking');
+      break;
+
+    case 'speaking':
+      // Stop speaking, return to idle (do NOT start listening)
+      this.appState = 'idle';
+      voiceServiceInstance.stopSpeaking();
+      break;
+  }
+}
+```
+
+**Key Features**:
+- User can cancel listening by clicking button again
+- User can stop TTS playback without restarting listening
+- AI thinking phase cannot be interrupted (prevents API waste)
+- Clear state transitions prevent race conditions
 
 ---
 

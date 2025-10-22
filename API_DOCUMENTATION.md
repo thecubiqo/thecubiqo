@@ -131,8 +131,8 @@ console.log('Finished speaking');
 - iOS fix: 100ms delay before speaking
 
 **Errors**:
-- Rejects promise on TTS error
-- Logs error to console
+- `'interrupted'`: Treated as normal behavior (resolves, not rejects) when user stops speech
+- Other TTS errors: Rejects promise and logs error to console
 
 ---
 
@@ -1362,6 +1362,8 @@ export const config = {
 
 ### VoiceService Errors
 
+**Speech Recognition Errors**:
+
 | Code | Description | Solution |
 |------|-------------|----------|
 | `'no-speech'` | No speech detected | User didn't speak or too quiet |
@@ -1369,6 +1371,14 @@ export const config = {
 | `'not-allowed'` | Permission denied | Grant microphone permission |
 | `'timeout'` | Recognition timeout (10s) | Speak within 10 seconds |
 | `'already started'` | Recognition already running | Wait for current recognition to finish |
+
+**Text-to-Speech Errors**:
+
+| Code | Description | Behavior | Solution |
+|------|-------------|----------|----------|
+| `'interrupted'` | User stopped speech | Normal (resolves Promise) | No action needed |
+| `'canceled'` | Speech was canceled | Rejects Promise | Check if intentional |
+| `'audio-busy'` | Audio system busy | Rejects Promise | Retry after delay |
 
 ### AIService Errors
 
