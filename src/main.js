@@ -250,7 +250,7 @@ class CubiqoApp {
         this.cube.stopListening();
 
         this.voiceBtn.classList.remove('listening');
-        this.voiceBtn.textContent = '🎤';
+        this.voiceBtn.innerHTML = `           <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"             width="26" height="26">             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"               d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" />           </svg>         `;
         break;
 
       case 'thinking':
@@ -264,7 +264,7 @@ class CubiqoApp {
         voiceServiceInstance.stopSpeaking();
         this.cube.stopSpeaking();
 
-        this.voiceBtn.textContent = '🎤';
+        this.voiceBtn.innerHTML = `           <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"             width="26" height="26">             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"               d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" />           </svg>         `;
         break;
     }
   }
@@ -336,7 +336,7 @@ class CubiqoApp {
 
       // Return to idle state
       this.appState = 'idle';
-      this.voiceBtn.textContent = '🎤';
+      this.voiceBtn.innerHTML = `           <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"             width="26" height="26">             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"               d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" />           </svg>         `;
 
     } catch (error) {
       console.error('AI Error:', error);
@@ -350,7 +350,7 @@ class CubiqoApp {
 
       this.voiceBtn.textContent = '❌'; // Error
       setTimeout(() => {
-        this.voiceBtn.textContent = '🎤';
+        this.voiceBtn.innerHTML = `           <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"             width="26" height="26">             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"               d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" />           </svg>         `;
       }, 2000);
     }
   }
@@ -373,7 +373,7 @@ class CubiqoApp {
     this.voiceBtn.textContent = '❌';
 
     setTimeout(() => {
-      this.voiceBtn.textContent = '🎤';
+      this.voiceBtn.innerHTML = `           <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"             width="26" height="26">             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"               d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" />           </svg>         `;
     }, 2000);
   }
 
