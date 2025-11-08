@@ -1,88 +1,521 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Cubiqo - A conscious cube between light and code">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Cubiqo - Emotional AI Companion</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Cubiqo - A conscious cube between light and code" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Cubiqo - AI Companion</title>
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-
-    <!-- Performance: Preconnect to CDN (saves ~200-500ms on DNS/TLS) -->
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-
-    <!-- Dev Mode Detection (runs before CSS/DOM rendering) -->
-    <script>
-        // Check if we're on production (before any rendering happens)
-        const urlParams = new URLSearchParams(window.location.search);
-        const forceProduction = urlParams.get('production') === 'true';
-        const isProduction = window.location.hostname === 'cubiqo.ai' || forceProduction;
-
-        // Add dev-mode class to <html> if NOT production
-        if (!isProduction) {
-            document.documentElement.classList.add('dev-mode');
-        }
-    </script>
-
-    <!-- Styles -->
-    <link rel="stylesheet" href="./styles/main.css?v=11">
-
-    <!-- Three.js Import Map -->
-    <script type="importmap">
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'cubiqo-bg': '#050505',
+          },
+        },
+      },
+    };
+  </script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceProduction = urlParams.get('production') === 'true';
+    const isProduction = window.location.hostname === 'cubiqo.ai' || forceProduction;
+    if (!isProduction) document.documentElement.classList.add('dev-mode');
+  </script>
+  <script type="importmap">
     {
-        "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-        }
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
     }
-    </script>
+  </script>
+
+  <!-- Custom Styles -->
+  <style>
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: var(--bg-color);
+      color: var(--text-color);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      transition: background 0.4s ease, color 0.4s ease;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    *,
+    *::before,
+    *::after {
+      transition:
+        background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        border-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        fill 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        stroke 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: background-color, color, border-color, box-shadow, fill, stroke, opacity;
+    }
+
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #111111;
+    }
+
+    .dark {
+      --bg-color: #050505;
+      --text-color: #ffffff;
+    }
+
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+    }
+
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      background: rgba(5, 5, 5, 0.7);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .light .header {
+      background: rgba(255, 255, 255, 0.8);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+
+    footer {
+      position: fixed;
+      bottom: 16px;
+      right: 24px;
+      z-index: 50;
+      text-align: right;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 11px;
+      line-height: 1.5;
+      pointer-events: none;
+    }
+
+    .light footer {
+      color: rgba(0, 0, 0, 0.7);
+    }
+
+    #voice-ui {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 60;
+    }
+
+    #voice-btn {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2));
+      border: 2px solid rgba(59, 130, 246, 0.4);
+      border-radius: 50%;
+      width: 72px;
+      height: 72px;
+      font-size: 28px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      color: rgba(255, 255, 255, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3),
+        0 0 0 0 rgba(59, 130, 246, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #voice-btn::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 50%;
+      padding: 2px;
+      background: linear-gradient(135deg, #3b82f6, #9333ea);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .light #voice-btn {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(147, 51, 234, 0.15));
+      border: 2px solid rgba(59, 130, 246, 0.5);
+      color: #1e40af;
+      box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25),
+        0 0 0 0 rgba(59, 130, 246, 0.3);
+    }
+
+    #voice-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 12px 48px rgba(59, 130, 246, 0.4),
+        0 0 0 8px rgba(59, 130, 246, 0.1);
+      border-color: rgba(59, 130, 246, 0.6);
+    }
+
+    #voice-btn:hover::before {
+      opacity: 1;
+    }
+
+    #voice-btn:active {
+      transform: scale(0.95);
+    }
+
+    .light #voice-btn:hover {
+      box-shadow: 0 12px 48px rgba(59, 130, 246, 0.35),
+        0 0 0 8px rgba(59, 130, 246, 0.08);
+    }
+
+    #theme-toggle {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      white-space: nowrap;
+    }
+
+    .light #theme-toggle {
+      background: rgba(0, 0, 0, 0.05);
+      border-color: rgba(0, 0, 0, 0.15);
+      color: #1f2937;
+    }
+
+    #theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .light #theme-toggle:hover {
+      background: rgba(0, 0, 0, 0.1);
+      border-color: rgba(0, 0, 0, 0.25);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    #theme-toggle:active {
+      transform: translateY(0);
+    }
+
+    #talk-text {
+      position: fixed;
+      bottom: 55px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 15px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
+      pointer-events: none;
+      letter-spacing: 0.3px;
+    }
+
+    .light #talk-text {
+      color: rgba(0, 0, 0, 0.8);
+    }
+
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      color: #fff;
+      font-family: sans-serif;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #333;
+      border-top: 3px solid #0ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    @media (max-width: 1024px) {
+      footer {
+        font-size: 10px;
+        bottom: 12px;
+        right: 16px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        padding: 10px 16px;
+      }
+
+      #theme-toggle .theme-text {
+        display: inline;
+      }
+
+      footer {
+        right: 0;
+        left: 0;
+        text-align: right;
+        font-size: 9px;
+        bottom: 10px;
+        padding: 0 12px;
+      }
+
+      #voice-btn {
+        width: 64px;
+        height: 64px;
+        font-size: 24px;
+      }
+
+      #voice-ui {
+        bottom: 80px;
+      }
+
+      #talk-text {
+        font-size: 13px;
+        bottom: 50px;
+      }
+
+      #transcript {
+        bottom: 32px !important;
+        left: 12px !important;
+        right: 12px !important;
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header {
+        padding: 8px 12px;
+      }
+
+      .logo-text {
+        font-size: 13px;
+      }
+
+      .logo-img {
+        width: 26px !important;
+        height: 26px !important;
+      }
+
+      #theme-toggle {
+        font-size: 10px;
+        padding: 6px 10px;
+        gap: 4px;
+      }
+
+      #voice-btn {
+        width: 56px;
+        height: 56px;
+        font-size: 22px;
+      }
+
+      #voice-ui {
+        bottom: 100px;
+      }
+
+      #talk-text {
+        font-size: 12px;
+        bottom: 75px;
+      }
+
+      footer {
+        font-size: 8px;
+        line-height: 1.4;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .header {
+        padding: 7px 10px;
+      }
+
+      .logo-text {
+        font-size: 12px;
+      }
+
+      .logo-img {
+        width: 24px !important;
+        height: 24px !important;
+      }
+
+      #theme-toggle {
+        font-size: 9px;
+        padding: 5px 8px;
+        gap: 3px;
+      }
+
+      #voice-btn {
+        width: 52px;
+        height: 52px;
+        font-size: 20px;
+      }
+
+      footer {
+        font-size: 7px;
+      }
+    }
+
+    @media (max-height: 600px) and (orientation: landscape) {
+      #voice-ui {
+        bottom: 60px;
+      }
+
+      #talk-text {
+        bottom: 35px;
+        font-size: 11px;
+      }
+
+      #voice-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+      }
+
+      footer {
+        font-size: 8px;
+        bottom: 8px;
+      }
+    }
+
+    @media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+      #voice-btn {
+        width: 68px;
+        height: 68px;
+        font-size: 26px;
+      }
+
+      #talk-text {
+        font-size: 14px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-    <!-- Loading Screen -->
-    <div id="loading-screen">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">Initializing consciousness...</div>
-        <div class="loading-text" style="margin-top: 10px; font-size: 12px; opacity: 0.5;">v2.3.3</div>
-    </div>
 
-    <!-- 3D Canvas Container -->
-    <div id="canvas-container"></div>
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Initializing consciousness...</div>
+    <div class="loading-text" style="margin-top:10px;font-size:12px;opacity:.5;">v2.3.3</div>
+  </div>
 
-    <!-- FPS Monitor -->
-    <div id="fps-monitor">
-        <div class="fps-current">FPS: --</div>
-        <div class="fps-avg">Avg: --</div>
-    </div>
+  <div id="canvas-container"></div>
 
-    <!-- Voice Control UI -->
-    <div id="voice-ui">
-        <button id="voice-btn" aria-label="Voice input">🎤</button>
-    </div>
-
-    <!-- Manual Mode Toggle -->
-    <div id="manual-mode-toggle">
-        <button id="toggle-manual-mode" aria-label="Toggle Manual Mode">
-            <span class="toggle-icon">🎨</span>
-            <span class="toggle-text">Manual Mode</span>
+  <header class="header px-4 sm:px-6 py-3 sm:py-4">
+    <div class="header-content flex justify-between items-center w-full  mx-auto">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <img src="/image.png" alt="CubiQo Logo" class="logo-img w-7 h-7 sm:w-10 sm:h-10 object-contain" />
+        <span class="logo-text font-bold tracking-widest text-black dark:text-white text-sm sm:text-base">CubiQo™</span>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-4">
+        <div class="header-subtitle text-gray-500 dark:text-gray-400 text-xs hidden md:block">
+          CubiQo™ for simulating conversations
+        </div>
+        <button id="theme-toggle" aria-label="Toggle theme">
+          <span class="theme-text hidden sm:inline">Light</span>
         </button>
+      </div>
     </div>
-
-    <!-- Color Controls -->
-    <div id="controls" class="manual-mode-hidden">
-        <button class="color-btn red" data-color="RED" aria-label="Red - Desire"></button>
-        <button class="color-btn yellow" data-color="YELLOW" aria-label="Yellow - Comfort"></button>
-        <button class="color-btn greenBlue" data-color="GREEN_BLUE" aria-label="Green-Blue - Growth"></button>
-        <button class="color-btn orange active" data-color="ORANGE" aria-label="Orange - Stillness"></button>
+    <div class="header-subtitle text-gray-500 dark:text-gray-400 text-right text-xs block md:hidden text-center mt-2 ">
+      CubiQo™ for simulating conversations
     </div>
+  </header>
 
-    <!-- Transcript Display -->
-    <div id="transcript"></div>
 
-    <!-- Main Application -->
-    <script type="module" src="./src/main.js?v=11"></script>
+  <div id="voice-ui">
+    <button id="voice-btn" aria-label="Voice input">
+      <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        width="26" height="26">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" />
+      </svg>
+    </button>
+  </div>
+
+  <div id="talk-text">Talk to Cubiqo™</div>
+
+  <div id="transcript"
+    class="fixed bottom-48 left-6 right-6 max-w-md mx-auto bg-black/50 backdrop-blur-md rounded-lg p-4 text-sm text-gray-300 max-h-32 overflow-y-auto hidden">
+  </div>
+
+  <footer>
+    <p>Providing temporary use of online non-downloadable<br />AI chatbot software.</p>
+    <p>© 2025 Cubiqo United Inc., Jersey City, NJ.</p>
+    <p>All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="./src/main.js?v=12"></script>
+
+  <script>
+    const toggleBtn = document.getElementById('theme-toggle');
+    const html = document.documentElement;
+    const themeIcon = toggleBtn.querySelector('.theme-icon');
+    const themeText = toggleBtn.querySelector('.theme-text');
+
+    function setTheme(dark) {
+      if (dark) {
+        html.classList.add('dark');
+        html.classList.remove('light');
+        themeText.textContent = 'Light';
+      } else {
+        html.classList.remove('dark');
+        html.classList.add('light');
+        themeText.textContent = 'Dark';
+      }
+    }
+
+    const storedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setTheme(storedTheme === 'dark' || (!storedTheme && prefersDark));
+
+    toggleBtn.addEventListener('click', () => {
+      const isDark = html.classList.contains('dark');
+      setTheme(!isDark);
+      localStorage.setItem('theme', !isDark ? 'dark' : 'light');
+    });
+  </script>
+
+
 </body>
+
 </html>
