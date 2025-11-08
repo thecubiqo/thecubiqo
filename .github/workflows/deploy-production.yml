@@ -28,7 +28,15 @@ jobs:
           echo "deployment_url=$URL" >> $GITHUB_OUTPUT
           echo "✅ Deployed successfully!"
           echo "Production URL: $URL"
-          echo "Domain: https://cubiqo.ai (auto-assigned by Vercel)"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Assign Custom Domain
+        run: |
+          echo "Assigning cubiqo.ai to deployment..."
+          vercel alias set ${{ steps.deploy.outputs.deployment_url }} cubiqo.ai --token=${{ secrets.VERCEL_TOKEN }}
+          echo "✅ Domain https://cubiqo.ai now points to production deployment"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
