@@ -41,7 +41,7 @@ while [ $ELAPSED -lt $MAX_WAIT ]; do
     DEPLOYMENTS=$(vercel ls --prod 2>/dev/null)
 
     # Extract first deployment URL (most recent)
-    NEW_DEPLOYMENT=$(echo "$DEPLOYMENTS" | grep -oE "cubiqo-[a-z0-9]+-denis-projects-[a-z0-9]+\.vercel\.app" | head -1)
+    NEW_DEPLOYMENT=$(echo "$DEPLOYMENTS" | grep -oE "cubiqo-[a-z0-9]+-cubiqo-projects-[a-z0-9]+\.vercel\.app" | head -1)
 
     if [ -n "$NEW_DEPLOYMENT" ]; then
         # Check if deployment is new (created after push)
@@ -73,15 +73,15 @@ done
 
 if [ -z "$LATEST_DEPLOYMENT" ]; then
     echo "❌ Error: Timeout waiting for deployment (5 minutes)"
-    echo "Please check Vercel dashboard manually: https://vercel.com/denis-projects-d7156840/cubiqo"
+    echo "Please check Vercel dashboard manually: https://vercel.com/cubiqo-projects-d7156840/cubiqo"
     git checkout $CURRENT_BRANCH
     exit 1
 fi
 
-# Update cubiqo.ai alias
+# Note: Domain alias is now set automatically by GitHub Actions workflow
 echo ""
-echo "🔗 Updating cubiqo.ai alias..."
-vercel alias set $LATEST_DEPLOYMENT cubiqo.ai
+echo "ℹ️  Domain alias will be set automatically by GitHub Actions"
+echo "   (No manual alias update needed - workflow handles this now)"
 
 # Return to original branch
 echo ""
@@ -92,5 +92,5 @@ echo ""
 echo "✅ Production deployment complete!"
 echo ""
 echo "🌐 Check: https://cubiqo.ai (do hard refresh: Cmd+Shift+R)"
-echo "📊 Status: https://github.com/devStar0604/cubiqo/actions"
+echo "📊 Status: https://github.com/thecubiqo/thecubiqo/actions"
 echo ""
