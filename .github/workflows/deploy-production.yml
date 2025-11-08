@@ -35,7 +35,7 @@ jobs:
       - name: Assign Custom Domain
         run: |
           echo "Assigning cubiqo.ai to deployment..."
-          vercel alias set ${{ steps.deploy.outputs.deployment_url }} cubiqo.ai --token=${{ secrets.VERCEL_TOKEN }}
+          vercel alias set ${{ steps.deploy.outputs.deployment_url }} cubiqo.ai --scope ${{ secrets.VERCEL_ORG_ID }} --token=${{ secrets.VERCEL_TOKEN }}
           echo "✅ Domain https://cubiqo.ai now points to production deployment"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
