@@ -1,13 +1,13 @@
 /**
- * 🚀 Cubiqo Main Application
+ * 🚀 Dicey Main Application
  *
  * Orchestrates the cube, voice, AI, and memory services
  * "Between light and code, consciousness takes form"
  */
 
-import * as THREE from 'three';
-import { SceneManager } from './core/scene.js';
-import { Cube } from './core/cube.js';
+import * as THREE from "three";
+import { SceneManager } from "./core/scene.js";
+import { DiceOrbit } from "./core/diceorbit.js";
 
 // Lazy-loaded services (imported only when needed)
 let voiceServiceInstance = null;
@@ -25,15 +25,17 @@ class CubiqoApp {
     // UI elements
     this.voiceBtn = null;
     this.colorButtons = [];
+    this.apiKeyModal = null;
+    this.apiKeyInput = null;
 
     // Voice state management
-    this.appState = 'idle'; // 'idle' | 'listening' | 'thinking' | 'speaking'
+    this.appState = "idle"; // 'idle' | 'listening' | 'thinking' | 'speaking'
 
     // FPS monitoring
     this.fpsHistory = [];
-    this.fpsHistoryMaxLength = 60; // Track last 60 frames
+    this.fpsHistoryMaxLength = 60;
     this.fpsUpdateCounter = 0;
-    this.fpsUpdateInterval = 10; // Update UI every 10 frames
+    this.fpsUpdateInterval = 10;
     this.fpsMonitor = null;
 
     this.init();
@@ -43,19 +45,22 @@ class CubiqoApp {
    * Initialize the application
    */
   async init() {
-    console.log('🎨 Initializing Cubiqo...');
+    console.log("🎨 Initializing Cubiqo...");
 
     try {
       // Setup Three.js scene
-      const container = document.getElementById('canvas-container');
+      const container = document.getElementById("canvas-container");
       this.scene = new SceneManager(container);
 
-      // Create the cube
-      this.cube = new Cube();
-      this.scene.add(this.cube.getMesh());
+      // Create the dice
+      this.cube = new DiceOrbit();
+      this.scene.add(this.cube.getGroup());
 
       // Setup clock for animations
       this.clock = new THREE.Clock();
+
+      // Check for API key before setting up UI
+      await this.checkApiKey();
 
       // Setup UI event listeners
       this.setupUI();
@@ -67,25 +72,83 @@ class CubiqoApp {
       this.animate();
 
       this.isInitialized = true;
-      console.log('✅ Cubiqo initialized successfully');
+      console.log("✅ Dicey initialized successfully");
 
       // Hide loading screen
       this.hideLoadingScreen();
-
     } catch (error) {
-      console.error('❌ Initialization error:', error);
-      this.showError('Failed to initialize Cubiqo. Please refresh the page.');
+      console.error("❌ Initialization error:", error);
+      this.showError("Failed to initialize Dicey. Please refresh the page.");
     }
+  }
+
+  /**
+   * Check if API key is configured
+   */
+  async checkApiKey() {
+    // Check localStorage for saved API key
+    const savedKey = localStorage.getItem("anthropic_api_key");
+
+    if (savedKey) {
+      // Lazy load AI service
+      if (!aiServiceInstance) {
+        aiServiceInstance = (await import("./services/ai.js")).default;
+      }
+      aiServiceInstance.setApiKey(savedKey);
+      console.log("✅ API key loaded from storage");
+    } else {
+      console.warn("⚠️ No API key found - AI features will require setup");
+    }
+  }
+
+  /**
+   * Show API key setup modal
+   */
+  showApiKeyModal() {
+    this.apiKeyModal = document.getElementById("api-key-modal");
+    if (this.apiKeyModal) {
+      this.apiKeyModal.style.display = "flex";
+    } else {
+      // Fallback if modal doesn't exist in HTML
+      const key = prompt("Enter your Anthropic API key (starts with sk-ant-):");
+      if (key && key.startsWith("sk-ant-")) {
+        this.saveApiKey(key);
+      }
+    }
+  }
+
+  /**
+   * Hide API key modal
+   */
+  hideApiKeyModal() {
+    if (this.apiKeyModal) {
+      this.apiKeyModal.style.display = "none";
+    }
+  }
+
+  /**
+   * Save API key
+   */
+  async saveApiKey(apiKey) {
+    localStorage.setItem("anthropic_api_key", apiKey);
+
+    // Lazy load AI service
+    if (!aiServiceInstance) {
+      aiServiceInstance = (await import("./services/ai.js")).default;
+    }
+    aiServiceInstance.setApiKey(apiKey);
+
+    this.hideApiKeyModal();
+    console.log("✅ API key saved");
   }
 
   /**
    * Hide loading screen immediately (no delay for better performance)
    */
   hideLoadingScreen() {
-    const loadingScreen = document.getElementById('loading-screen');
+    const loadingScreen = document.getElementById("loading-screen");
     if (loadingScreen) {
-      loadingScreen.classList.add('hidden');
-      // Removed 500ms delay for better Speed Index
+      loadingScreen.classList.add("hidden");
     }
   }
 
@@ -93,7 +156,7 @@ class CubiqoApp {
    * Show error message
    */
   showError(message) {
-    const loadingScreen = document.getElementById('loading-screen');
+    const loadingScreen = document.getElementById("loading-screen");
     if (loadingScreen) {
       loadingScreen.innerHTML = `
         <div class="error">
@@ -107,75 +170,120 @@ class CubiqoApp {
    * Setup UI elements and event listeners
    */
   setupUI() {
-    // Check if we're in dev mode (determined by inline script in <head>)
-    const isDevMode = document.documentElement.classList.contains('dev-mode');
+    // Check if we're in dev mode
+    const isDevMode = document.documentElement.classList.contains("dev-mode");
 
-    // FPS Monitor (only exists in dev mode via CSS)
-    this.fpsMonitor = isDevMode ? document.getElementById('fps-monitor') : null;
+    // FPS Monitor
+    this.fpsMonitor = isDevMode ? document.getElementById("fps-monitor") : null;
 
-    // Manual Mode toggle (only exists in dev mode via CSS)
-    this.manualModeActive = false; // Start with AI-only mode
-    this.toggleManualModeBtn = document.getElementById('toggle-manual-mode');
-    this.controlsContainer = document.getElementById('controls');
+    // Manual Mode toggle
+    this.manualModeActive = false;
+    this.toggleManualModeBtn = document.getElementById("toggle-manual-mode");
+    this.controlsContainer = document.getElementById("controls");
 
     if (this.toggleManualModeBtn && isDevMode) {
-      this.toggleManualModeBtn.addEventListener('click', () => {
+      this.toggleManualModeBtn.addEventListener("click", () => {
         this.manualModeActive = !this.manualModeActive;
-        this.toggleManualModeBtn.classList.toggle('active', this.manualModeActive);
-        this.controlsContainer.classList.toggle('manual-mode-hidden', !this.manualModeActive);
-
-        console.log(`Manual Mode: ${this.manualModeActive ? 'ON' : 'OFF'}`);
+        this.toggleManualModeBtn.classList.toggle(
+          "active",
+          this.manualModeActive
+        );
+        this.controlsContainer.classList.toggle(
+          "manual-mode-hidden",
+          !this.manualModeActive
+        );
+        console.log(`Manual Mode: ${this.manualModeActive ? "ON" : "OFF"}`);
       });
     }
 
-    // Log mode for debugging
-    console.log(isDevMode ? '🛠️ Dev mode: FPS & Manual Mode enabled' : '🚀 Production mode: clean UI');
+    console.log(
+      isDevMode
+        ? "🛠️ Dev mode: FPS & Manual Mode enabled"
+        : "🚀 Production mode: clean UI"
+    );
 
-    // Color buttons
-    this.colorButtons = document.querySelectorAll('.color-btn');
-    this.colorButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const colorName = btn.getAttribute('data-color');
+    // API Key setup button/modal
+    this.apiKeyInput = document.getElementById("api-key-input");
+    const saveKeyBtn = document.getElementById("save-api-key-btn");
+
+    if (saveKeyBtn && this.apiKeyInput) {
+      saveKeyBtn.addEventListener("click", () => {
+        const apiKey = this.apiKeyInput.value.trim();
+        if (apiKey.startsWith("sk-ant-")) {
+          this.saveApiKey(apiKey);
+        } else {
+          alert('Invalid API key. It should start with "sk-ant-"');
+        }
+      });
+    }
+
+    // Settings button to show API key modal
+    const settingsBtn = document.getElementById("settings-btn");
+    if (settingsBtn) {
+      settingsBtn.addEventListener("click", () => {
+        this.showApiKeyModal();
+      });
+    }
+
+    // Color buttons (manual override)
+    this.colorButtons = document.querySelectorAll(".color-btn");
+    this.colorButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const colorName = btn.getAttribute("data-color");
         this.changeCubeColor(colorName);
 
         // Update active state
-        this.colorButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+        this.colorButtons.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
       });
     });
 
-    // Voice button
-    this.voiceBtn = document.getElementById('voice-btn');
-
-    if (this.voiceBtn) {
-      // Prevent double-firing on touch devices (touchstart + click)
-      this.voiceBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        this.handleVoiceClick();
-      }, { passive: false });
-
-      this.voiceBtn.addEventListener('click', () => this.handleVoiceClick());
+    // Theme toggle button (Light/Dark mode for dice)
+    this.themeBtn = document.getElementById("theme-toggle");
+    if (this.themeBtn) {
+      this.themeBtn.addEventListener("click", () => {
+        this.cube.toggleDirection();
+        this.themeBtn.textContent = this.cube.getDirectionLabel();
+      });
     }
 
-    // Check voice support (without loading VoiceService yet)
-    const hasRecognition = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    // Voice button
+    this.voiceBtn = document.getElementById("voice-btn");
+
+    if (this.voiceBtn) {
+      // Prevent double-firing on touch devices
+      this.voiceBtn.addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault();
+          this.handleVoiceClick();
+        },
+        { passive: false }
+      );
+
+      this.voiceBtn.addEventListener("click", () => this.handleVoiceClick());
+    }
+
+    // Check voice support
+    const hasRecognition = !!(
+      window.SpeechRecognition || window.webkitSpeechRecognition
+    );
     const hasSynthesis = !!window.speechSynthesis;
 
     if (!hasRecognition || !hasSynthesis) {
-      console.warn('Voice features not fully supported');
+      console.warn("Voice features not fully supported");
       if (this.voiceBtn) {
-        this.voiceBtn.style.opacity = '0.5';
-        this.voiceBtn.title = 'Voice not supported in this browser';
+        this.voiceBtn.style.opacity = "0.5";
+        this.voiceBtn.title = "Voice not supported in this browser";
       }
     }
   }
 
   /**
-   * Setup mouse and touch tracking for pupil movement and cube interaction
+   * Setup mouse and touch tracking for cube interaction
    */
   setupInputTracking() {
     const handleMove = (clientX, clientY) => {
-      // Use canvas dimensions for accurate mouse tracking (window.inner* can be buggy on iOS)
       const canvas = this.scene.renderer.domElement;
       const rect = canvas.getBoundingClientRect();
 
@@ -184,28 +292,34 @@ class CubiqoApp {
     };
 
     // Mouse
-    window.addEventListener('mousemove', (e) => {
+    window.addEventListener("mousemove", (e) => {
       handleMove(e.clientX, e.clientY);
     });
 
     // Touch
-    window.addEventListener('touchmove', (e) => {
+    window.addEventListener("touchmove", (e) => {
       if (e.touches.length > 0) {
         handleMove(e.touches[0].clientX, e.touches[0].clientY);
       }
     });
 
     // Click/Tap on cube for bounce
-    const canvas = document.querySelector('canvas');
+    const canvas = document.querySelector("canvas");
     if (canvas) {
-      canvas.addEventListener('click', () => {
-        this.cube.triggerBounce();
+
+      canvas.addEventListener("mousemove", (e) => {
+        e.preventDefault();
+        this.cube.rotateCube(0.002 * e.movementX, 0.002 * e.movementY, 0);
       });
 
-      canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault(); // Prevent double-firing with click
-        this.cube.triggerBounce();
-      }, { passive: false });
+      canvas.addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault();
+          this.cube.triggerBounce();
+        },
+        { passive: false }
+      );
     }
   }
 
@@ -216,25 +330,34 @@ class CubiqoApp {
   async handleVoiceClick() {
     // Lazy load VoiceService on first use
     if (!voiceServiceInstance) {
-      const VoiceService = (await import('./services/voice.js')).default;
+      const VoiceService = (await import("./services/voice.js")).default;
       voiceServiceInstance = new VoiceService();
-      console.log('🎤 VoiceService loaded lazily');
+      console.log("🎤 VoiceService loaded lazily");
     }
 
     if (!voiceServiceInstance.isSupported().recognition) {
-      alert('Voice input not supported in this browser.\n\nSupported browsers:\n• Chrome (Desktop & Mobile)\n• Safari (Desktop & iOS)\n• Edge\n\nFirefox does not support voice input yet.');
+      alert(
+        "Voice input not supported in this browser.\n\nSupported browsers:\n• Chrome (Desktop & Mobile)\n• Safari (Desktop & iOS)\n• Edge"
+      );
+      return;
+    }
+
+    // Check if AI is configured
+    if (!aiServiceInstance || !localStorage.getItem("anthropic_api_key")) {
+      alert("Please configure your API key first to use AI features.");
+      this.showApiKeyModal();
       return;
     }
 
     // State machine logic
     switch (this.appState) {
-      case 'idle':
+      case "idle":
         // Start listening
-        this.appState = 'listening';
+        this.appState = "listening";
         voiceServiceInstance.activateAudioContext();
 
-        this.voiceBtn.classList.add('listening');
-        this.voiceBtn.textContent = '🎙️';
+        this.voiceBtn.classList.add("listening");
+        this.voiceBtn.textContent = "🎙️";
         this.cube.startListening();
 
         voiceServiceInstance.startListening(
@@ -243,114 +366,163 @@ class CubiqoApp {
         );
         break;
 
-      case 'listening':
+      case "listening":
         // Stop listening, return to idle
-        this.appState = 'idle';
+        this.appState = "idle";
         voiceServiceInstance.stopListening();
         this.cube.stopListening();
 
-        this.voiceBtn.classList.remove('listening');
-        this.voiceBtn.innerHTML = `           <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"             width="26" height="26">             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"               d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" />           </svg>         `;
+        this.voiceBtn.classList.remove("listening");
+        this.voiceBtn.innerHTML = `<svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="26" height="26"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" /></svg>`;
         break;
 
-      case 'thinking':
-        // Do nothing - cannot interrupt AI thinking
-        console.log('Cannot interrupt while AI is thinking');
+      case "thinking":
+        // Cannot interrupt AI thinking
+        console.log("Cannot interrupt while AI is thinking");
         break;
 
-      case 'speaking':
-        // Stop speaking, return to idle (do NOT start listening)
-        this.appState = 'idle';
+      case "speaking":
+        // Stop speaking, return to idle
+        this.appState = "idle";
         voiceServiceInstance.stopSpeaking();
         this.cube.stopSpeaking();
 
-        this.voiceBtn.innerHTML = `           <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"             width="26" height="26">             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"               d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" />           </svg>         `;
+        this.voiceBtn.innerHTML = `<svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="26" height="26"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" /></svg>`;
         break;
     }
   }
 
   /**
-   * Handle voice transcript
+   * Handle voice transcript - Send to AI
    * Lazy loads AI and Memory services on first use
    */
   async handleTranscript(transcript) {
-    console.log('Transcript:', transcript);
+    console.log("📝 Transcript:", transcript);
 
     // Stop listening animation
     this.cube.stopListening();
-    this.voiceBtn.classList.remove('listening');
+    this.voiceBtn.classList.remove("listening");
 
     // Transition to thinking state
-    this.appState = 'thinking';
+    this.appState = "thinking";
 
-    // Get AI response
     try {
       // Lazy load AI and Memory services
       if (!aiServiceInstance) {
-        aiServiceInstance = (await import('./services/ai.js')).default;
-        console.log('🤖 AI Service loaded lazily');
+        aiServiceInstance = (await import("./services/ai.js")).default;
+        // Re-load API key in case it was set after initial load
+        const savedKey = localStorage.getItem("anthropic_api_key");
+        if (savedKey) {
+          aiServiceInstance.setApiKey(savedKey);
+        }
+        console.log("🤖 AI Service loaded lazily");
       }
       if (!memoryServiceInstance) {
-        memoryServiceInstance = (await import('./services/memory.js')).default;
-        console.log('💾 Memory Service loaded lazily');
+        memoryServiceInstance = (await import("./services/memory.js")).default;
+        console.log("💾 Memory Service loaded lazily");
       }
 
-      // Start thinking mode: cube rotates slowly, rare blinking
+      // Start thinking animation
       this.cube.startThinking();
-      this.voiceBtn.textContent = '💭'; // Thinking
+      this.voiceBtn.textContent = "💭";
 
-      // Get current cube color
-      const currentColor = this.cube.getCurrentColor();
+      // Get current dice color/direction
+      debugger;
+      const currentColor = this.cube.getDirectionLabel(); // "Light" or "Dark"
 
+      // Map to AI color names
+      const colorMap = {
+        Light: "ORANGE", // Light mode = balanced/calm
+        Dark: "RED", // Dark mode = intense/passionate
+      };
+      const aiColor = colorMap[currentColor] || "WHITE";
+
+      // Get conversation history
       const history = await memoryServiceInstance.getRecentMemories();
-      const response = await aiServiceInstance.chat(transcript, history, currentColor);
 
-      console.log('AI Response:', response);
+      // Get AI response
+      const response = await aiServiceInstance.chat(
+        transcript,
+        history,
+        aiColor
+      );
 
-      // Stop thinking mode
+      console.log("🤖 AI Response:", response);
+
+      // Stop thinking
       this.cube.stopThinking();
 
-      // Change cube color based on emotion
-      this.changeCubeColor(response.color);
+      // Change dice direction based on AI's emotional color
+      // RED/YELLOW = Dark (passionate/energetic)
+      // GREEN_BLUE/ORANGE = Light (balanced/calm)
+      if (response.color === "BLACK") {
+        this.cube.toggleDirection(1); // Dark mode
+        // html.classList.add("dark");
+        // html.classList.remove("light");
+        // themeText.textContent = "Light";
+      } else {
+        this.cube.toggleDirection(-1); // Light mode
+
+        // html.classList.remove("dark");
+        // html.classList.add("light");
+        // themeText.textContent = "Dark";
+      }
 
       // Transition to speaking state
-      this.appState = 'speaking';
+      this.appState = "speaking";
 
-      // Start speaking mode: rhythmic nodding
+      // Start speaking animation
       this.cube.startSpeaking();
-      this.voiceBtn.textContent = '🗣️'; // Speaking
+      this.voiceBtn.textContent = "🗣️";
 
-      if (voiceServiceInstance && voiceServiceInstance.isSupported().synthesis) {
+      if (
+        voiceServiceInstance &&
+        voiceServiceInstance.isSupported().synthesis
+      ) {
         await voiceServiceInstance.speak(response.response);
       }
 
-      // Stop speaking mode
+      // Stop speaking
       this.cube.stopSpeaking();
 
-      // Save to memory
+      // Save to memory with timestamp
       await memoryServiceInstance.saveConversation({
         userMessage: transcript,
         aiResponse: response.response,
-        color: response.color
+        color: response.color,
+        timestamp: new Date().toISOString(),
       });
 
-      // Return to idle state
-      this.appState = 'idle';
-      this.voiceBtn.innerHTML = `           <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"             width="26" height="26">             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"               d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" />           </svg>         `;
-
+      // Return to idle
+      this.appState = "idle";
+      this.voiceBtn.innerHTML = `<svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="26" height="26"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" /></svg>`;
     } catch (error) {
-      console.error('AI Error:', error);
+      console.error("❌ AI Error:", error);
 
       // Stop all animations on error
       this.cube.stopThinking();
       this.cube.stopSpeaking();
 
       // Return to idle state
-      this.appState = 'idle';
+      this.appState = "idle";
 
-      this.voiceBtn.textContent = '❌'; // Error
+      this.voiceBtn.textContent = "❌";
+
+      // Show user-friendly error
+      let errorMessage = "AI request failed. ";
+      if (error.message.includes("API key")) {
+        errorMessage += "Please check your API key.";
+        setTimeout(() => this.showApiKeyModal(), 2000);
+      } else if (error.message.includes("rate limit")) {
+        errorMessage += "Rate limit exceeded. Please try again later.";
+      } else {
+        errorMessage += "Please try again.";
+      }
+
+      alert(errorMessage);
+
       setTimeout(() => {
-        this.voiceBtn.innerHTML = `           <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"             width="26" height="26">             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"               d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" />           </svg>         `;
+        this.voiceBtn.innerHTML = `<svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="26" height="26"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" /></svg>`;
       }, 2000);
     }
   }
@@ -359,55 +531,60 @@ class CubiqoApp {
    * Handle voice error
    */
   handleVoiceError(error) {
-    console.error('Voice error:', error);
+    console.error("Voice error:", error);
 
     // Stop listening animation
     this.cube.stopListening();
-
-    this.voiceBtn.classList.remove('listening');
+    this.voiceBtn.classList.remove("listening");
 
     // Return to idle state
-    this.appState = 'idle';
+    this.appState = "idle";
 
     // Show error briefly
-    this.voiceBtn.textContent = '❌';
+    this.voiceBtn.textContent = "❌";
 
     setTimeout(() => {
-      this.voiceBtn.innerHTML = `           <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"             width="26" height="26">             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"               d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" />           </svg>         `;
+      this.voiceBtn.innerHTML = `<svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="26" height="26"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" /></svg>`;
     }, 2000);
   }
 
   /**
-   * Change cube color
+   * Change cube color (manual override)
    */
   changeCubeColor(colorName) {
-    this.cube.setColor(colorName);
+    // Map color names to dice direction if needed
+    const colorToDirection = {
+      happy: 1, // Light
+      calm: 1, // Light
+      excited: -1, // Dark
+      sad: -1, // Dark
+    };
+
+    if (colorToDirection[colorName] !== undefined) {
+      this.cube.toggleDirection(colorToDirection[colorName]);
+    }
   }
 
   /**
    * Update FPS display
    */
   updateFPS(deltaTime) {
-    // Calculate current FPS
     const fps = deltaTime > 0 ? 1 / deltaTime : 0;
 
-    // Add to history
     this.fpsHistory.push(fps);
     if (this.fpsHistory.length > this.fpsHistoryMaxLength) {
       this.fpsHistory.shift();
     }
 
-    // Update UI every N frames to avoid DOM thrashing
     this.fpsUpdateCounter++;
     if (this.fpsUpdateCounter >= this.fpsUpdateInterval && this.fpsMonitor) {
       this.fpsUpdateCounter = 0;
 
-      // Calculate average FPS
-      const avgFps = this.fpsHistory.reduce((sum, f) => sum + f, 0) / this.fpsHistory.length;
+      const avgFps =
+        this.fpsHistory.reduce((sum, f) => sum + f, 0) / this.fpsHistory.length;
 
-      // Update display
-      const fpsCurrentEl = this.fpsMonitor.querySelector('.fps-current');
-      const fpsAvgEl = this.fpsMonitor.querySelector('.fps-avg');
+      const fpsCurrentEl = this.fpsMonitor.querySelector(".fps-current");
+      const fpsAvgEl = this.fpsMonitor.querySelector(".fps-avg");
 
       if (fpsCurrentEl) {
         fpsCurrentEl.textContent = `FPS: ${Math.round(fps)}`;
@@ -416,14 +593,13 @@ class CubiqoApp {
         fpsAvgEl.textContent = `Avg: ${Math.round(avgFps)}`;
       }
 
-      // Update color based on average FPS
-      this.fpsMonitor.classList.remove('fps-good', 'fps-medium', 'fps-bad');
+      this.fpsMonitor.classList.remove("fps-good", "fps-medium", "fps-bad");
       if (avgFps >= 50) {
-        this.fpsMonitor.classList.add('fps-good');
+        this.fpsMonitor.classList.add("fps-good");
       } else if (avgFps >= 30) {
-        this.fpsMonitor.classList.add('fps-medium');
+        this.fpsMonitor.classList.add("fps-medium");
       } else {
-        this.fpsMonitor.classList.add('fps-bad');
+        this.fpsMonitor.classList.add("fps-bad");
       }
     }
   }
@@ -439,12 +615,8 @@ class CubiqoApp {
     // Update FPS monitor
     this.updateFPS(deltaTime);
 
-    // Update cube
+    // Update dice with all animations
     this.cube.update(deltaTime, this.mouse.x, this.mouse.y);
-
-    // Update shadow based on cube position
-    const cubeYPos = this.cube.getMesh().position.y;
-    this.scene.updateShadow(cubeYPos);
 
     // Render scene
     this.scene.render();
@@ -457,7 +629,6 @@ class CubiqoApp {
     this.scene.dispose();
     this.cube.dispose();
 
-    // Cleanup voice service if it was loaded
     if (voiceServiceInstance) {
       voiceServiceInstance.stopListening();
       voiceServiceInstance.stopSpeaking();
@@ -466,8 +637,8 @@ class CubiqoApp {
 }
 
 // Wait for DOM to be ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
     window.cubiqo = new CubiqoApp();
   });
 } else {
@@ -475,7 +646,7 @@ if (document.readyState === 'loading') {
 }
 
 // Cleanup on page unload
-window.addEventListener('beforeunload', () => {
+window.addEventListener("beforeunload", () => {
   if (window.cubiqo) {
     window.cubiqo.dispose();
   }

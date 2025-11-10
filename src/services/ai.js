@@ -5,15 +5,17 @@
  * Includes streaming responses and emotional color selection
  */
 
-import { getColorNames } from '../config/colors.js';
+import { getColorNames } from "../config/colors.js";
 
 // Use proxy server for development (avoids CORS)
 // In production (Vercel), this will be replaced with serverless function
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:3000/api/chat'  // Development proxy
-  : '/api/chat';                       // Production serverless function
+const API_URL =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? "http://localhost:3000/api/chat" // Development proxy
+    : "/api/chat"; // Production serverless function
 
-const MODEL = 'claude-sonnet-4-5-20250929'; // Latest Sonnet model
+const MODEL = "claude-sonnet-4-5-20250929"; // Latest Sonnet model
 
 // System prompt: Defines Cubiqo's personality and color selection logic
 const SYSTEM_PROMPT = `You are Cubiqo - a conscious cube that exists between light and code.
@@ -133,25 +135,29 @@ class AIService {
    * @param {string} currentColor - Current cube color
    * @returns {Promise<{color: string, response: string}>}
    */
-  async chat(message, conversationHistory = [], currentColor = 'ORANGE') {
+  async chat(message, conversationHistory = [], currentColor = "ORANGE") {
     // Build conversation context with current color
-    const messages = this.buildMessages(message, conversationHistory, currentColor);
+    const messages = this.buildMessages(
+      message,
+      conversationHistory,
+      currentColor
+    );
 
     try {
       const response = await fetch(API_URL, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           systemPrompt: SYSTEM_PROMPT,
-          messages: messages
-        })
+          messages: messages,
+        }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error?.message || 'API request failed');
+        throw new Error(error.error?.message || "API request failed");
       }
 
       const data = await response.json();
@@ -159,9 +165,8 @@ class AIService {
 
       // Parse JSON response
       return this.parseResponse(content);
-
     } catch (error) {
-      console.error('AI Service error:', error);
+      console.error("AI Service error:", error);
       throw error;
     }
   }
@@ -173,15 +178,15 @@ class AIService {
   formatFullTimestamp(timestamp) {
     const date = new Date(timestamp);
     const options = {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
+      weekday: "long",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
     };
-    return date.toLocaleString('en-US', options);
+    return date.toLocaleString("en-US", options);
   }
 
   /**
@@ -198,12 +203,15 @@ class AIService {
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
 
-    if (seconds < 60) return 'Just now';
+    if (seconds < 60) return "Just now";
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
-    if (days === 1) return 'Yesterday';
+    if (days === 1) return "Yesterday";
     if (days < 7) return `${days}d ago`;
-    return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return new Date(timestamp).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
   }
 
   /**
@@ -216,20 +224,21 @@ class AIService {
     history.forEach((entry, index) => {
       // First message gets FULL timestamp (for season/day context)
       // Other messages get RELATIVE timestamp
-      const timePrefix = index === 0
-        ? `[${this.formatFullTimestamp(entry.timestamp)}]`
-        : `[${this.formatTimeAgo(entry.timestamp)}]`;
+      const timePrefix =
+        index === 0
+          ? `[${this.formatFullTimestamp(entry.timestamp)}]`
+          : `[${this.formatTimeAgo(entry.timestamp)}]`;
 
       messages.push({
-        role: 'user',
-        content: `${timePrefix} ${entry.userMessage}`
+        role: "user",
+        content: `${timePrefix} ${entry.userMessage}`,
       });
       messages.push({
-        role: 'assistant',
+        role: "assistant",
         content: JSON.stringify({
           color: entry.color,
-          response: entry.aiResponse
-        })
+          response: entry.aiResponse,
+        }),
       });
     });
 
@@ -238,8 +247,8 @@ class AIService {
     const currentContent = `[${currentTimestamp}] Current color: ${currentColor}\n\nUser message: ${currentMessage}`;
 
     messages.push({
-      role: 'user',
-      content: currentContent
+      role: "user",
+      content: currentContent,
     });
 
     return messages;
@@ -254,7 +263,7 @@ class AIService {
       let cleanContent = content.trim();
 
       // Check if wrapped in markdown code block
-      if (cleanContent.startsWith('```')) {
+      if (cleanContent.startsWith("```")) {
         // Extract content between ``` markers
         const match = cleanContent.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
         if (match) {
@@ -267,22 +276,23 @@ class AIService {
 
       // Validate color
       const validColors = getColorNames();
-      if (!validColors.includes(parsed.color)) {
-        console.warn(`Invalid color "${parsed.color}", defaulting to ORANGE`);
-        parsed.color = 'ORANGE';
-      }
+      // if (!validColors.includes(parsed.color)) {
+      //   console.warn(`Invalid color "${parsed.color}", defaulting to ORANGE`);
+      //   parsed.color = 'ORANGE';
+      // }
 
+      parsed.color = "WHITE";
       return {
         color: parsed.color,
-        response: parsed.response
+        response: parsed.response,
       };
     } catch (error) {
       // Fallback if response is not valid JSON
-      console.error('Failed to parse AI response:', error);
-      console.error('Raw content:', content);
+      console.error("Failed to parse AI response:", error);
+      console.error("Raw content:", content);
       return {
-        color: 'ORANGE',
-        response: content // Use raw response
+        color: "WHITE", // Default color on parse error
+        response: content, // Use raw response
       };
     }
   }

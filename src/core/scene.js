@@ -37,9 +37,6 @@ export class SceneManager {
     // Setup lighting
     this.setupLighting();
 
-    // Setup shadow plane
-    this.setupShadowPlane();
-
     // Handle window resize with debouncing (iOS Safari fires multiple events)
     window.addEventListener('resize', () => this.handleResize());
   }
@@ -117,24 +114,6 @@ export class SceneManager {
     this.scene.add(this.lights.fill);
   }
 
-  /**
-   * Setup shadow plane (subtle shadow under cube)
-   */
-  setupShadowPlane() {
-    const shadowGeometry = new THREE.CircleGeometry(2.5, 32);
-    const shadowMaterial = new THREE.MeshBasicMaterial({
-      color: 0x000000,
-      transparent: true,
-      opacity: 0.3
-    });
-
-    this.shadowPlane = new THREE.Mesh(shadowGeometry, shadowMaterial);
-    this.shadowPlane.rotation.x = -Math.PI / 2; // Rotate to be horizontal
-    this.shadowPlane.position.y = -2; // Below the cube
-    this.shadowPlane.receiveShadow = true;
-
-    this.scene.add(this.shadowPlane);
-  }
 
   /**
    * Update shadow based on cube position (call from render loop)
