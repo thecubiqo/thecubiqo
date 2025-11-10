@@ -137,22 +137,6 @@ html.dev-mode #manual-mode-toggle {
   opacity: 0.8;
 }
 
-.color-btn.red::before {
-  background: #C2185B; /* Tamas - Indulgence • Desire */
-}
-
-.color-btn.yellow::before {
-  background: #FFA000; /* Rajas - Activity • Energy */
-}
-
-.color-btn.greenBlue::before {
-  background: #00897B; /* Sattva - Growth • Wellness */
-}
-
-.color-btn.orange::before {
-  background: #FF6F00; /* Fourth Way - Stillness • Awareness */
-}
-
 .color-btn:active {
   transform: scale(0.95);
 }

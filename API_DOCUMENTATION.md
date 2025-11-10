@@ -384,11 +384,11 @@ POST /api/chat
     },
     {
       role: 'assistant',
-      content: '{"color":"ORANGE","response":"Hi!"}'
+      content: '{"color":"WHITE","response":"Hi!"}'
     },
     {
       role: 'user',
-      content: '[Wednesday, Oct 22, 2025, 02:04 PM] Current color: ORANGE\n\nUser message: How are you?'
+      content: '[Wednesday, Oct 22, 2025, 02:04 PM] Current color: WHITE\n\nUser message: How are you?'
     }
   ]
 }
@@ -431,17 +431,17 @@ const messages = aiService.buildMessages(
       timestamp: '2025-10-18T10:38:41.129Z',
       userMessage: 'Hello',
       aiResponse: 'Hi there!',
-      color: 'ORANGE'
+      color: 'WHITE'
     }
   ],
-  'ORANGE'
+  'WHITE'
 );
 
 console.log(messages);
 // [
 //   { role: 'user', content: '[Saturday, Oct 18, 2025, 10:38 AM] Hello' },
-//   { role: 'assistant', content: '{"color":"ORANGE","response":"Hi there!"}' },
-//   { role: 'user', content: '[Wednesday, Oct 22, 2025, 02:04 PM] Current color: ORANGE\n\nUser message: What time is it?' }
+//   { role: 'assistant', content: '{"color":"WHITE","response":"Hi there!"}' },
+//   { role: 'user', content: '[Wednesday, Oct 22, 2025, 02:04 PM] Current color: WHITE\n\nUser message: What time is it?' }
 // ]
 ```
 
@@ -520,7 +520,7 @@ console.log(relative); // "5h ago"
 **Handles**:
 - Valid JSON: `{"color":"RED","response":"..."}`
 - Markdown-wrapped JSON: ` ```json\n{...}\n``` `
-- Invalid JSON: Falls back to raw text with ORANGE color
+- Invalid JSON: Falls back to raw text with WHITE color
 
 **Example**:
 ```javascript
@@ -535,7 +535,7 @@ console.log(withMarkdown);
 
 **Validation**:
 - Checks color against valid color names
-- Defaults to ORANGE if invalid color
+- Defaults to WHITE if invalid color
 
 ---
 
@@ -768,7 +768,7 @@ const cube = new Cube();
 **Parameters**:
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `colorName` | `string` | Color name (RED, YELLOW, GREEN_BLUE, ORANGE) |
+| `colorName` | `string` | Color name (RED, YELLOW, GREEN_BLUE, WHITE) |
 
 **Returns**: `void`
 
@@ -798,7 +798,7 @@ cube.setColor('YELLOW');
 **Example**:
 ```javascript
 const color = cube.getCurrentColor();
-console.log(color); // 'ORANGE'
+console.log(color); // 'WHITE'
 ```
 
 ---
@@ -1152,8 +1152,8 @@ export const COLORS = {
     primary: { r: 0, g: 137, b: 123 },    // #00897B
     secondary: { r: 38, g: 166, b: 154 } // #26A69A
   },
-  ORANGE: {
-    name: 'ORANGE',
+  WHITE: {
+    name: 'WHITE',
     primary: { r: 255, g: 111, b: 0 },    // #FF6F00
     secondary: { r: 255, g: 152, b: 0 }  // #FF9800
   }
@@ -1198,7 +1198,7 @@ console.log(color);
 ```javascript
 const names = getColorNames();
 console.log(names);
-// ['RED', 'YELLOW', 'GREEN_BLUE', 'ORANGE']
+// ['RED', 'YELLOW', 'GREEN_BLUE', 'WHITE']
 ```
 
 ---
@@ -1292,7 +1292,7 @@ Content-Type: application/json
     },
     {
       "role": "assistant",
-      "content": "{\"color\":\"ORANGE\",\"response\":\"Hi!\"}"
+      "content": "{\"color\":\"WHITE\",\"response\":\"Hi!\"}"
     }
   ]
 }
@@ -1408,7 +1408,7 @@ type Conversation = {
   timestamp: string;         // ISO 8601: "2025-10-22T14:30:45.123Z"
   userMessage: string;       // User's transcript
   aiResponse: string;        // Claude's response
-  color: ColorName;          // "RED" | "YELLOW" | "GREEN_BLUE" | "ORANGE"
+  color: ColorName;          // "RED" | "YELLOW" | "GREEN_BLUE" | "WHITE"
   sessionId: string;         // "session-1697120000000"
 }
 ```
@@ -1428,7 +1428,7 @@ type RGB = {
   b: number;  // 0-255
 }
 
-type ColorName = "RED" | "YELLOW" | "GREEN_BLUE" | "ORANGE";
+type ColorName = "RED" | "YELLOW" | "GREEN_BLUE" | "WHITE";
 ```
 
 ### AI Response

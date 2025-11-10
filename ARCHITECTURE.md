@@ -720,7 +720,7 @@ parseResponse(content)           // Parse JSON response from Claude
   },
   {
     role: 'assistant',
-    content: '{"color":"ORANGE","response":"Hi there!"}'
+    content: '{"color":"WHITE","response":"Hi there!"}'
   },
   {
     role: 'user',

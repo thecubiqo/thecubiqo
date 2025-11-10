@@ -29,11 +29,11 @@ export const COLORS = {
 
 /**
  * Get color configuration by name
- * @param {string} colorName - RED, YELLOW, GREEN_BLUE, or ORANGE
+ * @param {string} colorName - 
  * @returns {Object} Color configuration
  */
 export function getColor(colorName) {
-  return COLORS[colorName] || COLORS.ORANGE; // Default to ORANGE (Fourth Way)
+  return COLORS[colorName] || COLORS.WHITE; 
 }
 
 /**

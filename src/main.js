@@ -432,8 +432,8 @@ class CubiqoApp {
 
       // Map to AI color names
       const colorMap = {
-        Light: "ORANGE", // Light mode = balanced/calm
-        Dark: "RED", // Dark mode = intense/passionate
+        Light: "WHITE", // Light mode = balanced/calm
+        Dark: "BLACK", // Dark mode = intense/passionate
       };
       const aiColor = colorMap[currentColor] || "WHITE";
 
@@ -453,8 +453,6 @@ class CubiqoApp {
       this.cube.stopThinking();
 
       // Change dice direction based on AI's emotional color
-      // RED/YELLOW = Dark (passionate/energetic)
-      // GREEN_BLUE/ORANGE = Light (balanced/calm)
       if (response.color === "BLACK") {
         this.cube.toggleDirection(1); // Dark mode
         // html.classList.add("dark");
