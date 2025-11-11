@@ -8,22 +8,12 @@
 export const COLORS = {
   WHITE: {
     name: "WHITE",
-    displayName: "Tamas",
-    hex: 0xc2185b, // Brand: Tamas (#C2185B) - Indulgence • Desire
-    emotion: "desire, indulgence, rebellion",
-    tone: "seductive, slow, impulsive",
-    voiceTone: "deep, slow, sensual whisper; confident teasing",
-    description: "Tamas - The force of desire and material attachment",
+    displayName: "WHITE",
   },
 
   BLACK: {
     name: "BLACK",
-    displayName: "Rajas",
-    hex: 0xffa000, // Brand: Rajas (#FFA000) - Activity • Energy
-    emotion: "activity, energy, curiosity",
-    tone: "warm, conversational, energetic",
-    voiceTone: "warm, relaxed, friendly pace",
-    description: "Rajas - The energy of action and daily life",
+    displayName: "BLACK",
   },
 };
 
