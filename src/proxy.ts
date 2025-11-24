@@ -1,7 +1,18 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+// Vercel Edge geo types
+interface NextRequestWithGeo extends NextRequest {
+  geo?: {
+    city?: string
+    country?: string
+    region?: string
+    latitude?: string
+    longitude?: string
+  }
+}
+
+export async function proxy(request: NextRequestWithGeo) {
   let supabaseResponse = NextResponse.next({
     request,
   })
