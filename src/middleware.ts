@@ -27,11 +27,11 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Validate JWT using getClaims (best practice - faster than getUser)
-  const { data: { claims }, error } = await supabase.auth.getClaims()
+  // Refresh session if expired
+  const { data: { user } } = await supabase.auth.getUser()
 
-  // If claims exist and are valid, user is authenticated
-  const isAuthenticated = !error && claims?.sub
+  // User is authenticated if user object exists
+  const isAuthenticated = !!user
 
   // Geo-fencing: Allow only US and CA
   const country = request.geo?.country || 'US'
