@@ -16,9 +16,10 @@ export function CubiQoApp() {
 
   const handleColorChange = useCallback((newColor: ColorName) => {
     setColorName(newColor)
-    // Trigger bounce animation on color change
-    setAnimationState('speaking')
-    setTimeout(() => setAnimationState('idle'), 500)
+  }, [])
+
+  const handleSpeakingChange = useCallback((isSpeaking: boolean) => {
+    setAnimationState(isSpeaking ? 'speaking' : 'idle')
   }, [])
 
   return (
@@ -67,6 +68,7 @@ export function CubiQoApp() {
             <ChatContainer
               currentColor={colorName}
               onColorChange={handleColorChange}
+              onSpeakingChange={handleSpeakingChange}
             />
           </div>
         </div>

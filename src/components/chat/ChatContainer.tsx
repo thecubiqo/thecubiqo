@@ -1,22 +1,37 @@
 'use client'
 
 /**
- * ChatContainer - Main chat interface
+ * ChatContainer - Main chat interface with voice
  */
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useCallback } from 'react'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { useChat } from '@/hooks/useChat'
+import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
 import type { ColorName } from '@/config/colors'
 
 interface ChatContainerProps {
   currentColor: ColorName
   onColorChange: (color: ColorName) => void
+  onSpeakingChange?: (isSpeaking: boolean) => void
 }
 
-export function ChatContainer({ currentColor, onColorChange }: ChatContainerProps) {
+export function ChatContainer({ currentColor, onColorChange, onSpeakingChange }: ChatContainerProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const { speak, stop, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis({
+    rate: 0.95,
+    pitch: 1,
+    onStart: () => onSpeakingChange?.(true),
+    onEnd: () => onSpeakingChange?.(false)
+  })
+
+  const handleResponse = useCallback((response: string) => {
+    if (ttsSupported) {
+      speak(response)
+    }
+  }, [ttsSupported, speak])
 
   const {
     sendMessage,
@@ -33,12 +48,39 @@ export function ChatContainer({ currentColor, onColorChange }: ChatContainerProp
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [conversationHistory])
 
+  // Speak the last AI response
+  useEffect(() => {
+    if (conversationHistory.length > 0) {
+      const lastEntry = conversationHistory[conversationHistory.length - 1]
+      handleResponse(lastEntry.aiResponse)
+    }
+  }, [conversationHistory.length, handleResponse])
+
   const handleSend = async (message: string) => {
+    // Stop any ongoing speech
+    if (isSpeaking) {
+      stop()
+    }
     await sendMessage(message, currentColor)
   }
 
   return (
     <div className="flex flex-col h-[500px] bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+      {/* Header with TTS toggle */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          {isLoading ? 'Thinking...' : isSpeaking ? 'Speaking...' : 'Ready'}
+        </span>
+        {ttsSupported && isSpeaking && (
+          <button
+            onClick={stop}
+            className="text-xs text-red-500 hover:text-red-600"
+          >
+            Stop
+          </button>
+        )}
+      </div>
+
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4">
         {conversationHistory.length === 0 ? (
@@ -49,13 +91,11 @@ export function ChatContainer({ currentColor, onColorChange }: ChatContainerProp
           <>
             {conversationHistory.map((entry, index) => (
               <div key={index}>
-                {/* User Message */}
                 <ChatMessage
                   role="user"
                   content={entry.userMessage}
                   timestamp={entry.timestamp}
                 />
-                {/* AI Response */}
                 <ChatMessage
                   role="assistant"
                   content={entry.aiResponse}
