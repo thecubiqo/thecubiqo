@@ -14,7 +14,7 @@ export const CLAUDE_CONFIG: ProviderConfig = {
 
 export const OPENAI_CONFIG: ProviderConfig = {
   name: 'openai',
-  model: 'gpt-4o-mini',
+  model: 'gpt-5.1',
   maxTokens: 200,
   apiKeyEnv: 'OPENAI_API_KEY'
 }
