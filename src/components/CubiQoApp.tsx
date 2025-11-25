@@ -1,16 +1,18 @@
 'use client'
 
 /**
- * CubiQoApp - Main application with Cube + Chat integration
+ * CubiQoApp - Main application with Cube + Chat + Session
  */
 
 import { useState, useCallback } from 'react'
 import { CubeScene } from './cube'
 import { ChatContainer } from './chat'
+import { useSession } from '@/hooks/useSession'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './cube/Cube'
 
 export function CubiQoApp() {
+  const { session, isLoading: sessionLoading } = useSession()
   const [colorName, setColorName] = useState<ColorName>('ORANGE')
   const [animationState, setAnimationState] = useState<AnimationState>('idle')
 
@@ -66,6 +68,7 @@ export function CubiQoApp() {
           {/* Chat Section */}
           <div className="order-2 lg:order-2">
             <ChatContainer
+              sessionId={session?.id ?? null}
               currentColor={colorName}
               onColorChange={handleColorChange}
               onSpeakingChange={handleSpeakingChange}
