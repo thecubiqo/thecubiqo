@@ -83,7 +83,21 @@ export function useAuth() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
+        // Handle initial session load (after redirect from magic link)
+        if (event === 'INITIAL_SESSION') {
+          if (session?.user) {
+            const profile = await fetchProfile(session.user.id)
+            setState({
+              user: session.user,
+              profile,
+              isLoading: false,
+              isAuthenticated: true,
+              isGuest: false,
+            })
+          } else {
+            setState(prev => ({ ...prev, isLoading: false }))
+          }
+        } else if (event === 'SIGNED_IN' && session?.user) {
           const profile = await fetchProfile(session.user.id)
           setState({
             user: session.user,
