@@ -14,7 +14,7 @@
 | Styling | Tailwind CSS | 4.x |
 | Database | Supabase (PostgreSQL) | - |
 | Auth | Supabase Auth (Magic Link) | - |
-| 3D | React Three Fiber | (pending) |
+| 3D | React Three Fiber | 9.4.0 |
 | Deployment | Vercel | - |
 
 ---
@@ -64,17 +64,27 @@
 - Session conversion (guest → authenticated)
 - Geo-fencing (US/CA only in proxy.ts)
 
+### 7. 3D Cube Component (React Three Fiber)
+- **Files**:
+  - `src/config/colors.ts` - Color system (4 emotional states)
+  - `src/components/cube/Cube.tsx` - Main 3D cube component
+  - `src/components/cube/CubeScene.tsx` - Canvas wrapper with lighting
+  - `src/components/cube/CubeDemo.tsx` - Interactive demo with controls
+- **Features**:
+  - 4 colors: RED (Tamas), YELLOW (Rajas), GREEN_BLUE (Sattva), ORANGE (Fourth Way)
+  - 4 animation states: idle, listening, thinking, speaking
+  - Mouse tracking for rotation
+  - Pupil tracking (eyes follow cursor)
+  - Breathing/glow effects with emissive materials
+  - Blinking animation (style varies by color)
+  - Bounce animation on color change or click
+  - MeshPhysicalMaterial with transparency and clearcoat
+
 ---
 
 ## Pending Tasks
 
-### 1. Cube Component (React Three Fiber)
-- Port legacy Three.js cube to R3F
-- Implement all animation states (idle, listening, thinking, speaking)
-- Color transitions with shader uniforms
-- Pupil tracking
-
-### 2. AI Dual Routing
+### 1. AI Dual Routing
 - Claude integration (primary)
 - OpenAI integration (fallback)
 - Color-based routing logic
@@ -97,13 +107,20 @@ cubiqo-repo/
 │   │   ├── auth/
 │   │   │   └── callback/route.ts    # Magic link callback
 │   │   ├── layout.tsx               # Root layout
-│   │   ├── page.tsx                 # Home page
+│   │   ├── page.tsx                 # Home page with Cube
 │   │   └── globals.css              # Global styles
 │   ├── components/
-│   │   └── auth/
-│   │       ├── AuthStatus.tsx       # Auth status display
-│   │       ├── LoginForm.tsx        # Magic link form
+│   │   ├── auth/
+│   │   │   ├── AuthStatus.tsx       # Auth status display
+│   │   │   ├── LoginForm.tsx        # Magic link form
+│   │   │   └── index.ts             # Exports
+│   │   └── cube/
+│   │       ├── Cube.tsx             # 3D Cube component (R3F)
+│   │       ├── CubeScene.tsx        # Canvas wrapper
+│   │       ├── CubeDemo.tsx         # Interactive demo
 │   │       └── index.ts             # Exports
+│   ├── config/
+│   │   └── colors.ts                # Color system (4 emotional states)
 │   ├── hooks/
 │   │   ├── useAuth.ts               # Auth state hook
 │   │   └── useSession.ts            # Session management hook
@@ -149,7 +166,7 @@ cubiqo-repo/
 
 ## Next Steps
 
-1. **Cube Component**: Port the 3D cube with React Three Fiber
-2. **AI Integration**: Implement dual routing (Claude/OpenAI)
-3. **Voice**: Add Web Speech API for voice input/output
+1. **AI Integration**: Implement dual routing (Claude/OpenAI)
+2. **Voice**: Add Web Speech API for voice input/output
+3. **Chat UI**: Build conversation interface
 4. **PWA**: Configure service worker and manifest
