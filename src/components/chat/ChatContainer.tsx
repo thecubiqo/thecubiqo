@@ -4,7 +4,7 @@
  * ChatContainer - Main chat interface with voice
  */
 
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect } from 'react'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { useChat } from '@/hooks/useChat'
@@ -19,6 +19,7 @@ interface ChatContainerProps {
 
 export function ChatContainer({ currentColor, onColorChange, onSpeakingChange }: ChatContainerProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const lastSpokenIndexRef = useRef<number>(-1)
 
   const { speak, stop, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis({
     rate: 0.95,
@@ -26,12 +27,6 @@ export function ChatContainer({ currentColor, onColorChange, onSpeakingChange }:
     onStart: () => onSpeakingChange?.(true),
     onEnd: () => onSpeakingChange?.(false)
   })
-
-  const handleResponse = useCallback((response: string) => {
-    if (ttsSupported) {
-      speak(response)
-    }
-  }, [ttsSupported, speak])
 
   const {
     sendMessage,
@@ -46,18 +41,23 @@ export function ChatContainer({ currentColor, onColorChange, onSpeakingChange }:
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [conversationHistory])
+  }, [conversationHistory.length])
 
-  // Speak the last AI response
+  // Speak only NEW AI responses (not on re-render)
   useEffect(() => {
-    if (conversationHistory.length > 0) {
-      const lastEntry = conversationHistory[conversationHistory.length - 1]
-      handleResponse(lastEntry.aiResponse)
+    const currentIndex = conversationHistory.length - 1
+    if (
+      ttsSupported &&
+      conversationHistory.length > 0 &&
+      currentIndex > lastSpokenIndexRef.current
+    ) {
+      lastSpokenIndexRef.current = currentIndex
+      const lastEntry = conversationHistory[currentIndex]
+      speak(lastEntry.aiResponse)
     }
-  }, [conversationHistory.length, handleResponse])
+  }, [conversationHistory.length, ttsSupported, speak])
 
   const handleSend = async (message: string) => {
-    // Stop any ongoing speech
     if (isSpeaking) {
       stop()
     }
@@ -66,7 +66,7 @@ export function ChatContainer({ currentColor, onColorChange, onSpeakingChange }:
 
   return (
     <div className="flex flex-col h-[500px] bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-      {/* Header with TTS toggle */}
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800">
         <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {isLoading ? 'Thinking...' : isSpeaking ? 'Speaking...' : 'Ready'}
