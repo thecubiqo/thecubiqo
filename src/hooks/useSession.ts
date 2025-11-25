@@ -176,15 +176,59 @@ export function useSession() {
 
   // Listen for auth changes and auto-convert guest sessions
   useEffect(() => {
-    const handleAuthChange = async (user: User | null) => {
-      // Skip if no session yet, not a guest, or already converted for this user
-      if (!state.session || !state.isGuest || !user) return
+    // Subscribe to auth state changes (only once on mount)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, authSession) => {
+        if (event === 'SIGNED_IN' && authSession?.user) {
+          // Delay slightly to ensure session state is ready
+          setTimeout(async () => {
+            const sessionId = getStoredSessionId()
+            if (!sessionId) return
+            if (convertedForUserRef.current === authSession.user.id) return
+
+            convertedForUserRef.current = authSession.user.id
+
+            const { data, error } = await supabase
+              .from('sessions')
+              .update({
+                user_id: authSession.user.id,
+                is_guest: false,
+                expires_at: null,
+              })
+              .eq('id', sessionId)
+              .select()
+              .single()
+
+            if (!error && data) {
+              setState(prev => ({
+                ...prev,
+                session: data,
+                isGuest: false,
+              }))
+            }
+          }, 100)
+        } else if (event === 'SIGNED_OUT') {
+          convertedForUserRef.current = null
+        }
+      }
+    )
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [supabase]) // Only depend on supabase client
+
+  // Check auth state when session becomes available
+  useEffect(() => {
+    if (!state.session || !state.isGuest) return
+
+    const checkAndConvert = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
       if (convertedForUserRef.current === user.id) return
 
-      // Mark as converting for this user to prevent duplicate conversions
       convertedForUserRef.current = user.id
 
-      // Convert guest session to authenticated
       const { data, error } = await supabase
         .from('sessions')
         .update({
@@ -192,7 +236,7 @@ export function useSession() {
           is_guest: false,
           expires_at: null,
         })
-        .eq('id', state.session.id)
+        .eq('id', state.session!.id)
         .select()
         .single()
 
@@ -205,28 +249,8 @@ export function useSession() {
       }
     }
 
-    // Subscribe to auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          await handleAuthChange(session.user)
-        } else if (event === 'SIGNED_OUT') {
-          convertedForUserRef.current = null
-        }
-      }
-    )
-
-    // Also check current auth state on mount (for page refreshes)
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user && state.session && state.isGuest) {
-        handleAuthChange(user)
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [supabase, state.session, state.isGuest])
+    checkAndConvert()
+  }, [supabase, state.session?.id, state.isGuest])
 
   // Convert guest session to authenticated
   const convertToAuthenticated = useCallback(async (userId: string): Promise<boolean> => {
