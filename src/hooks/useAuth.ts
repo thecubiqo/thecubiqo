@@ -45,59 +45,14 @@ export function useAuth() {
     return data
   }, [supabase])
 
-  // Initialize auth state
+  // Initialize auth state using onAuthStateChange only
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser()
-
-        if (user) {
-          // Fetch profile
-          const profile = await fetchProfile(user.id)
-
-          setState({
-            user,
-            profile,
-            isLoading: false,
-            isAuthenticated: true,
-            isGuest: false,
-          })
-        } else {
-          setState({
-            user: null,
-            profile: null,
-            isLoading: false,
-            isAuthenticated: false,
-            isGuest: true,
-          })
-        }
-      } catch (error) {
-        console.error('Auth init error:', error)
-        setState(prev => ({ ...prev, isLoading: false }))
-      }
-    }
-
-    initAuth()
-
-    // Listen for auth changes
+    // Set up auth state listener - this handles all auth events including initial load
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // Handle initial session load (after redirect from magic link)
-        if (event === 'INITIAL_SESSION') {
-          if (session?.user) {
-            const profile = await fetchProfile(session.user.id)
-            setState({
-              user: session.user,
-              profile,
-              isLoading: false,
-              isAuthenticated: true,
-              isGuest: false,
-            })
-          } else {
-            setState(prev => ({ ...prev, isLoading: false }))
-          }
-        } else if (event === 'SIGNED_IN' && session?.user) {
+        // Handle any event that provides session info
+        if (session?.user) {
+          // Fetch profile (with fallback if not found yet)
           const profile = await fetchProfile(session.user.id)
           setState({
             user: session.user,
@@ -106,7 +61,8 @@ export function useAuth() {
             isAuthenticated: true,
             isGuest: false,
           })
-        } else if (event === 'SIGNED_OUT') {
+        } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+          // No session - either signed out or initial load with no auth
           setState({
             user: null,
             profile: null,
