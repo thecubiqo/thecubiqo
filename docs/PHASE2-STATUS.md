@@ -80,17 +80,29 @@
   - Bounce animation on color change or click
   - MeshPhysicalMaterial with transparency and clearcoat
 
+### 8. AI Dual Routing (Claude/OpenAI)
+- **Files**:
+  - `src/lib/ai/system-prompt.ts` - CubiQo personality prompt
+  - `src/lib/ai/types.ts` - TypeScript types for AI service
+  - `src/lib/ai/providers.ts` - Provider configurations (Claude primary, OpenAI fallback)
+  - `src/lib/ai/service.ts` - Message building, response parsing, temporal context
+  - `src/lib/ai/index.ts` - Module exports
+  - `src/app/api/chat/route.ts` - Next.js Route Handler
+  - `src/hooks/useChat.ts` - Client-side hook for chat
+- **Features**:
+  - Claude API as primary provider (claude-haiku-4-5-20251001)
+  - OpenAI API as fallback (gpt-4o-mini)
+  - Prompt caching for Claude (anthropic-beta: prompt-caching-2024-07-31)
+  - Temporal awareness (timestamps in messages)
+  - JSON response with color and text
+  - Automatic color selection based on conversation emotion
+  - Conversation history management
+
 ---
 
 ## Pending Tasks
 
-### 1. AI Dual Routing
-- Claude integration (primary)
-- OpenAI integration (fallback)
-- Color-based routing logic
-- Streaming responses
-
-### 3. Additional Features
+### 1. Additional Features
 - PWA configuration
 - Voice input/output (Web Speech API)
 - Real-time subscriptions
@@ -104,6 +116,9 @@
 cubiqo-repo/
 ├── src/
 │   ├── app/
+│   │   ├── api/
+│   │   │   └── chat/
+│   │   │       └── route.ts         # Chat API (dual routing)
 │   │   ├── auth/
 │   │   │   └── callback/route.ts    # Magic link callback
 │   │   ├── layout.tsx               # Root layout
@@ -123,8 +138,15 @@ cubiqo-repo/
 │   │   └── colors.ts                # Color system (4 emotional states)
 │   ├── hooks/
 │   │   ├── useAuth.ts               # Auth state hook
+│   │   ├── useChat.ts               # Chat/AI hook
 │   │   └── useSession.ts            # Session management hook
 │   ├── lib/
+│   │   ├── ai/
+│   │   │   ├── system-prompt.ts     # CubiQo personality
+│   │   │   ├── types.ts             # AI types
+│   │   │   ├── providers.ts         # Claude/OpenAI configs
+│   │   │   ├── service.ts           # Message building, parsing
+│   │   │   └── index.ts             # Exports
 │   │   ├── auth/
 │   │   │   ├── actions.ts           # Server actions
 │   │   │   ├── session.ts           # Session functions
@@ -154,6 +176,8 @@ cubiqo-repo/
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
 | `NEXT_PUBLIC_APP_URL` | Application URL (for redirects) |
+| `ANTHROPIC_API_KEY` | Claude API key (primary AI provider) |
+| `OPENAI_API_KEY` | OpenAI API key (fallback provider) |
 
 ---
 
@@ -166,7 +190,7 @@ cubiqo-repo/
 
 ## Next Steps
 
-1. **AI Integration**: Implement dual routing (Claude/OpenAI)
+1. **Chat UI**: Build conversation interface with message input
 2. **Voice**: Add Web Speech API for voice input/output
-3. **Chat UI**: Build conversation interface
-4. **PWA**: Configure service worker and manifest
+3. **PWA**: Configure service worker and manifest
+4. **Memory**: Implement fact extraction and storage
