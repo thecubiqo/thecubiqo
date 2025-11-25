@@ -1,12 +1,13 @@
 import { LoginForm, AuthStatus } from "@/components/auth";
+import { CubeDemo } from "@/components/cube";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
-      <main className="container mx-auto px-4 py-16">
+      <main className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-zinc-900 dark:text-white mb-4">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2">
             CubiQo
           </h1>
           <p className="text-lg text-zinc-600 dark:text-zinc-400">
@@ -14,7 +15,12 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Main Content */}
+        {/* Cube Demo */}
+        <div className="max-w-2xl mx-auto mb-12">
+          <CubeDemo />
+        </div>
+
+        {/* Auth Section */}
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Auth Status */}
           <div>
@@ -39,7 +45,7 @@ export default function Home() {
         </div>
 
         {/* Info Section */}
-        <div className="mt-16 text-center">
+        <div className="mt-12 text-center">
           <h3 className="text-lg font-medium text-zinc-900 dark:text-white mb-4">
             Phase 2 Development
           </h3>
@@ -53,8 +59,8 @@ export default function Home() {
             <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
               Supabase
             </span>
-            <span className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full">
-              Auth Testing
+            <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
+              R3F Cube
             </span>
           </div>
         </div>
