@@ -27,7 +27,7 @@ interface ChatState {
 export function useChat(options: UseChatOptions) {
   const { sessionId, onColorChange } = options
   const supabase = createClient()
-  const initRef = useRef(false)
+  const lastSessionIdRef = useRef<string | null>(null)
 
   const [state, setState] = useState<ChatState>({
     isLoading: false,
@@ -38,35 +38,53 @@ export function useChat(options: UseChatOptions) {
     isInitialized: false
   })
 
-  // Load or create conversation on mount
+  // Load or create conversation when sessionId changes
   useEffect(() => {
-    if (!sessionId || initRef.current) return
-    initRef.current = true
+    // Skip if no sessionId or already initialized for this session
+    if (!sessionId || lastSessionIdRef.current === sessionId) return
+    lastSessionIdRef.current = sessionId
 
     const initConversation = async () => {
+      console.log('[useChat] Initializing conversation for session:', sessionId)
+
       try {
         // Try to find existing conversation for this session
-        const { data: existingConv } = await supabase
+        const { data: existingConv, error: findError } = await supabase
           .from('conversations')
           .select('id, color_state')
           .eq('session_id', sessionId)
           .order('updated_at', { ascending: false })
           .limit(1)
-          .single()
+          .maybeSingle() // Use maybeSingle to avoid error when no rows
+
+        if (findError) {
+          console.error('[useChat] Error finding conversation:', findError)
+        }
 
         let conversationId = existingConv?.id
 
         if (!conversationId) {
+          console.log('[useChat] Creating new conversation')
           // Create new conversation
-          const { data: newConv, error } = await supabase
+          const { data: newConv, error: createError } = await supabase
             .from('conversations')
             .insert({ session_id: sessionId, color_state: 'ORANGE' })
             .select('id')
             .single()
 
-          if (error) throw error
+          if (createError) {
+            console.error('[useChat] Error creating conversation:', createError)
+            setState(prev => ({
+              ...prev,
+              isInitialized: true,
+              error: `Failed to create conversation: ${createError.message}`
+            }))
+            return
+          }
           conversationId = newConv.id
         }
+
+        console.log('[useChat] Conversation ID:', conversationId)
 
         // Load existing messages
         const { data: messages } = await supabase
@@ -92,6 +110,8 @@ export function useChat(options: UseChatOptions) {
           }
         }
 
+        console.log('[useChat] Loaded', history.length, 'messages')
+
         // Set initial color from last message or conversation state
         const lastColor = history.length > 0
           ? history[history.length - 1].color
@@ -105,12 +125,17 @@ export function useChat(options: UseChatOptions) {
           ...prev,
           conversationId,
           conversationHistory: history,
-          isInitialized: true
+          isInitialized: true,
+          error: null
         }))
 
       } catch (error) {
-        console.error('Failed to init conversation:', error)
-        setState(prev => ({ ...prev, isInitialized: true }))
+        console.error('[useChat] Failed to init conversation:', error)
+        setState(prev => ({
+          ...prev,
+          isInitialized: true,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }))
       }
     }
 
@@ -122,7 +147,8 @@ export function useChat(options: UseChatOptions) {
     currentColor: ColorName = 'ORANGE'
   ): Promise<AIResponse | null> => {
     if (!state.conversationId) {
-      setState(prev => ({ ...prev, error: 'No conversation initialized' }))
+      console.error('[useChat] No conversation ID, state:', state)
+      setState(prev => ({ ...prev, error: 'No conversation initialized. Please refresh the page.' }))
       return null
     }
 
@@ -148,20 +174,22 @@ export function useChat(options: UseChatOptions) {
       const timestamp = new Date().toISOString()
 
       // Save user message
-      await supabase.from('messages').insert({
+      const { error: userMsgError } = await supabase.from('messages').insert({
         conversation_id: state.conversationId,
         role: 'user',
         content: message,
         color: currentColor
       })
+      if (userMsgError) console.error('[useChat] Error saving user message:', userMsgError)
 
       // Save AI response
-      await supabase.from('messages').insert({
+      const { error: aiMsgError } = await supabase.from('messages').insert({
         conversation_id: state.conversationId,
         role: 'assistant',
         content: data.response,
         color: data.color
       })
+      if (aiMsgError) console.error('[useChat] Error saving AI message:', aiMsgError)
 
       // Update conversation color state
       await supabase
@@ -199,7 +227,6 @@ export function useChat(options: UseChatOptions) {
   const clearHistory = useCallback(async () => {
     if (!state.conversationId) return
 
-    // Delete messages from database
     await supabase
       .from('messages')
       .delete()
