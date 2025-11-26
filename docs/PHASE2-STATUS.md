@@ -1,6 +1,6 @@
 # CubiQo Phase 2 - Implementation Status
 
-**Last Updated**: November 26, 2025
+**Last Updated**: November 26, 2025 (evening)
 
 ---
 
@@ -23,6 +23,37 @@
 | 11 | Conversation Persistence | ✅ |
 | 12 | Auth UI (Sign In panel) | ✅ |
 | 13 | Memory Extraction | ⏳ Pending |
+
+---
+
+## Today's Completed (26 Nov)
+
+### UI Redesign ✅
+- Fullscreen cube (transparent canvas, theme-aware)
+- Legacy design match (CubiQo™ branding, footer, trademark)
+- Light/Dark theme toggle with persistence
+
+### Voice State Machine ✅
+Proper state machine from legacy code:
+
+| State | Button | Animation | Text |
+|-------|--------|-----------|------|
+| `idle` | 🎤 | - | Talk to Cubiqo™ |
+| `listening` | 🎙️ | pulse + blue glow | Listening... |
+| `thinking` | 💭 | scale | Thinking... |
+| `speaking` | 🗣️ | green glow | Speaking... |
+
+Click behavior:
+- `idle` → start listening
+- `listening` → stop
+- `thinking` → ignore (cannot interrupt)
+- `speaking` → stop speech
+
+### Fixes Applied
+- Removed OrbitControls (cube has internal mouse tracking)
+- Transparent canvas background (adapts to theme)
+- Text shadows for visibility
+- TTS integration with voice flow
 
 ---
 
@@ -53,59 +84,36 @@
 
 ---
 
-## Feature Details
+## Current Issues / TODO
 
-### 1-4. Database & Types
-- Tables: `profiles`, `sessions`, `conversations`, `messages`, `memory`, `events`
-- RLS policies for guest and authenticated users
-- Auto-generated TypeScript types
+### Menu Redesign Needed
+Current menu has everything crammed together:
+- Auth form
+- Chat history (auto-plays TTS on open!)
 
-### 5. Auth Flow
-- Guest sessions with 30-day TTL
-- Magic link (OTP) authentication
-- Auto-generated handles (CQ#XXXXX)
-- Session conversion (guest → authenticated)
-- Geo-fencing (US/CA)
+Proposed structure:
+```
+┌─────────────────────────────┐
+│  Menu                    ✕  │
+├─────────────────────────────┤
+│                             │
+│  🎤 Voice Mode (default)    │
+│  💬 Chat Mode               │
+│  ⚙️ Settings                │
+│                             │
+├─────────────────────────────┤
+│  Guest Session              │
+│  "Sign in to save your      │
+│   conversations forever"    │
+│  [Continue with Email]      │
+│                             │
+└─────────────────────────────┘
+```
 
-### 6. 3D Cube
-- 4 colors: RED, YELLOW, GREEN_BLUE, ORANGE
-- 4 animation states: idle, listening, thinking, speaking
-- Mouse tracking, pupil tracking
-- Breathing/glow effects, blinking
-- MeshPhysicalMaterial with transparency
-
-### 7. AI Dual Routing
-- Claude primary with prompt caching
-- OpenAI fallback on error
-- Temporal awareness (timestamps)
-- JSON response: `{ color, response }`
-- Color selection based on emotion
-
-### 8. Chat UI
-- Message bubbles with color coding
-- Auto-scroll, loading indicators
-- Cube color synced with AI response
-
-### 9. Voice I/O
-- Speech Recognition (mic input)
-- Speech Synthesis (TTS output)
-- Cube animation synced with speaking
-
-### 10. PWA
-- `manifest.json` with icons
-- Service worker with caching
-- Installable as standalone app
-
-### 11. Conversation Persistence
-- Messages saved to Supabase
-- History loaded on page reload
-- Color state restored
-
-### 12. Auth UI
-- "Sign In" button in header
-- Collapsible auth panel
-- Session status display
-- Magic link form
+### Next Tasks
+1. **Menu Redesign** - Separate concerns, marketing auth message
+2. **Memory Extraction** - Extract facts, store in `memory` table
+3. **Production Deploy** - Merge `phase2` → `main`
 
 ---
 
@@ -121,8 +129,8 @@ src/
 ├── components/
 │   ├── auth/                   # LoginForm, AuthStatus
 │   ├── chat/                   # ChatContainer, ChatInput, ChatMessage
-│   ├── cube/                   # Cube, CubeScene, CubeDemo
-│   └── CubiQoApp.tsx          # Main app
+│   ├── cube/                   # Cube, CubeScene
+│   └── FullscreenApp.tsx       # Main app (state machine)
 ├── hooks/
 │   ├── useAuth.ts
 │   ├── useChat.ts              # + Supabase persistence
@@ -134,29 +142,16 @@ src/
 │   ├── auth/
 │   └── supabase/
 ├── config/colors.ts            # 4 color states
-├── types/
-└── proxy.ts                    # Auth middleware
+└── types/
 
 public/
 ├── manifest.json
 ├── sw.js
 └── icons/
 
-supabase/migrations/
-├── 20251124000001_initial_schema.sql
-└── 20251126000001_fix_color_constraint.sql
-```
-
----
-
-## Environment Variables
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-NEXT_PUBLIC_APP_URL=
-ANTHROPIC_API_KEY=
-OPENAI_API_KEY=  # optional fallback
+legacy/                         # Reference implementation
+├── src/main.js                 # State machine reference
+└── src/services/voice.js       # Voice service reference
 ```
 
 ---
@@ -172,68 +167,12 @@ OPENAI_API_KEY=  # optional fallback
 
 ---
 
-## Work Bubbles (Aditya, 26 Nov)
+## Environment Variables
 
-### Bubble 1: AA (Analytics & Affiliates)
-- Heavy Analytics (PostHog/Mixpanel)
-- Affiliate Cat0/Cat1/smart (shoppers+POC integration)
-- Retool portal
-- SEO/GEO wrapper
-
-### Bubble 2: Audio Visual Effects ← Alex focus
-- Audio: AI integration + Voice
-- Visual: Animations + UI
-
-### Bubble 3: Actions Engine
-- Email/Calendar/Uber integrations
-- TBD next week
-
----
-
-## Today's Plan (26 Nov)
-
-### Priority: UI Redesign (match cubiqo.ai)
-
-Current UI ≠ cubiqo.ai. Need:
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_APP_URL=
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=  # optional fallback
 ```
-┌─────────────────────────────────┐
-│  ☰                        CQ#  │  ← Menu + Guest badge
-│                                 │
-│           ┌─────┐              │
-│           │ 🎲  │              │  ← Fullscreen cube
-│           └─────┘              │
-│                                 │
-│             🎤                  │  ← Mic button
-└─────────────────────────────────┘
-```
-
-### Tasks
-
-| # | Task | Time | Status |
-|---|------|------|--------|
-| 1 | UI Redesign: fullscreen cube | 2-3h | ⏳ |
-| 2 | Menu overlay (chat, settings, auth) | 1h | ⏳ |
-| 3 | Microphone button styling | 30m | ⏳ |
-| 4 | Test Supabase persistence | 1h | ⏳ |
-| 5 | AI integration polish | - | ⛔ waiting keys |
-
-### Blocked
-- `ANTHROPIC_API_KEY` - requested from Aditya
-- `OPENAI_API_KEY` - requested from Aditya
-
----
-
-## Gradual Auth Strategy
-
-1. **Start as Guest** - auto session, no friction
-2. **Prompt after N messages** - "Sign in to save history"
-3. **Magic link** - session converts, data preserved
-
----
-
-## Next Steps
-
-1. **UI Redesign** - Fullscreen cube like cubiqo.ai
-2. **Memory Extraction** - Extract facts, store in `memory` table
-3. **Production Deploy** - Merge `phase2` → `main`
-4. **Custom Domain** - Configure cubiqo.com
