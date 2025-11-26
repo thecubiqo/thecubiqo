@@ -172,8 +172,68 @@ OPENAI_API_KEY=  # optional fallback
 
 ---
 
+## Work Bubbles (Aditya, 26 Nov)
+
+### Bubble 1: AA (Analytics & Affiliates)
+- Heavy Analytics (PostHog/Mixpanel)
+- Affiliate Cat0/Cat1/smart (shoppers+POC integration)
+- Retool portal
+- SEO/GEO wrapper
+
+### Bubble 2: Audio Visual Effects ← Alex focus
+- Audio: AI integration + Voice
+- Visual: Animations + UI
+
+### Bubble 3: Actions Engine
+- Email/Calendar/Uber integrations
+- TBD next week
+
+---
+
+## Today's Plan (26 Nov)
+
+### Priority: UI Redesign (match cubiqo.ai)
+
+Current UI ≠ cubiqo.ai. Need:
+```
+┌─────────────────────────────────┐
+│  ☰                        CQ#  │  ← Menu + Guest badge
+│                                 │
+│           ┌─────┐              │
+│           │ 🎲  │              │  ← Fullscreen cube
+│           └─────┘              │
+│                                 │
+│             🎤                  │  ← Mic button
+└─────────────────────────────────┘
+```
+
+### Tasks
+
+| # | Task | Time | Status |
+|---|------|------|--------|
+| 1 | UI Redesign: fullscreen cube | 2-3h | ⏳ |
+| 2 | Menu overlay (chat, settings, auth) | 1h | ⏳ |
+| 3 | Microphone button styling | 30m | ⏳ |
+| 4 | Test Supabase persistence | 1h | ⏳ |
+| 5 | AI integration polish | - | ⛔ waiting keys |
+
+### Blocked
+- `ANTHROPIC_API_KEY` - requested from Aditya
+- `OPENAI_API_KEY` - requested from Aditya
+
+---
+
+## Gradual Auth Strategy
+
+1. **Start as Guest** - auto session, no friction
+2. **Prompt after N messages** - "Sign in to save history"
+3. **Magic link** - session converts, data preserved
+
+---
+
 ## Next Steps
 
-1. **Memory Extraction** - Extract facts from conversations, store in `memory` table, use for personalization
-2. **Production Deploy** - Merge `phase2` → `main`
-3. **Custom Domain** - Configure cubiqo.com
+1. **UI Redesign** - Fullscreen cube like cubiqo.ai
+2. **Memory Extraction** - Extract facts, store in `memory` table
+3. **Production Deploy** - Merge `phase2` → `main`
+4. **Custom Domain** - Configure cubiqo.com

@@ -1,5 +1,5 @@
-import { CubiQoApp } from "@/components/CubiQoApp";
+import { FullscreenApp } from "@/components/FullscreenApp";
 
 export default function Home() {
-  return <CubiQoApp />;
+  return <FullscreenApp />;
 }
