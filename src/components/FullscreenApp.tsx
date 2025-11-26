@@ -181,8 +181,9 @@ export function FullscreenApp() {
       {/* Talk to Cubiqo text */}
       <div
         className={`fixed bottom-[55px] sm:bottom-[55px] left-1/2 -translate-x-1/2 z-50 text-[13px] sm:text-[15px] font-medium tracking-wide pointer-events-none ${
-          isDark ? 'text-white/90' : 'text-black/80'
+          isDark ? 'text-white' : 'text-black'
         }`}
+        style={{ textShadow: isDark ? '0 2px 8px rgba(0,0,0,0.8)' : '0 2px 8px rgba(255,255,255,0.8)' }}
       >
         {isListening ? (transcript || 'Listening...') : 'Talk to Cubiqo™'}
       </div>
@@ -190,8 +191,9 @@ export function FullscreenApp() {
       {/* Footer */}
       <footer
         className={`fixed bottom-4 right-4 sm:right-6 z-50 text-right text-[9px] sm:text-[11px] leading-relaxed pointer-events-none ${
-          isDark ? 'text-white/50' : 'text-black/70'
+          isDark ? 'text-white/70' : 'text-black/80'
         }`}
+        style={{ textShadow: isDark ? '0 1px 4px rgba(0,0,0,0.9)' : '0 1px 4px rgba(255,255,255,0.9)' }}
       >
         <p>Providing temporary use of online non-downloadable<br />AI chatbot software.</p>
         <p>© 2025 Cubiqo United Inc., Jersey City, NJ.</p>

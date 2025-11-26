@@ -6,7 +6,7 @@
 
 import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, ContactShadows, Environment } from '@react-three/drei'
+import { ContactShadows, Environment } from '@react-three/drei'
 import { Cube, type AnimationState } from './Cube'
 import type { ColorName } from '@/config/colors'
 
@@ -48,14 +48,14 @@ export function CubeScene({
       <Canvas
         camera={{ position: [0, 2, 5], fov: 50 }}
         shadows
-        gl={{ 
-          antialias: true, 
-          alpha: false,
+        gl={{
+          antialias: true,
+          alpha: true,
           powerPreference: 'high-performance'
         }}
         dpr={[1, 2]}
+        style={{ background: 'transparent' }}
       >
-        <color attach="background" args={['#000000']} />
         
         <Lights />
         
@@ -73,12 +73,7 @@ export function CubeScene({
           <Environment preset="city" />
         </Suspense>
         
-        <OrbitControls
-          enablePan={false}
-          enableZoom={false}
-          minPolarAngle={Math.PI / 4}
-          maxPolarAngle={Math.PI / 2}
-        />
+{/* OrbitControls disabled - cube has internal mouse tracking */}
       </Canvas>
     </div>
   )
