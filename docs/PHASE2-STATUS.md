@@ -1,6 +1,6 @@
 # CubiQo Phase 2 - Implementation Status
 
-**Last Updated**: November 25, 2025
+**Last Updated**: November 26, 2025
 
 ---
 
@@ -15,6 +15,7 @@
 | Database | Supabase (PostgreSQL) | - |
 | Auth | Supabase Auth (Magic Link) | - |
 | 3D | React Three Fiber | 9.4.0 |
+| AI | Claude (primary) / OpenAI (fallback) | - |
 | Deployment | Vercel | - |
 
 ---
@@ -23,90 +24,70 @@
 
 ### 1. Database Schema
 - **File**: `supabase/migrations/20251124000001_initial_schema.sql`
-- **Tables**:
-  - `profiles` - User profiles with auto-generated CQ# handles
-  - `sessions` - Guest and authenticated sessions
-  - `conversations` - Chat conversations with color state
-  - `messages` - Individual messages
-  - `memory` - Extracted facts/preferences
-  - `events` - Analytics events
+- **Tables**: profiles, sessions, conversations, messages, memory, events
 
 ### 2. Row Level Security (RLS)
-- All tables have RLS enabled
-- Policies allow:
-  - Users to manage their own data
-  - Guest sessions (user_id IS NULL) for anonymous users
-  - Automatic data isolation between users
+- All tables have RLS enabled with proper policies
 
 ### 3. TypeScript Types
-- **File**: `src/types/database.types.ts` (auto-generated)
-- **File**: `src/types/index.ts` (helper types)
-- Generated from Supabase schema using `supabase gen types typescript`
+- Auto-generated from Supabase schema
 
 ### 4. Supabase Client Setup
-- **File**: `src/lib/supabase/client.ts` - Browser client
-- **File**: `src/lib/supabase/server.ts` - Server client with cookie handling
+- Browser and Server clients with cookie handling
 
 ### 5. Auth Flow
-- **Proxy**: `src/proxy.ts` - Next.js 16 proxy for cookie sync
-- **Callback**: `src/app/auth/callback/route.ts` - Magic link handler
-- **Hooks**:
-  - `src/hooks/useAuth.ts` - Authentication state
-  - `src/hooks/useSession.ts` - CubiQo session management
-- **Components**:
-  - `src/components/auth/LoginForm.tsx` - Magic link form
-  - `src/components/auth/AuthStatus.tsx` - Auth status display
-
-### 6. Auth Features
-- Guest sessions with 30-day TTL
-- Magic link (OTP) authentication
-- Auto-generated user handles (CQ#XXXXX)
+- Magic link authentication
+- Guest sessions (30-day TTL)
 - Session conversion (guest → authenticated)
-- Geo-fencing (US/CA only in proxy.ts)
+- Geo-fencing (US/CA)
 
-### 7. 3D Cube Component (React Three Fiber)
-- **Files**:
-  - `src/config/colors.ts` - Color system (4 emotional states)
-  - `src/components/cube/Cube.tsx` - Main 3D cube component
-  - `src/components/cube/CubeScene.tsx` - Canvas wrapper with lighting
-  - `src/components/cube/CubeDemo.tsx` - Interactive demo with controls
-- **Features**:
-  - 4 colors: RED (Tamas), YELLOW (Rajas), GREEN_BLUE (Sattva), ORANGE (Fourth Way)
-  - 4 animation states: idle, listening, thinking, speaking
-  - Mouse tracking for rotation
-  - Pupil tracking (eyes follow cursor)
-  - Breathing/glow effects with emissive materials
-  - Blinking animation (style varies by color)
-  - Bounce animation on color change or click
-  - MeshPhysicalMaterial with transparency and clearcoat
+### 6. 3D Cube Component (React Three Fiber)
+- 4 colors: RED, YELLOW, GREEN_BLUE, ORANGE
+- 4 animation states: idle, listening, thinking, speaking
+- Mouse tracking, pupil tracking, breathing effects, blinking
 
-### 8. AI Dual Routing (Claude/OpenAI)
-- **Files**:
-  - `src/lib/ai/system-prompt.ts` - CubiQo personality prompt
-  - `src/lib/ai/types.ts` - TypeScript types for AI service
-  - `src/lib/ai/providers.ts` - Provider configurations (Claude primary, OpenAI fallback)
-  - `src/lib/ai/service.ts` - Message building, response parsing, temporal context
-  - `src/lib/ai/index.ts` - Module exports
-  - `src/app/api/chat/route.ts` - Next.js Route Handler
-  - `src/hooks/useChat.ts` - Client-side hook for chat
-- **Features**:
-  - Claude API as primary provider (claude-haiku-4-5-20251001)
-  - OpenAI API as fallback (gpt-4o-mini)
-  - Prompt caching for Claude (anthropic-beta: prompt-caching-2024-07-31)
-  - Temporal awareness (timestamps in messages)
-  - JSON response with color and text
-  - Automatic color selection based on conversation emotion
-  - Conversation history management
+### 7. AI Dual Routing
+- Claude API primary (claude-haiku-4-5-20251001)
+- OpenAI fallback (gpt-5.1)
+- Prompt caching, temporal awareness
+- JSON response with color selection
+
+### 8. Chat UI
+- **Files**: `src/components/chat/` (ChatMessage, ChatInput, ChatContainer)
+- Message bubbles with color coding
+- Auto-scroll, loading states
+- Integration with Cube (color sync)
+
+### 9. Voice Input/Output
+- **Files**: `src/hooks/useSpeechRecognition.ts`, `src/hooks/useSpeechSynthesis.ts`
+- Web Speech API for voice input (microphone)
+- Text-to-Speech for AI responses
+- Cube animation synced with speaking
+
+### 10. PWA Configuration
+- **Files**: `public/manifest.json`, `public/sw.js`
+- Service worker with offline caching
+- App manifest with icons
+- Installable as standalone app
+
+### 11. Conversation Persistence
+- Messages saved to Supabase
+- History loaded on page reload
+- Color state restored from last message
+- Per-session conversation isolation
 
 ---
 
 ## Pending Tasks
 
-### 1. Additional Features
-- PWA configuration
-- Voice input/output (Web Speech API)
-- Real-time subscriptions
-- Memory extraction
+### 1. Memory Extraction
+- Extract facts/preferences from conversations
+- Store in `memory` table
+- Include in AI context for personalization
+
+### 2. Real-time Subscriptions
+- Supabase realtime for live updates
+- Multi-device sync
 
 ---
 
@@ -116,81 +97,61 @@
 cubiqo-repo/
 ├── src/
 │   ├── app/
-│   │   ├── api/
-│   │   │   └── chat/
-│   │   │       └── route.ts         # Chat API (dual routing)
-│   │   ├── auth/
-│   │   │   └── callback/route.ts    # Magic link callback
-│   │   ├── layout.tsx               # Root layout
-│   │   ├── page.tsx                 # Home page with Cube
-│   │   └── globals.css              # Global styles
+│   │   ├── api/chat/route.ts       # Chat API
+│   │   ├── auth/callback/route.ts  # Magic link
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   └── globals.css
 │   ├── components/
-│   │   ├── auth/
-│   │   │   ├── AuthStatus.tsx       # Auth status display
-│   │   │   ├── LoginForm.tsx        # Magic link form
-│   │   │   └── index.ts             # Exports
-│   │   └── cube/
-│   │       ├── Cube.tsx             # 3D Cube component (R3F)
-│   │       ├── CubeScene.tsx        # Canvas wrapper
-│   │       ├── CubeDemo.tsx         # Interactive demo
-│   │       └── index.ts             # Exports
-│   ├── config/
-│   │   └── colors.ts                # Color system (4 emotional states)
+│   │   ├── auth/                   # Auth components
+│   │   ├── chat/                   # Chat components
+│   │   ├── cube/                   # 3D Cube (R3F)
+│   │   ├── CubiQoApp.tsx          # Main app
+│   │   └── ServiceWorkerRegistration.tsx
+│   ├── config/colors.ts
 │   ├── hooks/
-│   │   ├── useAuth.ts               # Auth state hook
-│   │   ├── useChat.ts               # Chat/AI hook
-│   │   └── useSession.ts            # Session management hook
+│   │   ├── useAuth.ts
+│   │   ├── useChat.ts
+│   │   ├── useSession.ts
+│   │   ├── useSpeechRecognition.ts
+│   │   └── useSpeechSynthesis.ts
 │   ├── lib/
-│   │   ├── ai/
-│   │   │   ├── system-prompt.ts     # CubiQo personality
-│   │   │   ├── types.ts             # AI types
-│   │   │   ├── providers.ts         # Claude/OpenAI configs
-│   │   │   ├── service.ts           # Message building, parsing
-│   │   │   └── index.ts             # Exports
+│   │   ├── ai/                     # AI service
 │   │   ├── auth/
-│   │   │   ├── actions.ts           # Server actions
-│   │   │   ├── session.ts           # Session functions
-│   │   │   └── index.ts             # Exports
 │   │   └── supabase/
-│   │       ├── client.ts            # Browser client
-│   │       ├── server.ts            # Server client
-│   │       └── index.ts             # Exports
 │   ├── types/
-│   │   ├── database.types.ts        # Auto-generated Supabase types
-│   │   └── index.ts                 # Helper types
-│   └── proxy.ts                     # Next.js 16 proxy (auth middleware)
-├── supabase/
-│   └── migrations/
-│       └── 20251124000001_initial_schema.sql
-├── legacy/                          # Phase 1 code (reference)
+│   └── proxy.ts
+├── public/
+│   ├── manifest.json
+│   ├── sw.js
+│   └── icons/
+├── supabase/migrations/
+├── legacy/
 └── docs/
-    └── PHASE2-STATUS.md             # This file
 ```
 
 ---
 
-## Environment Variables (Vercel)
+## Environment Variables
 
 | Variable | Description |
 |----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
-| `NEXT_PUBLIC_APP_URL` | Application URL (for redirects) |
-| `ANTHROPIC_API_KEY` | Claude API key (primary AI provider) |
-| `OPENAI_API_KEY` | OpenAI API key (fallback provider) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `NEXT_PUBLIC_APP_URL` | Application URL |
+| `ANTHROPIC_API_KEY` | Claude API key |
+| `OPENAI_API_KEY` | OpenAI API key |
 
 ---
 
-## Testing URLs
+## URLs
 
 - **Preview**: https://cubiqo-repo-git-phase2-cubiqo-projects-d7156840.vercel.app
-- **Supabase Dashboard**: https://supabase.com/dashboard/project/naoxezcmcauecawchgjk
+- **Supabase**: https://supabase.com/dashboard/project/naoxezcmcauecawchgjk
 
 ---
 
 ## Next Steps
 
-1. **Chat UI**: Build conversation interface with message input
-2. **Voice**: Add Web Speech API for voice input/output
-3. **PWA**: Configure service worker and manifest
-4. **Memory**: Implement fact extraction and storage
+1. **Memory**: Implement fact extraction and storage
+2. **Real-time**: Add Supabase subscriptions for multi-device sync
