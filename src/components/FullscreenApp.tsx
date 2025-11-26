@@ -7,6 +7,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { CubeScene } from './cube'
+import { LoginForm } from './auth'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
@@ -24,6 +25,7 @@ export function FullscreenApp() {
   const [colorName, setColorName] = useState<ColorName>('ORANGE')
   const [animationState, setAnimationState] = useState<AnimationState>('idle')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showAuthForm, setShowAuthForm] = useState(false)
   const [isDark, setIsDark] = useState(true)
 
   // State machine (matching legacy)
@@ -174,7 +176,7 @@ export function FullscreenApp() {
               CubiQo™ for simulating conversations
             </span>
 
-            {/* Menu Button (for chat/auth) */}
+            {/* Menu Button */}
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className={`text-xs font-medium px-3 py-2 rounded-lg transition-all ${
@@ -184,18 +186,6 @@ export function FullscreenApp() {
               }`}
             >
               Menu
-            </button>
-
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className={`text-xs font-medium px-3 py-2 rounded-lg backdrop-blur-lg transition-all flex items-center gap-1.5 ${
-                isDark
-                  ? 'bg-white/[0.08] border border-white/20 text-white hover:bg-white/15'
-                  : 'bg-black/[0.05] border border-black/15 text-gray-800 hover:bg-black/10'
-              }`}
-            >
-              <span className="hidden sm:inline">{isDark ? 'Light' : 'Dark'}</span>
             </button>
           </div>
         </div>
@@ -327,7 +317,7 @@ export function FullscreenApp() {
               </button>
             </div>
 
-            {/* Account - Minimal */}
+            {/* Account */}
             <div className={`border-t pt-6 mt-6 ${isDark ? 'border-white/10' : 'border-black/10'}`}>
               <h3 className="text-xs uppercase tracking-wider opacity-50 mb-4">Account</h3>
 
@@ -346,22 +336,27 @@ export function FullscreenApp() {
                     Sign Out
                   </button>
                 </div>
+              ) : showAuthForm ? (
+                <div className="space-y-4">
+                  <LoginForm />
+                  <button
+                    onClick={() => setShowAuthForm(false)}
+                    className="w-full text-center text-xs opacity-50 hover:opacity-80"
+                  >
+                    Cancel
+                  </button>
+                </div>
               ) : (
-                <a
-                  href="/auth/signin"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setMenuOpen(false)
-                    // TODO: Open auth modal or navigate
-                  }}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                <button
+                  onClick={() => setShowAuthForm(true)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'
                   }`}
                 >
                   <span>🔑</span>
                   <span>Sign In</span>
                   <span className="ml-auto text-xs opacity-50">Save history</span>
-                </a>
+                </button>
               )}
             </div>
           </div>
