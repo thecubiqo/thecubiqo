@@ -11,6 +11,7 @@ import { LoginForm, AuthStatus } from './auth'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
+import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
 import { useChat } from '@/hooks/useChat'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './cube/Cube'
@@ -28,6 +29,14 @@ export function FullscreenApp() {
     onColorChange: setColorName
   })
 
+  // TTS for AI responses
+  const { speak, isSpeaking } = useSpeechSynthesis({
+    rate: 0.95,
+    pitch: 1,
+    onStart: () => setAnimationState('speaking'),
+    onEnd: () => setAnimationState('idle')
+  })
+
   const {
     startListening,
     stopListening,
@@ -38,8 +47,12 @@ export function FullscreenApp() {
     lang: 'en-US',
     onResult: async (text) => {
       setAnimationState('thinking')
-      await sendMessage(text, colorName)
-      setAnimationState('idle')
+      const response = await sendMessage(text, colorName)
+      if (response?.response) {
+        speak(response.response)
+      } else {
+        setAnimationState('idle')
+      }
     }
   })
 
@@ -58,9 +71,12 @@ export function FullscreenApp() {
     })
   }, [])
 
-  const handleSpeakingChange = useCallback((isSpeaking: boolean) => {
-    setAnimationState(isSpeaking ? 'speaking' : 'idle')
-  }, [])
+  // ChatContainer has its own TTS, sync animation state
+  const handleSpeakingChange = useCallback((speaking: boolean) => {
+    if (!isSpeaking) { // Don't override if main TTS is speaking
+      setAnimationState(speaking ? 'speaking' : 'idle')
+    }
+  }, [isSpeaking])
 
   const toggleMic = useCallback(() => {
     if (isListening) {
