@@ -7,8 +7,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { CubeScene } from './cube'
-import { ChatContainer } from './chat'
-import { LoginForm, AuthStatus } from './auth'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
@@ -107,13 +105,6 @@ export function FullscreenApp() {
       localStorage.setItem('theme', newValue ? 'dark' : 'light')
       return newValue
     })
-  }, [])
-
-  // ChatContainer has its own TTS, sync animation state
-  const handleSpeakingChange = useCallback((speaking: boolean) => {
-    if (appStateRef.current === 'idle') {
-      setAnimationState(speaking ? 'speaking' : 'idle')
-    }
   }, [])
 
   // Voice button click handler - state machine logic (matching legacy)
@@ -276,16 +267,17 @@ export function FullscreenApp() {
         <p>All rights reserved.</p>
       </footer>
 
-      {/* Menu Overlay */}
+      {/* Menu Overlay - Simplified */}
       {menuOpen && (
         <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm" onClick={() => setMenuOpen(false)}>
           <div
-            className={`absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] p-6 overflow-y-auto ${
+            className={`absolute right-0 top-0 bottom-0 w-72 max-w-[85vw] p-6 ${
               isDark ? 'bg-zinc-900' : 'bg-white'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-8">
               <h2 className="text-lg font-semibold">Menu</h2>
               <button onClick={() => setMenuOpen(false)} className="opacity-60 hover:opacity-100">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -294,38 +286,83 @@ export function FullscreenApp() {
               </button>
             </div>
 
-            {/* Auth Section */}
+            {/* Navigation */}
+            <nav className="space-y-2 mb-8">
+              <div
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg ${
+                  isDark ? 'bg-white/10 text-white' : 'bg-black/5 text-black'
+                }`}
+              >
+                <span>🎤</span>
+                <span className="font-medium">Voice Mode</span>
+                <span className="ml-auto text-xs opacity-50">current</span>
+              </div>
+
+              <a
+                href="/chat"
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  isDark ? 'hover:bg-white/10 text-white/70' : 'hover:bg-black/5 text-black/70'
+                }`}
+              >
+                <span>💬</span>
+                <span>Chat Mode</span>
+              </a>
+            </nav>
+
+            {/* Settings */}
             <div className={`border-t pt-6 ${isDark ? 'border-white/10' : 'border-black/10'}`}>
-              <h3 className="text-sm opacity-60 mb-4">Account</h3>
+              <h3 className="text-xs uppercase tracking-wider opacity-50 mb-4">Settings</h3>
+
+              <button
+                onClick={toggleTheme}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                  isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <span>{isDark ? '🌙' : '☀️'}</span>
+                  <span>Theme</span>
+                </span>
+                <span className="text-sm opacity-60">{isDark ? 'Dark' : 'Light'}</span>
+              </button>
+            </div>
+
+            {/* Account - Minimal */}
+            <div className={`border-t pt-6 mt-6 ${isDark ? 'border-white/10' : 'border-black/10'}`}>
+              <h3 className="text-xs uppercase tracking-wider opacity-50 mb-4">Account</h3>
+
               {isAuthenticated ? (
                 <div className="space-y-3">
-                  <p className="text-sm">{user?.email}</p>
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <span>👤</span>
+                    <span className="text-sm truncate">{user?.email}</span>
+                  </div>
                   <button
                     onClick={() => signOut()}
-                    className="w-full px-4 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                    className={`w-full text-left px-4 py-3 rounded-lg text-red-400 transition-colors ${
+                      isDark ? 'hover:bg-red-500/10' : 'hover:bg-red-50'
+                    }`}
                   >
                     Sign Out
                   </button>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <AuthStatus />
-                  <LoginForm />
-                </div>
+                <a
+                  href="/auth/signin"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setMenuOpen(false)
+                    // TODO: Open auth modal or navigate
+                  }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'
+                  }`}
+                >
+                  <span>🔑</span>
+                  <span>Sign In</span>
+                  <span className="ml-auto text-xs opacity-50">Save history</span>
+                </a>
               )}
-            </div>
-
-            {/* Chat Section */}
-            <div className={`border-t pt-6 mt-6 ${isDark ? 'border-white/10' : 'border-black/10'}`}>
-              <h3 className="text-sm opacity-60 mb-4">Chat History</h3>
-              <div className="h-[300px]">
-                <ChatContainer
-                  sessionId={session?.id ?? null}
-                  currentColor={colorName}
-                  onColorChange={setColorName}
-                  onSpeakingChange={handleSpeakingChange}
-                />
-              </div>
             </div>
           </div>
         </div>
