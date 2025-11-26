@@ -12,6 +12,7 @@ import type { ConversationEntry, AIResponse } from '@/lib/ai'
 
 interface UseChatOptions {
   sessionId: string | null
+  isGuest?: boolean
   onColorChange?: (color: ColorName) => void
 }
 
@@ -25,7 +26,7 @@ interface ChatState {
 }
 
 export function useChat(options: UseChatOptions) {
-  const { sessionId, onColorChange } = options
+  const { sessionId, isGuest = false, onColorChange } = options
   const supabase = createClient()
   const lastSessionIdRef = useRef<string | null>(null)
 
@@ -161,7 +162,9 @@ export function useChat(options: UseChatOptions) {
         body: JSON.stringify({
           message,
           conversationHistory: state.conversationHistory,
-          currentColor
+          currentColor,
+          isGuest,
+          messageCount: state.conversationHistory.length + 1
         })
       })
 

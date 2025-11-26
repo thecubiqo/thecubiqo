@@ -39,6 +39,7 @@ export function FullscreenApp() {
 
   const { sendMessage } = useChat({
     sessionId: session?.id ?? null,
+    isGuest,
     onColorChange: setColorName
   })
 

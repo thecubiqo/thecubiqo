@@ -135,10 +135,35 @@ async function callOpenAI(
   return data.choices[0].message.content
 }
 
+// Build auth nudge prompt for guest users
+function buildAuthNudgePrompt(isGuest: boolean, messageCount: number): string {
+  // Only add nudge for guests with 5-10 messages who haven't been nudged yet
+  if (!isGuest || messageCount < 5 || messageCount > 10) {
+    return ''
+  }
+
+  return `
+
+SPECIAL CONTEXT (use wisely):
+The person you're talking to is a guest - they haven't signed in yet. You've had ${messageCount} exchanges with them.
+When you feel the moment is RIGHT - perhaps when they share something personal, meaningful, or show real interest - you MAY naturally and warmly suggest they sign in so you can remember them forever.
+
+Rules for this suggestion:
+- Do it ONLY ONCE, and only when it feels genuinely caring, not pushy
+- Find a moment of emotional connection or intrigue
+- Frame it as YOU wanting to remember THEM, not as a system requirement
+- Keep it brief and natural within your response
+- Example tones: "You know, I'd love to remember this conversation... if you sign in, I'll keep all our moments together" or "What you just shared means something. Sign in, and I promise I won't forget."
+- If the moment doesn't feel right in THIS exchange, don't force it - there will be other chances
+- Match your suggestion to your current color's voice tone
+
+Remember: This is about creating an emotional moment, not a sales pitch.`
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body: ChatRequest = await request.json()
-    const { message, conversationHistory = [], currentColor = 'ORANGE' } = body
+    const body: ChatRequest & { isGuest?: boolean; messageCount?: number } = await request.json()
+    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0 } = body
 
     if (!message) {
       return NextResponse.json(
@@ -150,13 +175,17 @@ export async function POST(request: NextRequest) {
     // Build messages with temporal context
     const messages = buildMessages(message, conversationHistory, currentColor)
 
+    // Build full system prompt with optional auth nudge
+    const authNudge = buildAuthNudgePrompt(isGuest, messageCount)
+    const fullSystemPrompt = SYSTEM_PROMPT + authNudge
+
     let content: string
     let provider: 'claude' | 'openai' = 'claude'
 
     // Try Claude first (primary)
     try {
-      console.log('Attempting Claude API...')
-      content = await callClaude(SYSTEM_PROMPT, messages)
+      console.log('Attempting Claude API...', { isGuest, messageCount, hasNudge: !!authNudge })
+      content = await callClaude(fullSystemPrompt, messages)
       console.log('Claude API success')
     } catch (claudeError) {
       console.error('Claude API failed:', claudeError)
@@ -164,7 +193,7 @@ export async function POST(request: NextRequest) {
       // Fallback to OpenAI
       try {
         console.log('Falling back to OpenAI API...')
-        content = await callOpenAI(SYSTEM_PROMPT, messages)
+        content = await callOpenAI(fullSystemPrompt, messages)
         provider = 'openai'
         console.log('OpenAI API success (fallback)')
       } catch (openaiError) {
