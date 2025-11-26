@@ -2,9 +2,10 @@
 
 /**
  * FullscreenApp - Exact replica of legacy cubiqo.ai design
+ * With proper state machine: idle → listening → thinking → speaking → idle
  */
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { CubeScene } from './cube'
 import { ChatContainer } from './chat'
 import { LoginForm, AuthStatus } from './auth'
@@ -16,6 +17,9 @@ import { useChat } from '@/hooks/useChat'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './cube/Cube'
 
+// App states matching legacy
+type AppState = 'idle' | 'listening' | 'thinking' | 'speaking'
+
 export function FullscreenApp() {
   const { session, isGuest } = useSession()
   const { user, isAuthenticated, signOut } = useAuth()
@@ -24,33 +28,67 @@ export function FullscreenApp() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [isDark, setIsDark] = useState(true)
 
-  const { sendMessage, isLoading } = useChat({
+  // State machine (matching legacy)
+  const [appState, setAppState] = useState<AppState>('idle')
+  const appStateRef = useRef<AppState>('idle')
+
+  // Keep ref in sync for callbacks
+  useEffect(() => {
+    appStateRef.current = appState
+  }, [appState])
+
+  const { sendMessage } = useChat({
     sessionId: session?.id ?? null,
     onColorChange: setColorName
   })
 
   // TTS for AI responses
-  const { speak, isSpeaking } = useSpeechSynthesis({
-    rate: 0.95,
-    pitch: 1,
-    onStart: () => setAnimationState('speaking'),
-    onEnd: () => setAnimationState('idle')
+  const { speak, stop: stopSpeaking, isSpeaking } = useSpeechSynthesis({
+    rate: 0.92,
+    pitch: 1.05,
+    onStart: () => {
+      setAppState('speaking')
+      setAnimationState('speaking')
+    },
+    onEnd: () => {
+      setAppState('idle')
+      setAnimationState('idle')
+    }
   })
 
   const {
     startListening,
     stopListening,
-    isListening,
     isSupported: voiceSupported,
     transcript
   } = useSpeechRecognition({
     lang: 'en-US',
     onResult: async (text) => {
+      // Transition: listening → thinking
+      setAppState('thinking')
       setAnimationState('thinking')
-      const response = await sendMessage(text, colorName)
-      if (response?.response) {
-        speak(response.response)
-      } else {
+
+      try {
+        const response = await sendMessage(text, colorName)
+
+        if (response?.response) {
+          // Transition: thinking → speaking (handled by TTS onStart)
+          speak(response.response)
+        } else {
+          // No response, back to idle
+          setAppState('idle')
+          setAnimationState('idle')
+        }
+      } catch (error) {
+        console.error('AI Error:', error)
+        setAppState('idle')
+        setAnimationState('idle')
+      }
+    },
+    onEnd: () => {
+      // If still in listening state when recognition ends (no result)
+      if (appStateRef.current === 'listening') {
+        setAppState('idle')
         setAnimationState('idle')
       }
     }
@@ -73,20 +111,41 @@ export function FullscreenApp() {
 
   // ChatContainer has its own TTS, sync animation state
   const handleSpeakingChange = useCallback((speaking: boolean) => {
-    if (!isSpeaking) { // Don't override if main TTS is speaking
+    if (appStateRef.current === 'idle') {
       setAnimationState(speaking ? 'speaking' : 'idle')
     }
-  }, [isSpeaking])
+  }, [])
 
-  const toggleMic = useCallback(() => {
-    if (isListening) {
-      stopListening()
-      setAnimationState('idle')
-    } else {
-      startListening()
-      setAnimationState('listening')
+  // Voice button click handler - state machine logic (matching legacy)
+  const handleVoiceClick = useCallback(() => {
+    switch (appStateRef.current) {
+      case 'idle':
+        // Start listening
+        setAppState('listening')
+        setAnimationState('listening')
+        startListening()
+        break
+
+      case 'listening':
+        // Stop listening, return to idle
+        setAppState('idle')
+        setAnimationState('idle')
+        stopListening()
+        break
+
+      case 'thinking':
+        // Cannot interrupt AI thinking
+        console.log('Cannot interrupt while AI is thinking')
+        break
+
+      case 'speaking':
+        // Stop speaking, return to idle
+        setAppState('idle')
+        setAnimationState('idle')
+        stopSpeaking()
+        break
     }
-  }, [isListening, startListening, stopListening])
+  }, [startListening, stopListening, stopSpeaking])
 
   const bgColor = isDark ? '#050505' : '#ffffff'
   const textColor = isDark ? '#ffffff' : '#111111'
@@ -156,52 +215,53 @@ export function FullscreenApp() {
         </div>
       </header>
 
-      {/* Voice Button */}
+      {/* Voice Button - State-based visual feedback */}
       <div className="fixed bottom-[90px] left-1/2 -translate-x-1/2 z-[60]">
         <button
-          onClick={toggleMic}
-          disabled={isLoading || !voiceSupported}
+          onClick={handleVoiceClick}
+          disabled={!voiceSupported}
           className={`
             w-[56px] h-[56px] sm:w-[72px] sm:h-[72px]
             rounded-full flex items-center justify-center
             transition-all duration-300 cursor-pointer
-            ${isListening
-              ? 'scale-105 shadow-[0_0_0_8px_rgba(59,130,246,0.2)]'
+            text-2xl sm:text-3xl
+            ${appState === 'listening'
+              ? 'scale-110 shadow-[0_0_0_8px_rgba(59,130,246,0.3)] animate-pulse'
+              : appState === 'thinking'
+              ? 'scale-105'
+              : appState === 'speaking'
+              ? 'scale-105 shadow-[0_0_0_8px_rgba(34,197,94,0.2)]'
               : 'hover:scale-105'
             }
             ${isDark
-              ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-2 border-blue-500/40 text-white/95 shadow-[0_8px_32px_rgba(59,130,246,0.3)]'
-              : 'bg-gradient-to-br from-blue-500/15 to-purple-500/15 border-2 border-blue-500/50 text-blue-800 shadow-[0_8px_32px_rgba(59,130,246,0.25)]'
+              ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-2 border-blue-500/40 shadow-[0_8px_32px_rgba(59,130,246,0.3)]'
+              : 'bg-gradient-to-br from-blue-500/15 to-purple-500/15 border-2 border-blue-500/50 shadow-[0_8px_32px_rgba(59,130,246,0.25)]'
             }
             disabled:opacity-50 disabled:cursor-not-allowed
           `}
-          style={{
-            boxShadow: isListening
-              ? '0 8px 32px rgba(59, 130, 246, 0.4), 0 0 0 8px rgba(59, 130, 246, 0.1)'
-              : undefined
-          }}
         >
-          {isLoading ? (
-            <svg className="w-6 h-6 sm:w-7 sm:h-7 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-          ) : (
+          {appState === 'idle' && (
             <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" />
             </svg>
           )}
+          {appState === 'listening' && '🎙️'}
+          {appState === 'thinking' && '💭'}
+          {appState === 'speaking' && '🗣️'}
         </button>
       </div>
 
-      {/* Talk to Cubiqo text */}
+      {/* Status text - state-based */}
       <div
         className={`fixed bottom-[55px] sm:bottom-[55px] left-1/2 -translate-x-1/2 z-50 text-[13px] sm:text-[15px] font-medium tracking-wide pointer-events-none ${
           isDark ? 'text-white' : 'text-black'
         }`}
         style={{ textShadow: isDark ? '0 2px 8px rgba(0,0,0,0.8)' : '0 2px 8px rgba(255,255,255,0.8)' }}
       >
-        {isListening ? (transcript || 'Listening...') : 'Talk to Cubiqo™'}
+        {appState === 'idle' && 'Talk to Cubiqo™'}
+        {appState === 'listening' && (transcript || 'Listening...')}
+        {appState === 'thinking' && 'Thinking...'}
+        {appState === 'speaking' && 'Speaking...'}
       </div>
 
       {/* Footer */}
