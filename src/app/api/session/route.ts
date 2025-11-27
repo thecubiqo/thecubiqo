@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
           { onConflict: 'id', ignoreDuplicates: true }
         )
 
-      // 2. Convert session
+      // 2. Try to convert existing guest session
       const { data: converted, error: convertError } = await supabaseAdmin
         .from('sessions')
         .update({
@@ -171,21 +171,60 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (convertError || !converted) {
-        console.log('[API/session] Convert failed, creating new session')
-        // Fallback: create new session
-        const { data: newSession } = await supabaseAdmin
+        console.log('[API/session] Convert failed, migrating to new session')
+
+        // Check if user already has a session
+        const { data: existingSession } = await supabaseAdmin
           .from('sessions')
-          .insert({
-            user_id: userId,
-            is_guest: false,
-            geo_location: 'US',
-            device_info: deviceInfo || {},
-            expires_at: null
-          })
-          .select()
+          .select('id')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        let newSessionId: string
+
+        if (existingSession) {
+          newSessionId = existingSession.id
+          console.log('[API/session] Using existing user session:', newSessionId)
+        } else {
+          // Create new session for user
+          const { data: newSession } = await supabaseAdmin
+            .from('sessions')
+            .insert({
+              user_id: userId,
+              is_guest: false,
+              geo_location: 'US',
+              device_info: deviceInfo || {},
+              expires_at: null
+            })
+            .select()
+            .single()
+
+          newSessionId = newSession!.id
+          console.log('[API/session] Created new session:', newSessionId)
+        }
+
+        // Migrate conversations from old session to new session
+        const { data: migratedConvs, error: migrateError } = await supabaseAdmin
+          .from('conversations')
+          .update({ session_id: newSessionId })
+          .eq('session_id', sessionId)
+          .select('id')
+
+        if (migrateError) {
+          console.error('[API/session] Conversation migration error:', migrateError)
+        } else {
+          console.log('[API/session] Migrated conversations:', migratedConvs?.length || 0)
+        }
+
+        const { data: finalSession } = await supabaseAdmin
+          .from('sessions')
+          .select('*')
+          .eq('id', newSessionId)
           .single()
 
-        return NextResponse.json({ session: newSession })
+        return NextResponse.json({ session: finalSession })
       }
 
       return NextResponse.json({ session: converted })

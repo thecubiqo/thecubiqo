@@ -50,17 +50,28 @@ export function useAuth() {
     // Set up auth state listener - this handles all auth events including initial load
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('[useAuth] Auth event:', event, 'user:', session?.user?.id ?? 'none')
+
         // Handle any event that provides session info
         if (session?.user) {
-          // Fetch profile (with fallback if not found yet)
-          const profile = await fetchProfile(session.user.id)
-          setState({
+          // IMPORTANT: Set isAuthenticated immediately, don't wait for profile
+          setState(prev => ({
+            ...prev,
             user: session.user,
-            profile,
             isLoading: false,
             isAuthenticated: true,
             isGuest: false,
-          })
+          }))
+
+          // Fetch profile in background (may fail due to RLS, that's ok)
+          try {
+            const profile = await fetchProfile(session.user.id)
+            if (profile) {
+              setState(prev => ({ ...prev, profile }))
+            }
+          } catch (e) {
+            console.log('[useAuth] Profile fetch failed (ok for new users):', e)
+          }
         } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
           // No session - either signed out or initial load with no auth
           setState({
