@@ -2,8 +2,13 @@
 
 /**
  * useSession Hook
- * Manages CubiQo sessions (guest and authenticated)
- * Automatically converts guest sessions when user authenticates
+ * Manages CubiQo sessions with AUTH-FIRST approach
+ *
+ * Logic:
+ * 1. Check auth status FIRST
+ * 2. If authenticated: find/create session by user_id
+ * 3. If not authenticated: use localStorage for guest sessions
+ * 4. Auto-convert guest sessions on sign in
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react'
@@ -69,45 +74,128 @@ export function useSession() {
   })
 
   const supabase = createClient()
+  const initCalledRef = useRef(false)
 
-  // Create new guest session
-  const createGuestSession = useCallback(async (): Promise<Session | null> => {
-    console.log('[useSession] createGuestSession called')
-    const deviceInfo = getDeviceInfo()
-    console.log('[useSession] Device info:', deviceInfo)
+  // Ensure profile exists for authenticated user
+  const ensureProfile = useCallback(async (userId: string, email?: string): Promise<boolean> => {
+    console.log('[useSession] Ensuring profile exists for user:', userId)
 
-    try {
-      console.log('[useSession] Calling Supabase insert...')
-      const { data, error } = await supabase
-        .from('sessions')
-        .insert({
-          is_guest: true,
-          geo_location: 'US', // Will be set by middleware in production
-          device_info: deviceInfo,
-        })
-        .select()
-        .single()
+    // Check if profile exists
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle()
 
-      console.log('[useSession] Supabase response:', { data: data?.id, error })
-
-      if (error) {
-        console.error('[useSession] Error creating guest session:', error)
-        setState(prev => ({ ...prev, error: error.message }))
-        return null
-      }
-
-      // Store session ID
-      storeSessionId(data.id)
-      console.log('[useSession] Session stored:', data.id)
-
-      return data
-    } catch (err) {
-      console.error('[useSession] Unexpected error:', err)
-      return null
+    if (existingProfile) {
+      console.log('[useSession] Profile already exists')
+      return true
     }
+
+    // Create profile
+    console.log('[useSession] Creating profile...')
+    const { error } = await supabase
+      .from('profiles')
+      .insert({
+        id: userId,
+        email: email,
+      })
+
+    if (error) {
+      console.error('[useSession] Error creating profile:', error)
+      return false
+    }
+
+    console.log('[useSession] Profile created successfully')
+    return true
   }, [supabase])
 
-  // Fetch session by ID
+  // Create session for authenticated user
+  const createAuthenticatedSession = useCallback(async (userId: string, email?: string): Promise<Session | null> => {
+    console.log('[useSession] Creating authenticated session for user:', userId)
+
+    // Ensure profile exists first (FK constraint)
+    const profileOk = await ensureProfile(userId, email)
+    if (!profileOk) {
+      console.error('[useSession] Cannot create session without profile')
+      return null
+    }
+
+    const deviceInfo = getDeviceInfo()
+
+    const { data, error } = await supabase
+      .from('sessions')
+      .insert({
+        user_id: userId,
+        is_guest: false,
+        geo_location: 'US',
+        device_info: deviceInfo,
+        expires_at: null, // Authenticated sessions don't expire
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('[useSession] Error creating authenticated session:', error)
+      return null
+    }
+
+    storeSessionId(data.id)
+    console.log('[useSession] Created authenticated session:', data.id)
+    return data
+  }, [supabase, ensureProfile])
+
+  // Create guest session
+  const createGuestSession = useCallback(async (): Promise<Session | null> => {
+    console.log('[useSession] Creating guest session')
+    const deviceInfo = getDeviceInfo()
+
+    const { data, error } = await supabase
+      .from('sessions')
+      .insert({
+        is_guest: true,
+        geo_location: 'US',
+        device_info: deviceInfo,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('[useSession] Error creating guest session:', error)
+      return null
+    }
+
+    storeSessionId(data.id)
+    console.log('[useSession] Created guest session:', data.id)
+    return data
+  }, [supabase])
+
+  // Find existing session for authenticated user
+  const findUserSession = useCallback(async (userId: string): Promise<Session | null> => {
+    console.log('[useSession] Looking for existing session for user:', userId)
+
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) {
+      console.error('[useSession] Error finding user session:', error)
+      return null
+    }
+
+    if (data) {
+      console.log('[useSession] Found existing session:', data.id)
+      storeSessionId(data.id)
+    }
+
+    return data
+  }, [supabase])
+
+  // Fetch session by ID (for guests)
   const fetchSession = useCallback(async (sessionId: string): Promise<Session | null> => {
     const { data, error } = await supabase
       .from('sessions')
@@ -116,7 +204,6 @@ export function useSession() {
       .single()
 
     if (error) {
-      // Session not found or expired
       return null
     }
 
@@ -128,22 +215,91 @@ export function useSession() {
     return data
   }, [supabase])
 
-  // Track if we've already converted session for current user
-  const convertedForUserRef = useRef<string | null>(null)
+  // Convert guest session to authenticated
+  const convertSession = useCallback(async (sessionId: string, userId: string): Promise<Session | null> => {
+    console.log('[useSession] Converting session to authenticated:', sessionId)
 
-  // Initialize session
+    const { data, error } = await supabase
+      .from('sessions')
+      .update({
+        user_id: userId,
+        is_guest: false,
+        expires_at: null,
+      })
+      .eq('id', sessionId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('[useSession] Error converting session:', error)
+      return null
+    }
+
+    console.log('[useSession] Session converted successfully')
+    return data
+  }, [supabase])
+
+  // AUTH-FIRST initialization
   useEffect(() => {
+    if (initCalledRef.current) return
+    initCalledRef.current = true
+
     const initSession = async () => {
-      console.log('[useSession] Starting init...')
+      console.log('[useSession] Starting AUTH-FIRST initialization...')
+
       try {
-        // Check for stored session
+        // STEP 1: Check auth status FIRST
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+        if (authError) {
+          console.log('[useSession] Auth check error (probably not authenticated):', authError.message)
+        }
+
+        // STEP 2A: User is AUTHENTICATED
+        if (user) {
+          console.log('[useSession] User is authenticated:', user.id, user.email)
+
+          // Ensure profile exists first
+          await ensureProfile(user.id, user.email ?? undefined)
+
+          // Try to find existing session for this user
+          let session = await findUserSession(user.id)
+
+          // Check if we have a guest session in localStorage that needs conversion
+          if (!session) {
+            const storedSessionId = getStoredSessionId()
+            if (storedSessionId) {
+              const guestSession = await fetchSession(storedSessionId)
+              if (guestSession && guestSession.is_guest) {
+                // Convert the guest session
+                session = await convertSession(storedSessionId, user.id)
+              }
+            }
+          }
+
+          // If still no session, create new authenticated session
+          if (!session) {
+            session = await createAuthenticatedSession(user.id, user.email ?? undefined)
+          }
+
+          if (session) {
+            setState({
+              session,
+              isLoading: false,
+              isGuest: false,
+              error: null,
+            })
+            return
+          }
+        }
+
+        // STEP 2B: User is NOT authenticated - handle as guest
+        console.log('[useSession] User is not authenticated, handling as guest')
+
         const storedSessionId = getStoredSessionId()
-        console.log('[useSession] Stored session ID:', storedSessionId)
 
         if (storedSessionId) {
-          console.log('[useSession] Fetching existing session...')
           const existingSession = await fetchSession(storedSessionId)
-          console.log('[useSession] Fetched session:', existingSession?.id)
 
           if (existingSession) {
             setState({
@@ -155,15 +311,12 @@ export function useSession() {
             return
           }
 
-          // Stored session invalid, clear it
-          console.log('[useSession] Session invalid, clearing...')
+          // Invalid stored session, clear it
           clearStoredSessionId()
         }
 
         // Create new guest session
-        console.log('[useSession] Creating new guest session...')
         const newSession = await createGuestSession()
-        console.log('[useSession] Created session:', newSession?.id)
 
         if (newSession) {
           setState({
@@ -173,13 +326,13 @@ export function useSession() {
             error: null,
           })
         } else {
-          console.error('[useSession] Failed to create session')
           setState(prev => ({
             ...prev,
             isLoading: false,
             error: 'Failed to create session',
           }))
         }
+
       } catch (error) {
         console.error('[useSession] Init error:', error)
         setState(prev => ({
@@ -191,43 +344,55 @@ export function useSession() {
     }
 
     initSession()
-  }, [fetchSession, createGuestSession])
+  }, [supabase, findUserSession, fetchSession, createAuthenticatedSession, createGuestSession, convertSession, ensureProfile])
 
-  // Listen for auth changes and auto-convert guest sessions
+  // Listen for auth changes AFTER initialization
   useEffect(() => {
-    // Subscribe to auth state changes (only once on mount)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, authSession) => {
+        console.log('[useSession] Auth state change:', event)
+
         if (event === 'SIGNED_IN' && authSession?.user) {
-          // Delay slightly to ensure session state is ready
-          setTimeout(async () => {
-            const sessionId = getStoredSessionId()
-            if (!sessionId) return
-            if (convertedForUserRef.current === authSession.user.id) return
+          const { id: userId, email } = authSession.user
 
-            convertedForUserRef.current = authSession.user.id
+          // Ensure profile exists
+          await ensureProfile(userId, email ?? undefined)
 
-            const { data, error } = await supabase
-              .from('sessions')
-              .update({
-                user_id: authSession.user.id,
-                is_guest: false,
-                expires_at: null,
-              })
-              .eq('id', sessionId)
-              .select()
-              .single()
-
-            if (!error && data) {
+          // User just signed in - convert guest session if we have one
+          if (state.session && state.isGuest) {
+            const converted = await convertSession(state.session.id, userId)
+            if (converted) {
               setState(prev => ({
                 ...prev,
-                session: data,
+                session: converted,
                 isGuest: false,
               }))
             }
-          }, 100)
+          } else if (!state.session) {
+            // No session yet, find or create
+            let session = await findUserSession(userId)
+            if (!session) {
+              session = await createAuthenticatedSession(userId, email ?? undefined)
+            }
+            if (session) {
+              setState({
+                session,
+                isLoading: false,
+                isGuest: false,
+                error: null,
+              })
+            }
+          }
         } else if (event === 'SIGNED_OUT') {
-          convertedForUserRef.current = null
+          // User signed out - create new guest session
+          clearStoredSessionId()
+          const newSession = await createGuestSession()
+          setState({
+            session: newSession,
+            isLoading: false,
+            isGuest: true,
+            error: null,
+          })
         }
       }
     )
@@ -235,70 +400,25 @@ export function useSession() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [supabase]) // Only depend on supabase client
+  }, [supabase, state.session, state.isGuest, convertSession, findUserSession, createAuthenticatedSession, createGuestSession, ensureProfile])
 
-  // Check auth state when session becomes available
-  useEffect(() => {
-    if (!state.session || !state.isGuest) return
-
-    const checkAndConvert = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      if (convertedForUserRef.current === user.id) return
-
-      convertedForUserRef.current = user.id
-
-      const { data, error } = await supabase
-        .from('sessions')
-        .update({
-          user_id: user.id,
-          is_guest: false,
-          expires_at: null,
-        })
-        .eq('id', state.session!.id)
-        .select()
-        .single()
-
-      if (!error && data) {
-        setState(prev => ({
-          ...prev,
-          session: data,
-          isGuest: false,
-        }))
-      }
-    }
-
-    checkAndConvert()
-  }, [supabase, state.session?.id, state.isGuest])
-
-  // Convert guest session to authenticated
+  // Convert guest session to authenticated (manual call)
   const convertToAuthenticated = useCallback(async (userId: string): Promise<boolean> => {
     if (!state.session) return false
 
-    const { data, error } = await supabase
-      .from('sessions')
-      .update({
-        user_id: userId,
-        is_guest: false,
-        expires_at: null,
-      })
-      .eq('id', state.session.id)
-      .select()
-      .single()
+    const converted = await convertSession(state.session.id, userId)
 
-    if (error) {
-      console.error('Error converting session:', error)
-      return false
+    if (converted) {
+      setState(prev => ({
+        ...prev,
+        session: converted,
+        isGuest: false,
+      }))
+      return true
     }
 
-    setState(prev => ({
-      ...prev,
-      session: data,
-      isGuest: false,
-    }))
-
-    return true
-  }, [supabase, state.session])
+    return false
+  }, [state.session, convertSession])
 
   // Refresh session data
   const refreshSession = useCallback(async () => {
