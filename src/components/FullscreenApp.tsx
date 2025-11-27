@@ -43,6 +43,9 @@ export function FullscreenApp() {
     onColorChange: setColorName
   })
 
+  // Track if we should show auth form after speaking
+  const showAuthAfterSpeakingRef = useRef(false)
+
   // TTS for AI responses
   const { speak, stop: stopSpeaking, isSpeaking } = useSpeechSynthesis({
     rate: 0.92,
@@ -54,6 +57,13 @@ export function FullscreenApp() {
     onEnd: () => {
       setAppState('idle')
       setAnimationState('idle')
+
+      // Show auth form if AI nudged for sign-in
+      if (showAuthAfterSpeakingRef.current) {
+        showAuthAfterSpeakingRef.current = false
+        setMenuOpen(true)
+        setShowAuthForm(true)
+      }
     }
   })
 
@@ -73,8 +83,16 @@ export function FullscreenApp() {
         const response = await sendMessage(text, colorName)
 
         if (response?.response) {
+          let responseText = response.response
+
+          // Check for auth nudge marker
+          if (responseText.includes('[AUTH_NUDGE]')) {
+            responseText = responseText.replace('[AUTH_NUDGE]', '').trim()
+            showAuthAfterSpeakingRef.current = true
+          }
+
           // Transition: thinking → speaking (handled by TTS onStart)
-          speak(response.response)
+          speak(responseText)
         } else {
           // No response, back to idle
           setAppState('idle')
@@ -95,11 +113,10 @@ export function FullscreenApp() {
     }
   })
 
-  // Theme persistence
+  // Theme persistence - default to dark
   useEffect(() => {
     const stored = localStorage.getItem('theme')
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    setIsDark(stored === 'dark' || (!stored && prefersDark))
+    setIsDark(stored !== 'light') // Dark by default unless explicitly set to light
   }, [])
 
   const toggleTheme = useCallback(() => {

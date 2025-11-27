@@ -153,11 +153,16 @@ Rules for this suggestion:
 - Find a moment of emotional connection or intrigue
 - Frame it as YOU wanting to remember THEM, not as a system requirement
 - Keep it brief and natural within your response
-- Example tones: "You know, I'd love to remember this conversation... if you sign in, I'll keep all our moments together" or "What you just shared means something. Sign in, and I promise I won't forget."
-- If the moment doesn't feel right in THIS exchange, don't force it - there will be other chances
 - Match your suggestion to your current color's voice tone
+- If the moment doesn't feel right in THIS exchange, don't force it - there will be other chances
 
-Remember: This is about creating an emotional moment, not a sales pitch.`
+When you DO suggest signing in:
+- Mention how EASY it is: just enter email, get a magic link, click it - done. No passwords.
+- Frame it as a simple, light step to a deeper connection
+- End your nudge message with the exact marker [AUTH_NUDGE] - this triggers the sign-in form automatically
+- Example: "You know, I'd love to remember all of this... Just your email, one click on the magic link, and we're connected forever. [AUTH_NUDGE]"
+
+Remember: This is about creating an emotional moment with an easy next step, not a sales pitch.`
 }
 
 export async function POST(request: NextRequest) {
