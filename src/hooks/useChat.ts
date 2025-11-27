@@ -41,8 +41,13 @@ export function useChat(options: UseChatOptions) {
 
   // Load or create conversation when sessionId changes
   useEffect(() => {
+    console.log('[useChat] Effect triggered, sessionId:', sessionId, 'lastRef:', lastSessionIdRef.current)
+
     // Skip if no sessionId or already initialized for this session
-    if (!sessionId || lastSessionIdRef.current === sessionId) return
+    if (!sessionId || lastSessionIdRef.current === sessionId) {
+      console.log('[useChat] Skipping init:', !sessionId ? 'no sessionId' : 'already initialized')
+      return
+    }
     lastSessionIdRef.current = sessionId
 
     const initConversation = async () => {
