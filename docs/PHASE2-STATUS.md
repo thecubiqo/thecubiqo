@@ -26,7 +26,25 @@
 
 ---
 
-## Today's Completed (26 Nov)
+## Today's Completed (27 Nov)
+
+### Intelligent Auth Nudge ✅
+AI naturally suggests sign-in to guest users:
+- Range: messages 5-10
+- Messages 5-9: AI has discretion (finds emotional moment)
+- Message 10: Mandatory (must suggest)
+- Mentions Magic Link ease: "just email, one click, done"
+- `[AUTH_NUDGE]` marker auto-opens auth form after speech
+- Dark theme by default
+
+### Menu Simplification ✅
+- Separate /chat page
+- Minimal menu: Voice Mode, Chat link, Theme, Sign In
+- Auth form shows in menu on click
+
+---
+
+## Completed (26 Nov)
 
 ### UI Redesign ✅
 - Fullscreen cube (transparent canvas, theme-aware)
@@ -111,8 +129,8 @@ Proposed structure:
 ```
 
 ### Next Tasks
-1. **Menu Redesign** - Separate concerns, marketing auth message
-2. **Memory Extraction** - Extract facts, store in `memory` table
+1. **Memory Extraction** - Extract facts, store in `memory` table
+2. **Auth Nudge Range** - Increase from 5-10 to 5-20+ after testing
 3. **Production Deploy** - Merge `phase2` → `main`
 
 ---
