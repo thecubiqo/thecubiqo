@@ -20,8 +20,13 @@ import type { AnimationState } from './cube/Cube'
 type AppState = 'idle' | 'listening' | 'thinking' | 'speaking'
 
 export function FullscreenApp() {
-  const { session, isGuest } = useSession()
+  const { session, isGuest, isLoading: sessionLoading } = useSession()
   const { user, isAuthenticated, signOut } = useAuth()
+
+  // Debug session state
+  useEffect(() => {
+    console.log('[App] Session state:', { sessionId: session?.id, isGuest, sessionLoading })
+  }, [session, isGuest, sessionLoading])
   const [colorName, setColorName] = useState<ColorName>('ORANGE')
   const [animationState, setAnimationState] = useState<AnimationState>('idle')
   const [menuOpen, setMenuOpen] = useState(false)
