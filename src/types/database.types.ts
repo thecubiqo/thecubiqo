@@ -253,6 +253,22 @@ export type Database = {
     }
     Functions: {
       cleanup_expired_data: { Args: never; Returns: undefined }
+      convert_guest_session: {
+        Args: { p_email?: string; p_session_id: string; p_user_id: string }
+        Returns: string
+      }
+      ensure_profile_and_session: {
+        Args: {
+          p_device_info?: Json
+          p_email?: string
+          p_geo_location?: string
+          p_user_id: string
+        }
+        Returns: {
+          is_new_session: boolean
+          session_id: string
+        }[]
+      }
       generate_unique_handle: { Args: never; Returns: string }
     }
     Enums: {
