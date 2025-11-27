@@ -12,8 +12,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { action, userId, email, sessionId, deviceInfo, conversationId } = body
 
-    console.log('[API/session] Action:', action, 'userId:', userId, 'sessionId:', sessionId)
-
     // Get or create conversation for a session
     if (action === 'ensure_conversation') {
       if (!sessionId) {
@@ -30,7 +28,6 @@ export async function POST(req: NextRequest) {
         .maybeSingle()
 
       if (existingConv) {
-        console.log('[API/session] Found existing conversation:', existingConv.id)
         return NextResponse.json({ conversation: existingConv })
       }
 
@@ -46,7 +43,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: convError.message }, { status: 500 })
       }
 
-      console.log('[API/session] Created conversation:', newConv.id)
       return NextResponse.json({ conversation: newConv })
     }
 
@@ -118,7 +114,6 @@ export async function POST(req: NextRequest) {
         .maybeSingle()
 
       if (existingSession) {
-        console.log('[API/session] Found existing session:', existingSession.id)
         return NextResponse.json({ session: existingSession })
       }
 
@@ -140,7 +135,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: sessionError.message }, { status: 500 })
       }
 
-      console.log('[API/session] Created session:', newSession.id)
       return NextResponse.json({ session: newSession })
     }
 
@@ -171,8 +165,6 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (convertError || !converted) {
-        console.log('[API/session] Convert failed, migrating to new session')
-
         // Check if user already has a session
         const { data: existingSession } = await supabaseAdmin
           .from('sessions')
@@ -186,7 +178,6 @@ export async function POST(req: NextRequest) {
 
         if (existingSession) {
           newSessionId = existingSession.id
-          console.log('[API/session] Using existing user session:', newSessionId)
         } else {
           // Create new session for user
           const { data: newSession } = await supabaseAdmin
@@ -202,7 +193,6 @@ export async function POST(req: NextRequest) {
             .single()
 
           newSessionId = newSession!.id
-          console.log('[API/session] Created new session:', newSessionId)
         }
 
         // Migrate conversations from old session to new session
@@ -214,8 +204,6 @@ export async function POST(req: NextRequest) {
 
         if (migrateError) {
           console.error('[API/session] Conversation migration error:', migrateError)
-        } else {
-          console.log('[API/session] Migrated conversations:', migratedConvs?.length || 0)
         }
 
         const { data: finalSession } = await supabaseAdmin

@@ -78,17 +78,6 @@ async function callClaude(
 
   const data = await response.json()
 
-  // Log cache usage
-  const usage = data.usage
-  if (usage) {
-    console.log('Claude token usage:', {
-      input: usage.input_tokens,
-      output: usage.output_tokens,
-      cacheCreation: usage.cache_creation_input_tokens || 0,
-      cacheRead: usage.cache_read_input_tokens || 0
-    })
-  }
-
   return data.content[0].text
 }
 
@@ -126,11 +115,6 @@ async function callOpenAI(
   }
 
   const data = await response.json()
-
-  console.log('OpenAI token usage:', {
-    input: data.usage?.prompt_tokens,
-    output: data.usage?.completion_tokens
-  })
 
   return data.choices[0].message.content
 }
@@ -194,20 +178,13 @@ export async function POST(request: NextRequest) {
 
     // Try Claude first (primary)
     try {
-      console.log('Attempting Claude API...', { isGuest, messageCount, hasNudge: !!authNudge })
       content = await callClaude(fullSystemPrompt, messages)
-      console.log('Claude API success')
     } catch (claudeError) {
-      console.error('Claude API failed:', claudeError)
-
       // Fallback to OpenAI
       try {
-        console.log('Falling back to OpenAI API...')
         content = await callOpenAI(fullSystemPrompt, messages)
         provider = 'openai'
-        console.log('OpenAI API success (fallback)')
-      } catch (openaiError) {
-        console.error('OpenAI API also failed:', openaiError)
+      } catch {
         throw new Error('Both AI providers failed')
       }
     }

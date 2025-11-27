@@ -60,15 +60,11 @@ export function useSession() {
 
   // Step 1: Get initial auth state and listen for changes
   useEffect(() => {
-    console.log('[useSession] Setting up auth listener...')
-
     supabase.auth.getUser().then(({ data: { user } }) => {
-      console.log('[useSession] Initial auth user:', user?.id ?? 'none')
       setAuthUser(user)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[useSession] Auth state change:', event)
       setAuthUser(session?.user ?? null)
     })
 
@@ -77,14 +73,9 @@ export function useSession() {
 
   // Step 2: Once we know auth state, handle session
   useEffect(() => {
-    if (authUser === undefined) {
-      console.log('[useSession] Waiting for auth state...')
-      return
-    }
+    if (authUser === undefined) return
 
     const initSession = async () => {
-      console.log('[useSession] Init session, authUser:', authUser?.id ?? 'guest')
-
       try {
         if (authUser) {
           await handleAuthenticatedUser(authUser)
@@ -106,15 +97,11 @@ export function useSession() {
 
   // Handle authenticated user session via API
   const handleAuthenticatedUser = async (user: User) => {
-    console.log('[useSession] Handling authenticated user via API:', user.id)
-
     const storedSessionId = getStoredSessionId()
     const deviceInfo = getDeviceInfo()
 
     // Try to convert guest session first
     if (storedSessionId) {
-      console.log('[useSession] Trying to convert guest session:', storedSessionId)
-
       const convertRes = await fetch('/api/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -130,7 +117,6 @@ export function useSession() {
       if (convertRes.ok) {
         const { session } = await convertRes.json()
         if (session) {
-          console.log('[useSession] Session ready:', session.id)
           storeSessionId(session.id)
           setState({
             session,
@@ -144,8 +130,6 @@ export function useSession() {
     }
 
     // Ensure authenticated session via API
-    console.log('[useSession] Creating/finding authenticated session...')
-
     const res = await fetch('/api/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -159,13 +143,11 @@ export function useSession() {
 
     if (!res.ok) {
       const error = await res.json()
-      console.error('[useSession] API error:', error)
       setState(prev => ({ ...prev, isLoading: false, error: error.error }))
       return
     }
 
     const { session } = await res.json()
-    console.log('[useSession] Session ready:', session.id)
     storeSessionId(session.id)
     setState({
       session,
@@ -177,8 +159,6 @@ export function useSession() {
 
   // Handle guest user session (direct Supabase - RLS allows anonymous)
   const handleGuestUser = async () => {
-    console.log('[useSession] Handling guest user')
-
     const storedSessionId = getStoredSessionId()
 
     if (storedSessionId) {
@@ -190,7 +170,6 @@ export function useSession() {
 
       if (existingSession) {
         if (!existingSession.expires_at || new Date(existingSession.expires_at) > new Date()) {
-          console.log('[useSession] Using existing guest session:', existingSession.id)
           setState({
             session: existingSession,
             isLoading: false,
@@ -204,7 +183,6 @@ export function useSession() {
       clearStoredSessionId()
     }
 
-    console.log('[useSession] Creating new guest session...')
     const { data: newSession, error: sessionError } = await supabase
       .from('sessions')
       .insert({
@@ -216,12 +194,10 @@ export function useSession() {
       .single()
 
     if (sessionError) {
-      console.error('[useSession] Guest session creation error:', sessionError)
       setState(prev => ({ ...prev, isLoading: false, error: sessionError.message }))
       return
     }
 
-    console.log('[useSession] Created guest session:', newSession.id)
     storeSessionId(newSession.id)
     setState({
       session: newSession,

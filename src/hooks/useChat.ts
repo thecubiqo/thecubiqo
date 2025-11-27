@@ -41,17 +41,10 @@ export function useChat(options: UseChatOptions) {
 
   // Load or create conversation when sessionId changes
   useEffect(() => {
-    console.log('[useChat] Effect triggered, sessionId:', sessionId, 'lastRef:', lastSessionIdRef.current)
-
-    if (!sessionId || lastSessionIdRef.current === sessionId) {
-      console.log('[useChat] Skipping init:', !sessionId ? 'no sessionId' : 'already initialized')
-      return
-    }
+    if (!sessionId || lastSessionIdRef.current === sessionId) return
     lastSessionIdRef.current = sessionId
 
     const initConversation = async () => {
-      console.log('[useChat] Initializing conversation for session:', sessionId)
-
       try {
         let conversationId: string | null = null
         let colorState: string = 'ORANGE'
@@ -66,10 +59,6 @@ export function useChat(options: UseChatOptions) {
             .limit(1)
             .maybeSingle()
 
-          if (findError) {
-            console.error('[useChat] Error finding conversation:', findError)
-          }
-
           if (existingConv) {
             conversationId = existingConv.id
             colorState = existingConv.color_state || 'ORANGE'
@@ -81,7 +70,6 @@ export function useChat(options: UseChatOptions) {
               .single()
 
             if (createError) {
-              console.error('[useChat] Error creating conversation:', createError)
               setState(prev => ({
                 ...prev,
                 isInitialized: true,
@@ -93,7 +81,6 @@ export function useChat(options: UseChatOptions) {
           }
         } else {
           // Authenticated users: use server API
-          console.log('[useChat] Using API for authenticated user')
           const res = await fetch('/api/session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -102,7 +89,6 @@ export function useChat(options: UseChatOptions) {
 
           if (!res.ok) {
             const error = await res.json()
-            console.error('[useChat] API error:', error)
             setState(prev => ({
               ...prev,
               isInitialized: true,
@@ -115,8 +101,6 @@ export function useChat(options: UseChatOptions) {
           conversationId = conversation.id
           colorState = conversation.color_state || 'ORANGE'
         }
-
-        console.log('[useChat] Conversation ID:', conversationId)
 
         if (!conversationId) {
           setState(prev => ({
@@ -178,8 +162,6 @@ export function useChat(options: UseChatOptions) {
           }
         }
 
-        console.log('[useChat] Loaded', history.length, 'message pairs')
-
         const lastColor = history.length > 0
           ? history[history.length - 1].color
           : (colorState as ColorName) || 'ORANGE'
@@ -197,7 +179,6 @@ export function useChat(options: UseChatOptions) {
         }))
 
       } catch (error) {
-        console.error('[useChat] Failed to init conversation:', error)
         setState(prev => ({
           ...prev,
           isInitialized: true,
@@ -214,7 +195,6 @@ export function useChat(options: UseChatOptions) {
     currentColor: ColorName = 'ORANGE'
   ): Promise<AIResponse | null> => {
     if (!state.conversationId) {
-      console.error('[useChat] No conversation ID, state:', state)
       setState(prev => ({ ...prev, error: 'No conversation initialized. Please refresh the page.' }))
       return null
     }

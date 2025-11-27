@@ -23,10 +23,6 @@ export function FullscreenApp() {
   const { session, isGuest, isLoading: sessionLoading } = useSession()
   const { user, isAuthenticated, signOut } = useAuth()
 
-  // Debug session state
-  useEffect(() => {
-    console.log('[App] Session state:', { sessionId: session?.id, isGuest, sessionLoading })
-  }, [session, isGuest, sessionLoading])
   const [colorName, setColorName] = useState<ColorName>('ORANGE')
   const [animationState, setAnimationState] = useState<AnimationState>('idle')
   const [menuOpen, setMenuOpen] = useState(false)
@@ -58,12 +54,10 @@ export function FullscreenApp() {
     rate: 0.92,
     pitch: 1.05,
     onStart: () => {
-      console.log('[TTS] Started speaking')
       setAppState('speaking')
       setAnimationState('speaking')
     },
     onEnd: () => {
-      console.log('[TTS] Finished speaking')
       setAppState('idle')
       setAnimationState('idle')
 
@@ -96,7 +90,6 @@ export function FullscreenApp() {
       try {
         const response = await sendMessage(text, colorName)
 
-        console.log('[Voice] Response received:', response)
         if (response?.response) {
           let responseText = response.response
 
@@ -112,10 +105,8 @@ export function FullscreenApp() {
           }
 
           // Transition: thinking → speaking (handled by TTS onStart)
-          console.log('[Voice] Speaking:', responseText.substring(0, 50) + '...')
           speak(responseText)
         } else {
-          console.log('[Voice] No response, going idle')
           // No response, back to idle
           setAppState('idle')
           setAnimationState('idle')
@@ -152,10 +143,7 @@ export function FullscreenApp() {
   // Voice button click handler - state machine logic (matching legacy)
   const handleVoiceClick = useCallback(() => {
     // Don't allow voice input if chat isn't initialized
-    if (!chatInitialized) {
-      console.log('[Voice] Chat not initialized yet, please wait...')
-      return
-    }
+    if (!chatInitialized) return
 
     switch (appStateRef.current) {
       case 'idle':
@@ -174,7 +162,6 @@ export function FullscreenApp() {
 
       case 'thinking':
         // Cannot interrupt AI thinking
-        console.log('Cannot interrupt while AI is thinking')
         break
 
       case 'speaking':
