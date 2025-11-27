@@ -39,7 +39,7 @@ export function FullscreenApp() {
     appStateRef.current = appState
   }, [appState])
 
-  const { sendMessage } = useChat({
+  const { sendMessage, isInitialized: chatInitialized } = useChat({
     sessionId: session?.id ?? null,
     isGuest,
     onColorChange: setColorName
@@ -146,6 +146,12 @@ export function FullscreenApp() {
 
   // Voice button click handler - state machine logic (matching legacy)
   const handleVoiceClick = useCallback(() => {
+    // Don't allow voice input if chat isn't initialized
+    if (!chatInitialized) {
+      console.log('[Voice] Chat not initialized yet, please wait...')
+      return
+    }
+
     switch (appStateRef.current) {
       case 'idle':
         // Start listening
@@ -173,7 +179,7 @@ export function FullscreenApp() {
         stopSpeaking()
         break
     }
-  }, [startListening, stopListening, stopSpeaking])
+  }, [chatInitialized, startListening, stopListening, stopSpeaking])
 
   const bgColor = isDark ? '#050505' : '#ffffff'
   const textColor = isDark ? '#ffffff' : '#111111'
@@ -274,10 +280,11 @@ export function FullscreenApp() {
         }`}
         style={{ textShadow: isDark ? '0 2px 8px rgba(0,0,0,0.8)' : '0 2px 8px rgba(255,255,255,0.8)' }}
       >
-        {appState === 'idle' && 'Talk to Cubiqo™'}
-        {appState === 'listening' && (transcript || 'Listening...')}
-        {appState === 'thinking' && 'Thinking...'}
-        {appState === 'speaking' && 'Speaking...'}
+        {!chatInitialized && 'Connecting...'}
+        {chatInitialized && appState === 'idle' && 'Talk to Cubiqo™'}
+        {chatInitialized && appState === 'listening' && (transcript || 'Listening...')}
+        {chatInitialized && appState === 'thinking' && 'Thinking...'}
+        {chatInitialized && appState === 'speaking' && 'Speaking...'}
       </div>
 
       {/* Footer */}
