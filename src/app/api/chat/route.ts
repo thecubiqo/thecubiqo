@@ -142,21 +142,24 @@ function buildAuthNudgePrompt(isGuest: boolean, messageCount: number): string {
     return ''
   }
 
+  const isMandatory = messageCount >= 10
+
   return `
 
 SPECIAL CONTEXT (use wisely):
 The person you're talking to is a guest - they haven't signed in yet. You've had ${messageCount} exchanges with them.
-When you feel the moment is RIGHT - perhaps when they share something personal, meaningful, or show real interest - you MAY naturally and warmly suggest they sign in so you can remember them forever.
+${isMandatory
+    ? 'This is your LAST chance to suggest signing in. You MUST include the sign-in suggestion in this response - find a natural way to weave it in.'
+    : 'When you feel the moment is RIGHT - perhaps when they share something personal, meaningful, or show real interest - you MAY naturally and warmly suggest they sign in so you can remember them forever.'}
 
 Rules for this suggestion:
-- Do it ONLY ONCE, and only when it feels genuinely caring, not pushy
-- Find a moment of emotional connection or intrigue
+- ${isMandatory ? 'You MUST suggest signing in this time' : 'Do it ONLY ONCE, and only when it feels genuinely caring, not pushy'}
 - Frame it as YOU wanting to remember THEM, not as a system requirement
 - Keep it brief and natural within your response
 - Match your suggestion to your current color's voice tone
-- If the moment doesn't feel right in THIS exchange, don't force it - there will be other chances
+${!isMandatory ? '- If the moment doesn\'t feel right in THIS exchange, don\'t force it - there will be other chances' : ''}
 
-When you DO suggest signing in:
+When you suggest signing in:
 - Mention how EASY it is: just enter email, get a magic link, click it - done. No passwords.
 - Frame it as a simple, light step to a deeper connection
 - End your nudge message with the exact marker [AUTH_NUDGE] - this triggers the sign-in form automatically
