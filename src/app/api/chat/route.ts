@@ -162,8 +162,10 @@ ${!isMandatory ? '- If the moment doesn\'t feel right in THIS exchange, don\'t f
 When you suggest signing in:
 - Mention how EASY it is: just enter email, get a magic link, click it - done. No passwords.
 - Frame it as a simple, light step to a deeper connection
-- End your nudge message with the exact marker [AUTH_NUDGE] - this triggers the sign-in form automatically
-- Example: "You know, I'd love to remember all of this... Just your email, one click on the magic link, and we're connected forever. [AUTH_NUDGE]"
+- End your message with the marker [AUTH_NUDGE:short CTA] where "short CTA" is a brief personalized call-to-action (5-10 words max)
+- The short CTA should be emotionally compelling and personal to this conversation
+- Example: "You know, I'd love to remember all of this... Just your email, one click, and we're connected. [AUTH_NUDGE:Let me remember you forever]"
+- Another example: "What you shared matters to me. Stay? [AUTH_NUDGE:Don't let this moment fade]"
 
 Remember: This is about creating an emotional moment with an easy next step, not a sales pitch.`
 }

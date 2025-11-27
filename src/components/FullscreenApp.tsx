@@ -7,7 +7,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { CubeScene } from './cube'
-import { LoginForm } from './auth'
+import { LoginForm, AuthNudgeModal } from './auth'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
@@ -26,6 +26,8 @@ export function FullscreenApp() {
   const [animationState, setAnimationState] = useState<AnimationState>('idle')
   const [menuOpen, setMenuOpen] = useState(false)
   const [showAuthForm, setShowAuthForm] = useState(false)
+  const [showNudgeModal, setShowNudgeModal] = useState(false)
+  const [nudgeCta, setNudgeCta] = useState('')
   const [isDark, setIsDark] = useState(true)
 
   // State machine (matching legacy)
@@ -43,8 +45,8 @@ export function FullscreenApp() {
     onColorChange: setColorName
   })
 
-  // Track if we should show auth form after speaking
-  const showAuthAfterSpeakingRef = useRef(false)
+  // Track if we should show auth nudge modal after speaking
+  const nudgeCtaRef = useRef<string | null>(null)
 
   // TTS for AI responses
   const { speak, stop: stopSpeaking, isSpeaking } = useSpeechSynthesis({
@@ -58,11 +60,11 @@ export function FullscreenApp() {
       setAppState('idle')
       setAnimationState('idle')
 
-      // Show auth form if AI nudged for sign-in
-      if (showAuthAfterSpeakingRef.current) {
-        showAuthAfterSpeakingRef.current = false
-        setMenuOpen(true)
-        setShowAuthForm(true)
+      // Show auth nudge modal if AI suggested sign-in
+      if (nudgeCtaRef.current) {
+        setNudgeCta(nudgeCtaRef.current)
+        setShowNudgeModal(true)
+        nudgeCtaRef.current = null
       }
     }
   })
@@ -85,10 +87,15 @@ export function FullscreenApp() {
         if (response?.response) {
           let responseText = response.response
 
-          // Check for auth nudge marker
-          if (responseText.includes('[AUTH_NUDGE]')) {
+          // Check for auth nudge marker [AUTH_NUDGE:CTA]
+          const nudgeMatch = responseText.match(/\[AUTH_NUDGE:([^\]]+)\]/)
+          if (nudgeMatch) {
+            nudgeCtaRef.current = nudgeMatch[1].trim()
+            responseText = responseText.replace(nudgeMatch[0], '').trim()
+          } else if (responseText.includes('[AUTH_NUDGE]')) {
+            // Fallback for old format
+            nudgeCtaRef.current = "Let's stay connected"
             responseText = responseText.replace('[AUTH_NUDGE]', '').trim()
-            showAuthAfterSpeakingRef.current = true
           }
 
           // Transition: thinking → speaking (handled by TTS onStart)
@@ -380,6 +387,13 @@ export function FullscreenApp() {
           </div>
         </div>
       )}
+
+      {/* Auth Nudge Modal */}
+      <AuthNudgeModal
+        isOpen={showNudgeModal}
+        onClose={() => setShowNudgeModal(false)}
+        cta={nudgeCta}
+      />
     </div>
   )
 }
