@@ -123,12 +123,16 @@ export function useSession() {
   // Initialize session
   useEffect(() => {
     const initSession = async () => {
+      console.log('[useSession] Starting init...')
       try {
         // Check for stored session
         const storedSessionId = getStoredSessionId()
+        console.log('[useSession] Stored session ID:', storedSessionId)
 
         if (storedSessionId) {
+          console.log('[useSession] Fetching existing session...')
           const existingSession = await fetchSession(storedSessionId)
+          console.log('[useSession] Fetched session:', existingSession?.id)
 
           if (existingSession) {
             setState({
@@ -141,11 +145,14 @@ export function useSession() {
           }
 
           // Stored session invalid, clear it
+          console.log('[useSession] Session invalid, clearing...')
           clearStoredSessionId()
         }
 
         // Create new guest session
+        console.log('[useSession] Creating new guest session...')
         const newSession = await createGuestSession()
+        console.log('[useSession] Created session:', newSession?.id)
 
         if (newSession) {
           setState({
@@ -155,6 +162,7 @@ export function useSession() {
             error: null,
           })
         } else {
+          console.error('[useSession] Failed to create session')
           setState(prev => ({
             ...prev,
             isLoading: false,
@@ -162,7 +170,7 @@ export function useSession() {
           }))
         }
       } catch (error) {
-        console.error('Session init error:', error)
+        console.error('[useSession] Init error:', error)
         setState(prev => ({
           ...prev,
           isLoading: false,
