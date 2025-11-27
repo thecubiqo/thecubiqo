@@ -118,33 +118,33 @@ export function useSession() {
   const handleAuthenticatedUser = async (user: User) => {
     console.log('[useSession] Handling authenticated user:', user.id)
 
-    // 1. Ensure profile exists
-    const { data: existingProfile } = await supabase
+    // 1. Ensure profile exists - use upsert to avoid race conditions
+    console.log('[useSession] Upserting profile...')
+    const { error: profileError } = await supabase
       .from('profiles')
-      .select('id')
-      .eq('id', user.id)
-      .maybeSingle()
+      .upsert(
+        { id: user.id, email: user.email },
+        { onConflict: 'id', ignoreDuplicates: true }
+      )
 
-    if (!existingProfile) {
-      console.log('[useSession] Creating profile...')
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({ id: user.id, email: user.email })
-
-      if (profileError) {
-        console.error('[useSession] Profile creation error:', profileError)
-        // Continue anyway - might already exist
-      }
+    if (profileError) {
+      console.error('[useSession] Profile upsert error:', profileError)
+      // Continue anyway
+    } else {
+      console.log('[useSession] Profile OK')
     }
 
     // 2. Look for existing session for this user
-    const { data: existingSession } = await supabase
+    console.log('[useSession] Looking for existing session...')
+    const { data: existingSession, error: findError } = await supabase
       .from('sessions')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
+
+    console.log('[useSession] Find session result:', existingSession?.id, findError?.message)
 
     if (existingSession) {
       console.log('[useSession] Found existing session:', existingSession.id)
