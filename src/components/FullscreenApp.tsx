@@ -49,14 +49,16 @@ export function FullscreenApp() {
   const nudgeCtaRef = useRef<string | null>(null)
 
   // TTS for AI responses
-  const { speak, stop: stopSpeaking, isSpeaking } = useSpeechSynthesis({
+  const { speak, stop: stopSpeaking, isSpeaking, error: ttsError } = useSpeechSynthesis({
     rate: 0.92,
     pitch: 1.05,
     onStart: () => {
+      console.log('[TTS] Started speaking')
       setAppState('speaking')
       setAnimationState('speaking')
     },
     onEnd: () => {
+      console.log('[TTS] Finished speaking')
       setAppState('idle')
       setAnimationState('idle')
 
@@ -68,6 +70,11 @@ export function FullscreenApp() {
       }
     }
   })
+
+  // Log TTS errors
+  useEffect(() => {
+    if (ttsError) console.error('[TTS] Error:', ttsError)
+  }, [ttsError])
 
   const {
     startListening,
@@ -84,6 +91,7 @@ export function FullscreenApp() {
       try {
         const response = await sendMessage(text, colorName)
 
+        console.log('[Voice] Response received:', response)
         if (response?.response) {
           let responseText = response.response
 
@@ -99,8 +107,10 @@ export function FullscreenApp() {
           }
 
           // Transition: thinking → speaking (handled by TTS onStart)
+          console.log('[Voice] Speaking:', responseText.substring(0, 50) + '...')
           speak(responseText)
         } else {
+          console.log('[Voice] No response, going idle')
           // No response, back to idle
           setAppState('idle')
           setAnimationState('idle')
