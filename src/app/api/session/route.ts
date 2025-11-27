@@ -10,9 +10,85 @@ const supabaseAdmin = createClient(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { action, userId, email, sessionId, deviceInfo } = body
+    const { action, userId, email, sessionId, deviceInfo, conversationId } = body
 
-    console.log('[API/session] Action:', action, 'userId:', userId)
+    console.log('[API/session] Action:', action, 'userId:', userId, 'sessionId:', sessionId)
+
+    // Get or create conversation for a session
+    if (action === 'ensure_conversation') {
+      if (!sessionId) {
+        return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
+      }
+
+      // Check for existing conversation
+      const { data: existingConv } = await supabaseAdmin
+        .from('conversations')
+        .select('id, color_state')
+        .eq('session_id', sessionId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (existingConv) {
+        console.log('[API/session] Found existing conversation:', existingConv.id)
+        return NextResponse.json({ conversation: existingConv })
+      }
+
+      // Create new conversation
+      const { data: newConv, error: convError } = await supabaseAdmin
+        .from('conversations')
+        .insert({ session_id: sessionId, color_state: 'ORANGE' })
+        .select('id, color_state')
+        .single()
+
+      if (convError) {
+        console.error('[API/session] Conversation creation error:', convError)
+        return NextResponse.json({ error: convError.message }, { status: 500 })
+      }
+
+      console.log('[API/session] Created conversation:', newConv.id)
+      return NextResponse.json({ conversation: newConv })
+    }
+
+    // Get messages for a conversation
+    if (action === 'get_messages') {
+      if (!conversationId) {
+        return NextResponse.json({ error: 'conversationId required' }, { status: 400 })
+      }
+
+      const { data: messages } = await supabaseAdmin
+        .from('messages')
+        .select('role, content, color, created_at')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true })
+
+      return NextResponse.json({ messages: messages || [] })
+    }
+
+    // Save a message
+    if (action === 'save_message') {
+      const { role, content, color } = body
+      if (!conversationId || !role || !content) {
+        return NextResponse.json({ error: 'conversationId, role, content required' }, { status: 400 })
+      }
+
+      const { error: msgError } = await supabaseAdmin
+        .from('messages')
+        .insert({ conversation_id: conversationId, role, content, color })
+
+      if (msgError) {
+        console.error('[API/session] Message save error:', msgError)
+        return NextResponse.json({ error: msgError.message }, { status: 500 })
+      }
+
+      // Update conversation
+      await supabaseAdmin
+        .from('conversations')
+        .update({ color_state: color || 'ORANGE', updated_at: new Date().toISOString() })
+        .eq('id', conversationId)
+
+      return NextResponse.json({ success: true })
+    }
 
     if (action === 'ensure_authenticated_session') {
       if (!userId) {
