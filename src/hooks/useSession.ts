@@ -3,7 +3,7 @@
 /**
  * useSession Hook
  * Manages CubiQo sessions with AUTH-FIRST approach
- * Uses RPC functions to bypass RLS issues
+ * Uses server API for authenticated users (bypasses RLS)
  */
 
 import { useEffect, useState, useCallback } from 'react'
@@ -104,34 +104,34 @@ export function useSession() {
     initSession()
   }, [authUser])
 
-  // Handle authenticated user session using RPC
+  // Handle authenticated user session via API
   const handleAuthenticatedUser = async (user: User) => {
-    console.log('[useSession] Handling authenticated user:', user.id)
+    console.log('[useSession] Handling authenticated user via API:', user.id)
 
-    // Check if we have a guest session to convert first
     const storedSessionId = getStoredSessionId()
+    const deviceInfo = getDeviceInfo()
 
+    // Try to convert guest session first
     if (storedSessionId) {
-      // Try to convert existing guest session
       console.log('[useSession] Trying to convert guest session:', storedSessionId)
 
-      const { data: convertedId, error: convertError } = await supabase
-        .rpc('convert_guest_session', {
-          p_session_id: storedSessionId,
-          p_user_id: user.id,
-          p_email: user.email
+      const convertRes = await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'convert_guest_session',
+          userId: user.id,
+          email: user.email,
+          sessionId: storedSessionId,
+          deviceInfo
         })
+      })
 
-      if (convertedId && !convertError) {
-        console.log('[useSession] Converted guest session:', convertedId)
-        // Fetch the full session data
-        const { data: session } = await supabase
-          .from('sessions')
-          .select('*')
-          .eq('id', convertedId)
-          .single()
-
+      if (convertRes.ok) {
+        const { session } = await convertRes.json()
         if (session) {
+          console.log('[useSession] Session ready:', session.id)
+          storeSessionId(session.id)
           setState({
             session,
             isLoading: false,
@@ -140,56 +140,42 @@ export function useSession() {
           })
           return
         }
-      } else {
-        console.log('[useSession] Convert failed or no guest session:', convertError?.message)
       }
     }
 
-    // Use RPC to ensure profile and get/create session
-    console.log('[useSession] Calling ensure_profile_and_session RPC...')
+    // Ensure authenticated session via API
+    console.log('[useSession] Creating/finding authenticated session...')
 
-    const { data, error } = await supabase
-      .rpc('ensure_profile_and_session', {
-        p_user_id: user.id,
-        p_email: user.email,
-        p_device_info: getDeviceInfo(),
-        p_geo_location: 'US'
+    const res = await fetch('/api/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'ensure_authenticated_session',
+        userId: user.id,
+        email: user.email,
+        deviceInfo
       })
+    })
 
-    if (error) {
-      console.error('[useSession] RPC error:', error)
-      setState(prev => ({ ...prev, isLoading: false, error: error.message }))
+    if (!res.ok) {
+      const error = await res.json()
+      console.error('[useSession] API error:', error)
+      setState(prev => ({ ...prev, isLoading: false, error: error.error }))
       return
     }
 
-    const result = data?.[0]
-    if (!result?.session_id) {
-      console.error('[useSession] No session_id in RPC result')
-      setState(prev => ({ ...prev, isLoading: false, error: 'Failed to create session' }))
-      return
-    }
-
-    console.log('[useSession] RPC result:', result)
-    storeSessionId(result.session_id)
-
-    // Fetch full session data
-    const { data: session } = await supabase
-      .from('sessions')
-      .select('*')
-      .eq('id', result.session_id)
-      .single()
-
-    if (session) {
-      setState({
-        session,
-        isLoading: false,
-        isGuest: false,
-        error: null,
-      })
-    }
+    const { session } = await res.json()
+    console.log('[useSession] Session ready:', session.id)
+    storeSessionId(session.id)
+    setState({
+      session,
+      isLoading: false,
+      isGuest: false,
+      error: null,
+    })
   }
 
-  // Handle guest user session (no auth, so direct table access works)
+  // Handle guest user session (direct Supabase - RLS allows anonymous)
   const handleGuestUser = async () => {
     console.log('[useSession] Handling guest user')
 
@@ -248,18 +234,25 @@ export function useSession() {
   const convertToAuthenticated = useCallback(async (userId: string): Promise<boolean> => {
     if (!state.session) return false
 
-    const { data, error } = await supabase
-      .from('sessions')
-      .update({ user_id: userId, is_guest: false, expires_at: null })
-      .eq('id', state.session.id)
-      .select()
-      .single()
+    const res = await fetch('/api/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'convert_guest_session',
+        userId,
+        sessionId: state.session.id,
+        deviceInfo: getDeviceInfo()
+      })
+    })
 
-    if (error || !data) return false
+    if (!res.ok) return false
 
-    setState(prev => ({ ...prev, session: data, isGuest: false }))
+    const { session } = await res.json()
+    if (!session) return false
+
+    setState(prev => ({ ...prev, session, isGuest: false }))
     return true
-  }, [supabase, state.session])
+  }, [state.session])
 
   const refreshSession = useCallback(async () => {
     if (!state.session) return
