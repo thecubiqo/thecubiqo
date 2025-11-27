@@ -72,28 +72,39 @@ export function useSession() {
 
   // Create new guest session
   const createGuestSession = useCallback(async (): Promise<Session | null> => {
+    console.log('[useSession] createGuestSession called')
     const deviceInfo = getDeviceInfo()
+    console.log('[useSession] Device info:', deviceInfo)
 
-    const { data, error } = await supabase
-      .from('sessions')
-      .insert({
-        is_guest: true,
-        geo_location: 'US', // Will be set by middleware in production
-        device_info: deviceInfo,
-      })
-      .select()
-      .single()
+    try {
+      console.log('[useSession] Calling Supabase insert...')
+      const { data, error } = await supabase
+        .from('sessions')
+        .insert({
+          is_guest: true,
+          geo_location: 'US', // Will be set by middleware in production
+          device_info: deviceInfo,
+        })
+        .select()
+        .single()
 
-    if (error) {
-      console.error('Error creating guest session:', error)
-      setState(prev => ({ ...prev, error: error.message }))
+      console.log('[useSession] Supabase response:', { data: data?.id, error })
+
+      if (error) {
+        console.error('[useSession] Error creating guest session:', error)
+        setState(prev => ({ ...prev, error: error.message }))
+        return null
+      }
+
+      // Store session ID
+      storeSessionId(data.id)
+      console.log('[useSession] Session stored:', data.id)
+
+      return data
+    } catch (err) {
+      console.error('[useSession] Unexpected error:', err)
       return null
     }
-
-    // Store session ID
-    storeSessionId(data.id)
-
-    return data
   }, [supabase])
 
   // Fetch session by ID
