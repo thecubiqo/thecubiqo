@@ -35,7 +35,7 @@ Emotional AI companion with persistent memory and voice interface.
 | Database | Supabase (PostgreSQL) | - |
 | Auth | Supabase Magic Link | - |
 | AI Primary | Claude Haiku 4.5 | claude-haiku-4-5-20251001 |
-| AI Fallback | OpenAI | gpt-5.1 |
+| AI Second (Red Zone) | OpenAI | gpt-5.1 |
 | Deployment | Vercel | - |
 
 ---

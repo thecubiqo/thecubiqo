@@ -442,7 +442,7 @@ Save message to conversation.
 
 ### POST /api/chat
 
-AI chat endpoint with provider fallback and memory personalization.
+AI chat endpoint with dual routing and memory personalization.
 
 **Request**:
 ```json
@@ -474,7 +474,7 @@ AI chat endpoint with provider fallback and memory personalization.
 
 **Providers**:
 1. Claude (Anthropic) - primary
-2. OpenAI GPT-4o - fallback on error
+2. OpenAI GPT-5.1 - red zone topics
 
 **Error Response**:
 ```json

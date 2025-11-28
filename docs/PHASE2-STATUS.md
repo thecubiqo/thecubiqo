@@ -109,7 +109,7 @@ Click behavior:
 | Auth | Supabase Auth (Magic Link) | - |
 | 3D | React Three Fiber | 9.4.0 |
 | AI Primary | Claude | claude-haiku-4-5-20251001 |
-| AI Fallback | OpenAI | gpt-5.1 |
+| AI Second (Red Zone) | OpenAI | gpt-5.1 |
 | Deployment | Vercel | - |
 
 ---

@@ -24,10 +24,10 @@ Technical architecture for CUBIQO - emotional AI companion with persistent memor
 
 CUBIQO Phase 2 is a full-stack application with:
 
-- **Next.js 14 App Router** - React framework with server components
+- **Next.js 16 App Router** - React framework with server components
 - **Supabase** - PostgreSQL database with Row Level Security (RLS)
 - **Auth-First Architecture** - Check authentication before session operations
-- **Dual AI Providers** - Claude (primary) + OpenAI (fallback)
+- **Dual AI Providers** - Claude (primary) + OpenAI (red zone)
 - **Voice Interface** - Web Speech API for input/output
 
 ### Key Principles
@@ -56,7 +56,7 @@ Backend:
 
 AI Providers:
   - Claude Haiku 4.5 (primary) - claude-haiku-4-5-20251001
-  - OpenAI GPT-5.1 (fallback)
+  - OpenAI GPT-5.1 (red zone) - для интимных/чувственных тем
 
 Deployment:
   - Vercel (hosting + serverless)
@@ -107,8 +107,8 @@ Deployment:
 │                     │  │                                               │
 │  ┌───────────────┐  │  │  ┌─────────────────┐  ┌─────────────────┐   │
 │  │   PostgreSQL  │  │  │  │  Anthropic API  │  │   OpenAI API    │   │
-│  │  - profiles   │  │  │  │  Claude Sonnet  │  │    GPT-4o       │   │
-│  │  - sessions   │  │  │  │   (primary)     │  │   (fallback)    │   │
+│  │  - profiles   │  │  │  │  Claude Haiku   │  │    GPT-5.1      │   │
+│  │  - sessions   │  │  │  │   (primary)     │  │   (red zone)    │   │
 │  │  - messages   │  │  │  └─────────────────┘  └─────────────────┘   │
 │  │  - memory     │  │  │                                               │
 │  └───────────────┘  │  └───────────────────────────────────────────────┘
@@ -173,8 +173,8 @@ useChat.sendMessage(transcript)
         ├─ Cube enters "thinking" state
         ├─ POST /api/chat
         │       │
-        │       ├─ Try Claude API
-        │       ├─ Fallback to OpenAI if error
+        │       ├─ Try Claude API (primary)
+        │       ├─ Route to OpenAI for red zone topics
         │       │
         │       ▼
         │   AI response + color
@@ -421,7 +421,7 @@ Server-side session management with service role key.
 
 ### `/api/chat` (POST)
 
-AI chat endpoint with provider fallback and memory personalization.
+AI chat endpoint with dual routing and memory personalization.
 
 **Input**:
 ```json
@@ -445,8 +445,8 @@ AI chat endpoint with provider fallback and memory personalization.
 ```
 
 **Provider Logic**:
-1. Try Claude (Anthropic) first
-2. If error/timeout → fallback to OpenAI
+1. Claude (Anthropic) - primary provider for most conversations
+2. OpenAI (GPT-5.1) - routed for red zone (intimate/sensual topics)
 3. Return provider name for debugging
 
 ### `/api/extract-memories` (POST)
