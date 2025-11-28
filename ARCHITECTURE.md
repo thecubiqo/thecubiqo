@@ -12,10 +12,11 @@ Technical architecture for CUBIQO - emotional AI companion with persistent memor
 4. [Core Components](#core-components)
 5. [Data Flow](#data-flow)
 6. [Authentication & Sessions](#authentication--sessions)
-7. [Database Schema](#database-schema)
-8. [API Routes](#api-routes)
-9. [State Management](#state-management)
-10. [Security](#security)
+7. [Memory Extraction](#memory-extraction)
+8. [Database Schema](#database-schema)
+9. [API Routes](#api-routes)
+10. [State Management](#state-management)
+11. [Security](#security)
 
 ---
 
@@ -265,6 +266,66 @@ useSession converts/migrates session
 
 ---
 
+## Memory Extraction
+
+CUBIQO extracts and remembers facts about users to personalize conversations.
+
+### How It Works
+
+```
+User message + AI response
+        │
+        ▼
+/api/extract-memories (async, fire-and-forget)
+        │
+        ├─ Claude Haiku analyzes conversation
+        ├─ Extracts facts with confidence > 0.7
+        │
+        ▼
+Save to `memory` table (upsert by key)
+        │
+        ▼
+Next conversation:
+        │
+        ├─ /api/chat loads memories for sessionId
+        ├─ Injects into system prompt
+        └─ AI personalizes response
+```
+
+### Extracted Fact Categories
+
+| Category | Examples | Zone |
+|----------|----------|------|
+| Identity | name, age, location, occupation | green |
+| Preferences | food, music, hobbies | green |
+| Important Dates | birthday, anniversary | green |
+| Personality | psychotype, communication style | yellow |
+| Relationships | family, pets | yellow |
+| Sensitive | health, traumas | red |
+
+### Memory Zones
+
+- **green** - General info, freely used in conversation
+- **yellow** - Personal info, used carefully
+- **red** - Sensitive info, only referenced when relevant
+
+### Architecture
+
+```
+src/lib/ai/memory-extraction.server.ts  # Server-only extraction logic
+src/app/api/extract-memories/route.ts   # Async extraction endpoint
+src/app/api/chat/route.ts               # Loads memories into prompt
+```
+
+### Key Design Decisions
+
+1. **Server-only**: `memory-extraction.server.ts` never imported by client code
+2. **Async extraction**: Runs after response sent (fire-and-forget)
+3. **Haiku model**: Cost-effective for extraction task
+4. **Upsert pattern**: Same key updates existing fact
+
+---
+
 ## Database Schema
 
 ### Tables
@@ -360,7 +421,7 @@ Server-side session management with service role key.
 
 ### `/api/chat` (POST)
 
-AI chat endpoint with provider fallback.
+AI chat endpoint with provider fallback and memory personalization.
 
 **Input**:
 ```json
@@ -369,7 +430,8 @@ AI chat endpoint with provider fallback.
   "conversationHistory": [...],
   "currentColor": "ORANGE",
   "isGuest": false,
-  "messageCount": 5
+  "messageCount": 5,
+  "sessionId": "uuid"
 }
 ```
 
@@ -386,6 +448,30 @@ AI chat endpoint with provider fallback.
 1. Try Claude (Anthropic) first
 2. If error/timeout → fallback to OpenAI
 3. Return provider name for debugging
+
+### `/api/extract-memories` (POST)
+
+Async memory extraction endpoint (called fire-and-forget from client).
+
+**Input**:
+```json
+{
+  "sessionId": "uuid",
+  "userMessage": "Hi, I'm Alex from Spain",
+  "aiResponse": "Nice to meet you Alex!"
+}
+```
+
+**Output**:
+```json
+{
+  "extracted": [
+    { "key": "name", "value": "Alex", "zone": "green", "confidence": 0.95 },
+    { "key": "location_country", "value": "Spain", "zone": "green", "confidence": 0.9 }
+  ],
+  "saved": 2
+}
+```
 
 ### `/auth/callback` (GET)
 
@@ -490,6 +576,6 @@ NEXT_PUBLIC_SITE_URL=https://cubiqo.ai
 
 ---
 
-**Architecture Version**: 3.0.0
-**Last Updated**: November 27, 2025
-**Status**: Phase 2 Complete
+**Architecture Version**: 3.1.0
+**Last Updated**: November 28, 2025
+**Status**: Phase 2 Complete + Memory Extraction

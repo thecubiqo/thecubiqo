@@ -442,7 +442,7 @@ Save message to conversation.
 
 ### POST /api/chat
 
-AI chat endpoint with provider fallback.
+AI chat endpoint with provider fallback and memory personalization.
 
 **Request**:
 ```json
@@ -458,7 +458,8 @@ AI chat endpoint with provider fallback.
   ],
   "currentColor": "ORANGE",
   "isGuest": false,
-  "messageCount": 5
+  "messageCount": 5,
+  "sessionId": "uuid"
 }
 ```
 
@@ -482,6 +483,45 @@ AI chat endpoint with provider fallback.
   "provider": "claude"
 }
 ```
+
+---
+
+### POST /api/extract-memories
+
+Async memory extraction endpoint. Called fire-and-forget after chat responses.
+
+**Request**:
+```json
+{
+  "sessionId": "uuid",
+  "userMessage": "Hi, I'm Alex from Spain. I'm a developer.",
+  "aiResponse": "Nice to meet you Alex! What kind of development do you do?"
+}
+```
+
+**Response**:
+```json
+{
+  "extracted": [
+    { "key": "name", "value": "Alex", "zone": "green", "confidence": 0.95 },
+    { "key": "location_country", "value": "Spain", "zone": "green", "confidence": 0.9 },
+    { "key": "occupation", "value": "developer", "zone": "green", "confidence": 0.85 }
+  ],
+  "saved": 3
+}
+```
+
+**Extracted Categories**:
+- Identity: name, age, location, occupation
+- Preferences: food, music, hobbies
+- Dates: birthday, anniversary
+- Personality: psychotype, communication style
+- Relationships: family, pets
+
+**Memory Zones**:
+- `green` - General info
+- `yellow` - Personal info
+- `red` - Sensitive info
 
 ---
 
@@ -693,6 +733,6 @@ NEXT_PUBLIC_SITE_URL=https://cubiqo.ai
 
 ---
 
-**API Version**: 3.0.0
-**Last Updated**: November 27, 2025
-**Status**: Phase 2 Complete
+**API Version**: 3.1.0
+**Last Updated**: November 28, 2025
+**Status**: Phase 2 Complete + Memory Extraction
