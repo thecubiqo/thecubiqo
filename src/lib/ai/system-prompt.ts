@@ -100,3 +100,38 @@ CORRECT ✅ (pure speech):
 "Kids and books... interesting combination. What draws you to thinking about them together right now?"
 
 REMEMBER: If it can't be SPOKEN naturally by a voice, DON'T write it. No formatting. Just words.`
+
+/**
+ * Build memory context section for system prompt
+ * Includes extracted facts about the user for personalization
+ */
+export function buildMemoryContext(
+  memories: Array<{ key: string; value: string; zone?: string }>
+): string {
+  if (!memories || memories.length === 0) {
+    return ''
+  }
+
+  const memoryLines = memories.map(m => `- ${formatMemoryKey(m.key)}: ${m.value}`)
+
+  return `
+
+WHAT YOU KNOW ABOUT THIS PERSON:
+${memoryLines.join('\n')}
+
+Use this information naturally to personalize your responses:
+- Address them by name if you know it
+- Reference their interests, preferences when relevant
+- Remember and acknowledge important dates
+- Adapt your style to their personality
+Don't explicitly announce what you know - just use it naturally in conversation.`
+}
+
+/**
+ * Format memory key for display
+ */
+function formatMemoryKey(key: string): string {
+  return key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
+}

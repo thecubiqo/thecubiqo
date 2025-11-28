@@ -86,6 +86,105 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
+    // ============ MEMORY ACTIONS ============
+
+    // Get all memories for a session
+    if (action === 'get_memories') {
+      if (!sessionId) {
+        return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
+      }
+
+      const { data: memories, error: memError } = await supabaseAdmin
+        .from('memory')
+        .select('key, value, zone, created_at')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: false })
+
+      if (memError) {
+        return NextResponse.json({ error: memError.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ memories: memories || [] })
+    }
+
+    // Upsert a memory (save or update by key)
+    if (action === 'upsert_memory') {
+      const { key, value, zone } = body
+      if (!sessionId || !key || !value) {
+        return NextResponse.json({ error: 'sessionId, key, value required' }, { status: 400 })
+      }
+
+      // Check if memory with this key exists
+      const { data: existing } = await supabaseAdmin
+        .from('memory')
+        .select('id')
+        .eq('session_id', sessionId)
+        .eq('key', key)
+        .maybeSingle()
+
+      if (existing) {
+        // Update existing
+        const { error: updateError } = await supabaseAdmin
+          .from('memory')
+          .update({ value, zone: zone || 'green' })
+          .eq('id', existing.id)
+
+        if (updateError) {
+          return NextResponse.json({ error: updateError.message }, { status: 500 })
+        }
+      } else {
+        // Insert new
+        const { error: insertError } = await supabaseAdmin
+          .from('memory')
+          .insert({ session_id: sessionId, key, value, zone: zone || 'green' })
+
+        if (insertError) {
+          return NextResponse.json({ error: insertError.message }, { status: 500 })
+        }
+      }
+
+      return NextResponse.json({ success: true })
+    }
+
+    // Bulk upsert memories (for extraction results)
+    if (action === 'upsert_memories') {
+      const { memories } = body
+      if (!sessionId || !memories || !Array.isArray(memories)) {
+        return NextResponse.json({ error: 'sessionId and memories array required' }, { status: 400 })
+      }
+
+      for (const mem of memories) {
+        if (!mem.key || !mem.value) continue
+
+        const { data: existing } = await supabaseAdmin
+          .from('memory')
+          .select('id')
+          .eq('session_id', sessionId)
+          .eq('key', mem.key)
+          .maybeSingle()
+
+        if (existing) {
+          await supabaseAdmin
+            .from('memory')
+            .update({ value: mem.value, zone: mem.zone || 'green' })
+            .eq('id', existing.id)
+        } else {
+          await supabaseAdmin
+            .from('memory')
+            .insert({
+              session_id: sessionId,
+              key: mem.key,
+              value: mem.value,
+              zone: mem.zone || 'green'
+            })
+        }
+      }
+
+      return NextResponse.json({ success: true, count: memories.length })
+    }
+
+    // ============ END MEMORY ACTIONS ============
+
     if (action === 'ensure_authenticated_session') {
       if (!userId) {
         return NextResponse.json({ error: 'userId required' }, { status: 400 })
