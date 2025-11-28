@@ -4,8 +4,7 @@
 
 Emotional AI companion with persistent memory and voice interface.
 
-**Status:** ✅ Phase 2 Complete
-**Preview:** https://cubiqo-repo-git-phase2-cubiqo-projects-d7156840.vercel.app
+**Status:** ✅ Phase 2 Complete | **Live:** https://cubiqo.ai
 
 ---
 

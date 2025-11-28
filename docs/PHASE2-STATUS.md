@@ -118,7 +118,8 @@ Click behavior:
 
 | Environment | URL |
 |-------------|-----|
-| **Preview** | https://cubiqo-repo-git-phase2-cubiqo-projects-d7156840.vercel.app |
+| **Production** | https://cubiqo.ai |
+| Preview | https://cubiqo-repo-git-phase2-cubiqo-projects-d7156840.vercel.app |
 | Supabase | https://supabase.com/dashboard/project/naoxezcmcauecawchgjk |
 | GitHub | https://github.com/thecubiqo/thecubiqo |
 
