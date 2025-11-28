@@ -46,7 +46,7 @@ export function CubeScene({
   return (
     <div className={`w-full h-full ${className}`}>
       <Canvas
-        camera={{ position: [0, 2, 5], fov: 50 }}
+        camera={{ position: [0, 0, 6], fov: 45 }}
         shadows
         gl={{
           antialias: true,
@@ -63,7 +63,7 @@ export function CubeScene({
           <Cube colorName={colorName} animationState={animationState} />
           
           <ContactShadows
-            position={[0, -1.5, 0]}
+            position={[0, -2, 0]}
             opacity={0.4}
             scale={10}
             blur={2}
