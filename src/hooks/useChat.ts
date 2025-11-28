@@ -210,7 +210,8 @@ export function useChat(options: UseChatOptions) {
           conversationHistory: state.conversationHistory,
           currentColor,
           isGuest,
-          messageCount: state.conversationHistory.length + 1
+          messageCount: state.conversationHistory.length + 1,
+          sessionId
         })
       })
 
@@ -246,6 +247,19 @@ export function useChat(options: UseChatOptions) {
           color: data.color
         })
       })
+
+      // Trigger memory extraction in background (fire-and-forget)
+      if (sessionId) {
+        fetch('/api/extract-memories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId,
+            userMessage: message,
+            aiResponse: data.response
+          })
+        }).catch(() => {}) // Silently ignore extraction errors
+      }
 
       const newEntry: ConversationEntry = {
         userMessage: message,
