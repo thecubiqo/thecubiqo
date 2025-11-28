@@ -8,19 +8,11 @@ import {
   SYSTEM_PROMPT,
   buildMessages,
   parseResponse,
-  buildMemoryContext,
   CLAUDE_CONFIG,
   OPENAI_CONFIG,
   type ChatRequest,
   type AIResponse
 } from '@/lib/ai'
-import { createClient } from '@supabase/supabase-js'
-
-// Server-side Supabase client for loading memories
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 // Claude API call with prompt caching
 async function callClaude(
@@ -164,8 +156,8 @@ Remember: This is about creating an emotional moment with an easy next step, not
 
 export async function POST(request: NextRequest) {
   try {
-    const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string } = await request.json()
-    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId } = body
+    const body: ChatRequest & { isGuest?: boolean; messageCount?: number } = await request.json()
+    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0 } = body
 
     if (!message) {
       return NextResponse.json(
@@ -174,25 +166,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Load memories for this session (if sessionId provided)
-    let memoryContext = ''
-    if (sessionId) {
-      const { data: memories } = await supabaseAdmin
-        .from('memory')
-        .select('key, value, zone')
-        .eq('session_id', sessionId)
-
-      if (memories && memories.length > 0) {
-        memoryContext = buildMemoryContext(memories)
-      }
-    }
-
     // Build messages with temporal context
     const messages = buildMessages(message, conversationHistory, currentColor)
 
-    // Build full system prompt with memory context and optional auth nudge
+    // Build full system prompt with optional auth nudge
     const authNudge = buildAuthNudgePrompt(isGuest, messageCount)
-    const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + authNudge
+    const fullSystemPrompt = SYSTEM_PROMPT + authNudge
 
     let content: string
     let provider: 'claude' | 'openai' = 'claude'

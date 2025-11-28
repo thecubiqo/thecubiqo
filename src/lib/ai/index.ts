@@ -2,7 +2,7 @@
  * AI Module Exports
  */
 
-export { SYSTEM_PROMPT, buildMemoryContext } from './system-prompt'
+export { SYSTEM_PROMPT } from './system-prompt'
 export { buildMessages, parseResponse, formatFullTimestamp, formatTimeAgo } from './service'
 export { CLAUDE_CONFIG, OPENAI_CONFIG, PRIMARY_PROVIDER, FALLBACK_PROVIDER } from './providers'
 export type {
@@ -14,10 +14,3 @@ export type {
   AIProvider,
   ProviderConfig
 } from './types'
-export {
-  extractMemories,
-  saveMemories,
-  loadMemories,
-  parseExtractionResult,
-  type ExtractedMemory
-} from './memory-extraction'
