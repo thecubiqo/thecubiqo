@@ -43,10 +43,10 @@ CUBIQO Phase 2 is a full-stack application with:
 
 ```
 Frontend:
-  - Next.js 14.2 (App Router)
-  - React 18 + TypeScript
-  - React Three Fiber (3D cube)
-  - Tailwind CSS
+  - Next.js 16.0.3 (App Router)
+  - React 19 RC + TypeScript 5.x
+  - React Three Fiber 9.4.0 (3D cube)
+  - Tailwind CSS 4.x
   - Web Speech API (voice)
 
 Backend:
@@ -55,8 +55,8 @@ Backend:
   - Service Role Key (bypasses RLS)
 
 AI Providers:
-  - Anthropic Claude Sonnet 4.5 (primary)
-  - OpenAI GPT-4o (fallback)
+  - Claude Haiku 4.5 (primary) - claude-haiku-4-5-20251001
+  - OpenAI GPT-5.1 (fallback)
 
 Deployment:
   - Vercel (hosting + serverless)

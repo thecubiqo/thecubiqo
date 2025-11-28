@@ -1,10 +1,10 @@
 # CubiQo Phase 2 - Implementation Status
 
-**Last Updated**: November 26, 2025 (evening)
+**Last Updated**: November 28, 2025
 
 ---
 
-## Progress: 12/13 Complete ✅
+## Progress: 13/13 Complete ✅
 
 ### Completed Features
 
@@ -22,11 +22,33 @@
 | 10 | PWA | ✅ |
 | 11 | Conversation Persistence | ✅ |
 | 12 | Auth UI (Sign In panel) | ✅ |
-| 13 | Memory Extraction | ⏳ Pending |
+| 13 | Memory Extraction | ✅ |
 
 ---
 
-## Today's Completed (27 Nov)
+## Today's Completed (28 Nov)
+
+### Memory Extraction ✅
+AI-based extraction of user facts for personalization:
+- Server-only module: `memory-extraction.server.ts`
+- Async endpoint: `/api/extract-memories` (fire-and-forget)
+- Claude Haiku for cost-effective extraction
+- Extracted facts injected into system prompt
+
+**Extracted Categories:**
+- Identity: name, age, location, occupation
+- Preferences: food, music, hobbies
+- Dates: birthday, anniversary
+- Personality: psychotype, communication style
+
+**Memory Zones:**
+- `green` - General info (freely used)
+- `yellow` - Personal info (used carefully)
+- `red` - Sensitive info (only when relevant)
+
+---
+
+## Completed (27 Nov)
 
 ### Intelligent Auth Nudge ✅
 AI naturally suggests sign-in to guest users:
@@ -129,9 +151,9 @@ Proposed structure:
 ```
 
 ### Next Tasks
-1. **Memory Extraction** - Extract facts, store in `memory` table
-2. **Auth Nudge Range** - Increase from 5-10 to 5-20+ after testing
-3. **Production Deploy** - Merge `phase2` → `main`
+1. ~~**Memory Extraction**~~ ✅ Complete
+2. **Production Deploy** - Merge `phase2` → `main`
+3. **Auth Nudge Range** - Increase from 5-10 to 5-20+ after production testing
 
 ---
 
@@ -140,26 +162,34 @@ Proposed structure:
 ```
 src/
 ├── app/
-│   ├── api/chat/route.ts       # AI dual routing
-│   ├── auth/callback/route.ts  # Magic link
-│   ├── layout.tsx              # PWA meta
+│   ├── api/
+│   │   ├── chat/route.ts           # AI dual routing + memory loading
+│   │   ├── extract-memories/route.ts  # Async memory extraction
+│   │   └── session/route.ts        # Session + conversation management
+│   ├── auth/callback/route.ts      # Magic link
+│   ├── layout.tsx                  # PWA meta
 │   └── page.tsx
 ├── components/
-│   ├── auth/                   # LoginForm, AuthStatus
-│   ├── chat/                   # ChatContainer, ChatInput, ChatMessage
-│   ├── cube/                   # Cube, CubeScene
-│   └── FullscreenApp.tsx       # Main app (state machine)
+│   ├── auth/                       # LoginForm, AuthStatus
+│   ├── chat/                       # ChatContainer, ChatInput, ChatMessage
+│   ├── cube/                       # Cube, CubeScene
+│   └── FullscreenApp.tsx           # Main app (state machine)
 ├── hooks/
 │   ├── useAuth.ts
-│   ├── useChat.ts              # + Supabase persistence
+│   ├── useChat.ts                  # + Supabase persistence + memory trigger
 │   ├── useSession.ts
 │   ├── useSpeechRecognition.ts
 │   └── useSpeechSynthesis.ts
 ├── lib/
-│   ├── ai/                     # system-prompt, providers, service
+│   ├── ai/
+│   │   ├── index.ts                # Public exports
+│   │   ├── memory-extraction.server.ts  # Server-only extraction
+│   │   ├── providers.ts
+│   │   ├── service.ts
+│   │   └── system-prompt.ts
 │   ├── auth/
 │   └── supabase/
-├── config/colors.ts            # 4 color states
+├── config/colors.ts                # 4 color states
 └── types/
 
 public/
