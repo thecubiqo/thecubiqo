@@ -151,9 +151,14 @@ Proposed structure:
 └─────────────────────────────┘
 ```
 
+### Deployment ✅
+- **Production**: https://cubiqo.ai
+- **Auto-deploy**: Vercel deploys automatically on push to `main`
+- No GitHub Actions needed (removed legacy workflows)
+
 ### Next Tasks
 1. ~~**Memory Extraction**~~ ✅ Complete
-2. **Production Deploy** - Merge `phase2` → `main`
+2. ~~**Production Deploy**~~ ✅ Live at cubiqo.ai
 3. **Auth Nudge Range** - Increase from 5-10 to 5-20+ after production testing
 
 ---
