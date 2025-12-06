@@ -15,6 +15,7 @@ import {
   type AIResponse
 } from '@/lib/ai'
 import { buildMemoryContext } from '@/lib/ai/memory-extraction.server'
+import { getRegionConfig, buildRegionalPrompt } from '@/lib/config/regions'
 
 // Server-side Supabase client for loading memories
 const supabaseAdmin = createClient(
@@ -164,8 +165,11 @@ Remember: This is about creating an emotional moment with an easy next step, not
 
 export async function POST(request: NextRequest) {
   try {
-    const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string } = await request.json()
-    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId } = body
+    const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string } = await request.json()
+    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region } = body
+
+    // Get region from body or header
+    const regionId = region || request.headers.get('x-user-region')
 
     if (!message) {
       return NextResponse.json(
@@ -194,9 +198,22 @@ export async function POST(request: NextRequest) {
     // Build messages with temporal context
     const messages = buildMessages(message, conversationHistory, currentColor)
 
-    // Build full system prompt with memory context and optional auth nudge
+    // Build regional context (if user is in a regional version)
+    let regionalContext = ''
+    if (regionId) {
+      try {
+        const regionConfig = await getRegionConfig(regionId)
+        if (regionConfig) {
+          regionalContext = '\n\n--- REGIONAL CONTEXT ---\n' + buildRegionalPrompt(regionConfig)
+        }
+      } catch {
+        // Ignore regional config errors - not critical
+      }
+    }
+
+    // Build full system prompt with memory, regional context, and optional auth nudge
     const authNudge = buildAuthNudgePrompt(isGuest, messageCount)
-    const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + authNudge
+    const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + regionalContext + authNudge
 
     let content: string
     let provider: 'claude' | 'openai' = 'claude'

@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CubiQo Region Configuration",
+  "description": "Configuration schema for regional CubiQo instances",
+  "type": "object",
+  "required": ["id", "countryCode", "name", "locale"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique region identifier (e.g., 'uk', 'in', 'jp')",
+      "pattern": "^[a-z]{2,3}$"
+    },
+    "countryCode": {
+      "type": "string",
+      "description": "ISO 3166-1 alpha-2 country code",
+      "pattern": "^[A-Z]{2}$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name for the region"
+    },
+    "locale": {
+      "type": "string",
+      "description": "BCP 47 locale tag (e.g., 'en-GB', 'hi-IN')",
+      "pattern": "^[a-z]{2}-[A-Z]{2}$"
+    },
+    "routing": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "URL path for this region (e.g., '/uk')"
+        },
+        "domain": {
+          "type": "string",
+          "description": "Optional separate domain (e.g., 'cubiqo.uk')"
+        },
+        "defaultRoute": {
+          "type": "string",
+          "enum": ["main", "regional"],
+          "default": "main",
+          "description": "Where to route users from this country by default"
+        },
+        "mainEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow access to main cubiqo.ai"
+        },
+        "regionalEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable regional version"
+        }
+      }
+    },
+    "localization": {
+      "type": "object",
+      "properties": {
+        "timezone": {
+          "type": "string",
+          "description": "IANA timezone (e.g., 'Europe/London')"
+        },
+        "currency": {
+          "type": "string",
+          "description": "ISO 4217 currency code"
+        },
+        "dateFormat": {
+          "type": "string",
+          "description": "Date format pattern"
+        },
+        "dialects": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Supported dialects/languages"
+        }
+      }
+    },
+    "cultural": {
+      "type": "object",
+      "properties": {
+        "festivals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "date": { "type": "string" },
+              "type": { "type": "string", "enum": ["national", "religious", "cultural"] }
+            }
+          }
+        },
+        "greetings": {
+          "type": "object",
+          "properties": {
+            "morning": { "type": "string" },
+            "afternoon": { "type": "string" },
+            "evening": { "type": "string" }
+          }
+        },
+        "references": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Cultural references AI can use"
+        }
+      }
+    },
+    "appearance": {
+      "type": "object",
+      "properties": {
+        "defaultColor": {
+          "type": "string",
+          "enum": ["ORANGE", "RED", "YELLOW", "GREEN_BLUE"],
+          "default": "ORANGE"
+        },
+        "performanceMode": {
+          "type": "string",
+          "enum": ["full", "reduced"],
+          "default": "full",
+          "description": "Cube animation quality"
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["dark", "light", "system"],
+          "default": "dark"
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "properties": {
+        "voice": { "type": "boolean", "default": true },
+        "chat": { "type": "boolean", "default": true },
+        "memory": { "type": "boolean", "default": true },
+        "auth": { "type": "boolean", "default": true }
+      }
+    },
+    "ai": {
+      "type": "object",
+      "properties": {
+        "systemPromptAdditions": {
+          "type": "string",
+          "description": "Additional context for AI system prompt"
+        },
+        "toneModifiers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tone adjustments (e.g., 'formal', 'casual', 'respectful')"
+        }
+      }
+    }
+  }
+}

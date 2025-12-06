@@ -16,9 +16,10 @@ interface ChatContainerProps {
   currentColor: ColorName
   onColorChange: (color: ColorName) => void
   onSpeakingChange?: (isSpeaking: boolean) => void
+  regionId?: string | null
 }
 
-export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeakingChange }: ChatContainerProps) {
+export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeakingChange, regionId }: ChatContainerProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const lastSpokenIndexRef = useRef<number>(-1)
 
@@ -38,7 +39,8 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
     isInitialized
   } = useChat({
     sessionId,
-    onColorChange
+    onColorChange,
+    regionId
   })
 
   // Auto-scroll to bottom when new messages arrive
