@@ -21,9 +21,9 @@ const MAIN_COUNTRIES = new Set(['US'])
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Get user's country from Vercel geo headers
-  const country = request.geo?.country || request.headers.get('x-vercel-ip-country') || 'US'
-  const city = request.geo?.city || request.headers.get('x-vercel-ip-city') || ''
+  // Get user's country from Vercel geo headers (Next.js 16+ uses headers only)
+  const country = request.headers.get('x-vercel-ip-country') || 'US'
+  const city = request.headers.get('x-vercel-ip-city') || ''
 
   // Create base response with geo headers
   let response = NextResponse.next({ request })
