@@ -1,10 +1,10 @@
 # CubiQo Phase 2 - Implementation Status
 
-**Last Updated**: November 28, 2025
+**Last Updated**: December 6, 2025
 
 ---
 
-## Progress: 13/13 Complete ✅
+## Progress: 14/14 Complete ✅
 
 ### Completed Features
 
@@ -23,10 +23,41 @@
 | 11 | Conversation Persistence | ✅ |
 | 12 | Auth UI (Sign In panel) | ✅ |
 | 13 | Memory Extraction | ✅ |
+| 14 | Generator PoC (Regional Routing) | ✅ |
 
 ---
 
-## Today's Completed (28 Nov)
+## Today's Completed (6 Dec)
+
+### Generator PoC - Regional Routing ✅
+Multi-region support with geo-routing:
+- **Dynamic Routes**: `/[region]` with UK enabled
+- **RegionContext**: Config distribution to components
+- **Geo-Routing**: Vercel headers → automatic redirect
+- **AI Integration**: Regional prompts (British English for UK)
+- **RegionBadge**: Dev-only indicator
+
+**Architecture:**
+```
+generator/
+├── config/
+│   ├── schema.json          # JSON schema for validation
+│   └── regions/
+│       └── uk.json          # UK reference config
+```
+
+**Routes Created:**
+- `/uk` - UK regional home
+- `/uk/chat` - UK regional chat
+
+**UK Config includes:**
+- Cultural context (festivals, references)
+- AI tone modifiers (warm, witty, British)
+- Localization (timezone, currency, date format)
+
+---
+
+## Completed (28 Nov)
 
 ### Memory Extraction ✅
 AI-based extraction of user facts for personalization:
@@ -101,7 +132,7 @@ Click behavior:
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Framework | Next.js (App Router) | 16.0.3 |
+| Framework | Next.js (App Router) | 16.0.7 |
 | Language | TypeScript | 5.x |
 | React | React 19 | RC |
 | Styling | Tailwind CSS | 4.x |
@@ -159,7 +190,9 @@ Proposed structure:
 ### Next Tasks
 1. ~~**Memory Extraction**~~ ✅ Complete
 2. ~~**Production Deploy**~~ ✅ Live at cubiqo.ai
-3. **Auth Nudge Range** - Increase from 5-10 to 5-20+ after production testing
+3. ~~**Generator PoC**~~ ✅ UK regional routing complete
+4. **Auth Nudge Range** - Increase from 5-10 to 5-20+ after production testing
+5. **More Regions** - Add India, Japan configs when ready
 
 ---
 
@@ -168,8 +201,12 @@ Proposed structure:
 ```
 src/
 ├── app/
+│   ├── [region]/                   # Dynamic regional routes
+│   │   ├── layout.tsx              # RegionProvider wrapper
+│   │   ├── page.tsx                # Regional home
+│   │   └── chat/page.tsx           # Regional chat
 │   ├── api/
-│   │   ├── chat/route.ts           # AI dual routing + memory loading
+│   │   ├── chat/route.ts           # AI dual routing + memory + regional prompts
 │   │   ├── extract-memories/route.ts  # Async memory extraction
 │   │   └── session/route.ts        # Session + conversation management
 │   ├── auth/callback/route.ts      # Magic link
@@ -179,10 +216,13 @@ src/
 │   ├── auth/                       # LoginForm, AuthStatus
 │   ├── chat/                       # ChatContainer, ChatInput, ChatMessage
 │   ├── cube/                       # Cube, CubeScene
-│   └── FullscreenApp.tsx           # Main app (state machine)
+│   ├── FullscreenApp.tsx           # Main app (state machine)
+│   └── RegionBadge.tsx             # Dev-only region indicator
+├── contexts/
+│   └── RegionContext.tsx           # Regional config context
 ├── hooks/
 │   ├── useAuth.ts
-│   ├── useChat.ts                  # + Supabase persistence + memory trigger
+│   ├── useChat.ts                  # + Supabase persistence + memory trigger + regionId
 │   ├── useSession.ts
 │   ├── useSpeechRecognition.ts
 │   └── useSpeechSynthesis.ts
@@ -194,9 +234,18 @@ src/
 │   │   ├── service.ts
 │   │   └── system-prompt.ts
 │   ├── auth/
+│   ├── config/
+│   │   └── regions.ts              # RegionConfig types + loader + buildRegionalPrompt
 │   └── supabase/
+├── proxy.ts                        # Edge proxy (auth + geo-routing)
 ├── config/colors.ts                # 4 color states
 └── types/
+
+generator/
+├── config/
+│   ├── schema.json                 # JSON schema for region configs
+│   └── regions/
+│       └── uk.json                 # UK reference config
 
 public/
 ├── manifest.json
