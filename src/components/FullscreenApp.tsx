@@ -8,11 +8,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { CubeScene } from './cube'
 import { LoginForm, AuthNudgeModal } from './auth'
+import { BYOSettings } from './byo'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
 import { useChat } from '@/hooks/useChat'
+import { useBYO } from '@/hooks/useBYO'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './cube/Cube'
 
@@ -30,6 +32,10 @@ export function FullscreenApp() {
   const [showNudgeModal, setShowNudgeModal] = useState(false)
   const [nudgeCta, setNudgeCta] = useState('')
   const [isDark, setIsDark] = useState(true)
+  const [showBYOSettings, setShowBYOSettings] = useState(false)
+
+  // BYO Mode
+  const { isBYOEnabled } = useBYO()
 
   // State machine (matching legacy)
   const [appState, setAppState] = useState<AppState>('idle')
@@ -349,6 +355,28 @@ export function FullscreenApp() {
                 </span>
                 <span className="text-sm opacity-60">{isDark ? 'Dark' : 'Light'}</span>
               </button>
+
+              {/* BYO Mode */}
+              <button
+                onClick={() => setShowBYOSettings(!showBYOSettings)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                  isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <span>🔑</span>
+                  <span>BYO Mode</span>
+                </span>
+                <span className={`text-sm ${isBYOEnabled ? 'text-green-400' : 'opacity-50'}`}>
+                  {isBYOEnabled ? 'ON' : 'OFF'}
+                </span>
+              </button>
+
+              {showBYOSettings && (
+                <div className={`mt-2 rounded-lg ${isDark ? 'bg-white/5' : 'bg-black/5'}`}>
+                  <BYOSettings onClose={() => setShowBYOSettings(false)} />
+                </div>
+              )}
             </div>
 
             {/* Account */}

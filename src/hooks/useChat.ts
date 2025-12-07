@@ -9,6 +9,31 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { ColorName } from '@/config/colors'
 import type { ConversationEntry, AIResponse } from '@/lib/ai'
+import { BYO_STORAGE_KEY, type BYOConfig } from '@/lib/byo/types'
+
+// Helper to get BYO headers from localStorage
+function getBYOHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') return {}
+
+  try {
+    const stored = localStorage.getItem(BYO_STORAGE_KEY)
+    if (!stored) return {}
+
+    const config: BYOConfig = JSON.parse(stored)
+    if (!config.enabled) return {}
+
+    const headers: Record<string, string> = {}
+    if (config.claudeApiKey) {
+      headers['x-byo-claude-key'] = config.claudeApiKey
+    }
+    if (config.openaiApiKey) {
+      headers['x-byo-openai-key'] = config.openaiApiKey
+    }
+    return headers
+  } catch {
+    return {}
+  }
+}
 
 interface UseChatOptions {
   sessionId: string | null
@@ -205,7 +230,10 @@ export function useChat(options: UseChatOptions) {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getBYOHeaders() // Add BYO API keys if enabled
+        },
         body: JSON.stringify({
           message,
           conversationHistory: state.conversationHistory,

@@ -26,9 +26,10 @@ const supabaseAdmin = createClient(
 // Claude API call with prompt caching
 async function callClaude(
   systemPrompt: string,
-  messages: { role: string; content: string }[]
+  messages: { role: string; content: string }[],
+  byoApiKey?: string | null
 ): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  const apiKey = byoApiKey || process.env.ANTHROPIC_API_KEY
 
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY not configured')
@@ -93,9 +94,10 @@ async function callClaude(
 // OpenAI API call (fallback)
 async function callOpenAI(
   systemPrompt: string,
-  messages: { role: string; content: string }[]
+  messages: { role: string; content: string }[],
+  byoApiKey?: string | null
 ): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY
+  const apiKey = byoApiKey || process.env.OPENAI_API_KEY
 
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY not configured')
@@ -168,6 +170,11 @@ export async function POST(request: NextRequest) {
     const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string } = await request.json()
     const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region } = body
 
+    // Get BYO API keys from headers (if user has BYO mode enabled)
+    const byoClaudeKey = request.headers.get('x-byo-claude-key')
+    const byoOpenaiKey = request.headers.get('x-byo-openai-key')
+    const isBYO = !!(byoClaudeKey || byoOpenaiKey)
+
     // Get region from body or header
     const regionId = region || request.headers.get('x-user-region')
 
@@ -220,11 +227,11 @@ export async function POST(request: NextRequest) {
 
     // Try Claude first (primary)
     try {
-      content = await callClaude(fullSystemPrompt, messages)
+      content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
     } catch (claudeError) {
       // Fallback to OpenAI
       try {
-        content = await callOpenAI(fullSystemPrompt, messages)
+        content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
         provider = 'openai'
       } catch {
         throw new Error('Both AI providers failed')
@@ -236,7 +243,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ...aiResponse,
-      provider
+      provider,
+      byo: isBYO // Indicate if BYO keys were used
     })
 
   } catch (error) {
@@ -258,7 +266,7 @@ export async function OPTIONS() {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
+      'Access-Control-Allow-Headers': 'Content-Type, x-byo-claude-key, x-byo-openai-key'
     }
   })
 }
