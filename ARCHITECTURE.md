@@ -697,6 +697,75 @@ useFrame((_, delta) => {
 
 ---
 
-**Architecture Version**: 3.2.0
+## BYO Mode (Bring Your Own API Keys)
+
+Users can use their own API keys for complete cost isolation.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        CLIENT SIDE                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  BYOSettings.tsx (UI in hamburger menu)                        │
+│      ↓                                                          │
+│  useBYO.ts → localStorage: cubiqo_byo_config                   │
+│  {                                                              │
+│    enabled: boolean,                                            │
+│    claudeApiKey: string | null,                                │
+│    openaiApiKey: string | null                                 │
+│  }                                                              │
+│      ↓                                                          │
+│  useChat.ts → getBYOHeaders()                                  │
+│      ↓                                                          │
+│  HTTP Headers: x-byo-claude-key, x-byo-openai-key              │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                       SERVER SIDE                               │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  /api/chat/route.ts                                            │
+│      ├─ Read: x-byo-claude-key, x-byo-openai-key               │
+│      └─ Use BYO key || process.env fallback                    │
+│                                                                 │
+│  /api/extract-memories/route.ts                                │
+│      ├─ Read: x-byo-claude-key                                 │
+│      └─ Use BYO key || process.env fallback                    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/byo/types.ts` | BYOConfig interface + localStorage key |
+| `src/hooks/useBYO.ts` | Hook for managing BYO state |
+| `src/components/byo/BYOSettings.tsx` | UI panel for key input |
+| `src/hooks/useChat.ts` | Adds BYO headers to API calls |
+| `src/app/api/chat/route.ts` | Reads BYO headers, uses for AI calls |
+| `src/app/api/extract-memories/route.ts` | Reads BYO header for memory extraction |
+
+### Security
+
+- Keys stored only in client localStorage
+- Transmitted via HTTPS headers (not body)
+- Server never logs full keys (only boolean `!!key`)
+- No fallback to server key when BYO enabled (full isolation)
+
+### User Flow
+
+1. Open menu → Settings → BYO Mode
+2. Toggle ON
+3. Enter Claude API key (and/or OpenAI)
+4. Click "Save Keys"
+5. All subsequent API calls use user's key
+
+---
+
+**Architecture Version**: 3.3.0
 **Last Updated**: December 7, 2025
-**Status**: Phase 2 Complete + Generator PoC + Settings Cube
+**Status**: Phase 2 Complete + Generator PoC + Settings Cube + BYO Mode

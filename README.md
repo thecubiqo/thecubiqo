@@ -21,6 +21,7 @@ Emotional AI companion with persistent memory and voice interface.
 | 📱 **PWA** | Installable, offline-capable |
 | 🌍 **Regional Routing** | Geo-based customization (UK, etc.) |
 | ⚙️ **Settings Cube** | Terminal-style cube configuration demo |
+| 🔑 **BYO Mode** | Use your own API keys for complete cost isolation |
 
 ---
 
@@ -79,11 +80,13 @@ src/
 │   └── FullscreenApp.tsx      # Main app
 ├── hooks/
 │   ├── useAuth.ts
+│   ├── useBYO.ts              # BYO API keys management
 │   ├── useChat.ts
 │   ├── useSession.ts
 │   └── useSpeech*.ts
 ├── lib/
 │   ├── ai/                    # AI providers, prompts
+│   ├── byo/                   # BYO types and constants
 │   ├── config/                # Regional configuration
 │   ├── settings-cube/         # Settings Cube types/commands
 │   └── supabase/              # DB client
@@ -138,4 +141,4 @@ NEXT_PUBLIC_APP_URL=
 
 ---
 
-**Version:** 3.2.0 • **Updated:** 2025-12-07 • **Phase 2 + Generator PoC + Settings Cube**
+**Version:** 3.3.0 • **Updated:** 2025-12-07 • **Phase 2 + Generator PoC + Settings Cube + BYO Mode**
