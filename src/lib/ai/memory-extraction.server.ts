@@ -5,8 +5,8 @@
  * This file should only be imported in server components/routes
  */
 
-// Use Haiku for cost-effective extraction
-const EXTRACTION_MODEL = 'claude-3-5-haiku-20241022'
+// Use Haiku 4.5 for cost-effective extraction
+const EXTRACTION_MODEL = 'claude-haiku-4-5-20251001'
 
 export interface ExtractedMemory {
   key: string

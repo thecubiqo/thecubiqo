@@ -175,6 +175,12 @@ export async function POST(request: NextRequest) {
     const byoOpenaiKey = request.headers.get('x-byo-openai-key')
     const isBYO = !!(byoClaudeKey || byoOpenaiKey)
 
+    console.log('[BYO API] Headers received:', {
+      hasByoClaudeKey: !!byoClaudeKey,
+      hasByoOpenaiKey: !!byoOpenaiKey,
+      isBYO
+    })
+
     // Get region from body or header
     const regionId = region || request.headers.get('x-user-region')
 

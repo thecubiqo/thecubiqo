@@ -36,14 +36,20 @@ export function useBYO() {
     saveConfig({ ...config, enabled: !config.enabled })
   }, [config, saveConfig])
 
-  // Update API keys
+  // Update API keys (reads fresh from localStorage to avoid stale closure)
   const setApiKeys = useCallback((claude: string | null, openai: string | null) => {
-    saveConfig({
-      ...config,
+    // Get fresh state from localStorage to avoid race condition
+    const stored = localStorage.getItem(BYO_STORAGE_KEY)
+    const freshConfig: BYOConfig = stored ? JSON.parse(stored) : defaultBYOConfig
+
+    const newConfig = {
+      ...freshConfig,
       claudeApiKey: claude,
       openaiApiKey: openai,
-    })
-  }, [config, saveConfig])
+    }
+    console.log('[useBYO] setApiKeys - freshConfig.enabled:', freshConfig.enabled, 'saving:', newConfig)
+    saveConfig(newConfig)
+  }, [saveConfig])
 
   // Clear all keys
   const clearKeys = useCallback(() => {

@@ -26,10 +26,18 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
   }, [config])
 
   const handleSave = () => {
-    setApiKeys(
-      claudeKey.trim() || null,
-      openaiKey.trim() || null
-    )
+    const claudeKeyTrimmed = claudeKey.trim() || null
+    const openaiKeyTrimmed = openaiKey.trim() || null
+    console.log('[BYO Settings] Saving keys:', {
+      hasClaude: !!claudeKeyTrimmed,
+      hasOpenai: !!openaiKeyTrimmed
+    })
+    setApiKeys(claudeKeyTrimmed, openaiKeyTrimmed)
+    // Verify save
+    setTimeout(() => {
+      const stored = localStorage.getItem('cubiqo_byo_config')
+      console.log('[BYO Settings] Verification - stored:', stored)
+    }, 100)
     onClose?.()
   }
 

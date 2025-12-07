@@ -17,20 +17,29 @@ function getBYOHeaders(): Record<string, string> {
 
   try {
     const stored = localStorage.getItem(BYO_STORAGE_KEY)
+    console.log('[BYO Debug] localStorage raw:', stored)
     if (!stored) return {}
 
     const config: BYOConfig = JSON.parse(stored)
-    if (!config.enabled) return {}
+    console.log('[BYO Debug] parsed config:', { enabled: config.enabled, hasClaudeKey: !!config.claudeApiKey, hasOpenaiKey: !!config.openaiApiKey })
+    if (!config.enabled) {
+      console.log('[BYO Debug] BYO not enabled, returning empty headers')
+      return {}
+    }
 
     const headers: Record<string, string> = {}
     if (config.claudeApiKey) {
       headers['x-byo-claude-key'] = config.claudeApiKey
+      console.log('[BYO Debug] Adding Claude key header')
     }
     if (config.openaiApiKey) {
       headers['x-byo-openai-key'] = config.openaiApiKey
+      console.log('[BYO Debug] Adding OpenAI key header')
     }
+    console.log('[BYO Debug] Final headers count:', Object.keys(headers).length)
     return headers
-  } catch {
+  } catch (e) {
+    console.error('[BYO Debug] Error parsing config:', e)
     return {}
   }
 }
