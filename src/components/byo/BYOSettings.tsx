@@ -45,19 +45,19 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Header */}
+    <div className="p-4 space-y-3">
+      {/* Header with Toggle */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">BYO Mode</h2>
+        <h2 className="text-base font-semibold">BYO Mode</h2>
         <button
           onClick={toggleBYO}
-          className={`relative w-12 h-6 rounded-full transition-colors ${
+          className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
             isBYOEnabled ? 'bg-green-500' : 'bg-gray-600'
           }`}
         >
           <span
-            className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-              isBYOEnabled ? 'translate-x-7' : 'translate-x-1'
+            className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 ${
+              isBYOEnabled ? 'translate-x-5' : 'translate-x-0'
             }`}
           />
         </button>

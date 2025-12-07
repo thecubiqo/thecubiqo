@@ -301,13 +301,13 @@ export function FullscreenApp() {
       {menuOpen && (
         <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm" onClick={() => setMenuOpen(false)}>
           <div
-            className={`absolute right-0 top-0 bottom-0 w-72 max-w-[85vw] p-6 ${
+            className={`absolute right-0 top-0 bottom-0 w-72 max-w-[85vw] flex flex-col ${
               isDark ? 'bg-zinc-900' : 'bg-white'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            {/* Header - Fixed */}
+            <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
               <h2 className="text-lg font-semibold">Menu</h2>
               <button onClick={() => setMenuOpen(false)} className="opacity-60 hover:opacity-100">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -315,6 +315,9 @@ export function FullscreenApp() {
                 </svg>
               </button>
             </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto px-6 pb-6">
 
             {/* Navigation */}
             <nav className="space-y-2 mb-8">
@@ -421,6 +424,7 @@ export function FullscreenApp() {
                 </button>
               )}
             </div>
+            </div>{/* End Scrollable Content */}
           </div>
         </div>
       )}
