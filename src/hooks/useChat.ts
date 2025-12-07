@@ -291,7 +291,10 @@ export function useChat(options: UseChatOptions) {
       if (sessionId) {
         fetch('/api/extract-memories', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...getBYOHeaders() // Add BYO API keys if enabled
+          },
           body: JSON.stringify({
             sessionId,
             userMessage: message,

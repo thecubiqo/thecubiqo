@@ -17,6 +17,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { sessionId, userMessage, aiResponse, existingMemories = [] } = body
 
+    // Get BYO API key from header (if user has BYO mode enabled)
+    const byoClaudeKey = request.headers.get('x-byo-claude-key')
+
     if (!sessionId || !userMessage || !aiResponse) {
       return NextResponse.json(
         { error: 'sessionId, userMessage, and aiResponse required' },
@@ -24,11 +27,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Extract memories using Haiku
+    // Extract memories using Haiku (with BYO key if provided)
     const extracted = await extractMemories(
       userMessage,
       aiResponse,
-      existingMemories
+      existingMemories,
+      byoClaudeKey || undefined
     )
 
     if (extracted.length === 0) {
@@ -75,4 +79,16 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// Handle OPTIONS for CORS (BYO headers)
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, x-byo-claude-key'
+    }
+  })
 }

@@ -52,9 +52,11 @@ Previous known facts about user:
 export async function extractMemories(
   userMessage: string,
   aiResponse: string,
-  existingMemories: Array<{ key: string; value: string }> = []
+  existingMemories: Array<{ key: string; value: string }> = [],
+  byoApiKey?: string
 ): Promise<ExtractedMemory[]> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  // BYO key takes priority over server key
+  const apiKey = byoApiKey || process.env.ANTHROPIC_API_KEY
 
   if (!apiKey) {
     console.error('[MemoryExtraction] No API key available')
