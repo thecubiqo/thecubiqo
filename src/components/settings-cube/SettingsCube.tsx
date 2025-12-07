@@ -5,7 +5,7 @@
  * 3D cube with code textures on side faces
  */
 
-import { useRef, useMemo } from 'react'
+import { useRef, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
@@ -19,18 +19,18 @@ interface SettingsCubeProps {
 }
 
 export function SettingsCube({ config, commands }: SettingsCubeProps) {
-  const meshRef = useRef<THREE.Mesh>(null)
-  const eyeLeftRef = useRef<THREE.Mesh>(null)
-  const eyeRightRef = useRef<THREE.Mesh>(null)
+  const groupRef = useRef<THREE.Group>(null)
+  const materialsRef = useRef<THREE.Material[]>([])
+  const glowRef = useRef<THREE.PointLight>(null)
 
   // Create textures for code panels
   const commandsTexture = useCodeTexture({ commands, type: 'commands' })
   const configTexture = useCodeTexture({ commands, config, type: 'config' })
 
-  const colorConfig = useMemo(() => getColor(config.color), [config.color])
+  const colorConfig = getColor(config.color)
 
-  // Create materials for each face
-  const materials = useMemo(() => {
+  // Update materials when color changes
+  useEffect(() => {
     const baseMaterial = new THREE.MeshPhysicalMaterial({
       color: colorConfig.hex,
       metalness: 0.4,
@@ -47,7 +47,7 @@ export function SettingsCube({ config, commands }: SettingsCubeProps) {
           transparent: true,
           opacity: 0.95,
         })
-      : baseMaterial
+      : baseMaterial.clone()
 
     const codeMaterialRight = configTexture
       ? new THREE.MeshBasicMaterial({
@@ -55,80 +55,90 @@ export function SettingsCube({ config, commands }: SettingsCubeProps) {
           transparent: true,
           opacity: 0.95,
         })
-      : baseMaterial
+      : baseMaterial.clone()
 
     // Face order: [+X, -X, +Y, -Y, +Z, -Z] = [right, left, top, bottom, front, back]
-    return [
+    materialsRef.current = [
       codeMaterialRight, // Right face - config state
       codeMaterialLeft,  // Left face - command history
-      baseMaterial,      // Top
-      baseMaterial,      // Bottom
-      baseMaterial,      // Front (will have eyes)
-      baseMaterial,      // Back
+      baseMaterial.clone(), // Top
+      baseMaterial.clone(), // Bottom
+      baseMaterial.clone(), // Front (will have eyes)
+      baseMaterial.clone(), // Back
     ]
+
+    // Update glow light color
+    if (glowRef.current) {
+      glowRef.current.color.setHex(colorConfig.hex)
+      glowRef.current.intensity = colorConfig.glowIntensity * 0.3
+    }
   }, [colorConfig, commandsTexture, configTexture])
 
-  // Animation based on state
+  // Animation
   useFrame((state, delta) => {
-    if (!meshRef.current) return
+    if (!groupRef.current) return
 
-    // Gentle rotation
-    meshRef.current.rotation.y += delta * 0.15
+    // Gentle rotation - entire group including eyes
+    groupRef.current.rotation.y += delta * 0.15
 
     // Breathing animation
     const breathe = Math.sin(state.clock.elapsedTime * colorConfig.breathingSpeed) * 0.02
-    meshRef.current.scale.setScalar(1 + breathe)
-
-    // Eye tracking (simplified)
-    if (eyeLeftRef.current && eyeRightRef.current) {
-      const lookX = Math.sin(state.clock.elapsedTime * 0.5) * 0.05
-      const lookY = Math.cos(state.clock.elapsedTime * 0.3) * 0.03
-
-      eyeLeftRef.current.position.x = -0.35 + lookX
-      eyeLeftRef.current.position.y = 0.2 + lookY
-      eyeRightRef.current.position.x = 0.35 + lookX
-      eyeRightRef.current.position.y = 0.2 + lookY
-    }
+    groupRef.current.scale.setScalar(1 + breathe)
   })
 
   return (
-    <group>
-      {/* Main cube */}
-      <mesh ref={meshRef}>
+    <group ref={groupRef}>
+      {/* Main cube with materials */}
+      <mesh>
         <RoundedBox args={[2, 2, 2]} radius={0.12} smoothness={4}>
-          {materials.map((mat, i) => (
-            <primitive key={i} object={mat} attach={`material-${i}`} />
-          ))}
+          {materialsRef.current.length > 0 ? (
+            materialsRef.current.map((mat, i) => (
+              <primitive key={`${i}-${config.color}`} object={mat} attach={`material-${i}`} />
+            ))
+          ) : (
+            <meshPhysicalMaterial
+              color={colorConfig.hex}
+              metalness={0.4}
+              roughness={0.3}
+              transparent
+              opacity={0.9}
+              emissive={colorConfig.emissive}
+              emissiveIntensity={colorConfig.glowIntensity * 0.5}
+            />
+          )}
         </RoundedBox>
       </mesh>
 
-      {/* Eyes on front face - positioned outside the cube rotation */}
-      <group position={[0, 0, 0]}>
-        {/* Left eye */}
-        <mesh ref={eyeLeftRef} position={[-0.35, 0.2, 1.02]}>
+      {/* Eyes on front face - inside the group so they rotate together */}
+      {/* Left eye */}
+      <group position={[-0.35, 0.2, 1.02]}>
+        <mesh>
           <circleGeometry args={[0.18, 32]} />
           <meshBasicMaterial color={0x000000} />
-          {/* Pupil */}
-          <mesh position={[0, 0, 0.01]}>
-            <circleGeometry args={[0.08, 32]} />
-            <meshBasicMaterial color={0xffffff} />
-          </mesh>
         </mesh>
+        {/* Pupil */}
+        <mesh position={[0, 0, 0.01]}>
+          <circleGeometry args={[0.08, 32]} />
+          <meshBasicMaterial color={0xffffff} />
+        </mesh>
+      </group>
 
-        {/* Right eye */}
-        <mesh ref={eyeRightRef} position={[0.35, 0.2, 1.02]}>
+      {/* Right eye */}
+      <group position={[0.35, 0.2, 1.02]}>
+        <mesh>
           <circleGeometry args={[0.18, 32]} />
           <meshBasicMaterial color={0x000000} />
-          {/* Pupil */}
-          <mesh position={[0, 0, 0.01]}>
-            <circleGeometry args={[0.08, 32]} />
-            <meshBasicMaterial color={0xffffff} />
-          </mesh>
+        </mesh>
+        {/* Pupil */}
+        <mesh position={[0, 0, 0.01]}>
+          <circleGeometry args={[0.08, 32]} />
+          <meshBasicMaterial color={0xffffff} />
         </mesh>
       </group>
 
       {/* Glow effect */}
       <pointLight
+        ref={glowRef}
         position={[0, 0, 2]}
         color={colorConfig.hex}
         intensity={colorConfig.glowIntensity * 0.3}
