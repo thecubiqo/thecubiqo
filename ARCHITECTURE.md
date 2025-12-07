@@ -576,6 +576,127 @@ NEXT_PUBLIC_SITE_URL=https://cubiqo.ai
 
 ---
 
-**Architecture Version**: 3.1.0
-**Last Updated**: November 28, 2025
-**Status**: Phase 2 Complete + Memory Extraction
+---
+
+## Generator System (Regional Routing)
+
+CUBIQO supports region-based customization through geo-routing.
+
+### Architecture
+
+```
+generator/
+├── config/
+│   ├── schema.json          # JSON schema for validation
+│   └── regions/
+│       └── uk.json          # UK regional config
+│
+└── templates/
+    └── world/
+        ├── page.tsx         # Regional landing template
+        └── layout.tsx       # Regional layout
+```
+
+### Regional Routing Flow
+
+```
+User visits cubiqo.ai
+        │
+        ▼
+Middleware checks x-vercel-ip-country header
+        │
+        ├─ GB → Redirect to /uk
+        ├─ IN → Redirect to /in (future)
+        └─ Other → Stay on /
+        │
+        ▼
+/[region]/layout.tsx loads RegionConfig
+        │
+        ▼
+RegionProvider wraps children
+        │
+        ▼
+AI prompt includes regional tone modifiers
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/middleware.ts` (proxy.ts) | Geo-routing based on country |
+| `src/lib/config/regions.ts` | RegionConfig interface |
+| `src/app/[region]/layout.tsx` | Regional layout with context |
+| `generator/config/regions/*.json` | Regional configurations |
+
+---
+
+## Settings Cube (PoC)
+
+Interactive demo showcasing real-time cube configuration via terminal commands.
+
+### Data Flow
+
+```
+CommandInput.tsx → onExecute(cmd)
+        ↓
+SettingsCubeApp.tsx → parseCommand() → executeCommand() → setConfig(newConfig)
+        ↓
+SettingsCube.tsx → colorConfig changes → useFrame updates material
+```
+
+### Key Components
+
+| Component | Purpose |
+|-----------|---------|
+| `SettingsCubeApp` | Main container with Canvas + CommandInput |
+| `SettingsCube` | 3D cube with materialRef + color lerp in useFrame |
+| `CommandInput` | Terminal-style input with preset buttons |
+| `useCodeTexture` | Canvas texture for code panels on side faces |
+
+### Command API
+
+```typescript
+cubiqo.color.lock('RED')        // Change cube color
+cubiqo.color.lock('YELLOW')
+cubiqo.color.lock('GREEN_BLUE')
+cubiqo.color.lock('ORANGE')
+
+cubiqo.animation.set('listening')  // Change animation
+cubiqo.animation.set('thinking')
+cubiqo.animation.set('speaking')
+
+cubiqo.reset()                     // Reset to defaults
+```
+
+### Key Pattern: Material Updates in R3F
+
+**Wrong** (useEffect + materialsRef mutation):
+```typescript
+// Does NOT trigger React re-render
+useEffect(() => {
+  materialsRef.current = [new THREE.Material(...)]
+}, [colorConfig])
+```
+
+**Correct** (materialRef + useFrame lerp):
+```typescript
+const materialRef = useRef<THREE.MeshPhysicalMaterial>(null)
+
+useMemo(() => {
+  stateRef.current.targetColor = new THREE.Color(colorConfig.hex)
+}, [colorConfig])
+
+useFrame((_, delta) => {
+  state.currentColor.lerp(state.targetColor, delta * 3)
+  materialRef.current.color.copy(state.currentColor)
+})
+
+// In JSX
+<meshPhysicalMaterial ref={materialRef} color={colorConfig.hex} />
+```
+
+---
+
+**Architecture Version**: 3.2.0
+**Last Updated**: December 7, 2025
+**Status**: Phase 2 Complete + Generator PoC + Settings Cube

@@ -19,6 +19,8 @@ Emotional AI companion with persistent memory and voice interface.
 | 👤 **Guest Mode** | Chat without sign-in, migrate on auth |
 | 🎨 **Fourth Way Colors** | Orange (home), Red, Yellow, Green-Blue |
 | 📱 **PWA** | Installable, offline-capable |
+| 🌍 **Regional Routing** | Geo-based customization (UK, etc.) |
+| ⚙️ **Settings Cube** | Terminal-style cube configuration demo |
 
 ---
 
@@ -67,19 +69,32 @@ src/
 │   │   ├── chat/              # AI routing + memory
 │   │   ├── extract-memories/  # Async fact extraction
 │   │   └── session/           # Session management
-│   └── auth/callback/         # Magic link handler
+│   ├── auth/callback/         # Magic link handler
+│   ├── settings-cube/         # Settings Cube demo
+│   └── [region]/              # Regional pages (UK, etc.)
 ├── components/
 │   ├── auth/                  # Login, auth status
 │   ├── cube/                  # 3D cube (R3F)
+│   ├── settings-cube/         # Settings Cube components
 │   └── FullscreenApp.tsx      # Main app
 ├── hooks/
 │   ├── useAuth.ts
 │   ├── useChat.ts
 │   ├── useSession.ts
 │   └── useSpeech*.ts
-└── lib/
-    ├── ai/                    # AI providers, prompts
-    └── supabase/              # DB client
+├── lib/
+│   ├── ai/                    # AI providers, prompts
+│   ├── config/                # Regional configuration
+│   ├── settings-cube/         # Settings Cube types/commands
+│   └── supabase/              # DB client
+└── contexts/
+    └── RegionContext.tsx      # Regional context provider
+
+generator/
+├── config/
+│   ├── schema.json            # JSON schema for validation
+│   └── regions/               # Regional configs (uk.json, etc.)
+└── templates/                 # Template files for generation
 ```
 
 ---
@@ -123,4 +138,4 @@ NEXT_PUBLIC_APP_URL=
 
 ---
 
-**Version:** 3.1.0 • **Updated:** 2025-11-28 • **Phase 2 Complete**
+**Version:** 3.2.0 • **Updated:** 2025-12-07 • **Phase 2 + Generator PoC + Settings Cube**
