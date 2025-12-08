@@ -58,8 +58,12 @@ export function FullscreenApp() {
   // Track if we should show auth nudge modal after speaking
   const nudgeCtaRef = useRef<string | null>(null)
 
+  // Check if world has multiple voice profiles (Headlines)
+  const { config: worldConfig } = useWorld()
+  const hasMultiVoice = (worldConfig?.ai?.voiceProfiles?.length ?? 0) > 1
+
   // TTS for AI responses
-  const { speak, stop: stopSpeaking, isSpeaking, error: ttsError } = useSpeechSynthesis({
+  const { speak, speakMultiVoice, stop: stopSpeaking, isSpeaking, error: ttsError } = useSpeechSynthesis({
     rate: 0.92,
     pitch: 1.05,
     onStart: () => {
@@ -114,7 +118,12 @@ export function FullscreenApp() {
           }
 
           // Transition: thinking → speaking (handled by TTS onStart)
-          speak(responseText)
+          // Use multi-voice for worlds with voice profiles (Headlines)
+          if (hasMultiVoice) {
+            speakMultiVoice(responseText)
+          } else {
+            speak(responseText)
+          }
         } else {
           // No response, back to idle
           setAppState('idle')
