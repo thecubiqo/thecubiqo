@@ -213,6 +213,43 @@ AI responses should mark speakers:
 - `[HARI]: <assertive take>`
 - `[INGLE]: <analytical counterpoint>`
 
+### Multi-Voice TTS
+
+When a world has `voiceProfiles`, the app automatically uses gender-based voice selection:
+
+1. **Voice Detection**: System detects browser voices by name patterns
+   - Female: Samantha, Siri, Karen, Victoria, Kate, Fiona, Zira, Sara, Anna...
+   - Male: David, James, John, Daniel, Mark, Tom, Alex, George...
+
+2. **Parsing**: `speakMultiVoice()` parses `[HARI]:` and `[INGLE]:` markers
+
+3. **Sequential Speech**: Each segment is spoken with the appropriate voice
+   ```
+   [HARI]: I think this is great! → Male voice
+   [INGLE]: But consider the risks. → Female voice
+   ```
+
+4. **Fallback**: If gender-specific voice not found, uses default browser voice
+
+### useSpeechSynthesis API
+
+```typescript
+import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
+
+const { speak, speakMultiVoice, stop } = useSpeechSynthesis({
+  rate: 0.92,
+  pitch: 1.05,
+  gender: 'female',  // default gender
+})
+
+// Single voice
+speak("Hello world")
+speak("Hello", 'male')  // override gender
+
+// Multi-voice (for Headlines)
+speakMultiVoice("[HARI]: Yes! [INGLE]: No!")
+```
+
 ## Vocspad Specifics
 
 Vocspad enables keyboard input in addition to voice:
