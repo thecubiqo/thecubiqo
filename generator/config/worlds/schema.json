@@ -1,0 +1,187 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cubiqo.ai/schemas/world-config.json",
+  "title": "WorldConfig",
+  "description": "Configuration schema for CUBIQO worlds (products and regions)",
+  "type": "object",
+  "required": ["id", "type", "name", "description", "routing", "appearance", "features", "ai"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Unique world identifier (lowercase, alphanumeric, hyphens)"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["region", "product"],
+      "description": "World type: 'region' for geo-based, 'product' for feature-based"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Display name for the world"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description for UI and documentation"
+    },
+    "routing": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^/[a-z][a-z0-9-]*$",
+          "description": "URL path (e.g., '/uk', '/headlines')"
+        },
+        "domain": {
+          "type": ["string", "null"],
+          "description": "Optional custom domain (e.g., 'headlines.ai')"
+        },
+        "geoTrigger": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$",
+          "description": "ISO 3166-1 alpha-2 country code for geo-routing"
+        }
+      }
+    },
+    "appearance": {
+      "type": "object",
+      "required": ["defaultColor", "theme"],
+      "properties": {
+        "defaultColor": {
+          "type": "string",
+          "enum": ["ORANGE", "RED", "YELLOW", "GREEN_BLUE"],
+          "description": "Default cube color"
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["dark", "light", "system"],
+          "description": "UI theme"
+        },
+        "cubeVariant": {
+          "type": "string",
+          "description": "Cube variant identifier for custom styling"
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "required": ["voice", "chat", "memory", "auth"],
+      "properties": {
+        "voice": {
+          "type": "boolean",
+          "description": "Enable voice input/output"
+        },
+        "chat": {
+          "type": "boolean",
+          "description": "Enable chat interface"
+        },
+        "memory": {
+          "type": "boolean",
+          "description": "Enable memory extraction"
+        },
+        "auth": {
+          "type": "boolean",
+          "description": "Enable authentication"
+        },
+        "keyboard": {
+          "type": "boolean",
+          "description": "Enable keyboard input (for Vocspad)"
+        },
+        "debate": {
+          "type": "boolean",
+          "description": "Enable debate mode (for Headlines)"
+        }
+      }
+    },
+    "ai": {
+      "type": "object",
+      "required": ["systemPrompt", "toneModifiers"],
+      "properties": {
+        "systemPrompt": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Full system prompt for AI personality"
+        },
+        "toneModifiers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tone modifiers (e.g., ['polite', 'concise'])"
+        },
+        "voiceProfiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "gender", "tone"],
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "gender": { "type": "string", "enum": ["male", "female"] },
+              "tone": { "type": "string" }
+            }
+          },
+          "description": "Voice personas for multi-voice worlds (Headlines)"
+        }
+      }
+    },
+    "regional": {
+      "type": "object",
+      "description": "Regional-specific config (only for type: 'region')",
+      "required": ["countryCode", "locale", "timezone", "currency", "dialects", "festivals", "greetings"],
+      "properties": {
+        "countryCode": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$",
+          "description": "ISO 3166-1 alpha-2 country code"
+        },
+        "locale": {
+          "type": "string",
+          "pattern": "^[a-z]{2}-[A-Z]{2}$",
+          "description": "BCP 47 locale (e.g., 'en-GB')"
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA timezone (e.g., 'Europe/London')"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "ISO 4217 currency code"
+        },
+        "dialects": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Language dialects"
+        },
+        "festivals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "date", "type"],
+            "properties": {
+              "name": { "type": "string" },
+              "date": { "type": "string", "pattern": "^(\\d{2}-\\d{2}|variable)$" },
+              "type": { "type": "string", "enum": ["national", "religious", "cultural"] }
+            }
+          }
+        },
+        "greetings": {
+          "type": "object",
+          "required": ["morning", "afternoon", "evening"],
+          "properties": {
+            "morning": { "type": "string" },
+            "afternoon": { "type": "string" },
+            "evening": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": { "type": { "const": "region" } }
+  },
+  "then": {
+    "required": ["regional"]
+  }
+}

@@ -15,6 +15,7 @@ import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
 import { useChat } from '@/hooks/useChat'
 import { useBYO } from '@/hooks/useBYO'
+import { useWorld } from '@/contexts/WorldContext'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './cube/Cube'
 
@@ -24,6 +25,7 @@ type AppState = 'idle' | 'listening' | 'thinking' | 'speaking'
 export function FullscreenApp() {
   const { session, isGuest, isLoading: sessionLoading } = useSession()
   const { user, isAuthenticated, signOut } = useAuth()
+  const { worldId } = useWorld()
 
   const [colorName, setColorName] = useState<ColorName>('ORANGE')
   const [animationState, setAnimationState] = useState<AnimationState>('idle')
@@ -49,7 +51,8 @@ export function FullscreenApp() {
   const { sendMessage, isInitialized: chatInitialized } = useChat({
     sessionId: session?.id ?? null,
     isGuest,
-    onColorChange: setColorName
+    onColorChange: setColorName,
+    worldId
   })
 
   // Track if we should show auth nudge modal after speaking

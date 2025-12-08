@@ -16,6 +16,7 @@ import {
 } from '@/lib/ai'
 import { buildMemoryContext } from '@/lib/ai/memory-extraction.server'
 import { getRegionConfig, buildRegionalPrompt } from '@/lib/config/regions'
+import { getWorldConfig, buildWorldPrompt } from '@/lib/config/worlds'
 
 // Server-side Supabase client for loading memories
 const supabaseAdmin = createClient(
@@ -167,8 +168,8 @@ Remember: This is about creating an emotional moment with an easy next step, not
 
 export async function POST(request: NextRequest) {
   try {
-    const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string } = await request.json()
-    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region } = body
+    const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string; worldId?: string } = await request.json()
+    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region, worldId: bodyWorldId } = body
 
     // Get BYO API keys from headers (if user has BYO mode enabled)
     const byoClaudeKey = request.headers.get('x-byo-claude-key')
@@ -181,7 +182,10 @@ export async function POST(request: NextRequest) {
       isBYO
     })
 
-    // Get region from body or header
+    // Get world ID from body or header (for product worlds like Headlines, Vocspad)
+    const worldId = bodyWorldId || request.headers.get('x-user-world')
+
+    // Get region from body or header (for regional worlds like UK)
     const regionId = region || request.headers.get('x-user-region')
 
     if (!message) {
@@ -211,9 +215,22 @@ export async function POST(request: NextRequest) {
     // Build messages with temporal context
     const messages = buildMessages(message, conversationHistory, currentColor)
 
-    // Build regional context (if user is in a regional version)
+    // Build world context (for product worlds like Headlines, Vocspad)
+    let worldContext = ''
+    if (worldId) {
+      try {
+        const worldConfig = await getWorldConfig(worldId)
+        if (worldConfig) {
+          worldContext = '\n\n--- WORLD CONTEXT ---\n' + buildWorldPrompt(worldConfig)
+        }
+      } catch {
+        // Ignore world config errors - not critical
+      }
+    }
+
+    // Build regional context (if user is in a regional version and no world context)
     let regionalContext = ''
-    if (regionId) {
+    if (regionId && !worldContext) {
       try {
         const regionConfig = await getRegionConfig(regionId)
         if (regionConfig) {
@@ -224,9 +241,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Build full system prompt with memory, regional context, and optional auth nudge
+    // Build full system prompt with memory, world/regional context, and optional auth nudge
     const authNudge = buildAuthNudgePrompt(isGuest, messageCount)
-    const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + regionalContext + authNudge
+    const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + worldContext + regionalContext + authNudge
 
     let content: string
     let provider: 'claude' | 'openai' = 'claude'
@@ -272,7 +289,7 @@ export async function OPTIONS() {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, x-byo-claude-key, x-byo-openai-key'
+      'Access-Control-Allow-Headers': 'Content-Type, x-byo-claude-key, x-byo-openai-key, x-user-world, x-user-region'
     }
   })
 }

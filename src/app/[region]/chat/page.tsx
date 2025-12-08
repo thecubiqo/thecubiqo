@@ -1,22 +1,24 @@
 'use client'
 
 /**
- * Regional Chat Page - Text-based chat interface with regional context
+ * World Chat Page - Text-based chat interface with world context
+ *
+ * Works for both regional worlds (/uk/chat) and product worlds (/headlines/chat)
  */
 
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { ChatContainer } from '@/components/chat'
 import { CubeScene } from '@/components/cube'
-import { RegionBadge } from '@/components/RegionBadge'
+import { WorldBadge } from '@/components/WorldBadge'
 import { useSession } from '@/hooks/useSession'
-import { useRegion } from '@/contexts/RegionContext'
+import { useWorld } from '@/contexts/WorldContext'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from '@/components/cube/Cube'
 
-export default function RegionalChatPage() {
+export default function WorldChatPage() {
   const { session } = useSession()
-  const { regionId, config } = useRegion()
+  const { worldId, config } = useWorld()
   const [colorName, setColorName] = useState<ColorName>(
     config?.appearance.defaultColor || 'ORANGE'
   )
@@ -26,13 +28,13 @@ export default function RegionalChatPage() {
     setAnimationState(isSpeaking ? 'speaking' : 'idle')
   }, [])
 
-  // Back link goes to regional home
-  const homeLink = regionId ? `/${regionId}` : '/'
+  // Back link goes to world home
+  const homeLink = worldId ? `/${worldId}` : '/'
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      {/* Region Badge (dev only) */}
-      <RegionBadge />
+      {/* World Badge (dev only) */}
+      <WorldBadge />
 
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 px-4 py-3 bg-zinc-950/90 backdrop-blur-sm border-b border-white/10">
@@ -73,7 +75,7 @@ export default function RegionalChatPage() {
               currentColor={colorName}
               onColorChange={setColorName}
               onSpeakingChange={handleSpeakingChange}
-              regionId={regionId}
+              regionId={worldId}
             />
           </div>
         </div>

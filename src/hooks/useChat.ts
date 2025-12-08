@@ -49,6 +49,7 @@ interface UseChatOptions {
   isGuest?: boolean
   onColorChange?: (color: ColorName) => void
   regionId?: string | null
+  worldId?: string | null
 }
 
 interface ChatState {
@@ -61,7 +62,7 @@ interface ChatState {
 }
 
 export function useChat(options: UseChatOptions) {
-  const { sessionId, isGuest = false, onColorChange, regionId } = options
+  const { sessionId, isGuest = false, onColorChange, regionId, worldId } = options
   const supabase = createClient()
   const lastSessionIdRef = useRef<string | null>(null)
 
@@ -250,7 +251,8 @@ export function useChat(options: UseChatOptions) {
           isGuest,
           messageCount: state.conversationHistory.length + 1,
           sessionId,
-          region: regionId || undefined
+          region: regionId || undefined,
+          worldId: worldId || undefined
         })
       })
 

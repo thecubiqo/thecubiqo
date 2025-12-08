@@ -1,43 +1,55 @@
 import { notFound } from 'next/navigation'
-import { getRegionConfig } from '@/lib/config/regions'
-import { RegionProvider } from '@/contexts/RegionContext'
+import { getWorldConfig, getAllWorlds, isValidWorld } from '@/lib/config/worlds'
+import { WorldProvider } from '@/contexts/WorldContext'
 
-// Valid region IDs
-const VALID_REGIONS = ['uk']
+/**
+ * Unified World/Region Layout
+ *
+ * Handles routing for all worlds:
+ * - Regional worlds: /uk, /in (geo-routing)
+ * - Product worlds: /headlines, /vocspad
+ *
+ * Uses [region] param name for backward compatibility with existing links.
+ */
 
-interface RegionalLayoutProps {
+interface WorldLayoutProps {
   children: React.ReactNode
-  params: Promise<{ region: string }>
+  params: Promise<{ region: string }> // Named 'region' for backward compat
 }
 
-export default async function RegionalLayout({
+export default async function WorldLayout({
   children,
   params,
-}: RegionalLayoutProps) {
-  const { region } = await params
+}: WorldLayoutProps) {
+  const { region: worldId } = await params
 
-  // Validate region
-  if (!VALID_REGIONS.includes(region)) {
+  // Validate world ID
+  if (!isValidWorld(worldId)) {
     notFound()
   }
 
-  // Load region config
-  const config = await getRegionConfig(region)
+  // Load world config
+  const config = await getWorldConfig(worldId)
 
   if (!config) {
     notFound()
   }
 
   return (
-    <RegionProvider config={config}>
-      <div data-region={region} data-flavor="regional">
+    <WorldProvider config={config}>
+      <div
+        data-world={worldId}
+        data-world-type={config.type}
+        data-flavor={config.type === 'region' ? 'regional' : 'world'}
+        className="min-h-screen bg-black"
+      >
         {children}
       </div>
-    </RegionProvider>
+    </WorldProvider>
   )
 }
 
-// Generate static params for known regions
+// Generate static params for all worlds (regions + products)
 export function generateStaticParams() {
-  return VALID_REGIONS.map((region) => ({ region }))
+  return getAllWorlds().map((region) => ({ region }))
 }

@@ -1,0 +1,50 @@
+{
+  "$schema": "./schema.json",
+  "id": "uk",
+  "type": "region",
+  "name": "United Kingdom",
+  "description": "Regional experience for UK users with British English and cultural context",
+
+  "routing": {
+    "path": "/uk",
+    "domain": null,
+    "geoTrigger": "GB"
+  },
+
+  "appearance": {
+    "defaultColor": "ORANGE",
+    "theme": "dark"
+  },
+
+  "features": {
+    "voice": true,
+    "chat": true,
+    "memory": true,
+    "auth": true
+  },
+
+  "ai": {
+    "systemPrompt": "You are Cubiqo, an emotional AI companion. Use British English spelling (colour, favourite, realise). Be familiar with UK culture, NHS, British weather chat, and dry humour. Understand references to tea time, football, and British TV. When appropriate, reference British cultural touchpoints like the BBC, pubs, the Royal Family, and typical British understatement.",
+    "toneModifiers": ["polite", "understated", "dry-humour"]
+  },
+
+  "regional": {
+    "countryCode": "GB",
+    "locale": "en-GB",
+    "timezone": "Europe/London",
+    "currency": "GBP",
+    "dialects": ["British English"],
+    "festivals": [
+      { "name": "New Year's Day", "date": "01-01", "type": "national" },
+      { "name": "Easter", "date": "variable", "type": "religious" },
+      { "name": "Christmas", "date": "12-25", "type": "national" },
+      { "name": "Boxing Day", "date": "12-26", "type": "national" },
+      { "name": "Bonfire Night", "date": "11-05", "type": "cultural" }
+    ],
+    "greetings": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    }
+  }
+}
