@@ -766,6 +766,126 @@ Users can use their own API keys for complete cost isolation.
 
 ---
 
-**Architecture Version**: 3.3.0
-**Last Updated**: December 7, 2025
-**Status**: Phase 2 Complete + Generator PoC + Settings Cube + BYO Mode
+---
+
+## World Generator
+
+System for creating product worlds (Headlines, Vocspad) with unified routing.
+
+### Architecture
+
+```
+Routes (unified [region] route):
+├── /                  → Main Cubiqo
+├── /uk                → UK regional world (geo-routing)
+├── /headlines         → Headlines product world
+├── /vocspad           → Vocspad product world
+├── /headlines/chat    → Headlines chat mode
+├── /vocspad/chat      → Vocspad chat mode
+└── SettingsCube       → Side Panel (available everywhere)
+```
+
+### World Types
+
+| Type | Examples | Description |
+|------|----------|-------------|
+| **Product** | headlines, vocspad | Feature-specific AI experiences |
+| **Regional** | uk, in | Geo-routed cultural adaptations |
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/config/worlds.ts` | WorldConfig interface + loader |
+| `src/contexts/WorldContext.tsx` | WorldProvider + useWorld() hook |
+| `generator/config/worlds/*.json` | World configurations |
+| `docs/WORLD-GENERATOR.md` | Full documentation |
+
+### Creating a New World
+
+```bash
+# 1. Copy template
+cp generator/config/worlds/headlines.json generator/config/worlds/myworld.json
+
+# 2. Edit JSON (name, systemPrompt, features)
+
+# 3. Register in VALID_WORLDS
+# src/lib/config/worlds.ts: const VALID_WORLDS = [..., 'myworld']
+
+# 4. Build & test
+npm run build && npm run dev
+# Visit http://localhost:3000/myworld
+```
+
+### Multi-Voice TTS (Headlines)
+
+Headlines uses dual voice profiles for debate format:
+
+```typescript
+// AI response format:
+// [HARI]: I think this is great!
+// [INGLE]: But consider the risks.
+
+// useSpeechSynthesis parses markers and speaks with appropriate gender
+speakMultiVoice("[HARI]: Yes! [INGLE]: No!")
+// → Male voice: "Yes!" → Female voice: "No!"
+```
+
+---
+
+## Product Site
+
+Marketing landing page at `/site` with 8 sections.
+
+### Sections
+
+| Section | Description | Assets |
+|---------|-------------|--------|
+| Hero | 3D cube + tagline + video placeholder | `[VIDEO_HERO]` |
+| Devices | Mobile/Watch mockups + feature badges | `[IMG_DEVICES]` |
+| Intelligence | Cuboid + capability cards | Three.js |
+| Video Demo | Product video + thumbnail grid | `[VIDEO_DEMO]` |
+| Contact | Email signup form | Code |
+| Merch | Hoodie placeholders | `[IMG_MERCH]` |
+| CUBIQO WORLDS | Links to all worlds with mini cubes | Code |
+| Footer | App store badges + social links | Code |
+
+### Key Files
+
+```
+src/app/site/
+├── layout.tsx          # Layout with metadata
+└── page.tsx            # Main page composing sections
+
+src/components/site/
+├── Navigation.tsx      # Fixed nav with mobile menu
+├── HeroSection.tsx     # Hero with 3D cube
+├── DevicesSection.tsx  # Device mockups + features
+├── IntelligenceSection.tsx
+├── VideoSection.tsx
+├── ContactSection.tsx  # Email form
+├── MerchSection.tsx
+├── WorldsSection.tsx   # CUBIQO WORLDS grid
+├── Footer.tsx
+└── index.ts            # Barrel export
+```
+
+### Placeholder Strategy
+
+Team assets use placeholders until ready:
+
+```tsx
+// Placeholder for video
+<div className="aspect-video bg-zinc-900/50 rounded-2xl flex items-center justify-center">
+  <span className="text-white/40">[VIDEO_HERO]</span>
+</div>
+
+// When asset ready, replace with:
+<video src="/assets/hero.mp4" ... />
+```
+
+---
+
+**Architecture Version**: 3.4.0
+**Last Updated**: December 9, 2025
+**Status**: Phase 2 Complete + World Generator + Voice Selection + Product Site
