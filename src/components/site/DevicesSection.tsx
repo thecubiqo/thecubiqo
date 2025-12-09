@@ -26,7 +26,7 @@ const features = [
       </svg>
     ),
     title: 'Dual AI Models',
-    description: 'Claude, GPT-4o, and more. Choose the best model for each task.',
+    description: 'Claude, GPT, and more. Choose the best model for each task.',
   },
   {
     icon: (
