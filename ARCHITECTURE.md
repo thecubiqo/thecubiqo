@@ -848,6 +848,7 @@ Marketing landing page at `/site` with 8 sections.
 | Contact | Email signup form | Code |
 | Merch | Hoodie placeholders | `[IMG_MERCH]` |
 | CUBIQO WORLDS | Links to all worlds with mini cubes | Code |
+| Cuboids | Glowing blue cubes grid + CoQo mascot | CSS Grid |
 | Footer | App store badges + social links | Code |
 
 ### Key Files
@@ -866,6 +867,7 @@ src/components/site/
 ├── ContactSection.tsx  # Email form
 ├── MerchSection.tsx
 ├── WorldsSection.tsx   # CUBIQO WORLDS grid
+├── CuboidsSection.tsx  # Glowing blue cubes grid
 ├── Footer.tsx
 └── index.ts            # Barrel export
 ```
@@ -886,6 +888,6 @@ Team assets use placeholders until ready:
 
 ---
 
-**Architecture Version**: 3.4.0
-**Last Updated**: December 9, 2025
-**Status**: Phase 2 Complete + World Generator + Voice Selection + Product Site
+**Architecture Version**: 3.5.0
+**Last Updated**: December 11, 2025
+**Status**: Phase 2 Complete + World Generator + Voice Selection + Product Site + Cuboids
