@@ -34,11 +34,12 @@ function FloatingCube({ position, scale, rotationSpeed, color, emissiveIntensity
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial
           color={color}
-          metalness={0.95}
-          roughness={0.05}
+          metalness={0.8}
+          roughness={0.1}
           emissive={color}
-          emissiveIntensity={emissiveIntensity}
-          envMapIntensity={2}
+          emissiveIntensity={emissiveIntensity * 1.5}
+          envMapIntensity={3}
+          toneMapped={false}
         />
       </mesh>
     </Float>
@@ -48,20 +49,20 @@ function FloatingCube({ position, scale, rotationSpeed, color, emissiveIntensity
 function CuboidsScene() {
   const cubes = useMemo<CubeData[]>(() => {
     const result: CubeData[] = []
-    const colors = ['#00d4ff', '#0080ff', '#4040ff', '#8000ff', '#00ffff', '#0066cc']
+    const colors = ['#00ffff', '#00d4ff', '#4080ff', '#8040ff', '#ff00ff', '#00ff80', '#ffff00']
 
     // More cubes spread across the scene
-    for (let i = 0; i < 50; i++) {
-      const x = (Math.random() - 0.5) * 16
-      const y = (Math.random() - 0.5) * 8
-      const z = -2 - Math.random() * 10
+    for (let i = 0; i < 60; i++) {
+      const x = (Math.random() - 0.5) * 18
+      const y = (Math.random() - 0.5) * 10
+      const z = -1 - Math.random() * 8
 
       result.push({
         position: [x, y, z],
-        scale: 0.15 + Math.random() * 0.6,
+        scale: 0.2 + Math.random() * 0.7,
         rotationSpeed: 0.2 + Math.random() * 0.5,
         color: colors[Math.floor(Math.random() * colors.length)],
-        emissiveIntensity: 0.1 + Math.random() * 0.3,
+        emissiveIntensity: 0.4 + Math.random() * 0.6,
       })
     }
 
@@ -71,10 +72,11 @@ function CuboidsScene() {
   return (
     <>
       <Environment preset="night" />
-      <ambientLight intensity={0.1} />
-      <directionalLight position={[5, 5, 5]} intensity={0.5} color="#00d4ff" />
-      <directionalLight position={[-5, 3, -5]} intensity={0.3} color="#8000ff" />
-      <pointLight position={[0, 0, 5]} intensity={0.8} color="#00ffff" distance={15} />
+      <ambientLight intensity={0.3} />
+      <directionalLight position={[5, 5, 5]} intensity={1.2} color="#00d4ff" />
+      <directionalLight position={[-5, 3, -5]} intensity={0.8} color="#ff00ff" />
+      <pointLight position={[0, 0, 8]} intensity={2} color="#00ffff" distance={20} />
+      <pointLight position={[5, 5, 5]} intensity={1} color="#8040ff" distance={15} />
 
       {cubes.map((cube, i) => (
         <FloatingCube key={i} {...cube} />
