@@ -1,145 +1,133 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useRef, useMemo } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { Environment, Float } from '@react-three/drei'
+import * as THREE from 'three'
 
-interface Cube {
-  id: number
-  size: number
-  x: number
-  y: number
-  delay: number
-  intensity: number
+interface CubeData {
+  position: [number, number, number]
+  scale: number
+  rotationSpeed: number
+  color: string
+  emissiveIntensity: number
 }
 
-export function CuboidsSection() {
-  // Generate random cube positions
-  const cubes = useMemo<Cube[]>(() => {
-    const result: Cube[] = []
-    const gridCols = 8
-    const gridRows = 5
+function FloatingCube({ position, scale, rotationSpeed, color, emissiveIntensity }: CubeData) {
+  const meshRef = useRef<THREE.Mesh>(null)
 
-    for (let row = 0; row < gridRows; row++) {
-      for (let col = 0; col < gridCols; col++) {
-        // Add some randomness to grid positions
-        const baseX = (col / gridCols) * 100
-        const baseY = (row / gridRows) * 100
-        const offsetX = (Math.random() - 0.5) * 8
-        const offsetY = (Math.random() - 0.5) * 8
+  useFrame((state) => {
+    if (!meshRef.current) return
+    const time = state.clock.elapsedTime
+    meshRef.current.rotation.x = time * rotationSpeed * 0.2
+    meshRef.current.rotation.y = time * rotationSpeed * 0.3
+  })
 
-        result.push({
-          id: row * gridCols + col,
-          size: 40 + Math.random() * 40, // 40-80px
-          x: baseX + offsetX,
-          y: baseY + offsetY,
-          delay: Math.random() * 3,
-          intensity: 0.5 + Math.random() * 0.5, // 0.5-1.0
-        })
-      }
+  return (
+    <Float
+      speed={1.5}
+      rotationIntensity={0.5}
+      floatIntensity={1}
+      floatingRange={[-0.3, 0.3]}
+    >
+      <mesh ref={meshRef} position={position} scale={scale}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial
+          color={color}
+          metalness={0.95}
+          roughness={0.05}
+          emissive={color}
+          emissiveIntensity={emissiveIntensity}
+          envMapIntensity={2}
+        />
+      </mesh>
+    </Float>
+  )
+}
+
+function CuboidsScene() {
+  const cubes = useMemo<CubeData[]>(() => {
+    const result: CubeData[] = []
+    const colors = ['#00d4ff', '#0080ff', '#4040ff', '#8000ff', '#00ffff', '#0066cc']
+
+    // More cubes spread across the scene
+    for (let i = 0; i < 50; i++) {
+      const x = (Math.random() - 0.5) * 16
+      const y = (Math.random() - 0.5) * 8
+      const z = -2 - Math.random() * 10
+
+      result.push({
+        position: [x, y, z],
+        scale: 0.15 + Math.random() * 0.6,
+        rotationSpeed: 0.2 + Math.random() * 0.5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        emissiveIntensity: 0.1 + Math.random() * 0.3,
+      })
     }
+
     return result
   }, [])
 
   return (
-    <section className="relative py-24 overflow-hidden bg-[#0a0a0a]">
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black z-10 pointer-events-none" />
+    <>
+      <Environment preset="night" />
+      <ambientLight intensity={0.1} />
+      <directionalLight position={[5, 5, 5]} intensity={0.5} color="#00d4ff" />
+      <directionalLight position={[-5, 3, -5]} intensity={0.3} color="#8000ff" />
+      <pointLight position={[0, 0, 5]} intensity={0.8} color="#00ffff" distance={15} />
 
-      {/* Hexagon pattern overlay (subtle) */}
-      <div
-        className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='%234a5568' stroke-width='1'/%3E%3C/svg%3E")`,
-          backgroundSize: '60px 60px',
-        }}
-      />
+      {cubes.map((cube, i) => (
+        <FloatingCube key={i} {...cube} />
+      ))}
 
-      {/* Cubes container */}
-      <div className="relative h-[400px] md:h-[500px] max-w-7xl mx-auto">
-        {cubes.map((cube) => (
-          <div
-            key={cube.id}
-            className="absolute transform-gpu animate-float"
-            style={{
-              left: `${cube.x}%`,
-              top: `${cube.y}%`,
-              width: cube.size,
-              height: cube.size,
-              animationDelay: `${cube.delay}s`,
-              animationDuration: `${4 + Math.random() * 2}s`,
-            }}
-          >
-            {/* Cube face - front */}
-            <div
-              className="absolute inset-0 rounded-lg transform rotate-3"
-              style={{
-                background: `linear-gradient(135deg,
-                  rgba(46, 208, 255, ${cube.intensity * 0.8}) 0%,
-                  rgba(144, 246, 240, ${cube.intensity * 0.6}) 50%,
-                  rgba(46, 208, 255, ${cube.intensity * 0.4}) 100%)`,
-                boxShadow: `
-                  0 0 ${20 * cube.intensity}px rgba(46, 208, 255, ${cube.intensity * 0.5}),
-                  0 0 ${40 * cube.intensity}px rgba(46, 208, 255, ${cube.intensity * 0.3}),
-                  0 0 ${60 * cube.intensity}px rgba(144, 246, 240, ${cube.intensity * 0.2}),
-                  inset 0 0 ${20 * cube.intensity}px rgba(255, 255, 255, 0.1)
-                `,
-                border: '1px solid rgba(144, 246, 240, 0.3)',
-              }}
-            />
+      {/* Fog for depth */}
+      <fog attach="fog" args={['#000010', 5, 20]} />
+    </>
+  )
+}
 
-            {/* Inner glow center */}
-            <div
-              className="absolute rounded-md"
-              style={{
-                top: '20%',
-                left: '20%',
-                right: '20%',
-                bottom: '20%',
-                background: `radial-gradient(circle,
-                  rgba(144, 246, 240, ${cube.intensity * 0.8}) 0%,
-                  rgba(46, 208, 255, ${cube.intensity * 0.4}) 50%,
-                  transparent 70%)`,
-              }}
-            />
+export function CuboidsSection() {
+  return (
+    <section className="relative h-[600px] md:h-[700px] overflow-hidden bg-[#000008]">
+      {/* 3D Canvas */}
+      <div className="absolute inset-0">
+        <Canvas
+          camera={{ position: [0, 0, 8], fov: 45 }}
+          gl={{ antialias: true, alpha: true }}
+          dpr={[1, 2]}
+        >
+          <color attach="background" args={['#000008']} />
+          <CuboidsScene />
+        </Canvas>
+      </div>
 
-            {/* Purple edge highlight */}
-            <div
-              className="absolute inset-0 rounded-lg transform -rotate-2"
-              style={{
-                background: `linear-gradient(45deg,
-                  rgba(255, 0, 245, ${cube.intensity * 0.15}) 0%,
-                  transparent 50%)`,
-                border: '1px solid rgba(255, 0, 245, 0.1)',
-              }}
-            />
+      {/* Gradient overlays */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50 pointer-events-none z-10" />
+
+      {/* Content overlay */}
+      <div className="relative z-20 h-full flex flex-col items-center justify-center px-4">
+        {/* CoQo Mascot */}
+        <div className="mb-8">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500/30 to-purple-600/30 border border-cyan-400/30 flex items-center justify-center backdrop-blur-sm">
+            <span className="text-3xl font-bold bg-gradient-to-br from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+              Q
+            </span>
           </div>
-        ))}
+        </div>
+
+        {/* Text */}
+        <h3 className="text-2xl md:text-3xl font-bold text-center mb-4">
+          <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+            Meet CoQo
+          </span>
+        </h3>
+        <p className="text-white/50 text-center max-w-md text-sm md:text-base">
+          Your AI companion in the CUBIQO ecosystem
+        </p>
       </div>
 
       {/* Bottom gradient fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent z-10" />
-
-      {/* Optional: CoQo mascot placeholder */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 text-center">
-        <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-gradient-to-br from-cyan-400/20 to-purple-500/20 border border-cyan-400/30 flex items-center justify-center">
-          <span className="text-cyan-400 text-2xl font-bold">Q</span>
-        </div>
-        <span className="text-cyan-400/60 text-xs tracking-widest">CUBIQO</span>
-      </div>
-
-      {/* Styles for float animation */}
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0) rotate(0deg);
-          }
-          50% {
-            transform: translateY(-15px) rotate(3deg);
-          }
-        }
-        .animate-float {
-          animation: float ease-in-out infinite;
-        }
-      `}</style>
+      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black to-transparent z-10 pointer-events-none" />
     </section>
   )
 }

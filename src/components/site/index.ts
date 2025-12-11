@@ -1,5 +1,6 @@
 export { Navigation } from './Navigation'
 export { HeroSection } from './HeroSection'
+export { MetallicBackground } from './MetallicBackground'
 export { DevicesSection } from './DevicesSection'
 export { IntelligenceSection } from './IntelligenceSection'
 export { VideoSection } from './VideoSection'
