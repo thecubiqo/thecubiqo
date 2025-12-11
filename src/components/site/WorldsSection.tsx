@@ -33,10 +33,9 @@ const worlds = [
   {
     id: 'dicey',
     name: 'Dicey',
-    description: 'Coming soon',
+    description: 'Decision helper',
     color: 'GREEN_BLUE' as const,
-    href: '#',
-    disabled: true,
+    href: '/dicey',
   },
   {
     id: 'coqo',
@@ -51,8 +50,7 @@ const worlds = [
     name: 'Settings',
     description: 'System configuration',
     color: 'GREEN_BLUE' as const,
-    href: '#',
-    disabled: true,
+    href: '/settings-cube',
   },
 ]
 
