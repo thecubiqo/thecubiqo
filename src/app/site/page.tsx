@@ -9,6 +9,7 @@ import { VideoSection } from '@/components/site/VideoSection'
 import { ContactSection } from '@/components/site/ContactSection'
 import { MerchSection } from '@/components/site/MerchSection'
 import { WorldsSection } from '@/components/site/WorldsSection'
+import { CuboidsSection } from '@/components/site/CuboidsSection'
 import { Footer } from '@/components/site/Footer'
 
 export default function SitePage() {
@@ -23,6 +24,7 @@ export default function SitePage() {
         <ContactSection />
         <MerchSection />
         <WorldsSection />
+        <CuboidsSection />
       </main>
       <Footer />
     </>
