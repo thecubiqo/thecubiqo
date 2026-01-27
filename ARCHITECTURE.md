@@ -1,4 +1,4 @@
-# CUBIQO Phase 2 Architecture Documentation
+# CUBIQO Phase 1 Architecture Documentation
 
 Technical architecture for CUBIQO - emotional AI companion with persistent memory.
 
