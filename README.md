@@ -1,73 +1,144 @@
-🧠 CUBIQO — The Mood That Moves
+# CubiQo
 
-CUBIQO is an adaptive, emotion-aware digital consciousness — a hybrid between code and character.
-It listens, reacts, and mirrors human emotion through light, color, and motion — becoming the “mood that moves.”
+> One Mind. Many Dimensions.
 
-🌈 Concept Overview
+Emotional AI companion with persistent memory and voice interface.
 
-Cubiqo is a floating 3D cube that represents the four emotional dimensions of life:
+**Status:** ✅ Phase 2 Complete | **Live:** https://cubiqo.ai
 
-🔴 Red Zone — Indulgence / Desire / Rebellion
-Deep, seductive tone and slow, pulsating motion.
+---
 
-🟡 Yellow Zone — Comfort / Curiosity / Habit
-Warm, nostalgic voice and gentle rhythmic drift.
+## Features
 
-🟢🔵 Green/Blue Zone — Ambition / Growth / Wellness
-Clear, motivational tone with balanced movement.
+| Feature | Description |
+|---------|-------------|
+| 🎤 **Voice Interface** | Speech recognition + TTS with state machine |
+| 🧊 **3D Cube** | React Three Fiber with 4 emotional colors |
+| 🧠 **Memory Extraction** | AI extracts and remembers user facts |
+| 🔐 **Magic Link Auth** | Passwordless email authentication |
+| 👤 **Guest Mode** | Chat without sign-in, migrate on auth |
+| 🎨 **Fourth Way Colors** | Orange (home), Red, Yellow, Green-Blue |
+| 📱 **PWA** | Installable, offline-capable |
+| 🌍 **Regional Routing** | Geo-based customization (UK, etc.) |
+| ⚙️ **Settings Cube** | Terminal-style cube configuration demo |
+| 🔑 **BYO Mode** | Use your own API keys for complete cost isolation |
 
-🟠 Orange Zone — The Fourth Way — Stillness / Awareness / Reflection
-Calm, meditative state representing balance and awareness.
+---
 
-🎨 Character Identity
+## Tech Stack
 
-Form: Floating 2×2 cuboid that appears diamond-shaped at rest.
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Framework | Next.js (App Router) | 16.0.3 |
+| UI | React | 19 RC |
+| Language | TypeScript | 5.x |
+| Styling | Tailwind CSS | 4.x |
+| 3D | React Three Fiber | 9.4.0 |
+| Database | Supabase (PostgreSQL) | - |
+| Auth | Supabase Magic Link | - |
+| AI Primary | Claude Haiku 4.5 | claude-haiku-4-5-20251001 |
+| AI Second (Red Zone) | OpenAI | gpt-5.1 |
+| Deployment | Vercel | - |
 
-Material: Satin-metal with translucent polymer edges.
+---
 
-Lighting: Internal emissive core that changes based on mood intensity.
+## Quick Start
 
-Personality: Neutral, conscious, non-gendered, emotionally intelligent.
+```bash
+# Install dependencies
+npm install
 
-💡 Design Intent
+# Set up environment
+cp .env.example .env.local
+# Add your Supabase and AI API keys
 
-Mechanical yet alive — light and motion driven by emotion.
+# Run development server
+npm run dev
 
-Always transitions back to Orange (balance) after interaction.
+# Build for production
+npm run build
+```
 
-No UI — interactions are visual and sensory: glow shifts, blinks, and breathing motions.
+---
 
-🌀 Animation Lifecycle
+## Project Structure
 
-Rest (Sphere) → 2. Activation (Faceting) →
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── chat/              # AI routing + memory
+│   │   ├── extract-memories/  # Async fact extraction
+│   │   └── session/           # Session management
+│   ├── auth/callback/         # Magic link handler
+│   ├── settings-cube/         # Settings Cube demo
+│   └── [region]/              # Regional pages (UK, etc.)
+├── components/
+│   ├── auth/                  # Login, auth status
+│   ├── cube/                  # 3D cube (R3F)
+│   ├── settings-cube/         # Settings Cube components
+│   └── FullscreenApp.tsx      # Main app
+├── hooks/
+│   ├── useAuth.ts
+│   ├── useBYO.ts              # BYO API keys management
+│   ├── useChat.ts
+│   ├── useSession.ts
+│   └── useSpeech*.ts
+├── lib/
+│   ├── ai/                    # AI providers, prompts
+│   ├── byo/                   # BYO types and constants
+│   ├── config/                # Regional configuration
+│   ├── settings-cube/         # Settings Cube types/commands
+│   └── supabase/              # DB client
+└── contexts/
+    └── RegionContext.tsx      # Regional context provider
 
-Interaction (Cube Form) → 4. Reflection (Return to Sphere)
+generator/
+├── config/
+│   ├── schema.json            # JSON schema for validation
+│   └── regions/               # Regional configs (uk.json, etc.)
+└── templates/                 # Template files for generation
+```
 
-Represents life’s loop between action and awareness.
+---
 
-🗣️ Speech & Engagement (Prototype Spec)
+## Documentation
 
-Idle loop: Soft orange glow breathing slowly.
+| Document | Description |
+|----------|-------------|
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | System architecture |
+| [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) | API reference |
+| [docs/PHASE2-STATUS.md](./docs/PHASE2-STATUS.md) | Implementation status |
 
-User detected: Eyes blink → glow warms toward yellow → “Hey, I see you.”
+---
 
-Speech detected: Light syncs with user voice; tone shifts by mood.
+## Environment Variables
 
-No input: Reverts to orange calmness.
+```bash
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 
-🧠 Memory & Adaptation
+# AI Providers
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
 
-Cubiqo remembers emotional tone, not raw text.
-It adapts to patterns — suggesting reflections like:
+# App
+NEXT_PUBLIC_APP_URL=
+```
 
-“Yesterday you seemed reflective — want to write that down?”
+---
 
-⚙️ Open Requirements
+## Color Philosophy (Fourth Way)
 
-Voice synthesis latency tuning
+| Color | State | Meaning |
+|-------|-------|---------|
+| 🟧 Orange | Home | Stillness, awareness, reflection |
+| 🟥 Red | Tamas | Desire, indulgence, rebellion |
+| 🟨 Yellow | Rajas | Activity, energy, curiosity |
+| 🟢 Green-Blue | Sattva | Growth, wellness, ambition |
 
-Gradient palette calibration
+---
 
-Motion easing & amplitude consistency
-
-Data retention UX for journaling behavior
+**Version:** 3.3.0 • **Updated:** 2025-12-07 • **Phase 2 + Generator PoC + Settings Cube + BYO Mode**

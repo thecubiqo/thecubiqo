@@ -1,0 +1,65 @@
+{
+  "id": "uk",
+  "countryCode": "GB",
+  "name": "United Kingdom",
+  "locale": "en-GB",
+
+  "routing": {
+    "path": "/uk",
+    "domain": null,
+    "defaultRoute": "regional",
+    "mainEnabled": true,
+    "regionalEnabled": true
+  },
+
+  "localization": {
+    "timezone": "Europe/London",
+    "currency": "GBP",
+    "dateFormat": "DD/MM/YYYY",
+    "dialects": ["British English"]
+  },
+
+  "cultural": {
+    "festivals": [
+      { "name": "New Year's Day", "date": "01-01", "type": "national" },
+      { "name": "Easter", "date": "variable", "type": "religious" },
+      { "name": "King's Birthday", "date": "second-sat-jun", "type": "national" },
+      { "name": "Christmas", "date": "12-25", "type": "national" },
+      { "name": "Boxing Day", "date": "12-26", "type": "national" },
+      { "name": "Bonfire Night", "date": "11-05", "type": "cultural" }
+    ],
+    "greetings": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "references": [
+      "British weather",
+      "Tea culture",
+      "Football (soccer)",
+      "The Royal Family",
+      "BBC",
+      "NHS",
+      "Pubs and pub culture",
+      "British humour (dry, sarcastic)"
+    ]
+  },
+
+  "appearance": {
+    "defaultColor": "ORANGE",
+    "performanceMode": "full",
+    "theme": "dark"
+  },
+
+  "features": {
+    "voice": true,
+    "chat": true,
+    "memory": true,
+    "auth": true
+  },
+
+  "ai": {
+    "systemPromptAdditions": "User is from the United Kingdom. Use British English spelling (colour, favourite, realise). Be familiar with UK culture, NHS, British weather chat, and dry humour. Understand references to tea time, football, and British TV.",
+    "toneModifiers": ["polite", "understated", "dry-humour"]
+  }
+}
