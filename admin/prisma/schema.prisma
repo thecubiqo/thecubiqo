@@ -1,0 +1,149 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Domain {
+  id                String       @id @default(cuid())
+  domainName        String       @unique @map("domain_name")
+  status            DomainStatus @default(PENDING)
+  dnsInstructions  String?      @map("dns_instructions") @db.Text
+  googleAnalyticsId String?      @map("google_analytics_id")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  
+  deployments       Deployment[]
+
+  @@index([domainName])
+  @@index([status])
+  @@map("domains")
+}
+
+model Template {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  templatePath String  @map("template_path")
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  deployments Deployment[]
+
+  @@index([name])
+  @@index([isActive])
+  @@map("templates")
+}
+
+model Deployment {
+  id              String           @id @default(cuid())
+  domainId        String           @map("domain_id")
+  templateId      String           @map("template_id")
+  status          DeploymentStatus @default(DRAFT)
+  buildPath       String?          @map("build_path")
+  nginxConfigPath String?          @map("nginx_config_path")
+  port            Int?             @unique
+  sslEnabled      Boolean          @default(false) @map("ssl_enabled")
+  sslCertPath     String?          @map("ssl_cert_path")
+  sslKeyPath      String?          @map("ssl_key_path")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  
+  domain          Domain           @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  template        Template         @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  config          TemplateConfig?
+  uploads         Upload[]
+
+  @@index([domainId])
+  @@index([templateId])
+  @@index([status])
+  @@map("deployments")
+}
+
+model TemplateConfig {
+  id           String   @id @default(cuid())
+  deploymentId String  @unique @map("deployment_id")
+  configJson   Json     @map("config_json")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  deployment   Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+
+  @@map("template_configs")
+}
+
+model Upload {
+  id           String      @id @default(cuid())
+  deploymentId String      @map("deployment_id")
+  fileType     UploadType  @map("file_type")
+  filePath     String      @map("file_path")
+  originalName String      @map("original_name")
+  mimeType     String?     @map("mime_type")
+  size         Int?
+  createdAt    DateTime    @default(now()) @map("created_at")
+  
+  deployment   Deployment  @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+
+  @@index([deploymentId])
+  @@index([fileType])
+  @@map("uploads")
+}
+
+enum DomainStatus {
+  PENDING
+  ACTIVE
+  DEPLOYED
+}
+
+enum DeploymentStatus {
+  DRAFT
+  BUILDING
+  BUILT
+  DEPLOYED
+  FAILED
+}
+
+enum UploadType {
+  IMAGE
+  VIDEO
+  LOGO
+  OTHER
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("settings")
+}
+
+model Region {
+  id          String   @id @default(cuid())
+  regionId    String   @unique @map("region_id")
+  configJson  Json     @map("config_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([regionId])
+  @@map("regions")
+}
+
+model World {
+  id          String   @id @default(cuid())
+  worldId     String   @unique @map("world_id")
+  configJson  Json     @map("config_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([worldId])
+  @@map("worlds")
+}
