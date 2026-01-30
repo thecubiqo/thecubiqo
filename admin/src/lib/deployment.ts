@@ -34,6 +34,12 @@ export async function deploy(
 ): Promise<DeploymentProgress> {
   const { enableSSL = false, onProgress } = options
 
+  // Stage 0: Set initial status
+  await prisma.deployment.update({
+    where: { id: deploymentId },
+    data: { status: 'BUILDING' },
+  })
+
   // Stage 1: Ensure configuration exists
   let progress: DeploymentProgress = {
     stage: 'config',
@@ -59,6 +65,7 @@ export async function deploy(
       error: 'Deployment not found',
     }
     onProgress?.(progress)
+    // No deployment to update status on
     return progress
   }
 
@@ -96,6 +103,12 @@ export async function deploy(
       error: buildResult.error,
     }
     onProgress?.(progress)
+
+    await prisma.deployment.update({
+      where: { id: deploymentId },
+      data: { status: 'FAILED' },
+    })
+
     return progress
   }
 
@@ -135,8 +148,6 @@ export async function deploy(
   }
 
   // Stage 4: SSL (if requested)
-  // Only try SSL if Nginx succeeded? Or try anyway?
-  // Usually SSL needs Nginx to be working for challenge or config update.
   if (enableSSL) {
     progress = {
       stage: 'ssl',
@@ -161,7 +172,9 @@ export async function deploy(
         error: error.message,
       }
       onProgress?.(progress)
-      // Don't fail entire deployment if SSL fails
+
+      // We don't fail the whole deployment if SSL fails, but we could mark it partial?
+      // For now keep as is, but maybe log it.
     }
   }
 
@@ -182,6 +195,12 @@ export async function deploy(
       error: error.message,
     }
     onProgress?.(progress)
+
+    await prisma.deployment.update({
+      where: { id: deploymentId },
+      data: { status: 'FAILED' },
+    })
+
     return progress
   }
 
@@ -282,5 +301,4 @@ export async function stopDeploymentServer(deploymentId: string): Promise<void> 
     console.warn(`Could not stop server for deployment ${deploymentId}:`, error)
   }
 }
-
 
