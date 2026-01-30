@@ -62,6 +62,12 @@ async function main() {
     } catch (error) {
         console.error('Deploy failed:', error);
     }
+
+    // 5. Verify DB Status
+    const finalDeployment = await prisma.deployment.findUnique({
+        where: { id: deployment.id }
+    });
+    console.log('Final DB Status:', finalDeployment?.status);
 }
 
 main()
