@@ -1,6 +1,6 @@
 /**
  * Chat API Route Handler
- * Dual routing: Claude (primary) → OpenAI (fallback)
+ * Triple routing: OpenClaw (primary) → Claude → OpenAI (fallback)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -14,6 +14,7 @@ import {
   type ChatRequest,
   type AIResponse
 } from '@/lib/ai'
+import { callOpenClaw } from '@/lib/ai/openclaw'
 import { buildMemoryContext } from '@/lib/ai/memory-extraction.server'
 import { getRegionConfig, buildRegionalPrompt } from '@/lib/config/regions'
 
@@ -229,18 +230,25 @@ export async function POST(request: NextRequest) {
     const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + regionalContext + authNudge
 
     let content: string
-    let provider: 'claude' | 'openai' = 'claude'
+    let provider: 'openclaw' | 'claude' | 'openai' = 'openclaw'
 
-    // Try Claude first (primary)
+    // Try OpenClaw first (primary - gives us tool use and all Clawdbot features)
     try {
-      content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
-    } catch (claudeError) {
-      // Fallback to OpenAI
+      content = await callOpenClaw(fullSystemPrompt, messages)
+    } catch (openclawError) {
+      console.warn('OpenClaw failed, falling back to Claude:', openclawError)
+      // Fallback to Claude
       try {
-        content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
-        provider = 'openai'
-      } catch {
-        throw new Error('Both AI providers failed')
+        content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
+        provider = 'claude'
+      } catch (claudeError) {
+        // Final fallback to OpenAI
+        try {
+          content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
+          provider = 'openai'
+        } catch {
+          throw new Error('All AI providers failed')
+        }
       }
     }
 
