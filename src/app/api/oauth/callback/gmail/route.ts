@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     const userInfo = await userInfoResponse.json()
 
     // Store in database
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
