@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings?error=not_authenticated`)
     }
 
+    // @ts-ignore - oauth_connections table will be created via migration
     await supabase
       .from('oauth_connections')
       .upsert({

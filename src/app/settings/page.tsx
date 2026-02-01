@@ -39,6 +39,7 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      // @ts-ignore - oauth_connections table will be created via migration
       const { data: connections } = await supabase
         .from('oauth_connections')
         .select('service_id, service_data')
@@ -76,6 +77,7 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      // @ts-ignore - oauth_connections table will be created via migration
       await supabase
         .from('oauth_connections')
         .delete()
