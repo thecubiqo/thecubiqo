@@ -2,12 +2,14 @@
 
 /**
  * CubeScene - Canvas wrapper for the 3D Cube
+ *
+ * Staging UI swap: replace legacy cuboid-with-eyes with the shader-based EnergyCube.
  */
 
-import { Suspense } from 'react'
-import { Canvas } from '@react-three/fiber'
-import { ContactShadows, Environment } from '@react-three/drei'
-import { Cube, type AnimationState } from './Cube'
+import { useMemo } from 'react'
+import { EnergyCubeScene } from '@/components/energy-cube'
+import type { EnergyCubeColor, EnergyCubeMode } from '@/components/energy-cube'
+import type { AnimationState } from './Cube'
 import type { ColorName } from '@/config/colors'
 
 interface CubeSceneProps {
@@ -16,65 +18,56 @@ interface CubeSceneProps {
   className?: string
 }
 
-function Lights() {
-  return (
-    <>
-      <ambientLight intensity={0.6} />
-      <spotLight
-        position={[5, 8, 5]}
-        angle={Math.PI / 6}
-        penumbra={0.5}
-        intensity={0.8}
-        castShadow
-        shadow-mapSize={[1024, 1024]}
-      />
-      <spotLight
-        position={[-5, 5, -5]}
-        angle={Math.PI / 4}
-        penumbra={0.5}
-        intensity={0.5}
-      />
-    </>
-  )
+function mapColor(colorName: ColorName): EnergyCubeColor {
+  // Default in Cubiqo is ORANGE; user explicitly asked for an orange placeholder.
+  switch (colorName) {
+    case 'RED':
+      return 'red'
+    case 'YELLOW':
+      return 'yellow'
+    case 'ORANGE':
+      return 'orange'
+    // Map any other colors to green until we design a fuller palette.
+    default:
+      return 'green'
+  }
 }
 
-export function CubeScene({ 
-  colorName = 'ORANGE', 
+function mapMode(animationState: AnimationState): EnergyCubeMode {
+  switch (animationState) {
+    case 'speaking':
+      return 'speaking'
+    case 'thinking':
+      return 'processing'
+    case 'listening':
+      return 'listening'
+    case 'idle':
+    default:
+      return 'listening'
+  }
+}
+
+export function CubeScene({
+  colorName = 'ORANGE',
   animationState = 'idle',
   className = ''
 }: CubeSceneProps) {
+  const reducedMotion = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    } catch {
+      return false
+    }
+  }, [])
+
   return (
     <div className={`w-full h-full ${className}`}>
-      <Canvas
-        camera={{ position: [0, 0, 6], fov: 45 }}
-        shadows
-        gl={{
-          antialias: true,
-          alpha: true,
-          powerPreference: 'high-performance'
-        }}
-        dpr={[1, 2]}
-        style={{ background: 'transparent' }}
-      >
-        
-        <Lights />
-        
-        <Suspense fallback={null}>
-          <Cube colorName={colorName} animationState={animationState} />
-          
-          <ContactShadows
-            position={[0, -2, 0]}
-            opacity={0.4}
-            scale={10}
-            blur={2}
-            far={4}
-          />
-          
-          <Environment preset="city" />
-        </Suspense>
-        
-{/* OrbitControls disabled - cube has internal mouse tracking */}
-      </Canvas>
+      <EnergyCubeScene
+        color={mapColor(colorName)}
+        mode={mapMode(animationState)}
+        reducedMotion={reducedMotion}
+      />
     </div>
   )
 }
