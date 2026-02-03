@@ -206,65 +206,70 @@ export function FullscreenApp() {
         }`}
       >
         <div className="flex justify-between items-center w-full">
-          {/* Logo - Bigger & More Legible */}
-          <div className="flex items-center">
-            <div 
-              className="relative transition-opacity duration-200 hover:opacity-96"
-              style={{
-                filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5))'
-              }}
-            >
-              <img 
-                src="https://customer-assets.emergentagent.com/job_react-energy-cube/artifacts/3fc6c2dr_Copilot_20260120_084239.png" 
-                alt="CubiQo" 
-                className="w-20 h-20 sm:w-24 sm:h-24 object-contain"
-                style={{
-                  imageRendering: 'crisp-edges'
-                }}
-              />
+          {/* Logo - Colorful Cube Icon + CubiQo Text */}
+          <div className="flex items-center gap-3">
+            <img 
+              src="https://customer-assets.emergentagent.com/job_react-energy-cube/artifacts/zuvwrv2g_cubiqo_favicon_512.png" 
+              alt="CubiQo" 
+              className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
+            />
+            <div className="flex items-start">
+              <span className={`text-xl sm:text-2xl font-semibold tracking-tight ${
+                isDark ? 'text-white' : 'text-gray-900'
+              }`}>
+                CubiQo
+              </span>
+              <span className={`text-[8px] sm:text-[10px] font-medium ml-0.5 -mt-0.5 ${
+                isDark ? 'text-white/60' : 'text-gray-500'
+              }`}>
+                TM
+              </span>
             </div>
           </div>
 
-          {/* Right side - Tabs (not buttons) */}
-          <div className="flex items-center gap-6 sm:gap-8">
-            {/* Keywords Tab */}
+          {/* Center - Keywords & Menu (more intuitive placement) */}
+          <div className="flex items-center gap-8 sm:gap-12">
+            {/* Keywords */}
             <div className="relative group">
               <button
                 onClick={() => setShowKeywordPanel(true)}
                 data-testid="keywords-button"
-                className={`text-sm font-medium transition-all border-b-2 border-transparent hover:border-current pb-1 ${
-                  isDark ? 'text-white/70 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                className={`text-sm font-medium transition-all pb-0.5 ${
+                  isDark ? 'text-white/60 hover:text-white' : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
                 Keywords
               </button>
               {/* Tooltip */}
-              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none ${
-                isDark ? 'bg-white/10 text-white/80' : 'bg-black/10 text-gray-700'
+              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 ${
+                isDark ? 'bg-zinc-800 text-white/80 border border-white/10' : 'bg-white text-gray-700 border border-gray-200 shadow-lg'
               }`}>
                 the way cubiqo knows you
               </div>
             </div>
 
-            {/* Menu Tab */}
+            {/* Menu */}
             <div className="relative group">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
                 data-testid="menu-button"
-                className={`text-sm font-medium transition-all border-b-2 border-transparent hover:border-current pb-1 ${
-                  isDark ? 'text-white/70 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                className={`text-sm font-medium transition-all pb-0.5 ${
+                  isDark ? 'text-white/60 hover:text-white' : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
                 Menu
               </button>
               {/* Tooltip */}
-              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none ${
-                isDark ? 'bg-white/10 text-white/80' : 'bg-black/10 text-gray-700'
+              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 ${
+                isDark ? 'bg-zinc-800 text-white/80 border border-white/10' : 'bg-white text-gray-700 border border-gray-200 shadow-lg'
               }`}>
                 check out buy your own mode
               </div>
             </div>
           </div>
+
+          {/* Right side - Empty for balance */}
+          <div className="w-24 sm:w-32" />
         </div>
       </header>
 
@@ -276,39 +281,72 @@ export function FullscreenApp() {
         />
       </div>
 
-      {/* Voice Button - State-based visual feedback */}
+      {/* Voice Button - Fancy Golden Mic */}
       <div className="fixed bottom-[90px] left-1/2 -translate-x-1/2 z-[60]">
         <button
           onClick={handleVoiceClick}
           disabled={!voiceSupported}
           className={`
-            w-[56px] h-[56px] sm:w-[72px] sm:h-[72px]
+            w-[64px] h-[64px] sm:w-[80px] sm:h-[80px]
             rounded-full flex items-center justify-center
             transition-all duration-300 cursor-pointer
-            text-2xl sm:text-3xl
             ${appState === 'listening'
-              ? 'scale-110 shadow-[0_0_0_8px_rgba(59,130,246,0.3)] animate-pulse'
+              ? 'scale-110 shadow-[0_0_0_8px_rgba(212,175,55,0.4)] animate-pulse'
               : appState === 'thinking'
               ? 'scale-105'
               : appState === 'speaking'
-              ? 'scale-105 shadow-[0_0_0_8px_rgba(34,197,94,0.2)]'
+              ? 'scale-105 shadow-[0_0_0_8px_rgba(212,175,55,0.3)]'
               : 'hover:scale-105'
-            }
-            ${isDark
-              ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-2 border-blue-500/40 shadow-[0_8px_32px_rgba(59,130,246,0.3)]'
-              : 'bg-gradient-to-br from-blue-500/15 to-purple-500/15 border-2 border-blue-500/50 shadow-[0_8px_32px_rgba(59,130,246,0.25)]'
             }
             disabled:opacity-50 disabled:cursor-not-allowed
           `}
+          style={{
+            background: 'linear-gradient(145deg, #d4af37, #b8860b, #8b6914)',
+            boxShadow: appState === 'idle' 
+              ? '0 8px 32px rgba(212, 175, 55, 0.4), inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2)'
+              : '0 12px 40px rgba(212, 175, 55, 0.5), inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2)',
+            border: '2px solid rgba(255, 215, 0, 0.5)'
+          }}
         >
-          {appState === 'idle' && (
-            <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 1.5a3 3 0 013 3v7a3 3 0 01-6 0v-7a3 3 0 013-3zM19.5 10.5a7.5 7.5 0 01-15 0M12 19.5v3" />
-            </svg>
+          {/* Golden Mic SVG */}
+          <svg 
+            className="w-7 h-7 sm:w-9 sm:h-9" 
+            viewBox="0 0 24 24" 
+            fill="none"
+            style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}
+          >
+            {/* Mic body */}
+            <rect x="9" y="2" width="6" height="12" rx="3" fill="url(#goldGradient)" />
+            {/* Mic grille lines */}
+            <line x1="10" y1="5" x2="14" y2="5" stroke="rgba(139,69,19,0.4)" strokeWidth="0.5" />
+            <line x1="10" y1="7" x2="14" y2="7" stroke="rgba(139,69,19,0.4)" strokeWidth="0.5" />
+            <line x1="10" y1="9" x2="14" y2="9" stroke="rgba(139,69,19,0.4)" strokeWidth="0.5" />
+            {/* Mic stand curve */}
+            <path 
+              d="M5 11a7 7 0 0014 0" 
+              stroke="url(#goldGradient)" 
+              strokeWidth="2" 
+              strokeLinecap="round"
+              fill="none"
+            />
+            {/* Mic stand */}
+            <line x1="12" y1="18" x2="12" y2="22" stroke="url(#goldGradient)" strokeWidth="2" strokeLinecap="round" />
+            {/* Base */}
+            <line x1="8" y1="22" x2="16" y2="22" stroke="url(#goldGradient)" strokeWidth="2" strokeLinecap="round" />
+            {/* Gradient definition */}
+            <defs>
+              <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#fff8dc" />
+                <stop offset="50%" stopColor="#ffd700" />
+                <stop offset="100%" stopColor="#b8860b" />
+              </linearGradient>
+            </defs>
+          </svg>
+          
+          {/* State indicators */}
+          {appState === 'listening' && (
+            <div className="absolute inset-0 rounded-full border-4 border-yellow-300 animate-ping opacity-30" />
           )}
-          {appState === 'listening' && '🎙️'}
-          {appState === 'thinking' && '💭'}
-          {appState === 'speaking' && '🗣️'}
         </button>
       </div>
 
@@ -490,15 +528,6 @@ export function FullscreenApp() {
         onClose={() => setShowRGYGateway(false)}
         isDark={isDark}
       />
-
-      {/* Bottom Center Tagline */}
-      <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[40] text-center ${
-        isDark ? 'text-white/50' : 'text-gray-500'
-      }`}>
-        <p className="text-xs sm:text-sm tracking-wide">
-          CubiQo™ for simulating conversations
-        </p>
-      </div>
     </div>
   )
 }
