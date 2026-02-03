@@ -4,7 +4,7 @@
 
 export { SYSTEM_PROMPT } from './system-prompt'
 export { buildMessages, parseResponse, formatFullTimestamp, formatTimeAgo } from './service'
-export { CLAUDE_CONFIG, OPENAI_CONFIG, PRIMARY_PROVIDER, FALLBACK_PROVIDER } from './providers'
+export { MINIMAX_CONFIG, CLAUDE_CONFIG, OPENAI_CONFIG, PRIMARY_PROVIDER, FALLBACK_PROVIDER, TERTIARY_PROVIDER } from './providers'
 export type {
   ChatMessage,
   ConversationEntry,

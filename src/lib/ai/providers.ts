@@ -1,9 +1,16 @@
 /**
  * AI Provider Configurations
- * Claude (primary) and OpenAI (fallback)
+ * MiniMax (primary), Claude, and OpenAI (fallback)
  */
 
 import type { ProviderConfig } from './types'
+
+export const MINIMAX_CONFIG: ProviderConfig = {
+  name: 'minimax',
+  model: 'MiniMax-M2',
+  maxTokens: 200,
+  apiKeyEnv: 'MINIMAX_API_KEY'
+}
 
 export const CLAUDE_CONFIG: ProviderConfig = {
   name: 'claude',
@@ -19,8 +26,9 @@ export const OPENAI_CONFIG: ProviderConfig = {
   apiKeyEnv: 'OPENAI_API_KEY'
 }
 
-// Primary provider
-export const PRIMARY_PROVIDER = CLAUDE_CONFIG
+// Primary provider - MiniMax
+export const PRIMARY_PROVIDER = MINIMAX_CONFIG
 
-// Fallback provider (used if primary fails)
-export const FALLBACK_PROVIDER = OPENAI_CONFIG
+// Fallback providers
+export const FALLBACK_PROVIDER = CLAUDE_CONFIG
+export const TERTIARY_PROVIDER = OPENAI_CONFIG

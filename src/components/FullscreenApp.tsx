@@ -9,10 +9,13 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { CubeScene, EnergyCubeScene } from './cube'
 import { LoginForm, AuthNudgeModal } from './auth'
 import { BYOSettings } from './byo'
+import { KeywordPanel } from './KeywordPanel'
+import { RGYChatGatewayButton, RGYChatGatewayModal } from './RGYChatGateway'
+import { TriColorCubeButton } from './TriColorCubeButton'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
-import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
+import { useElevenLabsTTS } from '@/hooks/useElevenLabsTTS'
 import { useChat } from '@/hooks/useChat'
 import { useBYO } from '@/hooks/useBYO'
 import type { ColorName } from '@/config/colors'
@@ -33,6 +36,10 @@ export function FullscreenApp() {
   const [nudgeCta, setNudgeCta] = useState('')
   const [isDark, setIsDark] = useState(true)
   const [showBYOSettings, setShowBYOSettings] = useState(false)
+  
+  // New UI panels
+  const [showKeywordPanel, setShowKeywordPanel] = useState(false)
+  const [showRGYGateway, setShowRGYGateway] = useState(false)
 
   // BYO Mode
   const { isBYOEnabled } = useBYO()
@@ -55,10 +62,9 @@ export function FullscreenApp() {
   // Track if we should show auth nudge modal after speaking
   const nudgeCtaRef = useRef<string | null>(null)
 
-  // TTS for AI responses
-  const { speak, stop: stopSpeaking, isSpeaking, error: ttsError } = useSpeechSynthesis({
-    rate: 0.92,
-    pitch: 1.05,
+  // TTS for AI responses - Using ElevenLabs for natural voice
+  const { speak, stop: stopSpeaking, isSpeaking, error: ttsError } = useElevenLabsTTS({
+    colorName,
     onStart: () => {
       setAppState('speaking')
       setAnimationState('speaking')
@@ -201,14 +207,21 @@ export function FullscreenApp() {
         }`}
       >
         <div className="flex justify-between items-center w-full">
-          {/* Logo - 3D Cubiqo Logo */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <img 
-              src="https://customer-assets.emergentagent.com/job_3b5d3edc-6188-443e-bc32-545560e99173/artifacts/g5a15cpk_Create%20a%20polished%203D.png" 
-              alt="CubiQo" 
-              className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
-            />
-            <span className="font-bold tracking-widest text-sm sm:text-base">CubiQo™</span>
+          {/* Logo - 3D Cubiqo Logo - BIGGER & MORE VISIBLE */}
+          <div className="flex items-center gap-4">
+            <div 
+              className="relative"
+              style={{
+                filter: 'drop-shadow(0 0 10px rgba(255, 200, 100, 0.5)) drop-shadow(0 0 20px rgba(255, 150, 50, 0.3))'
+              }}
+            >
+              <img 
+                src="https://customer-assets.emergentagent.com/job_3b5d3edc-6188-443e-bc32-545560e99173/artifacts/g5a15cpk_Create%20a%20polished%203D.png" 
+                alt="CubiQo" 
+                className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain"
+              />
+            </div>
+            <span className="font-bold tracking-widest text-xl sm:text-2xl md:text-3xl">CubiQo™</span>
           </div>
 
           {/* Right side */}
@@ -217,9 +230,23 @@ export function FullscreenApp() {
               CubiQo™ for simulating conversations
             </span>
 
+            {/* Keywords Button */}
+            <button
+              onClick={() => setShowKeywordPanel(true)}
+              data-testid="keywords-button"
+              className={`text-xs font-medium px-3 py-2 rounded-lg transition-all ${
+                isDark
+                  ? 'bg-white/[0.08] border border-white/20 text-white hover:bg-white/15'
+                  : 'bg-black/[0.05] border border-black/15 text-gray-800 hover:bg-black/10'
+              }`}
+            >
+              Keywords
+            </button>
+
             {/* Menu Button */}
             <button
               onClick={() => setMenuOpen(!menuOpen)}
+              data-testid="menu-button"
               className={`text-xs font-medium px-3 py-2 rounded-lg transition-all ${
                 isDark
                   ? 'bg-white/[0.08] border border-white/20 text-white hover:bg-white/15'
@@ -236,6 +263,12 @@ export function FullscreenApp() {
           CubiQo™ for simulating conversations
         </div>
       </header>
+
+      {/* Left-side TriColor Cube Button (opens keywords panel) */}
+      <TriColorCubeButton 
+        onClick={() => setShowKeywordPanel(true)} 
+        isDark={isDark}
+      />
 
       {/* Voice Button - State-based visual feedback */}
       <div className="fixed bottom-[90px] left-1/2 -translate-x-1/2 z-[60]">
@@ -436,6 +469,26 @@ export function FullscreenApp() {
         isOpen={showNudgeModal}
         onClose={() => setShowNudgeModal(false)}
         cta={nudgeCta}
+      />
+
+      {/* Keyword Panel (Left side) */}
+      <KeywordPanel
+        isOpen={showKeywordPanel}
+        onClose={() => setShowKeywordPanel(false)}
+        isDark={isDark}
+      />
+
+      {/* RGY Chat Gateway Button (Right side) */}
+      <RGYChatGatewayButton 
+        onOpen={() => setShowRGYGateway(true)} 
+        isDark={isDark} 
+      />
+
+      {/* RGY Chat Gateway Modal */}
+      <RGYChatGatewayModal
+        isOpen={showRGYGateway}
+        onClose={() => setShowRGYGateway(false)}
+        isDark={isDark}
       />
     </div>
   )

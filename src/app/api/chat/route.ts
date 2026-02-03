@@ -1,6 +1,7 @@
 /**
  * Chat API Route Handler
- * Triple routing: OpenClaw (primary) → Claude → OpenAI (fallback)
+ * Triple routing: MiniMax (primary) → Claude → OpenAI (fallback)
+ * Rate limited: 100 requests/hour per session
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -11,6 +12,7 @@ import {
   parseResponse,
   CLAUDE_CONFIG,
   OPENAI_CONFIG,
+  MINIMAX_CONFIG,
   type ChatRequest,
   type AIResponse
 } from '@/lib/ai'
@@ -18,11 +20,83 @@ import { callOpenClaw } from '@/lib/ai/openclaw'
 import { buildMemoryContext } from '@/lib/ai/memory-extraction.server'
 import { getRegionConfig, buildRegionalPrompt } from '@/lib/config/regions'
 
+// Rate limiting for MiniMax: 100 requests/hour per session
+const minimaxRateLimitMap = new Map<string, { count: number; resetTime: number }>()
+const MINIMAX_RATE_LIMIT = 100 // requests per hour
+const MINIMAX_RATE_WINDOW = 60 * 60 * 1000 // 1 hour in ms
+
+function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining: number } {
+  const now = Date.now()
+  const record = minimaxRateLimitMap.get(sessionId)
+  
+  if (!record || now > record.resetTime) {
+    minimaxRateLimitMap.set(sessionId, { count: 1, resetTime: now + MINIMAX_RATE_WINDOW })
+    return { allowed: true, remaining: MINIMAX_RATE_LIMIT - 1 }
+  }
+  
+  if (record.count >= MINIMAX_RATE_LIMIT) {
+    return { allowed: false, remaining: 0 }
+  }
+  
+  record.count++
+  return { allowed: true, remaining: MINIMAX_RATE_LIMIT - record.count }
+}
+
 // Server-side Supabase client for loading memories
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+// MiniMax API call (primary)
+async function callMiniMax(
+  systemPrompt: string,
+  messages: { role: string; content: string }[]
+): Promise<string> {
+  const apiKey = process.env.MINIMAX_API_KEY
+
+  if (!apiKey) {
+    throw new Error('MINIMAX_API_KEY not configured')
+  }
+
+  // Build messages for MiniMax API
+  const minimaxMessages = [
+    { role: 'system', content: systemPrompt },
+    ...messages.map(msg => ({
+      role: msg.role === 'assistant' ? 'assistant' : 'user',
+      content: msg.content
+    }))
+  ]
+
+  const response = await fetch('https://api.minimaxi.chat/v1/text/chatcompletion_v2', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: MINIMAX_CONFIG.model,
+      messages: minimaxMessages,
+      max_tokens: MINIMAX_CONFIG.maxTokens,
+      temperature: 0.7
+    })
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('MiniMax API error:', response.status, errorText)
+    throw new Error(`MiniMax API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+  
+  // MiniMax returns choices similar to OpenAI
+  if (data.choices && data.choices[0]?.message?.content) {
+    return data.choices[0].message.content
+  }
+  
+  throw new Error('Invalid MiniMax response format')
+}
 
 // Claude API call with prompt caching
 async function callClaude(
@@ -230,24 +304,56 @@ export async function POST(request: NextRequest) {
     const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + regionalContext + authNudge
 
     let content: string
-    let provider: 'openclaw' | 'claude' | 'openai' = 'openclaw'
+    let provider: 'minimax' | 'openclaw' | 'claude' | 'openai' = 'minimax'
+    
+    // Check MiniMax rate limit
+    const { allowed: minimaxAllowed } = checkMiniMaxRateLimit(sessionId || 'anonymous')
 
-    // Try OpenClaw first (primary - gives us tool use and all Clawdbot features)
-    try {
-      content = await callOpenClaw(fullSystemPrompt, messages)
-    } catch (openclawError) {
-      console.warn('OpenClaw failed, falling back to Claude:', openclawError)
-      // Fallback to Claude
+    // Try MiniMax first (primary)
+    if (minimaxAllowed) {
       try {
-        content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
-        provider = 'claude'
-      } catch (claudeError) {
-        // Final fallback to OpenAI
+        content = await callMiniMax(fullSystemPrompt, messages)
+      } catch (minimaxError) {
+        console.warn('MiniMax failed, falling back to OpenClaw:', minimaxError)
+        // Fallback to OpenClaw
         try {
-          content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
-          provider = 'openai'
-        } catch {
-          throw new Error('All AI providers failed')
+          content = await callOpenClaw(fullSystemPrompt, messages)
+          provider = 'openclaw'
+        } catch (openclawError) {
+          console.warn('OpenClaw failed, falling back to Claude:', openclawError)
+          // Fallback to Claude
+          try {
+            content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
+            provider = 'claude'
+          } catch (claudeError) {
+            // Final fallback to OpenAI
+            try {
+              content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
+              provider = 'openai'
+            } catch {
+              throw new Error('All AI providers failed')
+            }
+          }
+        }
+      }
+    } else {
+      // MiniMax rate limited, skip to OpenClaw
+      console.warn('MiniMax rate limited, using OpenClaw')
+      try {
+        content = await callOpenClaw(fullSystemPrompt, messages)
+        provider = 'openclaw'
+      } catch (openclawError) {
+        console.warn('OpenClaw failed, falling back to Claude:', openclawError)
+        try {
+          content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
+          provider = 'claude'
+        } catch (claudeError) {
+          try {
+            content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
+            provider = 'openai'
+          } catch {
+            throw new Error('All AI providers failed')
+          }
         }
       }
     }
