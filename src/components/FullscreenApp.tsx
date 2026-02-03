@@ -10,6 +10,7 @@ import { CubeScene, EnergyCubeScene } from './cube'
 import { LoginForm, AuthNudgeModal } from './auth'
 import { BYOSettings } from './byo'
 import { KeywordPanel } from './KeywordPanel'
+import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
@@ -37,6 +38,7 @@ export function FullscreenApp() {
   
   // UI panels
   const [showKeywordPanel, setShowKeywordPanel] = useState(false)
+  const [showRGYChats, setShowRGYChats] = useState(false)
 
   // BYO Mode
   const { isBYOEnabled } = useBYO()
@@ -270,6 +272,14 @@ export function FullscreenApp() {
           <div className="w-24 sm:w-32" />
         </div>
       </header>
+
+      {/* RGY Signal Button - Right side */}
+      <div className="fixed right-4 top-1/2 -translate-y-1/2 z-[60]">
+        <RGYSignalButton 
+          onClick={() => setShowRGYChats(true)} 
+          isDark={isDark}
+        />
+      </div>
 
       {/* Voice Button - Fancy Golden Mic */}
       <div className="fixed bottom-[90px] left-1/2 -translate-x-1/2 z-[60]">
@@ -550,6 +560,13 @@ export function FullscreenApp() {
       <KeywordPanel
         isOpen={showKeywordPanel}
         onClose={() => setShowKeywordPanel(false)}
+        isDark={isDark}
+      />
+
+      {/* RGY Chats Modal */}
+      <RGYChatsModal
+        isOpen={showRGYChats}
+        onClose={() => setShowRGYChats(false)}
         isDark={isDark}
       />
     </div>
