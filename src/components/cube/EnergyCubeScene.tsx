@@ -3,17 +3,30 @@
 /**
  * EnergyCubeScene - Canvas wrapper for the Energy Cube
  * Drop-in replacement for CubeScene with shader-based effects
+ * 
+ * ORANGE uses IsometricCube (different geometry, landing state)
+ * Other colors use EnergyCube (rounded cube, voice states)
  */
 
 import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { EnergyCube, type AnimationState } from './EnergyCube'
+import { EnergyCube } from './EnergyCube'
+import { IsometricCube } from './IsometricCube'
 import type { ColorName } from '@/config/colors'
+import type { AnimationState } from './EnergyCube'
+import * as THREE from 'three'
 
 interface EnergyCubeSceneProps {
   colorName?: ColorName
   animationState?: AnimationState
   className?: string
+}
+
+// Target colors for transition from ORANGE
+const TARGET_COLORS: Record<string, THREE.Color> = {
+  GREEN_BLUE: new THREE.Color(0.0, 0.54, 0.48),
+  YELLOW: new THREE.Color(1.0, 0.63, 0.0),
+  RED: new THREE.Color(0.76, 0.09, 0.36),
 }
 
 function Lights() {
@@ -32,6 +45,9 @@ export function EnergyCubeScene({
   animationState = 'idle',
   className = ''
 }: EnergyCubeSceneProps) {
+  // ORANGE uses special IsometricCube (landing state)
+  const isLandingState = colorName === 'ORANGE'
+  
   return (
     <div className={`w-full h-full ${className}`}>
       <Canvas
@@ -47,7 +63,20 @@ export function EnergyCubeScene({
         <Lights />
         
         <Suspense fallback={null}>
-          <EnergyCube colorName={colorName} animationState={animationState} />
+          {isLandingState ? (
+            // Isometric geometry for ORANGE landing state
+            <IsometricCube 
+              transitionProgress={0}
+              targetColor={TARGET_COLORS.GREEN_BLUE}
+              reducedMotion={false}
+            />
+          ) : (
+            // Rounded cube for voice states
+            <EnergyCube 
+              colorName={colorName} 
+              animationState={animationState} 
+            />
+          )}
         </Suspense>
       </Canvas>
     </div>
