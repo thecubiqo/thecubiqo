@@ -207,32 +207,23 @@ export function FullscreenApp() {
         }`}
       >
         <div className="flex justify-between items-center w-full">
-          {/* Logo - Static 3D Tile Mark with Premium Spacing */}
-          <div className="flex items-center gap-4">
+          {/* Logo - Static 3D Tile Mark Only (No Text) */}
+          <div className="flex items-center">
             <div 
               className="relative transition-opacity duration-200 hover:opacity-96"
               style={{
-                filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
+                filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5))'
               }}
             >
               <img 
-                src="https://customer-assets.emergentagent.com/job_react-energy-cube/artifacts/qu3a9pis_Copilot_20260120_084239.png" 
+                src="https://customer-assets.emergentagent.com/job_react-energy-cube/artifacts/3fc6c2dr_Copilot_20260120_084239.png" 
                 alt="CubiQo" 
-                className="w-12 h-12 sm:w-14 sm:h-14 object-contain rounded-lg"
+                className="w-14 h-14 sm:w-16 sm:h-16 object-contain rounded-lg"
                 style={{
                   imageRendering: 'crisp-edges'
                 }}
               />
             </div>
-            <span 
-              className="font-semibold tracking-wide text-lg sm:text-xl"
-              style={{
-                color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.85)',
-                letterSpacing: '0.02em'
-              }}
-            >
-              CubiQo™
-            </span>
           </div>
 
           {/* Right side */}
