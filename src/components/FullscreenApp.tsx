@@ -201,11 +201,13 @@ export function FullscreenApp() {
         }`}
       >
         <div className="flex justify-between items-center w-full">
-          {/* Logo */}
+          {/* Logo - 3D Cubiqo Logo */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
-              <span className="text-white text-xs sm:text-sm font-bold">Q</span>
-            </div>
+            <img 
+              src="https://customer-assets.emergentagent.com/job_3b5d3edc-6188-443e-bc32-545560e99173/artifacts/g5a15cpk_Create%20a%20polished%203D.png" 
+              alt="CubiQo" 
+              className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
+            />
             <span className="font-bold tracking-widest text-sm sm:text-base">CubiQo™</span>
           </div>
 
