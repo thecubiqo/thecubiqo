@@ -5,4 +5,6 @@
 export { Cube } from './Cube'
 export { CubeScene } from './CubeScene'
 export { CubeDemo } from './CubeDemo'
+export { EnergyCube } from './EnergyCube'
+export { EnergyCubeScene } from './EnergyCubeScene'
 export type { AnimationState } from './Cube'

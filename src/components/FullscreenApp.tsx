@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { CubeScene } from './cube'
+import { CubeScene, EnergyCubeScene } from './cube'
 import { LoginForm, AuthNudgeModal } from './auth'
 import { BYOSettings } from './byo'
 import { useSession } from '@/hooks/useSession'
@@ -187,9 +187,9 @@ export function FullscreenApp() {
       className="fixed inset-0 overflow-hidden transition-colors duration-400"
       style={{ background: bgColor, color: textColor }}
     >
-      {/* Fullscreen Cube Canvas */}
+      {/* Fullscreen Energy Cube Canvas */}
       <div className="absolute inset-0 z-[1]">
-        <CubeScene colorName={colorName} animationState={animationState} />
+        <EnergyCubeScene colorName={colorName} animationState={animationState} />
       </div>
 
       {/* Header */}
