@@ -212,8 +212,10 @@ const COLOR_CONFIGS: Record<ColorName, {
   shadowColor: THREE.Color | null
   floats: boolean
   floatHeight: number
+  isLanding?: boolean
 }> = {
   RED: {
+    // INTIMATE - Deep, intense, date/romantic context
     primary: new THREE.Color(0.76, 0.09, 0.36),      // Deep magenta-red
     secondary: new THREE.Color(0.55, 0.04, 0.24),   // Dark crimson
     accent: new THREE.Color(1.0, 0.3, 0.4),          // Bright red
@@ -222,6 +224,7 @@ const COLOR_CONFIGS: Record<ColorName, {
     floatHeight: 0.3,
   },
   GREEN_BLUE: {
+    // OFFICE - Sincere, professional, focused
     primary: new THREE.Color(0.0, 0.54, 0.48),       // Teal
     secondary: new THREE.Color(0.0, 0.35, 0.43),    // Deep teal
     accent: new THREE.Color(0.2, 0.9, 0.75),         // Bright cyan
@@ -230,20 +233,23 @@ const COLOR_CONFIGS: Record<ColorName, {
     floatHeight: 0.25,
   },
   YELLOW: {
+    // CAFE/FRIENDS - Candid, warm, relaxed
     primary: new THREE.Color(1.0, 0.63, 0.0),        // Warm amber
     secondary: new THREE.Color(1.0, 0.45, 0.0),     // Orange
     accent: new THREE.Color(1.0, 0.85, 0.3),        // Bright yellow
     shadowColor: null,                               // NO shadow - grounded
-    floats: false,                                   // Sitting down
+    floats: false,                                   // Sitting down, relaxed
     floatHeight: -0.15,
   },
   ORANGE: {
-    primary: new THREE.Color(1.0, 0.44, 0.0),        // Deep orange
-    secondary: new THREE.Color(0.8, 0.35, 0.0),     // Burnt orange
-    accent: new THREE.Color(1.0, 0.6, 0.2),         // Bright orange
-    shadowColor: new THREE.Color(1.0, 0.45, 0.1),  // Subtle orange glow
+    // LANDING/MYTHICAL - Stateless, ethereal, transitional (no voice modes)
+    primary: new THREE.Color(1.0, 0.5, 0.1),         // Ethereal orange
+    secondary: new THREE.Color(0.9, 0.4, 0.05),     // Deep amber
+    accent: new THREE.Color(1.0, 0.7, 0.3),         // Golden glow
+    shadowColor: new THREE.Color(1.0, 0.5, 0.15),  // Warm ethereal glow
     floats: true,
-    floatHeight: 0.2,
+    floatHeight: 0.15,                              // Gentle float
+    isLanding: true,                                 // Special flag
   },
 }
 
