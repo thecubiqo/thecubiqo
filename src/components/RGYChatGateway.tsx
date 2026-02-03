@@ -22,7 +22,6 @@ export function RGYChatGatewayButton({ onOpen, isDark = true }: RGYChatGatewayPr
       onMouseLeave={() => setIsHovered(false)}
       data-testid="rgy-gateway-button"
       className={`
-        fixed right-4 top-1/2 -translate-y-1/2 z-[60]
         w-12 h-24 rounded-full
         flex flex-col items-center justify-center gap-1
         transition-all duration-300

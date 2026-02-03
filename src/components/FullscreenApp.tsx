@@ -11,7 +11,6 @@ import { LoginForm, AuthNudgeModal } from './auth'
 import { BYOSettings } from './byo'
 import { KeywordPanel } from './KeywordPanel'
 import { RGYChatGatewayButton, RGYChatGatewayModal } from './RGYChatGateway'
-import { TriColorCubeButton } from './TriColorCubeButton'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
@@ -207,7 +206,7 @@ export function FullscreenApp() {
         }`}
       >
         <div className="flex justify-between items-center w-full">
-          {/* Logo - Static 3D Tile Mark Only (No Text) */}
+          {/* Logo - Bigger & More Legible */}
           <div className="flex items-center">
             <div 
               className="relative transition-opacity duration-200 hover:opacity-96"
@@ -218,7 +217,7 @@ export function FullscreenApp() {
               <img 
                 src="https://customer-assets.emergentagent.com/job_react-energy-cube/artifacts/3fc6c2dr_Copilot_20260120_084239.png" 
                 alt="CubiQo" 
-                className="w-14 h-14 sm:w-16 sm:h-16 object-contain rounded-lg"
+                className="w-20 h-20 sm:w-24 sm:h-24 object-contain"
                 style={{
                   imageRendering: 'crisp-edges'
                 }}
@@ -226,51 +225,56 @@ export function FullscreenApp() {
             </div>
           </div>
 
-          {/* Right side */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            <span className={`text-xs hidden md:block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              CubiQo™ for simulating conversations
-            </span>
+          {/* Right side - Tabs (not buttons) */}
+          <div className="flex items-center gap-6 sm:gap-8">
+            {/* Keywords Tab */}
+            <div className="relative group">
+              <button
+                onClick={() => setShowKeywordPanel(true)}
+                data-testid="keywords-button"
+                className={`text-sm font-medium transition-all border-b-2 border-transparent hover:border-current pb-1 ${
+                  isDark ? 'text-white/70 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Keywords
+              </button>
+              {/* Tooltip */}
+              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none ${
+                isDark ? 'bg-white/10 text-white/80' : 'bg-black/10 text-gray-700'
+              }`}>
+                the way cubiqo knows you
+              </div>
+            </div>
 
-            {/* Keywords Button */}
-            <button
-              onClick={() => setShowKeywordPanel(true)}
-              data-testid="keywords-button"
-              className={`text-xs font-medium px-3 py-2 rounded-lg transition-all ${
-                isDark
-                  ? 'bg-white/[0.08] border border-white/20 text-white hover:bg-white/15'
-                  : 'bg-black/[0.05] border border-black/15 text-gray-800 hover:bg-black/10'
-              }`}
-            >
-              Keywords
-            </button>
-
-            {/* Menu Button */}
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              data-testid="menu-button"
-              className={`text-xs font-medium px-3 py-2 rounded-lg transition-all ${
-                isDark
-                  ? 'bg-white/[0.08] border border-white/20 text-white hover:bg-white/15'
-                  : 'bg-black/[0.05] border border-black/15 text-gray-800 hover:bg-black/10'
-              }`}
-            >
-              Menu
-            </button>
+            {/* Menu Tab */}
+            <div className="relative group">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                data-testid="menu-button"
+                className={`text-sm font-medium transition-all border-b-2 border-transparent hover:border-current pb-1 ${
+                  isDark ? 'text-white/70 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Menu
+              </button>
+              {/* Tooltip */}
+              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none ${
+                isDark ? 'bg-white/10 text-white/80' : 'bg-black/10 text-gray-700'
+              }`}>
+                check out buy your own mode
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Mobile subtitle */}
-        <div className={`text-xs text-center mt-2 md:hidden ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          CubiQo™ for simulating conversations
         </div>
       </header>
 
-      {/* Left-side TriColor Cube Button (opens keywords panel) */}
-      <TriColorCubeButton 
-        onClick={() => setShowKeywordPanel(true)} 
-        isDark={isDark}
-      />
+      {/* RGY Gateway Button - Moved UP on the page */}
+      <div className="fixed right-4 top-32 z-[60]">
+        <RGYChatGatewayButton 
+          onOpen={() => setShowRGYGateway(true)} 
+          isDark={isDark} 
+        />
+      </div>
 
       {/* Voice Button - State-based visual feedback */}
       <div className="fixed bottom-[90px] left-1/2 -translate-x-1/2 z-[60]">
@@ -480,18 +484,21 @@ export function FullscreenApp() {
         isDark={isDark}
       />
 
-      {/* RGY Chat Gateway Button (Right side) */}
-      <RGYChatGatewayButton 
-        onOpen={() => setShowRGYGateway(true)} 
-        isDark={isDark} 
-      />
-
       {/* RGY Chat Gateway Modal */}
       <RGYChatGatewayModal
         isOpen={showRGYGateway}
         onClose={() => setShowRGYGateway(false)}
         isDark={isDark}
       />
+
+      {/* Bottom Center Tagline */}
+      <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[40] text-center ${
+        isDark ? 'text-white/50' : 'text-gray-500'
+      }`}>
+        <p className="text-xs sm:text-sm tracking-wide">
+          CubiQo™ for simulating conversations
+        </p>
+      </div>
     </div>
   )
 }
