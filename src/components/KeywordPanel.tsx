@@ -1,17 +1,12 @@
 'use client'
 
 /**
- * KeywordPanel - Redesigned to match mockup
- * Features 3D tilted cuboids for R/G/Y with "tap for keywords"
+ * KeywordPanel - Slides from RIGHT side
+ * Allows user to select ONE color experience (Green, Yellow, Red)
+ * This changes ONLY audio + visuals, NOT RGY thinking
  */
 
-import { useState } from 'react'
-
-interface Keyword {
-  id: string
-  text: string
-  color: 'RED' | 'GREEN_BLUE' | 'YELLOW'
-}
+import { useState, useEffect } from 'react'
 
 interface KeywordPanelProps {
   isOpen: boolean
@@ -19,201 +14,107 @@ interface KeywordPanelProps {
   isDark?: boolean
 }
 
-// Mock keywords
-const MOCK_KEYWORDS: Record<string, Keyword[]> = {
-  GREEN_BLUE: [
-    { id: '1', text: 'yoga class', color: 'GREEN_BLUE' },
-    { id: '2', text: 'project deadlines', color: 'GREEN_BLUE' },
-  ],
-  YELLOW: [
-    { id: '3', text: 'coffee meetup', color: 'YELLOW' },
-    { id: '4', text: 'networking', color: 'YELLOW' },
-  ],
-  RED: [
-    { id: '5', text: 'AI startup', color: 'RED' },
-    { id: '6', text: 'series A funding', color: 'RED' },
-  ],
-}
+type ColorExperience = 'green' | 'yellow' | 'red' | null
 
-const CUBE_CONFIG = [
-  { 
-    key: 'GREEN_BLUE', 
-    label: 'Intelligent', 
-    color: '#22c55e', 
-    bgGradient: 'from-green-400/80 to-green-600/80',
-    shadowColor: 'rgba(34, 197, 94, 0.4)'
+const COLOR_OPTIONS = [
+  {
+    id: 'green' as const,
+    name: 'Green',
+    label: 'Intelligent',
+    description: 'Professional, focused voice',
+    color: '#22c55e',
+    bgColor: 'rgba(34, 197, 94, 0.15)',
+    voiceHint: 'Clear & confident',
   },
-  { 
-    key: 'YELLOW', 
-    label: 'Ambiguous', 
-    color: '#eab308', 
-    bgGradient: 'from-yellow-300/80 to-yellow-500/80',
-    shadowColor: 'rgba(234, 179, 8, 0.4)'
+  {
+    id: 'yellow' as const,
+    name: 'Yellow', 
+    label: 'Ambiguous',
+    description: 'Warm, friendly voice',
+    color: '#eab308',
+    bgColor: 'rgba(234, 179, 8, 0.15)',
+    voiceHint: 'Relaxed & natural',
   },
-  { 
-    key: 'RED', 
-    label: 'Indulgent', 
-    color: '#f87171', 
-    bgGradient: 'from-red-300/80 to-red-500/80',
-    shadowColor: 'rgba(248, 113, 113, 0.4)'
+  {
+    id: 'red' as const,
+    name: 'Red',
+    label: 'Indulgent',
+    description: 'Soft, intimate voice',
+    color: '#ef4444',
+    bgColor: 'rgba(239, 68, 68, 0.15)',
+    voiceHint: 'Deep & thoughtful',
   },
 ]
 
-interface IsometricCubeCardProps {
-  config: typeof CUBE_CONFIG[0]
-  keywords: Keyword[]
-  isExpanded: boolean
-  onToggle: () => void
-  isDark: boolean
-}
-
-function IsometricCubeCard({ config, keywords, isExpanded, onToggle, isDark }: IsometricCubeCardProps) {
-  return (
-    <div className="relative group">
-      {/* 3D Isometric Cube Container */}
-      <div 
-        className="relative cursor-pointer transition-all duration-300 hover:scale-105"
-        onClick={onToggle}
-        style={{
-          transform: 'perspective(800px) rotateX(15deg) rotateY(-15deg)',
-          transformStyle: 'preserve-3d',
-        }}
-      >
-        {/* Top face */}
-        <div 
-          className={`absolute w-32 h-8 bg-gradient-to-br ${config.bgGradient} opacity-90`}
-          style={{
-            transform: 'translateY(-16px) rotateX(60deg)',
-            transformOrigin: 'bottom',
-            borderRadius: '4px 4px 0 0',
-          }}
-        />
-        
-        {/* Front face - main content */}
-        <div 
-          className={`relative w-32 h-24 bg-gradient-to-br ${config.bgGradient} rounded-lg flex flex-col items-center justify-center`}
-          style={{
-            boxShadow: `0 8px 32px ${config.shadowColor}`,
-          }}
-        >
-          {/* Keywords preview or tap text */}
-          <div className="text-center px-2">
-            {isExpanded ? (
-              <div className="text-xs text-white/90 space-y-1">
-                {keywords.slice(0, 2).map(k => (
-                  <div key={k.id} className="truncate">{k.text}</div>
-                ))}
-                {keywords.length > 2 && (
-                  <div className="text-white/60">+{keywords.length - 2} more</div>
-                )}
-              </div>
-            ) : (
-              <div className="text-white/80 text-xs font-medium">
-                tap for<br/>keywords
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Right face */}
-        <div 
-          className={`absolute w-8 h-24 bg-gradient-to-b ${config.bgGradient} opacity-70`}
-          style={{
-            transform: 'translateX(128px) rotateY(90deg)',
-            transformOrigin: 'left',
-            borderRadius: '0 4px 4px 0',
-          }}
-        />
-      </div>
-      
-      {/* Label below */}
-      <div 
-        className={`text-center mt-4 text-sm font-medium ${isDark ? 'text-white/80' : 'text-gray-700'}`}
-        style={{ color: config.color }}
-      >
-        {config.label}
-      </div>
-      
-      {/* Expanded keywords panel */}
-      {isExpanded && (
-        <div 
-          className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-3 rounded-xl z-10 ${
-            isDark ? 'bg-zinc-800/95' : 'bg-white/95'
-          }`}
-          style={{
-            boxShadow: `0 8px 32px ${config.shadowColor}`,
-            backdropFilter: 'blur(10px)',
-          }}
-        >
-          <div className="space-y-2">
-            {keywords.map(k => (
-              <div 
-                key={k.id}
-                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm ${
-                  isDark ? 'bg-white/5' : 'bg-black/5'
-                }`}
-              >
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: config.color }} />
-                <span className="flex-1 truncate">{k.text}</span>
-              </div>
-            ))}
-            <button 
-              className="w-full text-xs py-1.5 rounded-lg transition-colors"
-              style={{ 
-                backgroundColor: `${config.color}20`,
-                color: config.color 
-              }}
-            >
-              + Add keyword
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
 export function KeywordPanel({ isOpen, onClose, isDark = true }: KeywordPanelProps) {
-  const [expandedCube, setExpandedCube] = useState<string | null>(null)
-  const [proMatchEnabled, setProMatchEnabled] = useState(false)
-  const [settings, setSettings] = useState({
-    selectColorVoice: true,
-    crossSelect: false,
-    uiOnly: true,
-  })
+  const [selectedColor, setSelectedColor] = useState<ColorExperience>(null)
+  const [isLocked, setIsLocked] = useState(false)
+  const [isVisible, setIsVisible] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
 
-  if (!isOpen) return null
+  // Handle open/close animation
+  useEffect(() => {
+    if (isOpen) {
+      setIsVisible(true)
+      setTimeout(() => setIsAnimating(true), 10)
+    } else {
+      setIsAnimating(false)
+      setTimeout(() => setIsVisible(false), 300)
+    }
+  }, [isOpen])
 
-  const bgColor = isDark ? 'bg-[#1a1a1a]/98' : 'bg-[#fff5f0]/98'
-  const textColor = isDark ? 'text-white' : 'text-gray-900'
+  const handleSelectColor = (colorId: ColorExperience) => {
+    if (!isLocked) {
+      setSelectedColor(colorId)
+    }
+  }
+
+  const handleLockExperience = () => {
+    if (selectedColor) {
+      setIsLocked(true)
+      // Here you would dispatch to a global state/context to change audio/visuals
+    }
+  }
+
+  const handleUnlock = () => {
+    setIsLocked(false)
+    setSelectedColor(null)
+  }
+
+  if (!isVisible) return null
 
   return (
     <div 
-      className="fixed inset-0 z-[80]"
+      className={`fixed inset-0 z-[80] transition-opacity duration-300 ${
+        isAnimating ? 'opacity-100' : 'opacity-0'
+      }`}
       onClick={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       
-      {/* Panel */}
+      {/* Panel - slides from RIGHT */}
       <div
-        className={`absolute left-0 top-0 bottom-0 w-[480px] max-w-[90vw] ${bgColor} ${textColor} overflow-y-auto`}
-        style={{ backdropFilter: 'blur(20px)' }}
+        className={`absolute right-0 top-0 bottom-0 w-[400px] max-w-[90vw] flex flex-col transition-transform duration-300 ease-out ${
+          isAnimating ? 'translate-x-0' : 'translate-x-full'
+        } ${isDark ? 'bg-zinc-900' : 'bg-white'}`}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <img 
-              src="https://customer-assets.emergentagent.com/job_3b5d3edc-6188-443e-bc32-545560e99173/artifacts/g5a15cpk_Create%20a%20polished%203D.png" 
-              alt="CubiQo" 
-              className="w-8 h-8"
-            />
-            <span className="font-bold">CubiQo™</span>
+        <div className={`flex items-center justify-between p-5 border-b ${
+          isDark ? 'border-white/10' : 'border-gray-200'
+        }`}>
+          <div>
+            <h2 className="text-lg font-semibold">Experience</h2>
+            <p className={`text-xs mt-0.5 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
+              the way cubiqo knows you
+            </p>
           </div>
           <button 
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+            className={`p-2 rounded-lg transition-colors ${
+              isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+            }`}
             data-testid="keyword-panel-close"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -222,134 +123,155 @@ export function KeywordPanel({ isOpen, onClose, isDark = true }: KeywordPanelPro
           </button>
         </div>
 
-        {/* ProMatch Toggle */}
-        <div className="p-4 border-b border-white/10">
-          <div className="flex items-center justify-between">
-            <div 
-              className="px-3 py-1.5 rounded text-sm font-medium"
-              style={{ backgroundColor: '#0ea5e9', color: 'white' }}
-            >
-              Pro match toggle
-            </div>
-            <button
-              onClick={() => setProMatchEnabled(!proMatchEnabled)}
-              data-testid="promatch-toggle"
-              className={`w-12 h-6 rounded-full transition-colors relative ${
-                proMatchEnabled ? 'bg-green-500' : isDark ? 'bg-white/20' : 'bg-black/20'
-              }`}
-            >
-              <div 
-                className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                  proMatchEnabled ? 'left-7' : 'left-1'
-                }`} 
-              />
-            </button>
-          </div>
-        </div>
-
-        {/* Settings Section */}
-        <div className="p-4 border-b border-white/10">
-          <div className={`p-4 rounded-xl ${isDark ? 'bg-purple-900/30' : 'bg-purple-100'}`}>
-            <div className="space-y-3">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={settings.selectColorVoice}
-                  onChange={e => setSettings(s => ({ ...s, selectColorVoice: e.target.checked }))}
-                  className="mt-1 w-4 h-4 rounded border-2 border-white/30"
-                />
-                <span className="text-sm opacity-80">
-                  user can select a specific color and voice experience
-                </span>
-              </label>
-              
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={settings.crossSelect}
-                  onChange={e => setSettings(s => ({ ...s, crossSelect: e.target.checked }))}
-                  className="mt-1 w-4 h-4 rounded border-2 border-white/30"
-                />
-                <span className="text-sm opacity-80">
-                  cannot cross select a voice and color
-                </span>
-              </label>
-              
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={settings.uiOnly}
-                  onChange={e => setSettings(s => ({ ...s, uiOnly: e.target.checked }))}
-                  className="mt-1 w-4 h-4 rounded border-2 border-white/30"
-                />
-                <span className="text-sm opacity-80">
-                  and this selection is UI only and independent of rgy segregation
-                </span>
-              </label>
-            </div>
-            
-            <p className="text-xs opacity-50 mt-4">
-              Talk to me for locking to anytime audio/visual experience you like and want to lock UI with it
-            </p>
-            <p className="text-xs opacity-70 mt-1">
-              we recommend to use default experience
-            </p>
-          </div>
-        </div>
-
-        {/* 3D Cubes Section */}
-        <div className="p-6">
-          <div className="flex justify-center items-end gap-6">
-            {CUBE_CONFIG.map((config) => (
-              <IsometricCubeCard
-                key={config.key}
-                config={config}
-                keywords={MOCK_KEYWORDS[config.key] || []}
-                isExpanded={expandedCube === config.key}
-                onToggle={() => setExpandedCube(expandedCube === config.key ? null : config.key)}
-                isDark={isDark}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Info Section */}
-        <div className="p-4 space-y-3">
-          <div className={`p-3 rounded-lg text-center text-sm ${isDark ? 'bg-orange-900/20 border border-orange-500/30' : 'bg-orange-50 border border-orange-200'}`}>
-            <p className="opacity-80">
-              Cubiqo colors are audio visual effects only.
-            </p>
-            <p className="opacity-80">
-              CubiQo never stores voice or conversations and voice is streamed only
-            </p>
-          </div>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-5">
           
-          <div className={`p-3 rounded-lg text-center text-sm ${isDark ? 'bg-zinc-800/50' : 'bg-gray-100'}`}>
-            <p className="opacity-70">
-              CubiQo never remembers the exacts and abstract only:
+          {/* Info Banner */}
+          <div className={`p-4 rounded-xl mb-6 ${
+            isDark ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-100'
+          }`}>
+            <p className={`text-sm ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
+              Select a color to change <strong>audio & visuals only</strong>.
             </p>
-            <p className="opacity-70">
-              Simulating real like conversations
+            <p className={`text-xs mt-1 ${isDark ? 'text-blue-300/70' : 'text-blue-600'}`}>
+              CubiQo's RGY thinking remains unchanged.
             </p>
           </div>
-        </div>
 
-        {/* Settings Button */}
-        <div className="p-4 border-t border-white/10">
-          <button 
-            className={`px-4 py-2 rounded-lg text-sm font-medium ${
-              isDark ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40' : 'bg-orange-100 text-orange-600 border border-orange-300'
-            }`}
-          >
-            SETTINGS
-          </button>
-        </div>
+          {/* Color Options */}
+          <div className="space-y-3">
+            <h3 className={`text-xs uppercase tracking-wider mb-3 ${
+              isDark ? 'text-white/40' : 'text-gray-400'
+            }`}>
+              Choose your experience
+            </h3>
+            
+            {COLOR_OPTIONS.map((option) => {
+              const isSelected = selectedColor === option.id
+              const isDisabled = isLocked && !isSelected
+              
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => handleSelectColor(option.id)}
+                  disabled={isDisabled}
+                  className={`w-full p-4 rounded-xl text-left transition-all duration-200 ${
+                    isDisabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                  } ${isSelected 
+                    ? 'ring-2 scale-[1.02]' 
+                    : isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'
+                  }`}
+                  style={{
+                    backgroundColor: isSelected ? option.bgColor : undefined,
+                    borderColor: isSelected ? option.color : 'transparent',
+                    ringColor: isSelected ? option.color : undefined,
+                  }}
+                >
+                  <div className="flex items-start gap-4">
+                    {/* Color Indicator */}
+                    <div 
+                      className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: option.bgColor }}
+                    >
+                      <div 
+                        className="w-6 h-6 rounded-full"
+                        style={{ 
+                          backgroundColor: option.color,
+                          boxShadow: isSelected ? `0 0 20px ${option.color}` : undefined
+                        }}
+                      />
+                    </div>
+                    
+                    {/* Text */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold" style={{ color: isSelected ? option.color : undefined }}>
+                          {option.name}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          isDark ? 'bg-white/10 text-white/60' : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          {option.label}
+                        </span>
+                      </div>
+                      <p className={`text-sm mt-1 ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
+                        {option.description}
+                      </p>
+                      <p className={`text-xs mt-2 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                        Voice: {option.voiceHint}
+                      </p>
+                    </div>
 
-        {/* Footer disclaimer */}
-        <div className={`p-4 text-center text-xs border-t ${isDark ? 'border-white/10 bg-yellow-900/20' : 'border-black/10 bg-yellow-50'}`}>
-          <p className="opacity-70">
-            CubiQo never remembers the exacts and abstract only: Simulating real like conversations
-          </p>
+                    {/* Selection indicator */}
+                    {isSelected && (
+                      <div 
+                        className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: option.color }}
+                      >
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Lock/Unlock Section */}
+          {selectedColor && (
+            <div className={`mt-6 p-4 rounded-xl ${
+              isDark ? 'bg-white/5' : 'bg-gray-50'
+            }`}>
+              {isLocked ? (
+                <div className="text-center">
+                  <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mb-3 ${
+                    isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600'
+                  }`}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <span className="text-sm font-medium">Experience Locked</span>
+                  </div>
+                  <p className={`text-xs mb-4 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
+                    Your audio & visual experience is set to {COLOR_OPTIONS.find(c => c.id === selectedColor)?.name}
+                  </p>
+                  <button
+                    onClick={handleUnlock}
+                    className={`text-sm px-4 py-2 rounded-lg transition-colors ${
+                      isDark ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-200 hover:bg-gray-300'
+                    }`}
+                  >
+                    Unlock & Change
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleLockExperience}
+                  className="w-full py-3 rounded-xl font-medium transition-all"
+                  style={{
+                    backgroundColor: COLOR_OPTIONS.find(c => c.id === selectedColor)?.color,
+                    color: 'white',
+                  }}
+                >
+                  Lock {COLOR_OPTIONS.find(c => c.id === selectedColor)?.name} Experience
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Disclaimer */}
+          <div className={`mt-6 p-4 rounded-xl text-center ${
+            isDark ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-orange-50 border border-orange-100'
+          }`}>
+            <p className={`text-xs ${isDark ? 'text-orange-300/80' : 'text-orange-700'}`}>
+              CubiQo colors are audio-visual effects only.
+            </p>
+            <p className={`text-xs mt-1 ${isDark ? 'text-orange-300/60' : 'text-orange-600'}`}>
+              CubiQo never stores voice or conversations.
+            </p>
+          </div>
         </div>
       </div>
     </div>

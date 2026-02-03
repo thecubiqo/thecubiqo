@@ -10,7 +10,6 @@ import { CubeScene, EnergyCubeScene } from './cube'
 import { LoginForm, AuthNudgeModal } from './auth'
 import { BYOSettings } from './byo'
 import { KeywordPanel } from './KeywordPanel'
-import { RGYChatGatewayButton, RGYChatGatewayModal } from './RGYChatGateway'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
@@ -36,9 +35,8 @@ export function FullscreenApp() {
   const [isDark, setIsDark] = useState(true)
   const [showBYOSettings, setShowBYOSettings] = useState(false)
   
-  // New UI panels
+  // UI panels
   const [showKeywordPanel, setShowKeywordPanel] = useState(false)
-  const [showRGYGateway, setShowRGYGateway] = useState(false)
 
   // BYO Mode
   const { isBYOEnabled } = useBYO()
@@ -273,14 +271,6 @@ export function FullscreenApp() {
         </div>
       </header>
 
-      {/* RGY Gateway Button - Moved UP on the page */}
-      <div className="fixed right-4 top-32 z-[60]">
-        <RGYChatGatewayButton 
-          onOpen={() => setShowRGYGateway(true)} 
-          isDark={isDark} 
-        />
-      </div>
-
       {/* Voice Button - Fancy Golden Mic */}
       <div className="fixed bottom-[90px] left-1/2 -translate-x-1/2 z-[60]">
         <button
@@ -378,133 +368,174 @@ export function FullscreenApp() {
 
       {/* Menu Overlay - Simplified */}
       {menuOpen && (
-        <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm" onClick={() => setMenuOpen(false)}>
+        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm" onClick={() => setMenuOpen(false)}>
           <div
-            className={`absolute right-0 top-0 bottom-0 w-72 max-w-[85vw] flex flex-col ${
+            className={`absolute right-0 top-0 bottom-0 w-80 max-w-[90vw] flex flex-col transform transition-transform duration-300 ease-out ${
               isDark ? 'bg-zinc-900' : 'bg-white'
             }`}
+            style={{ animation: 'slideInRight 0.3s ease-out' }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header - Fixed */}
-            <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-white/10">
               <h2 className="text-lg font-semibold">Menu</h2>
-              <button onClick={() => setMenuOpen(false)} className="opacity-60 hover:opacity-100">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button 
+                onClick={() => setMenuOpen(false)} 
+                className="p-1 rounded-lg opacity-60 hover:opacity-100 hover:bg-white/10 transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto px-6 pb-6">
-
-            {/* Navigation */}
-            <nav className="space-y-2 mb-8">
-              <div
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg ${
-                  isDark ? 'bg-white/10 text-white' : 'bg-black/5 text-black'
-                }`}
-              >
-                <span>🎤</span>
-                <span className="font-medium">Voice Mode</span>
-                <span className="ml-auto text-xs opacity-50">current</span>
-              </div>
-
-              <a
-                href="/chat"
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isDark ? 'hover:bg-white/10 text-white/70' : 'hover:bg-black/5 text-black/70'
-                }`}
-              >
-                <span>💬</span>
-                <span>Chat Mode</span>
-              </a>
-            </nav>
-
-            {/* Settings */}
-            <div className={`border-t pt-6 ${isDark ? 'border-white/10' : 'border-black/10'}`}>
-              <h3 className="text-xs uppercase tracking-wider opacity-50 mb-4">Settings</h3>
-
-              <button
-                onClick={toggleTheme}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
-                  isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'
-                }`}
-              >
-                <span className="flex items-center gap-3">
-                  <span>{isDark ? '🌙' : '☀️'}</span>
-                  <span>Theme</span>
-                </span>
-                <span className="text-sm opacity-60">{isDark ? 'Dark' : 'Light'}</span>
-              </button>
-
-              {/* BYO Mode */}
-              <button
-                onClick={() => setShowBYOSettings(!showBYOSettings)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
-                  isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'
-                }`}
-              >
-                <span className="flex items-center gap-3">
-                  <span>🔑</span>
-                  <span>BYO Mode</span>
-                </span>
-                <span className={`text-sm ${isBYOEnabled ? 'text-green-400' : 'opacity-50'}`}>
-                  {isBYOEnabled ? 'ON' : 'OFF'}
-                </span>
-              </button>
-
-              {showBYOSettings && (
-                <div className={`mt-2 rounded-lg ${isDark ? 'bg-white/5' : 'bg-black/5'}`}>
-                  <BYOSettings onClose={() => setShowBYOSettings(false)} />
-                </div>
-              )}
-            </div>
-
-            {/* Account */}
-            <div className={`border-t pt-6 mt-6 ${isDark ? 'border-white/10' : 'border-black/10'}`}>
-              <h3 className="text-xs uppercase tracking-wider opacity-50 mb-4">Account</h3>
-
-              {isAuthenticated ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 px-4 py-3">
-                    <span>👤</span>
-                    <span className="text-sm truncate">{user?.email}</span>
-                  </div>
-                  <button
-                    onClick={() => signOut()}
-                    className={`w-full text-left px-4 py-3 rounded-lg text-red-400 transition-colors ${
-                      isDark ? 'hover:bg-red-500/10' : 'hover:bg-red-50'
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              
+              {/* Mode Selection */}
+              <div>
+                <h3 className={`text-xs uppercase tracking-wider mb-3 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                  Mode
+                </h3>
+                <div className="space-y-1">
+                  <div
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl ${
+                      isDark ? 'bg-white/10 text-white' : 'bg-blue-50 text-blue-900'
                     }`}
                   >
-                    Sign Out
-                  </button>
-                </div>
-              ) : showAuthForm ? (
-                <div className="space-y-4">
-                  <LoginForm />
-                  <button
-                    onClick={() => setShowAuthForm(false)}
-                    className="w-full text-center text-xs opacity-50 hover:opacity-80"
+                    <span className="text-lg">🎤</span>
+                    <span className="font-medium">Voice Mode</span>
+                    <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
+                      isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600'
+                    }`}>active</span>
+                  </div>
+                  <a
+                    href="/chat"
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                      isDark ? 'hover:bg-white/5 text-white/70' : 'hover:bg-gray-50 text-gray-600'
+                    }`}
                   >
-                    Cancel
-                  </button>
+                    <span className="text-lg">💬</span>
+                    <span>Chat Mode</span>
+                  </a>
                 </div>
-              ) : (
+              </div>
+
+              {/* Theme */}
+              <div>
+                <h3 className={`text-xs uppercase tracking-wider mb-3 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                  Appearance
+                </h3>
                 <button
-                  onClick={() => setShowAuthForm(true)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'
+                  onClick={toggleTheme}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors ${
+                    isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
-                  <span>🔑</span>
-                  <span>Sign In</span>
-                  <span className="ml-auto text-xs opacity-50">Save history</span>
+                  <span className="flex items-center gap-3">
+                    <span className="text-lg">{isDark ? '🌙' : '☀️'}</span>
+                    <span>Theme</span>
+                  </span>
+                  <span className={`text-sm px-3 py-1 rounded-full ${
+                    isDark ? 'bg-white/10 text-white/70' : 'bg-gray-200 text-gray-600'
+                  }`}>{isDark ? 'Dark' : 'Light'}</span>
                 </button>
-              )}
+              </div>
+
+              {/* BYO Mode */}
+              <div>
+                <h3 className={`text-xs uppercase tracking-wider mb-3 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                  Advanced
+                </h3>
+                <button
+                  onClick={() => setShowBYOSettings(!showBYOSettings)}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors ${
+                    isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="text-lg">🔑</span>
+                    <span>BYO Mode</span>
+                  </span>
+                  <span className={`text-sm px-3 py-1 rounded-full ${
+                    isBYOEnabled 
+                      ? 'bg-green-500/20 text-green-400' 
+                      : isDark ? 'bg-white/10 text-white/50' : 'bg-gray-200 text-gray-500'
+                  }`}>{isBYOEnabled ? 'ON' : 'OFF'}</span>
+                </button>
+
+                {showBYOSettings && (
+                  <div className={`mt-2 rounded-xl overflow-hidden ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                    <BYOSettings onClose={() => setShowBYOSettings(false)} />
+                  </div>
+                )}
+              </div>
+
+              {/* Account */}
+              <div className={`border-t pt-6 ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                <h3 className={`text-xs uppercase tracking-wider mb-3 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                  Account
+                </h3>
+
+                {isAuthenticated ? (
+                  <div className="space-y-2">
+                    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${
+                      isDark ? 'bg-white/5' : 'bg-gray-50'
+                    }`}>
+                      <span className="text-lg">👤</span>
+                      <span className="text-sm truncate">{user?.email}</span>
+                    </div>
+                    <button
+                      onClick={() => signOut()}
+                      className={`w-full text-left px-4 py-3 rounded-xl text-red-400 transition-colors ${
+                        isDark ? 'hover:bg-red-500/10' : 'hover:bg-red-50'
+                      }`}
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                ) : showAuthForm ? (
+                  <div className="space-y-4">
+                    <LoginForm />
+                    <button
+                      onClick={() => setShowAuthForm(false)}
+                      className="w-full text-center text-xs opacity-50 hover:opacity-80"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setShowAuthForm(true)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                        isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'
+                      }`}
+                    >
+                      <span className="text-lg">✉️</span>
+                      <span>Email</span>
+                    </button>
+                    <button
+                      onClick={() => setShowAuthForm(true)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                        isDark ? 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400' : 'bg-blue-50 hover:bg-blue-100 text-blue-600'
+                      }`}
+                    >
+                      <span className="text-lg">✨</span>
+                      <span>Send Magic Link</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-            </div>{/* End Scrollable Content */}
           </div>
+          
+          <style jsx global>{`
+            @keyframes slideInRight {
+              from { transform: translateX(100%); }
+              to { transform: translateX(0); }
+            }
+          `}</style>
         </div>
       )}
 
@@ -515,17 +546,10 @@ export function FullscreenApp() {
         cta={nudgeCta}
       />
 
-      {/* Keyword Panel (Left side) */}
+      {/* Keyword Panel (Right side - slides in smoothly) */}
       <KeywordPanel
         isOpen={showKeywordPanel}
         onClose={() => setShowKeywordPanel(false)}
-        isDark={isDark}
-      />
-
-      {/* RGY Chat Gateway Modal */}
-      <RGYChatGatewayModal
-        isOpen={showRGYGateway}
-        onClose={() => setShowRGYGateway(false)}
         isDark={isDark}
       />
     </div>
