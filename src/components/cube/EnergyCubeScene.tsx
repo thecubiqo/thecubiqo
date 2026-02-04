@@ -69,6 +69,7 @@ export function EnergyCubeScene({
               transitionProgress={0}
               targetColor={TARGET_COLORS.GREEN_BLUE}
               reducedMotion={false}
+              animationState={animationState}
             />
           ) : (
             // Rounded cube for voice states

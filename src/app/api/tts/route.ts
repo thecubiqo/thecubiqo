@@ -49,7 +49,10 @@ export async function POST(request: NextRequest) {
   try {
     const apiKey = process.env.ELEVENLABS_API_KEY || process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY
     
+    console.log('[TTS API] Request received, API key present:', !!apiKey)
+    
     if (!apiKey) {
+      console.error('[TTS API] ELEVENLABS_API_KEY not found in environment')
       return NextResponse.json(
         { error: 'ElevenLabs API key not configured' },
         { status: 500 }

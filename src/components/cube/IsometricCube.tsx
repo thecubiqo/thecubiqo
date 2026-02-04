@@ -20,6 +20,7 @@ interface IsometricCubeProps {
   transitionProgress?: number
   targetColor?: THREE.Color
   reducedMotion?: boolean
+  animationState?: 'idle' | 'listening' | 'thinking' | 'speaking'
 }
 
 const vertexShader = `
@@ -252,15 +253,19 @@ const glassFragmentShader = `
 export function IsometricCube({ 
   transitionProgress = 0, 
   targetColor = new THREE.Color(1.0, 0.5, 0.15),
-  reducedMotion = false 
+  reducedMotion = false,
+  animationState = 'idle'
 }: IsometricCubeProps) {
   const groupRef = useRef<THREE.Group>(null)
   const plasmaRef = useRef<THREE.Mesh>(null)
+  const coreRef = useRef<THREE.Mesh>(null)
+  const baseRotationRef = useRef({ y: 0, x: 0, z: 0 })
   
   const plasmaUniforms = useMemo(() => ({
     uTime: { value: 0 },
     uTransitionProgress: { value: transitionProgress },
     uTargetColor: { value: targetColor },
+    uSpeakingIntensity: { value: 0 },
   }), [])
   
   const glassUniforms = useMemo(() => ({
@@ -269,19 +274,54 @@ export function IsometricCube({
   
   useFrame((state) => {
     const time = reducedMotion ? state.clock.getElapsedTime() * 0.3 : state.clock.getElapsedTime()
+    const isActive = animationState === 'listening' || animationState === 'speaking'
+    const isSpeaking = animationState === 'speaking'
     
     plasmaUniforms.uTime.value = time
     plasmaUniforms.uTransitionProgress.value = transitionProgress
     plasmaUniforms.uTargetColor.value = targetColor
     glassUniforms.uTime.value = time
     
+    // Speaking intensity for orange glow
+    const targetIntensity = isSpeaking ? 1.0 : 0.0
+    plasmaUniforms.uSpeakingIntensity.value += (targetIntensity - plasmaUniforms.uSpeakingIntensity.value) * 0.1
+    
     if (groupRef.current) {
-      // Gentle rotation
-      groupRef.current.rotation.y = time * 0.12
-      groupRef.current.rotation.x = Math.sin(time * 0.08) * 0.1
-      groupRef.current.rotation.z = Math.sin(time * 0.1) * 0.05
-      // Floating motion
-      groupRef.current.position.y = Math.sin(time * 0.4) * 0.05
+      if (isActive) {
+        // STOP rotation when user is interacting - just subtle breathing
+        const breathe = Math.sin(time * 2.0) * 0.02
+        groupRef.current.scale.setScalar(1 + breathe)
+        // Hold current rotation
+        groupRef.current.rotation.y = baseRotationRef.current.y
+        groupRef.current.rotation.x = baseRotationRef.current.x
+        groupRef.current.rotation.z = baseRotationRef.current.z
+        groupRef.current.position.y = 0
+      } else {
+        // Idle: gentle rotation
+        baseRotationRef.current.y = time * 0.12
+        baseRotationRef.current.x = Math.sin(time * 0.08) * 0.1
+        baseRotationRef.current.z = Math.sin(time * 0.1) * 0.05
+        
+        groupRef.current.rotation.y = baseRotationRef.current.y
+        groupRef.current.rotation.x = baseRotationRef.current.x
+        groupRef.current.rotation.z = baseRotationRef.current.z
+        groupRef.current.position.y = Math.sin(time * 0.4) * 0.05
+        groupRef.current.scale.setScalar(1)
+      }
+    }
+    
+    // Orange core glow when speaking
+    if (coreRef.current) {
+      const material = coreRef.current.material as THREE.MeshBasicMaterial
+      if (isSpeaking) {
+        // Pulse brighter when speaking
+        const speakPulse = Math.sin(time * 8) * 0.3 + 0.7
+        material.opacity = 0.5 + speakPulse * 0.5
+        coreRef.current.scale.setScalar(0.25 + speakPulse * 0.15)
+      } else {
+        material.opacity = 0.5
+        coreRef.current.scale.setScalar(0.25)
+      }
     }
   })
   
@@ -313,8 +353,8 @@ export function IsometricCube({
         />
       </RoundedBox>
       
-      {/* Core glow */}
-      <mesh scale={0.25}>
+      {/* Core glow - pulses when speaking */}
+      <mesh ref={coreRef} scale={0.25}>
         <sphereGeometry args={[1, 32, 32]} />
         <meshBasicMaterial 
           color="#ff6622" 
