@@ -11,11 +11,16 @@
  * - ORANGE (landing): Neutral, balanced
  * 
  * Rate limited: 10 requests/minute per session (handled by backend)
+ * 
+ * BROWSER AUDIO FIX:
+ * - Uses AudioContext for reliable playback
+ * - Must call initAudioContext() on user gesture before playing
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import type { ColorName } from '@/config/colors'
 import { useSession } from '@/hooks/useSession'
+import { initAudioContext, isAudioContextReady } from '@/lib/audio/audioContext'
 
 /**
  * Voice settings per color zone
@@ -83,6 +88,7 @@ interface TTSState {
   error: string | null
   remainingRequests: number
   usingFallback: boolean
+  audioUnlocked: boolean
 }
 
 export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
@@ -101,12 +107,29 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
     isLoading: false,
     error: null,
     remainingRequests: 10,
-    usingFallback: false
+    usingFallback: false,
+    audioUnlocked: false
   })
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+
+  /**
+   * Unlock audio playback - MUST be called on user gesture (click)
+   * This initializes the AudioContext to allow audio playback
+   */
+  const unlockAudio = useCallback(async () => {
+    try {
+      await initAudioContext()
+      setState(prev => ({ ...prev, audioUnlocked: true }))
+      console.log('[TTS] Audio unlocked - ready for playback')
+      return true
+    } catch (error) {
+      console.error('[TTS] Failed to unlock audio:', error)
+      return false
+    }
+  }, [])
 
   // Browser fallback speech synthesis
   const speakWithBrowserTTS = useCallback((text: string) => {
@@ -151,6 +174,12 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
     // Cancel any ongoing speech
     stop()
 
+    // Ensure audio is unlocked (should already be from user gesture)
+    if (!isAudioContextReady()) {
+      console.log('[TTS] AudioContext not ready, attempting to unlock...')
+      await initAudioContext()
+    }
+
     console.log('[TTS] Starting speech for color:', colorName, 'Text length:', text.length)
     setState(prev => ({ ...prev, isLoading: true, error: null, usingFallback: false }))
 
@@ -162,7 +191,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
       
       console.log('[TTS] Using voice:', selectedVoiceId, 'Settings:', settings)
 
-      // Call our backend TTS API
+      // Call our backend TTS API (uses streaming endpoint)
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: {
@@ -285,11 +314,13 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
     stop,
     pause,
     resume,
+    unlockAudio,  // Call this on user gesture to enable audio
     isSpeaking: state.isSpeaking,
     isLoading: state.isLoading,
     error: state.error,
     remainingRequests: state.remainingRequests,
-    usingFallback: state.usingFallback
+    usingFallback: state.usingFallback,
+    audioUnlocked: state.audioUnlocked
   }
 }
 

@@ -89,7 +89,7 @@ export function FullscreenApp() {
   const nudgeCtaRef = useRef<string | null>(null)
 
   // TTS for AI responses - Using ElevenLabs for natural voice
-  const { speak, stop: stopSpeaking, isSpeaking, error: ttsError } = useElevenLabsTTS({
+  const { speak, stop: stopSpeaking, isSpeaking, error: ttsError, unlockAudio } = useElevenLabsTTS({
     colorName,
     onStart: () => {
       setAppState('speaking')
@@ -179,9 +179,13 @@ export function FullscreenApp() {
   }, [])
 
   // Voice button click handler - state machine logic (matching legacy)
-  const handleVoiceClick = useCallback(() => {
+  const handleVoiceClick = useCallback(async () => {
     // Don't allow voice input if chat isn't initialized
     if (!chatInitialized) return
+
+    // CRITICAL: Unlock audio on user gesture (browser requires this)
+    // Must be done on every click to ensure audio context stays active
+    await unlockAudio()
 
     switch (appStateRef.current) {
       case 'idle':
@@ -209,7 +213,7 @@ export function FullscreenApp() {
         stopSpeaking()
         break
     }
-  }, [chatInitialized, startListening, stopListening, stopSpeaking])
+  }, [chatInitialized, startListening, stopListening, stopSpeaking, unlockAudio])
 
   const bgColor = isDark ? '#050505' : '#ffffff'
   const textColor = isDark ? '#ffffff' : '#111111'

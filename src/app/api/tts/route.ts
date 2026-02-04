@@ -1,17 +1,18 @@
 /**
- * TTS API Route - ElevenLabs Text-to-Speech
+ * TTS API Route - ElevenLabs Text-to-Speech (Streaming)
  * Securely generates audio from text using ElevenLabs API
+ * Uses streaming endpoint for faster response times
  * 
  * Rate limited: 10 requests/minute per session
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 
-// ElevenLabs API configuration
+// ElevenLabs API configuration - using STREAMING endpoint for faster playback
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech'
 
-// Default voice - "Adam" (deep, versatile male voice)
-const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'
+// Default voice - "Daniel" (British, husky, butler-like)
+const DEFAULT_VOICE_ID = 'onwK4e9ZLuTAKqWW03F9'
 
 // Rate limiting: Track requests per session
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
@@ -87,9 +88,9 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Call ElevenLabs API
+    // Call ElevenLabs Streaming API for faster response
     const response = await fetch(
-      `${ELEVENLABS_API_URL}/${voiceId}`,
+      `${ELEVENLABS_API_URL}/${voiceId}/stream`,
       {
         method: 'POST',
         headers: {
@@ -99,13 +100,14 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           text: text.trim(),
-          model_id: 'eleven_turbo_v2_5',
+          model_id: 'eleven_turbo_v2_5',  // Fast turbo model
           voice_settings: {
             stability,
             similarity_boost,
             style,
             use_speaker_boost
-          }
+          },
+          optimize_streaming_latency: 3  // Maximum optimization for low latency
         })
       }
     )
