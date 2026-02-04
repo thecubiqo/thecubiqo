@@ -36,11 +36,24 @@ export function FullscreenApp() {
   const [nudgeCta, setNudgeCta] = useState('')
   const [isDark, setIsDark] = useState(true)
   const [showBYOSettings, setShowBYOSettings] = useState(false)
+  const [cubeSize, setCubeSize] = useState(100) // Cube size percentage (50-150)
   
   // UI panels
   const [showKeywordPanel, setShowKeywordPanel] = useState(false)
   const [showRGYChats, setShowRGYChats] = useState(false)
   const [showLandingCube, setShowLandingCube] = useState(false)
+
+  // Load cube size from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('cubiqo_cube_size')
+    if (stored) setCubeSize(parseInt(stored))
+  }, [])
+
+  // Save cube size to localStorage
+  const handleCubeSizeChange = (size: number) => {
+    setCubeSize(size)
+    localStorage.setItem('cubiqo_cube_size', size.toString())
+  }
 
   // Check if we should show landing cube (once per day or after 4+ hours)
   useEffect(() => {
@@ -224,7 +237,10 @@ export function FullscreenApp() {
       style={{ background: bgColor, color: textColor }}
     >
       {/* Fullscreen Energy Cube Canvas */}
-      <div className="absolute inset-0 z-[1]">
+      <div 
+        className="absolute inset-0 z-[1] flex items-center justify-center"
+        style={{ transform: `scale(${cubeSize / 100})` }}
+      >
         <EnergyCubeScene colorName={colorName} animationState={animationState} />
       </div>
 
@@ -481,6 +497,31 @@ export function FullscreenApp() {
                     isDark ? 'bg-white/10 text-white/70' : 'bg-gray-200 text-gray-600'
                   }`}>{isDark ? 'Dark' : 'Light'}</span>
                 </button>
+
+                {/* Cube Size Slider */}
+                <div className={`mt-3 px-4 py-3 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="flex items-center gap-3">
+                      <span className="text-lg">📐</span>
+                      <span>Cube Size</span>
+                    </span>
+                    <span className={`text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
+                      {cubeSize}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="150"
+                    value={cubeSize}
+                    onChange={(e) => handleCubeSizeChange(parseInt(e.target.value))}
+                    className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                    style={{
+                      background: `linear-gradient(to right, ${isDark ? '#ff6600' : '#f97316'} 0%, ${isDark ? '#ff6600' : '#f97316'} ${(cubeSize - 50) / 100 * 100}%, ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'} ${(cubeSize - 50) / 100 * 100}%, ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'} 100%)`
+                    }}
+                    data-testid="cube-size-slider"
+                  />
+                </div>
               </div>
 
               {/* BYO Mode */}
