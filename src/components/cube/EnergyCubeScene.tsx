@@ -4,17 +4,16 @@
  * EnergyCubeScene - Canvas wrapper for the Energy Cube
  * Drop-in replacement for CubeScene with shader-based effects
  * 
- * ORANGE uses IsometricCube (different geometry, landing state)
+ * ORANGE uses AICuboidGLB (GLB model, landing state)
  * Other colors use EnergyCube (rounded cube, voice states)
  */
 
 import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { EnergyCube } from './EnergyCube'
-import { IsometricCube } from './IsometricCube'
+import { AICuboidGLB } from './AICuboidGLB'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './EnergyCube'
-import * as THREE from 'three'
 
 interface EnergyCubeSceneProps {
   colorName?: ColorName
@@ -22,20 +21,14 @@ interface EnergyCubeSceneProps {
   className?: string
 }
 
-// Target colors for transition from ORANGE
-const TARGET_COLORS: Record<string, THREE.Color> = {
-  GREEN_BLUE: new THREE.Color(0.0, 0.54, 0.48),
-  YELLOW: new THREE.Color(1.0, 0.63, 0.0),
-  RED: new THREE.Color(0.76, 0.09, 0.36),
-}
-
 function Lights() {
   return (
     <>
-      <ambientLight intensity={0.15} />
-      <directionalLight position={[5, 5, 5]} intensity={0.4} />
-      <directionalLight position={[-5, -2, -5]} intensity={0.2} color="#4488ff" />
-      <pointLight position={[0, 3, -3]} intensity={0.3} />
+      <ambientLight intensity={0.4} />
+      <directionalLight position={[5, 5, 5]} intensity={0.6} />
+      <directionalLight position={[-5, -2, -5]} intensity={0.3} color="#4488ff" />
+      <pointLight position={[0, 3, -3]} intensity={0.4} />
+      <pointLight position={[0, -2, 2]} intensity={0.2} color="#ff6622" />
     </>
   )
 }
@@ -45,8 +38,10 @@ export function EnergyCubeScene({
   animationState = 'idle',
   className = ''
 }: EnergyCubeSceneProps) {
-  // ORANGE uses special IsometricCube (landing state)
+  // ORANGE uses GLB-based AI Cuboid (landing state)
   const isLandingState = colorName === 'ORANGE'
+  const isTalking = animationState === 'speaking'
+  const isListening = animationState === 'listening'
   
   return (
     <div className={`w-full h-full ${className}`}>
@@ -64,12 +59,10 @@ export function EnergyCubeScene({
         
         <Suspense fallback={null}>
           {isLandingState ? (
-            // Isometric geometry for ORANGE landing state
-            <IsometricCube 
-              transitionProgress={0}
-              targetColor={TARGET_COLORS.GREEN_BLUE}
-              reducedMotion={false}
-              animationState={animationState}
+            // GLB model for ORANGE landing state
+            <AICuboidGLB 
+              isTalking={isTalking}
+              isListening={isListening}
             />
           ) : (
             // Rounded cube for voice states
