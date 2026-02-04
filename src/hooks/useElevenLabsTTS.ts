@@ -144,6 +144,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
     // Cancel any ongoing speech
     stop()
 
+    console.log('[TTS] Starting speech for color:', colorName, 'Text length:', text.length)
     setState(prev => ({ ...prev, isLoading: true, error: null, usingFallback: false }))
 
     try {
@@ -151,6 +152,8 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
       
       const settings = VOICE_SETTINGS[colorName] || VOICE_SETTINGS.ORANGE
       const selectedVoiceId = settings.voiceId || voiceId
+      
+      console.log('[TTS] Using voice:', selectedVoiceId, 'Settings:', settings)
 
       // Call our backend TTS API
       const response = await fetch('/api/tts', {
@@ -178,11 +181,13 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
 
       if (!response.ok) {
         // If ElevenLabs fails, fall back to browser TTS
-        console.warn('[TTS] ElevenLabs failed, falling back to browser TTS')
+        const errorText = await response.text()
+        console.warn('[TTS] ElevenLabs failed:', response.status, errorText, '- falling back to browser TTS')
         speakWithBrowserTTS(text)
         return
       }
 
+      console.log('[TTS] ElevenLabs success, playing audio...')
       const audioBlob = await response.blob()
       const audioUrl = URL.createObjectURL(audioBlob)
 
