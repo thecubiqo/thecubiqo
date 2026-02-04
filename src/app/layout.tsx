@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     siteName: "CubiQo",
     images: [
       {
-        url: "https://cubiqo.ai/og-image.png",
+        url: "https://cubiqo.ai/og.png",
         width: 1200,
         height: 630,
         alt: "CubiQo - Voice-First Private AI Assistant",
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "CubiQo | Voice-First Private AI Assistant",
     description: "A cooperative, voice-first AI that routes intelligence by intent—not memory.",
-    images: ["https://cubiqo.ai/og-image.png"],
+    images: ["https://cubiqo.ai/og.png"],
   },
   // Additional SEO
   robots: {
@@ -162,7 +162,7 @@ const organizationJsonLd = {
   "@type": "Organization",
   "name": "CubiQo",
   "url": "https://cubiqo.ai",
-  "logo": "https://cubiqo.ai/og-image.png",
+  "logo": "https://cubiqo.ai/og.png",
   "description": "Voice-first, privacy-controlled AI assistant and digital private secretary."
 };
 
