@@ -3,17 +3,17 @@
 import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { RoundedBox } from '@react-three/drei'
 
 /**
- * IsometricCube - Ethereal Plasma Cuboid (Landing State)
+ * IsometricCube - Ethereal Aurora Plasma Cube
  * 
- * Features:
- * - Beautiful purple/blue/pink/cyan plasma effect
- * - STATIC when idle - plasma frozen/subtle
- * - FLOWS when speaking - plasma animates beautifully
- * - Orange energy fluid ball at center
- * - Glass-like transparency with hint of orange tint
+ * DESIGN GOALS (matching reference):
+ * - Transparent/hollow center - you can see THROUGH it
+ * - Wispy aurora-like energy flowing along edges and faces
+ * - Glowing neon purple/blue/pink edges
+ * - Sparkle particles inside
+ * - Dark interior with bright glowing edges
+ * - Glass-like transparency
  */
 
 interface IsometricCubeProps {
@@ -23,11 +23,11 @@ interface IsometricCubeProps {
   animationState?: 'idle' | 'listening' | 'thinking' | 'speaking'
 }
 
-const vertexShader = `
+// Edge glow shader - creates the glowing wireframe effect
+const edgeVertexShader = `
   varying vec3 vPosition;
   varying vec3 vNormal;
-  varying vec3 vViewPosition;
-  varying vec3 vWorldPosition;
+  varying vec2 vUv;
   
   uniform float uTime;
   uniform float uSpeakingIntensity;
@@ -35,35 +35,26 @@ const vertexShader = `
   void main() {
     vPosition = position;
     vNormal = normalize(normalMatrix * normal);
+    vUv = uv;
     
-    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    vViewPosition = -mvPosition.xyz;
-    
-    vec4 worldPos = modelMatrix * vec4(position, 1.0);
-    vWorldPosition = worldPos.xyz;
-    
-    // Only breathe when speaking
-    float breathe = sin(uTime * 0.5) * 0.012 * uSpeakingIntensity;
-    vec3 displaced = position * (1.0 + breathe);
-    
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 
-const fragmentShader = `
+// Main plasma shader - transparent with edge glow and aurora wisps
+const plasmaFragmentShader = `
   precision highp float;
   
   varying vec3 vPosition;
   varying vec3 vNormal;
-  varying vec3 vViewPosition;
-  varying vec3 vWorldPosition;
+  varying vec2 vUv;
   
   uniform float uTime;
-  uniform float uTransitionProgress;
-  uniform vec3 uTargetColor;
   uniform float uSpeakingIntensity;
+  uniform vec3 uTargetColor;
+  uniform float uTransitionProgress;
   
-  // Simplex noise for plasma effect
+  // Simplex noise
   vec4 permute(vec4 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
   vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
   
@@ -124,125 +115,135 @@ const fragmentShader = `
     return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
   }
   
-  float fbm(vec3 p) {
-    float value = 0.0;
-    float amplitude = 0.5;
-    for (int i = 0; i < 5; i++) {
-      value += amplitude * snoise(p);
-      p *= 2.0;
-      amplitude *= 0.5;
-    }
-    return value;
-  }
-  
   void main() {
-    vec3 viewDir = normalize(vViewPosition);
-    vec3 normal = normalize(vNormal);
+    // Time - flows when speaking, subtle ambient otherwise
+    float flowTime = uTime * (0.05 + uSpeakingIntensity * 0.25);
     
-    // Time moves ONLY when speaking - otherwise frozen
-    float animatedTime = uTime * uSpeakingIntensity * 0.15;
-    // Small ambient movement even when static
-    float ambientTime = uTime * 0.02;
-    float effectiveTime = animatedTime + ambientTime;
+    vec3 pos = vPosition;
     
-    vec3 pos = vPosition * 2.5;
+    // Distance from edges - key for the hollow/transparent effect
+    float edgeX = 1.0 - abs(pos.x) / 0.9;
+    float edgeY = 1.0 - abs(pos.y) / 0.9;
+    float edgeZ = 1.0 - abs(pos.z) / 0.9;
     
-    // Multiple flowing plasma layers - speed based on speaking
-    float flow1 = fbm(pos + vec3(effectiveTime * 0.5, effectiveTime * 0.3, effectiveTime * 0.2));
-    float flow2 = fbm(pos * 1.2 + vec3(-effectiveTime * 0.4, effectiveTime * 0.6, 0.0));
-    float flow3 = fbm(pos * 0.8 - vec3(0.0, effectiveTime * 0.5, effectiveTime * 0.4));
-    float flow4 = fbm(pos * 1.5 + vec3(effectiveTime * 0.3, -effectiveTime * 0.2, effectiveTime * 0.4));
+    // How close to ANY edge (0 = at edge, 1 = at center)
+    float edgeDist = min(min(edgeX, edgeY), edgeZ);
     
-    // Combined energy pattern
-    float energy = flow1 * 0.3 + flow2 * 0.25 + flow3 * 0.25 + flow4 * 0.2;
-    energy = smoothstep(-0.4, 0.7, energy);
+    // HOLLOW CENTER - transparent in the middle
+    float hollowness = smoothstep(0.0, 0.4, edgeDist);
     
-    // Beautiful ethereal colors - purple/blue/pink/cyan
-    vec3 deepPurple = vec3(0.35, 0.1, 0.85);
-    vec3 electricBlue = vec3(0.2, 0.5, 1.0);
-    vec3 hotPink = vec3(1.0, 0.3, 0.65);
-    vec3 cyan = vec3(0.3, 0.85, 1.0);
-    vec3 magenta = vec3(0.85, 0.2, 0.75);
-    vec3 white = vec3(1.0, 0.98, 0.95);
+    // Aurora wisp effect - flowing energy along surfaces
+    float wisp1 = snoise(pos * 3.0 + vec3(flowTime, 0.0, flowTime * 0.7));
+    float wisp2 = snoise(pos * 2.0 - vec3(0.0, flowTime * 0.8, flowTime));
+    float wisp3 = snoise(pos * 4.0 + vec3(flowTime * 0.5, flowTime * 0.6, 0.0));
     
-    // Hint of orange tint
-    vec3 orangeTint = vec3(1.0, 0.5, 0.2);
+    // Combine wisps
+    float wisps = wisp1 * 0.4 + wisp2 * 0.35 + wisp3 * 0.25;
+    wisps = smoothstep(-0.3, 0.6, wisps);
     
-    // Build purple plasma base
-    vec3 plasmaColor = mix(deepPurple, electricBlue, smoothstep(-0.3, 0.5, flow1));
-    plasmaColor = mix(plasmaColor, hotPink, smoothstep(-0.2, 0.6, flow2) * 0.6);
-    plasmaColor = mix(plasmaColor, cyan, smoothstep(0.0, 0.7, flow3) * 0.4);
-    plasmaColor = mix(plasmaColor, magenta, smoothstep(-0.1, 0.5, flow4) * 0.35);
+    // Colors - neon purple/blue/pink/cyan
+    vec3 neonPurple = vec3(0.6, 0.2, 1.0);
+    vec3 neonBlue = vec3(0.3, 0.5, 1.0);
+    vec3 neonPink = vec3(1.0, 0.3, 0.8);
+    vec3 neonCyan = vec3(0.2, 0.9, 1.0);
+    vec3 warmOrange = vec3(1.0, 0.5, 0.2);
+    vec3 white = vec3(1.0);
     
-    // Add subtle orange tint overall
-    plasmaColor = mix(plasmaColor, orangeTint, 0.08);
+    // Mix colors based on position and wisps
+    vec3 color = mix(neonPurple, neonBlue, wisp1 * 0.5 + 0.5);
+    color = mix(color, neonPink, wisp2 * 0.4 + 0.3);
+    color = mix(color, neonCyan, wisp3 * 0.3 + 0.2);
     
-    // Bright energy veins
-    float veins = pow(energy, 2.0);
-    plasmaColor = mix(plasmaColor, white, veins * 0.3);
+    // Add orange hints
+    color = mix(color, warmOrange, smoothstep(0.5, 0.8, wisps) * 0.25);
     
-    // Center distance for core effect
-    float centerDist = length(vPosition);
-    float coreGlow = smoothstep(0.9, 0.0, centerDist);
+    // Bright spots where wisps concentrate
+    float brightness = pow(wisps, 1.5);
+    color = mix(color, white, brightness * 0.4);
     
-    // Sparkle effect - more when speaking
-    float sparkleSpeed = 4.0 + uSpeakingIntensity * 4.0;
-    float sparkle = snoise(pos * 12.0 + vec3(uTime * sparkleSpeed));
-    float sparkleIntensity = smoothstep(0.78, 0.95, sparkle) * (0.3 + uSpeakingIntensity * 0.5);
-    plasmaColor += white * sparkleIntensity;
+    // Edge glow - brighter at edges
+    float edgeGlow = 1.0 - edgeDist;
+    edgeGlow = pow(edgeGlow, 2.0);
+    color *= (1.0 + edgeGlow * 1.5);
+    
+    // Sparkles
+    float sparkle = snoise(pos * 15.0 + vec3(uTime * 3.0));
+    float sparkleIntensity = smoothstep(0.8, 0.95, sparkle);
+    color += white * sparkleIntensity * 0.8;
     
     // Pulsing when speaking
-    float pulse = sin(uTime * 2.0) * 0.5 + 0.5;
-    float pulseEffect = 0.85 + (pulse * 0.15 * uSpeakingIntensity);
-    plasmaColor *= pulseEffect;
+    float pulse = sin(uTime * 3.0) * 0.5 + 0.5;
+    float pulseEffect = 1.0 + pulse * 0.3 * uSpeakingIntensity;
+    color *= pulseEffect;
     
-    // Fresnel rim glow - purple/pink
-    float fresnel = pow(1.0 - abs(dot(normal, viewDir)), 2.5);
-    vec3 rimColor = mix(cyan, hotPink, sin(uTime * 0.3) * 0.5 + 0.5);
-    plasmaColor += rimColor * fresnel * 0.45;
+    // ALPHA - transparent in center, visible at edges and wisps
+    float alpha = (1.0 - hollowness * 0.85) * (0.3 + wisps * 0.5 + edgeGlow * 0.4);
+    alpha = clamp(alpha, 0.0, 0.9);
     
-    // Mix with target color during transition
-    vec3 finalColor = mix(plasmaColor, uTargetColor, uTransitionProgress);
-    
-    // Alpha - semi-transparent
-    float alpha = 0.5 + energy * 0.3 + coreGlow * 0.15;
-    alpha = clamp(alpha, 0.35, 0.85);
-    
-    gl_FragColor = vec4(finalColor, alpha);
-  }
-`;
-
-// Glass shell shader with orange tint
-const glassFragmentShader = `
-  precision highp float;
-  
-  varying vec3 vPosition;
-  varying vec3 vNormal;
-  varying vec3 vViewPosition;
-  varying vec3 vWorldPosition;
-  
-  uniform float uTime;
-  uniform float uSpeakingIntensity;
-  
-  void main() {
-    vec3 viewDir = normalize(vViewPosition);
-    vec3 normal = normalize(vNormal);
-    float fresnel = pow(1.0 - abs(dot(normal, viewDir)), 3.5);
-    
-    // Iridescent edge with hint of orange
-    vec3 purpleEdge = vec3(0.6, 0.3, 1.0);
-    vec3 cyanEdge = vec3(0.3, 0.7, 1.0);
-    vec3 orangeHint = vec3(1.0, 0.6, 0.3);
-    
-    vec3 edgeColor = mix(purpleEdge, cyanEdge, sin(uTime * 0.4 + vPosition.y * 2.0) * 0.5 + 0.5);
-    edgeColor = mix(edgeColor, orangeHint, 0.15); // Subtle orange tint
-    
-    vec3 color = edgeColor * fresnel * 0.35;
-    float alpha = fresnel * 0.18;
+    // Fresnel for glass edge effect
+    vec3 viewDir = normalize(cameraPosition - vPosition);
+    float fresnel = pow(1.0 - abs(dot(normalize(vNormal), viewDir)), 3.0);
+    alpha += fresnel * 0.3;
+    color += mix(neonCyan, neonPink, fresnel) * fresnel * 0.5;
     
     gl_FragColor = vec4(color, alpha);
   }
 `;
+
+// Sparkle particles component
+function SparkleParticles({ count = 50, speakingIntensity = 0 }: { count?: number, speakingIntensity?: number }) {
+  const pointsRef = useRef<THREE.Points>(null)
+  
+  const positions = useMemo(() => {
+    const pos = new Float32Array(count * 3)
+    for (let i = 0; i < count; i++) {
+      // Distribute particles within cube bounds
+      pos[i * 3] = (Math.random() - 0.5) * 1.6
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 1.6
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 1.6
+    }
+    return pos
+  }, [count])
+  
+  useFrame((state) => {
+    if (pointsRef.current) {
+      const time = state.clock.getElapsedTime()
+      const posArray = pointsRef.current.geometry.attributes.position.array as Float32Array
+      
+      for (let i = 0; i < count; i++) {
+        const i3 = i * 3
+        // Gentle floating movement
+        posArray[i3 + 1] += Math.sin(time + i) * 0.001 * (1 + speakingIntensity)
+        posArray[i3] += Math.cos(time * 0.5 + i * 0.5) * 0.0005
+        
+        // Keep within bounds
+        if (Math.abs(posArray[i3]) > 0.8) posArray[i3] *= 0.98
+        if (Math.abs(posArray[i3 + 1]) > 0.8) posArray[i3 + 1] *= 0.98
+        if (Math.abs(posArray[i3 + 2]) > 0.8) posArray[i3 + 2] *= 0.98
+      }
+      pointsRef.current.geometry.attributes.position.needsUpdate = true
+    }
+  })
+  
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          args={[positions, 3]}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.025}
+        color="#ffffff"
+        transparent
+        opacity={0.9}
+        blending={THREE.AdditiveBlending}
+        sizeAttenuation
+      />
+    </points>
+  )
+}
 
 export function IsometricCube({ 
   transitionProgress = 0, 
@@ -253,20 +254,13 @@ export function IsometricCube({
   const groupRef = useRef<THREE.Group>(null)
   const coreRef = useRef<THREE.Mesh>(null)
   const baseRotationRef = useRef({ y: 0, x: 0, z: 0 })
-  
-  // Track speaking intensity for smooth transitions
   const speakingIntensityRef = useRef(0)
   
   const plasmaUniforms = useMemo(() => ({
     uTime: { value: 0 },
-    uTransitionProgress: { value: transitionProgress },
+    uSpeakingIntensity: { value: 0 },
     uTargetColor: { value: targetColor },
-    uSpeakingIntensity: { value: 0 },
-  }), [])
-  
-  const glassUniforms = useMemo(() => ({
-    uTime: { value: 0 },
-    uSpeakingIntensity: { value: 0 },
+    uTransitionProgress: { value: transitionProgress },
   }), [])
   
   useFrame((state) => {
@@ -274,120 +268,89 @@ export function IsometricCube({
     const isActive = animationState === 'listening' || animationState === 'speaking'
     const isSpeaking = animationState === 'speaking'
     
-    // Smooth speaking intensity transition
-    const targetIntensity = isSpeaking ? 1.0 : (animationState === 'listening' ? 0.3 : 0.0)
+    // Smooth speaking intensity
+    const targetIntensity = isSpeaking ? 1.0 : (animationState === 'listening' ? 0.4 : 0.0)
     speakingIntensityRef.current += (targetIntensity - speakingIntensityRef.current) * 0.08
     
     plasmaUniforms.uTime.value = time
+    plasmaUniforms.uSpeakingIntensity.value = speakingIntensityRef.current
     plasmaUniforms.uTransitionProgress.value = transitionProgress
     plasmaUniforms.uTargetColor.value = targetColor
-    plasmaUniforms.uSpeakingIntensity.value = speakingIntensityRef.current
-    glassUniforms.uTime.value = time
-    glassUniforms.uSpeakingIntensity.value = speakingIntensityRef.current
     
     if (groupRef.current) {
       if (isActive) {
-        // STOP rotation when active - just subtle breathing
-        const breathe = Math.sin(time * 2.0) * 0.015 * speakingIntensityRef.current
+        // Stop rotation when active
+        const breathe = Math.sin(time * 2.0) * 0.01 * speakingIntensityRef.current
         groupRef.current.scale.setScalar(1 + breathe)
-        // Hold current rotation
         groupRef.current.rotation.y = baseRotationRef.current.y
         groupRef.current.rotation.x = baseRotationRef.current.x
-        groupRef.current.rotation.z = baseRotationRef.current.z
         groupRef.current.position.y = 0
       } else {
-        // Idle: very gentle, slow rotation (AI presence)
-        const idleSpeed = 0.05 // Very slow when idle
-        baseRotationRef.current.y = time * idleSpeed
-        baseRotationRef.current.x = Math.sin(time * 0.03) * 0.05
-        baseRotationRef.current.z = Math.sin(time * 0.04) * 0.03
+        // Very slow rotation when idle
+        baseRotationRef.current.y = time * 0.06
+        baseRotationRef.current.x = Math.sin(time * 0.04) * 0.08
         
         groupRef.current.rotation.y = baseRotationRef.current.y
         groupRef.current.rotation.x = baseRotationRef.current.x
-        groupRef.current.rotation.z = baseRotationRef.current.z
-        groupRef.current.position.y = Math.sin(time * 0.2) * 0.02 // Very subtle float
+        groupRef.current.position.y = Math.sin(time * 0.25) * 0.03
         groupRef.current.scale.setScalar(1)
       }
     }
     
-    // Orange energy core - pulses when speaking
+    // Orange core glow
     if (coreRef.current) {
-      const material = coreRef.current.material as THREE.MeshBasicMaterial
+      const mat = coreRef.current.material as THREE.MeshBasicMaterial
       if (isSpeaking) {
-        // Energetic pulse when speaking
-        const speakPulse = Math.sin(time * 6) * 0.4 + 0.6
-        material.opacity = 0.6 + speakPulse * 0.4
-        const coreScale = 0.3 + speakPulse * 0.2
-        coreRef.current.scale.setScalar(coreScale)
+        const pulse = Math.sin(time * 5) * 0.3 + 0.7
+        mat.opacity = 0.4 + pulse * 0.4
+        coreRef.current.scale.setScalar(0.15 + pulse * 0.08)
       } else {
-        // Calm glow when idle
-        const idlePulse = Math.sin(time * 0.8) * 0.1 + 0.5
-        material.opacity = idlePulse
-        coreRef.current.scale.setScalar(0.3)
+        mat.opacity = 0.3
+        coreRef.current.scale.setScalar(0.15)
       }
     }
   })
   
   return (
     <group ref={groupRef}>
-      {/* Inner plasma layer */}
-      <RoundedBox args={[1.8, 1.8, 1.8]} radius={0.2} smoothness={8}>
+      {/* Main plasma cube - transparent with edge glow */}
+      <mesh>
+        <boxGeometry args={[1.8, 1.8, 1.8, 32, 32, 32]} />
         <shaderMaterial
-          vertexShader={vertexShader}
-          fragmentShader={fragmentShader}
+          vertexShader={edgeVertexShader}
+          fragmentShader={plasmaFragmentShader}
           uniforms={plasmaUniforms}
           transparent
           side={THREE.DoubleSide}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
-      </RoundedBox>
+      </mesh>
       
-      {/* Secondary depth layer */}
-      <RoundedBox args={[1.5, 1.5, 1.5]} radius={0.15} smoothness={8}>
-        <shaderMaterial
-          vertexShader={vertexShader}
-          fragmentShader={fragmentShader}
-          uniforms={plasmaUniforms}
-          transparent
-          side={THREE.BackSide}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </RoundedBox>
+      {/* Glowing wireframe edges */}
+      <lineSegments>
+        <edgesGeometry args={[new THREE.BoxGeometry(1.82, 1.82, 1.82)]} />
+        <lineBasicMaterial color="#8844ff" transparent opacity={0.6} />
+      </lineSegments>
       
-      {/* Orange energy fluid ball at center */}
-      <mesh ref={coreRef} scale={0.3}>
-        <sphereGeometry args={[1, 32, 32]} />
+      {/* Inner wireframe */}
+      <lineSegments>
+        <edgesGeometry args={[new THREE.BoxGeometry(1.5, 1.5, 1.5)]} />
+        <lineBasicMaterial color="#44aaff" transparent opacity={0.3} />
+      </lineSegments>
+      
+      {/* Orange energy core */}
+      <mesh ref={coreRef} scale={0.15}>
+        <sphereGeometry args={[1, 16, 16]} />
         <meshBasicMaterial 
           color="#ff6622" 
           transparent 
-          opacity={0.5}
+          opacity={0.3}
         />
       </mesh>
       
-      {/* Inner orange glow ring */}
-      <mesh scale={0.35}>
-        <sphereGeometry args={[1, 16, 16]} />
-        <meshBasicMaterial 
-          color="#ff8844" 
-          transparent 
-          opacity={0.2}
-          side={THREE.BackSide}
-        />
-      </mesh>
-      
-      {/* Outer glass shell with orange tint */}
-      <RoundedBox args={[1.85, 1.85, 1.85]} radius={0.22} smoothness={8}>
-        <shaderMaterial
-          vertexShader={vertexShader}
-          fragmentShader={glassFragmentShader}
-          uniforms={glassUniforms}
-          transparent
-          side={THREE.FrontSide}
-          depthWrite={false}
-        />
-      </RoundedBox>
+      {/* Sparkle particles */}
+      <SparkleParticles count={60} speakingIntensity={speakingIntensityRef.current} />
     </group>
   )
 }

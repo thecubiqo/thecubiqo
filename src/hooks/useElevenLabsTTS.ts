@@ -227,29 +227,58 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
       const audioBlob = await response.blob()
       const audioUrl = URL.createObjectURL(audioBlob)
 
-      // Create and play audio
-      const audio = new Audio(audioUrl)
+      // Create audio element with explicit settings for autoplay
+      const audio = new Audio()
+      audio.preload = 'auto'
+      audio.src = audioUrl
       audioRef.current = audio
 
+      // Ensure audio context is active
+      if (!isAudioContextReady()) {
+        await initAudioContext()
+      }
+
       audio.onplay = () => {
+        console.log('[TTS] Audio started playing')
         setState(prev => ({ ...prev, isSpeaking: true, isLoading: false }))
         onStart?.()
       }
 
+      audio.onpause = () => {
+        // Handle browser auto-pause (e.g., tab switch)
+        console.log('[TTS] Audio paused, attempting resume...')
+        // Try to resume after a brief delay
+        setTimeout(() => {
+          if (audioRef.current && audioRef.current.paused && !audioRef.current.ended) {
+            audioRef.current.play().catch(e => console.log('[TTS] Resume failed:', e))
+          }
+        }, 100)
+      }
+
       audio.onended = () => {
+        console.log('[TTS] Audio ended')
         setState(prev => ({ ...prev, isSpeaking: false }))
         URL.revokeObjectURL(audioUrl)
         onEnd?.()
       }
 
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error('[TTS] Audio playback error:', e)
         URL.revokeObjectURL(audioUrl)
         // Fall back to browser TTS on playback error
-        console.warn('[TTS] Audio playback error, falling back to browser TTS')
+        console.warn('[TTS] Falling back to browser TTS')
         speakWithBrowserTTS(text)
       }
 
-      await audio.play()
+      // Play with user interaction context
+      try {
+        await audio.play()
+      } catch (playError) {
+        console.warn('[TTS] Initial play failed, retrying...', playError)
+        // Retry after ensuring audio context
+        await initAudioContext()
+        await audio.play()
+      }
 
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
