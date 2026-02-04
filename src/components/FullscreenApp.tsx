@@ -11,6 +11,7 @@ import { LoginForm, AuthNudgeModal } from './auth'
 import { BYOSettings } from './byo'
 import { KeywordPanel } from './KeywordPanel'
 import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
+import { LandingCube } from './LandingCube'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
@@ -39,6 +40,32 @@ export function FullscreenApp() {
   // UI panels
   const [showKeywordPanel, setShowKeywordPanel] = useState(false)
   const [showRGYChats, setShowRGYChats] = useState(false)
+  const [showLandingCube, setShowLandingCube] = useState(false)
+
+  // Check if we should show landing cube (once per day or after 4+ hours)
+  useEffect(() => {
+    const LANDING_STORAGE_KEY = 'cubiqo_last_landing'
+    const HOURS_THRESHOLD = 4
+    
+    const lastLanding = localStorage.getItem(LANDING_STORAGE_KEY)
+    const now = Date.now()
+    
+    if (!lastLanding) {
+      // First visit ever
+      setShowLandingCube(true)
+      localStorage.setItem(LANDING_STORAGE_KEY, now.toString())
+    } else {
+      const hoursSince = (now - parseInt(lastLanding)) / (1000 * 60 * 60)
+      if (hoursSince >= HOURS_THRESHOLD) {
+        setShowLandingCube(true)
+        localStorage.setItem(LANDING_STORAGE_KEY, now.toString())
+      }
+    }
+  }, [])
+
+  const handleLandingComplete = useCallback(() => {
+    setShowLandingCube(false)
+  }, [])
 
   // BYO Mode
   const { isBYOEnabled } = useBYO()
@@ -569,6 +596,14 @@ export function FullscreenApp() {
         onClose={() => setShowRGYChats(false)}
         isDark={isDark}
       />
+
+      {/* Landing Cube - Shown once per day or after 4+ hours */}
+      {showLandingCube && (
+        <LandingCube 
+          onComplete={handleLandingComplete}
+          detectedColor={colorName}
+        />
+      )}
     </div>
   )
 }
