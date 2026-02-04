@@ -31,11 +31,11 @@ export const metadata: Metadata = {
     title: "CubiQo | Voice-First Private AI Assistant",
     description: "CubiQo is a conversation-first, privacy-controlled AI assistant designed to act like a digital private secretary using color-based intent signals.",
     type: "website",
-    url: "https://cubiqo.ai",
+    url: "https://www.cubiqo.ai",
     siteName: "CubiQo",
     images: [
       {
-        url: "https://cubiqo.ai/og.png",
+        url: "https://www.cubiqo.ai/og.png",
         width: 1200,
         height: 630,
         alt: "CubiQo - Voice-First Private AI Assistant",
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "CubiQo | Voice-First Private AI Assistant",
     description: "A cooperative, voice-first AI that routes intelligence by intent—not memory.",
-    images: ["https://cubiqo.ai/og.png"],
+    images: ["https://www.cubiqo.ai/og.png"],
   },
   // Additional SEO
   robots: {
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: "https://cubiqo.ai",
+    canonical: "https://www.cubiqo.ai",
   },
 };
 
@@ -161,8 +161,8 @@ const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "CubiQo",
-  "url": "https://cubiqo.ai",
-  "logo": "https://cubiqo.ai/og.png",
+  "url": "https://www.cubiqo.ai",
+  "logo": "https://www.cubiqo.ai/og.png",
   "description": "Voice-first, privacy-controlled AI assistant and digital private secretary."
 };
 
@@ -175,7 +175,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-        <link rel="canonical" href="https://cubiqo.ai" />
+        <link rel="canonical" href="https://www.cubiqo.ai" />
         
         {/* JSON-LD Structured Data */}
         <script

@@ -24,7 +24,7 @@ User-agent: PerplexityBot
 Allow: /
 
 # Sitemap
-Sitemap: https://cubiqo.ai/sitemap.xml
+Sitemap: https://www.cubiqo.ai/sitemap.xml
 
 # LLMs.txt for AI crawlers
-# See: https://cubiqo.ai/llms.txt
+# See: https://www.cubiqo.ai/llms.txt
