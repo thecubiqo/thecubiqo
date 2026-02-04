@@ -296,32 +296,26 @@ export function FullscreenApp() {
             </div>
           </div>
 
-          {/* Right side - Settings */}
-          <div className="w-24 sm:w-32 flex justify-end">
-            <div className="relative group">
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                data-testid="settings-button"
-                className={`flex items-center gap-2 text-sm font-medium transition-all pb-0.5 ${
-                  isDark ? 'text-white/60 hover:text-white' : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                <span>Settings</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                </svg>
-              </button>
-              {/* Tooltip */}
-              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 ${
-                isDark ? 'bg-zinc-800 text-white/80 border border-white/10' : 'bg-white text-gray-700 border border-gray-200 shadow-lg'
-              }`}>
-                customize your experience
-              </div>
-            </div>
-          </div>
+          {/* Right side - Empty for balance */}
+          <div className="w-24 sm:w-32" />
         </div>
       </header>
+
+      {/* Settings Gear Icon - Top Left Below Header */}
+      <button
+        onClick={() => setMenuOpen(!menuOpen)}
+        data-testid="settings-gear-button"
+        className={`fixed left-5 top-24 z-[60] p-2.5 rounded-xl transition-all duration-200 ${
+          isDark 
+            ? 'text-white/50 hover:text-white/80 hover:bg-white/5' 
+            : 'text-gray-400 hover:text-gray-600 hover:bg-black/5'
+        }`}
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+        </svg>
+      </button>
 
       {/* RGY Signal Button - Right side */}
       <div className="fixed right-4 top-1/2 -translate-y-1/2 z-[60]">
@@ -426,171 +420,140 @@ export function FullscreenApp() {
         <p>All rights reserved.</p>
       </footer>
 
-      {/* Settings Panel - Left Side */}
+      {/* Settings Panel - Premium Frosted Glass */}
       {menuOpen && (
-        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm" onClick={() => setMenuOpen(false)}>
+        <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-[2px]" onClick={() => setMenuOpen(false)}>
           <div
-            className={`absolute left-0 top-0 bottom-0 w-80 max-w-[90vw] flex flex-col transform transition-transform duration-300 ease-out ${
-              isDark ? 'bg-zinc-900' : 'bg-white'
-            }`}
-            style={{ animation: 'slideInLeft 0.3s ease-out' }}
+            className="absolute left-0 top-0 bottom-0 w-[320px] max-w-[90vw] flex flex-col"
+            style={{ 
+              animation: 'slideInLeft 0.3s ease-out',
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)',
+              backdropFilter: 'blur(24px) saturate(1.2)',
+              WebkitBackdropFilter: 'blur(24px) saturate(1.2)',
+              borderRight: '1px solid rgba(255,255,255,0.06)',
+              boxShadow: '0 0 80px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                </svg>
-                <h2 className="text-lg font-semibold">Settings</h2>
-              </div>
+            {/* Header - Minimal */}
+            <div className="flex items-center justify-between px-7 py-6">
+              <h2 className="text-[15px] font-medium tracking-wide text-white/90">Settings</h2>
               <button 
                 onClick={() => setMenuOpen(false)} 
-                className="p-1 rounded-lg opacity-60 hover:opacity-100 hover:bg-white/10 transition-all"
+                className="p-1.5 rounded-full text-white/40 hover:text-white/70 hover:bg-white/5 transition-all"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+            {/* Content - Clean Sections */}
+            <div className="flex-1 overflow-y-auto px-7 pb-8 space-y-8">
               
-              {/* Mode Selection */}
+              {/* 1. Mode */}
               <div>
-                <h3 className={`text-xs uppercase tracking-wider mb-3 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
-                  Mode
-                </h3>
-                <div className="space-y-1">
-                  <div
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl ${
-                      isDark ? 'bg-white/10 text-white' : 'bg-blue-50 text-blue-900'
-                    }`}
-                  >
-                    <span className="text-lg">🎤</span>
-                    <span className="font-medium">Voice Mode</span>
-                    <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
-                      isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600'
-                    }`}>active</span>
+                <h3 className="text-[11px] uppercase tracking-[0.15em] text-white/30 mb-4">Mode</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-white/[0.04] border border-white/[0.04]">
+                    <span className="text-[14px] text-white/80">Voice Mode</span>
+                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-white/[0.08] text-white/50">active</span>
                   </div>
                   <a
                     href="/chat"
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                      isDark ? 'hover:bg-white/5 text-white/70' : 'hover:bg-gray-50 text-gray-600'
-                    }`}
+                    className="flex items-center justify-between py-3 px-4 rounded-xl hover:bg-white/[0.03] transition-colors"
                   >
-                    <span className="text-lg">💬</span>
-                    <span>Chat Mode</span>
+                    <span className="text-[14px] text-white/50">Chat Mode</span>
                   </a>
                 </div>
               </div>
 
-              {/* Theme */}
-              <div>
-                <h3 className={`text-xs uppercase tracking-wider mb-3 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
-                  Appearance
-                </h3>
-                <button
-                  onClick={toggleTheme}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors ${
-                    isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'
-                  }`}
-                >
-                  <span className="flex items-center gap-3">
-                    <span className="text-lg">{isDark ? '🌙' : '☀️'}</span>
-                    <span>Theme</span>
-                  </span>
-                  <span className={`text-sm px-3 py-1 rounded-full ${
-                    isDark ? 'bg-white/10 text-white/70' : 'bg-gray-200 text-gray-600'
-                  }`}>{isDark ? 'Dark' : 'Light'}</span>
-                </button>
+              {/* Soft Divider */}
+              <div className="h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
 
-                {/* Cube Size Slider */}
-                <div className={`mt-3 px-4 py-3 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="flex items-center gap-3">
-                      <span className="text-lg">📐</span>
-                      <span>Cube Size</span>
-                    </span>
-                    <span className={`text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
-                      {cubeSize}%
-                    </span>
+              {/* 2. Experience */}
+              <div>
+                <h3 className="text-[11px] uppercase tracking-[0.15em] text-white/30 mb-4">Experience</h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={toggleTheme}
+                    className="w-full flex items-center justify-between py-3 px-4 rounded-xl hover:bg-white/[0.03] transition-colors"
+                  >
+                    <span className="text-[14px] text-white/70">Theme</span>
+                    <span className="text-[13px] text-white/40">{isDark ? 'Dark' : 'Light'}</span>
+                  </button>
+                  
+                  <div className="py-3 px-4 rounded-xl bg-white/[0.02]">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[14px] text-white/70">Cube Size</span>
+                      <span className="text-[13px] text-white/40">{cubeSize}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="50"
+                      max="150"
+                      value={cubeSize}
+                      onChange={(e) => handleCubeSizeChange(parseInt(e.target.value))}
+                      className="w-full h-1 rounded-full appearance-none cursor-pointer"
+                      style={{
+                        background: `linear-gradient(to right, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.25) ${(cubeSize - 50) / 100 * 100}%, rgba(255,255,255,0.08) ${(cubeSize - 50) / 100 * 100}%, rgba(255,255,255,0.08) 100%)`
+                      }}
+                      data-testid="cube-size-slider"
+                    />
                   </div>
-                  <input
-                    type="range"
-                    min="50"
-                    max="150"
-                    value={cubeSize}
-                    onChange={(e) => handleCubeSizeChange(parseInt(e.target.value))}
-                    className="w-full h-2 rounded-full appearance-none cursor-pointer"
-                    style={{
-                      background: `linear-gradient(to right, ${isDark ? '#ff6600' : '#f97316'} 0%, ${isDark ? '#ff6600' : '#f97316'} ${(cubeSize - 50) / 100 * 100}%, ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'} ${(cubeSize - 50) / 100 * 100}%, ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'} 100%)`
-                    }}
-                    data-testid="cube-size-slider"
-                  />
                 </div>
               </div>
 
-              {/* BYO Mode */}
+              {/* Soft Divider */}
+              <div className="h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+              {/* 3. Privacy */}
               <div>
-                <h3 className={`text-xs uppercase tracking-wider mb-3 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
-                  Advanced
-                </h3>
+                <h3 className="text-[11px] uppercase tracking-[0.15em] text-white/30 mb-4">Privacy</h3>
                 <button
                   onClick={() => setShowBYOSettings(!showBYOSettings)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors ${
-                    isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'
-                  }`}
+                  className="w-full flex items-center justify-between py-3 px-4 rounded-xl hover:bg-white/[0.03] transition-colors"
                 >
-                  <span className="flex items-center gap-3">
-                    <span className="text-lg">🔑</span>
-                    <span>BYO Mode</span>
+                  <span className="text-[14px] text-white/70">BYO Mode</span>
+                  <span className={`text-[13px] ${isBYOEnabled ? 'text-white/60' : 'text-white/30'}`}>
+                    {isBYOEnabled ? 'On' : 'Off'}
                   </span>
-                  <span className={`text-sm px-3 py-1 rounded-full ${
-                    isBYOEnabled 
-                      ? 'bg-green-500/20 text-green-400' 
-                      : isDark ? 'bg-white/10 text-white/50' : 'bg-gray-200 text-gray-500'
-                  }`}>{isBYOEnabled ? 'ON' : 'OFF'}</span>
                 </button>
 
                 {showBYOSettings && (
-                  <div className={`mt-2 rounded-xl overflow-hidden ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                  <div className="mt-2 rounded-xl overflow-hidden bg-white/[0.02] border border-white/[0.04]">
                     <BYOSettings onClose={() => setShowBYOSettings(false)} />
                   </div>
                 )}
               </div>
 
-              {/* Account */}
-              <div className={`border-t pt-6 ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
-                <h3 className={`text-xs uppercase tracking-wider mb-3 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
-                  Account
-                </h3>
+              {/* Soft Divider */}
+              <div className="h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+              {/* 4. Account */}
+              <div>
+                <h3 className="text-[11px] uppercase tracking-[0.15em] text-white/30 mb-4">Account</h3>
 
                 {isAuthenticated ? (
                   <div className="space-y-2">
-                    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${
-                      isDark ? 'bg-white/5' : 'bg-gray-50'
-                    }`}>
-                      <span className="text-lg">👤</span>
-                      <span className="text-sm truncate">{user?.email}</span>
+                    <div className="py-3 px-4 rounded-xl bg-white/[0.03]">
+                      <span className="text-[13px] text-white/50 truncate block">{user?.email}</span>
                     </div>
                     <button
                       onClick={() => signOut()}
-                      className={`w-full text-left px-4 py-3 rounded-xl text-red-400 transition-colors ${
-                        isDark ? 'hover:bg-red-500/10' : 'hover:bg-red-50'
-                      }`}
+                      className="w-full text-left py-3 px-4 rounded-xl text-white/40 hover:text-red-400/80 hover:bg-red-500/[0.05] transition-colors text-[14px]"
                     >
                       Sign Out
                     </button>
                   </div>
                 ) : showAuthForm ? (
                   <div className="space-y-4">
-                    <LoginForm />
+                    <div className="rounded-xl overflow-hidden bg-white/[0.02] p-4">
+                      <LoginForm />
+                    </div>
                     <button
                       onClick={() => setShowAuthForm(false)}
-                      className="w-full text-center text-xs opacity-50 hover:opacity-80"
+                      className="w-full text-center text-[12px] text-white/30 hover:text-white/50 transition-colors"
                     >
                       Cancel
                     </button>
@@ -599,21 +562,15 @@ export function FullscreenApp() {
                   <div className="space-y-2">
                     <button
                       onClick={() => setShowAuthForm(true)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                        isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'
-                      }`}
+                      className="w-full flex items-center justify-between py-3 px-4 rounded-xl hover:bg-white/[0.03] transition-colors"
                     >
-                      <span className="text-lg">✉️</span>
-                      <span>Email</span>
+                      <span className="text-[14px] text-white/70">Email</span>
                     </button>
                     <button
                       onClick={() => setShowAuthForm(true)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                        isDark ? 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400' : 'bg-blue-50 hover:bg-blue-100 text-blue-600'
-                      }`}
+                      className="w-full flex items-center justify-between py-3 px-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.06] transition-colors border border-white/[0.04]"
                     >
-                      <span className="text-lg">✨</span>
-                      <span>Send Magic Link</span>
+                      <span className="text-[14px] text-white/80">Send Magic Link</span>
                     </button>
                   </div>
                 )}
@@ -629,6 +586,25 @@ export function FullscreenApp() {
             @keyframes slideInRight {
               from { transform: translateX(100%); }
               to { transform: translateX(0); }
+            }
+            input[type="range"]::-webkit-slider-thumb {
+              -webkit-appearance: none;
+              width: 14px;
+              height: 14px;
+              border-radius: 50%;
+              background: rgba(255,255,255,0.8);
+              cursor: pointer;
+              border: none;
+              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            }
+            input[type="range"]::-moz-range-thumb {
+              width: 14px;
+              height: 14px;
+              border-radius: 50%;
+              background: rgba(255,255,255,0.8);
+              cursor: pointer;
+              border: none;
+              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
             }
           `}</style>
         </div>
