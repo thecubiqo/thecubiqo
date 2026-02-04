@@ -17,50 +17,57 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import type { ColorName } from '@/config/colors'
 import { useSession } from '@/hooks/useSession'
 
-// ElevenLabs voice settings per color/mood with unique voices
+/**
+ * Voice settings per color zone
+ * SAME VOICE (Daniel - British, husky, butler-like) with different tempo/mood:
+ * - GREEN: Office-like, focused, direct
+ * - YELLOW: Candid, relaxed, friendly
+ * - RED: Intimate, whisper-like, soft
+ * - ORANGE: Balanced, default
+ */
 const VOICE_SETTINGS: Record<string, {
-  voiceId: string  // Different voice per personality
+  voiceId: string  // Same voice with different settings
   stability: number
   similarity_boost: number
   style: number
   use_speaker_boost: boolean
 }> = {
   GREEN_BLUE: {
-    // Office/Sincere - Professional, confident voice
-    voiceId: 'TxGEqnHWrfWFTfGW9XjX',  // Josh - deep, professional
-    stability: 0.75,
-    similarity_boost: 0.75,
-    style: 0.0,
-    use_speaker_boost: true
+    // Office/Focused - Direct, professional tempo
+    voiceId: 'onwK4e9ZLuTAKqWW03F9',  // Daniel - British, sophisticated
+    stability: 0.8,           // More stable, controlled
+    similarity_boost: 0.85,   // High clarity
+    style: 0.15,              // Less expressive, more direct
+    use_speaker_boost: true   // Clear enunciation
   },
   YELLOW: {
-    // Cafe/Friends - Warm, friendly voice  
-    voiceId: 'EXAVITQu4vr4xnSDxMaL',  // Bella - warm, friendly
-    stability: 0.5,
-    similarity_boost: 0.65,
-    style: 0.3,
-    use_speaker_boost: true
+    // Relaxed/Candid - Warm, friendly tempo
+    voiceId: 'onwK4e9ZLuTAKqWW03F9',  // Same Daniel voice
+    stability: 0.55,          // More natural variation
+    similarity_boost: 0.7,    // Balanced
+    style: 0.35,              // More expressive, relaxed
+    use_speaker_boost: true   // Keep clarity
   },
   RED: {
-    // Intimate/Deep - Soft, thoughtful voice
-    voiceId: 'onwK4e9ZLuTAKqWW03F9',  // Daniel - British, sophisticated
-    stability: 0.85,
-    similarity_boost: 0.9,
-    style: 0.5,
-    use_speaker_boost: false
+    // Intimate/Whisper - Soft, thoughtful, husky
+    voiceId: 'onwK4e9ZLuTAKqWW03F9',  // Same Daniel voice
+    stability: 0.9,           // Very smooth
+    similarity_boost: 0.95,   // Maximum similarity for intimacy
+    style: 0.6,               // Maximum expressiveness
+    use_speaker_boost: false  // Softer, more intimate
   },
   ORANGE: {
-    // Landing/Default - Balanced, conscious voice
-    voiceId: 'pNInz6obpgDQGcFmaJgB',  // Adam - versatile
+    // Default/Landing - Balanced butler-like
+    voiceId: 'onwK4e9ZLuTAKqWW03F9',  // Same Daniel voice
     stability: 0.7,
-    similarity_boost: 0.7,
-    style: 0.2,
+    similarity_boost: 0.75,
+    style: 0.25,
     use_speaker_boost: true
   }
 }
 
-// Default male voice - "Adam" from ElevenLabs
-const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'
+// Single voice - Daniel (British, husky, butler-like)
+const DEFAULT_VOICE_ID = 'onwK4e9ZLuTAKqWW03F9'
 
 interface UseElevenLabsTTSOptions {
   voiceId?: string
