@@ -334,9 +334,7 @@ function PlasmaCube({ targetColor, colorMix = 0 }: PlasmaCubeProps) {
         <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"
-            count={particleCount}
-            array={particlePositions}
-            itemSize={3}
+            args={[particlePositions, 3]}
           />
         </bufferGeometry>
         <pointsMaterial
@@ -364,17 +362,19 @@ function PlasmaCube({ targetColor, colorMix = 0 }: PlasmaCubeProps) {
   )
 }
 
-// Color mapping for voice detection
+// Color mapping for voice detection - matches ColorName from config
 const VOICE_COLORS = {
-  GREEN: new THREE.Color(0.2, 0.9, 0.5),
+  GREEN_BLUE: new THREE.Color(0.2, 0.9, 0.5),
   YELLOW: new THREE.Color(1.0, 0.85, 0.3),
   RED: new THREE.Color(0.95, 0.25, 0.4),
   ORANGE: new THREE.Color(1.0, 0.55, 0.2),
 }
 
+type ColorName = 'RED' | 'YELLOW' | 'GREEN_BLUE' | 'ORANGE'
+
 interface LandingCubeProps {
   onComplete: () => void
-  detectedColor?: 'GREEN' | 'YELLOW' | 'RED' | 'ORANGE'
+  detectedColor?: ColorName
 }
 
 export function LandingCube({ onComplete, detectedColor }: LandingCubeProps) {
