@@ -1,80 +1,120 @@
 'use client'
 
 /**
- * KeywordPanel - Color experience selector + Keyword management
- * Shows keywords for each color zone (Green, Yellow, Red)
- * Users can select experience AND edit their keywords
+ * KeywordPanel - RGY Capsule System
+ * 
+ * Zone assignment is AUTOMATIC based on CubiQo's color policy:
+ * - GREEN: Task-focused, help-seeking, productivity → Intents: Collab, Trade
+ * - RED: Desire, indulgence, age-gated → Intents: Collab, Trade  
+ * - YELLOW: Casual, relaxed → NO INTENTS
+ * 
+ * Keywords are added by:
+ * - AI (auto-extracted from conversations)
+ * - User (manual input)
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+
+interface Capsule {
+  zone: 'GREEN' | 'YELLOW' | 'RED'
+  intent: string | null // null for YELLOW
+  keywords: string[]
+}
 
 interface KeywordPanelProps {
   isOpen: boolean
   onClose: () => void
   isDark?: boolean
+  sessionId?: string
+  onCapsuleUpdate?: (capsules: Capsule[]) => void
 }
 
-type ColorId = 'green' | 'yellow' | 'red'
-
-interface Keyword {
-  id: string
-  text: string
+// Admin-defined intents (only for GREEN and RED)
+const INTENTS = {
+  GREEN: ['Collab', 'Trade'],
+  RED: ['Collab', 'Trade'],
+  YELLOW: [] as string[], // No intents for Yellow
 }
 
-const COLOR_OPTIONS = [
-  {
-    id: 'green' as const,
-    name: 'Green',
-    label: 'Intelligent',
+const ZONE_CONFIG = {
+  GREEN: {
+    name: 'Growth',
+    description: 'Task-focused, productivity, ambition',
     color: '#22c55e',
-    bgLight: '#dcfce7',
-    voice: 'Clear & confident',
+    bgColor: 'rgba(34, 197, 94, 0.1)',
+    borderColor: 'rgba(34, 197, 94, 0.3)',
   },
-  {
-    id: 'yellow' as const,
-    name: 'Yellow', 
-    label: 'Ambiguous',
+  YELLOW: {
+    name: 'Chill',
+    description: 'Casual conversations, relaxation',
     color: '#eab308',
-    bgLight: '#fef9c3',
-    voice: 'Relaxed & natural',
+    bgColor: 'rgba(234, 179, 8, 0.1)',
+    borderColor: 'rgba(234, 179, 8, 0.3)',
   },
-  {
-    id: 'red' as const,
-    name: 'Red',
-    label: 'Indulgent',
+  RED: {
+    name: 'Indulge',
+    description: 'Desires, exploration, 18+',
     color: '#ef4444',
-    bgLight: '#fee2e2',
-    voice: 'Deep & thoughtful',
+    bgColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
   },
-]
-
-// Mock keywords - would come from backend
-const INITIAL_KEYWORDS: Record<ColorId, Keyword[]> = {
-  green: [
-    { id: '1', text: 'yoga class' },
-    { id: '2', text: 'project' },
-  ],
-  yellow: [
-    { id: '3', text: 'coffee chat' },
-    { id: '4', text: 'networking' },
-  ],
-  red: [
-    { id: '5', text: 'deep talk' },
-    { id: '6', text: 'personal goals' },
-  ],
 }
 
-export function KeywordPanel({ isOpen, onClose, isDark = true }: KeywordPanelProps) {
-  const [selectedColor, setSelectedColor] = useState<ColorId | null>(null)
-  const [isLocked, setIsLocked] = useState(false)
-  const [keywords, setKeywords] = useState(INITIAL_KEYWORDS)
-  const [expandedColor, setExpandedColor] = useState<ColorId | null>(null)
-  const [editingKeyword, setEditingKeyword] = useState<string | null>(null)
-  const [editText, setEditText] = useState('')
+type ZoneId = keyof typeof ZONE_CONFIG
+
+export function KeywordPanel({ 
+  isOpen, 
+  onClose, 
+  isDark = true, 
+  sessionId,
+  onCapsuleUpdate 
+}: KeywordPanelProps) {
+  // State for each zone's capsule
+  const [capsules, setCapsules] = useState<Record<ZoneId, Capsule>>({
+    GREEN: { zone: 'GREEN', intent: null, keywords: [] },
+    YELLOW: { zone: 'YELLOW', intent: null, keywords: [] },
+    RED: { zone: 'RED', intent: null, keywords: [] },
+  })
+  
+  // Active zone tab
+  const [activeZone, setActiveZone] = useState<ZoneId>('GREEN')
+  
+  // New keyword input
   const [newKeyword, setNewKeyword] = useState('')
   
+  // Edit mode
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [editText, setEditText] = useState('')
+  
+  // Animation states
   const [isVisible, setIsVisible] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
+
+  // Load capsules from localStorage on mount
+  useEffect(() => {
+    if (sessionId) {
+      const stored = localStorage.getItem(`cubiqo_capsules_${sessionId}`)
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored)
+          setCapsules(parsed)
+        } catch (e) {
+          console.error('Failed to parse stored capsules:', e)
+        }
+      }
+    }
+  }, [sessionId])
+
+  // Save capsules to localStorage when they change
+  const saveCapsules = useCallback((newCapsules: Record<ZoneId, Capsule>) => {
+    setCapsules(newCapsules)
+    if (sessionId) {
+      localStorage.setItem(`cubiqo_capsules_${sessionId}`, JSON.stringify(newCapsules))
+    }
+    if (onCapsuleUpdate) {
+      onCapsuleUpdate(Object.values(newCapsules))
+    }
+  }, [sessionId, onCapsuleUpdate])
 
   useEffect(() => {
     if (isOpen) {
@@ -86,60 +126,73 @@ export function KeywordPanel({ isOpen, onClose, isDark = true }: KeywordPanelPro
     }
   }, [isOpen])
 
-  const handleSelectColor = (colorId: ColorId) => {
-    if (!isLocked) {
-      setSelectedColor(colorId)
+  const handleIntentChange = (intent: string | null) => {
+    const newCapsules = {
+      ...capsules,
+      [activeZone]: {
+        ...capsules[activeZone],
+        intent,
+      },
     }
+    saveCapsules(newCapsules)
   }
 
-  const handleTapForKeywords = (colorId: ColorId) => {
-    setExpandedColor(expandedColor === colorId ? null : colorId)
-  }
-
-  const handleEditKeyword = (keyword: Keyword) => {
-    setEditingKeyword(keyword.id)
-    setEditText(keyword.text)
-  }
-
-  const handleSaveEdit = (colorId: ColorId) => {
-    if (editingKeyword && editText.trim()) {
-      setKeywords(prev => ({
-        ...prev,
-        [colorId]: prev[colorId].map(k => 
-          k.id === editingKeyword ? { ...k, text: editText.trim() } : k
-        )
-      }))
-    }
-    setEditingKeyword(null)
-    setEditText('')
-  }
-
-  const handleDeleteKeyword = (colorId: ColorId, keywordId: string) => {
-    setKeywords(prev => ({
-      ...prev,
-      [colorId]: prev[colorId].filter(k => k.id !== keywordId)
-    }))
-  }
-
-  const handleAddKeyword = (colorId: ColorId) => {
-    if (newKeyword.trim()) {
-      setKeywords(prev => ({
-        ...prev,
-        [colorId]: [...prev[colorId], { id: Date.now().toString(), text: newKeyword.trim() }]
-      }))
+  const handleAddKeyword = () => {
+    const trimmed = newKeyword.trim().toLowerCase()
+    if (trimmed && !capsules[activeZone].keywords.includes(trimmed)) {
+      const newCapsules = {
+        ...capsules,
+        [activeZone]: {
+          ...capsules[activeZone],
+          keywords: [...capsules[activeZone].keywords, trimmed],
+        },
+      }
+      saveCapsules(newCapsules)
       setNewKeyword('')
     }
   }
 
-  const handleLock = () => {
-    if (selectedColor) setIsLocked(true)
+  const handleEditKeyword = (index: number) => {
+    setEditingIndex(index)
+    setEditText(capsules[activeZone].keywords[index])
   }
 
-  const handleUnlock = () => {
-    setIsLocked(false)
+  const handleSaveEdit = () => {
+    if (editingIndex !== null && editText.trim()) {
+      const trimmed = editText.trim().toLowerCase()
+      const newKeywords = capsules[activeZone].keywords.map((k, i) => 
+        i === editingIndex ? trimmed : k
+      )
+      const newCapsules = {
+        ...capsules,
+        [activeZone]: {
+          ...capsules[activeZone],
+          keywords: newKeywords,
+        },
+      }
+      saveCapsules(newCapsules)
+    }
+    setEditingIndex(null)
+    setEditText('')
+  }
+
+  const handleDeleteKeyword = (index: number) => {
+    const newKeywords = capsules[activeZone].keywords.filter((_, i) => i !== index)
+    const newCapsules = {
+      ...capsules,
+      [activeZone]: {
+        ...capsules[activeZone],
+        keywords: newKeywords,
+      },
+    }
+    saveCapsules(newCapsules)
   }
 
   if (!isVisible) return null
+
+  const currentZone = ZONE_CONFIG[activeZone]
+  const currentCapsule = capsules[activeZone]
+  const availableIntents = INTENTS[activeZone]
 
   return (
     <div 
@@ -147,34 +200,42 @@ export function KeywordPanel({ isOpen, onClose, isDark = true }: KeywordPanelPro
         isAnimating ? 'opacity-100' : 'opacity-0'
       }`}
       onClick={onClose}
+      data-testid="keyword-panel-overlay"
     >
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       
       <div
         className={`absolute right-0 top-0 bottom-0 w-[420px] max-w-[95vw] flex flex-col transition-transform duration-300 ease-out ${
           isAnimating ? 'translate-x-0' : 'translate-x-full'
-        } ${isDark ? 'bg-zinc-900' : 'bg-[#fef7f0]'}`}
+        } ${isDark ? 'bg-zinc-900/95' : 'bg-[#fef7f0]/95'}`}
         onClick={e => e.stopPropagation()}
+        data-testid="keyword-panel"
       >
-        {/* Header with Logo */}
+        {/* Header */}
         <div className={`flex items-center justify-between p-4 border-b ${
           isDark ? 'border-white/10' : 'border-gray-200'
         }`}>
           <div className="flex items-center gap-3">
-            <img 
-              src="https://customer-assets.emergentagent.com/job_react-energy-cube/artifacts/zuvwrv2g_cubiqo_favicon_512.png" 
-              alt="CubiQo" 
-              className="w-10 h-10"
-            />
-            <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              Experience & Keywords
-            </span>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: currentZone.color }}>
+              <span className="text-white text-sm font-bold">
+                {activeZone[0]}
+              </span>
+            </div>
+            <div>
+              <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                RGY Capsules
+              </span>
+              <p className={`text-xs ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
+                Your intentions for AI matching
+              </p>
+            </div>
           </div>
           <button 
             onClick={onClose}
             className={`p-2 rounded-lg transition-colors ${
-              isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+              isDark ? 'hover:bg-white/10 text-white/70' : 'hover:bg-gray-100 text-gray-600'
             }`}
+            data-testid="keyword-panel-close"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -182,202 +243,262 @@ export function KeywordPanel({ isOpen, onClose, isDark = true }: KeywordPanelPro
           </button>
         </div>
 
+        {/* Zone Tabs */}
+        <div className={`flex p-2 gap-1 border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+          {(Object.keys(ZONE_CONFIG) as ZoneId[]).map((zone) => {
+            const config = ZONE_CONFIG[zone]
+            const isActive = activeZone === zone
+            const keywordCount = capsules[zone].keywords.length
+            
+            return (
+              <button
+                key={zone}
+                onClick={() => setActiveZone(zone)}
+                className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+                  isActive 
+                    ? 'text-white shadow-lg' 
+                    : isDark 
+                      ? 'text-white/60 hover:text-white/80 hover:bg-white/5' 
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                }`}
+                style={isActive ? { 
+                  backgroundColor: config.color,
+                  boxShadow: `0 4px 12px ${config.color}40`
+                } : undefined}
+                data-testid={`zone-tab-${zone.toLowerCase()}`}
+              >
+                <span>{config.name}</span>
+                {keywordCount > 0 && (
+                  <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
+                    isActive ? 'bg-white/20' : isDark ? 'bg-white/10' : 'bg-gray-200'
+                  }`}>
+                    {keywordCount}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
-          
-          {/* Simple explanation */}
-          <p className={`text-sm mb-4 ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
-            This only changes audio and visuals. CubiQo still understands RGY normally.
-          </p>
-
-          {/* Color Cards with Keywords */}
-          <div className="space-y-3">
-            {COLOR_OPTIONS.map((option) => {
-              const isSelected = selectedColor === option.id
-              const isExpanded = expandedColor === option.id
-              const colorKeywords = keywords[option.id]
-              const isDisabled = isLocked && !isSelected
-              
-              return (
-                <div 
-                  key={option.id}
-                  className={`rounded-xl overflow-hidden transition-all ${
-                    isDisabled ? 'opacity-40' : ''
-                  }`}
-                  style={{
-                    border: isSelected ? `2px solid ${option.color}` : '2px solid transparent',
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : option.bgLight,
-                  }}
-                >
-                  {/* Color Header - Click to select experience */}
-                  <button
-                    onClick={() => !isDisabled && handleSelectColor(option.id)}
-                    disabled={isDisabled}
-                    className="w-full p-4 flex items-center gap-3 text-left"
-                  >
-                    {/* Color cube */}
-                    <div 
-                      className="w-12 h-12 rounded-lg flex-shrink-0"
-                      style={{ backgroundColor: option.color }}
-                    />
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                          {option.name}
-                        </span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          isDark ? 'bg-white/10' : 'bg-white/60'
-                        }`}>
-                          {option.label}
-                        </span>
-                      </div>
-                      <div className={`text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
-                        {option.voice}
-                      </div>
-                    </div>
-
-                    {isSelected && (
-                      <svg className="w-5 h-5 flex-shrink-0" fill={option.color} viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </button>
-
-                  {/* Tap for keywords button */}
-                  <button
-                    onClick={() => handleTapForKeywords(option.id)}
-                    className={`w-full px-4 py-2 text-sm border-t flex items-center justify-between ${
-                      isDark ? 'border-white/10 text-white/70 hover:bg-white/5' : 'border-gray-200 text-gray-600 hover:bg-white/50'
-                    }`}
-                  >
-                    <span>tap for keywords</span>
-                    <span className={`text-xs ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
-                      {colorKeywords.length} keywords
-                    </span>
-                    <svg 
-                      className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-
-                  {/* Keywords List (expanded) */}
-                  {isExpanded && (
-                    <div className={`px-4 py-3 border-t ${isDark ? 'border-white/10 bg-black/20' : 'border-gray-200 bg-white/50'}`}>
-                      <div className="space-y-2">
-                        {colorKeywords.map(keyword => (
-                          <div 
-                            key={keyword.id}
-                            className={`flex items-center gap-2 p-2 rounded-lg ${
-                              isDark ? 'bg-white/5' : 'bg-white'
-                            }`}
-                          >
-                            {editingKeyword === keyword.id ? (
-                              <input
-                                type="text"
-                                value={editText}
-                                onChange={e => setEditText(e.target.value)}
-                                onBlur={() => handleSaveEdit(option.id)}
-                                onKeyDown={e => e.key === 'Enter' && handleSaveEdit(option.id)}
-                                className={`flex-1 px-2 py-1 text-sm rounded bg-transparent border ${
-                                  isDark ? 'border-white/20' : 'border-gray-300'
-                                }`}
-                                autoFocus
-                              />
-                            ) : (
-                              <>
-                                <span className="flex-1 text-sm">{keyword.text}</span>
-                                <button
-                                  onClick={() => handleEditKeyword(keyword)}
-                                  className={`p-1 rounded ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
-                                >
-                                  <svg className="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                  </svg>
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteKeyword(option.id, keyword.id)}
-                                  className={`p-1 rounded text-red-400 ${isDark ? 'hover:bg-red-500/10' : 'hover:bg-red-50'}`}
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        ))}
-                        
-                        {/* Add new keyword */}
-                        <div className="flex gap-2 mt-2">
-                          <input
-                            type="text"
-                            value={newKeyword}
-                            onChange={e => setNewKeyword(e.target.value)}
-                            placeholder="Add keyword..."
-                            className={`flex-1 px-3 py-2 text-sm rounded-lg ${
-                              isDark ? 'bg-white/5 placeholder:text-white/30' : 'bg-white placeholder:text-gray-400'
-                            }`}
-                            onKeyDown={e => e.key === 'Enter' && handleAddKeyword(option.id)}
-                          />
-                          <button
-                            onClick={() => handleAddKeyword(option.id)}
-                            className="px-3 py-2 text-sm rounded-lg font-medium"
-                            style={{ backgroundColor: option.color, color: 'white' }}
-                          >
-                            Add
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+          {/* Zone Description */}
+          <div 
+            className="p-3 rounded-xl mb-4"
+            style={{ 
+              backgroundColor: currentZone.bgColor,
+              border: `1px solid ${currentZone.borderColor}`
+            }}
+          >
+            <p className={`text-sm ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
+              {currentZone.description}
+            </p>
+            {activeZone === 'RED' && (
+              <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                Age-gated content
+              </p>
+            )}
           </div>
 
-          {/* Lock button */}
-          {selectedColor && !isLocked && (
-            <button
-              onClick={handleLock}
-              className="w-full mt-4 py-3 rounded-xl font-medium text-white"
-              style={{ backgroundColor: COLOR_OPTIONS.find(c => c.id === selectedColor)?.color }}
-            >
-              Lock {COLOR_OPTIONS.find(c => c.id === selectedColor)?.name} Experience
-            </button>
-          )}
-
-          {isLocked && (
-            <div className={`mt-4 p-3 rounded-xl text-center ${isDark ? 'bg-white/5' : 'bg-white'}`}>
-              <span className={`text-sm ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
-                Locked to {COLOR_OPTIONS.find(c => c.id === selectedColor)?.name}
-              </span>
-              <button
-                onClick={handleUnlock}
-                className={`block w-full mt-2 text-sm ${isDark ? 'text-white/50 hover:text-white/80' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                Unlock
-              </button>
+          {/* Intent Selection (only for GREEN and RED) */}
+          {availableIntents.length > 0 && (
+            <div className="mb-5">
+              <h3 className={`text-xs uppercase tracking-wider mb-2 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                Intent
+              </h3>
+              <div className="flex gap-2">
+                {availableIntents.map((intent) => (
+                  <button
+                    key={intent}
+                    onClick={() => handleIntentChange(
+                      currentCapsule.intent === intent ? null : intent
+                    )}
+                    className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all border ${
+                      currentCapsule.intent === intent
+                        ? 'text-white border-transparent'
+                        : isDark 
+                          ? 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10' 
+                          : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+                    }`}
+                    style={currentCapsule.intent === intent ? {
+                      backgroundColor: currentZone.color
+                    } : undefined}
+                    data-testid={`intent-${intent.toLowerCase()}`}
+                  >
+                    {intent}
+                  </button>
+                ))}
+              </div>
+              <p className={`mt-2 text-xs ${isDark ? 'text-white/30' : 'text-gray-400'}`}>
+                Select your purpose for proactive matching
+              </p>
             </div>
           )}
 
-          {/* Single disclaimer */}
-          <p className={`mt-6 text-xs text-center ${isDark ? 'text-white/30' : 'text-gray-400'}`}>
-            Audio-visual only. Voice is never stored.
-          </p>
+          {/* Keywords Section */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className={`text-xs uppercase tracking-wider ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                Keywords
+              </h3>
+              <span className={`text-xs ${isDark ? 'text-white/30' : 'text-gray-400'}`}>
+                AI + You
+              </span>
+            </div>
+            
+            {/* Keywords cloud */}
+            {currentCapsule.keywords.length > 0 ? (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {currentCapsule.keywords.map((keyword, index) => (
+                  <div 
+                    key={index}
+                    className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
+                      isDark ? 'bg-white/10 hover:bg-white/15' : 'bg-gray-100 hover:bg-gray-200'
+                    }`}
+                    style={{ borderLeft: `3px solid ${currentZone.color}` }}
+                    data-testid={`keyword-tag-${index}`}
+                  >
+                    {editingIndex === index ? (
+                      <input
+                        type="text"
+                        value={editText}
+                        onChange={e => setEditText(e.target.value)}
+                        onBlur={handleSaveEdit}
+                        onKeyDown={e => e.key === 'Enter' && handleSaveEdit()}
+                        className={`bg-transparent outline-none text-sm w-24 ${
+                          isDark ? 'text-white' : 'text-gray-900'
+                        }`}
+                        autoFocus
+                      />
+                    ) : (
+                      <>
+                        <span className={isDark ? 'text-white/90' : 'text-gray-700'}>
+                          {keyword}
+                        </span>
+                        <button
+                          onClick={() => handleEditKeyword(index)}
+                          className={`opacity-0 group-hover:opacity-60 transition-opacity p-0.5 ${
+                            isDark ? 'text-white/70' : 'text-gray-500'
+                          }`}
+                          data-testid={`edit-keyword-${index}`}
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteKeyword(index)}
+                          className="opacity-0 group-hover:opacity-60 transition-opacity p-0.5 hover:text-red-400"
+                          data-testid={`delete-keyword-${index}`}
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className={`text-center py-6 mb-4 rounded-xl border-2 border-dashed ${
+                isDark ? 'border-white/10 text-white/30' : 'border-gray-200 text-gray-400'
+              }`}>
+                <svg className="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                <p className="text-sm">No keywords yet</p>
+                <p className="text-xs mt-1">Add keywords or let CubiQo learn them</p>
+              </div>
+            )}
+            
+            {/* Add new keyword */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newKeyword}
+                onChange={e => setNewKeyword(e.target.value)}
+                placeholder="Add a keyword..."
+                className={`flex-1 px-3 py-2.5 text-sm rounded-lg border transition-colors ${
+                  isDark 
+                    ? 'bg-white/5 border-white/10 placeholder:text-white/30 text-white focus:border-white/30' 
+                    : 'bg-gray-50 border-gray-200 placeholder:text-gray-400 text-gray-900 focus:border-gray-400'
+                }`}
+                onKeyDown={e => e.key === 'Enter' && handleAddKeyword()}
+                data-testid="add-keyword-input"
+              />
+              <button
+                onClick={handleAddKeyword}
+                disabled={!newKeyword.trim()}
+                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  newKeyword.trim()
+                    ? 'text-white shadow-lg hover:shadow-xl'
+                    : isDark ? 'bg-white/5 text-white/30' : 'bg-gray-100 text-gray-400'
+                }`}
+                style={newKeyword.trim() ? { 
+                  backgroundColor: currentZone.color,
+                  boxShadow: `0 4px 12px ${currentZone.color}40`
+                } : undefined}
+                data-testid="add-keyword-btn"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+
+          {/* How it works */}
+          <div className={`mt-6 p-3 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+            <h4 className={`text-xs font-medium mb-2 ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
+              How RGY Capsules Work
+            </h4>
+            <ul className={`text-xs space-y-1.5 ${isDark ? 'text-white/40' : 'text-gray-500'}`}>
+              <li className="flex items-start gap-2">
+                <span style={{ color: currentZone.color }}>•</span>
+                Zone is auto-assigned by CubiQo&apos;s color
+              </li>
+              <li className="flex items-start gap-2">
+                <span style={{ color: currentZone.color }}>•</span>
+                AI detects keywords from your chats
+              </li>
+              <li className="flex items-start gap-2">
+                <span style={{ color: currentZone.color }}>•</span>
+                Used to match you with like-minded people
+              </li>
+            </ul>
+          </div>
         </div>
 
-        {/* Settings button */}
+        {/* Footer */}
         <div className={`p-4 border-t ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
-          <button className={`px-4 py-2 rounded-lg text-sm font-medium ${
-            isDark ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-100 text-orange-600'
-          }`}>
-            SETTINGS
-          </button>
+          <div className="flex items-center justify-between">
+            <span className={`text-xs ${isDark ? 'text-white/30' : 'text-gray-400'}`}>
+              {Object.values(capsules).reduce((sum, c) => sum + c.keywords.length, 0)} total keywords
+            </span>
+            <button 
+              className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
+                isDark ? 'text-orange-400 hover:bg-orange-500/10' : 'text-orange-600 hover:bg-orange-50'
+              }`}
+              data-testid="clear-all-btn"
+              onClick={() => {
+                if (confirm('Clear all keywords from this zone?')) {
+                  const newCapsules = {
+                    ...capsules,
+                    [activeZone]: {
+                      ...capsules[activeZone],
+                      keywords: [],
+                      intent: null,
+                    },
+                  }
+                  saveCapsules(newCapsules)
+                }
+              }}
+            >
+              Clear Zone
+            </button>
+          </div>
         </div>
       </div>
     </div>
