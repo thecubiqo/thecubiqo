@@ -3,15 +3,17 @@
 import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { RoundedBox } from '@react-three/drei'
 
 /**
- * IsometricCube - Special landing state geometry
+ * IsometricCube - Purple Plasma Cuboid with Orange Energy Lines
  * 
- * Enhanced with:
- * - Doppler/shimmer effect
- * - Flowing orange energy currents
- * - Internal particle-like motion
- * - Ethereal, conscious presence
+ * Features:
+ * - Proper cuboid shape (not spherical)
+ * - Purple/blue/pink ethereal plasma
+ * - Orange energy lines flowing through
+ * - Glass-like transparency
+ * - Sparkle particles
  */
 
 interface IsometricCubeProps {
@@ -24,24 +26,23 @@ const vertexShader = `
   varying vec3 vPosition;
   varying vec3 vNormal;
   varying vec3 vViewPosition;
-  varying float vDistFromCenter;
-  varying vec2 vUv;
+  varying vec3 vWorldPosition;
   
   uniform float uTime;
   
   void main() {
     vPosition = position;
     vNormal = normalize(normalMatrix * normal);
-    vUv = uv;
     
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     vViewPosition = -mvPosition.xyz;
-    vDistFromCenter = length(position);
     
-    // Subtle breathing with micro-vibration
-    float breathe = sin(uTime * 0.3) * 0.01;
-    float vibrate = sin(uTime * 8.0 + position.y * 5.0) * 0.002;
-    vec3 displaced = position * (1.0 + breathe + vibrate);
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vWorldPosition = worldPos.xyz;
+    
+    // Subtle breathing
+    float breathe = sin(uTime * 0.4) * 0.015;
+    vec3 displaced = position * (1.0 + breathe);
     
     gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
   }
@@ -53,8 +54,7 @@ const fragmentShader = `
   varying vec3 vPosition;
   varying vec3 vNormal;
   varying vec3 vViewPosition;
-  varying float vDistFromCenter;
-  varying vec2 vUv;
+  varying vec3 vWorldPosition;
   
   uniform float uTime;
   uniform float uTransitionProgress;
@@ -132,203 +132,210 @@ const fragmentShader = `
     return value;
   }
   
-  // Doppler/shimmer effect
-  float doppler(vec3 p, float t) {
-    float wave1 = sin(p.x * 4.0 + p.y * 3.0 + t * 2.0) * 0.5 + 0.5;
-    float wave2 = sin(p.y * 5.0 - p.z * 2.0 + t * 1.5) * 0.5 + 0.5;
-    float wave3 = sin(p.z * 3.0 + p.x * 4.0 - t * 1.8) * 0.5 + 0.5;
-    return (wave1 + wave2 + wave3) / 3.0;
-  }
-  
-  // Flowing current effect
-  float flowingCurrent(vec3 p, float t) {
-    vec3 flowDir = vec3(
-      sin(t * 0.3 + p.y * 2.0),
-      cos(t * 0.25),
-      sin(t * 0.35 + p.x * 1.5)
-    );
-    float flow = snoise(p * 3.0 + flowDir * t * 0.5);
-    return smoothstep(-0.3, 0.8, flow);
-  }
-  
   void main() {
     vec3 viewDir = normalize(vViewPosition);
     vec3 normal = normalize(vNormal);
+    float time = uTime * 0.15;
+    vec3 pos = vPosition * 2.5;
     
-    float slowTime = uTime * 0.2;
-    vec3 noisePos = vPosition * 1.8;
+    // Multiple flowing plasma layers
+    float flow1 = fbm(pos + vec3(time * 0.5, time * 0.3, time * 0.2));
+    float flow2 = fbm(pos * 1.2 + vec3(-time * 0.4, time * 0.6, 0.0));
+    float flow3 = fbm(pos * 0.8 - vec3(0.0, time * 0.5, time * 0.4));
+    float flow4 = fbm(pos * 1.5 + vec3(time * 0.3, -time * 0.2, time * 0.4));
     
-    // Multiple layers of flowing energy
-    float flow1 = fbm(noisePos + vec3(slowTime * 0.3, slowTime * 0.2, 0.0));
-    float flow2 = fbm(noisePos * 1.3 + vec3(0.0, slowTime * 0.25, slowTime * 0.15));
-    float flow3 = fbm(noisePos * 0.8 - vec3(slowTime * 0.1, 0.0, slowTime * 0.2));
+    // Combined energy pattern
+    float energy = flow1 * 0.3 + flow2 * 0.25 + flow3 * 0.25 + flow4 * 0.2;
+    energy = smoothstep(-0.4, 0.7, energy);
     
-    float energy = flow1 * 0.35 + flow2 * 0.35 + flow3 * 0.3;
-    energy = smoothstep(-0.2, 0.6, energy);
+    // Purple/blue/pink plasma colors
+    vec3 deepPurple = vec3(0.35, 0.1, 0.85);
+    vec3 electricBlue = vec3(0.2, 0.45, 1.0);
+    vec3 hotPink = vec3(1.0, 0.3, 0.65);
+    vec3 cyan = vec3(0.3, 0.85, 1.0);
+    vec3 magenta = vec3(0.85, 0.2, 0.75);
     
-    // Doppler shimmer effect
-    float shimmer = doppler(vPosition, uTime);
+    // Orange energy line colors
+    vec3 deepOrange = vec3(1.0, 0.4, 0.1);
+    vec3 brightOrange = vec3(1.0, 0.6, 0.2);
+    vec3 warmYellow = vec3(1.0, 0.85, 0.4);
     
-    // Flowing orange currents
-    float currents = flowingCurrent(vPosition, uTime);
+    vec3 white = vec3(1.0, 0.98, 0.95);
     
-    // Base colors - less white, more layered gradients
-    vec3 darkCore = vec3(0.15, 0.08, 0.02);       // Dark warm center
-    vec3 midOrange = vec3(0.8, 0.35, 0.1);        // Mid orange
-    vec3 lifeOrange = vec3(1.0, 0.5, 0.1);        // Vibrant orange
-    vec3 deepOrange = vec3(0.95, 0.35, 0.05);     // Deep orange
-    vec3 warmGold = vec3(1.0, 0.7, 0.3);          // Warm gold accent
-    vec3 softCream = vec3(0.95, 0.88, 0.75);      // Soft cream (not pure white)
+    // Build purple plasma base
+    vec3 plasmaColor = mix(deepPurple, electricBlue, smoothstep(-0.3, 0.5, flow1));
+    plasmaColor = mix(plasmaColor, hotPink, smoothstep(-0.2, 0.6, flow2) * 0.6);
+    plasmaColor = mix(plasmaColor, cyan, smoothstep(0.0, 0.7, flow3) * 0.4);
+    plasmaColor = mix(plasmaColor, magenta, smoothstep(-0.1, 0.5, flow4) * 0.35);
     
-    // Center to edge gradient - creates depth
-    float centerGlow = smoothstep(0.9, 0.1, vDistFromCenter);
-    float edgeFade = smoothstep(0.1, 0.8, vDistFromCenter);
+    // Orange energy lines - flowing through the cube
+    float orangeFlow1 = snoise(pos * 3.0 + vec3(time * 2.0, 0.0, 0.0));
+    float orangeFlow2 = snoise(pos * 2.5 + vec3(0.0, time * 1.8, time));
+    float orangeFlow3 = snoise(pos * 2.0 - vec3(time * 1.5, time, 0.0));
     
-    // Pulsing life force
-    float pulse1 = sin(uTime * 0.5) * 0.5 + 0.5;
-    float pulse2 = sin(uTime * 0.7 + 1.5) * 0.5 + 0.5;
-    float combinedPulse = pulse1 * 0.6 + pulse2 * 0.4;
+    // Create energy line effect
+    float orangeLines = smoothstep(0.5, 0.85, orangeFlow1) * 0.5;
+    orangeLines += smoothstep(0.55, 0.9, orangeFlow2) * 0.3;
+    orangeLines += smoothstep(0.6, 0.92, orangeFlow3) * 0.2;
     
-    // Spiral energy wave
-    float angle = atan(vPosition.z, vPosition.x);
-    float spiral = sin(angle * 3.0 + vPosition.y * 4.0 - uTime * 0.8) * 0.5 + 0.5;
+    // Mix orange energy into plasma
+    vec3 orangeEnergy = mix(deepOrange, brightOrange, orangeFlow1 * 0.5 + 0.5);
+    orangeEnergy = mix(orangeEnergy, warmYellow, pow(orangeLines, 2.0) * 0.5);
     
-    // Layered gradient from dark center to glowing orange edge
-    vec3 baseColor = mix(darkCore, midOrange, centerGlow * 0.7 + energy * 0.3);
-    baseColor = mix(baseColor, lifeOrange, currents * 0.6 + spiral * 0.3);
-    baseColor = mix(baseColor, warmGold, shimmer * 0.4 * edgeFade);
-    baseColor = mix(baseColor, deepOrange, combinedPulse * 0.3 * centerGlow);
+    // Combine plasma and orange energy
+    vec3 color = mix(plasmaColor, orangeEnergy, orangeLines * 0.7);
     
-    // Edge glow - softer, not pure white
-    baseColor = mix(baseColor, softCream, edgeFade * 0.35 * (1.0 - energy));
+    // Bright energy cores
+    float veins = pow(energy, 2.0);
+    color = mix(color, white, veins * 0.3);
     
-    // Add shimmer highlights - reduced white
-    baseColor += warmGold * shimmer * 0.12;
+    // Center glow
+    float centerDist = length(vPosition);
+    float coreGlow = smoothstep(0.9, 0.0, centerDist);
+    color = mix(color, mix(deepOrange, hotPink, 0.5), coreGlow * 0.3);
     
-    // Mix in target color during transition
-    vec3 finalColor = mix(baseColor, uTargetColor, uTransitionProgress);
+    // Sparkle effect
+    float sparkle = snoise(pos * 12.0 + vec3(time * 4.0));
+    float sparkleIntensity = smoothstep(0.78, 0.95, sparkle);
+    color += white * sparkleIntensity * 0.5;
     
-    // Fresnel for glass effect with orange rim
-    float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
-    vec3 rimColor = mix(warmGold, lifeOrange, 0.5);
-    finalColor += rimColor * fresnel * 0.35;
+    // Pulsing intensity
+    float pulse = sin(uTime * 0.5) * 0.5 + 0.5;
+    color *= 0.85 + pulse * 0.15;
     
-    // Internal consciousness glow - orange core, not white
-    float innerGlow = smoothstep(0.95, 0.0, vDistFromCenter) * 0.8;
-    finalColor += mix(deepOrange, lifeOrange, pulse1) * innerGlow * (1.0 - uTransitionProgress) * 0.6;
+    // Fresnel rim glow
+    float fresnel = pow(1.0 - abs(dot(normal, viewDir)), 2.5);
+    vec3 rimColor = mix(cyan, hotPink, sin(uTime * 0.3) * 0.5 + 0.5);
+    color += rimColor * fresnel * 0.45;
     
-    // Subtle sparkle points (particle-like) - gold not white
-    float sparkle = pow(snoise(vPosition * 15.0 + uTime * 2.0), 8.0);
-    finalColor += warmGold * sparkle * 0.35;
+    // Mix with target color during transition
+    vec3 finalColor = mix(color, uTargetColor, uTransitionProgress);
     
-    // Breathing luminosity
-    float breathe = sin(uTime * 0.35) * 0.5 + 0.5;
-    finalColor *= 0.85 + breathe * 0.15;
-    
-    // Alpha with ethereal presence
-    float alpha = 0.3 + energy * 0.25 + fresnel * 0.2 + shimmer * 0.08;
-    alpha = clamp(alpha, 0.25, 0.7);
+    // Alpha - semi-transparent with brighter core
+    float alpha = 0.5 + energy * 0.3 + coreGlow * 0.2 + orangeLines * 0.15;
+    alpha = clamp(alpha, 0.35, 0.9);
     
     gl_FragColor = vec4(finalColor, alpha);
   }
 `;
 
-// Create isometric octahedron geometry
-function createIsometricGeometry() {
-  const geometry = new THREE.OctahedronGeometry(1.15, 3);
-  return geometry;
-}
+// Glass shell shader
+const glassFragmentShader = `
+  precision highp float;
+  
+  varying vec3 vPosition;
+  varying vec3 vNormal;
+  varying vec3 vViewPosition;
+  varying vec3 vWorldPosition;
+  
+  uniform float uTime;
+  
+  void main() {
+    vec3 viewDir = normalize(vViewPosition);
+    vec3 normal = normalize(vNormal);
+    float fresnel = pow(1.0 - abs(dot(normal, viewDir)), 3.5);
+    
+    // Iridescent edge glow
+    vec3 edgeColor = mix(
+      vec3(0.6, 0.3, 1.0),
+      vec3(0.3, 0.7, 1.0),
+      sin(uTime * 0.4 + vPosition.y * 2.0) * 0.5 + 0.5
+    );
+    
+    vec3 color = edgeColor * fresnel * 0.35;
+    float alpha = fresnel * 0.18;
+    
+    gl_FragColor = vec4(color, alpha);
+  }
+`;
 
 export function IsometricCube({ 
-  transitionProgress = 0,
-  targetColor = new THREE.Color(1.0, 0.5, 0.1),
+  transitionProgress = 0, 
+  targetColor = new THREE.Color(1.0, 0.5, 0.15),
   reducedMotion = false 
 }: IsometricCubeProps) {
   const groupRef = useRef<THREE.Group>(null)
+  const plasmaRef = useRef<THREE.Mesh>(null)
   
-  const geometry = useMemo(() => createIsometricGeometry(), []);
-  
-  const uniforms = useMemo(() => ({
+  const plasmaUniforms = useMemo(() => ({
     uTime: { value: 0 },
-    uTransitionProgress: { value: 0 },
-    uTargetColor: { value: targetColor.clone() },
-  }), []);
+    uTransitionProgress: { value: transitionProgress },
+    uTargetColor: { value: targetColor },
+  }), [])
   
-  useFrame((state, delta) => {
-    if (!groupRef.current) return;
+  const glassUniforms = useMemo(() => ({
+    uTime: { value: 0 },
+  }), [])
+  
+  useFrame((state) => {
+    const time = reducedMotion ? state.clock.getElapsedTime() * 0.3 : state.clock.getElapsedTime()
     
-    const time = state.clock.getElapsedTime();
-    const motionMult = reducedMotion ? 0.2 : 1.0;
+    plasmaUniforms.uTime.value = time
+    plasmaUniforms.uTransitionProgress.value = transitionProgress
+    plasmaUniforms.uTargetColor.value = targetColor
+    glassUniforms.uTime.value = time
     
-    uniforms.uTime.value = time;
-    uniforms.uTransitionProgress.value = THREE.MathUtils.lerp(
-      uniforms.uTransitionProgress.value,
-      transitionProgress,
-      delta * 2
-    );
-    uniforms.uTargetColor.value.lerp(targetColor, delta * 3);
-    
-    // Slow, meditative rotation with subtle wobble
-    groupRef.current.rotation.y += 0.006 * motionMult;
-    groupRef.current.rotation.x = Math.sin(time * 0.12) * 0.06 * motionMult;
-    groupRef.current.rotation.z = Math.cos(time * 0.1) * 0.03 * motionMult;
-    
-    // Gentle float with micro-movements
-    groupRef.current.position.y = Math.sin(time * 0.35) * 0.025 * motionMult + 0.08;
-    groupRef.current.position.x = Math.sin(time * 0.2) * 0.01 * motionMult;
-  });
+    if (groupRef.current) {
+      // Gentle rotation
+      groupRef.current.rotation.y = time * 0.12
+      groupRef.current.rotation.x = Math.sin(time * 0.08) * 0.1
+      groupRef.current.rotation.z = Math.sin(time * 0.1) * 0.05
+      // Floating motion
+      groupRef.current.position.y = Math.sin(time * 0.4) * 0.05
+    }
+  })
   
   return (
     <group ref={groupRef}>
-      {/* Main outer shell */}
-      <mesh geometry={geometry}>
+      {/* Inner plasma layer */}
+      <RoundedBox args={[1.8, 1.8, 1.8]} radius={0.2} smoothness={8} ref={plasmaRef}>
         <shaderMaterial
           vertexShader={vertexShader}
           fragmentShader={fragmentShader}
-          uniforms={uniforms}
-          transparent={true}
+          uniforms={plasmaUniforms}
+          transparent
           side={THREE.DoubleSide}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
-      </mesh>
+      </RoundedBox>
       
-      {/* Middle layer - energy currents - normal blending to avoid white */}
-      <mesh geometry={geometry} scale={0.75}>
+      {/* Secondary depth layer */}
+      <RoundedBox args={[1.5, 1.5, 1.5]} radius={0.15} smoothness={8}>
         <shaderMaterial
           vertexShader={vertexShader}
           fragmentShader={fragmentShader}
-          uniforms={uniforms}
-          transparent={true}
-          side={THREE.DoubleSide}
-          depthWrite={false}
-          blending={THREE.NormalBlending}
-        />
-      </mesh>
-      
-      {/* Inner glow layer - darker */}
-      <mesh geometry={geometry} scale={0.5}>
-        <shaderMaterial
-          vertexShader={vertexShader}
-          fragmentShader={fragmentShader}
-          uniforms={uniforms}
-          transparent={true}
+          uniforms={plasmaUniforms}
+          transparent
           side={THREE.BackSide}
           depthWrite={false}
-          blending={THREE.NormalBlending}
+          blending={THREE.AdditiveBlending}
+        />
+      </RoundedBox>
+      
+      {/* Core glow */}
+      <mesh scale={0.25}>
+        <sphereGeometry args={[1, 32, 32]} />
+        <meshBasicMaterial 
+          color="#ff6622" 
+          transparent 
+          opacity={0.5}
         />
       </mesh>
       
-      {/* Core consciousness - smallest, darkest */}
-      <mesh geometry={geometry} scale={0.25}>
-        <meshBasicMaterial 
-          color={new THREE.Color(0.3, 0.15, 0.05)}
-          transparent={true}
-          opacity={0.6}
+      {/* Outer glass shell */}
+      <RoundedBox args={[1.85, 1.85, 1.85]} radius={0.22} smoothness={8}>
+        <shaderMaterial
+          vertexShader={vertexShader}
+          fragmentShader={glassFragmentShader}
+          uniforms={glassUniforms}
+          transparent
+          side={THREE.FrontSide}
+          depthWrite={false}
         />
-      </mesh>
+      </RoundedBox>
     </group>
-  );
+  )
 }
 
-export default IsometricCube;
+export default IsometricCube
