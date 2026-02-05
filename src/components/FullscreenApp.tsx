@@ -277,32 +277,34 @@ export function FullscreenApp() {
           {/* Center - Empty */}
           <div className="flex-1" />
 
-          {/* Right side - Sign In */}
+          {/* Right side - Sign In (Apple pill style) */}
           <div className="flex items-center">
             {isAuthenticated ? (
               <button
                 onClick={() => setMenuOpen(true)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  isDark 
-                    ? 'text-white/70 hover:text-white hover:bg-white/5' 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-black/5'
-                }`}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-base font-normal text-white transition-all duration-150 ease-out hover:bg-white/25"
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)'
+                }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                 </svg>
-                <span className="hidden sm:inline truncate max-w-[120px]">{user?.email?.split('@')[0]}</span>
+                <span className="hidden sm:inline truncate max-w-[100px]">{user?.email?.split('@')[0]}</span>
               </button>
             ) : (
               <button
                 onClick={() => setShowAuthForm(true)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  isDark 
-                    ? 'text-white/80 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10' 
-                    : 'text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-200'
-                }`}
+                className="px-3.5 py-2 rounded-xl text-base font-normal text-white transition-all duration-150 ease-out hover:bg-white/25"
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)'
+                }}
               >
-                <span>Sign In</span>
+                Sign In
               </button>
             )}
           </div>
@@ -353,214 +355,196 @@ export function FullscreenApp() {
         />
       </div>
 
-      {/* Voice Button - Clean Golden Microphone */}
+      {/* Voice Button - Apple System Control Style */}
       <div className="fixed bottom-[140px] left-1/2 -translate-x-1/2 z-[60]">
         <button
           onClick={handleVoiceClick}
           disabled={!voiceSupported}
-          className={`
-            w-[68px] h-[68px] sm:w-[80px] sm:h-[80px]
-            rounded-full flex items-center justify-center
-            transition-all duration-300 cursor-pointer
-            ${appState === 'listening'
-              ? 'scale-110'
-              : appState === 'thinking'
-              ? 'scale-105'
-              : appState === 'speaking'
-              ? 'scale-105'
-              : 'hover:scale-105'
-            }
-            disabled:opacity-50 disabled:cursor-not-allowed
-          `}
+          className="w-[72px] h-[72px] rounded-full flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            background: 'linear-gradient(145deg, #ffd700 0%, #daa520 30%, #b8860b 70%, #8b6914 100%)',
-            boxShadow: appState === 'idle' 
-              ? '0 6px 24px rgba(218, 165, 32, 0.5), 0 3px 12px rgba(0,0,0,0.2), inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.2)'
-              : '0 8px 32px rgba(255, 215, 0, 0.6), 0 4px 16px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.2)',
-            border: '2px solid rgba(255, 215, 0, 0.5)'
+            background: '#1D1D1F',
+            border: '1px solid #2C2C2E',
+            boxShadow: '0px 4px 20px rgba(0,0,0,0.4)',
+            transition: 'transform 120ms ease-out',
+            transform: appState === 'listening' ? 'scale(1.06)' : 'scale(1)'
           }}
+          onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.96)')}
+          onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = appState === 'listening' ? 'scale(1.06)' : 'scale(1)')}
+          onMouseEnter={(e) => { if (appState === 'idle') e.currentTarget.style.transform = 'scale(1.04)' }}
         >
-          {/* Simple Clean Mic Icon */}
-          <svg 
-            className="w-8 h-8 sm:w-10 sm:h-10" 
-            viewBox="0 0 24 24" 
-            fill="none"
-            style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}
-          >
-            {/* Mic body */}
-            <rect x="9" y="2" width="6" height="11" rx="3" fill="url(#micGold)" />
-            {/* Mic stand arc */}
-            <path d="M6 11v1a6 6 0 0 0 12 0v-1" stroke="url(#micGold)" strokeWidth="2" strokeLinecap="round" fill="none" />
-            {/* Stand */}
-            <path d="M12 18v4M8 22h8" stroke="url(#micGold)" strokeWidth="2" strokeLinecap="round" />
-            <defs>
-              <linearGradient id="micGold" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#fffacd" />
-                <stop offset="40%" stopColor="#ffd700" />
-                <stop offset="100%" stopColor="#b8860b" />
-              </linearGradient>
-            </defs>
+          {/* White Mic Icon */}
+          <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
+            <rect x="9" y="2" width="6" height="11" rx="3" fill="#FFFFFF" />
+            <path d="M6 11v1a6 6 0 0 0 12 0v-1" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" fill="none" />
+            <path d="M12 18v4M8 22h8" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" />
           </svg>
           
-          {/* Listening pulse ring */}
+          {/* Listening indicator */}
           {appState === 'listening' && (
-            <div className="absolute inset-0 rounded-full border-4 border-yellow-400/50 animate-ping" />
+            <div className="absolute inset-0 rounded-full border-2 border-white/30 animate-ping" />
           )}
         </button>
       </div>
 
-      {/* Status text - state-based */}
-      <div
-        className={`fixed bottom-[100px] sm:bottom-[105px] left-1/2 -translate-x-1/2 z-50 text-[13px] sm:text-[15px] font-medium tracking-wide pointer-events-none ${
-          isDark ? 'text-white' : 'text-black'
-        }`}
-        style={{ textShadow: isDark ? '0 2px 8px rgba(0,0,0,0.8)' : '0 2px 8px rgba(255,255,255,0.8)' }}
-      >
-        {!chatInitialized && 'Connecting...'}
-        {chatInitialized && appState === 'idle' && 'Talk to Cubiqo™'}
-        {chatInitialized && appState === 'listening' && (transcript || 'Listening...')}
-        {chatInitialized && appState === 'thinking' && 'Thinking...'}
-        {chatInitialized && appState === 'speaking' && 'Speaking...'}
+      {/* Status text - Premium Apple style */}
+      <div className="fixed bottom-[95px] left-1/2 -translate-x-1/2 z-50 text-center pt-3 pointer-events-none">
+        <p 
+          className="text-[18px] font-normal leading-[1.4] text-white"
+          style={{ maxWidth: '280px' }}
+        >
+          {!chatInitialized && 'Connecting...'}
+          {chatInitialized && appState === 'idle' && 'Tap to speak with CubiQo™'}
+          {chatInitialized && appState === 'listening' && (transcript || 'Listening...')}
+          {chatInitialized && appState === 'thinking' && 'Thinking...'}
+          {chatInitialized && appState === 'speaking' && 'Speaking...'}
+        </p>
       </div>
 
-      {/* Privacy Disclaimer */}
-      <div 
-        className={`fixed bottom-[30px] left-1/2 -translate-x-1/2 z-50 text-center max-w-[340px] sm:max-w-[420px] px-4 ${
-          isDark ? 'text-white/40' : 'text-gray-400'
-        }`}
-      >
-        <p className="text-[9px] sm:text-[10px] leading-relaxed mb-1.5">
-          All conversations are confidential. CubiQo never stores or retains talks.<br />
-          We know users via abstracts, not exacts. Conversations are session-streamed only.
+      {/* Privacy Disclaimer - Clean */}
+      <div className="fixed bottom-[24px] left-1/2 -translate-x-1/2 z-50 text-center max-w-[380px] px-5">
+        <p className="text-[11px] leading-[1.5] text-white/50 mb-2">
+          All conversations are confidential. CubiQo never stores or retains talks.
         </p>
-        <p className="text-[9px] sm:text-[10px] leading-relaxed">
-          <span className={`${isDark ? 'text-white/50' : 'text-gray-500'}`}>Don't trust anyone with your data?</span>{' '}
+        <p className="text-[11px] leading-[1.5]">
+          <span className="text-white/40">Don't trust anyone with your data?</span>{' '}
           <button 
             onClick={() => setMenuOpen(true)}
-            className={`font-medium underline underline-offset-2 transition-colors ${
-              isDark ? 'text-white/60 hover:text-white/80' : 'text-gray-500 hover:text-gray-700'
-            }`}
+            className="font-medium text-white/60 hover:text-white/80 transition-colors underline underline-offset-2"
           >
             Try BYO Mode
           </button>
-          <span className={`block text-[8px] sm:text-[9px] mt-0.5 ${isDark ? 'text-white/30' : 'text-gray-300'}`}>
-            Your data · Your storage · Your API key
-          </span>
         </p>
-        <p className={`text-[8px] mt-3 ${isDark ? 'text-white/20' : 'text-gray-300'}`}>
-          © 2025 Cubiqo United Inc. All rights reserved.
+        <p className="text-[10px] text-white/30 mt-1">
+          Your data · Your storage · Your API key
+        </p>
+        <p className="text-[9px] text-white/20 mt-4">
+          © 2025 Cubiqo United Inc.
         </p>
       </div>
 
-      {/* Sign In Modal */}
+      {/* Sign In Modal - Premium Apple Style */}
       {showAuthForm && !isAuthenticated && (
-        <div className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm flex items-center justify-center" onClick={() => setShowAuthForm(false)}>
+        <div 
+          className="fixed inset-0 z-[80] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setShowAuthForm(false)}
+        >
           <div 
-            className={`w-[360px] max-w-[90vw] rounded-2xl p-6 ${
-              isDark ? 'bg-zinc-900 border border-white/10' : 'bg-white border border-gray-200 shadow-xl'
-            }`}
+            className="w-[380px] max-w-[90vw] rounded-[20px] p-7"
+            style={{
+              background: 'rgba(28,28,30,0.85)',
+              backdropFilter: 'blur(18px)',
+              WebkitBackdropFilter: 'blur(18px)',
+              border: '1px solid rgba(255,255,255,0.08)'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Sign In</h2>
+              <h2 className="text-xl font-semibold text-white">Sign In</h2>
               <button 
                 onClick={() => setShowAuthForm(false)}
-                className={`p-1.5 rounded-full transition-colors ${
-                  isDark ? 'text-white/40 hover:text-white/70 hover:bg-white/5' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                }`}
+                className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <LoginForm />
+            
+            {/* Premium Login Form */}
+            <div className="space-y-4">
+              <div>
+                <input 
+                  type="email" 
+                  placeholder="Email address"
+                  className="w-full px-4 py-3 rounded-[10px] text-[17px] text-white placeholder-white/40 outline-none transition-colors"
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.15)'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.3)'}
+                  onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+                />
+              </div>
+              <button 
+                className="w-full h-12 rounded-[10px] bg-white text-black text-[17px] font-semibold transition-opacity hover:opacity-90"
+              >
+                Send Magic Link
+              </button>
+              <p className="text-center text-[13px] text-white/40">
+                We'll send you a secure login link
+              </p>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Settings Panel - Premium Frosted Glass */}
+      {/* Settings Panel - Apple Premium Glass */}
       {menuOpen && (
-        <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-[2px]" onClick={() => setMenuOpen(false)}>
+        <div className="fixed inset-0 z-[70]" style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setMenuOpen(false)}>
           <div
             className="absolute left-0 top-0 bottom-0 w-[320px] max-w-[90vw] flex flex-col"
             style={{ 
               animation: 'slideInLeft 0.3s ease-out',
-              background: isDark 
-                ? 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)'
-                : 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(245,245,245,0.98) 100%)',
-              backdropFilter: 'blur(24px) saturate(1.2)',
-              WebkitBackdropFilter: 'blur(24px) saturate(1.2)',
-              borderRight: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.08)',
-              boxShadow: isDark 
-                ? '0 0 80px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)'
-                : '0 0 80px rgba(0,0,0,0.15), 4px 0 24px rgba(0,0,0,0.1)'
+              background: 'rgba(28,28,30,0.92)',
+              backdropFilter: 'blur(20px) saturate(1.5)',
+              WebkitBackdropFilter: 'blur(20px) saturate(1.5)',
+              borderRight: '1px solid rgba(255,255,255,0.08)'
             }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header - Just close button */}
-            <div className="flex items-center justify-end px-7 py-5">
+            <div className="flex items-center justify-end px-6 py-5">
               <button 
                 onClick={() => setMenuOpen(false)} 
-                className={`p-1.5 rounded-full transition-all ${
-                  isDark 
-                    ? 'text-white/40 hover:text-white/70 hover:bg-white/5' 
-                    : 'text-gray-400 hover:text-gray-600 hover:bg-black/5'
-                }`}
+                className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            {/* Content - Clean Sections (no scrollbar) */}
-            <div className="flex-1 overflow-y-auto px-7 pb-8 space-y-7 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {/* Content - Clean Sections */}
+            <div className="flex-1 overflow-y-auto px-6 pb-8 space-y-6" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               
               {/* 1. Mode */}
               <div>
-                <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Mode</h3>
-                <div className="space-y-2">
-                  <div className={`flex items-center justify-between py-3 px-4 rounded-xl ${
-                    isDark ? 'bg-white/[0.04] border border-white/[0.04]' : 'bg-gray-100 border border-gray-200'
-                  }`}>
-                    <span className={`text-[14px] ${isDark ? 'text-white/80' : 'text-gray-800'}`}>Voice Mode</span>
-                    <span className={`text-[10px] px-2.5 py-1 rounded-full ${
-                      isDark ? 'bg-white/[0.08] text-white/50' : 'bg-gray-200 text-gray-500'
-                    }`}>active</span>
+                <h3 className="text-[11px] uppercase tracking-[0.12em] mb-4 text-white/40">Mode</h3>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-white/[0.06]">
+                    <span className="text-[15px] text-white">Voice Mode</span>
+                    <span className="text-[11px] px-2.5 py-1 rounded-full bg-white/10 text-white/50">active</span>
                   </div>
                   <a
                     href="/chat"
-                    className={`flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${
-                      isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
-                    }`}
+                    className="flex items-center justify-between py-3 px-4 rounded-xl hover:bg-white/[0.04] transition-colors"
                   >
-                    <span className={`text-[14px] ${isDark ? 'text-white/50' : 'text-gray-500'}`}>Chat Mode</span>
+                    <span className="text-[15px] text-white/60">Chat Mode</span>
                   </a>
                 </div>
               </div>
 
               {/* Soft Divider */}
-              <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
+              <div className="h-px bg-white/[0.08]" />
 
               {/* 2. Experience */}
               <div>
-                <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Experience</h3>
-                <div className="space-y-2">
+                <h3 className="text-[11px] uppercase tracking-[0.12em] mb-4 text-white/40">Experience</h3>
+                <div className="space-y-1">
                   <button
                     onClick={toggleTheme}
-                    className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${
-                      isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
-                    }`}
+                    className="w-full flex items-center justify-between py-3 px-4 rounded-xl hover:bg-white/[0.04] transition-colors"
                   >
-                    <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>Theme</span>
-                    <span className={`text-[13px] ${isDark ? 'text-white/40' : 'text-gray-400'}`}>{isDark ? 'Dark' : 'Light'}</span>
+                    <span className="text-[15px] text-white/80">Theme</span>
+                    <span className="text-[14px] text-white/40">{isDark ? 'Dark' : 'Light'}</span>
                   </button>
                   
-                  <div className={`py-3 px-4 rounded-xl ${isDark ? 'bg-white/[0.02]' : 'bg-gray-50'}`}>
+                  <div className="py-3 px-4 rounded-xl bg-white/[0.03]">
                     <div className="flex items-center justify-between mb-3">
-                      <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>Cube Size</span>
-                      <span className={`text-[13px] ${isDark ? 'text-white/40' : 'text-gray-400'}`}>{cubeSize}%</span>
+                      <span className="text-[15px] text-white/80">Cube Size</span>
+                      <span className="text-[14px] text-white/40">{cubeSize}%</span>
                     </div>
                     <input
                       type="range"
@@ -570,9 +554,7 @@ export function FullscreenApp() {
                       onChange={(e) => handleCubeSizeChange(parseInt(e.target.value))}
                       className="w-full h-1 rounded-full appearance-none cursor-pointer"
                       style={{
-                        background: isDark 
-                          ? `linear-gradient(to right, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.25) ${(cubeSize - 50) / 100 * 100}%, rgba(255,255,255,0.08) ${(cubeSize - 50) / 100 * 100}%, rgba(255,255,255,0.08) 100%)`
-                          : `linear-gradient(to right, rgba(100,100,100,0.4) 0%, rgba(100,100,100,0.4) ${(cubeSize - 50) / 100 * 100}%, rgba(200,200,200,0.5) ${(cubeSize - 50) / 100 * 100}%, rgba(200,200,200,0.5) 100%)`
+                        background: `linear-gradient(to right, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.4) ${(cubeSize - 50) / 100 * 100}%, rgba(255,255,255,0.1) ${(cubeSize - 50) / 100 * 100}%, rgba(255,255,255,0.1) 100%)`
                       }}
                       data-testid="cube-size-slider"
                     />
@@ -581,82 +563,60 @@ export function FullscreenApp() {
               </div>
 
               {/* Soft Divider */}
-              <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
+              <div className="h-px bg-white/[0.08]" />
 
               {/* 3. Privacy */}
               <div>
-                <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Privacy</h3>
+                <h3 className="text-[11px] uppercase tracking-[0.12em] mb-4 text-white/40">Privacy</h3>
                 <button
                   onClick={() => setShowBYOSettings(!showBYOSettings)}
-                  className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${
-                    isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
-                  }`}
+                  className="w-full flex items-center justify-between py-3 px-4 rounded-xl hover:bg-white/[0.04] transition-colors"
                 >
-                  <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>BYO Mode</span>
-                  <span className={`text-[13px] ${isBYOEnabled ? (isDark ? 'text-white/60' : 'text-gray-600') : (isDark ? 'text-white/30' : 'text-gray-400')}`}>
+                  <span className="text-[15px] text-white/80">BYO Mode</span>
+                  <span className={`text-[14px] ${isBYOEnabled ? 'text-white/60' : 'text-white/30'}`}>
                     {isBYOEnabled ? 'On' : 'Off'}
                   </span>
                 </button>
 
                 {showBYOSettings && (
-                  <div className={`mt-2 rounded-xl overflow-hidden ${isDark ? 'bg-white/[0.02] border border-white/[0.04]' : 'bg-gray-50 border border-gray-200'}`}>
+                  <div className="mt-2 rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06]">
                     <BYOSettings onClose={() => setShowBYOSettings(false)} />
                   </div>
                 )}
               </div>
 
               {/* Soft Divider */}
-              <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
+              <div className="h-px bg-white/[0.08]" />
 
               {/* 4. Account */}
               <div>
-                <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Account</h3>
+                <h3 className="text-[11px] uppercase tracking-[0.12em] mb-4 text-white/40">Account</h3>
 
                 {isAuthenticated ? (
-                  <div className="space-y-2">
-                    <div className={`py-3 px-4 rounded-xl ${isDark ? 'bg-white/[0.03]' : 'bg-gray-50'}`}>
-                      <span className={`text-[13px] truncate block ${isDark ? 'text-white/50' : 'text-gray-500'}`}>{user?.email}</span>
+                  <div className="space-y-1">
+                    <div className="py-3 px-4 rounded-xl bg-white/[0.03]">
+                      <span className="text-[14px] truncate block text-white/60">{user?.email}</span>
                     </div>
                     <button
                       onClick={() => signOut()}
-                      className={`w-full text-left py-3 px-4 rounded-xl text-[14px] transition-colors ${
-                        isDark ? 'text-white/40 hover:text-red-400/80 hover:bg-red-500/[0.05]' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
-                      }`}
+                      className="w-full text-left py-3 px-4 rounded-xl text-[15px] text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                     >
                       Sign Out
                     </button>
                   </div>
-                ) : showAuthForm ? (
-                  <div className="space-y-4">
-                    <div className={`rounded-xl overflow-hidden p-4 ${isDark ? 'bg-white/[0.02]' : 'bg-gray-50'}`}>
-                      <LoginForm />
-                    </div>
-                    <button
-                      onClick={() => setShowAuthForm(false)}
-                      className={`w-full text-center text-[12px] transition-colors ${
-                        isDark ? 'text-white/30 hover:text-white/50' : 'text-gray-400 hover:text-gray-600'
-                      }`}
-                    >
-                      Cancel
-                    </button>
-                  </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <button
                       onClick={() => setShowAuthForm(true)}
-                      className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${
-                        isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
-                      }`}
+                      className="w-full flex items-center justify-between py-3 px-4 rounded-xl hover:bg-white/[0.04] transition-colors"
                     >
-                      <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>Email</span>
+                      <span className="text-[15px] text-white/80">Email</span>
                     </button>
                     <button
                       onClick={() => setShowAuthForm(true)}
-                      className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${
-                        isDark ? 'bg-white/[0.04] hover:bg-white/[0.06] border border-white/[0.04]' : 'bg-gray-100 hover:bg-gray-150 border border-gray-200'
-                      }`}
+                      className="w-full py-3 px-4 rounded-xl bg-white text-black text-[15px] font-semibold hover:opacity-90 transition-opacity"
                     >
-                      <span className={`text-[14px] ${isDark ? 'text-white/80' : 'text-gray-800'}`}>Send Magic Link</span>
+                      Send Magic Link
                     </button>
                   </div>
                 )}
