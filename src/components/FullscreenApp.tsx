@@ -254,12 +254,12 @@ export function FullscreenApp() {
         <EnergyCubeScene colorName={colorName} animationState={animationState} />
       </div>
 
-      {/* Header */}
+      {/* Header - No border */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4 backdrop-blur-[12px] transition-colors duration-400 ${
           isDark
-            ? 'bg-[rgba(5,5,5,0.7)] border-b border-white/10'
-            : 'bg-[rgba(255,255,255,0.8)] border-b border-black/10'
+            ? 'bg-[rgba(5,5,5,0.7)]'
+            : 'bg-[rgba(255,255,255,0.8)]'
         }`}
       >
         <div className="flex justify-between items-center w-full">
@@ -269,23 +269,19 @@ export function FullscreenApp() {
           {/* Center - Empty */}
           <div className="flex-1" />
 
-          {/* Right side - SIGNAL Logo */}
-          <div className="flex items-center gap-3">
-            {/* SIGNAL S Icon - 4 colored bars forming S shape */}
-            <div className="flex flex-col gap-[3px]">
-              <div className="flex gap-[3px]">
-                <div className="w-4 h-4 rounded-[4px]" style={{ background: 'linear-gradient(135deg, #f43f5e, #fb7185)' }} />
-                <div className="w-4 h-4 rounded-[4px]" style={{ background: 'linear-gradient(135deg, #f97316, #fb923c)' }} />
-              </div>
-              <div className="flex gap-[3px]">
-                <div className="w-4 h-4 rounded-[4px]" style={{ background: 'linear-gradient(135deg, #eab308, #fbbf24)' }} />
-                <div className="w-4 h-4 rounded-[4px]" style={{ background: 'linear-gradient(135deg, #22c55e, #4ade80)' }} />
-              </div>
+          {/* Right side - SIGNAL Logo (matching reference exactly) */}
+          <div className="flex items-center gap-2.5">
+            {/* SIGNAL S Icon - Stacked colored bars */}
+            <div className="flex flex-col gap-[2px]">
+              <div className="w-[22px] h-[5px] rounded-[2px]" style={{ background: '#ef4444' }} />
+              <div className="w-[22px] h-[5px] rounded-[2px] ml-[6px]" style={{ background: '#f97316' }} />
+              <div className="w-[22px] h-[5px] rounded-[2px]" style={{ background: '#eab308' }} />
+              <div className="w-[22px] h-[5px] rounded-[2px] ml-[6px]" style={{ background: '#22c55e' }} />
             </div>
             {/* SIGNAL Text + Tagline */}
-            <div className="flex flex-col">
-              <span className="text-[18px] font-bold tracking-wide text-white">SIGNAL</span>
-              <span className="text-[10px] text-white/50 tracking-wide">One is enough.</span>
+            <div className="flex flex-col -gap-0.5">
+              <span className="text-[17px] font-bold tracking-wide text-white leading-tight">SIGNAL</span>
+              <span className="text-[9px] text-white/40 tracking-wide">One is enough.</span>
             </div>
           </div>
         </div>
@@ -358,8 +354,8 @@ export function FullscreenApp() {
         />
       </div>
 
-      {/* Voice Enable Control - System Level (well below cube) */}
-      <div className="fixed bottom-[70px] left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center">
+      {/* Voice Enable Control - Below footer area, never overlaps cube */}
+      <div className="fixed bottom-[100px] left-1/2 -translate-x-1/2 z-[55] flex flex-col items-center">
         <button
           onClick={handleVoiceClick}
           disabled={!voiceSupported}
