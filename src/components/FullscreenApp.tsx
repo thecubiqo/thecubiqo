@@ -274,49 +274,76 @@ export function FullscreenApp() {
             </div>
           </div>
 
-          {/* Center - Keywords */}
+          {/* Center - Empty */}
+          <div className="flex-1" />
+
+          {/* Right side - Sign In */}
           <div className="flex items-center">
-            {/* Keywords */}
-            <div className="relative group">
+            {isAuthenticated ? (
               <button
-                onClick={() => setShowKeywordPanel(true)}
-                data-testid="keywords-button"
-                className={`text-sm font-medium transition-all pb-0.5 ${
-                  isDark ? 'text-white/60 hover:text-white' : 'text-gray-500 hover:text-gray-900'
+                onClick={() => setMenuOpen(true)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  isDark 
+                    ? 'text-white/70 hover:text-white hover:bg-white/5' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-black/5'
                 }`}
               >
-                Keywords
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                </svg>
+                <span className="hidden sm:inline truncate max-w-[120px]">{user?.email?.split('@')[0]}</span>
               </button>
-              {/* Tooltip */}
-              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 ${
-                isDark ? 'bg-zinc-800 text-white/80 border border-white/10' : 'bg-white text-gray-700 border border-gray-200 shadow-lg'
-              }`}>
-                the way cubiqo knows you
-              </div>
-            </div>
+            ) : (
+              <button
+                onClick={() => setShowAuthForm(true)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  isDark 
+                    ? 'text-white/80 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10' 
+                    : 'text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-200'
+                }`}
+              >
+                <span>Sign In</span>
+              </button>
+            )}
           </div>
-
-          {/* Right side - Empty for balance */}
-          <div className="w-24 sm:w-32" />
         </div>
       </header>
 
-      {/* Settings Gear Icon + Label - Top Left Below Header */}
-      <button
-        onClick={() => setMenuOpen(!menuOpen)}
-        data-testid="settings-gear-button"
-        className={`fixed left-5 top-24 z-[60] flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 ${
-          isDark 
-            ? 'text-white/50 hover:text-white/80 hover:bg-white/5' 
-            : 'text-gray-500 hover:text-gray-700 hover:bg-black/5'
-        }`}
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-        </svg>
-        <span className="text-[13px] font-medium">Settings</span>
-      </button>
+      {/* Settings & Keywords - Top Left Below Header */}
+      <div className="fixed left-5 top-24 z-[60] flex flex-col gap-1">
+        {/* Settings */}
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          data-testid="settings-gear-button"
+          className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 ${
+            isDark 
+              ? 'text-white/50 hover:text-white/80 hover:bg-white/5' 
+              : 'text-gray-500 hover:text-gray-700 hover:bg-black/5'
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          </svg>
+          <span className="text-[13px] font-medium">Settings</span>
+        </button>
+        
+        {/* Keywords */}
+        <button
+          onClick={() => setShowKeywordPanel(true)}
+          data-testid="keywords-button"
+          className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 ${
+            isDark 
+              ? 'text-white/50 hover:text-white/80 hover:bg-white/5' 
+              : 'text-gray-500 hover:text-gray-700 hover:bg-black/5'
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+          </svg>
+          <span className="text-[13px] font-medium">Keywords</span>
+        </button>
+      </div>
 
       {/* RGY Signal Button - Right side */}
       <div className="fixed right-4 top-1/2 -translate-y-1/2 z-[60]">
@@ -326,17 +353,17 @@ export function FullscreenApp() {
         />
       </div>
 
-      {/* Voice Button - Vintage Golden Microphone */}
-      <div className="fixed bottom-[90px] left-1/2 -translate-x-1/2 z-[60]">
+      {/* Voice Button - Clean Golden Microphone */}
+      <div className="fixed bottom-[140px] left-1/2 -translate-x-1/2 z-[60]">
         <button
           onClick={handleVoiceClick}
           disabled={!voiceSupported}
           className={`
-            w-[72px] h-[72px] sm:w-[88px] sm:h-[88px]
+            w-[68px] h-[68px] sm:w-[80px] sm:h-[80px]
             rounded-full flex items-center justify-center
             transition-all duration-300 cursor-pointer
             ${appState === 'listening'
-              ? 'scale-110 animate-pulse'
+              ? 'scale-110'
               : appState === 'thinking'
               ? 'scale-105'
               : appState === 'speaking'
@@ -346,77 +373,45 @@ export function FullscreenApp() {
             disabled:opacity-50 disabled:cursor-not-allowed
           `}
           style={{
-            background: 'radial-gradient(ellipse at 30% 20%, #ffd700 0%, #daa520 25%, #b8860b 50%, #8b6914 75%, #704214 100%)',
+            background: 'linear-gradient(145deg, #ffd700 0%, #daa520 30%, #b8860b 70%, #8b6914 100%)',
             boxShadow: appState === 'idle' 
-              ? '0 8px 32px rgba(212, 175, 55, 0.5), 0 4px 16px rgba(0,0,0,0.3), inset 0 4px 8px rgba(255,255,255,0.4), inset 0 -4px 8px rgba(0,0,0,0.3)'
-              : '0 12px 48px rgba(255, 215, 0, 0.6), 0 6px 24px rgba(0,0,0,0.4), inset 0 4px 8px rgba(255,255,255,0.4), inset 0 -4px 8px rgba(0,0,0,0.3)',
-            border: '3px solid rgba(255, 223, 0, 0.6)'
+              ? '0 6px 24px rgba(218, 165, 32, 0.5), 0 3px 12px rgba(0,0,0,0.2), inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.2)'
+              : '0 8px 32px rgba(255, 215, 0, 0.6), 0 4px 16px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.2)',
+            border: '2px solid rgba(255, 215, 0, 0.5)'
           }}
         >
-          {/* Vintage Golden Mic SVG - Inspired by classic 50s microphones */}
+          {/* Simple Clean Mic Icon */}
           <svg 
-            className="w-10 h-10 sm:w-12 sm:h-12" 
-            viewBox="0 0 48 48" 
+            className="w-8 h-8 sm:w-10 sm:h-10" 
+            viewBox="0 0 24 24" 
             fill="none"
-            style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}
+            style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}
           >
-            {/* Mic head - oval vintage shape */}
-            <ellipse cx="24" cy="16" rx="10" ry="14" fill="url(#vintageGold)" />
-            
-            {/* Grille pattern - horizontal lines */}
-            <line x1="16" y1="8" x2="32" y2="8" stroke="rgba(139,69,19,0.5)" strokeWidth="1" />
-            <line x1="15" y1="11" x2="33" y2="11" stroke="rgba(139,69,19,0.5)" strokeWidth="1" />
-            <line x1="14.5" y1="14" x2="33.5" y2="14" stroke="rgba(139,69,19,0.5)" strokeWidth="1" />
-            <line x1="14.5" y1="17" x2="33.5" y2="17" stroke="rgba(139,69,19,0.5)" strokeWidth="1" />
-            <line x1="15" y1="20" x2="33" y2="20" stroke="rgba(139,69,19,0.5)" strokeWidth="1" />
-            <line x1="16" y1="23" x2="32" y2="23" stroke="rgba(139,69,19,0.5)" strokeWidth="1" />
-            <line x1="18" y1="26" x2="30" y2="26" stroke="rgba(139,69,19,0.5)" strokeWidth="1" />
-            
-            {/* Decorative ring at bottom of head */}
-            <ellipse cx="24" cy="29" rx="8" ry="2" fill="url(#goldRing)" />
-            
-            {/* Neck connector */}
-            <rect x="20" y="30" width="8" height="6" rx="1" fill="url(#vintageGold)" />
-            
-            {/* Stand connector ring */}
-            <ellipse cx="24" cy="36" rx="6" ry="2" fill="url(#goldRing)" />
-            
+            {/* Mic body */}
+            <rect x="9" y="2" width="6" height="11" rx="3" fill="url(#micGold)" />
+            {/* Mic stand arc */}
+            <path d="M6 11v1a6 6 0 0 0 12 0v-1" stroke="url(#micGold)" strokeWidth="2" strokeLinecap="round" fill="none" />
             {/* Stand */}
-            <rect x="22" y="36" width="4" height="8" fill="url(#vintageGold)" />
-            
-            {/* Base */}
-            <ellipse cx="24" cy="44" rx="8" ry="3" fill="url(#goldRing)" />
-            
-            {/* Highlight on mic head */}
-            <ellipse cx="20" cy="12" rx="3" ry="6" fill="rgba(255,255,255,0.25)" />
-            
-            {/* Gradient definitions */}
+            <path d="M12 18v4M8 22h8" stroke="url(#micGold)" strokeWidth="2" strokeLinecap="round" />
             <defs>
-              <linearGradient id="vintageGold" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#fff8dc" />
-                <stop offset="20%" stopColor="#ffd700" />
-                <stop offset="50%" stopColor="#daa520" />
-                <stop offset="80%" stopColor="#b8860b" />
-                <stop offset="100%" stopColor="#8b6914" />
-              </linearGradient>
-              <linearGradient id="goldRing" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#ffd700" />
-                <stop offset="50%" stopColor="#b8860b" />
-                <stop offset="100%" stopColor="#8b6914" />
+              <linearGradient id="micGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#fffacd" />
+                <stop offset="40%" stopColor="#ffd700" />
+                <stop offset="100%" stopColor="#b8860b" />
               </linearGradient>
             </defs>
           </svg>
           
-          {/* State indicators */}
+          {/* Listening pulse ring */}
           {appState === 'listening' && (
-            <div className="absolute inset-0 rounded-full border-4 border-yellow-400/60 animate-ping" />
+            <div className="absolute inset-0 rounded-full border-4 border-yellow-400/50 animate-ping" />
           )}
         </button>
       </div>
 
       {/* Status text - state-based */}
       <div
-        className={`fixed bottom-[55px] sm:bottom-[55px] left-1/2 -translate-x-1/2 z-50 text-[13px] sm:text-[15px] font-medium tracking-wide pointer-events-none ${
+        className={`fixed bottom-[100px] sm:bottom-[105px] left-1/2 -translate-x-1/2 z-50 text-[13px] sm:text-[15px] font-medium tracking-wide pointer-events-none ${
           isDark ? 'text-white' : 'text-black'
         }`}
         style={{ textShadow: isDark ? '0 2px 8px rgba(0,0,0,0.8)' : '0 2px 8px rgba(255,255,255,0.8)' }}
@@ -428,17 +423,61 @@ export function FullscreenApp() {
         {chatInitialized && appState === 'speaking' && 'Speaking...'}
       </div>
 
-      {/* Footer */}
-      <footer
-        className={`fixed bottom-4 right-4 sm:right-6 z-50 text-right text-[9px] sm:text-[11px] leading-relaxed pointer-events-none ${
-          isDark ? 'text-white/70' : 'text-black/80'
+      {/* Privacy Disclaimer */}
+      <div 
+        className={`fixed bottom-[30px] left-1/2 -translate-x-1/2 z-50 text-center max-w-[340px] sm:max-w-[420px] px-4 ${
+          isDark ? 'text-white/40' : 'text-gray-400'
         }`}
-        style={{ textShadow: isDark ? '0 1px 4px rgba(0,0,0,0.9)' : '0 1px 4px rgba(255,255,255,0.9)' }}
       >
-        <p>Providing temporary use of online non-downloadable<br />AI chatbot software.</p>
-        <p>© 2025 Cubiqo United Inc., Jersey City, NJ.</p>
-        <p>All rights reserved.</p>
-      </footer>
+        <p className="text-[9px] sm:text-[10px] leading-relaxed mb-1.5">
+          All conversations are confidential. CubiQo never stores or retains talks.<br />
+          We know users via abstracts, not exacts. Conversations are session-streamed only.
+        </p>
+        <p className="text-[9px] sm:text-[10px] leading-relaxed">
+          <span className={`${isDark ? 'text-white/50' : 'text-gray-500'}`}>Don't trust anyone with your data?</span>{' '}
+          <button 
+            onClick={() => setMenuOpen(true)}
+            className={`font-medium underline underline-offset-2 transition-colors ${
+              isDark ? 'text-white/60 hover:text-white/80' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Try BYO Mode
+          </button>
+          <span className={`block text-[8px] sm:text-[9px] mt-0.5 ${isDark ? 'text-white/30' : 'text-gray-300'}`}>
+            Your data · Your storage · Your API key
+          </span>
+        </p>
+        <p className={`text-[8px] mt-3 ${isDark ? 'text-white/20' : 'text-gray-300'}`}>
+          © 2025 Cubiqo United Inc. All rights reserved.
+        </p>
+      </div>
+
+      {/* Sign In Modal */}
+      {showAuthForm && !isAuthenticated && (
+        <div className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm flex items-center justify-center" onClick={() => setShowAuthForm(false)}>
+          <div 
+            className={`w-[360px] max-w-[90vw] rounded-2xl p-6 ${
+              isDark ? 'bg-zinc-900 border border-white/10' : 'bg-white border border-gray-200 shadow-xl'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Sign In</h2>
+              <button 
+                onClick={() => setShowAuthForm(false)}
+                className={`p-1.5 rounded-full transition-colors ${
+                  isDark ? 'text-white/40 hover:text-white/70 hover:bg-white/5' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <LoginForm />
+          </div>
+        </div>
+      )}
 
       {/* Settings Panel - Premium Frosted Glass */}
       {menuOpen && (
