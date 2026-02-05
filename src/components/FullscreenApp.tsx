@@ -361,6 +361,7 @@ export function FullscreenApp() {
         <button
           onClick={handleVoiceClick}
           disabled={!voiceSupported}
+          data-testid="voice-control-button"
           className={`group flex flex-col items-center gap-3 px-6 py-4 rounded-2xl transition-all duration-200 ${
             voiceSupported 
               ? 'hover:bg-white/[0.03] cursor-pointer' 
@@ -369,14 +370,14 @@ export function FullscreenApp() {
         >
           {/* Speaker/Cast Icon - System Level */}
           <div className={`relative p-4 rounded-full transition-all duration-300 ${
-            appState === 'listening' || appState === 'speaking'
-              ? 'bg-white/10'
+            appState !== 'idle'
+              ? 'bg-white/15'
               : 'bg-white/[0.03] group-hover:bg-white/[0.06]'
           }`}>
             <svg 
-              className={`w-8 h-8 transition-opacity duration-200 ${
-                appState === 'listening' || appState === 'speaking' 
-                  ? 'text-white/90' 
+              className={`w-8 h-8 transition-all duration-200 ${
+                appState !== 'idle'
+                  ? 'text-white' 
                   : 'text-white/50 group-hover:text-white/70'
               }`}
               viewBox="0 0 24 24" 
@@ -388,27 +389,26 @@ export function FullscreenApp() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
             </svg>
             
-            {/* Gentle pulse when voice is active */}
-            {(appState === 'listening' || appState === 'speaking') && (
-              <div className="absolute inset-0 rounded-full border border-white/20 animate-pulse" />
+            {/* Light pulse rings when voice is active (ON state) */}
+            {appState !== 'idle' && (
+              <>
+                <div className="absolute inset-0 rounded-full border border-white/30 animate-ping" style={{ animationDuration: '1.5s' }} />
+                <div className="absolute inset-[-4px] rounded-full border border-white/20 animate-pulse" />
+              </>
             )}
           </div>
           
-          {/* Label */}
-          <span className={`text-[13px] tracking-wide transition-colors duration-200 ${
-            appState === 'listening' || appState === 'speaking'
-              ? 'text-white/80'
-              : 'text-white/40 group-hover:text-white/60'
-          }`}>
+          {/* Label - Only show when OFF (idle state) */}
+          <span 
+            className={`text-[13px] tracking-wide transition-all duration-300 ${
+              appState !== 'idle'
+                ? 'opacity-0 h-0 overflow-hidden'
+                : 'opacity-100 text-white/40 group-hover:text-white/60'
+            }`}
+          >
             {!voiceSupported 
               ? 'Voice access is controlled by your browser.'
-              : appState === 'listening' 
-                ? 'Listening...'
-                : appState === 'speaking'
-                  ? 'Speaking...'
-                  : appState === 'thinking'
-                    ? 'Thinking...'
-                    : 'Enable voice · Converse'
+              : 'Enable voice · Converse'
             }
           </span>
         </button>
