@@ -5,7 +5,7 @@
  * Opens when tapping the RGY signal icon
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface RGYChatsModalProps {
   isOpen: boolean
@@ -173,56 +173,78 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
 
 /**
  * RGY Signal Icon Button - Tri-color dots
+ * 
+ * Signals keyword saves with brief pulse on active color:
+ * - Default: muted/dim
+ * - On keyword save: brief pulse (300-500ms)
+ * - No animation loops, no constant glow
  */
 interface RGYSignalButtonProps {
   onClick: () => void
   isDark?: boolean
+  pulseColor?: 'RED' | 'YELLOW' | 'GREEN' | null // Which color to pulse
 }
 
-export function RGYSignalButton({ onClick, isDark = true }: RGYSignalButtonProps) {
-  const [isHovered, setIsHovered] = useState(false)
+export function RGYSignalButton({ onClick, isDark = true, pulseColor = null }: RGYSignalButtonProps) {
+  const [activePulse, setActivePulse] = useState<'RED' | 'YELLOW' | 'GREEN' | null>(null)
+  
+  // Handle pulse when pulseColor changes
+  useEffect(() => {
+    if (pulseColor) {
+      setActivePulse(pulseColor)
+      // Clear pulse after 400ms
+      const timer = setTimeout(() => {
+        setActivePulse(null)
+      }, 400)
+      return () => clearTimeout(timer)
+    }
+  }, [pulseColor])
+
+  const isRedActive = activePulse === 'RED'
+  const isYellowActive = activePulse === 'YELLOW'
+  const isGreenActive = activePulse === 'GREEN'
 
   return (
     <button
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       data-testid="rgy-signal-button"
       className={`
         w-10 h-20 rounded-full
         flex flex-col items-center justify-center gap-1.5
-        transition-all duration-300
-        ${isHovered ? 'scale-110' : ''}
+        transition-all duration-200
         ${isDark 
-          ? 'bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10' 
-          : 'bg-black/5 backdrop-blur-sm border border-black/10 hover:bg-black/10'
+          ? 'bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] hover:bg-white/[0.05]' 
+          : 'bg-black/[0.03] backdrop-blur-sm border border-black/[0.06] hover:bg-black/[0.05]'
         }
       `}
     >
       {/* Red dot */}
       <div 
-        className="w-3 h-3 rounded-full transition-all"
+        className="w-2.5 h-2.5 rounded-full transition-all duration-300"
         style={{ 
-          backgroundColor: '#ef4444',
-          boxShadow: isHovered ? '0 0 8px #ef4444' : undefined,
+          backgroundColor: isRedActive ? '#ef4444' : 'rgba(239, 68, 68, 0.25)',
+          boxShadow: isRedActive ? '0 0 12px rgba(239, 68, 68, 0.8)' : 'none',
+          transform: isRedActive ? 'scale(1.3)' : 'scale(1)',
         }}
       />
       
-      {/* Yellow/Green dot */}
+      {/* Yellow dot */}
       <div 
-        className="w-3 h-3 rounded-full transition-all"
+        className="w-2.5 h-2.5 rounded-full transition-all duration-300"
         style={{ 
-          backgroundColor: '#eab308',
-          boxShadow: isHovered ? '0 0 8px #eab308' : undefined,
+          backgroundColor: isYellowActive ? '#eab308' : 'rgba(234, 179, 8, 0.25)',
+          boxShadow: isYellowActive ? '0 0 12px rgba(234, 179, 8, 0.8)' : 'none',
+          transform: isYellowActive ? 'scale(1.3)' : 'scale(1)',
         }}
       />
       
       {/* Green dot */}
       <div 
-        className="w-3 h-3 rounded-full transition-all"
+        className="w-2.5 h-2.5 rounded-full transition-all duration-300"
         style={{ 
-          backgroundColor: '#22c55e',
-          boxShadow: isHovered ? '0 0 8px #22c55e' : undefined,
+          backgroundColor: isGreenActive ? '#22c55e' : 'rgba(34, 197, 94, 0.25)',
+          boxShadow: isGreenActive ? '0 0 12px rgba(34, 197, 94, 0.8)' : 'none',
+          transform: isGreenActive ? 'scale(1.3)' : 'scale(1)',
         }}
       />
     </button>

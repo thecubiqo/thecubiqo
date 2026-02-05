@@ -42,6 +42,16 @@ export function FullscreenApp() {
   const [showKeywordPanel, setShowKeywordPanel] = useState(false)
   const [showRGYChats, setShowRGYChats] = useState(false)
   const [showLandingCube, setShowLandingCube] = useState(false)
+  
+  // RGY Signal pulse state - triggers brief pulse when keyword is saved
+  const [rgyPulseColor, setRgyPulseColor] = useState<'RED' | 'YELLOW' | 'GREEN' | null>(null)
+  
+  // Function to trigger RGY pulse (call this when a keyword is saved)
+  const triggerRgyPulse = (color: 'RED' | 'YELLOW' | 'GREEN') => {
+    setRgyPulseColor(color)
+    // Reset after animation completes
+    setTimeout(() => setRgyPulseColor(null), 500)
+  }
 
   // Load cube size from localStorage
   useEffect(() => {
@@ -342,6 +352,7 @@ export function FullscreenApp() {
         <RGYSignalButton 
           onClick={() => setShowRGYChats(true)} 
           isDark={isDark}
+          pulseColor={rgyPulseColor}
         />
       </div>
 
