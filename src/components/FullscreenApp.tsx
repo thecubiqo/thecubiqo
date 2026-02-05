@@ -345,65 +345,79 @@ export function FullscreenApp() {
         />
       </div>
 
-      {/* Voice Button - Apple System Control Style */}
-      <div className="fixed bottom-[260px] left-1/2 -translate-x-1/2 z-[60]">
+      {/* Voice Enable Control - System Level (below cube) */}
+      <div className="fixed bottom-[140px] left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center">
         <button
           onClick={handleVoiceClick}
           disabled={!voiceSupported}
-          className="w-[72px] h-[72px] rounded-full flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            background: '#1D1D1F',
-            border: '1px solid #2C2C2E',
-            boxShadow: '0px 4px 20px rgba(0,0,0,0.4)',
-            transition: 'transform 120ms ease-out',
-            transform: appState === 'listening' ? 'scale(1.06)' : 'scale(1)'
-          }}
-          onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.96)')}
-          onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = appState === 'listening' ? 'scale(1.06)' : 'scale(1)')}
-          onMouseEnter={(e) => { if (appState === 'idle') e.currentTarget.style.transform = 'scale(1.04)' }}
+          className={`group flex flex-col items-center gap-3 px-6 py-4 rounded-2xl transition-all duration-200 ${
+            voiceSupported 
+              ? 'hover:bg-white/[0.03] cursor-pointer' 
+              : 'cursor-default'
+          }`}
         >
-          {/* White Mic Icon */}
-          <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
-            <rect x="9" y="2" width="6" height="11" rx="3" fill="#FFFFFF" />
-            <path d="M6 11v1a6 6 0 0 0 12 0v-1" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" fill="none" />
-            <path d="M12 18v4M8 22h8" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" />
-          </svg>
+          {/* Speaker/Cast Icon - System Level */}
+          <div className={`relative p-4 rounded-full transition-all duration-300 ${
+            appState === 'listening' || appState === 'speaking'
+              ? 'bg-white/10'
+              : 'bg-white/[0.03] group-hover:bg-white/[0.06]'
+          }`}>
+            <svg 
+              className={`w-8 h-8 transition-opacity duration-200 ${
+                appState === 'listening' || appState === 'speaking' 
+                  ? 'text-white/90' 
+                  : 'text-white/50 group-hover:text-white/70'
+              }`}
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="1.5"
+            >
+              {/* Speaker/Audio waveform icon */}
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+            </svg>
+            
+            {/* Gentle pulse when voice is active */}
+            {(appState === 'listening' || appState === 'speaking') && (
+              <div className="absolute inset-0 rounded-full border border-white/20 animate-pulse" />
+            )}
+          </div>
           
-          {/* Listening indicator */}
-          {appState === 'listening' && (
-            <div className="absolute inset-0 rounded-full border-2 border-white/30 animate-ping" />
-          )}
+          {/* Label */}
+          <span className={`text-[13px] tracking-wide transition-colors duration-200 ${
+            appState === 'listening' || appState === 'speaking'
+              ? 'text-white/80'
+              : 'text-white/40 group-hover:text-white/60'
+          }`}>
+            {!voiceSupported 
+              ? 'Voice access is controlled by your browser.'
+              : appState === 'listening' 
+                ? 'Listening...'
+                : appState === 'speaking'
+                  ? 'Speaking...'
+                  : appState === 'thinking'
+                    ? 'Thinking...'
+                    : 'Enable voice · Converse'
+            }
+          </span>
         </button>
       </div>
 
-      {/* Bottom content - Status text only */}
-      <div className="fixed bottom-[180px] left-1/2 -translate-x-1/2 z-50">
-        <p className="text-[18px] font-normal text-white text-center">
-          {!chatInitialized && 'Connecting...'}
-          {chatInitialized && appState === 'idle' && 'Tap to speak with CubiQo™'}
-          {chatInitialized && appState === 'listening' && (transcript || 'Listening...')}
-          {chatInitialized && appState === 'thinking' && 'Thinking...'}
-          {chatInitialized && appState === 'speaking' && 'Speaking...'}
-        </p>
-      </div>
-
-      {/* Footer - Apple Premium Style */}
-      <footer className="fixed bottom-0 left-0 right-0 z-50 py-5 text-center">
-        <p className="text-[12px] text-white/45 tracking-wide mb-2">
-          All conversations are confidential.  CubiQo never retains user voice by policy.
-        </p>
-        <p className="text-[12px] text-white/35 tracking-wide">
+      {/* Footer - Single line Apple Premium */}
+      <footer className="fixed bottom-0 left-0 right-0 z-50 py-6 text-center">
+        <p className="text-[11px] text-white/35 tracking-wide">
+          All conversations are confidential. CubiQo never retains user voice by policy.
+          <span className="mx-3">·</span>
           <button 
             onClick={() => setMenuOpen(true)}
-            className="text-white/50 hover:text-white/70 transition-colors"
+            className="text-white/55 hover:text-white/75 transition-colors"
           >
             Try BYO Mode
           </button>
-          <span className="mx-2">—</span>
-          <span>Your data · Your storage · Your API key</span>
+          <span className="mx-1">—</span>
+          <span className="text-white/30">Your data · Your storage · Your API key</span>
         </p>
-        <p className="text-[10px] text-white/20 mt-4 tracking-wide">
+        <p className="text-[10px] text-white/20 mt-3 tracking-wide">
           © 2025 Cubiqo United Inc.
         </p>
       </footer>
