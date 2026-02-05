@@ -1,322 +1,260 @@
 'use client'
 
 /**
- * EtherealCube - Refractive Glass Solid
+ * EtherealCube - Transparent Glass Cube with Flowing Plasma
  * 
- * NOT an animated volume. A REFRACTIVE SOLID with:
- * - Strong Fresnel edge glow
- * - Clear glass-like shell
- * - Darker interior for contrast
- * - Internal energy visible at edges/corners only
- * - Motion from view-dependent distortion, not noise
- * - Calm faces, energized edges/corners
+ * Matching reference: Transparent glass cube with wispy purple/blue/pink
+ * aurora plasma flowing inside, sparkles, neon glow edges.
+ * 
+ * - OuterGlass: Transparent, see-through, subtle edge glow
+ * - InnerPlasma: Wispy flowing energy, NOT solid
+ * - Idle: Nearly still, subtle ambient glow
+ * - Talking: Plasma flows actively, intensifies
  */
 
 import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { RoundedBox } from '@react-three/drei'
 
 interface EtherealCubeProps {
-  state?: 'idle' | 'listening' | 'thinking' | 'speaking'
+  isTalking?: boolean
+  isListening?: boolean
 }
 
-// Vertex shader
-const vertexShader = `
+// Plasma shader - creates wispy aurora effect
+const plasmaVertexShader = `
   varying vec3 vPosition;
   varying vec3 vNormal;
-  varying vec3 vWorldNormal;
-  varying vec3 vViewDirection;
-  varying vec3 vWorldPosition;
-  varying float vEdgeFactor;
+  varying vec2 vUv;
   
   void main() {
     vPosition = position;
     vNormal = normalize(normalMatrix * normal);
-    
-    vec4 worldPos = modelMatrix * vec4(position, 1.0);
-    vWorldPosition = worldPos.xyz;
-    vWorldNormal = normalize(mat3(modelMatrix) * normal);
-    vViewDirection = normalize(cameraPosition - worldPos.xyz);
-    
-    // Edge factor - how close to an edge/corner (0 = face center, 1 = edge/corner)
-    vec3 absPos = abs(position);
-    float maxCoord = max(max(absPos.x, absPos.y), absPos.z);
-    float midCoord = absPos.x + absPos.y + absPos.z - maxCoord - min(min(absPos.x, absPos.y), absPos.z);
-    
-    // Higher at edges and corners
-    vEdgeFactor = smoothstep(0.5, 0.9, (absPos.x + absPos.y + absPos.z) / 2.7);
-    
+    vUv = uv;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `
 
-// Fragment shader - refractive glass solid
-const fragmentShader = `
+const plasmaFragmentShader = `
   precision highp float;
   
   varying vec3 vPosition;
   varying vec3 vNormal;
-  varying vec3 vWorldNormal;
-  varying vec3 vViewDirection;
-  varying vec3 vWorldPosition;
-  varying float vEdgeFactor;
+  varying vec2 vUv;
   
   uniform float uTime;
-  uniform float uIntensity; // State-based intensity (0.0 - 1.0)
-  uniform float uPulse;     // Breathing pulse for listening state
+  uniform float uFlow;
   
-  // Fresnel calculation
-  float fresnel(vec3 viewDir, vec3 normal, float power) {
-    return pow(1.0 - max(dot(viewDir, normal), 0.0), power);
-  }
+  // Noise functions for plasma effect
+  vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+  vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+  vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+  vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
   
-  // Fake refraction - distorts background based on normal
-  vec3 refract2(vec3 I, vec3 N, float ior) {
-    float cosi = clamp(dot(I, N), -1.0, 1.0);
-    float etai = 1.0, etat = ior;
-    vec3 n = N;
-    if (cosi < 0.0) { 
-      cosi = -cosi; 
-    } else { 
-      float temp = etai;
-      etai = etat;
-      etat = temp;
-      n = -N; 
-    }
-    float eta = etai / etat;
-    float k = 1.0 - eta * eta * (1.0 - cosi * cosi);
-    return k < 0.0 ? vec3(0.0) : eta * I + (eta * cosi - sqrt(k)) * n;
+  float snoise(vec3 v) {
+    const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+    
+    vec3 i = floor(v + dot(v, C.yyy));
+    vec3 x0 = v - i + dot(i, C.xxx);
+    
+    vec3 g = step(x0.yzx, x0.xyz);
+    vec3 l = 1.0 - g;
+    vec3 i1 = min(g.xyz, l.zxy);
+    vec3 i2 = max(g.xyz, l.zxy);
+    
+    vec3 x1 = x0 - i1 + C.xxx;
+    vec3 x2 = x0 - i2 + C.yyy;
+    vec3 x3 = x0 - D.yyy;
+    
+    i = mod289(i);
+    vec4 p = permute(permute(permute(
+      i.z + vec4(0.0, i1.z, i2.z, 1.0))
+      + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+      + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+    
+    float n_ = 0.142857142857;
+    vec3 ns = n_ * D.wyz - D.xzx;
+    
+    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+    
+    vec4 x_ = floor(j * ns.z);
+    vec4 y_ = floor(j - 7.0 * x_);
+    
+    vec4 x = x_ *ns.x + ns.yyyy;
+    vec4 y = y_ *ns.x + ns.yyyy;
+    vec4 h = 1.0 - abs(x) - abs(y);
+    
+    vec4 b0 = vec4(x.xy, y.xy);
+    vec4 b1 = vec4(x.zw, y.zw);
+    
+    vec4 s0 = floor(b0)*2.0 + 1.0;
+    vec4 s1 = floor(b1)*2.0 + 1.0;
+    vec4 sh = -step(h, vec4(0.0));
+    
+    vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+    vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+    
+    vec3 p0 = vec3(a0.xy, h.x);
+    vec3 p1 = vec3(a0.zw, h.y);
+    vec3 p2 = vec3(a1.xy, h.z);
+    vec3 p3 = vec3(a1.zw, h.w);
+    
+    vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+    p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+    
+    vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+    m = m * m;
+    return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
   }
   
   void main() {
-    vec3 viewDir = normalize(vViewDirection);
-    vec3 normal = normalize(vNormal);
+    // Animated time based on flow (fast when talking, slow when idle)
+    float t = uTime * uFlow;
+    vec3 p = vPosition * 2.0;
     
-    // ============ FRESNEL - Strong edge glow ============
-    float fres = fresnel(viewDir, normal, 2.5);
-    float fresStrong = fresnel(viewDir, normal, 4.0);
+    // Multiple wispy plasma layers
+    float wisp1 = snoise(p + vec3(t * 0.3, t * 0.2, 0.0));
+    float wisp2 = snoise(p * 1.5 - vec3(0.0, t * 0.4, t * 0.3));
+    float wisp3 = snoise(p * 0.8 + vec3(t * 0.25, 0.0, t * 0.35));
     
-    // ============ REFRACTION DIRECTION ============
-    vec3 refractDir = refract2(-viewDir, normal, 1.45); // Glass IOR ~1.45
+    // Combine wisps - creates flowing tendrils
+    float plasma = wisp1 * 0.4 + wisp2 * 0.35 + wisp3 * 0.25;
+    plasma = smoothstep(-0.5, 0.8, plasma);
     
-    // View-dependent distortion (subtle movement feel)
-    float viewDistortion = dot(refractDir, vec3(sin(uTime * 0.3), cos(uTime * 0.25), sin(uTime * 0.35)));
-    viewDistortion *= 0.15 * uIntensity;
+    // Only show plasma in wispy areas (not solid fill)
+    float wispMask = smoothstep(0.3, 0.7, plasma);
     
-    // ============ COLOR PALETTE ============
-    vec3 purple = vec3(0.45, 0.15, 0.85);
-    vec3 blue = vec3(0.2, 0.4, 0.95);
-    vec3 pink = vec3(0.9, 0.3, 0.6);
-    vec3 orange = vec3(0.95, 0.5, 0.25);
-    vec3 cyan = vec3(0.3, 0.8, 0.95);
-    vec3 white = vec3(1.0, 0.98, 1.0);
-    vec3 dark = vec3(0.02, 0.01, 0.04);
+    // Neon colors
+    vec3 purple = vec3(0.6, 0.2, 1.0);
+    vec3 blue = vec3(0.3, 0.5, 1.0);
+    vec3 pink = vec3(1.0, 0.3, 0.7);
+    vec3 cyan = vec3(0.3, 0.9, 1.0);
+    vec3 white = vec3(1.0, 0.95, 1.0);
     
-    // ============ EDGE/CORNER ENERGY ============
-    // Energy only at edges and corners, faces stay calm
-    float edgeEnergy = vEdgeFactor * fres;
+    // Color mixing based on plasma flow
+    vec3 color = mix(purple, blue, wisp1 * 0.5 + 0.5);
+    color = mix(color, pink, wisp2 * 0.4 + 0.3);
+    color = mix(color, cyan, wisp3 * 0.3 + 0.2);
     
-    // Slight shimmer at edges based on view
-    float edgeShimmer = sin(vWorldPosition.x * 8.0 + vWorldPosition.y * 8.0 + uTime * 2.0) * 0.5 + 0.5;
-    edgeShimmer = edgeShimmer * vEdgeFactor * 0.3;
+    // Bright cores
+    color = mix(color, white, pow(plasma, 3.0) * 0.5);
     
-    // ============ RIM/EDGE COLOR ============
-    // Iridescent edge colors based on normal direction
-    float normalY = vWorldNormal.y * 0.5 + 0.5;
-    float normalX = abs(vWorldNormal.x);
-    float normalZ = abs(vWorldNormal.z);
+    // Sparkles
+    float sparkle = snoise(p * 10.0 + vec3(uTime * 2.0));
+    float sparkleMask = smoothstep(0.85, 0.95, sparkle);
+    color += white * sparkleMask * 0.8;
     
-    vec3 rimColor = mix(purple, blue, normalY);
-    rimColor = mix(rimColor, pink, normalX * 0.5);
-    rimColor = mix(rimColor, orange, normalZ * 0.4);
-    rimColor = mix(rimColor, cyan, edgeShimmer);
+    // Pulsing intensity when talking
+    float pulse = sin(uTime * 3.0) * 0.5 + 0.5;
+    color *= 1.0 + pulse * 0.3 * uFlow;
     
-    // Brighter at corners
-    rimColor = mix(rimColor, white, vEdgeFactor * fresStrong * 0.4);
+    // Alpha - transparent where no plasma, visible where wisps are
+    float alpha = wispMask * (0.4 + plasma * 0.4);
+    alpha *= 0.8; // Overall transparency
     
-    // ============ INTERIOR - Dark with subtle depth ============
-    // The interior should be dark, giving contrast
-    vec3 interiorColor = dark;
+    // Fresnel edge glow
+    vec3 viewDir = normalize(cameraPosition - vPosition);
+    float fresnel = pow(1.0 - abs(dot(vNormal, viewDir)), 2.5);
+    color += mix(purple, pink, fresnel) * fresnel * 0.4;
+    alpha += fresnel * 0.2;
     
-    // Very subtle internal glow near edges only
-    float internalGlow = vEdgeFactor * (1.0 - fres) * 0.15;
-    interiorColor += purple * internalGlow;
-    
-    // ============ GLASS SHELL ============
-    // Clear glass - mostly transparent, color at edges
-    float shellOpacity = fres * 0.6 + fresStrong * 0.3;
-    
-    // ============ COMBINE ============
-    vec3 finalColor = vec3(0.0);
-    
-    // Rim glow (strongest visual element)
-    finalColor += rimColor * fres * (1.2 + uPulse * 0.3);
-    
-    // Edge energy (corners and edges glow more)
-    finalColor += rimColor * edgeEnergy * (0.8 + uIntensity * 0.5);
-    
-    // Subtle interior (dark with hint of depth)
-    finalColor = mix(interiorColor, finalColor, fres + vEdgeFactor * 0.3);
-    
-    // View-dependent color shift (creates subtle "life")
-    vec3 viewShift = vec3(
-      sin(viewDistortion * 3.14159 + 0.0) * 0.1,
-      sin(viewDistortion * 3.14159 + 2.09) * 0.1,
-      sin(viewDistortion * 3.14159 + 4.18) * 0.1
-    );
-    finalColor += viewShift * fres * uIntensity;
-    
-    // ============ ALPHA ============
-    // More opaque at edges (glass effect), transparent at face centers
-    float alpha = shellOpacity + vEdgeFactor * 0.2;
-    alpha = clamp(alpha, 0.1, 0.92);
-    
-    // Pulse effect for listening state
-    alpha += uPulse * 0.08 * fres;
-    
-    gl_FragColor = vec4(finalColor, alpha);
+    gl_FragColor = vec4(color, alpha);
   }
 `
 
-// Create rounded box geometry
-function createRoundedBoxGeometry(
-  width: number,
-  height: number,
-  depth: number,
-  radius: number,
-  segments: number
-): THREE.BufferGeometry {
-  const shape = new THREE.Shape()
-  const w = width / 2 - radius
-  const h = height / 2 - radius
+// Glass shader - transparent with edge glow
+const glassFragmentShader = `
+  precision highp float;
   
-  // This creates a proper rounded box using BoxGeometry and modifying vertices
-  const geometry = new THREE.BoxGeometry(width, height, depth, segments, segments, segments)
+  varying vec3 vPosition;
+  varying vec3 vNormal;
   
-  const pos = geometry.getAttribute('position')
-  const norm = geometry.getAttribute('normal')
+  uniform float uTime;
   
-  const v = new THREE.Vector3()
-  const n = new THREE.Vector3()
-  
-  const halfW = width / 2
-  const halfH = height / 2
-  const halfD = depth / 2
-  const innerW = halfW - radius
-  const innerH = halfH - radius
-  const innerD = halfD - radius
-  
-  for (let i = 0; i < pos.count; i++) {
-    v.fromBufferAttribute(pos, i)
+  void main() {
+    vec3 viewDir = normalize(cameraPosition - vPosition);
+    float fresnel = pow(1.0 - abs(dot(vNormal, viewDir)), 4.0);
     
-    // Clamp to inner box
-    const clampedX = Math.max(-innerW, Math.min(innerW, v.x))
-    const clampedY = Math.max(-innerH, Math.min(innerH, v.y))
-    const clampedZ = Math.max(-innerD, Math.min(innerD, v.z))
+    // Iridescent edge colors
+    vec3 purple = vec3(0.5, 0.2, 1.0);
+    vec3 cyan = vec3(0.3, 0.8, 1.0);
+    vec3 edgeColor = mix(purple, cyan, sin(uTime * 0.5 + vPosition.y * 2.0) * 0.5 + 0.5);
     
-    // Direction from clamped point to original
-    const dx = v.x - clampedX
-    const dy = v.y - clampedY
-    const dz = v.z - clampedZ
+    // Only visible at edges (fresnel)
+    vec3 color = edgeColor * fresnel * 0.6;
+    float alpha = fresnel * 0.25;
     
-    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
-    
-    if (dist > 0.001) {
-      // Outside inner box - project onto rounded corner
-      const scale = radius / dist
-      v.x = clampedX + dx * scale
-      v.y = clampedY + dy * scale
-      v.z = clampedZ + dz * scale
-      
-      // Normal points outward from corner
-      n.set(dx, dy, dz).normalize()
-    } else {
-      // On face - keep normal from original geometry
-      n.fromBufferAttribute(norm, i)
-    }
-    
-    pos.setXYZ(i, v.x, v.y, v.z)
-    norm.setXYZ(i, n.x, n.y, n.z)
+    gl_FragColor = vec4(color, alpha);
   }
-  
-  geometry.computeVertexNormals()
-  
-  return geometry
-}
+`
 
-export function EtherealCube({ state = 'idle' }: EtherealCubeProps) {
-  const meshRef = useRef<THREE.Mesh>(null)
+export function EtherealCube({ isTalking = false, isListening = false }: EtherealCubeProps) {
+  const groupRef = useRef<THREE.Group>(null)
+  const flowRef = useRef(0.1)
   
-  // Smooth transition values
-  const intensityRef = useRef(0.3)
-  const pulseRef = useRef(0)
-  
-  // Create geometry
-  const geometry = useMemo(() => {
-    return createRoundedBoxGeometry(1.7, 1.7, 1.7, 0.2, 24)
-  }, [])
-  
-  // Uniforms
-  const uniforms = useMemo(() => ({
+  const plasmaUniforms = useMemo(() => ({
     uTime: { value: 0 },
-    uIntensity: { value: 0.3 },
-    uPulse: { value: 0 }
+    uFlow: { value: 0.1 }
   }), [])
   
-  useFrame(({ clock }) => {
-    const t = clock.elapsedTime
+  const glassUniforms = useMemo(() => ({
+    uTime: { value: 0 }
+  }), [])
+  
+  useFrame((state) => {
+    const t = state.clock.elapsedTime
     
-    // State-based targets
-    let targetIntensity = 0.3
-    let pulseSpeed = 0
+    // Smooth flow transition
+    const targetFlow = isTalking ? 1.0 : (isListening ? 0.4 : 0.1)
+    flowRef.current += (targetFlow - flowRef.current) * 0.06
     
-    switch (state) {
-      case 'listening':
-        targetIntensity = 0.6
-        pulseSpeed = 1.5
-        break
-      case 'thinking':
-        targetIntensity = 0.8
-        pulseSpeed = 2.5
-        break
-      case 'speaking':
-        targetIntensity = 1.0
-        pulseSpeed = 3.0
-        break
-      default: // idle
-        targetIntensity = 0.3
-        pulseSpeed = 0.5
-    }
+    plasmaUniforms.uTime.value = t
+    plasmaUniforms.uFlow.value = flowRef.current
+    glassUniforms.uTime.value = t
     
-    // Smooth intensity transition
-    intensityRef.current += (targetIntensity - intensityRef.current) * 0.03
-    
-    // Breathing pulse
-    const pulse = Math.sin(t * pulseSpeed) * 0.5 + 0.5
-    pulseRef.current = pulse * intensityRef.current
-    
-    // Update uniforms
-    uniforms.uTime.value = t
-    uniforms.uIntensity.value = intensityRef.current
-    uniforms.uPulse.value = pulseRef.current
-    
-    // Very subtle rotation in idle state
-    if (meshRef.current && state === 'idle') {
-      meshRef.current.rotation.y = Math.sin(t * 0.1) * 0.03
+    // Very subtle rotation when idle
+    if (groupRef.current) {
+      if (!isTalking && !isListening) {
+        groupRef.current.rotation.y = t * 0.03
+      }
     }
   })
   
   return (
-    <mesh ref={meshRef} geometry={geometry}>
-      <shaderMaterial
-        vertexShader={vertexShader}
-        fragmentShader={fragmentShader}
-        uniforms={uniforms}
-        transparent
-        side={THREE.FrontSide}
-        depthWrite={false}
-      />
-    </mesh>
+    <group ref={groupRef}>
+      {/* Inner plasma - wispy flowing energy */}
+      <RoundedBox args={[1.6, 1.6, 1.6]} radius={0.15} smoothness={8}>
+        <shaderMaterial
+          vertexShader={plasmaVertexShader}
+          fragmentShader={plasmaFragmentShader}
+          uniforms={plasmaUniforms}
+          transparent
+          side={THREE.DoubleSide}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </RoundedBox>
+      
+      {/* Outer glass shell - transparent with edge glow */}
+      <RoundedBox args={[1.7, 1.7, 1.7]} radius={0.18} smoothness={8}>
+        <shaderMaterial
+          vertexShader={plasmaVertexShader}
+          fragmentShader={glassFragmentShader}
+          uniforms={glassUniforms}
+          transparent
+          side={THREE.FrontSide}
+          depthWrite={false}
+        />
+      </RoundedBox>
+      
+      {/* Edge wireframe for cube definition */}
+      <lineSegments>
+        <edgesGeometry args={[new THREE.BoxGeometry(1.72, 1.72, 1.72)]} />
+        <lineBasicMaterial color="#8844ff" transparent opacity={0.4} />
+      </lineSegments>
+    </group>
   )
 }
 

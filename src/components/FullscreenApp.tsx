@@ -377,44 +377,36 @@ export function FullscreenApp() {
         </button>
       </div>
 
-      {/* Bottom content stack - Status + Disclaimer */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center pb-6">
-        {/* Status text */}
-        <p className="text-[18px] font-normal text-white mb-8">
+      {/* Bottom content - Status text only */}
+      <div className="fixed bottom-[180px] left-1/2 -translate-x-1/2 z-50">
+        <p className="text-[18px] font-normal text-white text-center">
           {!chatInitialized && 'Connecting...'}
           {chatInitialized && appState === 'idle' && 'Tap to speak with CubiQo™'}
           {chatInitialized && appState === 'listening' && (transcript || 'Listening...')}
           {chatInitialized && appState === 'thinking' && 'Thinking...'}
           {chatInitialized && appState === 'speaking' && 'Speaking...'}
         </p>
-        
-        {/* Disclaimer - Line 1 */}
-        <p className="text-[13px] text-white/60 mb-1">
-          All conversations are confidential. CubiQo never stores or retains talks.
+      </div>
+
+      {/* Footer - Apple Premium Style */}
+      <footer className="fixed bottom-0 left-0 right-0 z-50 py-5 text-center">
+        <p className="text-[12px] text-white/45 tracking-wide mb-2">
+          All conversations are confidential.  CubiQo never retains user voice by policy.
         </p>
-        
-        {/* Disclaimer - Line 2 */}
-        <p className="text-[13px] text-white/60 mb-6">
-          We know users via abstracts, not exacts. Conversations are session-streamed only.
-        </p>
-        
-        {/* BYO - Single line */}
-        <p className="text-[13px] text-white/50 mb-6">
-          Don't trust anyone with your data?{' '}
+        <p className="text-[12px] text-white/35 tracking-wide">
           <button 
             onClick={() => setMenuOpen(true)}
-            className="text-white/70 hover:text-white transition-colors underline underline-offset-2"
+            className="text-white/50 hover:text-white/70 transition-colors"
           >
             Try BYO Mode
           </button>
-          {' '}— Your data · Your storage · Your API key
+          <span className="mx-2">—</span>
+          <span>Your data · Your storage · Your API key</span>
         </p>
-        
-        {/* Copyright */}
-        <p className="text-[10px] text-white/30">
+        <p className="text-[10px] text-white/20 mt-4 tracking-wide">
           © 2025 Cubiqo United Inc.
         </p>
-      </div>
+      </footer>
 
       {/* Sign In Modal - Premium Apple Style */}
       {showAuthForm && !isAuthenticated && (
