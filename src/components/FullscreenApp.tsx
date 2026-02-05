@@ -279,7 +279,10 @@ export function FullscreenApp() {
       {/* Fullscreen Energy Cube Canvas - Centered */}
       <div 
         className="absolute inset-0 z-[1] flex items-center justify-center"
-        style={{ transform: `scale(${cubeSize / 100})` }}
+        style={{ 
+          transform: `scale(${cubeSize / 100})`,
+          transformOrigin: 'center center'
+        }}
       >
         <EnergyCubeScene colorName={colorName} animationState={animationState} />
       </div>
@@ -298,15 +301,15 @@ export function FullscreenApp() {
             <img 
               src="https://customer-assets.emergentagent.com/job_signal-ai-chat/artifacts/ay0gj2sk_ChatGPT%20Image%20Feb%205%2C%202026%2C%2003_14_37%20PM.png" 
               alt="CubiQo" 
-              className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+              className="w-14 h-14 sm:w-16 sm:h-16 object-contain"
             />
             <div className="flex items-start">
-              <span className={`text-xl sm:text-2xl font-semibold tracking-tight ${
+              <span className={`text-2xl sm:text-3xl font-semibold tracking-tight ${
                 isDark ? 'text-white' : 'text-gray-900'
               }`}>
                 CubiQo
               </span>
-              <span className={`text-[8px] sm:text-[10px] font-medium ml-0.5 -mt-0.5 ${
+              <span className={`text-[10px] sm:text-[12px] font-medium ml-0.5 -mt-0.5 ${
                 isDark ? 'text-white/60' : 'text-gray-500'
               }`}>
                 TM
