@@ -263,53 +263,55 @@ export function FullscreenApp() {
         }`}
       >
         <div className="flex justify-between items-center w-full">
-          {/* Logo - Colorful Cube Icon + CubiQo Text */}
-          <div className="flex items-center gap-3">
-            <img 
-              src="https://customer-assets.emergentagent.com/job_react-energy-cube/artifacts/zuvwrv2g_cubiqo_favicon_512.png" 
-              alt="CubiQo" 
-              className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
-            />
-            <div className="flex items-start">
-              <span className={`text-xl sm:text-2xl font-semibold tracking-tight ${
-                isDark ? 'text-white' : 'text-gray-900'
-              }`}>
-                CubiQo
-              </span>
-              <span className={`text-[8px] sm:text-[10px] font-medium ml-0.5 -mt-0.5 ${
-                isDark ? 'text-white/60' : 'text-gray-500'
-              }`}>
-                TM
-              </span>
-            </div>
-          </div>
+          {/* Left side - Empty for balance */}
+          <div className="w-32" />
 
           {/* Center - Empty */}
           <div className="flex-1" />
 
-          {/* Right side - Sign In (quiet, premium) */}
-          <div className="flex items-center">
-            {isAuthenticated ? (
-              <button
-                onClick={() => setMenuOpen(true)}
-                className="flex items-center gap-2 text-[14px] text-white/50 hover:text-white/70 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                </svg>
-                <span className="hidden sm:inline truncate max-w-[100px]">{user?.email?.split('@')[0]}</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowAuthForm(true)}
-                className="text-[14px] text-white/50 hover:text-white/70 transition-colors"
-              >
-                Sign In
-              </button>
-            )}
+          {/* Right side - SIGNAL Logo */}
+          <div className="flex items-center gap-3">
+            {/* SIGNAL S Icon - 4 colored bars forming S shape */}
+            <div className="flex flex-col gap-[3px]">
+              <div className="flex gap-[3px]">
+                <div className="w-4 h-4 rounded-[4px]" style={{ background: 'linear-gradient(135deg, #f43f5e, #fb7185)' }} />
+                <div className="w-4 h-4 rounded-[4px]" style={{ background: 'linear-gradient(135deg, #f97316, #fb923c)' }} />
+              </div>
+              <div className="flex gap-[3px]">
+                <div className="w-4 h-4 rounded-[4px]" style={{ background: 'linear-gradient(135deg, #eab308, #fbbf24)' }} />
+                <div className="w-4 h-4 rounded-[4px]" style={{ background: 'linear-gradient(135deg, #22c55e, #4ade80)' }} />
+              </div>
+            </div>
+            {/* SIGNAL Text + Tagline */}
+            <div className="flex flex-col">
+              <span className="text-[18px] font-bold tracking-wide text-white">SIGNAL</span>
+              <span className="text-[10px] text-white/50 tracking-wide">One is enough.</span>
+            </div>
           </div>
         </div>
       </header>
+
+      {/* Sign In - Bottom Left */}
+      <div className="fixed bottom-6 left-6 z-50">
+        {isAuthenticated ? (
+          <button
+            onClick={() => setMenuOpen(true)}
+            className="flex items-center gap-2 text-[13px] text-white/40 hover:text-white/60 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+            </svg>
+            <span className="truncate max-w-[100px]">{user?.email?.split('@')[0]}</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => setShowAuthForm(true)}
+            className="text-[13px] text-white/40 hover:text-white/60 transition-colors"
+          >
+            Sign In
+          </button>
+        )}
+      </div>
 
       {/* Settings & Keywords - Top Left Below Header */}
       <div className="fixed left-5 top-24 z-[60] flex flex-col gap-1">
