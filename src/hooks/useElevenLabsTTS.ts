@@ -15,12 +15,13 @@
  * BROWSER AUDIO FIX:
  * - Uses AudioContext for reliable playback
  * - Must call initAudioContext() on user gesture before playing
+ * - Handles tab visibility changes and browser auto-pause
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import type { ColorName } from '@/config/colors'
 import { useSession } from '@/hooks/useSession'
-import { initAudioContext, isAudioContextReady } from '@/lib/audio/audioContext'
+import { initAudioContext, isAudioContextReady, getAudioContext } from '@/lib/audio/audioContext'
 
 /**
  * Voice settings per color zone
@@ -31,39 +32,35 @@ import { initAudioContext, isAudioContextReady } from '@/lib/audio/audioContext'
  * - ORANGE: Balanced, default
  */
 const VOICE_SETTINGS: Record<string, {
-  voiceId: string  // Same voice with different settings
+  voiceId: string
   stability: number
   similarity_boost: number
   style: number
   use_speaker_boost: boolean
 }> = {
   GREEN_BLUE: {
-    // Office/Focused - Direct, professional tempo
-    voiceId: 'onwK4e9ZLuTAKqWW03F9',  // Daniel - British, sophisticated
-    stability: 0.8,           // More stable, controlled
-    similarity_boost: 0.85,   // High clarity
-    style: 0.15,              // Less expressive, more direct
-    use_speaker_boost: true   // Clear enunciation
+    voiceId: 'onwK4e9ZLuTAKqWW03F9',
+    stability: 0.8,
+    similarity_boost: 0.85,
+    style: 0.15,
+    use_speaker_boost: true
   },
   YELLOW: {
-    // Relaxed/Candid - Warm, friendly tempo
-    voiceId: 'onwK4e9ZLuTAKqWW03F9',  // Same Daniel voice
-    stability: 0.55,          // More natural variation
-    similarity_boost: 0.7,    // Balanced
-    style: 0.35,              // More expressive, relaxed
-    use_speaker_boost: true   // Keep clarity
+    voiceId: 'onwK4e9ZLuTAKqWW03F9',
+    stability: 0.55,
+    similarity_boost: 0.7,
+    style: 0.35,
+    use_speaker_boost: true
   },
   RED: {
-    // Intimate/Whisper - Soft, thoughtful, husky
-    voiceId: 'onwK4e9ZLuTAKqWW03F9',  // Same Daniel voice
-    stability: 0.9,           // Very smooth
-    similarity_boost: 0.95,   // Maximum similarity for intimacy
-    style: 0.6,               // Maximum expressiveness
-    use_speaker_boost: false  // Softer, more intimate
+    voiceId: 'onwK4e9ZLuTAKqWW03F9',
+    stability: 0.9,
+    similarity_boost: 0.95,
+    style: 0.6,
+    use_speaker_boost: false
   },
   ORANGE: {
-    // Default/Landing - Balanced butler-like
-    voiceId: 'onwK4e9ZLuTAKqWW03F9',  // Same Daniel voice
+    voiceId: 'onwK4e9ZLuTAKqWW03F9',
     stability: 0.7,
     similarity_boost: 0.75,
     style: 0.25,
@@ -71,7 +68,6 @@ const VOICE_SETTINGS: Record<string, {
   }
 }
 
-// Single voice - Daniel (British, husky, butler-like)
 const DEFAULT_VOICE_ID = 'onwK4e9ZLuTAKqWW03F9'
 
 interface UseElevenLabsTTSOptions {
@@ -114,14 +110,26 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+  const isUserPausedRef = useRef<boolean>(false)
+  const audioUrlRef = useRef<string | null>(null)
 
   /**
    * Unlock audio playback - MUST be called on user gesture (click)
-   * This initializes the AudioContext to allow audio playback
    */
   const unlockAudio = useCallback(async () => {
     try {
       await initAudioContext()
+      
+      // Also create and play a silent audio to fully unlock on iOS/Safari
+      const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA')
+      silentAudio.volume = 0.01
+      try {
+        await silentAudio.play()
+        silentAudio.pause()
+      } catch {
+        // Ignore silent audio errors
+      }
+      
       setState(prev => ({ ...prev, audioUnlocked: true }))
       console.log('[TTS] Audio unlocked - ready for playback')
       return true
@@ -129,6 +137,31 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
       console.error('[TTS] Failed to unlock audio:', error)
       return false
     }
+  }, [])
+
+  // Handle visibility changes (tab switching)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab became hidden - don't auto-pause, let audio continue in background
+        console.log('[TTS] Tab hidden, audio continues in background')
+      } else {
+        // Tab became visible - ensure AudioContext is running
+        const ctx = getAudioContext()
+        if (ctx && ctx.state === 'suspended') {
+          console.log('[TTS] Tab visible, resuming AudioContext')
+          ctx.resume().catch(e => console.warn('[TTS] AudioContext resume failed:', e))
+        }
+        // Resume audio if it was playing
+        if (audioRef.current && audioRef.current.paused && !audioRef.current.ended && !isUserPausedRef.current) {
+          console.log('[TTS] Tab visible, resuming audio playback')
+          audioRef.current.play().catch(e => console.warn('[TTS] Audio resume failed:', e))
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
   // Browser fallback speech synthesis
@@ -173,8 +206,9 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
 
     // Cancel any ongoing speech
     stop()
+    isUserPausedRef.current = false
 
-    // Ensure audio is unlocked (should already be from user gesture)
+    // Ensure audio is unlocked
     if (!isAudioContextReady()) {
       console.log('[TTS] AudioContext not ready, attempting to unlock...')
       await initAudioContext()
@@ -189,9 +223,9 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
       const settings = VOICE_SETTINGS[colorName] || VOICE_SETTINGS.ORANGE
       const selectedVoiceId = settings.voiceId || voiceId
       
-      console.log('[TTS] Using voice:', selectedVoiceId, 'Settings:', settings)
+      console.log('[TTS] Using voice:', selectedVoiceId)
 
-      // Call our backend TTS API (uses streaming endpoint)
+      // Call our backend TTS API
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: {
@@ -216,7 +250,6 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
       }
 
       if (!response.ok) {
-        // If ElevenLabs fails, fall back to browser TTS
         const errorText = await response.text()
         console.warn('[TTS] ElevenLabs failed:', response.status, errorText, '- falling back to browser TTS')
         speakWithBrowserTTS(text)
@@ -225,59 +258,100 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
 
       console.log('[TTS] ElevenLabs success, playing audio...')
       const audioBlob = await response.blob()
+      
+      // Clean up previous URL
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current)
+      }
+      
       const audioUrl = URL.createObjectURL(audioBlob)
+      audioUrlRef.current = audioUrl
 
-      // Create audio element with explicit settings for autoplay
+      // Create audio element
       const audio = new Audio()
       audio.preload = 'auto'
       audio.src = audioUrl
+      
+      // Critical: Set playsinline for iOS
+      audio.setAttribute('playsinline', 'true')
+      audio.setAttribute('webkit-playsinline', 'true')
+      
       audioRef.current = audio
 
       // Ensure audio context is active
-      if (!isAudioContextReady()) {
-        await initAudioContext()
+      const ctx = getAudioContext()
+      if (ctx && ctx.state === 'suspended') {
+        await ctx.resume()
+      }
+
+      let hasStarted = false
+      
+      audio.oncanplaythrough = () => {
+        console.log('[TTS] Audio can play through')
       }
 
       audio.onplay = () => {
-        console.log('[TTS] Audio started playing')
-        setState(prev => ({ ...prev, isSpeaking: true, isLoading: false }))
-        onStart?.()
+        if (!hasStarted) {
+          hasStarted = true
+          console.log('[TTS] Audio started playing')
+          setState(prev => ({ ...prev, isSpeaking: true, isLoading: false }))
+          onStart?.()
+        }
       }
 
+      // Handle pause events more gracefully - don't auto-resume on every pause
       audio.onpause = () => {
-        // Handle browser auto-pause (e.g., tab switch)
-        console.log('[TTS] Audio paused, attempting resume...')
-        // Try to resume after a brief delay
-        setTimeout(() => {
-          if (audioRef.current && audioRef.current.paused && !audioRef.current.ended) {
-            audioRef.current.play().catch(e => console.log('[TTS] Resume failed:', e))
-          }
-        }, 100)
+        console.log('[TTS] Audio paused, ended:', audio.ended, 'user paused:', isUserPausedRef.current)
+        // Only try to resume if:
+        // 1. Audio hasn't ended
+        // 2. User didn't manually pause
+        // 3. Tab is visible
+        if (!audio.ended && !isUserPausedRef.current && !document.hidden) {
+          // Wait a bit to see if this is a temporary browser pause
+          setTimeout(() => {
+            if (audioRef.current === audio && audio.paused && !audio.ended && !isUserPausedRef.current) {
+              console.log('[TTS] Attempting auto-resume...')
+              audio.play().catch(e => {
+                console.log('[TTS] Auto-resume failed:', e.message)
+              })
+            }
+          }, 200)
+        }
       }
 
       audio.onended = () => {
-        console.log('[TTS] Audio ended')
+        console.log('[TTS] Audio ended naturally')
         setState(prev => ({ ...prev, isSpeaking: false }))
-        URL.revokeObjectURL(audioUrl)
+        if (audioUrlRef.current) {
+          URL.revokeObjectURL(audioUrlRef.current)
+          audioUrlRef.current = null
+        }
         onEnd?.()
       }
 
       audio.onerror = (e) => {
         console.error('[TTS] Audio playback error:', e)
-        URL.revokeObjectURL(audioUrl)
-        // Fall back to browser TTS on playback error
+        if (audioUrlRef.current) {
+          URL.revokeObjectURL(audioUrlRef.current)
+          audioUrlRef.current = null
+        }
         console.warn('[TTS] Falling back to browser TTS')
         speakWithBrowserTTS(text)
       }
 
-      // Play with user interaction context
+      // Play with retry logic
       try {
         await audio.play()
       } catch (playError) {
-        console.warn('[TTS] Initial play failed, retrying...', playError)
+        console.warn('[TTS] Initial play failed:', playError)
         // Retry after ensuring audio context
         await initAudioContext()
-        await audio.play()
+        try {
+          await audio.play()
+        } catch (retryError) {
+          console.error('[TTS] Retry play failed:', retryError)
+          speakWithBrowserTTS(text)
+        }
       }
 
     } catch (err) {
@@ -285,13 +359,14 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
         return
       }
       
-      // Fall back to browser TTS on any error
       console.warn('[TTS] Error, falling back to browser TTS:', err)
       speakWithBrowserTTS(text)
     }
   }, [voiceId, colorName, session?.id, onStart, onEnd, speakWithBrowserTTS])
 
   const stop = useCallback(() => {
+    isUserPausedRef.current = true
+    
     // Abort fetch if in progress
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -304,6 +379,12 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
       audioRef.current.currentTime = 0
       audioRef.current = null
     }
+    
+    // Clean up URL
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current)
+      audioUrlRef.current = null
+    }
 
     // Stop browser TTS
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -314,6 +395,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
   }, [])
 
   const pause = useCallback(() => {
+    isUserPausedRef.current = true
     if (audioRef.current) {
       audioRef.current.pause()
     }
@@ -323,8 +405,9 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
   }, [])
 
   const resume = useCallback(() => {
+    isUserPausedRef.current = false
     if (audioRef.current) {
-      audioRef.current.play()
+      audioRef.current.play().catch(e => console.warn('[TTS] Resume failed:', e))
     }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.resume()
@@ -343,7 +426,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
     stop,
     pause,
     resume,
-    unlockAudio,  // Call this on user gesture to enable audio
+    unlockAudio,
     isSpeaking: state.isSpeaking,
     isLoading: state.isLoading,
     error: state.error,

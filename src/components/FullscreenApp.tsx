@@ -293,6 +293,7 @@ export function FullscreenApp() {
           <button
             onClick={() => setMenuOpen(true)}
             className="flex items-center gap-2 text-[13px] text-white/40 hover:text-white/60 transition-colors"
+            data-testid="user-profile-button"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
@@ -303,6 +304,7 @@ export function FullscreenApp() {
           <button
             onClick={() => setShowAuthForm(true)}
             className="text-[13px] text-white/40 hover:text-white/60 transition-colors"
+            data-testid="sign-in-button"
           >
             Sign In
           </button>
@@ -437,6 +439,7 @@ export function FullscreenApp() {
           className="fixed inset-0 z-[80] flex items-center justify-center"
           style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(20px)' }}
           onClick={() => setShowAuthForm(false)}
+          data-testid="sign-in-modal-overlay"
         >
           <div 
             className="w-[340px] max-w-[85vw] rounded-[24px] px-8 py-7"
@@ -447,6 +450,7 @@ export function FullscreenApp() {
               boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(255,255,255,0.08)'
             }}
             onClick={(e) => e.stopPropagation()}
+            data-testid="sign-in-modal"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-7">
@@ -454,6 +458,7 @@ export function FullscreenApp() {
               <button 
                 onClick={() => setShowAuthForm(false)}
                 className="p-1 -mr-1 text-white/30 hover:text-white/50 transition-colors"
+                data-testid="sign-in-modal-close"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

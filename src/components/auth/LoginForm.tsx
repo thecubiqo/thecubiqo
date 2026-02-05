@@ -1,10 +1,11 @@
 'use client'
 
 /**
- * Magic Link Login Form
+ * Magic Link Login Form - Premium Style
+ * Fixed: Added proper data-testid, improved error handling
  */
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 
 export function LoginForm() {
@@ -14,22 +15,26 @@ export function LoginForm() {
 
   const { signInWithEmail } = useAuth()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
 
-    if (!email) return
+    if (!email || isLoading) return
 
     setIsLoading(true)
     setMessage(null)
 
     try {
+      console.log('[LoginForm] Attempting sign in for:', email)
       await signInWithEmail(email)
+      console.log('[LoginForm] Magic link sent successfully')
       setMessage({
         type: 'success',
         text: 'Check your email for the magic link!',
       })
       setEmail('')
     } catch (error) {
+      console.error('[LoginForm] Sign in error:', error)
       setMessage({
         type: 'error',
         text: error instanceof Error ? error.message : 'Failed to send magic link',
@@ -37,52 +42,45 @@ export function LoginForm() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [email, isLoading, signInWithEmail])
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-          >
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            required
-            disabled={isLoading}
-            className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg
-                       bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white
-                       focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                       disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-        </div>
+    <div className="w-full" data-testid="login-form-container">
+      <form onSubmit={handleSubmit} className="space-y-4" data-testid="login-form">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email address"
+          required
+          disabled={isLoading}
+          autoComplete="email"
+          autoFocus
+          data-testid="login-email-input"
+          className="w-full px-4 py-3.5 rounded-[12px] text-[15px] text-gray-900 placeholder-gray-400 outline-none transition-all bg-white/95 border border-transparent focus:border-white/40 disabled:opacity-50"
+        />
 
         <button
           type="submit"
           disabled={isLoading || !email}
-          className="w-full py-2 px-4 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900
-                     rounded-lg font-medium
-                     hover:bg-zinc-800 dark:hover:bg-zinc-100
-                     disabled:opacity-50 disabled:cursor-not-allowed
-                     transition-colors"
+          data-testid="login-submit-button"
+          className="w-full py-3.5 rounded-[12px] bg-white text-gray-900 text-[15px] font-medium transition-opacity hover:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? 'Sending...' : 'Send Magic Link'}
+          {isLoading ? 'Sending...' : 'Continue'}
         </button>
       </form>
 
+      <p className="text-center text-[12px] text-white/35 mt-4">
+        We'll email you a secure sign-in link.
+      </p>
+
       {message && (
         <div
-          className={`mt-4 p-4 rounded-lg ${
+          data-testid={`login-message-${message.type}`}
+          className={`mt-4 p-3 rounded-[12px] text-[13px] ${
             message.type === 'success'
-              ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-              : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+              ? 'bg-green-500/10 text-green-400'
+              : 'bg-red-500/10 text-red-400'
           }`}
         >
           {message.text}
