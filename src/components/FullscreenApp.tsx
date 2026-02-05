@@ -346,7 +346,7 @@ export function FullscreenApp() {
       </div>
 
       {/* Voice Button - Apple System Control Style */}
-      <div className="fixed bottom-[140px] left-1/2 -translate-x-1/2 z-[60]">
+      <div className="fixed bottom-[200px] left-1/2 -translate-x-1/2 z-[60]">
         <button
           onClick={handleVoiceClick}
           disabled={!voiceSupported}
@@ -377,12 +377,9 @@ export function FullscreenApp() {
         </button>
       </div>
 
-      {/* Status text - Premium Apple style */}
-      <div className="fixed bottom-[95px] left-1/2 -translate-x-1/2 z-50 text-center pt-3 pointer-events-none">
-        <p 
-          className="text-[18px] font-normal leading-[1.4] text-white"
-          style={{ maxWidth: '280px' }}
-        >
+      {/* Status text */}
+      <div className="fixed bottom-[140px] left-1/2 -translate-x-1/2 z-50 text-center pointer-events-none">
+        <p className="text-[18px] font-normal text-white">
           {!chatInitialized && 'Connecting...'}
           {chatInitialized && appState === 'idle' && 'Tap to speak with CubiQo™'}
           {chatInitialized && appState === 'listening' && (transcript || 'Listening...')}
@@ -391,27 +388,25 @@ export function FullscreenApp() {
         </p>
       </div>
 
-      {/* Privacy Disclaimer - Clean Layout */}
-      <div className="fixed bottom-[24px] left-1/2 -translate-x-1/2 z-50 text-center max-w-[420px] px-5">
-        {/* First disclaimer - 2 lines */}
-        <p className="text-[11px] leading-[1.6] text-white/50 mb-4">
+      {/* Privacy Disclaimer */}
+      <div className="fixed bottom-[20px] left-1/2 -translate-x-1/2 z-50 text-center w-full max-w-[500px] px-6">
+        <p className="text-[12px] leading-[1.7] text-white/60 mb-3">
           All conversations are confidential. CubiQo never stores or retains talks.<br />
           We know users via abstracts, not exacts. Conversations are session-streamed only.
         </p>
         
-        {/* BYO - single line */}
-        <p className="text-[11px] text-white/40">
+        <p className="text-[12px] text-white/50">
           Don't trust anyone with your data?{' '}
           <button 
             onClick={() => setMenuOpen(true)}
-            className="text-white/60 hover:text-white/80 transition-colors underline underline-offset-2"
+            className="text-white/70 hover:text-white transition-colors underline underline-offset-2"
           >
             Try BYO Mode
           </button>
           {' '}— Your data · Your storage · Your API key
         </p>
         
-        <p className="text-[9px] text-white/20 mt-5">
+        <p className="text-[10px] text-white/30 mt-4">
           © 2025 Cubiqo United Inc.
         </p>
       </div>
