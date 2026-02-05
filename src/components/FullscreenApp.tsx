@@ -461,22 +461,8 @@ export function FullscreenApp() {
               </button>
             </div>
             
-            {/* Form */}
-            <div className="space-y-4">
-              <input 
-                type="email" 
-                placeholder="Email address"
-                className="w-full px-4 py-3.5 rounded-[12px] text-[15px] text-gray-900 placeholder-gray-400 outline-none transition-all bg-white/95 border border-white/20 focus:border-white/40 focus:ring-0"
-              />
-              <button 
-                className="w-full py-3.5 rounded-[12px] bg-white text-gray-900 text-[15px] font-medium transition-opacity hover:opacity-85"
-              >
-                Continue
-              </button>
-              <p className="text-center text-[12px] text-white/35 pt-1">
-                We'll email you a secure sign-in link.
-              </p>
-            </div>
+            {/* Login Form */}
+            <LoginForm />
           </div>
         </div>
       )}
