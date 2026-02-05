@@ -276,13 +276,10 @@ export function FullscreenApp() {
       className="fixed inset-0 overflow-hidden transition-colors duration-400"
       style={{ background: bgColor, color: textColor }}
     >
-      {/* Fullscreen Energy Cube Canvas - Moved up to avoid voice button overlap */}
+      {/* Fullscreen Energy Cube Canvas - Centered */}
       <div 
         className="absolute inset-0 z-[1] flex items-center justify-center"
-        style={{ 
-          transform: `scale(${cubeSize / 100})`,
-          marginTop: '-150px'
-        }}
+        style={{ transform: `scale(${cubeSize / 100})` }}
       >
         <EnergyCubeScene colorName={colorName} animationState={animationState} />
       </div>
@@ -296,12 +293,12 @@ export function FullscreenApp() {
         }`}
       >
         <div className="flex justify-between items-center w-full">
-          {/* Logo - Colorful Cube Icon + CubiQo Text */}
+          {/* Logo - New CubiQo Cube Icon + Text */}
           <div className="flex items-center gap-3">
             <img 
-              src="https://customer-assets.emergentagent.com/job_react-energy-cube/artifacts/zuvwrv2g_cubiqo_favicon_512.png" 
+              src="https://customer-assets.emergentagent.com/job_signal-ai-chat/artifacts/ay0gj2sk_ChatGPT%20Image%20Feb%205%2C%202026%2C%2003_14_37%20PM.png" 
               alt="CubiQo" 
-              className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
+              className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
             />
             <div className="flex items-start">
               <span className={`text-xl sm:text-2xl font-semibold tracking-tight ${
