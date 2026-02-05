@@ -356,8 +356,8 @@ export function FullscreenApp() {
         />
       </div>
 
-      {/* Voice Enable Control - System Level (below cube) */}
-      <div className="fixed bottom-[140px] left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center">
+      {/* Voice Enable Control - System Level (well below cube) */}
+      <div className="fixed bottom-[70px] left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center">
         <button
           onClick={handleVoiceClick}
           disabled={!voiceSupported}
