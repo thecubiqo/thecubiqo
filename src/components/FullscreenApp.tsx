@@ -281,13 +281,13 @@ export function FullscreenApp() {
         className="absolute inset-0 z-[1] flex items-center justify-center"
         style={{ 
           transform: `scale(${cubeSize / 100})`,
-          marginTop: '-80px'  /* Move cube up */
+          marginTop: '-80px'
         }}
       >
         <EnergyCubeScene colorName={colorName} animationState={animationState} />
       </div>
 
-      {/* Header - No border */}
+      {/* Header */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4 backdrop-blur-[12px] transition-colors duration-400 ${
           isDark
@@ -296,19 +296,31 @@ export function FullscreenApp() {
         }`}
       >
         <div className="flex justify-between items-center w-full">
-          {/* Left side - CubiQo Logo */}
-          <div className="flex items-center gap-2">
-            {/* Cube icon */}
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 flex items-center justify-center">
-              <div className="w-3.5 h-3.5 border-2 border-white/80 rounded-sm transform rotate-12" />
+          {/* Logo - Colorful Cube Icon + CubiQo Text */}
+          <div className="flex items-center gap-3">
+            <img 
+              src="https://customer-assets.emergentagent.com/job_react-energy-cube/artifacts/zuvwrv2g_cubiqo_favicon_512.png" 
+              alt="CubiQo" 
+              className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
+            />
+            <div className="flex items-start">
+              <span className={`text-xl sm:text-2xl font-semibold tracking-tight ${
+                isDark ? 'text-white' : 'text-gray-900'
+              }`}>
+                CubiQo
+              </span>
+              <span className={`text-[8px] sm:text-[10px] font-medium ml-0.5 -mt-0.5 ${
+                isDark ? 'text-white/60' : 'text-gray-500'
+              }`}>
+                TM
+              </span>
             </div>
-            <span className="text-[17px] font-semibold tracking-tight text-white">CubiQo<span className="text-white/40 text-[10px] align-super">™</span></span>
           </div>
 
           {/* Center - Empty */}
           <div className="flex-1" />
 
-          {/* Right side - SIGNAL Logo (matching reference exactly) */}
+          {/* Right side - SIGNAL Logo */}
           <div className="flex items-center gap-2.5">
             {/* SIGNAL S Icon - Stacked colored bars */}
             <div className="flex flex-col gap-[2px]">
@@ -326,7 +338,7 @@ export function FullscreenApp() {
         </div>
       </header>
 
-      {/* Sign In - Bottom Left - Moved up 2 lines */}
+      {/* Sign In - Bottom Left - Above footer */}
       <div className="fixed bottom-20 left-6 z-[55]">
         {isAuthenticated ? (
           <button
