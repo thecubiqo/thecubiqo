@@ -320,19 +320,18 @@ export function FullscreenApp() {
           {/* Center - Empty */}
           <div className="flex-1" />
 
-          {/* Right side - SIGNAL Logo */}
-          <div className="flex items-center gap-2.5">
-            {/* SIGNAL S Icon - Stacked colored bars */}
-            <div className="flex flex-col gap-[2px]">
-              <div className="w-[22px] h-[5px] rounded-[2px]" style={{ background: '#ef4444' }} />
-              <div className="w-[22px] h-[5px] rounded-[2px] ml-[6px]" style={{ background: '#f97316' }} />
-              <div className="w-[22px] h-[5px] rounded-[2px]" style={{ background: '#eab308' }} />
-              <div className="w-[22px] h-[5px] rounded-[2px] ml-[6px]" style={{ background: '#22c55e' }} />
-            </div>
+          {/* Right side - SIGNAL Logo (bigger with exact S mark) */}
+          <div className="flex items-center gap-3">
+            {/* SIGNAL S Icon - Exact image */}
+            <img 
+              src="https://customer-assets.emergentagent.com/job_signal-ai-chat/artifacts/1lhd76s4_signal_s_exact%20%281%29.png"
+              alt="SIGNAL"
+              className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+            />
             {/* SIGNAL Text + Tagline */}
-            <div className="flex flex-col -gap-0.5">
-              <span className="text-[17px] font-bold tracking-wide text-white leading-tight">SIGNAL</span>
-              <span className="text-[9px] text-white/40 tracking-wide">One is enough.</span>
+            <div className="flex flex-col">
+              <span className="text-xl sm:text-2xl font-semibold tracking-[0.08em] text-white leading-tight">SIGNAL</span>
+              <span className="text-[10px] sm:text-[11px] text-white/60 tracking-wide">One is enough.</span>
             </div>
           </div>
         </div>
