@@ -288,7 +288,7 @@ export function FullscreenApp() {
       </header>
 
       {/* Sign In - Bottom Left */}
-      <div className="fixed bottom-6 left-6 z-50">
+      <div className="fixed bottom-6 left-6 z-[55]">
         {isAuthenticated ? (
           <button
             onClick={() => setMenuOpen(true)}
