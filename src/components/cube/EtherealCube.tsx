@@ -214,12 +214,7 @@ export function EtherealCube({ isTalking = false, isListening = false }: Etherea
     plasmaUniforms.uFlow.value = flowRef.current
     glassUniforms.uTime.value = t
     
-    // Very subtle rotation when idle
-    if (groupRef.current) {
-      if (!isTalking && !isListening) {
-        groupRef.current.rotation.y = t * 0.03
-      }
-    }
+    // No rotation - cube stays static
   })
   
   return (

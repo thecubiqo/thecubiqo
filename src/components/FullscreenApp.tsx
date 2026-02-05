@@ -281,7 +281,7 @@ export function FullscreenApp() {
         className="absolute inset-0 z-[1] flex items-center justify-center"
         style={{ 
           transform: `scale(${cubeSize / 100})`,
-          marginTop: '-80px'
+          marginTop: '-150px'
         }}
       >
         <EnergyCubeScene colorName={colorName} animationState={animationState} />

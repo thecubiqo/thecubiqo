@@ -356,13 +356,7 @@ export function EnergyCube({
         shuffleRef.current.progress = 1.0
       }
       
-      const shuffleAngle = Math.sin(shuffleRef.current.progress * Math.PI) * Math.PI * 0.5
-      const axis = shuffleRef.current.axis
-      
-      if (axis === 'x') groupRef.current.rotation.x = shuffleAngle * motionMultiplier
-      else if (axis === 'y') groupRef.current.rotation.y += shuffleAngle * delta * 2 * motionMultiplier
-      else groupRef.current.rotation.z = shuffleAngle * 0.3 * motionMultiplier
-      
+      // No rotation during shuffle - just color transition
       const t = shuffleRef.current.progress
       const fromConfig = shuffleRef.current.fromColor
       const toConfig = shuffleRef.current.toColor
@@ -371,11 +365,7 @@ export function EnergyCube({
       uniforms.uSecondaryColor.value.lerpColors(fromConfig.secondary, toConfig.secondary, t)
       uniforms.uAccentColor.value.lerpColors(fromConfig.accent, toConfig.accent, t)
     } else {
-      // Normal rotation
-      const rotationSpeed = THREE.MathUtils.lerp(0.02, modeConfig.rotationSpeed, transitionRef.current.mode)
-      groupRef.current.rotation.y += rotationSpeed * delta * motionMultiplier
-      groupRef.current.rotation.x = Math.sin(elapsedTime * 0.15) * 0.06 * motionMultiplier
-      
+      // No rotation - cube stays static
       uniforms.uPrimaryColor.value.lerp(colorConfig.primary, delta * 3)
       uniforms.uSecondaryColor.value.lerp(colorConfig.secondary, delta * 3)
       uniforms.uAccentColor.value.lerp(colorConfig.accent, delta * 3)
