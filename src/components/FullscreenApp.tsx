@@ -276,10 +276,13 @@ export function FullscreenApp() {
       className="fixed inset-0 overflow-hidden transition-colors duration-400"
       style={{ background: bgColor, color: textColor }}
     >
-      {/* Fullscreen Energy Cube Canvas */}
+      {/* Fullscreen Energy Cube Canvas - Moved up to avoid voice button overlap */}
       <div 
         className="absolute inset-0 z-[1] flex items-center justify-center"
-        style={{ transform: `scale(${cubeSize / 100})` }}
+        style={{ 
+          transform: `scale(${cubeSize / 100})`,
+          marginTop: '-80px'  /* Move cube up */
+        }}
       >
         <EnergyCubeScene colorName={colorName} animationState={animationState} />
       </div>
@@ -293,8 +296,14 @@ export function FullscreenApp() {
         }`}
       >
         <div className="flex justify-between items-center w-full">
-          {/* Left side - Empty for balance */}
-          <div className="w-32" />
+          {/* Left side - CubiQo Logo */}
+          <div className="flex items-center gap-2">
+            {/* Cube icon */}
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 flex items-center justify-center">
+              <div className="w-3.5 h-3.5 border-2 border-white/80 rounded-sm transform rotate-12" />
+            </div>
+            <span className="text-[17px] font-semibold tracking-tight text-white">CubiQo<span className="text-white/40 text-[10px] align-super">™</span></span>
+          </div>
 
           {/* Center - Empty */}
           <div className="flex-1" />
@@ -317,8 +326,8 @@ export function FullscreenApp() {
         </div>
       </header>
 
-      {/* Sign In - Bottom Left */}
-      <div className="fixed bottom-6 left-6 z-[55]">
+      {/* Sign In - Bottom Left - Moved up 2 lines */}
+      <div className="fixed bottom-20 left-6 z-[55]">
         {isAuthenticated ? (
           <button
             onClick={() => setMenuOpen(true)}
