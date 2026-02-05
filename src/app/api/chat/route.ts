@@ -2,6 +2,10 @@
  * Chat API Route Handler
  * Triple routing: MiniMax (primary) → Claude → OpenAI (fallback)
  * Rate limited: 100 requests/hour per session
+ * 
+ * SPENDING CAPS:
+ * - Anthropic (Claude): $200/month
+ * - OpenAI: $200/month
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -19,6 +23,13 @@ import {
 import { callOpenClaw } from '@/lib/ai/openclaw'
 import { buildMemoryContext } from '@/lib/ai/memory-extraction.server'
 import { getRegionConfig, buildRegionalPrompt } from '@/lib/config/regions'
+import {
+  checkSpendingCap,
+  recordSpending,
+  estimateAnthropicCost,
+  estimateOpenAICost,
+  estimateTokens
+} from '@/lib/spending-caps'
 
 // Rate limiting for MiniMax: 100 requests/hour per session
 const minimaxRateLimitMap = new Map<string, { count: number; resetTime: number }>()
@@ -104,11 +115,24 @@ async function callClaude(
   messages: { role: string; content: string }[],
   byoApiKey?: string | null
 ): Promise<string> {
+  // Check spending cap (skip if using BYO key)
+  if (!byoApiKey) {
+    const capCheck = checkSpendingCap('anthropic')
+    if (!capCheck.allowed) {
+      console.error(`[Claude] Spending cap reached: $${capCheck.currentSpend}/$${capCheck.cap}`)
+      throw new Error('Anthropic spending cap reached ($200/month). Using fallback.')
+    }
+  }
+
   const apiKey = byoApiKey || process.env.ANTHROPIC_API_KEY
 
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY not configured')
   }
+
+  // Estimate input tokens for cost tracking
+  const inputText = systemPrompt + messages.map(m => m.content).join('')
+  const estimatedInputTokens = estimateTokens(inputText)
 
   // Structure system prompt with cache control
   const systemCached = [
@@ -162,8 +186,16 @@ async function callClaude(
   }
 
   const data = await response.json()
+  const outputText = data.content[0].text
+  
+  // Record spending (skip if using BYO key)
+  if (!byoApiKey) {
+    const estimatedOutputTokens = estimateTokens(outputText)
+    const cost = estimateAnthropicCost(estimatedInputTokens, estimatedOutputTokens)
+    recordSpending('anthropic', cost)
+  }
 
-  return data.content[0].text
+  return outputText
 }
 
 // OpenAI API call (fallback)
@@ -172,11 +204,24 @@ async function callOpenAI(
   messages: { role: string; content: string }[],
   byoApiKey?: string | null
 ): Promise<string> {
+  // Check spending cap (skip if using BYO key)
+  if (!byoApiKey) {
+    const capCheck = checkSpendingCap('openai')
+    if (!capCheck.allowed) {
+      console.error(`[OpenAI] Spending cap reached: $${capCheck.currentSpend}/$${capCheck.cap}`)
+      throw new Error('OpenAI spending cap reached ($200/month). All providers exhausted.')
+    }
+  }
+
   const apiKey = byoApiKey || process.env.OPENAI_API_KEY
 
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY not configured')
   }
+
+  // Estimate input tokens for cost tracking
+  const inputText = systemPrompt + messages.map(m => m.content).join('')
+  const estimatedInputTokens = estimateTokens(inputText)
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -201,8 +246,16 @@ async function callOpenAI(
   }
 
   const data = await response.json()
+  const outputText = data.choices[0].message.content
 
-  return data.choices[0].message.content
+  // Record spending (skip if using BYO key)
+  if (!byoApiKey) {
+    const estimatedOutputTokens = estimateTokens(outputText)
+    const cost = estimateOpenAICost(estimatedInputTokens, estimatedOutputTokens)
+    recordSpending('openai', cost)
+  }
+
+  return outputText
 }
 
 // Build auth nudge prompt for guest users

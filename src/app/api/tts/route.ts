@@ -4,9 +4,16 @@
  * Uses streaming endpoint for faster response times
  * 
  * Rate limited: 10 requests/minute per session
+ * 
+ * SPENDING CAP: $200/month for ElevenLabs
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import {
+  checkSpendingCap,
+  recordSpending,
+  estimateElevenLabsCost
+} from '@/lib/spending-caps'
 
 // ElevenLabs API configuration - using STREAMING endpoint for faster playback
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech'
@@ -77,6 +84,16 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Check spending cap FIRST
+    const capCheck = checkSpendingCap('elevenlabs')
+    if (!capCheck.allowed) {
+      console.error(`[TTS API] Spending cap reached: $${capCheck.currentSpend}/$${capCheck.cap}`)
+      return NextResponse.json(
+        { error: 'ElevenLabs spending cap reached ($200/month). Voice temporarily unavailable.' },
+        { status: 429 }
+      )
+    }
     
     // Check rate limit
     const { allowed, remaining } = checkRateLimit(sessionId)
@@ -87,6 +104,9 @@ export async function POST(request: NextRequest) {
         { status: 429, headers: { 'X-RateLimit-Remaining': '0' } }
       )
     }
+
+    // Estimate cost before making call
+    const estimatedCost = estimateElevenLabsCost(text.trim().length)
     
     // Call ElevenLabs Streaming API for faster response
     const response = await fetch(
@@ -128,6 +148,9 @@ export async function POST(request: NextRequest) {
         { status: response.status }
       )
     }
+
+    // Record spending after successful call
+    recordSpending('elevenlabs', estimatedCost)
     
     // Return audio as blob
     const audioBuffer = await response.arrayBuffer()
@@ -137,6 +160,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'audio/mpeg',
         'X-RateLimit-Remaining': remaining.toString(),
+        'X-Spending-Remaining': capCheck.remaining.toFixed(2),
         'Cache-Control': 'no-store'
       }
     })
