@@ -426,53 +426,46 @@ export function FullscreenApp() {
       {showAuthForm && !isAuthenticated && (
         <div 
           className="fixed inset-0 z-[80] flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}
+          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(20px)' }}
           onClick={() => setShowAuthForm(false)}
         >
           <div 
-            className="w-[380px] max-w-[90vw] rounded-[20px] p-7"
+            className="w-[340px] max-w-[85vw] rounded-[24px] px-8 py-7"
             style={{
-              background: 'rgba(28,28,30,0.85)',
-              backdropFilter: 'blur(18px)',
-              WebkitBackdropFilter: 'blur(18px)',
-              border: '1px solid rgba(255,255,255,0.08)'
+              background: 'rgba(38,38,40,0.95)',
+              backdropFilter: 'blur(40px)',
+              WebkitBackdropFilter: 'blur(40px)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(255,255,255,0.08)'
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-white">Sign In</h2>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-7">
+              <h2 className="text-[19px] font-normal text-white/90 tracking-tight">Sign In</h2>
               <button 
                 onClick={() => setShowAuthForm(false)}
-                className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors"
+                className="p-1 -mr-1 text-white/30 hover:text-white/50 transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
             
-            {/* Premium Login Form */}
+            {/* Form */}
             <div className="space-y-4">
-              <div>
-                <input 
-                  type="email" 
-                  placeholder="Email address"
-                  className="w-full px-4 py-3 rounded-[10px] text-[17px] text-white placeholder-white/40 outline-none transition-colors"
-                  style={{
-                    background: 'rgba(255,255,255,0.1)',
-                    border: '1px solid rgba(255,255,255,0.15)'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.3)'}
-                  onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
-                />
-              </div>
+              <input 
+                type="email" 
+                placeholder="Email address"
+                className="w-full px-4 py-3.5 rounded-[12px] text-[15px] text-gray-900 placeholder-gray-400 outline-none transition-all bg-white/95 border border-white/20 focus:border-white/40 focus:ring-0"
+              />
               <button 
-                className="w-full h-12 rounded-[10px] bg-white text-black text-[17px] font-semibold transition-opacity hover:opacity-90"
+                className="w-full py-3.5 rounded-[12px] bg-white text-gray-900 text-[15px] font-medium transition-opacity hover:opacity-85"
               >
-                Send Magic Link
+                Continue
               </button>
-              <p className="text-center text-[13px] text-white/40">
-                We'll send you a secure login link
+              <p className="text-center text-[12px] text-white/35 pt-1">
+                We'll email you a secure sign-in link.
               </p>
             </div>
           </div>
