@@ -3,7 +3,7 @@
 /**
  * EnergyCubeScene - Canvas wrapper for the Energy Cube
  * 
- * ORANGE uses EtherealCube (transparent glass + wispy plasma)
+ * ORANGE uses EtherealCube - isometric 3/4 view, dark background
  * Other colors use EnergyCube (rounded cube, voice states)
  */
 
@@ -20,7 +20,8 @@ interface EnergyCubeSceneProps {
   className?: string
 }
 
-function Lights() {
+// Standard lights for color cube
+function StandardLights() {
   return (
     <>
       <ambientLight intensity={0.3} />
@@ -30,35 +31,87 @@ function Lights() {
   )
 }
 
+// Ethereal cube lights - subtle, dramatic
+function EtherealLights() {
+  return (
+    <>
+      {/* Very subtle ambient - let the shader do the work */}
+      <ambientLight intensity={0.05} />
+      
+      {/* Key light from above-front for glass highlights */}
+      <directionalLight 
+        position={[2, 4, 3]} 
+        intensity={0.15} 
+        color="#ffffff"
+      />
+      
+      {/* Subtle purple rim from behind */}
+      <pointLight 
+        position={[-3, -2, -4]} 
+        intensity={0.1} 
+        color="#6622aa"
+      />
+      
+      {/* Blue accent from side */}
+      <pointLight 
+        position={[4, 1, -2]} 
+        intensity={0.08} 
+        color="#2244aa"
+      />
+    </>
+  )
+}
+
+// Map animation state to cube state
+function mapState(animationState: AnimationState): 'idle' | 'listening' | 'thinking' | 'speaking' {
+  switch (animationState) {
+    case 'listening': return 'listening'
+    case 'thinking': return 'thinking'
+    case 'speaking': return 'speaking'
+    default: return 'idle'
+  }
+}
+
 export function EnergyCubeScene({ 
   colorName = 'ORANGE', 
   animationState = 'idle',
   className = ''
 }: EnergyCubeSceneProps) {
   const isLandingState = colorName === 'ORANGE'
-  const isTalking = animationState === 'speaking'
-  const isListening = animationState === 'listening'
+  
+  // Isometric 3/4 camera for ethereal cube (slightly top-down, floating)
+  // Standard front view for color cubes
+  const cameraPosition: [number, number, number] = isLandingState 
+    ? [2.5, 2.2, 3.5]  // Isometric 3/4 view - top-right perspective
+    : [0, 0, 4]         // Front view for color cubes
+    
+  const cameraFov = isLandingState ? 40 : 50
   
   return (
     <div className={`w-full h-full ${className}`}>
       <Canvas
-        camera={{ position: [0, 0, 4], fov: 50 }}
+        camera={{ 
+          position: cameraPosition, 
+          fov: cameraFov,
+          near: 0.1,
+          far: 100
+        }}
         gl={{
           antialias: true,
           alpha: true,
-          powerPreference: 'high-performance'
+          powerPreference: 'high-performance',
+          premultipliedAlpha: false
         }}
         dpr={[1, 2]}
         style={{ background: 'transparent' }}
       >
-        <Lights />
+        {isLandingState ? <EtherealLights /> : <StandardLights />}
         
         <Suspense fallback={null}>
           {isLandingState ? (
-            <EtherealCube 
-              isTalking={isTalking}
-              isListening={isListening}
-            />
+            <group position={[0, 0.1, 0]}> {/* Slight lift for floating feel */}
+              <EtherealCube state={mapState(animationState)} />
+            </group>
           ) : (
             <EnergyCube 
               colorName={colorName} 
