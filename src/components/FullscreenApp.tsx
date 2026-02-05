@@ -96,11 +96,20 @@ export function FullscreenApp() {
   // State machine (matching legacy)
   const [appState, setAppState] = useState<AppState>('idle')
   const appStateRef = useRef<AppState>('idle')
+  
+  // Voice enabled toggle - stays ON until manually turned OFF
+  const [voiceEnabled, setVoiceEnabled] = useState(false)
+  const voiceEnabledRef = useRef(false)
+  const startListeningRef = useRef<(() => void) | null>(null)
 
-  // Keep ref in sync for callbacks
+  // Keep refs in sync for callbacks
   useEffect(() => {
     appStateRef.current = appState
   }, [appState])
+  
+  useEffect(() => {
+    voiceEnabledRef.current = voiceEnabled
+  }, [voiceEnabled])
 
   const { sendMessage, isInitialized: chatInitialized } = useChat({
     sessionId: session?.id ?? null,
@@ -119,14 +128,21 @@ export function FullscreenApp() {
       setAnimationState('speaking')
     },
     onEnd: () => {
-      setAppState('idle')
-      setAnimationState('idle')
-
       // Show auth nudge modal if AI suggested sign-in
       if (nudgeCtaRef.current) {
         setNudgeCta(nudgeCtaRef.current)
         setShowNudgeModal(true)
         nudgeCtaRef.current = null
+      }
+      
+      // If voice is still enabled, go back to listening for seamless conversation
+      if (voiceEnabledRef.current && startListeningRef.current) {
+        setAppState('listening')
+        setAnimationState('listening')
+        startListeningRef.current()
+      } else {
+        setAppState('idle')
+        setAnimationState('idle')
       }
     }
   })
@@ -168,24 +184,51 @@ export function FullscreenApp() {
           // Transition: thinking → speaking (handled by TTS onStart)
           speak(responseText)
         } else {
-          // No response, back to idle
-          setAppState('idle')
-          setAnimationState('idle')
+          // No response - if voice enabled, go back to listening
+          if (voiceEnabledRef.current && startListeningRef.current) {
+            setAppState('listening')
+            setAnimationState('listening')
+            startListeningRef.current()
+          } else {
+            setAppState('idle')
+            setAnimationState('idle')
+          }
         }
       } catch (error) {
         console.error('AI Error:', error)
-        setAppState('idle')
-        setAnimationState('idle')
+        // On error - if voice enabled, go back to listening
+        if (voiceEnabledRef.current && startListeningRef.current) {
+          setAppState('listening')
+          setAnimationState('listening')
+          startListeningRef.current()
+        } else {
+          setAppState('idle')
+          setAnimationState('idle')
+        }
       }
     },
     onEnd: () => {
-      // If still in listening state when recognition ends (no result)
-      if (appStateRef.current === 'listening') {
+      // Speech recognition ended (timeout or no result)
+      // If voice is still enabled, restart listening for continuous conversation
+      if (voiceEnabledRef.current && startListeningRef.current && appStateRef.current === 'listening') {
+        // Small delay to avoid rapid restarts
+        setTimeout(() => {
+          if (voiceEnabledRef.current && startListeningRef.current) {
+            startListeningRef.current()
+          }
+        }, 100)
+      } else if (appStateRef.current === 'listening') {
+        // Voice was turned off, go to idle
         setAppState('idle')
         setAnimationState('idle')
       }
     }
   })
+
+  // Store startListening in ref for use in TTS callback
+  useEffect(() => {
+    startListeningRef.current = startListening
+  }, [startListening])
 
   // Theme persistence - default to dark
   useEffect(() => {
@@ -201,42 +244,29 @@ export function FullscreenApp() {
     })
   }, [])
 
-  // Voice button click handler - state machine logic (matching legacy)
+  // Voice button click handler - Toggle ON/OFF for seamless conversation
   const handleVoiceClick = useCallback(async () => {
     // Don't allow voice input if chat isn't initialized
     if (!chatInitialized) return
 
     // CRITICAL: Unlock audio on user gesture (browser requires this)
-    // Must be done on every click to ensure audio context stays active
     await unlockAudio()
 
-    switch (appStateRef.current) {
-      case 'idle':
-        // Start listening
-        setAppState('listening')
-        setAnimationState('listening')
-        startListening()
-        break
-
-      case 'listening':
-        // Stop listening, return to idle
-        setAppState('idle')
-        setAnimationState('idle')
-        stopListening()
-        break
-
-      case 'thinking':
-        // Cannot interrupt AI thinking
-        break
-
-      case 'speaking':
-        // Stop speaking, return to idle
-        setAppState('idle')
-        setAnimationState('idle')
-        stopSpeaking()
-        break
+    if (!voiceEnabled) {
+      // Turn ON - Start listening and enable continuous conversation
+      setVoiceEnabled(true)
+      setAppState('listening')
+      setAnimationState('listening')
+      startListening()
+    } else {
+      // Turn OFF - Stop everything and go to idle
+      setVoiceEnabled(false)
+      setAppState('idle')
+      setAnimationState('idle')
+      stopListening()
+      stopSpeaking()
     }
-  }, [chatInitialized, startListening, stopListening, stopSpeaking, unlockAudio])
+  }, [chatInitialized, voiceEnabled, startListening, stopListening, stopSpeaking, unlockAudio])
 
   const bgColor = isDark ? '#050505' : '#ffffff'
   const textColor = isDark ? '#ffffff' : '#111111'
@@ -370,13 +400,13 @@ export function FullscreenApp() {
         >
           {/* Speaker/Cast Icon - System Level */}
           <div className={`relative p-4 rounded-full transition-all duration-300 ${
-            appState !== 'idle'
+            voiceEnabled
               ? 'bg-white/15'
               : 'bg-white/[0.03] group-hover:bg-white/[0.06]'
           }`}>
             <svg 
               className={`w-8 h-8 transition-all duration-200 ${
-                appState !== 'idle'
+                voiceEnabled
                   ? 'text-white' 
                   : 'text-white/50 group-hover:text-white/70'
               }`}
@@ -389,8 +419,8 @@ export function FullscreenApp() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
             </svg>
             
-            {/* Light pulse rings when voice is active (ON state) */}
-            {appState !== 'idle' && (
+            {/* Light pulse rings when voice is ON */}
+            {voiceEnabled && (
               <>
                 <div className="absolute inset-0 rounded-full border border-white/30 animate-ping" style={{ animationDuration: '1.5s' }} />
                 <div className="absolute inset-[-4px] rounded-full border border-white/20 animate-pulse" />
@@ -398,10 +428,10 @@ export function FullscreenApp() {
             )}
           </div>
           
-          {/* Label - Only show when OFF (idle state) */}
+          {/* Label - Only show when OFF */}
           <span 
             className={`text-[13px] tracking-wide transition-all duration-300 ${
-              appState !== 'idle'
+              voiceEnabled
                 ? 'opacity-0 h-0 overflow-hidden'
                 : 'opacity-100 text-white/40 group-hover:text-white/60'
             }`}
