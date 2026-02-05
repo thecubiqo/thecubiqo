@@ -277,17 +277,12 @@ export function FullscreenApp() {
           {/* Center - Empty */}
           <div className="flex-1" />
 
-          {/* Right side - Sign In (Apple pill style) */}
+          {/* Right side - Sign In (quiet, premium) */}
           <div className="flex items-center">
             {isAuthenticated ? (
               <button
                 onClick={() => setMenuOpen(true)}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-base font-normal text-white transition-all duration-150 ease-out hover:bg-white/25"
-                style={{
-                  background: 'rgba(255,255,255,0.2)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)'
-                }}
+                className="flex items-center gap-2 text-[14px] text-white/50 hover:text-white/70 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
@@ -297,12 +292,7 @@ export function FullscreenApp() {
             ) : (
               <button
                 onClick={() => setShowAuthForm(true)}
-                className="px-3.5 py-2 rounded-xl text-base font-normal text-white transition-all duration-150 ease-out hover:bg-white/25"
-                style={{
-                  background: 'rgba(255,255,255,0.2)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)'
-                }}
+                className="text-[14px] text-white/50 hover:text-white/70 transition-colors"
               >
                 Sign In
               </button>
@@ -401,24 +391,27 @@ export function FullscreenApp() {
         </p>
       </div>
 
-      {/* Privacy Disclaimer - Clean */}
-      <div className="fixed bottom-[24px] left-1/2 -translate-x-1/2 z-50 text-center max-w-[380px] px-5">
-        <p className="text-[11px] leading-[1.5] text-white/50 mb-2">
-          All conversations are confidential. CubiQo never stores or retains talks.
+      {/* Privacy Disclaimer - Clean Layout */}
+      <div className="fixed bottom-[24px] left-1/2 -translate-x-1/2 z-50 text-center max-w-[420px] px-5">
+        {/* First disclaimer - 2 lines */}
+        <p className="text-[11px] leading-[1.6] text-white/50 mb-4">
+          All conversations are confidential. CubiQo never stores or retains talks.<br />
+          We know users via abstracts, not exacts. Conversations are session-streamed only.
         </p>
-        <p className="text-[11px] leading-[1.5]">
-          <span className="text-white/40">Don't trust anyone with your data?</span>{' '}
+        
+        {/* BYO - single line */}
+        <p className="text-[11px] text-white/40">
+          Don't trust anyone with your data?{' '}
           <button 
             onClick={() => setMenuOpen(true)}
-            className="font-medium text-white/60 hover:text-white/80 transition-colors underline underline-offset-2"
+            className="text-white/60 hover:text-white/80 transition-colors underline underline-offset-2"
           >
             Try BYO Mode
           </button>
+          {' '}— Your data · Your storage · Your API key
         </p>
-        <p className="text-[10px] text-white/30 mt-1">
-          Your data · Your storage · Your API key
-        </p>
-        <p className="text-[9px] text-white/20 mt-4">
+        
+        <p className="text-[9px] text-white/20 mt-5">
           © 2025 Cubiqo United Inc.
         </p>
       </div>
@@ -480,71 +473,88 @@ export function FullscreenApp() {
         </div>
       )}
 
-      {/* Settings Panel - Apple Premium Glass */}
+      {/* Settings Panel - Premium Frosted Glass */}
       {menuOpen && (
-        <div className="fixed inset-0 z-[70]" style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setMenuOpen(false)}>
+        <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-[2px]" onClick={() => setMenuOpen(false)}>
           <div
             className="absolute left-0 top-0 bottom-0 w-[320px] max-w-[90vw] flex flex-col"
             style={{ 
               animation: 'slideInLeft 0.3s ease-out',
-              background: 'rgba(28,28,30,0.92)',
-              backdropFilter: 'blur(20px) saturate(1.5)',
-              WebkitBackdropFilter: 'blur(20px) saturate(1.5)',
-              borderRight: '1px solid rgba(255,255,255,0.08)'
+              background: isDark 
+                ? 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)'
+                : 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(245,245,245,0.98) 100%)',
+              backdropFilter: 'blur(24px) saturate(1.2)',
+              WebkitBackdropFilter: 'blur(24px) saturate(1.2)',
+              borderRight: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.08)',
+              boxShadow: isDark 
+                ? '0 0 80px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)'
+                : '0 0 80px rgba(0,0,0,0.15), 4px 0 24px rgba(0,0,0,0.1)'
             }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header - Just close button */}
-            <div className="flex items-center justify-end px-6 py-5">
+            <div className="flex items-center justify-end px-7 py-5">
               <button 
                 onClick={() => setMenuOpen(false)} 
-                className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors"
+                className={`p-1.5 rounded-full transition-all ${
+                  isDark 
+                    ? 'text-white/40 hover:text-white/70 hover:bg-white/5' 
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-black/5'
+                }`}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            {/* Content - Clean Sections */}
-            <div className="flex-1 overflow-y-auto px-6 pb-8 space-y-6" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {/* Content - Clean Sections (no scrollbar) */}
+            <div className="flex-1 overflow-y-auto px-7 pb-8 space-y-7 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               
               {/* 1. Mode */}
               <div>
-                <h3 className="text-[11px] uppercase tracking-[0.12em] mb-4 text-white/40">Mode</h3>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-white/[0.06]">
-                    <span className="text-[15px] text-white">Voice Mode</span>
-                    <span className="text-[11px] px-2.5 py-1 rounded-full bg-white/10 text-white/50">active</span>
+                <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Mode</h3>
+                <div className="space-y-2">
+                  <div className={`flex items-center justify-between py-3 px-4 rounded-xl ${
+                    isDark ? 'bg-white/[0.04] border border-white/[0.04]' : 'bg-gray-100 border border-gray-200'
+                  }`}>
+                    <span className={`text-[14px] ${isDark ? 'text-white/80' : 'text-gray-800'}`}>Voice Mode</span>
+                    <span className={`text-[10px] px-2.5 py-1 rounded-full ${
+                      isDark ? 'bg-white/[0.08] text-white/50' : 'bg-gray-200 text-gray-500'
+                    }`}>active</span>
                   </div>
                   <a
                     href="/chat"
-                    className="flex items-center justify-between py-3 px-4 rounded-xl hover:bg-white/[0.04] transition-colors"
+                    className={`flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${
+                      isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
+                    }`}
                   >
-                    <span className="text-[15px] text-white/60">Chat Mode</span>
+                    <span className={`text-[14px] ${isDark ? 'text-white/50' : 'text-gray-500'}`}>Chat Mode</span>
                   </a>
                 </div>
               </div>
 
               {/* Soft Divider */}
-              <div className="h-px bg-white/[0.08]" />
+              <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
 
               {/* 2. Experience */}
               <div>
-                <h3 className="text-[11px] uppercase tracking-[0.12em] mb-4 text-white/40">Experience</h3>
-                <div className="space-y-1">
+                <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Experience</h3>
+                <div className="space-y-2">
                   <button
                     onClick={toggleTheme}
-                    className="w-full flex items-center justify-between py-3 px-4 rounded-xl hover:bg-white/[0.04] transition-colors"
+                    className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${
+                      isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
+                    }`}
                   >
-                    <span className="text-[15px] text-white/80">Theme</span>
-                    <span className="text-[14px] text-white/40">{isDark ? 'Dark' : 'Light'}</span>
+                    <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>Theme</span>
+                    <span className={`text-[13px] ${isDark ? 'text-white/40' : 'text-gray-400'}`}>{isDark ? 'Dark' : 'Light'}</span>
                   </button>
                   
-                  <div className="py-3 px-4 rounded-xl bg-white/[0.03]">
+                  <div className={`py-3 px-4 rounded-xl ${isDark ? 'bg-white/[0.02]' : 'bg-gray-50'}`}>
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-[15px] text-white/80">Cube Size</span>
-                      <span className="text-[14px] text-white/40">{cubeSize}%</span>
+                      <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>Cube Size</span>
+                      <span className={`text-[13px] ${isDark ? 'text-white/40' : 'text-gray-400'}`}>{cubeSize}%</span>
                     </div>
                     <input
                       type="range"
@@ -554,7 +564,9 @@ export function FullscreenApp() {
                       onChange={(e) => handleCubeSizeChange(parseInt(e.target.value))}
                       className="w-full h-1 rounded-full appearance-none cursor-pointer"
                       style={{
-                        background: `linear-gradient(to right, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.4) ${(cubeSize - 50) / 100 * 100}%, rgba(255,255,255,0.1) ${(cubeSize - 50) / 100 * 100}%, rgba(255,255,255,0.1) 100%)`
+                        background: isDark 
+                          ? `linear-gradient(to right, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.25) ${(cubeSize - 50) / 100 * 100}%, rgba(255,255,255,0.08) ${(cubeSize - 50) / 100 * 100}%, rgba(255,255,255,0.08) 100%)`
+                          : `linear-gradient(to right, rgba(100,100,100,0.4) 0%, rgba(100,100,100,0.4) ${(cubeSize - 50) / 100 * 100}%, rgba(200,200,200,0.5) ${(cubeSize - 50) / 100 * 100}%, rgba(200,200,200,0.5) 100%)`
                       }}
                       data-testid="cube-size-slider"
                     />
@@ -563,60 +575,82 @@ export function FullscreenApp() {
               </div>
 
               {/* Soft Divider */}
-              <div className="h-px bg-white/[0.08]" />
+              <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
 
               {/* 3. Privacy */}
               <div>
-                <h3 className="text-[11px] uppercase tracking-[0.12em] mb-4 text-white/40">Privacy</h3>
+                <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Privacy</h3>
                 <button
                   onClick={() => setShowBYOSettings(!showBYOSettings)}
-                  className="w-full flex items-center justify-between py-3 px-4 rounded-xl hover:bg-white/[0.04] transition-colors"
+                  className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${
+                    isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
+                  }`}
                 >
-                  <span className="text-[15px] text-white/80">BYO Mode</span>
-                  <span className={`text-[14px] ${isBYOEnabled ? 'text-white/60' : 'text-white/30'}`}>
+                  <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>BYO Mode</span>
+                  <span className={`text-[13px] ${isBYOEnabled ? (isDark ? 'text-white/60' : 'text-gray-600') : (isDark ? 'text-white/30' : 'text-gray-400')}`}>
                     {isBYOEnabled ? 'On' : 'Off'}
                   </span>
                 </button>
 
                 {showBYOSettings && (
-                  <div className="mt-2 rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06]">
+                  <div className={`mt-2 rounded-xl overflow-hidden ${isDark ? 'bg-white/[0.02] border border-white/[0.04]' : 'bg-gray-50 border border-gray-200'}`}>
                     <BYOSettings onClose={() => setShowBYOSettings(false)} />
                   </div>
                 )}
               </div>
 
               {/* Soft Divider */}
-              <div className="h-px bg-white/[0.08]" />
+              <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
 
               {/* 4. Account */}
               <div>
-                <h3 className="text-[11px] uppercase tracking-[0.12em] mb-4 text-white/40">Account</h3>
+                <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Account</h3>
 
                 {isAuthenticated ? (
-                  <div className="space-y-1">
-                    <div className="py-3 px-4 rounded-xl bg-white/[0.03]">
-                      <span className="text-[14px] truncate block text-white/60">{user?.email}</span>
+                  <div className="space-y-2">
+                    <div className={`py-3 px-4 rounded-xl ${isDark ? 'bg-white/[0.03]' : 'bg-gray-50'}`}>
+                      <span className={`text-[13px] truncate block ${isDark ? 'text-white/50' : 'text-gray-500'}`}>{user?.email}</span>
                     </div>
                     <button
                       onClick={() => signOut()}
-                      className="w-full text-left py-3 px-4 rounded-xl text-[15px] text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      className={`w-full text-left py-3 px-4 rounded-xl text-[14px] transition-colors ${
+                        isDark ? 'text-white/40 hover:text-red-400/80 hover:bg-red-500/[0.05]' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                      }`}
                     >
                       Sign Out
                     </button>
                   </div>
+                ) : showAuthForm ? (
+                  <div className="space-y-4">
+                    <div className={`rounded-xl overflow-hidden p-4 ${isDark ? 'bg-white/[0.02]' : 'bg-gray-50'}`}>
+                      <LoginForm />
+                    </div>
+                    <button
+                      onClick={() => setShowAuthForm(false)}
+                      className={`w-full text-center text-[12px] transition-colors ${
+                        isDark ? 'text-white/30 hover:text-white/50' : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <button
                       onClick={() => setShowAuthForm(true)}
-                      className="w-full flex items-center justify-between py-3 px-4 rounded-xl hover:bg-white/[0.04] transition-colors"
+                      className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${
+                        isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
+                      }`}
                     >
-                      <span className="text-[15px] text-white/80">Email</span>
+                      <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>Email</span>
                     </button>
                     <button
                       onClick={() => setShowAuthForm(true)}
-                      className="w-full py-3 px-4 rounded-xl bg-white text-black text-[15px] font-semibold hover:opacity-90 transition-opacity"
+                      className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${
+                        isDark ? 'bg-white/[0.04] hover:bg-white/[0.06] border border-white/[0.04]' : 'bg-gray-100 hover:bg-gray-150 border border-gray-200'
+                      }`}
                     >
-                      Send Magic Link
+                      <span className={`text-[14px] ${isDark ? 'text-white/80' : 'text-gray-800'}`}>Send Magic Link</span>
                     </button>
                   </div>
                 )}
