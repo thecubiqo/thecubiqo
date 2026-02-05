@@ -346,7 +346,7 @@ export function FullscreenApp() {
       </div>
 
       {/* Voice Button - Apple System Control Style */}
-      <div className="fixed bottom-[200px] left-1/2 -translate-x-1/2 z-[60]">
+      <div className="fixed bottom-[260px] left-1/2 -translate-x-1/2 z-[60]">
         <button
           onClick={handleVoiceClick}
           disabled={!voiceSupported}
@@ -377,25 +377,29 @@ export function FullscreenApp() {
         </button>
       </div>
 
-      {/* Status text */}
-      <div className="fixed bottom-[140px] left-1/2 -translate-x-1/2 z-50 text-center pointer-events-none">
-        <p className="text-[18px] font-normal text-white">
+      {/* Bottom content stack - Status + Disclaimer */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center pb-6">
+        {/* Status text */}
+        <p className="text-[18px] font-normal text-white mb-8">
           {!chatInitialized && 'Connecting...'}
           {chatInitialized && appState === 'idle' && 'Tap to speak with CubiQo™'}
           {chatInitialized && appState === 'listening' && (transcript || 'Listening...')}
           {chatInitialized && appState === 'thinking' && 'Thinking...'}
           {chatInitialized && appState === 'speaking' && 'Speaking...'}
         </p>
-      </div>
-
-      {/* Privacy Disclaimer */}
-      <div className="fixed bottom-[20px] left-1/2 -translate-x-1/2 z-50 text-center w-full max-w-[500px] px-6">
-        <p className="text-[12px] leading-[1.7] text-white/60 mb-3">
-          All conversations are confidential. CubiQo never stores or retains talks.<br />
+        
+        {/* Disclaimer - Line 1 */}
+        <p className="text-[13px] text-white/60 mb-1">
+          All conversations are confidential. CubiQo never stores or retains talks.
+        </p>
+        
+        {/* Disclaimer - Line 2 */}
+        <p className="text-[13px] text-white/60 mb-6">
           We know users via abstracts, not exacts. Conversations are session-streamed only.
         </p>
         
-        <p className="text-[12px] text-white/50">
+        {/* BYO - Single line */}
+        <p className="text-[13px] text-white/50 mb-6">
           Don't trust anyone with your data?{' '}
           <button 
             onClick={() => setMenuOpen(true)}
@@ -406,7 +410,8 @@ export function FullscreenApp() {
           {' '}— Your data · Your storage · Your API key
         </p>
         
-        <p className="text-[10px] text-white/30 mt-4">
+        {/* Copyright */}
+        <p className="text-[10px] text-white/30">
           © 2025 Cubiqo United Inc.
         </p>
       </div>
@@ -590,63 +595,6 @@ export function FullscreenApp() {
                 {showBYOSettings && (
                   <div className={`mt-2 rounded-xl overflow-hidden ${isDark ? 'bg-white/[0.02] border border-white/[0.04]' : 'bg-gray-50 border border-gray-200'}`}>
                     <BYOSettings onClose={() => setShowBYOSettings(false)} />
-                  </div>
-                )}
-              </div>
-
-              {/* Soft Divider */}
-              <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
-
-              {/* 4. Account */}
-              <div>
-                <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Account</h3>
-
-                {isAuthenticated ? (
-                  <div className="space-y-2">
-                    <div className={`py-3 px-4 rounded-xl ${isDark ? 'bg-white/[0.03]' : 'bg-gray-50'}`}>
-                      <span className={`text-[13px] truncate block ${isDark ? 'text-white/50' : 'text-gray-500'}`}>{user?.email}</span>
-                    </div>
-                    <button
-                      onClick={() => signOut()}
-                      className={`w-full text-left py-3 px-4 rounded-xl text-[14px] transition-colors ${
-                        isDark ? 'text-white/40 hover:text-red-400/80 hover:bg-red-500/[0.05]' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
-                      }`}
-                    >
-                      Sign Out
-                    </button>
-                  </div>
-                ) : showAuthForm ? (
-                  <div className="space-y-4">
-                    <div className={`rounded-xl overflow-hidden p-4 ${isDark ? 'bg-white/[0.02]' : 'bg-gray-50'}`}>
-                      <LoginForm />
-                    </div>
-                    <button
-                      onClick={() => setShowAuthForm(false)}
-                      className={`w-full text-center text-[12px] transition-colors ${
-                        isDark ? 'text-white/30 hover:text-white/50' : 'text-gray-400 hover:text-gray-600'
-                      }`}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => setShowAuthForm(true)}
-                      className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${
-                        isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>Email</span>
-                    </button>
-                    <button
-                      onClick={() => setShowAuthForm(true)}
-                      className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${
-                        isDark ? 'bg-white/[0.04] hover:bg-white/[0.06] border border-white/[0.04]' : 'bg-gray-100 hover:bg-gray-150 border border-gray-200'
-                      }`}
-                    >
-                      <span className={`text-[14px] ${isDark ? 'text-white/80' : 'text-gray-800'}`}>Send Magic Link</span>
-                    </button>
                   </div>
                 )}
               </div>
