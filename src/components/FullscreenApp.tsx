@@ -479,14 +479,14 @@ export function FullscreenApp() {
               : 'cursor-default'
           }`}
         >
-          {/* Speaker/Cast Icon - System Level */}
-          <div className={`relative p-4 rounded-full transition-all duration-300 ${
+          {/* Speaker Icon - Smaller */}
+          <div className={`relative p-3 rounded-full transition-all duration-300 ${
             voiceEnabled
               ? 'bg-white/15'
               : 'bg-white/[0.03] group-hover:bg-white/[0.06]'
           }`}>
             <svg 
-              className={`w-8 h-8 transition-all duration-200 ${
+              className={`w-6 h-6 transition-all duration-200 ${
                 voiceEnabled
                   ? 'text-white' 
                   : 'text-white/50 group-hover:text-white/70'
@@ -509,7 +509,7 @@ export function FullscreenApp() {
             )}
           </div>
           
-          {/* Label - Only show when OFF */}
+          {/* Label - Simplified to just "Enable" */}
           <span 
             className={`text-[13px] tracking-wide transition-all duration-300 ${
               voiceEnabled
@@ -519,28 +519,27 @@ export function FullscreenApp() {
           >
             {!voiceSupported 
               ? 'Voice access is controlled by your browser.'
-              : 'Enable voice · Converse'
+              : 'Enable'
             }
           </span>
         </button>
       </div>
 
-      {/* Footer - Single line Apple Premium */}
-      <footer className="fixed bottom-0 left-0 right-0 z-50 py-6 text-center">
-        <p className="text-[11px] text-white/35 tracking-wide">
+      {/* Footer - Much lower on screen */}
+      <footer className="fixed bottom-2 left-0 right-0 z-50 text-center">
+        <p className="text-[10px] text-white/25 tracking-wide">
           All conversations are confidential. CubiQo never retains user voice by policy.
-          <span className="mx-3">·</span>
+          <span className="mx-2">·</span>
           <button 
             onClick={() => setMenuOpen(true)}
-            className="text-white/55 hover:text-white/75 transition-colors"
+            className="text-white/40 hover:text-white/60 transition-colors"
           >
             Try BYO Mode
           </button>
           <span className="mx-1">—</span>
-          <span className="text-white/30">Your data · Your storage · Your API key</span>
-        </p>
-        <p className="text-[10px] text-white/20 mt-3 tracking-wide">
-          © 2025 Cubiqo United Inc.
+          <span className="text-white/25">Your data · Your storage · Your API key</span>
+          <span className="mx-2">·</span>
+          <span className="text-white/20">© 2025 Cubiqo United Inc.</span>
         </p>
       </footer>
 
