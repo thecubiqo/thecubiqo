@@ -286,7 +286,68 @@ export function KeywordPanel({
             )
           })}
         </div>
+
+        {/* Trending Keywords Widget at Bottom */}
+        <div className="px-8 pb-8">
+          <div className="relative overflow-hidden rounded-3xl backdrop-blur-2xl border border-white/[0.08]" 
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+            }}>
+            <div className="px-6 pt-5 pb-3">
+              <div className="flex items-center gap-2 mb-1">
+                <svg className="w-3.5 h-3.5 text-amber-400/80" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <h3 className="text-xs font-medium text-white/60 tracking-wide uppercase">Trending</h3>
+              </div>
+            </div>
+            <div className="h-[90px] relative overflow-hidden px-6 pb-5">
+              <div className="absolute left-6 right-6 top-0 animate-scroll-vertical-slow flex flex-wrap gap-2">
+                {[
+                  { word: 'productivity', color: '#22c55e' },
+                  { word: 'mindfulness', color: '#eab308' },
+                  { word: 'adventure', color: '#ec4899' },
+                  { word: 'creativity', color: '#8b5cf6' },
+                  { word: 'fitness', color: '#22c55e' },
+                  { word: 'travel', color: '#eab308' },
+                  { word: 'relationships', color: '#ec4899' },
+                  { word: 'learning', color: '#3b82f6' },
+                  { word: 'productivity', color: '#22c55e' },
+                  { word: 'mindfulness', color: '#eab308' },
+                ].map((item, i) => (
+                  <span
+                    key={i}
+                    className="inline-block px-3.5 py-1.5 rounded-full text-xs font-medium text-white/90"
+                    style={{ 
+                      background: `linear-gradient(135deg, ${item.color}20, ${item.color}08)`,
+                      border: `1px solid ${item.color}30`,
+                      boxShadow: `0 2px 8px ${item.color}15`
+                    }}
+                  >
+                    {item.word}
+                  </span>
+                ))}
+              </div>
+              {/* Gradient fade edges */}
+              <div className="absolute inset-x-0 top-0 h-6 pointer-events-none" 
+                style={{ background: 'linear-gradient(to bottom, rgba(20, 20, 25, 0.9), transparent)' }} />
+              <div className="absolute inset-x-0 bottom-0 h-6 pointer-events-none" 
+                style={{ background: 'linear-gradient(to top, rgba(20, 20, 25, 0.9), transparent)' }} />
+            </div>
+          </div>
+        </div>
       </div>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes scroll-vertical-slow {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(-40%); }
+        }
+        .animate-scroll-vertical-slow {
+          animation: scroll-vertical-slow 15s linear infinite;
+        }
+      `}} />
     </div>
   )
 }
