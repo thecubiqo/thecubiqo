@@ -11,6 +11,7 @@ import { LoginForm, AuthNudgeModal } from './auth'
 import { BYOSettings } from './byo'
 import { KeywordPanel } from './KeywordPanel'
 import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
+import { GettingStartedPanel } from './GettingStartedPanel'
 import { LandingCube } from './LandingCube'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
@@ -42,6 +43,7 @@ export function FullscreenApp() {
   const [showKeywordPanel, setShowKeywordPanel] = useState(false)
   const [showRGYChats, setShowRGYChats] = useState(false)
   const [showLandingCube, setShowLandingCube] = useState(false)
+  const [showGettingStarted, setShowGettingStarted] = useState(false)
   
   // RGY Signal pulse state - triggers brief pulse when keyword is saved
   const [rgyPulseColor, setRgyPulseColor] = useState<'RED' | 'YELLOW' | 'GREEN' | null>(null)
@@ -398,6 +400,23 @@ export function FullscreenApp() {
         )}
       </div>
 
+      {/* Left side - Getting Started */}
+      <div className="fixed left-4 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
+        <button
+          onClick={() => setShowGettingStarted(true)}
+          className={`group flex flex-col items-center gap-2 p-3 rounded-2xl transition-all duration-200 ${
+            isDark 
+              ? 'hover:bg-white/5 text-white/40 hover:text-white/70' 
+              : 'hover:bg-black/5 text-gray-400 hover:text-gray-700'
+          }`}
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+          </svg>
+          <span className="text-[10px] font-medium tracking-wide">EXAMPLES</span>
+        </button>
+      </div>
+
       {/* Right side - RGY Signal + Keywords underneath */}
       <div className="fixed right-4 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
         {/* RGY Traffic Light - Opens Keywords Panel */}
@@ -751,6 +770,18 @@ export function FullscreenApp() {
         isOpen={showNudgeModal}
         onClose={() => setShowNudgeModal(false)}
         cta={nudgeCta}
+      />
+
+      {/* Getting Started Panel (Left side) */}
+      <GettingStartedPanel
+        isOpen={showGettingStarted}
+        onClose={() => setShowGettingStarted(false)}
+        isDark={isDark}
+        onExampleClick={(text) => {
+          // TODO: Send example text to chat
+          console.log('Example clicked:', text)
+          setShowGettingStarted(false)
+        }}
       />
 
       {/* Keyword Panel (Right side - slides in smoothly) */}
