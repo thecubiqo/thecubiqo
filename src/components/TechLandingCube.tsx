@@ -7,7 +7,7 @@
  * blue/purple/pink flows with orange accents, voice-reactive animations
  */
 
-import { useRef, useMemo, useEffect } from 'react'
+import React, { useRef, useMemo, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
