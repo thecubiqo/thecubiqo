@@ -46,6 +46,25 @@ export function FullscreenApp() {
   // RGY Signal pulse state - triggers brief pulse when keyword is saved
   const [rgyPulseColor, setRgyPulseColor] = useState<'RED' | 'YELLOW' | 'GREEN' | null>(null)
   
+  // Early access signup
+  const [earlyAccessEmail, setEarlyAccessEmail] = useState('')
+  const [earlyAccessSubmitted, setEarlyAccessSubmitted] = useState(false)
+  const [showEarlyAccess, setShowEarlyAccess] = useState(true)
+  
+  const handleEarlyAccessSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!earlyAccessEmail.trim()) return
+    
+    const testers = JSON.parse(localStorage.getItem('cubiqo_early_access') || '[]')
+    testers.push({ email: earlyAccessEmail, timestamp: Date.now() })
+    localStorage.setItem('cubiqo_early_access', JSON.stringify(testers))
+    
+    setEarlyAccessSubmitted(true)
+    setTimeout(() => {
+      setShowEarlyAccess(false)
+    }, 2000)
+  }
+  
   // Function to trigger RGY pulse (call this when a keyword is saved)
   const triggerRgyPulse = (color: 'RED' | 'YELLOW' | 'GREEN') => {
     setRgyPulseColor(color)
@@ -461,6 +480,50 @@ export function FullscreenApp() {
           </span>
         </button>
       </div>
+
+      {/* Early Access Banner */}
+      {showEarlyAccess && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-[500px] max-w-[90vw]">
+          <div className="backdrop-blur-xl rounded-2xl p-4 border border-white/10" style={{ background: 'rgba(20, 20, 25, 0.95)' }}>
+            <button 
+              onClick={() => setShowEarlyAccess(false)}
+              className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white/80 transition-all"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    EARLY ACCESS
+                  </span>
+                </div>
+                <p className="text-sm text-white/90 font-medium mb-0.5">Join testing — Shape the future</p>
+                <p className="text-xs text-white/40">Be first to try new features and help us improve</p>
+              </div>
+              <form onSubmit={handleEarlyAccessSubmit} className="flex gap-2">
+                <input
+                  type="email"
+                  value={earlyAccessEmail}
+                  onChange={(e) => setEarlyAccessEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  className="w-48 px-3 py-2 text-sm rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/25 focus:outline-none focus:border-white/30"
+                />
+                <button
+                  type="submit"
+                  disabled={earlyAccessSubmitted}
+                  className="px-4 py-2 text-sm rounded-lg bg-white text-black font-medium hover:bg-white/90 transition-all disabled:opacity-50"
+                >
+                  {earlyAccessSubmitted ? '✓' : 'Join'}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer - Single line Apple Premium */}
       <footer className="fixed bottom-0 left-0 right-0 z-50 py-6 text-center">

@@ -75,6 +75,22 @@ const ZONES = [
 
 export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalProps) {
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
+  const [email, setEmail] = useState('')
+  const [isSubmitted, setIsSubmitted] = useState(false)
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email.trim()) return
+    
+    // Store in localStorage for now
+    const testers = JSON.parse(localStorage.getItem('signal_early_access') || '[]')
+    testers.push({ email, timestamp: Date.now() })
+    localStorage.setItem('signal_early_access', JSON.stringify(testers))
+    
+    setIsSubmitted(true)
+    setTimeout(() => setIsSubmitted(false), 3000)
+    setEmail('')
+  }
 
   if (!isOpen) return null
 
@@ -110,6 +126,42 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
 
         {/* Content */}
         <div className="max-w-4xl mx-auto px-6 py-16">
+          {/* Early Access Banner */}
+          <div className="mb-12 p-6 rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent backdrop-blur-sm">
+            <div className="flex items-center justify-between gap-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    EARLY ACCESS
+                  </span>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-1">
+                  Join us in testing Signal
+                </h3>
+                <p className="text-sm text-white/50">
+                  Be among the first to experience intent-based matching. Get early access and help shape the future.
+                </p>
+              </div>
+              <form onSubmit={handleEmailSubmit} className="flex gap-2 min-w-[320px]">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  required
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-colors"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmitted}
+                  className="px-6 py-2.5 rounded-xl bg-white text-black font-medium hover:bg-white/90 transition-all disabled:opacity-50"
+                >
+                  {isSubmitted ? '✓ Joined' : 'Join'}
+                </button>
+              </form>
+            </div>
+          </div>
+
           {/* Title */}
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-white mb-4">Choose Your Context</h1>
