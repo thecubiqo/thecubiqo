@@ -297,11 +297,12 @@ export function FullscreenApp() {
       className="fixed inset-0 overflow-hidden transition-colors duration-400"
       style={{ background: bgColor, color: textColor }}
     >
-      {/* Energy Cube - Positioned under header, above voice button */}
+      {/* Energy Cube - Positioned right-center, under header */}
       <div 
-        className="fixed left-1/2 -translate-x-1/2 z-[1]"
+        className="fixed z-[1]"
         style={{ 
-          top: '45%',
+          left: '58%',
+          top: '42%',
           transform: `translate(-50%, -50%) scale(${cubeSize / 100})`,
           width: '600px',
           height: '600px'
