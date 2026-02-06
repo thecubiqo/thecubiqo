@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server'
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
@@ -95,4 +96,9 @@ export async function getRegionByRegionId(
 
     throw err;
   }
+}
+
+// Next.js API route handler
+export async function GET() {
+  return NextResponse.json({ message: 'Services API endpoint' })
 }
