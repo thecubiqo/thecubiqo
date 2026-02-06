@@ -289,7 +289,7 @@ export function FullscreenApp() {
     }
   }, [chatInitialized, voiceEnabled, startListening, stopListening, stopSpeaking, unlockAudio])
 
-  const bgColor = isDark ? '#050505' : '#ffffff'
+  const bgColor = isDark ? '#1a1a1e' : '#ffffff'
   const textColor = isDark ? '#ffffff' : '#111111'
 
   return (
