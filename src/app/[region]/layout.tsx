@@ -3,10 +3,14 @@ import { getRegionConfig } from '@/lib/config/regions'
 import { RegionProvider } from '@/contexts/RegionContext'
 import { getAllvalidRegin } from '../api/services/route'
 
-// Valid region IDs
-const VALID_REGIONS = await getAllvalidRegin()
-
-// console.log("valid are", await getAllvalidRegin());
+// Valid region IDs - fetch at runtime, use fallback at build time
+let VALID_REGIONS: string[] = []
+try {
+  VALID_REGIONS = await getAllvalidRegin()
+} catch (err) {
+  // Build time fallback
+  VALID_REGIONS = ['global', 'us', 'uk', 'eu']
+}
 
 
 interface RegionalLayoutProps {
