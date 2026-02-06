@@ -63,6 +63,7 @@ const fragmentShader = `
   uniform float uModeIntensity;
   uniform float uModeTransition;
   uniform float uProcessing;
+  uniform float uSpeaking;
   uniform vec3 uPrimaryColor;
   uniform vec3 uSecondaryColor;
   uniform vec3 uAccentColor;
@@ -180,7 +181,12 @@ const fragmentShader = `
     float spine = smoothstep(0.4, 0.0, centerDist) * (0.5 + 0.5 * sin(vPosition.y * 4.0 + uTime * 0.5));
     accentMix += spine * 0.2;
     
+    // Orange rim glow when speaking
+    vec3 orangeGlow = vec3(1.0, 0.5, 0.1);
+    float rimGlow = pow(fresnel, 2.0) * uSpeaking;
+    
     vec3 finalColor = mix(energyColor, uAccentColor, accentMix * 0.4);
+    finalColor = mix(finalColor, orangeGlow, rimGlow * 0.8);
     finalColor *= uColorIntensity;
     
     float glowIntensity = energyPattern * mix(0.4, 0.8, uModeTransition);
@@ -311,6 +317,7 @@ export function EnergyCube({
     uModeIntensity: { value: 0 },
     uModeTransition: { value: 0 },
     uProcessing: { value: 0 },
+    uSpeaking: { value: 0 },
     uPrimaryColor: { value: colorConfig.primary.clone() },
     uSecondaryColor: { value: colorConfig.secondary.clone() },
     uAccentColor: { value: colorConfig.accent.clone() },
@@ -379,6 +386,11 @@ export function EnergyCube({
       uniforms.uProcessing.value,
       modeConfig.processing,
       delta * 3
+    )
+    uniforms.uSpeaking.value = THREE.MathUtils.lerp(
+      uniforms.uSpeaking.value,
+      animationState === 'speaking' ? 1.0 : 0.0,
+      delta * 4
     )
     uniforms.uColorIntensity.value = THREE.MathUtils.lerp(
       uniforms.uColorIntensity.value,
