@@ -42,7 +42,12 @@ export function EnergyCubeScene({
   return (
     <div className={`w-full h-full ${className}`}>
       <Canvas
-        camera={{ position: [0, 0, 4], fov: 50 }}
+        camera={{ 
+          position: [4, 3.5, 4], // Isometric-style elevated angle
+          fov: 35,
+          near: 0.1,
+          far: 1000
+        }}
         gl={{
           antialias: true,
           alpha: true,
