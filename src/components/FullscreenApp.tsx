@@ -468,7 +468,7 @@ export function FullscreenApp() {
       </div>
 
       {/* Voice Enable Control - Below footer area, never overlaps cube */}
-      <div className="fixed bottom-[100px] left-1/2 -translate-x-1/2 z-[55] flex flex-col items-center">
+      <div className="fixed bottom-[140px] left-1/2 -translate-x-1/2 z-[55] flex flex-col items-center">
         <button
           onClick={handleVoiceClick}
           disabled={!voiceSupported}
