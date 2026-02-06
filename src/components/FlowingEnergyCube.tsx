@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * FlowingEnergyCube - High-definition energy cube matching the mockup
- * Flowing blue/purple/pink/orange energy with defined edges and sparkles
+ * FlowingEnergyCube - Energy ribbons flowing through cube structure
+ * Matches mockup: blue/purple/pink/orange flowing ribbons with sparkles
  */
 
 import React, { useRef, useMemo, useEffect } from 'react'
@@ -10,11 +10,12 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { RoundedBox } from '@react-three/drei'
 
-// Flowing plasma energy shader
-const flowingVertexShader = `
+// Energy ribbon shader - flowing aurora-like streams
+const ribbonVertexShader = `
   varying vec3 vPosition;
   varying vec3 vNormal;
   varying vec3 vWorldPosition;
+  varying vec2 vUv;
   
   uniform float uTime;
   uniform float uIntensity;
@@ -22,10 +23,12 @@ const flowingVertexShader = `
   void main() {
     vPosition = position;
     vNormal = normalize(normalMatrix * normal);
+    vUv = uv;
     
-    // Gentle breathing
-    float breathe = sin(uTime * 0.5) * 0.015 * uIntensity;
-    vec3 displaced = position * (1.0 + breathe);
+    // Gentle wave motion
+    float wave = sin(position.x * 2.0 + uTime * 0.5) * 0.02;
+    wave += sin(position.y * 2.0 + uTime * 0.3) * 0.02;
+    vec3 displaced = position + normal * wave * uIntensity;
     
     vec4 worldPos = modelMatrix * vec4(displaced, 1.0);
     vWorldPosition = worldPos.xyz;
@@ -34,25 +37,28 @@ const flowingVertexShader = `
   }
 `
 
-const flowingFragmentShader = `
+const ribbonFragmentShader = `
   precision highp float;
   
   varying vec3 vPosition;
   varying vec3 vNormal;
   varying vec3 vWorldPosition;
+  varying vec2 vUv;
   
   uniform float uTime;
   uniform float uIntensity;
   
-  // Simplex noise
-  vec4 permute(vec4 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+  // Simplex noise for organic flow
+  vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+  vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+  vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
   vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
   
-  float snoise(vec3 v) { 
+  float snoise(vec3 v) {
     const vec2 C = vec2(1.0/6.0, 1.0/3.0);
     const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
     
-    vec3 i = floor(v + dot(v, C.yyy));
+    vec3 i  = floor(v + dot(v, C.yyy));
     vec3 x0 = v - i + dot(i, C.xxx);
     
     vec3 g = step(x0.yzx, x0.xyz);
@@ -64,13 +70,13 @@ const flowingFragmentShader = `
     vec3 x2 = x0 - i2 + C.yyy;
     vec3 x3 = x0 - D.yyy;
     
-    i = mod(i, 289.0);
+    i = mod289(i);
     vec4 p = permute(permute(permute(
               i.z + vec4(0.0, i1.z, i2.z, 1.0))
             + i.y + vec4(0.0, i1.y, i2.y, 1.0))
             + i.x + vec4(0.0, i1.x, i2.x, 1.0));
             
-    float n_ = 1.0/7.0;
+    float n_ = 0.142857142857;
     vec3 ns = n_ * D.wyz - D.xzx;
     
     vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
@@ -78,8 +84,8 @@ const flowingFragmentShader = `
     vec4 x_ = floor(j * ns.z);
     vec4 y_ = floor(j - 7.0 * x_);
     
-    vec4 x = x_ * ns.x + ns.yyyy;
-    vec4 y = y_ * ns.x + ns.yyyy;
+    vec4 x = x_ *ns.x + ns.yyyy;
+    vec4 y = y_ *ns.x + ns.yyyy;
     vec4 h = 1.0 - abs(x) - abs(y);
     
     vec4 b0 = vec4(x.xy, y.xy);
@@ -105,74 +111,65 @@ const flowingFragmentShader = `
     return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
   }
   
-  float fbm(vec3 p) {
-    float value = 0.0;
-    float amplitude = 0.5;
-    for (int i = 0; i < 6; i++) {
-      value += amplitude * snoise(p);
-      p *= 2.0;
-      amplitude *= 0.5;
-    }
-    return value;
-  }
-  
   void main() {
-    float time = uTime * 0.15;
-    vec3 pos = vPosition * 2.5;
+    float time = uTime * 0.3;
     
-    // Multiple flowing energy layers
-    float flow1 = fbm(pos + vec3(time * 0.5, time * 0.3, time * 0.2));
-    float flow2 = fbm(pos * 1.2 + vec3(-time * 0.4, time * 0.6, 0.0));
-    float flow3 = fbm(pos * 0.8 - vec3(0.0, time * 0.5, time * 0.4));
-    float flow4 = fbm(pos * 1.5 + vec3(time * 0.3, -time * 0.2, time * 0.4));
+    // Create flowing ribbon patterns
+    vec3 flowPos = vPosition * 2.0;
     
-    // Combine flows
-    float energy = flow1 * 0.35 + flow2 * 0.25 + flow3 * 0.25 + flow4 * 0.15;
-    energy = smoothstep(-0.4, 0.7, energy);
+    // Main flow direction
+    float flow1 = snoise(flowPos + vec3(time * 0.5, time * 0.3, 0.0));
+    float flow2 = snoise(flowPos * 1.3 + vec3(time * 0.4, -time * 0.2, time * 0.3));
+    float flow3 = snoise(flowPos * 0.8 + vec3(-time * 0.3, time * 0.5, time * 0.2));
     
-    // Beautiful colors - blue, purple, pink, cyan, orange
+    // Combine into ribbon-like structures
+    float ribbons = flow1 * 0.4 + flow2 * 0.35 + flow3 * 0.25;
+    ribbons = smoothstep(-0.3, 0.8, ribbons);
+    
+    // Create defined energy paths
+    float paths = abs(fract(ribbons * 3.0 + time * 0.2) - 0.5) * 2.0;
+    paths = 1.0 - smoothstep(0.4, 0.9, paths);
+    
+    // Color gradient: blue → purple → pink → orange
     vec3 deepBlue = vec3(0.2, 0.4, 1.0);
-    vec3 purple = vec3(0.5, 0.2, 0.9);
-    vec3 hotPink = vec3(1.0, 0.3, 0.7);
-    vec3 cyan = vec3(0.3, 0.9, 1.0);
-    vec3 orange = vec3(1.0, 0.55, 0.2);
-    vec3 white = vec3(1.0, 0.95, 0.98);
+    vec3 electricPurple = vec3(0.5, 0.2, 0.9);
+    vec3 hotPink = vec3(1.0, 0.3, 0.6);
+    vec3 warmOrange = vec3(1.0, 0.55, 0.2);
+    vec3 brightCyan = vec3(0.3, 0.8, 1.0);
+    vec3 white = vec3(1.0, 0.95, 1.0);
     
-    // Build complex color gradient
-    vec3 color = mix(deepBlue, purple, smoothstep(-0.3, 0.5, flow1));
-    color = mix(color, hotPink, smoothstep(-0.2, 0.6, flow2) * 0.7);
-    color = mix(color, cyan, smoothstep(0.0, 0.7, flow3) * 0.5);
+    // Build flowing color
+    float colorFlow = fract(ribbons + time * 0.15);
+    vec3 color;
     
-    // Orange accents
-    float centerDist = length(vPosition);
-    float coreGlow = smoothstep(0.9, 0.0, centerDist);
-    color = mix(color, orange, coreGlow * 0.5);
+    if (colorFlow < 0.25) {
+      color = mix(deepBlue, electricPurple, colorFlow * 4.0);
+    } else if (colorFlow < 0.5) {
+      color = mix(electricPurple, hotPink, (colorFlow - 0.25) * 4.0);
+    } else if (colorFlow < 0.75) {
+      color = mix(hotPink, warmOrange, (colorFlow - 0.5) * 4.0);
+    } else {
+      color = mix(warmOrange, brightCyan, (colorFlow - 0.75) * 4.0);
+    }
     
-    // Bright energy veins
-    float veins = pow(energy, 2.0);
-    color = mix(color, white, veins * 0.4);
+    // Brighten the paths
+    color = mix(color, white, paths * 0.6);
     
-    // Sparkle effect
-    float sparkle = snoise(pos * 12.0 + vec3(time * 3.0));
-    float sparkleIntensity = smoothstep(0.75, 0.95, sparkle);
-    color += white * sparkleIntensity * 0.6;
+    // Add glow based on intensity
+    color *= 1.2 + uIntensity * 0.5;
     
-    // Intensity modulation
-    color *= 0.85 + uIntensity * 0.3;
-    
-    // Pulsing
-    float pulse = sin(uTime * 0.5) * 0.5 + 0.5;
-    color *= 0.85 + pulse * 0.15;
-    
-    // Fresnel rim glow
+    // Fresnel edge glow
     vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-    float fresnel = pow(1.0 - abs(dot(vNormal, viewDir)), 2.5);
-    vec3 rimColor = mix(cyan, hotPink, sin(uTime * 0.3) * 0.5 + 0.5);
-    color += rimColor * fresnel * 0.8;
+    float fresnel = pow(1.0 - abs(dot(vNormal, viewDir)), 3.0);
+    color += mix(brightCyan, hotPink, sin(time) * 0.5 + 0.5) * fresnel * 1.5;
     
-    // Alpha
-    float alpha = 0.5 + energy * 0.35 + coreGlow * 0.15;
-    alpha = clamp(alpha, 0.35, 0.85);
+    // Pulse
+    float pulse = sin(uTime * 0.6) * 0.15 + 0.85;
+    color *= pulse;
+    
+    // Alpha - make ribbons visible
+    float alpha = ribbons * 0.6 + paths * 0.3 + fresnel * 0.2;
+    alpha = clamp(alpha, 0.2, 0.9);
     
     gl_FragColor = vec4(color, alpha);
   }
@@ -183,10 +180,10 @@ interface FlowingEnergyCubeProps {
 }
 
 export function FlowingEnergyCube({ intensity = 0.5 }: FlowingEnergyCubeProps) {
-  const innerRef = useRef<THREE.Mesh>(null)
-  const outerRef = useRef<THREE.Mesh>(null)
   const groupRef = useRef<THREE.Group>(null)
-  const edgesRef = useRef<THREE.LineSegments>(null)
+  const innerRef = useRef<THREE.Mesh>(null)
+  const middleRef = useRef<THREE.Mesh>(null)
+  const outerRef = useRef<THREE.Mesh>(null)
   
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
@@ -197,36 +194,27 @@ export function FlowingEnergyCube({ intensity = 0.5 }: FlowingEnergyCubeProps) {
     uniforms.uIntensity.value = intensity
   }, [intensity, uniforms])
   
-  // Glowing edges
-  const edges = useMemo(() => {
-    const geometry = new THREE.BoxGeometry(1.52, 1.52, 1.52)
-    return new THREE.EdgesGeometry(geometry)
-  }, [])
-  
   useFrame((state) => {
     const time = state.clock.getElapsedTime()
     uniforms.uTime.value = time
     
     if (groupRef.current) {
-      groupRef.current.rotation.y = time * 0.12
-      groupRef.current.rotation.x = Math.sin(time * 0.08) * 0.1
-      groupRef.current.rotation.z = Math.sin(time * 0.06) * 0.06
-      groupRef.current.position.y = Math.sin(time * 0.4) * 0.06
-    }
-    
-    if (edgesRef.current) {
-      const material = edgesRef.current.material as THREE.LineBasicMaterial
-      material.opacity = 0.7 + Math.sin(time * 1.5) * 0.3
+      // Slow elegant rotation
+      groupRef.current.rotation.y = time * 0.1
+      groupRef.current.rotation.x = Math.sin(time * 0.07) * 0.1
+      groupRef.current.rotation.z = Math.sin(time * 0.05) * 0.05
+      // Floating
+      groupRef.current.position.y = Math.sin(time * 0.35) * 0.08
     }
   })
   
   return (
     <group ref={groupRef}>
-      {/* Inner energy core - primary layer */}
-      <RoundedBox args={[1.5, 1.5, 1.5]} radius={0.15} smoothness={10} ref={innerRef}>
+      {/* Inner energy core - brightest layer */}
+      <RoundedBox args={[1.3, 1.3, 1.3]} radius={0.18} smoothness={12} ref={innerRef}>
         <shaderMaterial
-          vertexShader={flowingVertexShader}
-          fragmentShader={flowingFragmentShader}
+          vertexShader={ribbonVertexShader}
+          fragmentShader={ribbonFragmentShader}
           uniforms={uniforms}
           transparent
           side={THREE.DoubleSide}
@@ -235,12 +223,28 @@ export function FlowingEnergyCube({ intensity = 0.5 }: FlowingEnergyCubeProps) {
         />
       </RoundedBox>
       
-      {/* Secondary layer for depth */}
-      <RoundedBox args={[1.3, 1.3, 1.3]} radius={0.13} smoothness={10}>
+      {/* Middle layer - adds depth */}
+      <RoundedBox args={[1.45, 1.45, 1.45]} radius={0.19} smoothness={12} ref={middleRef}>
         <shaderMaterial
-          vertexShader={flowingVertexShader}
-          fragmentShader={flowingFragmentShader}
+          vertexShader={ribbonVertexShader}
+          fragmentShader={ribbonFragmentShader}
           uniforms={uniforms}
+          transparent
+          side={THREE.DoubleSide}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </RoundedBox>
+      
+      {/* Outer layer - softer glow */}
+      <RoundedBox args={[1.55, 1.55, 1.55]} radius={0.2} smoothness={12} ref={outerRef}>
+        <shaderMaterial
+          vertexShader={ribbonVertexShader}
+          fragmentShader={ribbonFragmentShader}
+          uniforms={{
+            uTime: uniforms.uTime,
+            uIntensity: { value: uniforms.uIntensity.value * 0.6 }
+          }}
           transparent
           side={THREE.BackSide}
           depthWrite={false}
@@ -248,61 +252,42 @@ export function FlowingEnergyCube({ intensity = 0.5 }: FlowingEnergyCubeProps) {
         />
       </RoundedBox>
       
-      {/* Bright defined edges */}
-      <lineSegments ref={edgesRef} geometry={edges}>
-        <lineBasicMaterial
-          color="#66ccff"
-          transparent
-          opacity={0.8}
-          linewidth={3}
-          blending={THREE.AdditiveBlending}
-        />
-      </lineSegments>
-      
-      {/* Core orange glow */}
-      <mesh scale={0.25}>
+      {/* Orange core glow */}
+      <mesh scale={0.2}>
         <sphereGeometry args={[1, 32, 32]} />
         <meshBasicMaterial 
-          color="#ff8844" 
+          color="#ff7733" 
           transparent 
-          opacity={0.6}
+          opacity={0.7 + intensity * 0.3}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
       
       {/* Sparkle particles */}
-      {[...Array(50)].map((_, i) => {
-        const x = (Math.random() - 0.5) * 1.3
-        const y = (Math.random() - 0.5) * 1.3
-        const z = (Math.random() - 0.5) * 1.3
-        const isOrange = i % 4 === 0
+      {[...Array(60)].map((_, i) => {
+        const angle1 = (i / 60) * Math.PI * 2
+        const angle2 = Math.sin(i * 0.5) * Math.PI
+        const radius = 0.5 + Math.random() * 0.3
+        
+        const x = Math.cos(angle1) * Math.cos(angle2) * radius
+        const y = Math.sin(angle2) * radius
+        const z = Math.sin(angle1) * Math.cos(angle2) * radius
+        
+        const isOrange = i % 5 === 0
+        const color = isOrange ? "#ff9944" : (i % 3 === 0 ? "#66ddff" : "#ff66cc")
+        
         return (
           <mesh key={i} position={[x, y, z]}>
-            <sphereGeometry args={[0.012, 8, 8]} />
+            <sphereGeometry args={[0.008, 8, 8]} />
             <meshBasicMaterial 
-              color={isOrange ? "#ff9944" : "#66ddff"}
+              color={color}
               transparent
-              opacity={0.8}
+              opacity={0.9}
               blending={THREE.AdditiveBlending}
             />
           </mesh>
         )
       })}
-      
-      {/* Glass outer shell */}
-      <RoundedBox args={[1.52, 1.52, 1.52]} radius={0.16} smoothness={10} ref={outerRef}>
-        <meshPhysicalMaterial
-          color="#ffffff"
-          transparent
-          opacity={0.08}
-          roughness={0.1}
-          metalness={0.1}
-          transmission={0.95}
-          thickness={0.5}
-          clearcoat={1.0}
-          clearcoatRoughness={0.1}
-        />
-      </RoundedBox>
     </group>
   )
 }
