@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * KeywordPanel - Premium glass design with three keyword cards
- * Ascend (Green), Drift (Yellow), Pulse (Red)
+ * KeywordPanel - Tap to edit cards
+ * Three cards that expand to fill space, tap to edit mode
  */
 
 import { useState, useEffect } from 'react'
@@ -26,24 +26,21 @@ const CARD_CONFIG = {
     icon: '↗',
     subtitle: 'Growth · Wellness · Achievement',
     color: '#22c55e',
-    borderColor: 'rgba(34, 197, 94, 0.4)',
-    bgGradient: 'linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.03) 100%)',
+    borderColor: 'rgba(34, 197, 94, 0.5)',
   },
   drift: {
     name: 'Drift',
     icon: '✨',
     subtitle: 'Relax · Social · Ambient',
     color: '#eab308',
-    borderColor: 'rgba(234, 179, 8, 0.4)',
-    bgGradient: 'linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, rgba(234, 179, 8, 0.03) 100%)',
+    borderColor: 'rgba(234, 179, 8, 0.5)',
   },
   pulse: {
     name: 'Pulse',
     icon: '⚡',
     subtitle: 'Attraction · Energy · Exploration',
     color: '#ec4899',
-    borderColor: 'rgba(236, 72, 153, 0.4)',
-    bgGradient: 'linear-gradient(135deg, rgba(236, 72, 153, 0.08) 0%, rgba(236, 72, 153, 0.03) 100%)',
+    borderColor: 'rgba(236, 72, 153, 0.5)',
   },
 }
 
@@ -55,20 +52,15 @@ export function KeywordPanel({
 }: KeywordPanelProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [editingCard, setEditingCard] = useState<CardType | null>(null)
+  const [newKeyword, setNewKeyword] = useState('')
   
   const [cards, setCards] = useState<Record<CardType, CardData>>({
     ascend: { keywords: [] },
     drift: { keywords: [] },
     pulse: { keywords: [] },
   })
-  
-  const [newKeyword, setNewKeyword] = useState<Record<CardType, string>>({
-    ascend: '',
-    drift: '',
-    pulse: '',
-  })
 
-  // Load from localStorage
   useEffect(() => {
     if (sessionId) {
       const stored = localStorage.getItem(`cubiqo_keywords_${sessionId}`)
@@ -82,7 +74,6 @@ export function KeywordPanel({
     }
   }, [sessionId])
 
-  // Save to localStorage
   const saveCards = (newCards: Record<CardType, CardData>) => {
     setCards(newCards)
     if (sessionId) {
@@ -96,12 +87,13 @@ export function KeywordPanel({
       setTimeout(() => setIsAnimating(true), 10)
     } else {
       setIsAnimating(false)
+      setEditingCard(null)
       setTimeout(() => setIsVisible(false), 300)
     }
   }, [isOpen])
 
   const addKeyword = (cardType: CardType) => {
-    const keyword = newKeyword[cardType].trim().toLowerCase()
+    const keyword = newKeyword.trim().toLowerCase()
     if (keyword && cards[cardType].keywords.length < 50 && !cards[cardType].keywords.includes(keyword)) {
       const newCards = {
         ...cards,
@@ -110,7 +102,7 @@ export function KeywordPanel({
         }
       }
       saveCards(newCards)
-      setNewKeyword({ ...newKeyword, [cardType]: '' })
+      setNewKeyword('')
     }
   }
 
@@ -122,6 +114,16 @@ export function KeywordPanel({
       }
     }
     saveCards(newCards)
+  }
+
+  const handleCardClick = (cardType: CardType) => {
+    if (editingCard === cardType) {
+      setEditingCard(null)
+      setNewKeyword('')
+    } else {
+      setEditingCard(cardType)
+      setNewKeyword('')
+    }
   }
 
   if (!isVisible) return null
@@ -136,7 +138,7 @@ export function KeywordPanel({
       <div className="absolute inset-0 bg-black/40 backdrop-blur-md" />
       
       <div
-        className={`absolute right-0 top-0 bottom-0 w-[420px] max-w-[90vw] flex flex-col transition-transform duration-300 ease-out backdrop-blur-2xl ${
+        className={`absolute right-0 top-0 bottom-0 w-[440px] max-w-[90vw] flex flex-col transition-transform duration-300 ease-out backdrop-blur-2xl ${
           isAnimating ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{
@@ -179,41 +181,61 @@ export function KeywordPanel({
           </p>
         </div>
 
-        {/* Scrollable Cards */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-4">
+        {/* Cards - expanded to fill space */}
+        <div className="flex-1 flex flex-col gap-3 px-6 pb-6 overflow-y-auto">
           {(Object.keys(CARD_CONFIG) as CardType[]).map((cardType) => {
             const config = CARD_CONFIG[cardType]
             const cardData = cards[cardType]
+            const isEditing = editingCard === cardType
             
             return (
               <div
                 key={cardType}
-                className="rounded-2xl p-5 backdrop-blur-sm"
+                onClick={() => !isEditing && handleCardClick(cardType)}
+                className={`flex-1 rounded-3xl p-5 backdrop-blur-sm transition-all cursor-pointer ${
+                  isEditing ? 'ring-2' : 'hover:scale-[1.02]'
+                }`}
                 style={{
-                  background: config.bgGradient,
-                  border: `1.5px solid ${config.borderColor}`,
-                  boxShadow: `0 4px 16px ${config.color}15`
+                  background: `linear-gradient(135deg, ${config.color}12 0%, ${config.color}05 100%)`,
+                  border: `2px solid ${config.borderColor}`,
+                  boxShadow: isEditing 
+                    ? `0 8px 32px ${config.color}30, 0 0 0 2px ${config.color}` 
+                    : `0 4px 16px ${config.color}15`,
+                  minHeight: '140px'
                 }}
               >
-                {/* Card Header */}
-                <div className="flex items-center gap-3 mb-3">
-                  <div 
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-lg backdrop-blur-sm"
-                    style={{ 
-                      backgroundColor: `${config.color}20`,
-                      border: `1px solid ${config.borderColor}`
-                    }}
-                  >
-                    {config.icon}
+                {/* Header */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl backdrop-blur-sm"
+                      style={{ 
+                        backgroundColor: `${config.color}25`,
+                        border: `1.5px solid ${config.borderColor}`
+                      }}
+                    >
+                      {config.icon}
+                    </div>
+                    <div>
+                      <h3 className={`font-semibold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        {config.name}
+                      </h3>
+                      <p className={`text-xs ${isDark ? 'text-white/40' : 'text-gray-500'}`}>
+                        {config.subtitle}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                      {config.name}
-                    </h3>
-                    <p className={`text-xs ${isDark ? 'text-white/40' : 'text-gray-500'}`}>
-                      {config.subtitle}
-                    </p>
-                  </div>
+                  {isEditing && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleCardClick(cardType)
+                      }}
+                      className={`text-xs px-2 py-1 rounded-lg ${isDark ? 'text-white/60 hover:bg-white/10' : 'text-gray-500 hover:bg-black/5'}`}
+                    >
+                      Done
+                    </button>
+                  )}
                 </div>
 
                 {/* Keywords */}
@@ -222,55 +244,68 @@ export function KeywordPanel({
                     {cardData.keywords.map((keyword, index) => (
                       <div
                         key={index}
-                        className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm backdrop-blur-sm transition-all ${
-                          isDark ? 'bg-white/10 hover:bg-white/15' : 'bg-white/60 hover:bg-white/80'
+                        className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm backdrop-blur-sm ${
+                          isDark ? 'bg-white/15' : 'bg-white/70'
                         }`}
-                        style={{ borderLeft: `2px solid ${config.color}` }}
                       >
                         <span className={isDark ? 'text-white/90' : 'text-gray-800'}>
                           {keyword}
                         </span>
-                        <button
-                          onClick={() => removeKeyword(cardType, index)}
-                          className="opacity-0 group-hover:opacity-70 transition-opacity hover:opacity-100"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
+                        {isEditing && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              removeKeyword(cardType, index)
+                            }}
+                            className="opacity-70 hover:opacity-100"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
                 )}
 
-                {/* Add keyword input */}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newKeyword[cardType]}
-                    onChange={(e) => setNewKeyword({ ...newKeyword, [cardType]: e.target.value })}
-                    onKeyDown={(e) => e.key === 'Enter' && addKeyword(cardType)}
-                    placeholder={`Add keyword... (${cardData.keywords.length}/50)`}
-                    disabled={cardData.keywords.length >= 50}
-                    className={`flex-1 px-3 py-2 text-sm rounded-lg backdrop-blur-sm transition-all ${
-                      isDark 
-                        ? 'bg-white/5 border border-white/10 placeholder:text-white/30 text-white focus:border-white/30' 
-                        : 'bg-white/40 border border-gray-300/50 placeholder:text-gray-400 text-gray-900 focus:border-gray-400'
-                    }`}
-                  />
-                  <button
-                    onClick={() => addKeyword(cardType)}
-                    disabled={!newKeyword[cardType].trim() || cardData.keywords.length >= 50}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-30"
-                    style={{
-                      backgroundColor: config.color,
-                      color: 'white',
-                      opacity: newKeyword[cardType].trim() && cardData.keywords.length < 50 ? 1 : 0.3
-                    }}
+                {/* Edit mode input */}
+                {isEditing && (
+                  <div 
+                    className="flex gap-2 pt-2"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    Add
-                  </button>
-                </div>
+                    <input
+                      type="text"
+                      value={newKeyword}
+                      onChange={(e) => setNewKeyword(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && addKeyword(cardType)}
+                      placeholder={`Add keyword (${cardData.keywords.length}/50)`}
+                      disabled={cardData.keywords.length >= 50}
+                      className={`flex-1 px-3 py-2 text-sm rounded-xl backdrop-blur-sm ${
+                        isDark 
+                          ? 'bg-white/10 border border-white/20 placeholder:text-white/40 text-white' 
+                          : 'bg-white/50 border border-gray-300 placeholder:text-gray-400 text-gray-900'
+                      }`}
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => addKeyword(cardType)}
+                      disabled={!newKeyword.trim() || cardData.keywords.length >= 50}
+                      className="px-4 py-2 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-30"
+                      style={{ backgroundColor: config.color }}
+                    >
+                      Add
+                    </button>
+                  </div>
+                )}
+
+                {/* Tap hint when not editing and no keywords */}
+                {!isEditing && cardData.keywords.length === 0 && (
+                  <p className={`text-center text-sm ${isDark ? 'text-white/30' : 'text-gray-400'}`}>
+                    Tap to add keywords
+                  </p>
+                )}
               </div>
             )
           })}
