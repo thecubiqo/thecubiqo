@@ -46,7 +46,12 @@ export function CubeScene({
   return (
     <div className={`w-full h-full ${className}`}>
       <Canvas
-        camera={{ position: [0, 0, 6], fov: 45 }}
+        camera={{ 
+          position: [4, 3.5, 4], // Isometric-style elevated angle
+          fov: 35,
+          near: 0.1,
+          far: 1000
+        }}
         shadows
         gl={{
           antialias: true,

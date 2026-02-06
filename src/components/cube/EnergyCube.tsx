@@ -407,7 +407,7 @@ export function EnergyCube({
   const shadowColor = colorConfig.shadowColor || new THREE.Color(0.5, 0.5, 0.5)
   
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} rotation={[0.15, 0.8, 0]}>
       {/* Main rounded cube */}
       <RoundedBox args={[1.8, 1.8, 1.8]} radius={0.15} smoothness={4}>
         <shaderMaterial
