@@ -297,12 +297,14 @@ export function FullscreenApp() {
       className="fixed inset-0 overflow-hidden transition-colors duration-400"
       style={{ background: bgColor, color: textColor }}
     >
-      {/* Fullscreen Energy Cube Canvas - Centered */}
+      {/* Energy Cube - Positioned under header, above voice button */}
       <div 
-        className="absolute inset-0 z-[1] flex items-center justify-center"
+        className="fixed left-1/2 -translate-x-1/2 z-[1]"
         style={{ 
-          transform: `scale(${cubeSize / 100})`,
-          transformOrigin: 'center center'
+          top: '45%',
+          transform: `translate(-50%, -50%) scale(${cubeSize / 100})`,
+          width: '600px',
+          height: '600px'
         }}
       >
         <EnergyCubeScene colorName={colorName} animationState={animationState} />
