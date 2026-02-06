@@ -14,6 +14,7 @@ import {
   recordSpending,
   estimateElevenLabsCost
 } from '@/lib/spending-caps'
+import { getVoiceSettings, type VoiceMood } from '@/lib/voice-modulation'
 
 // ElevenLabs API configuration - using STREAMING endpoint for faster playback
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech'
@@ -29,7 +30,8 @@ const RATE_WINDOW = 60 * 1000 // 1 minute in ms
 interface TTSRequest {
   text: string
   voiceId?: string
-  stability?: number
+  mood?: VoiceMood // Auto-detect or override: sincere, candid, intimate, neutral
+  stability?: number // Manual override (if mood not used)
   similarity_boost?: number
   style?: number
   use_speaker_boost?: boolean
@@ -71,12 +73,20 @@ export async function POST(request: NextRequest) {
     const { 
       text, 
       voiceId = DEFAULT_VOICE_ID,
-      stability = 0.7,
-      similarity_boost = 0.7,
-      style = 0.2,
-      use_speaker_boost = true,
+      mood,
       sessionId = 'anonymous'
     } = body
+    
+    // Get dynamic voice settings based on mood/content
+    // This achieves the madhyama marg - balancing expressiveness and authenticity
+    const voiceSettings = mood || body.stability === undefined
+      ? getVoiceSettings(text, mood) // Auto-detect or use provided mood
+      : { // Manual override if specific settings provided
+          stability: body.stability ?? 0.7,
+          similarity_boost: body.similarity_boost ?? 0.7,
+          style: body.style ?? 0.2,
+          use_speaker_boost: body.use_speaker_boost ?? true
+        }
     
     if (!text || !text.trim()) {
       return NextResponse.json(
@@ -121,12 +131,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           text: text.trim(),
           model_id: 'eleven_multilingual_v2',  // Better quality for longer text
-          voice_settings: {
-            stability,
-            similarity_boost,
-            style,
-            use_speaker_boost
-          }
+          voice_settings: voiceSettings
         })
       }
     )
