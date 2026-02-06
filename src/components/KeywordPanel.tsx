@@ -158,8 +158,8 @@ export function KeywordPanel({
           </p>
         </div>
 
-        {/* Cards Container */}
-        <div className="flex-1 flex flex-col px-8 pb-8 gap-5 overflow-y-auto">
+        {/* Cards Container - Apple minimal style */}
+        <div className="flex-1 flex flex-col px-8 pb-8 gap-4 overflow-y-auto">
           {(Object.keys(CARD_CONFIG) as CardType[]).map((cardType) => {
             const config = CARD_CONFIG[cardType]
             const cardData = cards[cardType]
@@ -169,34 +169,32 @@ export function KeywordPanel({
               <div
                 key={cardType}
                 onClick={() => !isEditing && toggleEdit(cardType)}
-                className="flex-1 rounded-[32px] p-6 backdrop-blur-xl cursor-pointer transition-all duration-300"
+                className="flex-1 rounded-[28px] p-6 cursor-pointer transition-all duration-200"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)',
-                  border: `2px solid ${config.borderColor}`,
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: `1.5px solid ${config.borderColor}`,
                   boxShadow: isEditing 
-                    ? `0 12px 40px ${config.borderColor}40, inset 0 1px 0 rgba(255,255,255,0.1)` 
-                    : `0 8px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)`,
-                  transform: isEditing ? 'scale(1.02)' : 'scale(1)',
-                  minHeight: '160px'
+                    ? `0 8px 24px ${config.borderColor}25` 
+                    : 'none',
+                  minHeight: '150px'
                 }}
               >
                 {/* Card Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div 
-                      className="w-14 h-14 rounded-[20px] flex items-center justify-center text-2xl backdrop-blur-sm"
+                      className="w-12 h-12 rounded-[18px] flex items-center justify-center text-xl"
                       style={{ 
-                        background: `${config.borderColor}20`,
-                        border: `1.5px solid ${config.borderColor}50`,
+                        background: `${config.borderColor}15`,
                       }}
                     >
                       {config.icon}
                     </div>
                     <div>
-                      <h3 className="text-xl font-medium text-white mb-0.5">
+                      <h3 className="text-lg font-medium text-white/95">
                         {config.name}
                       </h3>
-                      <p className="text-xs text-white/40">
+                      <p className="text-xs text-white/35 mt-0.5">
                         {config.subtitle}
                       </p>
                     </div>
@@ -207,7 +205,7 @@ export function KeywordPanel({
                         e.stopPropagation()
                         toggleEdit(cardType)
                       }}
-                      className="text-xs px-3 py-1.5 rounded-full text-white/60 hover:bg-white/10 transition-all"
+                      className="text-xs px-3 py-1 rounded-full text-white/50 hover:text-white/80 hover:bg-white/5 transition-all"
                     >
                       Done
                     </button>
@@ -216,17 +214,16 @@ export function KeywordPanel({
 
                 {/* Keywords Display */}
                 {cardData.keywords.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="flex flex-wrap gap-2 mb-3">
                     {cardData.keywords.map((keyword, index) => (
                       <div
                         key={index}
-                        className="group flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-sm"
+                        className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full"
                         style={{
-                          background: 'rgba(255, 255, 255, 0.12)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)'
+                          background: 'rgba(255, 255, 255, 0.08)',
                         }}
                       >
-                        <span className="text-sm text-white/90">
+                        <span className="text-sm text-white/85">
                           {keyword}
                         </span>
                         {isEditing && (
@@ -235,10 +232,10 @@ export function KeywordPanel({
                               e.stopPropagation()
                               removeKeyword(cardType, index)
                             }}
-                            className="opacity-60 hover:opacity-100 transition-opacity"
+                            className="opacity-0 group-hover:opacity-60 hover:opacity-100 transition-opacity"
                           >
-                            <svg className="w-3.5 h-3.5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                            <svg className="w-3 h-3 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                           </button>
                         )}
@@ -258,22 +255,20 @@ export function KeywordPanel({
                       value={newKeyword}
                       onChange={(e) => setNewKeyword(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && addKeyword(cardType)}
-                      placeholder={`Add keyword (${cardData.keywords.length}/50)`}
+                      placeholder={`Add (${cardData.keywords.length}/50)`}
                       disabled={cardData.keywords.length >= 50}
-                      className="flex-1 px-4 py-2.5 text-sm rounded-2xl backdrop-blur-sm text-white placeholder:text-white/30 focus:outline-none transition-all"
+                      className="flex-1 px-3 py-2 text-sm rounded-full text-white placeholder:text-white/25 focus:outline-none"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1px solid rgba(255, 255, 255, 0.15)'
+                        background: 'rgba(255, 255, 255, 0.06)',
                       }}
                       autoFocus
                     />
                     <button
                       onClick={() => addKeyword(cardType)}
                       disabled={!newKeyword.trim() || cardData.keywords.length >= 50}
-                      className="px-5 py-2.5 rounded-2xl text-sm font-medium text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="px-4 py-2 rounded-full text-sm font-medium text-white transition-all disabled:opacity-25"
                       style={{ 
                         background: config.borderColor,
-                        boxShadow: `0 4px 12px ${config.borderColor}40`
                       }}
                     >
                       Add
@@ -283,8 +278,8 @@ export function KeywordPanel({
 
                 {/* Empty State */}
                 {!isEditing && cardData.keywords.length === 0 && (
-                  <p className="text-center text-sm text-white/30 py-2">
-                    Tap to add keywords
+                  <p className="text-center text-sm text-white/25 py-3">
+                    Tap to add
                   </p>
                 )}
               </div>
