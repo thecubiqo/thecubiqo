@@ -1,33 +1,33 @@
 'use client'
 
 /**
- * EnergyCube - Wireframe Energy Cube with flowing energy lines
- * High-tech aesthetic matching the mockup design
+ * TechLandingCube - High-tech wireframe energy cube
+ * 
+ * Matches the mockup: defined cubic geometry with glowing energy lines,
+ * blue/purple/pink flows with orange accents, voice-reactive animations
  */
 
-import { useEffect, useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import React, { useRef, useMemo, useEffect } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
-export type EnergyCubeColor = 'orange' | 'red' | 'green' | 'yellow'
-export type EnergyCubeMode = 'listening' | 'speaking' | 'processing'
-
+// Energy wireframe shader
 const energyVertexShader = `
   varying vec3 vPosition;
   varying vec3 vNormal;
   varying vec3 vWorldPosition;
   
   uniform float uTime;
-  uniform float uModeIntensity;
+  uniform float uVoiceIntensity;
   
   void main() {
     vPosition = position;
     vNormal = normalize(normalMatrix * normal);
     
-    // Mode-reactive breathing
+    // Voice-reactive breathing
     float breathe = sin(uTime * 0.6) * 0.02;
-    float modePulse = uModeIntensity * 0.08;
-    vec3 displaced = position * (1.0 + breathe + modePulse);
+    float voicePulse = uVoiceIntensity * 0.08;
+    vec3 displaced = position * (1.0 + breathe + voicePulse);
     
     vec4 worldPos = modelMatrix * vec4(displaced, 1.0);
     vWorldPosition = worldPos.xyz;
@@ -44,10 +44,7 @@ const energyFragmentShader = `
   varying vec3 vWorldPosition;
   
   uniform float uTime;
-  uniform float uModeIntensity;
-  uniform vec3 uPrimaryColor;
-  uniform vec3 uSecondaryColor;
-  uniform vec3 uAccentColor;
+  uniform float uVoiceIntensity;
   
   // Simplex noise
   vec4 permute(vec4 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
@@ -129,26 +126,34 @@ const energyFragmentShader = `
     float veins = (flow1 + flow2) * 0.5;
     veins = smoothstep(-0.3, 0.8, veins);
     
+    // Color palette - blue to purple to pink with orange accents
+    vec3 deepBlue = vec3(0.15, 0.3, 0.9);
+    vec3 purple = vec3(0.6, 0.2, 0.9);
+    vec3 hotPink = vec3(1.0, 0.3, 0.7);
+    vec3 cyan = vec3(0.2, 0.7, 1.0);
+    vec3 orange = vec3(1.0, 0.5, 0.15);
+    vec3 white = vec3(1.0, 0.95, 1.0);
+    
     // Build color
-    vec3 color = mix(uPrimaryColor, uSecondaryColor, smoothstep(-0.5, 0.5, flow1));
-    color = mix(color, uAccentColor, smoothstep(0.0, 0.8, flow2) * 0.6);
-    color = mix(color, vec3(0.2, 0.7, 1.0), wireframe * 0.4);
+    vec3 color = mix(deepBlue, purple, smoothstep(-0.5, 0.5, flow1));
+    color = mix(color, hotPink, smoothstep(0.0, 0.8, flow2) * 0.6);
+    color = mix(color, cyan, wireframe * 0.4);
     
     // Orange accent on energy peaks
     float energyPeak = smoothstep(0.6, 0.9, veins);
-    color = mix(color, uAccentColor, energyPeak * 0.5);
+    color = mix(color, orange, energyPeak * 0.5);
     
-    // Mode reactive - add glow
-    color = mix(color, uAccentColor, uModeIntensity * 0.4);
+    // Voice reactive - add orange glow
+    color = mix(color, orange, uVoiceIntensity * 0.4);
     
     // Bright wireframe lines
-    color = mix(color, vec3(1.0, 0.95, 1.0), wireframe * veins * 0.6);
+    color = mix(color, white, wireframe * veins * 0.6);
     
     // Fresnel glow (boosted for no bloom)
     vec3 viewDir = normalize(cameraPosition - vWorldPosition);
     float fresnel = pow(1.0 - abs(dot(vNormal, viewDir)), 2.2);
-    color += vec3(0.2, 0.7, 1.0) * fresnel * 1.2;
-    color += uAccentColor * fresnel * 0.5 * uModeIntensity;
+    color += cyan * fresnel * 1.2;
+    color += orange * fresnel * 0.5 * uVoiceIntensity;
     
     // Extra glow for energy
     color *= 1.3;
@@ -165,76 +170,24 @@ const energyFragmentShader = `
   }
 `
 
-interface EnergyCubeProps {
-  color?: EnergyCubeColor
-  mode?: EnergyCubeMode
-  className?: string
+interface TechCubeProps {
+  voiceIntensity?: number
 }
 
-export function EnergyCube({ color = 'orange', mode = 'listening' }: EnergyCubeProps) {
+function TechCube({ voiceIntensity = 0 }: TechCubeProps) {
   const meshRef = useRef<THREE.Mesh>(null)
   const groupRef = useRef<THREE.Group>(null)
   const edgesRef = useRef<THREE.LineSegments>(null)
   
-  // Color configs
-  const colorConfig = useMemo(() => {
-    switch (color) {
-      case 'orange':
-        return {
-          primary: new THREE.Color(1.0, 0.5, 0.15),
-          secondary: new THREE.Color(1.0, 0.7, 0.3),
-          accent: new THREE.Color(1.0, 0.55, 0.2)
-        }
-      case 'red':
-        return {
-          primary: new THREE.Color(0.95, 0.25, 0.4),
-          secondary: new THREE.Color(1.0, 0.3, 0.5),
-          accent: new THREE.Color(0.95, 0.2, 0.4)
-        }
-      case 'green':
-        return {
-          primary: new THREE.Color(0.2, 0.9, 0.5),
-          secondary: new THREE.Color(0.3, 1.0, 0.6),
-          accent: new THREE.Color(0.2, 0.8, 0.5)
-        }
-      case 'yellow':
-        return {
-          primary: new THREE.Color(1.0, 0.85, 0.3),
-          secondary: new THREE.Color(1.0, 0.9, 0.5),
-          accent: new THREE.Color(1.0, 0.8, 0.2)
-        }
-    }
-  }, [color])
-  
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
-    uModeIntensity: { value: 0 },
-    uPrimaryColor: { value: colorConfig.primary },
-    uSecondaryColor: { value: colorConfig.secondary },
-    uAccentColor: { value: colorConfig.accent },
-  }), [colorConfig])
+    uVoiceIntensity: { value: voiceIntensity },
+  }), [])
   
-  // Update colors when color changes
+  // Update voice intensity
   useEffect(() => {
-    uniforms.uPrimaryColor.value = colorConfig.primary
-    uniforms.uSecondaryColor.value = colorConfig.secondary
-    uniforms.uAccentColor.value = colorConfig.accent
-  }, [colorConfig, uniforms])
-  
-  // Update mode intensity
-  useEffect(() => {
-    const targetIntensity = mode === 'speaking' ? 1.0 : mode === 'processing' ? 0.7 : 0.3
-    let current = uniforms.uModeIntensity.value
-    
-    const animate = () => {
-      current += (targetIntensity - current) * 0.1
-      uniforms.uModeIntensity.value = current
-      if (Math.abs(targetIntensity - current) > 0.01) {
-        requestAnimationFrame(animate)
-      }
-    }
-    animate()
-  }, [mode, uniforms])
+    uniforms.uVoiceIntensity.value = voiceIntensity
+  }, [voiceIntensity, uniforms])
   
   // Create glowing edges
   const edges = useMemo(() => {
@@ -256,10 +209,10 @@ export function EnergyCube({ color = 'orange', mode = 'listening' }: EnergyCubeP
       groupRef.current.position.y = Math.sin(time * 0.4) * 0.08
     }
     
-    // Pulse edges on mode
+    // Pulse edges on voice
     if (edgesRef.current) {
       const material = edgesRef.current.material as THREE.LineBasicMaterial
-      material.opacity = 0.4 + uniforms.uModeIntensity.value * 0.4 + Math.sin(time * 2) * 0.1
+      material.opacity = 0.4 + voiceIntensity * 0.4 + Math.sin(time * 2) * 0.1
     }
   })
   
@@ -293,9 +246,9 @@ export function EnergyCube({ color = 'orange', mode = 'listening' }: EnergyCubeP
       <mesh scale={0.3}>
         <sphereGeometry args={[1, 32, 32]} />
         <meshBasicMaterial 
-          color={colorConfig.accent}
+          color="#ff6633" 
           transparent 
-          opacity={0.5 + uniforms.uModeIntensity.value * 0.3}
+          opacity={0.5 + voiceIntensity * 0.3}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
@@ -309,7 +262,7 @@ export function EnergyCube({ color = 'orange', mode = 'listening' }: EnergyCubeP
           <mesh key={i} position={[x, y, z]}>
             <sphereGeometry args={[0.01, 8, 8]} />
             <meshBasicMaterial 
-              color={i % 3 === 0 ? colorConfig.accent : new THREE.Color(0.4, 0.8, 1.0)}
+              color={i % 3 === 0 ? "#ff9944" : "#66ccff"}
               transparent
               opacity={0.6}
               blending={THREE.AdditiveBlending}
@@ -320,3 +273,113 @@ export function EnergyCube({ color = 'orange', mode = 'listening' }: EnergyCubeP
     </group>
   )
 }
+
+interface TechLandingCubeProps {
+  onComplete: () => void
+  isVoiceActive?: boolean
+}
+
+export function TechLandingCube({ onComplete, isVoiceActive = false }: TechLandingCubeProps) {
+  const [voiceIntensity, setVoiceIntensity] = React.useState(0)
+  
+  // Animate voice intensity
+  useEffect(() => {
+    if (isVoiceActive) {
+      let progress = 0
+      const animate = () => {
+        progress += 0.05
+        setVoiceIntensity(Math.min(progress, 1))
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        }
+      }
+      animate()
+    } else {
+      // Fade out
+      setVoiceIntensity(prev => Math.max(prev - 0.02, 0))
+    }
+  }, [isVoiceActive])
+  
+  return (
+    <div 
+      className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center cursor-pointer"
+      onClick={onComplete}
+      data-testid="tech-landing-cube"
+    >
+      {/* Deep space background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-indigo-950/30 via-black to-black" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(100,60,200,0.2)_0%,_transparent_70%)]" />
+      
+      {/* 3D Canvas */}
+      <div className="w-full h-[65vh] max-w-4xl relative z-10">
+        <Canvas 
+          camera={{ position: [0, 0, 3.5], fov: 50 }}
+          gl={{ 
+            antialias: true, 
+            alpha: true, 
+            powerPreference: 'high-performance',
+            toneMapping: THREE.ACESFilmicToneMapping,
+            toneMappingExposure: 1.5,
+          }}
+        >
+          <TechCube voiceIntensity={voiceIntensity} />
+        </Canvas>
+      </div>
+      
+      {/* Welcome text */}
+      <div className="text-center mt-6 relative z-10">
+        <h1 className="text-white/95 text-4xl font-light tracking-[0.4em] mb-3">
+          CUBIQO
+        </h1>
+        <p className="text-cyan-300/70 text-base font-light tracking-wider mb-10">
+          One Mind. Many Dimensions.
+        </p>
+        <p className="text-white/40 text-xs tracking-wide uppercase">
+          Tap to begin
+        </p>
+      </div>
+      
+      {/* Floating particles in background */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {[...Array(25)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              width: `${2 + Math.random() * 4}px`,
+              height: `${2 + Math.random() * 4}px`,
+              background: i % 2 === 0 
+                ? `rgba(100, 180, 255, ${0.3 + Math.random() * 0.4})` 
+                : `rgba(255, 140, 80, ${0.3 + Math.random() * 0.4})`,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `float-particle ${8 + Math.random() * 6}s linear infinite`,
+              animationDelay: `${Math.random() * 8}s`,
+              boxShadow: `0 0 ${6 + Math.random() * 8}px currentColor`,
+            }}
+          />
+        ))}
+      </div>
+      
+      <style jsx>{`
+        @keyframes float-particle {
+          0%, 100% {
+            transform: translateY(0) translateX(0) scale(1);
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          50% {
+            transform: translateY(-150px) translateX(${Math.random() > 0.5 ? '' : '-'}40px) scale(0.7);
+          }
+          90% {
+            opacity: 1;
+          }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+export default TechLandingCube
