@@ -308,6 +308,66 @@ export function FullscreenApp() {
         <EnergyCubeScene colorName={colorName} animationState={animationState} />
       </div>
 
+      {/* Left Content - Example Interactions & Trending Keywords */}
+      <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[320px] space-y-6">
+        {/* Example Interactions */}
+        <div className="backdrop-blur-xl rounded-2xl p-5 border border-white/10" style={{ background: 'rgba(20, 20, 25, 0.85)' }}>
+          <h3 className="text-sm font-medium text-white/90 mb-3 flex items-center gap-2">
+            <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+            </svg>
+            See how peers started
+          </h3>
+          <div className="space-y-2">
+            {[
+              "What's a good book for understanding psychology?",
+              "Help me plan a weekend trip",
+              "I need motivation to start working out",
+            ].map((example, i) => (
+              <button
+                key={i}
+                onClick={() => console.log('Example:', example)}
+                className="w-full text-left px-3 py-2 rounded-lg text-xs text-white/70 hover:text-white/90 hover:bg-white/5 transition-all"
+              >
+                "{example}"
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Trending Keywords */}
+        <div className="backdrop-blur-xl rounded-2xl p-5 border border-white/10" style={{ background: 'rgba(20, 20, 25, 0.85)' }}>
+          <h3 className="text-sm font-medium text-white/90 mb-3 flex items-center gap-2">
+            <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+            </svg>
+            Popular keywords
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { word: 'productivity', color: '#22c55e' },
+              { word: 'mindfulness', color: '#eab308' },
+              { word: 'adventure', color: '#ec4899' },
+              { word: 'creativity', color: '#8b5cf6' },
+              { word: 'fitness', color: '#22c55e' },
+              { word: 'travel', color: '#eab308' },
+            ].map((item, i) => (
+              <button
+                key={i}
+                onClick={() => console.log('Keyword:', item.word)}
+                className="px-3 py-1.5 rounded-full text-xs text-white/80 hover:text-white transition-all hover:scale-105"
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: `1px solid ${item.color}40`
+                }}
+              >
+                {item.word}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4 backdrop-blur-[12px] transition-colors duration-400 ${
@@ -398,23 +458,6 @@ export function FullscreenApp() {
             <span className="font-medium">Sign In</span>
           </button>
         )}
-      </div>
-
-      {/* Left side - Getting Started */}
-      <div className="fixed left-4 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
-        <button
-          onClick={() => setShowGettingStarted(true)}
-          className={`group flex flex-col items-center gap-2 p-3 rounded-2xl transition-all duration-200 ${
-            isDark 
-              ? 'hover:bg-white/5 text-white/40 hover:text-white/70' 
-              : 'hover:bg-black/5 text-gray-400 hover:text-gray-700'
-          }`}
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
-          </svg>
-          <span className="text-[10px] font-medium tracking-wide">EXAMPLES</span>
-        </button>
       </div>
 
       {/* Right side - RGY Signal + Keywords underneath */}
