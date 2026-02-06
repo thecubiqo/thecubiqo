@@ -108,9 +108,9 @@ export async function POST(request: NextRequest) {
     // Estimate cost before making call
     const estimatedCost = estimateElevenLabsCost(text.trim().length)
     
-    // Call ElevenLabs Streaming API for faster response
+    // Call ElevenLabs API - use non-streaming for reliability with longer text
     const response = await fetch(
-      `${ELEVENLABS_API_URL}/${voiceId}/stream`,
+      `${ELEVENLABS_API_URL}/${voiceId}`,
       {
         method: 'POST',
         headers: {
@@ -120,14 +120,13 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           text: text.trim(),
-          model_id: 'eleven_turbo_v2_5',  // Fast turbo model
+          model_id: 'eleven_multilingual_v2',  // Better quality for longer text
           voice_settings: {
             stability,
             similarity_boost,
             style,
             use_speaker_boost
-          },
-          optimize_streaming_latency: 3  // Maximum optimization for low latency
+          }
         })
       }
     )

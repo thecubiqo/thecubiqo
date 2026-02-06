@@ -272,6 +272,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
 
       console.log('[TTS] ElevenLabs success, playing audio...')
       const audioBlob = await response.blob()
+      console.log('[TTS] Audio blob size:', audioBlob.size, 'bytes')
       
       // Clean up previous URL
       if (audioUrlRef.current) {
@@ -284,7 +285,6 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
       // Create audio element
       const audio = new Audio()
       audio.preload = 'auto'
-      audio.src = audioUrl
       
       // Critical: Set playsinline for iOS
       audio.setAttribute('playsinline', 'true')
@@ -300,9 +300,30 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
 
       let hasStarted = false
       
-      audio.oncanplaythrough = () => {
-        console.log('[TTS] Audio can play through')
-      }
+      // Wait for audio to be fully loaded before playing
+      await new Promise<void>((resolve, reject) => {
+        audio.oncanplaythrough = () => {
+          console.log('[TTS] Audio fully loaded, duration:', audio.duration)
+          resolve()
+        }
+        audio.onerror = (e) => {
+          console.error('[TTS] Audio load error:', e)
+          reject(new Error('Audio load failed'))
+        }
+        // Set timeout for loading
+        setTimeout(() => {
+          if (audio.readyState >= 3) {
+            resolve()
+          } else {
+            console.warn('[TTS] Audio load timeout, attempting anyway...')
+            resolve()
+          }
+        }, 5000)
+        
+        // Start loading
+        audio.src = audioUrl
+        audio.load()
+      })
 
       audio.onplay = () => {
         if (!hasStarted) {
