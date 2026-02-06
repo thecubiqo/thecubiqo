@@ -381,27 +381,24 @@ export function FullscreenApp() {
 
       {/* Right side - RGY Signal + Keywords underneath */}
       <div className="fixed right-4 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
-        {/* RGY Traffic Light */}
+        {/* RGY Traffic Light - Opens Keywords Panel */}
         <RGYSignalButton 
-          onClick={() => setShowRGYChats(true)} 
+          onClick={() => setShowKeywordPanel(true)} 
           isDark={isDark}
           pulseColor={rgyPulseColor}
         />
         
-        {/* Keywords button underneath */}
+        {/* Signal text - Opens RGY Chats Modal */}
         <button
-          onClick={() => setShowKeywordPanel(true)}
-          data-testid="keywords-button"
+          onClick={() => setShowRGYChats(true)}
+          data-testid="signal-button"
           className={`flex flex-col items-center gap-1 transition-all duration-200 ${
             isDark 
               ? 'text-white/40 hover:text-white/60' 
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
-          </svg>
-          <span className="text-[11px] font-medium">Keywords</span>
+          <span className="text-[11px] font-medium tracking-wider">SIGNAL</span>
         </button>
       </div>
 
