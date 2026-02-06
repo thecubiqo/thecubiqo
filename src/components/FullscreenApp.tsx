@@ -392,13 +392,15 @@ export function FullscreenApp() {
         <button
           onClick={() => setShowRGYChats(true)}
           data-testid="signal-button"
-          className={`flex flex-col items-center gap-1 transition-all duration-200 ${
+          className={`flex flex-col items-center gap-1 transition-all duration-200 group ${
             isDark 
-              ? 'text-white/40 hover:text-white/60' 
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'text-white/50 hover:text-white/90' 
+              : 'text-gray-600 hover:text-gray-900'
           }`}
         >
-          <span className="text-[11px] font-medium tracking-wider">SIGNAL</span>
+          <span className="text-[11px] font-medium tracking-wider underline decoration-1 underline-offset-2 group-hover:decoration-2">
+            SIGNAL
+          </span>
         </button>
       </div>
 

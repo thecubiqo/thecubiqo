@@ -84,16 +84,19 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
       onClick={onClose}
     >
       <div className="min-h-screen" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <header className="flex items-center gap-2 px-6 py-4 border-b border-white/10">
-          <img 
-            src="https://customer-assets.emergentagent.com/job_react-energy-cube/artifacts/zuvwrv2g_cubiqo_favicon_512.png" 
-            alt="CubiQo" 
-            className="w-8 h-8"
-          />
-          <span className="font-semibold text-white">CubiQo</span>
-          <span className="text-white/40">/</span>
-          <span className="text-white/60">RGY Chats</span>
+        {/* Header - Signal Branding */}
+        <header className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
+          <div className="flex items-center gap-2.5">
+            <div className="flex flex-col gap-0.5">
+              <div className="w-8 h-1.5 rounded-full bg-[#ef4444]"></div>
+              <div className="w-8 h-1.5 rounded-full bg-[#eab308]"></div>
+              <div className="w-8 h-1.5 rounded-full bg-[#22c55e]"></div>
+            </div>
+            <div>
+              <div className="font-semibold text-white text-lg tracking-tight">SIGNAL</div>
+              <div className="text-[10px] text-white/40 tracking-wide">One is enough.</div>
+            </div>
+          </div>
           
           <button 
             onClick={onClose}
