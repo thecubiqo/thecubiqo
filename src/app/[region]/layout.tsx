@@ -1,16 +1,9 @@
 import { notFound } from 'next/navigation'
 import { getRegionConfig } from '@/lib/config/regions'
 import { RegionProvider } from '@/contexts/RegionContext'
-import { getAllvalidRegin } from '../api/services/route'
 
-// Valid region IDs - fetch at runtime, use fallback at build time
-let VALID_REGIONS: string[] = []
-try {
-  VALID_REGIONS = await getAllvalidRegin()
-} catch (err) {
-  // Build time fallback
-  VALID_REGIONS = ['global', 'us', 'uk', 'eu']
-}
+// Valid region IDs - static list for build time
+const VALID_REGIONS = ['global', 'us', 'uk', 'eu', 'in', 'jp', 'au']
 
 
 interface RegionalLayoutProps {
