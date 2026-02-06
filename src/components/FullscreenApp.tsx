@@ -308,65 +308,94 @@ export function FullscreenApp() {
         <EnergyCubeScene colorName={colorName} animationState={animationState} />
       </div>
 
-      {/* Left Content - Example Interactions & Trending Keywords */}
+      {/* Left Content - Auto-scrolling Tickers */}
       <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[320px] space-y-6">
-        {/* Example Interactions */}
-        <div className="backdrop-blur-xl rounded-2xl p-5 border border-white/10" style={{ background: 'rgba(20, 20, 25, 0.85)' }}>
+        {/* Example Interactions - Auto-scrolling ticker */}
+        <div className="backdrop-blur-xl rounded-2xl p-5 border border-white/10 overflow-hidden" style={{ background: 'rgba(20, 20, 25, 0.85)' }}>
           <h3 className="text-sm font-medium text-white/90 mb-3 flex items-center gap-2">
             <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
             </svg>
             See how peers started
           </h3>
-          <div className="space-y-2">
-            {[
-              "What's a good book for understanding psychology?",
-              "Help me plan a weekend trip",
-              "I need motivation to start working out",
-            ].map((example, i) => (
-              <button
-                key={i}
-                onClick={() => console.log('Example:', example)}
-                className="w-full text-left px-3 py-2 rounded-lg text-xs text-white/70 hover:text-white/90 hover:bg-white/5 transition-all"
-              >
-                "{example}"
-              </button>
-            ))}
+          <div className="h-[120px] relative overflow-hidden">
+            <div className="absolute inset-0 animate-scroll-vertical space-y-2">
+              {[
+                "What's a good book for understanding psychology?",
+                "Help me plan a weekend trip to Paris",
+                "I need motivation to start working out",
+                "Explain quantum computing like I'm five",
+                "Best restaurants in Brooklyn?",
+                "How do I learn Spanish fast?",
+                "What's a good book for understanding psychology?",
+                "Help me plan a weekend trip to Paris",
+              ].map((example, i) => (
+                <div
+                  key={i}
+                  className="px-3 py-2 rounded-lg text-xs text-white/70 bg-white/5"
+                >
+                  "{example}"
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Trending Keywords */}
-        <div className="backdrop-blur-xl rounded-2xl p-5 border border-white/10" style={{ background: 'rgba(20, 20, 25, 0.85)' }}>
+        {/* Trending Keywords - Auto-scrolling ticker */}
+        <div className="backdrop-blur-xl rounded-2xl p-5 border border-white/10 overflow-hidden" style={{ background: 'rgba(20, 20, 25, 0.85)' }}>
           <h3 className="text-sm font-medium text-white/90 mb-3 flex items-center gap-2">
             <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
             </svg>
             Popular keywords
           </h3>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { word: 'productivity', color: '#22c55e' },
-              { word: 'mindfulness', color: '#eab308' },
-              { word: 'adventure', color: '#ec4899' },
-              { word: 'creativity', color: '#8b5cf6' },
-              { word: 'fitness', color: '#22c55e' },
-              { word: 'travel', color: '#eab308' },
-            ].map((item, i) => (
-              <button
-                key={i}
-                onClick={() => console.log('Keyword:', item.word)}
-                className="px-3 py-1.5 rounded-full text-xs text-white/80 hover:text-white transition-all hover:scale-105"
-                style={{ 
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: `1px solid ${item.color}40`
-                }}
-              >
-                {item.word}
-              </button>
-            ))}
+          <div className="h-[80px] relative overflow-hidden">
+            <div className="absolute inset-0 animate-scroll-vertical-slow flex flex-col flex-wrap gap-2 content-start">
+              {[
+                { word: 'productivity', color: '#22c55e' },
+                { word: 'mindfulness', color: '#eab308' },
+                { word: 'adventure', color: '#ec4899' },
+                { word: 'creativity', color: '#8b5cf6' },
+                { word: 'fitness', color: '#22c55e' },
+                { word: 'travel', color: '#eab308' },
+                { word: 'relationships', color: '#ec4899' },
+                { word: 'learning', color: '#3b82f6' },
+                { word: 'productivity', color: '#22c55e' },
+                { word: 'mindfulness', color: '#eab308' },
+              ].map((item, i) => (
+                <span
+                  key={i}
+                  className="inline-block px-3 py-1.5 rounded-full text-xs text-white/80"
+                  style={{ 
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: `1px solid ${item.color}40`
+                  }}
+                >
+                  {item.word}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* CSS for auto-scroll animations */}
+      <style jsx>{`
+        @keyframes scroll-vertical {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(-50%); }
+        }
+        @keyframes scroll-vertical-slow {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(-40%); }
+        }
+        .animate-scroll-vertical {
+          animation: scroll-vertical 20s linear infinite;
+        }
+        .animate-scroll-vertical-slow {
+          animation: scroll-vertical-slow 15s linear infinite;
+        }
+      `}</style>
 
       {/* Header */}
       <header
