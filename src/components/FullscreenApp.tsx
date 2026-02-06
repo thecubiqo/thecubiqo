@@ -296,39 +296,36 @@ export function FullscreenApp() {
         }`}
       >
         <div className="flex justify-between items-center w-full">
-          {/* Logo - New CubiQo Cube Icon + Text */}
-          <div className="flex items-center gap-3">
+          {/* Left - CubiQo Logo Icon Only */}
+          <div className="flex items-center">
             <img 
               src="https://customer-assets.emergentagent.com/job_signal-ai-chat/artifacts/ay0gj2sk_ChatGPT%20Image%20Feb%205%2C%202026%2C%2003_14_37%20PM.png" 
               alt="CubiQo" 
               className="w-14 h-14 sm:w-16 sm:h-16 object-contain"
             />
-            <div className="flex items-start">
-              <span className={`text-2xl sm:text-3xl font-semibold tracking-tight ${
-                isDark ? 'text-white' : 'text-gray-900'
-              }`}>
-                CubiQo
-              </span>
-              <span className={`text-[10px] sm:text-[12px] font-medium ml-0.5 -mt-0.5 ${
-                isDark ? 'text-white/60' : 'text-gray-500'
-              }`}>
-                TM
-              </span>
-            </div>
           </div>
 
-          {/* Center - Empty */}
-          <div className="flex-1" />
+          {/* Center - CubiQo Text */}
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-start">
+            <span className={`text-2xl sm:text-3xl font-semibold tracking-tight ${
+              isDark ? 'text-white' : 'text-gray-900'
+            }`}>
+              CubiQo
+            </span>
+            <span className={`text-[10px] sm:text-[12px] font-medium ml-0.5 -mt-0.5 ${
+              isDark ? 'text-white/60' : 'text-gray-500'
+            }`}>
+              TM
+            </span>
+          </div>
 
-          {/* Right side - SIGNAL Logo (bigger with exact S mark) */}
+          {/* Right side - SIGNAL Logo */}
           <div className="flex items-center gap-3">
-            {/* SIGNAL S Icon - Exact image */}
             <img 
               src="https://customer-assets.emergentagent.com/job_signal-ai-chat/artifacts/1lhd76s4_signal_s_exact%20%281%29.png"
               alt="SIGNAL"
               className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
             />
-            {/* SIGNAL Text + Tagline */}
             <div className="flex flex-col">
               <span className="text-xl sm:text-2xl font-semibold tracking-[0.08em] text-white leading-tight">SIGNAL</span>
               <span className="text-[10px] sm:text-[11px] text-white/60 tracking-wide">One is enough.</span>
@@ -337,8 +334,26 @@ export function FullscreenApp() {
         </div>
       </header>
 
-      {/* Sign In - Bottom Left - Above footer */}
-      <div className="fixed bottom-20 left-6 z-[55]">
+      {/* Bottom Left Stack: Settings above Sign In */}
+      <div className="fixed left-6 bottom-6 z-[55] flex flex-col gap-3">
+        {/* Settings */}
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          data-testid="settings-gear-button"
+          className={`flex items-center gap-2 text-[13px] transition-colors ${
+            isDark 
+              ? 'text-white/40 hover:text-white/60' 
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          </svg>
+          <span className="font-medium">Settings</span>
+        </button>
+
+        {/* Sign In with profile icon */}
         {isAuthenticated ? (
           <button
             onClick={() => setMenuOpen(true)}
@@ -353,57 +368,41 @@ export function FullscreenApp() {
         ) : (
           <button
             onClick={() => setShowAuthForm(true)}
-            className="text-[13px] text-white/40 hover:text-white/60 transition-colors"
+            className="flex items-center gap-2 text-[13px] text-white/40 hover:text-white/60 transition-colors"
             data-testid="sign-in-button"
           >
-            Sign In
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+            </svg>
+            <span className="font-medium">Sign In</span>
           </button>
         )}
       </div>
 
-      {/* Settings & Keywords - Top Left Below Header */}
-      <div className="fixed left-5 top-24 z-[60] flex flex-col gap-1">
-        {/* Settings */}
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          data-testid="settings-gear-button"
-          className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 ${
-            isDark 
-              ? 'text-white/50 hover:text-white/80 hover:bg-white/5' 
-              : 'text-gray-500 hover:text-gray-700 hover:bg-black/5'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-          </svg>
-          <span className="text-[13px] font-medium">Settings</span>
-        </button>
-        
-        {/* Keywords */}
-        <button
-          onClick={() => setShowKeywordPanel(true)}
-          data-testid="keywords-button"
-          className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 ${
-            isDark 
-              ? 'text-white/50 hover:text-white/80 hover:bg-white/5' 
-              : 'text-gray-500 hover:text-gray-700 hover:bg-black/5'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
-          </svg>
-          <span className="text-[13px] font-medium">Keywords</span>
-        </button>
-      </div>
-
-      {/* RGY Signal Button - Right side */}
-      <div className="fixed right-4 top-1/2 -translate-y-1/2 z-[60]">
+      {/* Right side - RGY Signal + Keywords underneath */}
+      <div className="fixed right-4 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
+        {/* RGY Traffic Light */}
         <RGYSignalButton 
           onClick={() => setShowRGYChats(true)} 
           isDark={isDark}
           pulseColor={rgyPulseColor}
         />
+        
+        {/* Keywords button underneath */}
+        <button
+          onClick={() => setShowKeywordPanel(true)}
+          data-testid="keywords-button"
+          className={`flex flex-col items-center gap-1 transition-all duration-200 ${
+            isDark 
+              ? 'text-white/40 hover:text-white/60' 
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+          </svg>
+          <span className="text-[11px] font-medium">Keywords</span>
+        </button>
       </div>
 
       {/* Voice Enable Control - Below footer area, never overlaps cube */}
