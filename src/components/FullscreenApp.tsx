@@ -308,18 +308,22 @@ export function FullscreenApp() {
         <EnergyCubeScene colorName={colorName} animationState={animationState} />
       </div>
 
-      {/* Left Content - Auto-scrolling Tickers */}
-      <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[320px] space-y-6">
-        {/* Example Interactions - Auto-scrolling ticker */}
-        <div className="backdrop-blur-xl rounded-2xl p-5 border border-white/10 overflow-hidden" style={{ background: 'rgba(20, 20, 25, 0.85)' }}>
-          <h3 className="text-sm font-medium text-white/90 mb-3 flex items-center gap-2">
-            <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-            </svg>
-            See how peers started
-          </h3>
-          <div className="h-[120px] relative overflow-hidden">
-            <div className="absolute inset-0 animate-scroll-vertical space-y-2">
+      {/* Left Content - Premium Auto-scrolling Tickers */}
+      <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[340px] space-y-5">
+        {/* Example Interactions - Premium ticker */}
+        <div className="relative overflow-hidden rounded-3xl backdrop-blur-2xl border border-white/[0.08]" 
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+          }}>
+          <div className="px-6 pt-5 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/80 animate-pulse" />
+              <h3 className="text-xs font-medium text-white/60 tracking-wide uppercase">Live Examples</h3>
+            </div>
+          </div>
+          <div className="h-[110px] relative overflow-hidden px-6 pb-5">
+            <div className="absolute left-6 right-6 top-0 animate-scroll-vertical space-y-2.5">
               {[
                 "What's a good book for understanding psychology?",
                 "Help me plan a weekend trip to Paris",
@@ -332,25 +336,40 @@ export function FullscreenApp() {
               ].map((example, i) => (
                 <div
                   key={i}
-                  className="px-3 py-2 rounded-lg text-xs text-white/70 bg-white/5"
+                  className="px-4 py-2.5 rounded-xl text-xs text-white/80 leading-relaxed"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%)',
+                    border: '1px solid rgba(255, 255, 255, 0.06)'
+                  }}
                 >
                   "{example}"
                 </div>
               ))}
             </div>
+            {/* Gradient fade edges */}
+            <div className="absolute inset-x-0 top-0 h-8 pointer-events-none" 
+              style={{ background: 'linear-gradient(to bottom, rgba(20, 20, 25, 0.9), transparent)' }} />
+            <div className="absolute inset-x-0 bottom-0 h-8 pointer-events-none" 
+              style={{ background: 'linear-gradient(to top, rgba(20, 20, 25, 0.9), transparent)' }} />
           </div>
         </div>
 
-        {/* Trending Keywords - Auto-scrolling ticker */}
-        <div className="backdrop-blur-xl rounded-2xl p-5 border border-white/10 overflow-hidden" style={{ background: 'rgba(20, 20, 25, 0.85)' }}>
-          <h3 className="text-sm font-medium text-white/90 mb-3 flex items-center gap-2">
-            <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-            </svg>
-            Popular keywords
-          </h3>
-          <div className="h-[80px] relative overflow-hidden">
-            <div className="absolute inset-0 animate-scroll-vertical-slow flex flex-col flex-wrap gap-2 content-start">
+        {/* Trending Keywords - Premium ticker */}
+        <div className="relative overflow-hidden rounded-3xl backdrop-blur-2xl border border-white/[0.08]" 
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+          }}>
+          <div className="px-6 pt-5 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <svg className="w-3.5 h-3.5 text-amber-400/80" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <h3 className="text-xs font-medium text-white/60 tracking-wide uppercase">Trending</h3>
+            </div>
+          </div>
+          <div className="h-[90px] relative overflow-hidden px-6 pb-5">
+            <div className="absolute left-6 right-6 top-0 animate-scroll-vertical-slow flex flex-wrap gap-2">
               {[
                 { word: 'productivity', color: '#22c55e' },
                 { word: 'mindfulness', color: '#eab308' },
@@ -365,16 +384,22 @@ export function FullscreenApp() {
               ].map((item, i) => (
                 <span
                   key={i}
-                  className="inline-block px-3 py-1.5 rounded-full text-xs text-white/80"
+                  className="inline-block px-3.5 py-1.5 rounded-full text-xs font-medium text-white/90"
                   style={{ 
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: `1px solid ${item.color}40`
+                    background: `linear-gradient(135deg, ${item.color}20, ${item.color}08)`,
+                    border: `1px solid ${item.color}30`,
+                    boxShadow: `0 2px 8px ${item.color}15`
                   }}
                 >
                   {item.word}
                 </span>
               ))}
             </div>
+            {/* Gradient fade edges */}
+            <div className="absolute inset-x-0 top-0 h-6 pointer-events-none" 
+              style={{ background: 'linear-gradient(to bottom, rgba(20, 20, 25, 0.9), transparent)' }} />
+            <div className="absolute inset-x-0 bottom-0 h-6 pointer-events-none" 
+              style={{ background: 'linear-gradient(to top, rgba(20, 20, 25, 0.9), transparent)' }} />
           </div>
         </div>
       </div>
@@ -429,8 +454,11 @@ export function FullscreenApp() {
             </span>
           </div>
 
-          {/* Right side - SIGNAL Logo */}
-          <div className="flex items-center gap-3">
+          {/* Right side - SIGNAL Logo - Clickable */}
+          <button 
+            onClick={() => setShowRGYChats(true)}
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+          >
             <img 
               src="https://customer-assets.emergentagent.com/job_signal-ai-chat/artifacts/1lhd76s4_signal_s_exact%20%281%29.png"
               alt="SIGNAL"
@@ -440,7 +468,7 @@ export function FullscreenApp() {
               <span className="text-xl sm:text-2xl font-semibold tracking-[0.08em] text-white leading-tight">SIGNAL</span>
               <span className="text-[10px] sm:text-[11px] text-white/60 tracking-wide">One is enough.</span>
             </div>
-          </div>
+          </button>
         </div>
       </header>
 
@@ -498,19 +526,20 @@ export function FullscreenApp() {
           pulseColor={rgyPulseColor}
         />
         
-        {/* Signal text - Opens RGY Chats Modal */}
+        {/* Keywords text underneath */}
         <button
-          onClick={() => setShowRGYChats(true)}
-          data-testid="signal-button"
-          className={`flex flex-col items-center gap-1 transition-all duration-200 group ${
+          onClick={() => setShowKeywordPanel(true)}
+          data-testid="keywords-button"
+          className={`flex flex-col items-center gap-1 transition-all duration-200 ${
             isDark 
-              ? 'text-white/50 hover:text-white/90' 
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'text-white/40 hover:text-white/60' 
+              : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          <span className="text-[11px] font-medium tracking-wider underline decoration-1 underline-offset-2 group-hover:decoration-2">
-            SIGNAL
-          </span>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+          </svg>
+          <span className="text-[11px] font-medium">Keywords</span>
         </button>
       </div>
 
@@ -571,50 +600,6 @@ export function FullscreenApp() {
           </span>
         </button>
       </div>
-
-      {/* Early Access Banner */}
-      {showEarlyAccess && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-[500px] max-w-[90vw]">
-          <div className="backdrop-blur-xl rounded-2xl p-4 border border-white/10" style={{ background: 'rgba(20, 20, 25, 0.95)' }}>
-            <button 
-              onClick={() => setShowEarlyAccess(false)}
-              className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white/80 transition-all"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    EARLY ACCESS
-                  </span>
-                </div>
-                <p className="text-sm text-white/90 font-medium mb-0.5">Join testing — Shape the future</p>
-                <p className="text-xs text-white/40">Be first to try new features and help us improve</p>
-              </div>
-              <form onSubmit={handleEarlyAccessSubmit} className="flex gap-2">
-                <input
-                  type="email"
-                  value={earlyAccessEmail}
-                  onChange={(e) => setEarlyAccessEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  required
-                  className="w-48 px-3 py-2 text-sm rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/25 focus:outline-none focus:border-white/30"
-                />
-                <button
-                  type="submit"
-                  disabled={earlyAccessSubmitted}
-                  className="px-4 py-2 text-sm rounded-lg bg-white text-black font-medium hover:bg-white/90 transition-all disabled:opacity-50"
-                >
-                  {earlyAccessSubmitted ? '✓' : 'Join'}
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Footer - Single line Apple Premium */}
       <footer className="fixed bottom-0 left-0 right-0 z-50 py-6 text-center">
