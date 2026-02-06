@@ -4,11 +4,17 @@
  * useElevenLabsTTS - Voice output using ElevenLabs API via backend
  * Falls back to browser speech synthesis if ElevenLabs fails
  * 
- * Provides natural human-like voice with mood-based settings:
- * - GREEN (office): Professional, measured
- * - YELLOW (cafe): Warm, relaxed
- * - RED (intimate): Deep, whisper-like
- * - ORANGE (landing): Neutral, balanced
+ * CubiQo's Voice Character:
+ * - NOT robotic - warm and expressive
+ * - NOT fully human - has a unique, ethereal quality  
+ * - An AI entity with personality - curious, warm, slightly mystical
+ * 
+ * Voice: "Adam" - smooth, warm, versatile male voice
+ * Settings tuned per color zone for mood variation:
+ * - GREEN (office): Focused, clear, professional
+ * - YELLOW (cafe): Warm, friendly, conversational
+ * - RED (intimate): Soft, thoughtful, personal
+ * - ORANGE (landing): Balanced, welcoming, curious
  * 
  * Rate limited: 10 requests/minute per session (handled by backend)
  * 
@@ -24,13 +30,17 @@ import { useSession } from '@/hooks/useSession'
 import { initAudioContext, isAudioContextReady, getAudioContext } from '@/lib/audio/audioContext'
 
 /**
- * Voice settings per color zone
- * SAME VOICE (Daniel - British, husky, butler-like) with different tempo/mood:
- * - GREEN: Office-like, focused, direct
- * - YELLOW: Candid, relaxed, friendly
- * - RED: Intimate, whisper-like, soft
- * - ORANGE: Balanced, default
+ * CubiQo's Voice - "Adam" (pNInz6obpgDQGcFmaJgB)
+ * A warm, smooth voice that feels approachable yet distinct
+ * 
+ * Voice settings create CubiQo's unique character:
+ * - Lower stability (0.3-0.5) = more expressive, less monotone
+ * - Moderate similarity (0.6-0.8) = consistent but not robotic
+ * - Higher style (0.4-0.7) = more personality and character
+ * - Speaker boost off = softer, more intimate feel
  */
+const CUBIQO_VOICE_ID = 'pNInz6obpgDQGcFmaJgB' // Adam - warm, smooth, versatile
+
 const VOICE_SETTINGS: Record<string, {
   voiceId: string
   stability: number
@@ -39,36 +49,40 @@ const VOICE_SETTINGS: Record<string, {
   use_speaker_boost: boolean
 }> = {
   GREEN_BLUE: {
-    voiceId: 'onwK4e9ZLuTAKqWW03F9',
-    stability: 0.8,
-    similarity_boost: 0.85,
-    style: 0.15,
-    use_speaker_boost: true
+    // Office mode - Focused, clear, but still warm
+    voiceId: CUBIQO_VOICE_ID,
+    stability: 0.45,          // Moderate stability for clarity
+    similarity_boost: 0.75,   // Good consistency
+    style: 0.45,              // Professional but personable
+    use_speaker_boost: false  // Softer presence
   },
   YELLOW: {
-    voiceId: 'onwK4e9ZLuTAKqWW03F9',
-    stability: 0.55,
-    similarity_boost: 0.7,
-    style: 0.35,
-    use_speaker_boost: true
+    // Cafe mode - Warm, friendly, conversational
+    voiceId: CUBIQO_VOICE_ID,
+    stability: 0.35,          // More expressive variation
+    similarity_boost: 0.65,   // Natural flow
+    style: 0.55,              // Friendly and engaging
+    use_speaker_boost: false  // Intimate feel
   },
   RED: {
-    voiceId: 'onwK4e9ZLuTAKqWW03F9',
-    stability: 0.9,
-    similarity_boost: 0.95,
-    style: 0.6,
-    use_speaker_boost: false
+    // Intimate mode - Soft, thoughtful, personal
+    voiceId: CUBIQO_VOICE_ID,
+    stability: 0.30,          // Most expressive
+    similarity_boost: 0.70,   // Warm consistency
+    style: 0.65,              // Deep personality
+    use_speaker_boost: false  // Very soft, personal
   },
   ORANGE: {
-    voiceId: 'onwK4e9ZLuTAKqWW03F9',
-    stability: 0.7,
-    similarity_boost: 0.75,
-    style: 0.25,
-    use_speaker_boost: true
+    // Landing/Default - Balanced, welcoming, curious
+    voiceId: CUBIQO_VOICE_ID,
+    stability: 0.40,          // Expressive but stable
+    similarity_boost: 0.70,   // Consistent character
+    style: 0.50,              // Balanced personality
+    use_speaker_boost: false  // Warm, not booming
   }
 }
 
-const DEFAULT_VOICE_ID = 'onwK4e9ZLuTAKqWW03F9'
+const DEFAULT_VOICE_ID = CUBIQO_VOICE_ID
 
 interface UseElevenLabsTTSOptions {
   voiceId?: string
