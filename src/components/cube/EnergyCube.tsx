@@ -249,10 +249,10 @@ const COLOR_CONFIGS: Record<ColorName, {
   },
   ORANGE: {
     // LANDING/MYTHICAL - Stateless, ethereal, transitional (no voice modes)
-    primary: new THREE.Color(1.0, 0.5, 0.1),         // Ethereal orange
-    secondary: new THREE.Color(0.9, 0.4, 0.05),     // Deep amber
-    accent: new THREE.Color(1.0, 0.7, 0.3),         // Golden glow
-    shadowColor: new THREE.Color(1.0, 0.5, 0.15),  // Warm ethereal glow
+    primary: new THREE.Color(0.9, 0.3, 0.8),         // Deep purple-pink
+    secondary: new THREE.Color(0.6, 0.2, 0.7),      // Rich violet
+    accent: new THREE.Color(1.0, 0.4, 0.9),         // Bright magenta
+    shadowColor: new THREE.Color(0.8, 0.3, 0.8),    // Purple glow
     floats: true,
     floatHeight: 0.15,                              // Gentle float
     isLanding: true,                                 // Special flag
@@ -321,7 +321,7 @@ export function EnergyCube({
     uPrimaryColor: { value: colorConfig.primary.clone() },
     uSecondaryColor: { value: colorConfig.secondary.clone() },
     uAccentColor: { value: colorConfig.accent.clone() },
-    uColorIntensity: { value: 0.7 },
+    uColorIntensity: { value: 1.2 },
   }), [])
   
   // Trigger shuffle on color change
