@@ -443,7 +443,7 @@ export function FullscreenApp() {
       </div>
 
       {/* Right side - RGY Signal + Keywords underneath */}
-      <div className="fixed right-[5.5rem] top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
+      <div className="fixed right-[4.5rem] top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
         {/* RGY Traffic Light - Opens Keywords Panel */}
         <RGYSignalButton 
           onClick={() => setShowKeywordPanel(true)} 
