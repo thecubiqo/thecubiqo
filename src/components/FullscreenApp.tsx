@@ -308,6 +308,41 @@ export function FullscreenApp() {
         <EnergyCubeScene colorName={colorName} animationState={animationState} />
       </div>
 
+      {/* Floating Questions - Slow Scroll */}
+      <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[400px] h-[300px] overflow-hidden pointer-events-none">
+        <div className="animate-float-questions space-y-8">
+          {[
+            "What's a good book for understanding psychology?",
+            "Help me plan a weekend trip to Paris",
+            "I need motivation to start working out",
+            "Explain quantum computing like I'm five",
+            "Best restaurants in Brooklyn?",
+            "How do I learn Spanish fast?",
+            "What's the meaning of life?",
+            "Recommend a morning routine",
+            "What's a good book for understanding psychology?",
+            "Help me plan a weekend trip to Paris",
+          ].map((question, i) => (
+            <div
+              key={i}
+              className="text-white/30 text-sm leading-relaxed"
+            >
+              "{question}"
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes float-questions {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(-50%); }
+        }
+        .animate-float-questions {
+          animation: float-questions 60s linear infinite;
+        }
+      `}} />
+
 
       {/* Header */}
       <header
