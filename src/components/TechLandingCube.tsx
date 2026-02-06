@@ -10,7 +10,6 @@
 import React, { useRef, useMemo, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { EffectComposer, Bloom } from '@react-three/postprocessing'
 
 // Energy wireframe shader
 const energyVertexShader = `
@@ -150,11 +149,14 @@ const energyFragmentShader = `
     // Bright wireframe lines
     color = mix(color, white, wireframe * veins * 0.6);
     
-    // Fresnel glow
+    // Fresnel glow (boosted for no bloom)
     vec3 viewDir = normalize(cameraPosition - vWorldPosition);
     float fresnel = pow(1.0 - abs(dot(vNormal, viewDir)), 2.2);
-    color += cyan * fresnel * 0.5;
-    color += orange * fresnel * 0.2 * uVoiceIntensity;
+    color += cyan * fresnel * 1.2;
+    color += orange * fresnel * 0.5 * uVoiceIntensity;
+    
+    // Extra glow for energy
+    color *= 1.3;
     
     // Pulsing
     float pulse = sin(uTime * 0.6) * 0.5 + 0.5;
@@ -317,18 +319,10 @@ export function TechLandingCube({ onComplete, isVoiceActive = false }: TechLandi
             alpha: true, 
             powerPreference: 'high-performance',
             toneMapping: THREE.ACESFilmicToneMapping,
-            toneMappingExposure: 1.2,
+            toneMappingExposure: 1.5,
           }}
         >
           <TechCube voiceIntensity={voiceIntensity} />
-          <EffectComposer>
-            <Bloom 
-              intensity={2.5}
-              luminanceThreshold={0.15}
-              luminanceSmoothing={0.9}
-              mipmapBlur
-            />
-          </EffectComposer>
         </Canvas>
       </div>
       
