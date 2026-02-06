@@ -380,7 +380,7 @@ export function FullscreenApp() {
       </div>
 
       {/* CSS for auto-scroll animations */}
-      <style jsx>{`
+      <style dangerouslySetInnerHTML={{__html: `
         @keyframes scroll-vertical {
           0% { transform: translateY(0); }
           100% { transform: translateY(-50%); }
@@ -395,7 +395,7 @@ export function FullscreenApp() {
         .animate-scroll-vertical-slow {
           animation: scroll-vertical-slow 15s linear infinite;
         }
-      `}</style>
+      `}} />
 
       {/* Header */}
       <header
