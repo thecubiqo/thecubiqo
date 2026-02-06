@@ -73,7 +73,7 @@ export async function getRegionByRegionId(
     }
 
     const { data, error } = await supabaseAdmin
-      .from<RegionRow>("regions")
+      .from("regions")
       .select("*")
       .eq("region_id", regionId)
       .maybeSingle();

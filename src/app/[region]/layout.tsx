@@ -43,5 +43,5 @@ export default async function RegionalLayout({
 
 // Generate static params for known regions
 export function generateStaticParams() {
-  return VALID_REGIONS.map((region) => ({ region }))
+  return VALID_REGIONS.map((region: string) => ({ region }))
 }
