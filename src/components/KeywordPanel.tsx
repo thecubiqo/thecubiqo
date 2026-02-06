@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * KeywordPanel - Tap to edit cards
- * Three cards that expand to fill space, tap to edit mode
+ * KeywordPanel - Matches mockup design
+ * Three stacked cards with tap-to-edit functionality
  */
 
 import { useState, useEffect } from 'react'
@@ -25,22 +25,19 @@ const CARD_CONFIG = {
     name: 'Ascend',
     icon: '↗',
     subtitle: 'Growth · Wellness · Achievement',
-    color: '#22c55e',
-    borderColor: 'rgba(34, 197, 94, 0.5)',
+    borderColor: '#22c55e',
   },
   drift: {
     name: 'Drift',
     icon: '✨',
     subtitle: 'Relax · Social · Ambient',
-    color: '#eab308',
-    borderColor: 'rgba(234, 179, 8, 0.5)',
+    borderColor: '#eab308',
   },
   pulse: {
     name: 'Pulse',
     icon: '⚡',
     subtitle: 'Attraction · Energy · Exploration',
-    color: '#ec4899',
-    borderColor: 'rgba(236, 72, 153, 0.5)',
+    borderColor: '#ec4899',
   },
 }
 
@@ -95,35 +92,28 @@ export function KeywordPanel({
   const addKeyword = (cardType: CardType) => {
     const keyword = newKeyword.trim().toLowerCase()
     if (keyword && cards[cardType].keywords.length < 50 && !cards[cardType].keywords.includes(keyword)) {
-      const newCards = {
+      saveCards({
         ...cards,
         [cardType]: {
           keywords: [...cards[cardType].keywords, keyword]
         }
-      }
-      saveCards(newCards)
+      })
       setNewKeyword('')
     }
   }
 
   const removeKeyword = (cardType: CardType, index: number) => {
-    const newCards = {
+    saveCards({
       ...cards,
       [cardType]: {
         keywords: cards[cardType].keywords.filter((_, i) => i !== index)
       }
-    }
-    saveCards(newCards)
+    })
   }
 
-  const handleCardClick = (cardType: CardType) => {
-    if (editingCard === cardType) {
-      setEditingCard(null)
-      setNewKeyword('')
-    } else {
-      setEditingCard(cardType)
-      setNewKeyword('')
-    }
+  const toggleEdit = (cardType: CardType) => {
+    setEditingCard(editingCard === cardType ? null : cardType)
+    setNewKeyword('')
   }
 
   if (!isVisible) return null
@@ -135,54 +125,41 @@ export function KeywordPanel({
       }`}
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-md" />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
       
       <div
-        className={`absolute right-0 top-0 bottom-0 w-[440px] max-w-[90vw] flex flex-col transition-transform duration-300 ease-out backdrop-blur-2xl ${
+        className={`absolute right-0 top-0 bottom-0 w-[480px] max-w-[92vw] flex flex-col transition-transform duration-300 ease-out ${
           isAnimating ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{
-          background: isDark 
-            ? 'linear-gradient(135deg, rgba(30, 30, 35, 0.85) 0%, rgba(20, 20, 25, 0.90) 100%)'
-            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(250, 250, 252, 0.90) 100%)',
-          boxShadow: isDark
-            ? '-8px 0 32px rgba(0, 0, 0, 0.4), inset 1px 0 1px rgba(255, 255, 255, 0.1)'
-            : '-8px 0 32px rgba(0, 0, 0, 0.15), inset 1px 0 1px rgba(255, 255, 255, 0.8)',
-          borderLeft: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+          background: 'linear-gradient(to bottom, rgba(25, 25, 30, 0.92), rgba(20, 20, 25, 0.95))',
+          backdropFilter: 'blur(40px)',
         }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-6 pb-4 flex-shrink-0">
+        <div className="px-8 pt-8 pb-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className={`text-2xl font-light tracking-wide ${
-              isDark ? 'text-white/95' : 'text-gray-900'
-            }`}>
+            <h2 className="text-3xl font-light text-white/95 tracking-tight">
               Keywords
             </h2>
             <button 
               onClick={onClose}
-              className={`p-2 rounded-full transition-all ${
-                isDark 
-                  ? 'hover:bg-white/10 text-white/60 hover:text-white/90' 
-                  : 'hover:bg-black/5 text-gray-400 hover:text-gray-700'
-              }`}
+              className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white/80 transition-all"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
           
-          <p className={`text-sm leading-relaxed ${
-            isDark ? 'text-white/50' : 'text-gray-500'
-          }`}>
+          <p className="text-sm text-white/40 leading-relaxed">
             Keywords per color is one of the way how CubiQo knows you, the words are populated here based of conversation or you can edit as you feel fit
           </p>
         </div>
 
-        {/* Cards - expanded to fill space */}
-        <div className="flex-1 flex flex-col gap-3 px-6 pb-6 overflow-y-auto">
+        {/* Cards Container */}
+        <div className="flex-1 flex flex-col px-8 pb-8 gap-5 overflow-y-auto">
           {(Object.keys(CARD_CONFIG) as CardType[]).map((cardType) => {
             const config = CARD_CONFIG[cardType]
             const cardData = cards[cardType]
@@ -191,36 +168,35 @@ export function KeywordPanel({
             return (
               <div
                 key={cardType}
-                onClick={() => !isEditing && handleCardClick(cardType)}
-                className={`flex-1 rounded-3xl p-5 backdrop-blur-sm transition-all cursor-pointer ${
-                  isEditing ? 'ring-2' : 'hover:scale-[1.02]'
-                }`}
+                onClick={() => !isEditing && toggleEdit(cardType)}
+                className="flex-1 rounded-[32px] p-6 backdrop-blur-xl cursor-pointer transition-all duration-300"
                 style={{
-                  background: `linear-gradient(135deg, ${config.color}12 0%, ${config.color}05 100%)`,
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)',
                   border: `2px solid ${config.borderColor}`,
                   boxShadow: isEditing 
-                    ? `0 8px 32px ${config.color}30, 0 0 0 2px ${config.color}` 
-                    : `0 4px 16px ${config.color}15`,
-                  minHeight: '140px'
+                    ? `0 12px 40px ${config.borderColor}40, inset 0 1px 0 rgba(255,255,255,0.1)` 
+                    : `0 8px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)`,
+                  transform: isEditing ? 'scale(1.02)' : 'scale(1)',
+                  minHeight: '160px'
                 }}
               >
-                {/* Header */}
-                <div className="flex items-start justify-between mb-3">
+                {/* Card Header */}
+                <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div 
-                      className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl backdrop-blur-sm"
+                      className="w-14 h-14 rounded-[20px] flex items-center justify-center text-2xl backdrop-blur-sm"
                       style={{ 
-                        backgroundColor: `${config.color}25`,
-                        border: `1.5px solid ${config.borderColor}`
+                        background: `${config.borderColor}20`,
+                        border: `1.5px solid ${config.borderColor}50`,
                       }}
                     >
                       {config.icon}
                     </div>
                     <div>
-                      <h3 className={`font-semibold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      <h3 className="text-xl font-medium text-white mb-0.5">
                         {config.name}
                       </h3>
-                      <p className={`text-xs ${isDark ? 'text-white/40' : 'text-gray-500'}`}>
+                      <p className="text-xs text-white/40">
                         {config.subtitle}
                       </p>
                     </div>
@@ -229,26 +205,28 @@ export function KeywordPanel({
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleCardClick(cardType)
+                        toggleEdit(cardType)
                       }}
-                      className={`text-xs px-2 py-1 rounded-lg ${isDark ? 'text-white/60 hover:bg-white/10' : 'text-gray-500 hover:bg-black/5'}`}
+                      className="text-xs px-3 py-1.5 rounded-full text-white/60 hover:bg-white/10 transition-all"
                     >
                       Done
                     </button>
                   )}
                 </div>
 
-                {/* Keywords */}
+                {/* Keywords Display */}
                 {cardData.keywords.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
+                  <div className="flex flex-wrap gap-2 mb-4">
                     {cardData.keywords.map((keyword, index) => (
                       <div
                         key={index}
-                        className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm backdrop-blur-sm ${
-                          isDark ? 'bg-white/15' : 'bg-white/70'
-                        }`}
+                        className="group flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-sm"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.12)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)'
+                        }}
                       >
-                        <span className={isDark ? 'text-white/90' : 'text-gray-800'}>
+                        <span className="text-sm text-white/90">
                           {keyword}
                         </span>
                         {isEditing && (
@@ -257,10 +235,10 @@ export function KeywordPanel({
                               e.stopPropagation()
                               removeKeyword(cardType, index)
                             }}
-                            className="opacity-70 hover:opacity-100"
+                            className="opacity-60 hover:opacity-100 transition-opacity"
                           >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            <svg className="w-3.5 h-3.5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                           </button>
                         )}
@@ -269,10 +247,10 @@ export function KeywordPanel({
                   </div>
                 )}
 
-                {/* Edit mode input */}
+                {/* Edit Mode Input */}
                 {isEditing && (
                   <div 
-                    className="flex gap-2 pt-2"
+                    className="flex gap-2"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <input
@@ -282,27 +260,30 @@ export function KeywordPanel({
                       onKeyDown={(e) => e.key === 'Enter' && addKeyword(cardType)}
                       placeholder={`Add keyword (${cardData.keywords.length}/50)`}
                       disabled={cardData.keywords.length >= 50}
-                      className={`flex-1 px-3 py-2 text-sm rounded-xl backdrop-blur-sm ${
-                        isDark 
-                          ? 'bg-white/10 border border-white/20 placeholder:text-white/40 text-white' 
-                          : 'bg-white/50 border border-gray-300 placeholder:text-gray-400 text-gray-900'
-                      }`}
+                      className="flex-1 px-4 py-2.5 text-sm rounded-2xl backdrop-blur-sm text-white placeholder:text-white/30 focus:outline-none transition-all"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.08)',
+                        border: '1px solid rgba(255, 255, 255, 0.15)'
+                      }}
                       autoFocus
                     />
                     <button
                       onClick={() => addKeyword(cardType)}
                       disabled={!newKeyword.trim() || cardData.keywords.length >= 50}
-                      className="px-4 py-2 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-30"
-                      style={{ backgroundColor: config.color }}
+                      className="px-5 py-2.5 rounded-2xl text-sm font-medium text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                      style={{ 
+                        background: config.borderColor,
+                        boxShadow: `0 4px 12px ${config.borderColor}40`
+                      }}
                     >
                       Add
                     </button>
                   </div>
                 )}
 
-                {/* Tap hint when not editing and no keywords */}
+                {/* Empty State */}
                 {!isEditing && cardData.keywords.length === 0 && (
-                  <p className={`text-center text-sm ${isDark ? 'text-white/30' : 'text-gray-400'}`}>
+                  <p className="text-center text-sm text-white/30 py-2">
                     Tap to add keywords
                   </p>
                 )}
