@@ -8,6 +8,7 @@ import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { ChatContainer } from '@/components/chat'
 import { CubeScene } from '@/components/cube'
+import { PoweredByLogosCompact } from '@/components/PoweredByLogos'
 import { useSession } from '@/hooks/useSession'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from '@/components/cube/Cube'
@@ -64,6 +65,11 @@ export default function ChatPage() {
               onSpeakingChange={handleSpeakingChange}
             />
           </div>
+        </div>
+        
+        {/* Powered By Logos - Bottom Center */}
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+          <PoweredByLogosCompact isDark={true} />
         </div>
       </main>
     </div>

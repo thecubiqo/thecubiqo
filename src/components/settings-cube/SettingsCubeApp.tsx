@@ -10,6 +10,7 @@ import { Canvas } from '@react-three/fiber'
 import { Environment, ContactShadows, OrbitControls } from '@react-three/drei'
 import { SettingsCube } from './SettingsCube'
 import { CommandInput } from './CommandInput'
+import { PoweredByLogosCompact } from '../PoweredByLogos'
 import { parseCommand, executeCommand } from '@/lib/settings-cube/commands'
 import { DEFAULT_CONFIG } from '@/lib/settings-cube/types'
 import type { CubeConfig, SettingsCommand } from '@/lib/settings-cube/types'
@@ -146,6 +147,11 @@ export function SettingsCubeApp() {
         {/* Instructions */}
         <div className="absolute bottom-4 left-4 text-xs text-green-600/40">
           Drag to rotate | Scroll to zoom
+        </div>
+
+        {/* Powered By Logos */}
+        <div className="absolute bottom-4 right-4">
+          <PoweredByLogosCompact isDark={true} />
         </div>
       </div>
 
