@@ -1,144 +1,100 @@
-# CubiQo
+# CubiQo - Open Source AI Companion
 
-> One Mind. Many Dimensions.
+CubiQo is an open-source conversational AI platform with voice capabilities, journaling, and intent-based matching.
 
-Emotional AI companion with persistent memory and voice interface.
+## ✨ Features
 
-**Status:** ✅ Phase 2 Complete | **Live:** https://cubiqo.ai
+- 🎙️ **Voice Conversations** - Natural voice interaction with emotional modulation
+- 📔 **Rozana Journal** - Daily reflections with AI-guided conversations
+- 🎨 **RGY Context** - Color-coded life categorization (Red/Yellow/Green)
+- 🔐 **Privacy-First** - BYO (Bring Your Own) mode - use your own API keys
+- 🌐 **Open Source** - Built with open models (Llama, Mixtral, DeepSeek)
 
----
+## 🚀 Quick Start
 
-## Features
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
 
-| Feature | Description |
-|---------|-------------|
-| 🎤 **Voice Interface** | Speech recognition + TTS with state machine |
-| 🧊 **3D Cube** | React Three Fiber with 4 emotional colors |
-| 🧠 **Memory Extraction** | AI extracts and remembers user facts |
-| 🔐 **Magic Link Auth** | Passwordless email authentication |
-| 👤 **Guest Mode** | Chat without sign-in, migrate on auth |
-| 🎨 **Fourth Way Colors** | Orange (home), Red, Yellow, Green-Blue |
-| 📱 **PWA** | Installable, offline-capable |
-| 🌍 **Regional Routing** | Geo-based customization (UK, etc.) |
-| ⚙️ **Settings Cube** | Terminal-style cube configuration demo |
-| 🔑 **BYO Mode** | Use your own API keys for complete cost isolation |
-
----
-
-## Tech Stack
-
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Framework | Next.js (App Router) | 16.0.3 |
-| UI | React | 19 RC |
-| Language | TypeScript | 5.x |
-| Styling | Tailwind CSS | 4.x |
-| 3D | React Three Fiber | 9.4.0 |
-| Database | Supabase (PostgreSQL) | - |
-| Auth | Supabase Magic Link | - |
-| AI Primary | Claude Haiku 4.5 | claude-haiku-4-5-20251001 |
-| AI Second (Red Zone) | OpenAI | gpt-5.1 |
-| Deployment | Vercel | - |
-
----
-
-## Quick Start
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/thecubiqo/thecubiqo.git
+cd thecubiqo
+
 # Install dependencies
 npm install
 
-# Set up environment
+# Copy environment template
 cp .env.example .env.local
-# Add your Supabase and AI API keys
+
+# (Optional) Add your API keys to .env.local
+# Or use BYO mode - enter keys in the UI
 
 # Run development server
 npm run dev
-
-# Build for production
-npm run build
 ```
 
----
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Project Structure
+## 🔧 Configuration
 
-```
-src/
-├── app/
-│   ├── api/
-│   │   ├── chat/              # AI routing + memory
-│   │   ├── extract-memories/  # Async fact extraction
-│   │   └── session/           # Session management
-│   ├── auth/callback/         # Magic link handler
-│   ├── settings-cube/         # Settings Cube demo
-│   └── [region]/              # Regional pages (UK, etc.)
-├── components/
-│   ├── auth/                  # Login, auth status
-│   ├── cube/                  # 3D cube (R3F)
-│   ├── settings-cube/         # Settings Cube components
-│   └── FullscreenApp.tsx      # Main app
-├── hooks/
-│   ├── useAuth.ts
-│   ├── useBYO.ts              # BYO API keys management
-│   ├── useChat.ts
-│   ├── useSession.ts
-│   └── useSpeech*.ts
-├── lib/
-│   ├── ai/                    # AI providers, prompts
-│   ├── byo/                   # BYO types and constants
-│   ├── config/                # Regional configuration
-│   ├── settings-cube/         # Settings Cube types/commands
-│   └── supabase/              # DB client
-└── contexts/
-    └── RegionContext.tsx      # Regional context provider
+### BYO Mode (Recommended)
+No setup needed! Click "Settings" → "Try BYO Mode" and enter your own API keys.
 
-generator/
-├── config/
-│   ├── schema.json            # JSON schema for validation
-│   └── regions/               # Regional configs (uk.json, etc.)
-└── templates/                 # Template files for generation
+### Hosted Mode
+If you want to provide API keys for users, edit `.env.local`:
+
+```env
+ANTHROPIC_API_KEY=your_key_here
+OPENAI_API_KEY=your_key_here
+ELEVENLABS_API_KEY=your_key_here
 ```
 
+## 🏗️ Tech Stack
+
+- **Framework:** Next.js 14 (App Router)
+- **3D Graphics:** Three.js / React Three Fiber
+- **AI:** OpenRouter-compatible APIs (supports open models)
+- **Voice:** ElevenLabs TTS
+- **Styling:** Tailwind CSS
+- **Deployment:** Vercel
+
+## 🤝 Contributing
+
+We welcome contributions! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 License
+
+Open source under MIT License. See `LICENSE` file for details.
+
+## 🛡️ Privacy
+
+- **No data collection** in BYO mode
+- **Voice data** never stored (policy)
+- **Journal entries** encrypted and owned by user
+- **Open source** - audit the code yourself
+
+## 🌟 Roadmap
+
+- [ ] Rozana confession room experience
+- [ ] Signal - Intent-based matching
+- [ ] Full open model integration (Llama 3, Mixtral)
+- [ ] Self-hosted deployment guides
+- [ ] Mobile apps (iOS/Android)
+
+## 📧 Contact
+
+- Website: [cubiqo.ai](https://cubiqo.ai)
+- Issues: [GitHub Issues](https://github.com/thecubiqo/thecubiqo/issues)
+
 ---
 
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | System architecture |
-| [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) | API reference |
-| [docs/PHASE2-STATUS.md](./docs/PHASE2-STATUS.md) | Implementation status |
-
----
-
-## Environment Variables
-
-```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-
-# AI Providers
-ANTHROPIC_API_KEY=
-OPENAI_API_KEY=
-
-# App
-NEXT_PUBLIC_APP_URL=
-```
-
----
-
-## Color Philosophy (Fourth Way)
-
-| Color | State | Meaning |
-|-------|-------|---------|
-| 🟧 Orange | Home | Stillness, awareness, reflection |
-| 🟥 Red | Tamas | Desire, indulgence, rebellion |
-| 🟨 Yellow | Rajas | Activity, energy, curiosity |
-| 🟢 Green-Blue | Sattva | Growth, wellness, ambition |
-
----
-
-**Version:** 3.3.0 • **Updated:** 2025-12-07 • **Phase 2 + Generator PoC + Settings Cube + BYO Mode**
+**"One is enough." - CubiQo + Signal**
