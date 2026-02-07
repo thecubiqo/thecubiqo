@@ -29,23 +29,43 @@
 
 ---
 
-## Phase 2: Core Features (IN PROGRESS)
+## Phase 2: Core Features ✅ COMPLETE
 
-### Target Commits from staging:
-- TechLandingCube component (a29276f)
-- FlowingEnergyCube updates (50513c6, 3b80ed2)
-- TypeScript error fixes (a4f4bdc, 2c550ca)
-- Build error fixes (d07c23f, 3d53362)
+### Commits Merged from staging:
+1. **14f08a8** - Add TechLandingCube (a29276f)
+   - New file: `src/components/TechLandingCube.tsx` (391 lines)
+   - High-def wireframe energy cube with orange accents
 
-### Target Commits from ui/energy-cube-staging:
-- Wireframe energy design (2354741)
-- TechLandingCube with build fixes (07d74e1)
+2. **aff13d7** - Add TechLandingCube preview page (f156a2c)
+   - New file: `src/app/landing-preview/page.tsx`
+   - Preview route for testing new cube design
 
-### Next Steps:
-1. Cherry-pick TechLandingCube component
-2. Update cube visuals with energy flows
-3. Test build after each addition
-4. Resolve any conflicts preserving main's routing logic
+3. **67d36ca** - Fix React import in TechLandingCube (3d53362)
+   - Fixed missing React import
+
+4. **94ca6aa** - Fix build error - remove postprocessing dependency (d07c23f)
+   - Removed unnecessary Three.js postprocessing
+
+5. **6796dd6** - Rebuild FlowingEnergyCube with ribbon-like energy flows (50513c6)
+   - Updated: `src/components/FlowingEnergyCube.tsx`
+   - Proper ribbon-like energy flows matching mockup
+
+6. **1d3a864** - Rebuild with geometric tube ribbons (3b80ed2)
+   - Enhanced FlowingEnergyCube with 3D curve path ribbons
+
+### Commits Merged from ui/energy-cube-staging:
+1. **0f247c4** - Replace EnergyCube with wireframe energy design (2354741)
+   - New file: `src/components/cube/EnergyCubeWireframe.tsx` (385 lines)
+   - Removed obsolete: `src/components/energy-cube/EnergyCube.tsx`
+
+### Build Status:
+✅ **SUCCESS** - Clean build with all new features
+- 14 static pages generated (added /landing-preview)
+- All TypeScript checks passed
+- Energy cube components compiled successfully
+
+### Skipped Commits:
+- 2c550ca, a4f4bdc - API route fixes (file already deleted in production)
 
 ---
 
