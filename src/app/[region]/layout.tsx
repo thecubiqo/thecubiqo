@@ -3,7 +3,7 @@ import { getRegionConfig } from '@/lib/config/regions'
 import { RegionProvider } from '@/contexts/RegionContext'
 
 // Valid region IDs - static list for build time
-const VALID_REGIONS = ['global', 'us', 'uk', 'eu', 'in', 'jp', 'au']
+const VALID_REGIONS = ['uk']
 
 
 interface RegionalLayoutProps {
