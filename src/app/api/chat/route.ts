@@ -23,6 +23,7 @@ import {
 import { callOpenClaw } from '@/lib/ai/openclaw'
 import { buildMemoryContext } from '@/lib/ai/memory-extraction.server'
 import { getRegionConfig, buildRegionalPrompt } from '@/lib/config/regions'
+import { routeAIRequest, trackCost } from '@/lib/ai/router'
 import {
   checkSpendingCap,
   recordSpending,
@@ -109,154 +110,7 @@ async function callMiniMax(
   throw new Error('Invalid MiniMax response format')
 }
 
-// Claude API call with prompt caching
-async function callClaude(
-  systemPrompt: string,
-  messages: { role: string; content: string }[],
-  byoApiKey?: string | null
-): Promise<string> {
-  // Check spending cap (skip if using BYO key)
-  if (!byoApiKey) {
-    const capCheck = checkSpendingCap('anthropic')
-    if (!capCheck.allowed) {
-      console.error(`[Claude] Spending cap reached: $${capCheck.currentSpend}/$${capCheck.cap}`)
-      throw new Error('Anthropic spending cap reached ($200/month). Using fallback.')
-    }
-  }
-
-  const apiKey = byoApiKey || process.env.ANTHROPIC_API_KEY
-
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY not configured')
-  }
-
-  // Estimate input tokens for cost tracking
-  const inputText = systemPrompt + messages.map(m => m.content).join('')
-  const estimatedInputTokens = estimateTokens(inputText)
-
-  // Structure system prompt with cache control
-  const systemCached = [
-    {
-      type: 'text',
-      text: systemPrompt,
-      cache_control: { type: 'ephemeral' } // Cache for 5 minutes
-    }
-  ]
-
-  // Structure messages with cache control
-  const structuredMessages = messages.map((msg, index) => {
-    const contentBlocks: { type: string; text: string; cache_control?: { type: string } }[] = [
-      {
-        type: 'text',
-        text: msg.content
-      }
-    ]
-
-    // Cache the last message (if there's more than 1 message)
-    if (index === messages.length - 1 && messages.length > 1) {
-      contentBlocks[0].cache_control = { type: 'ephemeral' }
-    }
-
-    return {
-      role: msg.role,
-      content: contentBlocks
-    }
-  })
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-beta': 'prompt-caching-2024-07-31'
-    },
-    body: JSON.stringify({
-      model: CLAUDE_CONFIG.model,
-      max_tokens: CLAUDE_CONFIG.maxTokens,
-      system: systemCached,
-      messages: structuredMessages
-    })
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json()
-    console.error('Claude API error:', errorData)
-    throw new Error(errorData.error?.message || 'Claude API request failed')
-  }
-
-  const data = await response.json()
-  const outputText = data.content[0].text
-  
-  // Record spending (skip if using BYO key)
-  if (!byoApiKey) {
-    const estimatedOutputTokens = estimateTokens(outputText)
-    const cost = estimateAnthropicCost(estimatedInputTokens, estimatedOutputTokens)
-    recordSpending('anthropic', cost)
-  }
-
-  return outputText
-}
-
-// OpenAI API call (fallback)
-async function callOpenAI(
-  systemPrompt: string,
-  messages: { role: string; content: string }[],
-  byoApiKey?: string | null
-): Promise<string> {
-  // Check spending cap (skip if using BYO key)
-  if (!byoApiKey) {
-    const capCheck = checkSpendingCap('openai')
-    if (!capCheck.allowed) {
-      console.error(`[OpenAI] Spending cap reached: $${capCheck.currentSpend}/$${capCheck.cap}`)
-      throw new Error('OpenAI spending cap reached ($200/month). All providers exhausted.')
-    }
-  }
-
-  const apiKey = byoApiKey || process.env.OPENAI_API_KEY
-
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY not configured')
-  }
-
-  // Estimate input tokens for cost tracking
-  const inputText = systemPrompt + messages.map(m => m.content).join('')
-  const estimatedInputTokens = estimateTokens(inputText)
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: OPENAI_CONFIG.model,
-      max_tokens: OPENAI_CONFIG.maxTokens,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages
-      ]
-    })
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json()
-    console.error('OpenAI API error:', errorData)
-    throw new Error(errorData.error?.message || 'OpenAI API request failed')
-  }
-
-  const data = await response.json()
-  const outputText = data.choices[0].message.content
-
-  // Record spending (skip if using BYO key)
-  if (!byoApiKey) {
-    const estimatedOutputTokens = estimateTokens(outputText)
-    const cost = estimateOpenAICost(estimatedInputTokens, estimatedOutputTokens)
-    recordSpending('openai', cost)
-  }
-
-  return outputText
-}
+// Claude and OpenAI functions now in @/lib/ai/providers
 
 // Build auth nudge prompt for guest users
 function buildAuthNudgePrompt(isGuest: boolean, messageCount: number): string {
@@ -356,60 +210,23 @@ export async function POST(request: NextRequest) {
     const authNudge = buildAuthNudgePrompt(isGuest, messageCount)
     const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + regionalContext + authNudge
 
-    let content: string
-    let provider: 'minimax' | 'openclaw' | 'claude' | 'openai' = 'minimax'
-    
-    // Check MiniMax rate limit
-    const { allowed: minimaxAllowed } = checkMiniMaxRateLimit(sessionId || 'anonymous')
+    // NEW ROUTER: Try Ollama first (local, free, no guardrails), fallback to cloud
+    const routerResult = await routeAIRequest({
+      systemPrompt: fullSystemPrompt,
+      messages,
+      byoClaudeKey,
+      byoOpenaiKey,
+      forceCloud: false, // Let router decide
+      preferredCloud: 'openclaw'
+    })
 
-    // Try MiniMax first (primary)
-    if (minimaxAllowed) {
-      try {
-        content = await callMiniMax(fullSystemPrompt, messages)
-      } catch (minimaxError) {
-        console.warn('MiniMax failed, falling back to OpenClaw:', minimaxError)
-        // Fallback to OpenClaw
-        try {
-          content = await callOpenClaw(fullSystemPrompt, messages)
-          provider = 'openclaw'
-        } catch (openclawError) {
-          console.warn('OpenClaw failed, falling back to Claude:', openclawError)
-          // Fallback to Claude
-          try {
-            content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
-            provider = 'claude'
-          } catch (claudeError) {
-            // Final fallback to OpenAI
-            try {
-              content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
-              provider = 'openai'
-            } catch {
-              throw new Error('All AI providers failed')
-            }
-          }
-        }
-      }
-    } else {
-      // MiniMax rate limited, skip to OpenClaw
-      console.warn('MiniMax rate limited, using OpenClaw')
-      try {
-        content = await callOpenClaw(fullSystemPrompt, messages)
-        provider = 'openclaw'
-      } catch (openclawError) {
-        console.warn('OpenClaw failed, falling back to Claude:', openclawError)
-        try {
-          content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
-          provider = 'claude'
-        } catch (claudeError) {
-          try {
-            content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
-            provider = 'openai'
-          } catch {
-            throw new Error('All AI providers failed')
-          }
-        }
-      }
-    }
+    const content = routerResult.content
+    const provider = routerResult.provider
+
+    // Track cost for analytics
+    trackCost(provider, routerResult.cost)
+
+    console.log('[Chat] Provider used:', provider, '| Cost:', routerResult.cost.toFixed(6), 'USD')
 
     // Parse response
     const aiResponse: AIResponse = parseResponse(content)
