@@ -4,14 +4,22 @@
  * CubiQoApp - Main application with Cube + Chat + Auth
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { CubeScene } from './cube'
 import { ChatContainer } from './chat'
 import { LoginForm, AuthStatus } from './auth'
+import { CubeControls, type CubeShape } from './CubeControls'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './cube/Cube'
+
+// LocalStorage keys
+const STORAGE_KEYS = {
+  CUBE_SIZE: 'cubiqo_cube_size',
+  SHAPE_TYPE: 'cubiqo_shape_type',
+  SHOW_EYES: 'cubiqo_show_eyes',
+}
 
 export function CubiQoApp() {
   const { session, isGuest } = useSession()
@@ -19,6 +27,33 @@ export function CubiQoApp() {
   const [colorName, setColorName] = useState<ColorName>('ORANGE')
   const [animationState, setAnimationState] = useState<AnimationState>('idle')
   const [showAuth, setShowAuth] = useState(false)
+  
+  // Cube customization state
+  const [cubeSize, setCubeSize] = useState<number>(1.0)
+  const [shapeType, setShapeType] = useState<CubeShape>('energy')
+  const [showEyes, setShowEyes] = useState<boolean>(false)
+
+  // Load preferences from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSize = localStorage.getItem(STORAGE_KEYS.CUBE_SIZE)
+      const savedShape = localStorage.getItem(STORAGE_KEYS.SHAPE_TYPE)
+      const savedEyes = localStorage.getItem(STORAGE_KEYS.SHOW_EYES)
+      
+      if (savedSize) setCubeSize(parseFloat(savedSize))
+      if (savedShape) setShapeType(savedShape as CubeShape)
+      if (savedEyes) setShowEyes(savedEyes === 'true')
+    }
+  }, [])
+
+  // Save preferences to localStorage when they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.CUBE_SIZE, cubeSize.toString())
+      localStorage.setItem(STORAGE_KEYS.SHAPE_TYPE, shapeType)
+      localStorage.setItem(STORAGE_KEYS.SHOW_EYES, showEyes.toString())
+    }
+  }, [cubeSize, shapeType, showEyes])
 
   const handleColorChange = useCallback((newColor: ColorName) => {
     setColorName(newColor)
@@ -26,6 +61,18 @@ export function CubiQoApp() {
 
   const handleSpeakingChange = useCallback((isSpeaking: boolean) => {
     setAnimationState(isSpeaking ? 'speaking' : 'idle')
+  }, [])
+
+  const handleSizeChange = useCallback((size: number) => {
+    setCubeSize(size)
+  }, [])
+
+  const handleShapeChange = useCallback((shape: CubeShape) => {
+    setShapeType(shape)
+  }, [])
+
+  const handleEyesToggle = useCallback((show: boolean) => {
+    setShowEyes(show)
   }, [])
 
   return (
@@ -92,7 +139,13 @@ export function CubiQoApp() {
           {/* Cube Section */}
           <div>
             <div className="w-full h-[300px] lg:h-[400px] rounded-lg overflow-hidden bg-black">
-              <CubeScene colorName={colorName} animationState={animationState} />
+              <CubeScene 
+                colorName={colorName} 
+                animationState={animationState}
+                cubeSize={cubeSize}
+                shapeType={shapeType}
+                showEyes={showEyes}
+              />
             </div>
 
             {/* Color Indicator */}
@@ -116,6 +169,16 @@ export function CubiQoApp() {
                 <span className="text-xs text-zinc-400">(Guest)</span>
               )}
             </div>
+
+            {/* Cube Controls */}
+            <CubeControls
+              cubeSize={cubeSize}
+              onSizeChange={handleSizeChange}
+              shapeType={shapeType}
+              onShapeChange={handleShapeChange}
+              showEyes={showEyes}
+              onEyesToggle={handleEyesToggle}
+            />
           </div>
 
           {/* Chat Section */}

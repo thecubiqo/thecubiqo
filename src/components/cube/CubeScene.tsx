@@ -2,19 +2,26 @@
 
 /**
  * CubeScene - Canvas wrapper for the 3D Cube
+ * Supports multiple cube shapes, sizes, and customization options
  */
 
 import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import * as THREE from 'three'
 import { FlowingEnergyCube } from '../FlowingEnergyCube'
+import { FlowingEnergyCubeWithEyes } from '../FlowingEnergyCubeWithEyes'
+import { IsometricCube } from './IsometricCube'
 import type { AnimationState } from './Cube'
 import type { ColorName } from '@/config/colors'
+import type { CubeShape } from '../CubeControls'
 
 interface CubeSceneProps {
   colorName?: ColorName
   animationState?: AnimationState
   className?: string
+  cubeSize?: number
+  shapeType?: CubeShape
+  showEyes?: boolean
 }
 
 function mapIntensity(animationState: AnimationState): number {
@@ -34,7 +41,10 @@ function mapIntensity(animationState: AnimationState): number {
 export function CubeScene({ 
   colorName = 'ORANGE', 
   animationState = 'idle',
-  className = ''
+  className = '',
+  cubeSize = 1.0,
+  shapeType = 'energy',
+  showEyes = false
 }: CubeSceneProps) {
   const intensity = mapIntensity(animationState)
   
@@ -53,7 +63,20 @@ export function CubeScene({
         style={{ background: 'transparent' }}
       >
         <Suspense fallback={null}>
-          <FlowingEnergyCube intensity={intensity} />
+          <group scale={cubeSize}>
+            {shapeType === 'energy' ? (
+              showEyes ? (
+                <FlowingEnergyCubeWithEyes intensity={intensity} showEyes={showEyes} />
+              ) : (
+                <FlowingEnergyCube intensity={intensity} />
+              )
+            ) : (
+              <IsometricCube 
+                animationState={animationState}
+                reducedMotion={false}
+              />
+            )}
+          </group>
         </Suspense>
       </Canvas>
     </div>
