@@ -9,7 +9,7 @@
 
 import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { EnergyCube } from './EnergyCube'
+import { FlowingEnergyCube } from '../FlowingEnergyCube'
 import { EtherealCube } from './EtherealCube'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './EnergyCube'
@@ -30,6 +30,20 @@ function Lights() {
   )
 }
 
+function mapIntensity(animationState: AnimationState): number {
+  switch (animationState) {
+    case 'speaking':
+      return 1.0
+    case 'thinking':
+      return 0.7
+    case 'listening':
+      return 0.5
+    case 'idle':
+    default:
+      return 0.3
+  }
+}
+
 export function EnergyCubeScene({ 
   colorName = 'ORANGE', 
   animationState = 'idle',
@@ -38,6 +52,7 @@ export function EnergyCubeScene({
   const isLandingState = colorName === 'ORANGE'
   const isTalking = animationState === 'speaking'
   const isListening = animationState === 'listening'
+  const intensity = mapIntensity(animationState)
   
   return (
     <div className={`w-full h-full ${className}`}>
@@ -65,10 +80,7 @@ export function EnergyCubeScene({
               isListening={isListening}
             />
           ) : (
-            <EnergyCube 
-              colorName={colorName} 
-              animationState={animationState} 
-            />
+            <FlowingEnergyCube intensity={intensity} />
           )}
         </Suspense>
       </Canvas>
