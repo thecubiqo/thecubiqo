@@ -1,41 +1,219 @@
-# CUBIQO Phase 2 Architecture Documentation
+# CubiQo Production Architecture Documentation
 
-Technical architecture for CUBIQO - emotional AI companion with persistent memory.
+Technical architecture for CubiQo - multi-modal AI companion with voice, memory, and emotional intelligence.
+
+**Version:** 4.0.0 (Production Release)  
+**Last Updated:** February 8, 2025  
+**Status:** Production Ready
 
 ---
 
 ## Table of Contents
 
 1. [System Overview](#system-overview)
-2. [Technology Stack](#technology-stack)
-3. [Architecture Diagram](#architecture-diagram)
-4. [Core Components](#core-components)
-5. [Data Flow](#data-flow)
-6. [Authentication & Sessions](#authentication--sessions)
-7. [Memory Extraction](#memory-extraction)
-8. [Database Schema](#database-schema)
-9. [API Routes](#api-routes)
-10. [State Management](#state-management)
-11. [Security](#security)
+2. [Deployment Architecture](#deployment-architecture)
+3. [Technology Stack](#technology-stack)
+4. [Architecture Diagram](#architecture-diagram)
+5. [Core Components](#core-components)
+6. [Data Flow](#data-flow)
+7. [AI Integration](#ai-integration)
+8. [Voice Modulation System](#voice-modulation-system)
+9. [Authentication & Sessions](#authentication--sessions)
+10. [Memory Extraction](#memory-extraction)
+11. [Database Schema](#database-schema)
+12. [API Routes](#api-routes)
+13. [State Management](#state-management)
+14. [Security & Spending](#security--spending)
+15. [BYO Keys Architecture](#byo-keys-architecture)
 
 ---
 
 ## System Overview
 
-CUBIQO Phase 2 is a full-stack application with:
+CubiQo is a production-ready, multi-modal AI companion featuring:
 
 - **Next.js 16 App Router** - React framework with server components
 - **Supabase** - PostgreSQL database with Row Level Security (RLS)
-- **Auth-First Architecture** - Check authentication before session operations
-- **Dual AI Providers** - Claude (primary) + OpenAI (red zone)
-- **Voice Interface** - Web Speech API for input/output
+- **Multi-Provider AI** - MiniMax (primary), Claude, OpenAI with intelligent fallback
+- **Emergent Universal API** - Unified AI routing for admin deployments
+- **Voice Modulation** - Madhyama marg philosophy for natural voice synthesis
+- **BYO Keys Mode** - Public users bring their own API keys
+- **Dual Deployment** - Prod-A (admin) and Prod-B (public) configurations
 
 ### Key Principles
 
-1. **Auth-First**: Always check auth state before session operations
-2. **RLS-Aware**: Server API bypasses RLS for authenticated users
-3. **Guest Support**: Anonymous users can chat with localStorage backup
-4. **Conversation Migration**: Guest history preserved on sign-in
+1. **Deployment Separation**: Admin vs Public with different feature sets
+2. **Cost Control**: Spending caps, rate limiting, BYO mode for isolation
+3. **Auth-First**: Check authentication before session operations
+4. **RLS-Aware**: Server API bypasses RLS for authenticated users
+5. **Guest Support**: Anonymous users can chat with localStorage backup
+6. **Conversation Migration**: Guest history preserved on sign-in
+7. **Multi-Modal**: Voice-first with text fallback
+
+---
+
+## Deployment Architecture
+
+### Two Production Targets
+
+CubiQo deploys to two separate environments from a single codebase:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     SINGLE CODEBASE                             │
+│                  github.com/thecubiqo/thecubiqo                 │
+│                      Branch: production                          │
+└────────────────────┬────────────────────────────────────────────┘
+                     │
+         ┌───────────┴───────────┐
+         │                       │
+         ▼                       ▼
+┌────────────────────┐  ┌────────────────────┐
+│    PROD-A (ADMIN)  │  │   PROD-B (PUBLIC)  │
+│ admin.cubiqo.com   │  │    cubiqo.com      │
+├────────────────────┤  ├────────────────────┤
+│ .env.prod-a        │  │ .env.prod-b        │
+│                    │  │                    │
+│ ✅ Admin Dashboard │  │ ❌ No Admin        │
+│ ✅ Unified API Keys│  │ ✅ BYO Keys Only   │
+│ ✅ Analytics       │  │ ❌ No Analytics    │
+│ ✅ User Mgmt       │  │ ❌ No User Mgmt    │
+│ ✅ Unlimited       │  │ ✅ Rate Limited    │
+│ ✅ Emergent API    │  │ ❌ Direct Providers│
+└────────────────────┘  └────────────────────┘
+         │                       │
+         └───────────┬───────────┘
+                     │
+                     ▼
+          ┌────────────────────┐
+          │   SHARED SERVICES  │
+          ├────────────────────┤
+          │ • Supabase DB      │
+          │ • ElevenLabs TTS   │
+          │ • Vercel Hosting   │
+          └────────────────────┘
+```
+
+### Prod-A: Admin Deployment
+
+**Purpose:** Owner/admin control panel with full features
+
+**Domain:** `admin.cubiqo.com` (or `a.cubiqo.com`)
+
+**Key Features:**
+- **Emergent Universal API Integration**: All AI requests route through unified endpoint
+- **Admin Dashboard**: User management, analytics, spending monitoring
+- **API Key Management**: Configure Anthropic, OpenAI, ElevenLabs, MiniMax
+- **Browser Automation**: Headless Chrome controls (if implemented)
+- **Supabase Admin**: Full database access
+- **No Limits**: Unlimited API usage, no rate limiting
+
+**Environment Flags:**
+```env
+NEXT_PUBLIC_ADMIN_MODE=true
+NEXT_PUBLIC_USE_EMERGENT=true
+NEXT_PUBLIC_SHOW_API_MANAGEMENT=true
+NEXT_PUBLIC_SHOW_ANALYTICS=true
+NEXT_PUBLIC_SHOW_USER_MANAGEMENT=true
+```
+
+**AI Routing:**
+```
+User Request
+     ↓
+Emergent Universal API
+     ↓
+Provider Selection (MiniMax → Claude → OpenAI)
+     ↓
+Response + Spending Tracking
+```
+
+### Prod-B: Public Deployment
+
+**Purpose:** Public-facing CubiQo for end users
+
+**Domain:** `cubiqo.com` (or `app.cubiqo.com`)
+
+**Key Features:**
+- **BYO Keys Mode**: Users must provide their own API keys
+- **Rate Limited**: 100 requests/hour per user
+- **Spending Capped**: $10/day per user
+- **No Admin Access**: Clean public interface
+- **Cost Isolated**: Each user's keys = their own costs
+
+**Environment Flags:**
+```env
+NEXT_PUBLIC_ADMIN_MODE=false
+NEXT_PUBLIC_USE_EMERGENT=false
+NEXT_PUBLIC_BYO_KEYS_MODE=true
+NEXT_PUBLIC_RATE_LIMIT_ENABLED=true
+NEXT_PUBLIC_MAX_REQUESTS_PER_HOUR=100
+NEXT_PUBLIC_MAX_SPENDING_PER_DAY=10
+```
+
+**AI Routing:**
+```
+User Request + BYO API Keys (from localStorage)
+     ↓
+Headers: x-byo-claude-key, x-byo-openai-key
+     ↓
+Direct Provider API Calls
+     ↓
+Response (user's cost, not ours)
+```
+
+### Feature Matrix
+
+| Feature | Prod-A (Admin) | Prod-B (Public) |
+|---------|----------------|-----------------|
+| **AI Chat** | ✅ Unified keys via Emergent | ✅ BYO keys required |
+| **Voice TTS** | ✅ Unlimited (our key) | ✅ Rate limited (BYO or shared) |
+| **Admin Dashboard** | ✅ Full access | ❌ Hidden |
+| **API Management** | ✅ Configure all providers | ❌ Not available |
+| **Analytics Panel** | ✅ Usage metrics, costs | ❌ Not available |
+| **User Management** | ✅ View/edit all users | ❌ Not available |
+| **Spending Caps** | ✅ Monitor all usage | ✅ Per-user limits only |
+| **Rate Limiting** | ❌ No limits | ✅ 100 req/hour |
+| **Browser Automation** | ✅ Headless controls | ❌ Not available |
+| **Database Admin** | ✅ Full Supabase access | ❌ Session management only |
+
+### Deployment Strategy
+
+**GitHub Actions Workflow:**
+```yaml
+name: Deploy Production
+
+on:
+  push:
+    branches: [production]
+
+jobs:
+  deploy-prod-a:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to Vercel (Admin)
+        run: vercel deploy --prod --env-file .env.prod-a
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID_ADMIN: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
+
+  deploy-prod-b:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to Vercel (Public)
+        run: vercel deploy --prod --env-file .env.prod-b
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID_PUBLIC: ${{ secrets.VERCEL_PROJECT_ID_PUBLIC }}
+```
+
+**Vercel Configuration:**
+- Two separate Vercel projects
+- Same codebase, different environment variables
+- Automatic deployments from `production` branch
+- Custom domains configured in Vercel dashboard
 
 ---
 
@@ -55,12 +233,20 @@ Backend:
   - Service Role Key (bypasses RLS)
 
 AI Providers:
-  - Claude Haiku 4.5 (primary) - claude-haiku-4-5-20251001
-  - OpenAI GPT-5.1 (red zone) - для интимных/чувственных тем
+  - MiniMax M2 (primary, fastest)
+  - Claude Haiku 4.5 (fallback, high quality)
+  - OpenAI GPT-5.1 (tertiary fallback)
+  - Emergent Universal API (admin unified routing)
+
+Voice:
+  - ElevenLabs TTS (Daniel voice - British, husky)
+  - Web Speech API (browser speech recognition)
+  - Madhyama Marg voice modulation system
 
 Deployment:
   - Vercel (hosting + serverless)
   - Supabase Cloud (database)
+  - Two production targets (Prod-A admin, Prod-B public)
 ```
 
 ---
