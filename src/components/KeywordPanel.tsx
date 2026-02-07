@@ -1,8 +1,9 @@
 'use client'
 
 /**
- * KeywordPanel - Matches mockup design
- * Three stacked cards with tap-to-edit functionality
+ * KeywordPanel - RGY Color System
+ * Three stacked cards (Red/Yellow/Green) with tap-to-edit functionality
+ * Includes disclaimers section as per requirements
  */
 
 import { useState, useEffect } from 'react'
@@ -14,30 +15,39 @@ interface KeywordPanelProps {
   sessionId?: string
 }
 
-type CardType = 'ascend' | 'drift' | 'pulse'
+type CardType = 'green' | 'yellow' | 'red'
 
 interface CardData {
   keywords: string[]
 }
 
 const CARD_CONFIG = {
-  ascend: {
-    name: 'Ascend',
+  green: {
+    name: 'Green',
+    displayName: 'Sattva',
     icon: '↗',
     subtitle: 'Growth · Wellness · Achievement',
-    borderColor: '#22c55e',
+    borderColor: '#00897b',
+    glowColor: '#00897b',
+    description: 'Professional growth, wellness, purposeful ambition',
   },
-  drift: {
-    name: 'Drift',
+  yellow: {
+    name: 'Yellow',
+    displayName: 'Rajas',
     icon: '✨',
-    subtitle: 'Relax · Social · Ambient',
-    borderColor: '#eab308',
+    subtitle: 'Social · Energy · Daily Life',
+    borderColor: '#ffa000',
+    glowColor: '#ffa000',
+    description: 'Social connections, energy, everyday interactions',
   },
-  pulse: {
-    name: 'Pulse',
+  red: {
+    name: 'Red',
+    displayName: 'Tamas',
     icon: '⚡',
-    subtitle: 'Attraction · Energy · Exploration',
-    borderColor: '#ec4899',
+    subtitle: 'Attraction · Desire · Exploration',
+    borderColor: '#c2185b',
+    glowColor: '#c2185b',
+    description: 'Intimate connections, desires, deep exploration',
   },
 }
 
@@ -53,9 +63,9 @@ export function KeywordPanel({
   const [newKeyword, setNewKeyword] = useState('')
   
   const [cards, setCards] = useState<Record<CardType, CardData>>({
-    ascend: { keywords: [] },
-    drift: { keywords: [] },
-    pulse: { keywords: [] },
+    green: { keywords: [] },
+    yellow: { keywords: [] },
+    red: { keywords: [] },
   })
 
   useEffect(() => {
@@ -153,9 +163,24 @@ export function KeywordPanel({
             </button>
           </div>
           
-          <p className="text-sm text-white/40 leading-relaxed">
-            Keywords per color is one of the way how CubiQo knows you, the words are populated here based of conversation or you can edit as you feel fit
+          <p className="text-sm text-white/40 leading-relaxed mb-2">
+            Keywords per color is one of the way how CubiQo knows you. Words are populated based on conversations or you can edit as you feel fit.
           </p>
+          
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(0, 137, 123, 0.15)', border: '1px solid rgba(0, 137, 123, 0.3)' }}>
+              <div className="w-2 h-2 rounded-full" style={{ background: '#00897b' }} />
+              <span className="text-xs text-white/60">Green</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(255, 160, 0, 0.15)', border: '1px solid rgba(255, 160, 0, 0.3)' }}>
+              <div className="w-2 h-2 rounded-full" style={{ background: '#ffa000' }} />
+              <span className="text-xs text-white/60">Yellow</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(194, 24, 91, 0.15)', border: '1px solid rgba(194, 24, 91, 0.3)' }}>
+              <div className="w-2 h-2 rounded-full" style={{ background: '#c2185b' }} />
+              <span className="text-xs text-white/60">Red</span>
+            </div>
+          </div>
         </div>
 
         {/* Cards Container - Apple minimal style */}
@@ -169,13 +194,13 @@ export function KeywordPanel({
               <div
                 key={cardType}
                 onClick={() => !isEditing && toggleEdit(cardType)}
-                className="flex-1 rounded-[28px] p-6 cursor-pointer transition-all duration-200"
+                className="flex-1 rounded-[28px] p-6 cursor-pointer transition-all duration-300"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: `1.5px solid ${config.borderColor}`,
+                  background: `linear-gradient(135deg, ${config.borderColor}08 0%, rgba(255, 255, 255, 0.02) 100%)`,
+                  border: `2px solid ${config.borderColor}`,
                   boxShadow: isEditing 
-                    ? `0 8px 24px ${config.borderColor}25` 
-                    : 'none',
+                    ? `0 8px 32px ${config.borderColor}40, inset 0 1px 0 ${config.borderColor}20` 
+                    : `0 2px 8px ${config.borderColor}15`,
                   minHeight: '150px'
                 }}
               >
@@ -183,17 +208,23 @@ export function KeywordPanel({
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div 
-                      className="w-12 h-12 rounded-[18px] flex items-center justify-center text-xl"
+                      className="w-12 h-12 rounded-[18px] flex items-center justify-center text-xl transition-all duration-300"
                       style={{ 
-                        background: `${config.borderColor}15`,
+                        background: isEditing ? `${config.borderColor}30` : `${config.borderColor}15`,
+                        boxShadow: isEditing ? `0 4px 12px ${config.borderColor}30` : 'none',
                       }}
                     >
                       {config.icon}
                     </div>
                     <div>
-                      <h3 className="text-lg font-medium text-white/95">
-                        {config.name}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-medium text-white/95">
+                          {config.name}
+                        </h3>
+                        <span className="text-xs text-white/40 font-light">
+                          {config.displayName}
+                        </span>
+                      </div>
                       <p className="text-xs text-white/35 mt-0.5">
                         {config.subtitle}
                       </p>
@@ -287,6 +318,43 @@ export function KeywordPanel({
           })}
         </div>
 
+        {/* Disclaimers Section */}
+        <div className="px-8 pb-6">
+          <div className="rounded-2xl p-5 space-y-3.5"
+            style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+            }}>
+            <div className="flex items-start gap-3">
+              <div className="w-1 h-1 rounded-full mt-2 flex-shrink-0" style={{ background: '#ffa000' }} />
+              <p className="text-xs text-white/50 leading-relaxed">
+                <span className="text-white/70 font-medium">Privacy:</span> Keywords are stored locally on your device and used only to personalize your CubiQo experience. Your data is never shared.
+              </p>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="w-1 h-1 rounded-full mt-2 flex-shrink-0" style={{ background: '#00897b' }} />
+              <p className="text-xs text-white/50 leading-relaxed">
+                <span className="text-white/70 font-medium">Learning:</span> CubiQo learns from your conversations and automatically categorizes keywords. You can edit or remove them anytime.
+              </p>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="w-1 h-1 rounded-full mt-2 flex-shrink-0" style={{ background: '#c2185b' }} />
+              <p className="text-xs text-white/50 leading-relaxed">
+                <span className="text-white/70 font-medium">Colors:</span> Green represents growth & wellness, Yellow for social & energy, Red for attraction & exploration. Colors adapt to your conversation tone.
+              </p>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="w-1 h-1 rounded-full mt-2 flex-shrink-0" style={{ background: '#ff6f00' }} />
+              <p className="text-xs text-white/50 leading-relaxed">
+                <span className="text-white/70 font-medium">Matching:</span> Keywords power CubiQo's intelligent matching system (coming soon). Keep your keywords current for best results.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Trending Keywords Widget at Bottom */}
         <div className="px-8 pb-8">
           <div className="relative overflow-hidden rounded-3xl backdrop-blur-2xl border border-white/[0.08]" 
@@ -305,16 +373,16 @@ export function KeywordPanel({
             <div className="h-[90px] relative overflow-hidden px-6 pb-5">
               <div className="absolute left-6 right-6 top-0 animate-scroll-vertical-slow flex flex-wrap gap-2">
                 {[
-                  { word: 'productivity', color: '#22c55e' },
-                  { word: 'mindfulness', color: '#eab308' },
-                  { word: 'adventure', color: '#ec4899' },
+                  { word: 'productivity', color: '#00897b' },
+                  { word: 'mindfulness', color: '#ffa000' },
+                  { word: 'adventure', color: '#c2185b' },
                   { word: 'creativity', color: '#8b5cf6' },
-                  { word: 'fitness', color: '#22c55e' },
-                  { word: 'travel', color: '#eab308' },
-                  { word: 'relationships', color: '#ec4899' },
-                  { word: 'learning', color: '#3b82f6' },
-                  { word: 'productivity', color: '#22c55e' },
-                  { word: 'mindfulness', color: '#eab308' },
+                  { word: 'fitness', color: '#00897b' },
+                  { word: 'travel', color: '#ffa000' },
+                  { word: 'relationships', color: '#c2185b' },
+                  { word: 'learning', color: '#00897b' },
+                  { word: 'wellness', color: '#00897b' },
+                  { word: 'friendship', color: '#ffa000' },
                 ].map((item, i) => (
                   <span
                     key={i}
