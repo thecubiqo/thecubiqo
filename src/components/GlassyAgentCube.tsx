@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useState, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Environment, Edges, Text } from '@react-three/drei'
 import * as THREE from 'three'
@@ -274,6 +274,3 @@ export function GlassyAgentCubeApp() {
     </div>
   )
 }
-
-// Need to import useState, useEffect
-import { useState, useEffect } from 'react'
