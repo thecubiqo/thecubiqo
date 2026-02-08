@@ -30,7 +30,34 @@ export async function bootstrapAgents() {
       maxConcurrent: 2,
     });
 
-    console.log('✅ Agents bootstrapped: henry, dev');
+    // Create Writer
+    await createAgent({
+      id: 'writer',
+      name: 'Writer',
+      model: defaultModel,
+      tools: ['file_read', 'file_write', 'file_list', 'web_fetch', 'git'],
+      maxConcurrent: 2,
+    });
+
+    // Create Tester
+    await createAgent({
+      id: 'tester',
+      name: 'Tester',
+      model: defaultModel,
+      tools: ['exec', 'file_read', 'file_write', 'file_list', 'web_fetch'],
+      maxConcurrent: 2,
+    });
+
+    // Create Marketing
+    await createAgent({
+      id: 'marketing',
+      name: 'Marketing',
+      model: defaultModel,
+      tools: ['file_read', 'file_write', 'file_list', 'web_search', 'web_fetch', 'git'],
+      maxConcurrent: 2,
+    });
+
+    console.log('✅ Agents bootstrapped: henry, dev, writer, tester, marketing');
   } catch (error) {
     console.error('Failed to bootstrap agents:', error);
   }
