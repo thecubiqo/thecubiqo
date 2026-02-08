@@ -2,11 +2,11 @@
 
 /**
  * Settings Cube Page
- * Live agent activity visualization
+ * Glassy transparent cube with particle effects
  */
 
-import { AgentActivityCubeApp } from '@/components/AgentActivityCube'
+import { GlassyAgentCubeApp } from '@/components/GlassyAgentCube'
 
 export default function SettingsCubePage() {
-  return <AgentActivityCubeApp />
+  return <GlassyAgentCubeApp />
 }
