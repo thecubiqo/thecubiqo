@@ -21,6 +21,7 @@ export class ToolRegistry {
     this.register(fileListTool);
     this.register(sessionsSpawnTool);
     this.register(sessionsSendTool);
+    this.register(gitTool);
   }
 
   register(tool: Tool) {
@@ -290,6 +291,88 @@ const sessionsSendTool: Tool = {
         output: '',
         error: error instanceof Error ? error.message : 'Failed to send message',
       };
+    }
+  },
+};
+
+const gitTool: Tool = {
+  id: 'git',
+  name: 'Git Operations',
+  description: 'Perform git operations: status, add, commit, push, pull, log, diff, branch',
+  parameters: {
+    type: 'object',
+    properties: {
+      action: {
+        type: 'string',
+        enum: ['status', 'add', 'commit', 'push', 'pull', 'log', 'diff', 'branch'],
+        description: 'Git action to perform',
+      },
+      args: { type: 'string', description: 'Additional arguments' },
+      message: { type: 'string', description: 'Commit message (for commit)' },
+    },
+    required: ['action'],
+  },
+  execute: async (params, context) => {
+    try {
+      const { action, args = '', message } = params;
+      let command: string;
+      
+      switch (action) {
+        case 'status': command = 'git status'; break;
+        case 'add': command = `git add ${args || '.'}`;break;
+        case 'commit':
+          if (!message) return { success: false, output: '', error: 'Commit message required' };
+          command = `git commit -m "${message.replace(/"/g, '\\"')}"`; break;
+        case 'push': command = `git push ${args || 'origin production'}`; break;
+        case 'pull': command = `git pull ${args || 'origin production'}`; break;
+        case 'log': command = `git log ${args || '--oneline -10'}`; break;
+        case 'diff': command = `git diff ${args || ''}`; break;
+        case 'branch': command = `git branch ${args || '-a'}`; break;
+        default: return { success: false, output: '', error: `Unknown git action: ${action}` };
+      }
+
+      const { stdout, stderr } = await execAsync(command, { cwd: context.workspace, timeout: 30000 });
+      return { success: true, output: stdout || stderr };
+    } catch (error: any) {
+      return { success: false, output: error.stdout || '', error: error.message };
+    }
+  },
+};
+
+const gitTool: Tool = {
+  id: 'git',
+  name: 'Git Operations',
+  description: 'Perform git operations in the workspace',
+  parameters: {
+    type: 'object',
+    properties: {
+      action: { type: 'string', enum: ['status','add','commit','push','pull','log','diff','branch'] },
+      args: { type: 'string' },
+      message: { type: 'string' },
+    },
+    required: ['action'],
+  },
+  execute: async (params, context) => {
+    const { action, args = '', message } = params;
+    let cmd: string;
+    switch (action) {
+      case 'status': cmd = 'git status'; break;
+      case 'add': cmd = `git add ${args || '.'}`;break;
+      case 'commit':
+        if (!message) return { success: false, output: '', error: 'Need message' };
+        cmd = `git commit -m "${message.replace(/"/g, '\\"')}"`; break;
+      case 'push': cmd = `git push ${args || 'origin production'}`; break;
+      case 'pull': cmd = `git pull ${args || 'origin production'}`; break;
+      case 'log': cmd = `git log ${args || '--oneline -10'}`; break;
+      case 'diff': cmd = `git diff ${args || ''}`; break;
+      case 'branch': cmd = `git branch ${args || '-a'}`; break;
+      default: return { success: false, output: '', error: 'Unknown action' };
+    }
+    try {
+      const { stdout, stderr } = await execAsync(cmd, { cwd: context.workspace, timeout: 30000 });
+      return { success: true, output: stdout || stderr };
+    } catch (error: any) {
+      return { success: false, output: error.stdout || '', error: error.message };
     }
   },
 };
