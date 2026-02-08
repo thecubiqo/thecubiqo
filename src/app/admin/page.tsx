@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AppLayout } from '@/components/AppLayout';
 
 interface AdminStats {
   stats: {
@@ -100,14 +101,25 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-8">
+    <AppLayout>
+    <div className="min-h-screen text-white p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-gray-400">
-            Real-time monitoring of agents, sessions, and system health
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
+              <p className="text-gray-400">
+                Real-time monitoring of agents, sessions, and system health
+              </p>
+            </div>
+            <button
+              onClick={() => window.location.href = '/admin/gate'}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+            >
+              🎚️ Feature Gate
+            </button>
+          </div>
           {stats && (
             <p className="text-sm text-gray-500 mt-2">
               Last updated: {formatDate(stats.timestamp)}
@@ -273,7 +285,7 @@ export default function AdminDashboard() {
           </>
         )}
       </div>
-    </div>
+    </AppLayout>
   );
 }
 
