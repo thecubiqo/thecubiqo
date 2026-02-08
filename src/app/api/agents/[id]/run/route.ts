@@ -3,9 +3,10 @@ import { getAgent } from '@/lib/engine/agent';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { prompt, sessionId } = await req.json();
 
     if (!prompt) {
@@ -15,10 +16,10 @@ export async function POST(
       );
     }
 
-    const agent = getAgent(params.id);
+    const agent = getAgent(id);
     if (!agent) {
       return NextResponse.json(
-        { error: `Agent not found: ${params.id}` },
+        { error: `Agent not found: ${id}` },
         { status: 404 }
       );
     }

@@ -119,11 +119,11 @@ const fileReadTool: Tool = {
     try {
       const { path, encoding = 'utf-8' } = params;
       const fullPath = join(context.workspace, path);
-      const content = await readFile(fullPath, encoding);
+      const content = await readFile(fullPath, encoding as BufferEncoding);
 
       return {
         success: true,
-        output: content,
+        output: content.toString(),
       };
     } catch (error) {
       return {
@@ -342,40 +342,3 @@ const gitTool: Tool = {
   },
 };
 
-const gitTool: Tool = {
-  id: 'git',
-  name: 'Git Operations',
-  description: 'Perform git operations in the workspace',
-  parameters: {
-    type: 'object',
-    properties: {
-      action: { type: 'string', enum: ['status','add','commit','push','pull','log','diff','branch'] },
-      args: { type: 'string' },
-      message: { type: 'string' },
-    },
-    required: ['action'],
-  },
-  execute: async (params, context) => {
-    const { action, args = '', message } = params;
-    let cmd: string;
-    switch (action) {
-      case 'status': cmd = 'git status'; break;
-      case 'add': cmd = `git add ${args || '.'}`;break;
-      case 'commit':
-        if (!message) return { success: false, output: '', error: 'Need message' };
-        cmd = `git commit -m "${message.replace(/"/g, '\\"')}"`; break;
-      case 'push': cmd = `git push ${args || 'origin production'}`; break;
-      case 'pull': cmd = `git pull ${args || 'origin production'}`; break;
-      case 'log': cmd = `git log ${args || '--oneline -10'}`; break;
-      case 'diff': cmd = `git diff ${args || ''}`; break;
-      case 'branch': cmd = `git branch ${args || '-a'}`; break;
-      default: return { success: false, output: '', error: 'Unknown action' };
-    }
-    try {
-      const { stdout, stderr } = await execAsync(cmd, { cwd: context.workspace, timeout: 30000 });
-      return { success: true, output: stdout || stderr };
-    } catch (error: any) {
-      return { success: false, output: error.stdout || '', error: error.message };
-    }
-  },
-};

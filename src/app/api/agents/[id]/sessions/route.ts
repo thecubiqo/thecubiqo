@@ -3,13 +3,14 @@ import { getAgent } from '@/lib/engine/agent';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const agent = getAgent(params.id);
+    const { id } = await params;
+    const agent = getAgent(id);
     if (!agent) {
       return NextResponse.json(
-        { error: `Agent not found: ${params.id}` },
+        { error: `Agent not found: ${id}` },
         { status: 404 }
       );
     }
