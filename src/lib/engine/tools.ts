@@ -3,6 +3,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { readFile, writeFile, unlink, readdir } from 'fs/promises';
 import { join } from 'path';
+import { webSearchTool, webFetchTool } from './web-tools';
 
 const execAsync = promisify(exec);
 
@@ -22,6 +23,8 @@ export class ToolRegistry {
     this.register(sessionsSpawnTool);
     this.register(sessionsSendTool);
     this.register(gitTool);
+    this.register(webSearchTool);
+    this.register(webFetchTool);
   }
 
   register(tool: Tool) {

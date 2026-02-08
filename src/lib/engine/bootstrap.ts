@@ -17,7 +17,7 @@ export async function bootstrapAgents() {
       id: 'henry',
       name: 'Henry',
       model: defaultModel,
-      tools: ['file_read', 'file_list', 'sessions_spawn', 'sessions_send'],
+      tools: ['file_read', 'file_list', 'sessions_spawn', 'sessions_send', 'web_search', 'web_fetch'],
       maxConcurrent: 4,
     });
 
@@ -26,7 +26,7 @@ export async function bootstrapAgents() {
       id: 'dev',
       name: 'Dev',
       model: defaultModel,
-      tools: ['exec', 'file_read', 'file_write', 'file_list', 'sessions_spawn'],
+      tools: ['exec', 'file_read', 'file_write', 'file_list', 'sessions_spawn', 'git', 'web_fetch'],
       maxConcurrent: 2,
     });
 

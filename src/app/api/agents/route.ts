@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAgent, listAgents, getAgent, deleteAgent } from '@/lib/engine/agent';
 import { AgentConfig } from '@/types/agent';
+import '@/lib/engine/init'; // Auto-initialize agents
 
 export async function GET(req: NextRequest) {
   try {
