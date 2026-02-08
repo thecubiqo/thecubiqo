@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Agent } from '@/types/agent';
 import { Session } from '@/types/session';
+import LiveCodeStream from './LiveCodeStream';
 
 interface AgentWithSessions extends Agent {
   sessions: Session[];
@@ -87,7 +88,7 @@ export default function AgentDashboard() {
   return (
     <div className="flex h-screen bg-gray-900 text-white">
       {/* Agent Sidebar */}
-      <div className="w-64 bg-gray-800 p-4 overflow-y-auto">
+      <div className="w-64 bg-gray-800 p-4 overflow-y-auto border-r border-gray-700">
         <h2 className="text-xl font-bold mb-4">Agents</h2>
         
         {agents.map((agent) => (
@@ -143,7 +144,7 @@ export default function AgentDashboard() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col border-r border-gray-700">
         {selectedAgent ? (
           <>
             <div className="bg-gray-800 p-4 border-b border-gray-700">
@@ -204,6 +205,11 @@ export default function AgentDashboard() {
             Select an agent to start chatting
           </div>
         )}
+      </div>
+
+      {/* Live Activity Stream */}
+      <div className="w-1/3 min-w-[400px]">
+        <LiveCodeStream />
       </div>
     </div>
   );
