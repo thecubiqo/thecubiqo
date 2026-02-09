@@ -25,10 +25,13 @@ const FEATURE_DESCRIPTIONS: Record<keyof FeatureAccess, string> = {
   agents: 'AI agent management and creation',
   files: 'File browser and editor',
   memory: 'Memory search and management',
+  codeExecution: 'Execute code and run scripts',
+  browser: 'Browser automation and control',
   integrations: 'Third-party integrations',
   cubikey: 'CubiKey authentication system',
   settings: 'User settings and preferences',
   admin: 'Admin dashboard (founder only)',
+  deploy: 'Deployment controls (founder only)',
   featureGate: 'Feature flag management (founder only)',
 }
 

@@ -19,23 +19,16 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET() {
   try {
-    const supabase = await createClient()
-
-    const { data: features, error } = await supabase
-      .from('released_features')
-      .select('*')
-      .order('feature_name')
-
-    if (error) {
-      console.error('Error fetching features:', error)
-      return NextResponse.json(
-        { error: 'Failed to fetch features' },
-        { status: 500 }
-      )
-    }
+    // TODO: Remove this mock data after migrations are applied
+    const mockFeatures = FEATURE_METADATA.map(meta => ({
+      feature_name: meta.key,
+      released: false,
+      released_at: null,
+      released_by: null
+    }))
 
     // Enrich with metadata
-    const enrichedFeatures = features?.map((feature) => {
+    const enrichedFeatures = mockFeatures.map((feature) => {
       const metadata = FEATURE_METADATA.find((m) => m.key === feature.feature_name)
       const featureKey = feature.feature_name as keyof typeof PERMANENTLY_FOUNDER_ONLY
       return {
@@ -102,38 +95,20 @@ export async function POST(request: Request) {
       )
     }
 
-    // Update the feature
-    const supabase = await createClient()
-
-    const updateData: Record<string, string | boolean> = {
-      is_released: isReleased,
-      updated_at: new Date().toISOString(),
-    }
-
-    if (isReleased) {
-      updateData.released_by = user.id
-      // released_at is set by trigger
-    }
-
-    const { data, error } = await supabase
-      .from('released_features')
-      .update(updateData)
-      .eq('feature_name', featureName)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error updating feature:', error)
-      return NextResponse.json(
-        { error: 'Failed to update feature' },
-        { status: 500 }
-      )
-    }
-
+    // TODO: Update database after migrations applied
+    // For now, just return success (features controlled by isFounder check)
+    console.log(`[MOCK] Would toggle feature: ${featureName} to ${isReleased}`)
+    
     return NextResponse.json({
       success: true,
-      feature: data,
+      feature: {
+        feature_name: featureName,
+        is_released: isReleased,
+        updated_at: new Date().toISOString(),
+        released_by: isReleased ? user.id : null,
+      },
       timestamp: new Date().toISOString(),
+      note: 'Mock mode - apply Supabase migrations to enable persistence'
     })
   } catch (error) {
     console.error('Error in POST /api/admin/features:', error)
