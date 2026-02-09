@@ -42,48 +42,70 @@ export default function FoundersDashboard() {
     useEffect(() => {
         const checkAuth = async () => {
             const founderAuth = sessionStorage.getItem('founders_pass_auth')
-            const { data: { user } } = await supabase.auth.getUser()
 
-            // Allow access if they have the session OR if they are logged in as the specific founder email
-            const isFounderUser = user?.email === 'aditya@cubiqo.ai'
-
-            if (founderAuth !== 'true' && !isFounderUser) {
-                console.log('[Dashboard] Auth failed, redirecting to /founderspass')
-                router.push('/founderspass')
+            // 1. Immediate Bypass if PIN was used
+            if (founderAuth === 'true') {
+                setIsAuthed(true)
+                loadFeaturesWithTimeout()
                 return
             }
 
-            setIsAuthed(true)
-            await loadFeatures()
+            // 2. Fallback to Supabase Auth
+            try {
+                const { data: { user } } = await supabase.auth.getUser()
+                const isFounderUser = user?.email === 'aditya@cubiqo.ai'
+
+                if (isFounderUser) {
+                    setIsAuthed(true)
+                    loadFeaturesWithTimeout()
+                    return
+                }
+            } catch (e) {
+                console.error("Auth check error", e)
+            }
+
+            // 3. Failed
+            console.log('[Dashboard] Auth failed, redirecting to /founderspass')
+            router.push('/founderspass')
         }
 
-        const loadFeatures = async () => {
+        const loadFeaturesWithTimeout = async () => {
             console.log('[Dashboard] Loading features...')
+
+            // Race between fetch and 3s timeout
+            const fetchPromise = (async () => {
+                try {
+                    // Cast to any because feature_flags table may not be in generated types yet
+                    const { data, error } = await (supabase as any)
+                        .from('feature_flags')
+                        .select('*')
+                        .order('category', { ascending: true })
+                        .order('name', { ascending: true })
+
+                    if (error) throw error
+                    return data
+                } catch (e) {
+                    throw e
+                }
+            })()
+
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Timeout')), 3000)
+            )
+
             try {
-                // Cast to any because feature_flags table may not be in generated types yet
-                const { data, error } = await (supabase as any)
-                    .from('feature_flags')
-                    .select('*')
-                    .order('category', { ascending: true })
-                    .order('name', { ascending: true })
-
-                console.log('[Dashboard] Feature load result:', { data, error })
-
-                if (error) {
-                    console.error('[Dashboard] Error loading features:', error)
-                    // Use default features as fallback
-                    setFeatures(getDefaultFeatures())
-                } else if (data && data.length > 0) {
-                    setFeatures(data as FeatureFlag[])
+                const data = await Promise.race([fetchPromise, timeoutPromise]) as FeatureFlag[]
+                if (data && data.length > 0) {
+                    setFeatures(data)
                 } else {
-                    console.log('[Dashboard] No features found, using defaults')
                     setFeatures(getDefaultFeatures())
                 }
             } catch (e) {
-                console.error('[Dashboard] Exception loading features:', e)
+                console.warn('[Dashboard] Feature load failed or timed out, using defaults', e)
                 setFeatures(getDefaultFeatures())
+            } finally {
+                setIsLoading(false)
             }
-            setIsLoading(false)
         }
 
         checkAuth()
