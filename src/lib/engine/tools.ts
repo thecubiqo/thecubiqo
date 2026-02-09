@@ -36,14 +36,10 @@ export class ToolRegistry {
       ? toolIds.map((id) => this.tools.get(id)).filter(Boolean) as Tool[]
       : Array.from(this.tools.values());
 
-    // Filter tools based on user integrations if userId provided
-    let filteredTools = tools;
-    if (userId) {
-      const { filterTools } = await import('@/lib/integrations/tool-filter');
-      filteredTools = await filterTools(userId, tools) as Tool[];
-    }
+    // TODO: Tool filtering based on integrations (removed for now)
+    // All tools available - can add filtering later
 
-    return filteredTools.map((tool) => ({
+    return tools.map((tool) => ({
       name: tool.id,
       description: tool.description,
       input_schema: tool.parameters,

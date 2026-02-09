@@ -1,43 +1,13 @@
 /**
- * Auth Module Export
+ * Authentication & Feature Gate
+ * Simple exports - no complexity
  */
 
-export {
-  getOrCreateGuestSession,
-  getSession,
-  isSessionValid,
-  convertGuestToAuthenticated,
-  getUserSessions,
-  updateSessionActivity,
-  cleanupExpiredSessions,
-} from './session'
-
-export {
-  signInWithMagicLink,
-  signOut,
-  getCurrentUser,
-  getCurrentProfile,
-  ensureProfile,
-  updateProfile,
-  deleteAccount,
-} from './actions'
-
-export {
+export { 
   isFounder,
   getFeatureAccess,
-  hasFeatureAccess,
-  getAccessibleFeatures,
-} from './founders'
-
-export {
-  PUBLIC_ACCESS,
+  hasFeature,
   FOUNDER_ACCESS,
-  DEFAULT_USER_ACCESS,
-  PERMANENTLY_FOUNDER_ONLY,
-  RELEASABLE_FEATURES,
-  FEATURE_METADATA,
-  getReleasedFeatures,
-} from './feature-flags'
-
-export type { AuthResult } from './actions'
-export type { FeatureAccess, FeatureMetadata } from './feature-flags'
+  USER_ACCESS,
+  type FeatureAccess
+} from './feature-gate-simple'
