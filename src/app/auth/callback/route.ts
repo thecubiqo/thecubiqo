@@ -41,15 +41,14 @@ export async function GET(request: Request) {
       }
 
       // Redirect to requested page or home
-      const forwardedHost = request.headers.get('x-forwarded-host')
       const isLocalEnv = process.env.NODE_ENV === 'development'
+      const productionUrl = 'https://www.cubiqo.ai'
 
       if (isLocalEnv) {
         return NextResponse.redirect(`${origin}${next}`)
-      } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`)
       } else {
-        return NextResponse.redirect(`${origin}${next}`)
+        // Always redirect to cubiqo.ai in production
+        return NextResponse.redirect(`${productionUrl}${next}`)
       }
     }
   }

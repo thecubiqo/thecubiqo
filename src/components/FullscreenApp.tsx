@@ -793,6 +793,43 @@ export function FullscreenApp() {
           detectedColor={colorName}
         />
       )}
+
+      {/* Bottom Left Link - Access Full App */}
+      {isAuthenticated && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          left: '20px',
+          zIndex: 1000,
+        }}>
+          <a
+            href="/chat"
+            style={{
+              display: 'inline-block',
+              padding: '12px 24px',
+              background: 'rgba(0, 0, 0, 0.8)',
+              color: '#FF6F00',
+              textDecoration: 'none',
+              borderRadius: '8px',
+              border: '1px solid rgba(255, 111, 0, 0.3)',
+              fontSize: '14px',
+              fontWeight: 600,
+              backdropFilter: 'blur(10px)',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 111, 0, 0.2)'
+              e.currentTarget.style.borderColor = '#FF6F00'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)'
+              e.currentTarget.style.borderColor = 'rgba(255, 111, 0, 0.3)'
+            }}
+          >
+            🚀 Access Full App
+          </a>
+        </div>
+      )}
     </div>
   )
 }
