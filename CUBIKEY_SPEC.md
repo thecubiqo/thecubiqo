@@ -227,6 +227,128 @@ function trackCost(model: string, inputTokens: number, outputTokens: number): nu
 3. **5% of requests** → Tier 3-4 premium (deep reasoning, patents, analysis)
 4. **Result**: Average cost ~$0.001/request instead of $0.05/request = **50x cheaper**
 
+### Multi-Account Rotation (cost ceiling breaker):
+
+The free tiers have per-account limits (e.g. Groq = 6000 req/day).
+To stay near-free at scale, rotate across multiple accounts:
+
+```typescript
+// src/lib/ai/account-rotation.ts
+
+interface ProviderAccount {
+  id: string;
+  provider: string;
+  apiKey: string;
+  dailyLimit: number;
+  dailyUsed: number;
+  resetAt: Date;
+  healthy: boolean;
+}
+
+// Multiple Groq accounts for free Llama/Mixtral
+const GROQ_ACCOUNTS: ProviderAccount[] = [
+  { id: 'groq-1', apiKey: process.env.GROQ_API_KEY_1, dailyLimit: 6000, ... },
+  { id: 'groq-2', apiKey: process.env.GROQ_API_KEY_2, dailyLimit: 6000, ... },
+  { id: 'groq-3', apiKey: process.env.GROQ_API_KEY_3, dailyLimit: 6000, ... },
+  // 3 accounts = 18,000 free requests/day
+];
+
+// Multiple OpenRouter accounts for free models
+const OPENROUTER_ACCOUNTS: ProviderAccount[] = [
+  { id: 'or-1', apiKey: process.env.OPENROUTER_API_KEY_1, dailyLimit: 200, ... },
+  { id: 'or-2', apiKey: process.env.OPENROUTER_API_KEY_2, dailyLimit: 200, ... },
+];
+
+// Rotation logic
+function getNextAccount(provider: string): ProviderAccount {
+  const accounts = ACCOUNT_POOLS[provider];
+  
+  // Round-robin with health check
+  for (const account of accounts) {
+    if (account.healthy && account.dailyUsed < account.dailyLimit) {
+      account.dailyUsed++;
+      return account;
+    }
+  }
+  
+  // All accounts exhausted → fall back to paid tier
+  return getPaidFallback(provider);
+}
+
+// Auto-reset daily counters
+function resetDailyCounters() {
+  for (const pool of Object.values(ACCOUNT_POOLS)) {
+    for (const account of pool) {
+      if (new Date() > account.resetAt) {
+        account.dailyUsed = 0;
+        account.resetAt = getNextMidnight();
+        account.healthy = true;
+      }
+    }
+  }
+}
+```
+
+### Additional Free/Cheap Models to Add:
+
+```
+FREE TIER MODELS (add all of these):
+├── Groq: llama-3.3-70b, llama-3.1-8b, mixtral-8x7b, gemma2-9b
+├── OpenRouter: llama-3.3-70b:free, qwen-2.5-72b:free, gemma-2-9b:free
+├── Google AI Studio: gemini-2.0-flash (free tier generous)
+├── Cerebras: llama-3.3-70b (fastest inference, free tier)
+├── SambaNova: llama-3.1-405b (free tier available)
+└── HuggingFace: serverless inference (free for small models)
+
+CHEAP TIER ($0.01-0.25/M tokens):
+├── Deepseek V3: $0.14/M input (best value for coding)
+├── Mistral Small: $0.10/M input
+├── Cohere Command R: $0.15/M input
+└── Together.ai: various at $0.10-0.30/M
+```
+
+### Env Vars for Multi-Account Rotation:
+
+```
+# Groq accounts (free Llama/Mixtral)
+GROQ_API_KEY_1=gsk_xxxxx
+GROQ_API_KEY_2=gsk_xxxxx
+GROQ_API_KEY_3=gsk_xxxxx
+
+# OpenRouter accounts
+OPENROUTER_API_KEY_1=sk-or-xxxxx
+OPENROUTER_API_KEY_2=sk-or-xxxxx
+
+# Cerebras (free fast inference)
+CEREBRAS_API_KEY=csk-xxxxx
+
+# SambaNova (free 405B)
+SAMBANOVA_API_KEY=xxxxx
+
+# Deepseek (cheapest coding model)
+DEEPSEEK_API_KEY=sk-xxxxx
+
+# Google AI Studio (free Gemini)
+GOOGLE_AI_KEY=AIzaSy-xxxxx
+```
+
+### Cost Math with Rotation:
+
+```
+3 Groq accounts = 18,000 free req/day = 540,000/month
+2 OpenRouter accounts = 400 free req/day = 12,000/month  
+1 Cerebras account = ~1,000 free req/day = 30,000/month
+1 Google AI Studio = ~1,500 free req/day = 45,000/month
+
+Total free capacity: ~627,000 requests/month = $0 cost
+At $1/M tokens CubiKey pricing = pure profit on free tier
+
+Only overflow goes to paid models (~5-10% of traffic)
+Blended cost: ~$0.02/M tokens
+Revenue: $1.00/M tokens  
+Margin: ~98% on free tier traffic
+```
+
 ---
 
 ## PART 3: CUBIKEY — API PRODUCT
