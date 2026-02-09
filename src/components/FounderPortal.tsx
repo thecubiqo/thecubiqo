@@ -15,10 +15,12 @@ import {
   type FeatureAccess,
   type FeatureMetadata
 } from '@/lib/auth'
+import { ConnectionsPanel } from './admin/ConnectionsPanel'
 
 export function FounderPortal() {
   const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'connections' | 'features'>('connections')
   const [userAccess, setUserAccess] = useState<FeatureAccess>(getUserAccessState())
   
   // Only show for founders
@@ -77,15 +79,37 @@ export function FounderPortal() {
               </div>
             </div>
 
-            {/* Info Banner */}
-            <div className="bg-blue-500/10 border-b border-blue-500/30 px-6 py-3">
-              <p className="text-blue-300 text-sm">
-                ℹ️ <strong>You always see everything.</strong> These toggles control what <strong>regular users</strong> see. Changes apply immediately.
-              </p>
+            {/* Tabs */}
+            <div className="border-b border-gray-700 px-6">
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setActiveTab('connections')}
+                  className={`px-4 py-3 font-semibold transition-colors border-b-2 ${
+                    activeTab === 'connections'
+                      ? 'text-purple-400 border-purple-400'
+                      : 'text-gray-400 border-transparent hover:text-gray-300'
+                  }`}
+                >
+                  🔗 Connections
+                </button>
+                <button
+                  onClick={() => setActiveTab('features')}
+                  className={`px-4 py-3 font-semibold transition-colors border-b-2 ${
+                    activeTab === 'features'
+                      ? 'text-purple-400 border-purple-400'
+                      : 'text-gray-400 border-transparent hover:text-gray-300'
+                  }`}
+                >
+                  🎚️ Feature Toggles
+                </button>
+              </div>
             </div>
 
-            {/* Toggles - Scrollable */}
+            {/* Content - Scrollable */}
             <div className="flex-1 overflow-y-auto p-6">
+              {activeTab === 'connections' ? (
+                <ConnectionsPanel />
+              ) : (
               <div className="space-y-8">
                 {Object.entries(groupedFeatures).map(([category, features]) => (
                   <div key={category}>
@@ -151,6 +175,7 @@ export function FounderPortal() {
                   </div>
                 ))}
               </div>
+              )}
             </div>
 
             {/* Footer */}
