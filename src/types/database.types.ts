@@ -247,6 +247,62 @@ export type Database = {
           },
         ]
       }
+      user_integrations: {
+        Row: {
+          id: string
+          user_id: string
+          provider: string
+          access_token: string
+          refresh_token: string | null
+          token_expires_at: string | null
+          provider_user_id: string | null
+          provider_username: string | null
+          metadata: Json
+          connected_at: string
+          last_synced_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          provider: string
+          access_token: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          provider_user_id?: string | null
+          provider_username?: string | null
+          metadata?: Json
+          connected_at?: string
+          last_synced_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          provider?: string
+          access_token?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          provider_user_id?: string | null
+          provider_username?: string | null
+          metadata?: Json
+          connected_at?: string
+          last_synced_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_integrations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

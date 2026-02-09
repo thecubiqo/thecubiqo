@@ -1,234 +1,216 @@
-# CubiQo Completion Checklist - Deploy One by One
+# 🚀 Deployment #4: GitHub Connection - Checklist
 
-**Goal:** Achieve 100% Clawdbot parity + Complete Founder Portal
+## ✅ Completed
 
-**Strategy:** Small, testable deployments. Each item = one commit + one deploy.
+### 1. Database Migration
+- [x] Created `user_integrations` table schema
+- [x] Added RLS policies for security
+- [x] Added indexes for performance
+- [x] Created auto-update trigger for `updated_at`
 
----
+**File:** `supabase/migrations/20240209_user_integrations.sql`
 
-## 🔴 CRITICAL (Must Have)
+### 2. Token Encryption
+- [x] Implemented AES-256-GCM encryption
+- [x] Created `encryptToken()` function
+- [x] Created `decryptToken()` function
+- [x] Uses ENCRYPTION_KEY from environment
 
-### ✅ DONE
-- [x] Core agent engine
-- [x] Basic Founder Portal UI
-- [x] Session cookie handling for auth
-- [x] Connections tab (GitHub + Vercel)
-- [x] Feature toggles tab
+**File:** `src/lib/utils/encryption.ts`
 
-### 🚧 IN PROGRESS
+### 3. API Routes
+- [x] Created OAuth callback handler
+- [x] Implemented token exchange with GitHub
+- [x] Fetch and store GitHub user info
+- [x] Encrypt tokens before database storage
+- [x] Created repos listing endpoint
+- [x] Created connection status endpoint
 
-#### 1. Agent-to-Agent Messaging Tool
-**Priority:** CRITICAL  
-**Status:** Not started  
-**Estimated Time:** 2 hours  
-**Deliverable:** Agents can send messages to each other
+**Files:**
+- `src/app/api/admin/connections/github/callback/route.ts`
+- `src/app/api/admin/connections/github/repos/route.ts`
+- `src/app/api/admin/connections/status/route.ts`
 
-**Steps:**
-- [ ] Create `sessions_send` tool in `src/lib/engine/tools/sessions-send.ts`
-- [ ] Add to tool registry
-- [ ] Test: Henry sends message to Dev
-- [ ] Deploy
+### 4. UI Components
+- [x] Updated ConnectionsPanel with real API calls
+- [x] Show connection status dynamically
+- [x] Display connected GitHub username
+- [x] "View Repositories" button
+- [x] Repository listing with details
+- [x] Loading states
+- [x] Error handling
 
-#### 2. Session Compaction/Pruning
-**Priority:** CRITICAL  
-**Status:** Not started  
-**Estimated Time:** 2 hours  
-**Deliverable:** Long conversations don't eat all tokens
+**File:** `src/components/admin/ConnectionsPanel.tsx`
 
-**Steps:**
-- [ ] Implement compaction logic in `src/lib/engine/session.ts`
-- [ ] Add `/api/sessions/[id]/compact` endpoint
-- [ ] Trigger compaction at 75% token limit
-- [ ] Test with long conversation
-- [ ] Deploy
+### 5. Types
+- [x] Added `user_integrations` to database types
+- [x] Proper TypeScript interfaces
 
-#### 3. Telegram Channel Integration
-**Priority:** CRITICAL  
-**Status:** Was working, got reverted  
-**Estimated Time:** 2 hours  
-**Deliverable:** CubiQo works via Telegram
+**File:** `src/types/database.types.ts`
 
-**Steps:**
-- [ ] Restore `/api/telegram/webhook` route
-- [ ] Restore Telegram bot setup
-- [ ] Add Telegram config to Founder Portal Connections
-- [ ] Test: Send message to bot, get response
-- [ ] Deploy
+### 6. Documentation
+- [x] Created GitHub setup guide
+- [x] OAuth flow documentation
+- [x] Security features explained
+- [x] Troubleshooting guide
 
----
+**File:** `docs/GITHUB_SETUP.md`
 
-## 🟡 IMPORTANT (Should Have)
+### 7. Environment Variables
+- [x] Updated `.env.example` with GitHub OAuth vars
+- [x] Added ENCRYPTION_KEY requirement
 
-#### 4. Supabase pgvector Setup
-**Priority:** HIGH  
-**Status:** Not started  
-**Estimated Time:** 1 hour  
-**Deliverable:** Semantic memory search works
-
-**Steps:**
-- [ ] Enable pgvector extension in Supabase
-- [ ] Create embeddings table with vector column
-- [ ] Update memory.ts to use vector search
-- [ ] Test memory search with similar queries
-- [ ] Deploy
-
-#### 5. WhatsApp Channel Integration
-**Priority:** HIGH  
-**Status:** Not started  
-**Estimated Time:** 3 hours  
-**Deliverable:** CubiQo works via WhatsApp
-
-**Steps:**
-- [ ] Set up WhatsApp Business API
-- [ ] Create `/api/whatsapp/webhook` route
-- [ ] Add WhatsApp config to Founder Portal
-- [ ] Test: Send WhatsApp message, get response
-- [ ] Deploy
-
-#### 6. Vision/Image Analysis
-**Priority:** MEDIUM  
-**Status:** Not started  
-**Estimated Time:** 2 hours  
-**Deliverable:** Agents can analyze images
-
-**Steps:**
-- [ ] Add vision tool using GPT-4V or Claude
-- [ ] Create `/api/tools/vision` endpoint
-- [ ] Test: Upload image, get description
-- [ ] Add to tool registry
-- [ ] Deploy
+**File:** `.env.example`
 
 ---
 
-## 🟢 NICE TO HAVE (Could Have)
+## 🔧 Setup Required
 
-#### 7. Discord Channel
-**Priority:** LOW  
-**Status:** Not started  
-**Estimated Time:** 2 hours  
-**Steps:**
-- [ ] Create Discord bot
-- [ ] Add webhook endpoint
-- [ ] Add to Connections panel
-- [ ] Test & Deploy
+### 1. Create GitHub OAuth App
 
-#### 8. Slack Channel
-**Priority:** LOW  
-**Status:** Not started  
-**Estimated Time:** 2 hours  
-**Steps:**
-- [ ] Create Slack app
-- [ ] Add webhook endpoint
-- [ ] Add to Connections panel
-- [ ] Test & Deploy
+1. Go to: https://github.com/settings/developers
+2. Click "New OAuth App"
+3. Fill in:
+   - Name: `CubiQo - Founder Portal`
+   - Homepage: `http://localhost:3000` (dev) or your production URL
+   - Callback: `http://localhost:3000/api/admin/connections/github/callback`
+4. Click "Register application"
+5. Copy **Client ID** and **Client Secret**
 
-#### 9. Email Channel
-**Priority:** LOW  
-**Status:** Not started  
-**Estimated Time:** 2 hours  
-**Steps:**
-- [ ] Set up email parsing (SendGrid/Mailgun)
-- [ ] Add inbound email handler
-- [ ] Add to Connections panel
-- [ ] Test & Deploy
+### 2. Configure Environment
 
----
+Add to `.env.local`:
 
-## 🎨 FOUNDER PORTAL ENHANCEMENTS
+```bash
+# GitHub OAuth
+GITHUB_CLIENT_ID=your_client_id_here
+GITHUB_CLIENT_SECRET=your_client_secret_here
+NEXT_PUBLIC_GITHUB_CLIENT_ID=your_client_id_here
 
-#### 10. GitHub Connection Flow
-**Priority:** HIGH  
-**Status:** UI built, needs OAuth  
-**Estimated Time:** 1 hour  
-**Steps:**
-- [ ] Set up GitHub OAuth app
-- [ ] Create `/api/admin/connections/github/callback`
-- [ ] Store access token securely
-- [ ] Show connected repos
-- [ ] Deploy
+# Generate with: openssl rand -base64 32
+ENCRYPTION_KEY=your_32_char_key_here
+```
 
-#### 11. Vercel Connection Flow
-**Priority:** HIGH  
-**Status:** UI built, needs OAuth  
-**Estimated Time:** 1 hour  
-**Steps:**
-- [ ] Set up Vercel OAuth integration
-- [ ] Create `/api/admin/connections/vercel/callback`
-- [ ] Show deployment status
-- [ ] Enable one-click deploys
-- [ ] Deploy
+**Generate encryption key:**
+```bash
+openssl rand -base64 32
+```
 
-#### 12. Integration Toggles with Persistence
-**Priority:** MEDIUM  
-**Status:** UI exists, needs backend  
-**Estimated Time:** 2 hours  
-**Steps:**
-- [ ] Add integration settings to user_integrations table
-- [ ] Create API to save toggle states
-- [ ] Load toggle states on page load
-- [ ] Test: Toggle Gmail read, verify tools filtered
-- [ ] Deploy
+### 3. Apply Database Migration
+
+**Option A: Supabase Dashboard**
+1. Go to: https://supabase.com/dashboard/project/YOUR_PROJECT/sql
+2. Copy contents of: `supabase/migrations/20240209_user_integrations.sql`
+3. Paste and run in SQL Editor
+
+**Option B: Run helper script**
+```bash
+node scripts/apply-migration.js
+# Follow instructions to copy SQL and run manually
+```
+
+### 4. Test the Flow
+
+```bash
+npm run dev
+```
+
+1. Navigate to `/admin`
+2. Click "Connect GitHub"
+3. Authorize on GitHub
+4. Verify redirect back with success
+5. Click "View Repositories"
+6. Confirm repos are displayed
 
 ---
 
-## 📊 DEPLOYMENT ORDER
+## 🚨 Pre-Deployment Checklist
 
-**Week 1 (Critical Path):**
-1. Agent-to-Agent Messaging ← Deploy
-2. Session Compaction ← Deploy
-3. Telegram Integration ← Deploy
-4. GitHub Connection Flow ← Deploy
-5. Vercel Connection Flow ← Deploy
-
-**Week 2 (Important Features):**
-6. Supabase pgvector ← Deploy
-7. WhatsApp Integration ← Deploy
-8. Vision/Image Analysis ← Deploy
-9. Integration Toggle Persistence ← Deploy
-
-**Week 3 (Nice to Have):**
-10. Discord Channel ← Deploy
-11. Slack Channel ← Deploy
-12. Email Channel ← Deploy
+- [ ] GitHub OAuth app created
+- [ ] Environment variables configured
+- [ ] Database migration applied
+- [ ] Encryption key generated and set
+- [ ] Tested OAuth flow locally
+- [ ] Verified tokens are encrypted in database
+- [ ] Tested repository listing
+- [ ] Verified RLS policies work
+- [ ] Updated callback URL for production
+- [ ] Committed all changes
+- [ ] Ready to deploy
 
 ---
 
-## 📝 DEPLOYMENT PROTOCOL
+## 🎯 What This Deployment Includes
 
-**For each item:**
-1. ✅ Build feature
-2. ✅ Test locally
-3. ✅ Commit with clear message
-4. ✅ Push to GitHub
-5. ✅ Deploy to Vercel production
-6. ✅ Test on live site
-7. ✅ Mark as complete
-8. ✅ Move to next item
+### OAuth Flow
+1. User clicks "Connect GitHub" → Redirects to GitHub
+2. User authorizes → GitHub redirects to callback
+3. Callback exchanges code for token
+4. Token encrypted with AES-256-GCM
+5. Stored securely in `user_integrations` table
+6. User sees "Connected" status
 
-**No batch deploys. One feature = One deployment.**
+### Security Features
+- ✅ AES-256-GCM encryption for tokens
+- ✅ Row-level security (users can only see their own integrations)
+- ✅ State parameter for CSRF protection
+- ✅ Scoped access (only `repo` and `read:user`)
+- ✅ Service role key separated from client code
 
----
-
-## 🎯 SUCCESS CRITERIA
-
-**100% Clawdbot Parity:**
-- [ ] All 35 requirements completed
-- [ ] All channels working
-- [ ] All tools functional
-- [ ] Memory search semantic
-- [ ] Vision support enabled
-
-**Complete Founder Portal:**
-- [ ] GitHub connected
-- [ ] Vercel connected
-- [ ] Feature toggles persist
-- [ ] Integration toggles work
-- [ ] Clean, professional UI
-
-**Total Estimated Time:** ~25 hours of focused work
-
-**Completion Target:** End of Week 2 (2026-02-21)
+### UI Features
+- ✅ Real-time connection status
+- ✅ Display GitHub username
+- ✅ View repositories button
+- ✅ Repository details (name, description, language, stars, forks)
+- ✅ Private repo indicator
+- ✅ Loading states
+- ✅ Error handling
 
 ---
 
-**Current Status:** Ready to begin deployment sequence!
+## 📝 Commit Message
+
+```
+feat: GitHub OAuth connection flow for Founder Portal
+
+Implements complete GitHub OAuth integration:
+- OAuth callback with token exchange
+- AES-256-GCM token encryption
+- User integrations database table
+- Repository listing API
+- ConnectionsPanel UI updates
+- Comprehensive documentation
+
+Security features:
+- Encrypted token storage
+- Row-level security policies
+- CSRF protection with state parameter
+
+Files added:
+- src/app/api/admin/connections/github/callback/route.ts
+- src/app/api/admin/connections/github/repos/route.ts
+- src/app/api/admin/connections/status/route.ts
+- src/lib/utils/encryption.ts
+- supabase/migrations/20240209_user_integrations.sql
+- docs/GITHUB_SETUP.md
+
+Files modified:
+- src/components/admin/ConnectionsPanel.tsx
+- src/types/database.types.ts
+- .env.example
+
+Ready to deploy ✅
+```
+
+---
+
+## 🔄 Next Steps (Future Enhancements)
+
+- [ ] Add token refresh flow
+- [ ] Implement disconnect functionality
+- [ ] Add webhook handlers for repo events
+- [ ] Support GitHub Apps for granular permissions
+- [ ] Add Vercel OAuth integration
+- [ ] Add Linear integration
+- [ ] Show recent commits/activity
+- [ ] Auto-deploy on push to connected repo
