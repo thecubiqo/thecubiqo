@@ -1,13 +1,12 @@
 /**
- * Client-side Feature Flags
+ * Client-side Feature Flags - MOCK MODE
  * Use this in client components
  */
 
-import { createClient } from '@/lib/supabase/client'
 import type { FeatureAccess } from './feature-flags'
 
-// Re-declare defaults here to avoid importing server code
-const DEFAULT_USER_ACCESS: FeatureAccess = {
+// Mock defaults - everything enabled for founder, limited for users
+const MOCK_FEATURES: FeatureAccess = {
   home: true,
   chat: true,
   settings: true,
@@ -24,100 +23,32 @@ const DEFAULT_USER_ACCESS: FeatureAccess = {
 }
 
 /**
- * Get all feature flags (client-side)
+ * Get all feature flags (mock mode)
  */
 export async function getAllFeatureFlagsClient(): Promise<FeatureAccess> {
-  try {
-    const supabase = createClient()
-    
-    const { data, error } = await supabase
-      .from('feature_flags')
-      .select('feature, released')
-    
-    if (error) {
-      console.warn('Failed to fetch all feature flags:', error)
-      return { ...DEFAULT_USER_ACCESS }
-    }
-    
-    // Start with default
-    const flags: FeatureAccess = { ...DEFAULT_USER_ACCESS }
-    
-    // Override with database values if they exist
-    if (data) {
-      for (const row of data) {
-        if (row.feature in flags) {
-          flags[row.feature as keyof FeatureAccess] = row.released
-        }
-      }
-    }
-    
-    return flags
-  } catch (err) {
-    console.warn('Error fetching all feature flags:', err)
-    return { ...DEFAULT_USER_ACCESS }
-  }
+  // TODO: Replace with real DB after migrations
+  console.log('[MOCK] getAllFeatureFlagsClient')
+  return { ...MOCK_FEATURES }
 }
 
 /**
- * Update a feature flag (client-side)
+ * Update a feature flag (mock mode)
  */
 export async function updateFeatureFlagClient(
   feature: keyof FeatureAccess,
   released: boolean
 ): Promise<boolean> {
-  try {
-    const supabase = createClient()
-    
-    const { error } = await supabase
-      .from('feature_flags')
-      .upsert({
-        feature,
-        released,
-        updated_at: new Date().toISOString(),
-      })
-    
-    if (error) {
-      console.error('Failed to update feature flag:', error)
-      return false
-    }
-    
-    return true
-  } catch (err) {
-    console.error('Error updating feature flag:', err)
-    return false
-  }
+  // TODO: Replace with real DB after migrations
+  console.log('[MOCK] updateFeatureFlagClient:', feature, released)
+  MOCK_FEATURES[feature] = released
+  return true
 }
 
 /**
- * Get released features for a user (client-side)
+ * Get released features for a user (mock mode)
  */
 export async function getReleasedFeaturesClient(): Promise<FeatureAccess> {
-  try {
-    const supabase = createClient()
-    
-    const { data, error } = await supabase
-      .from('feature_flags')
-      .select('feature, released')
-      .eq('released', true)
-    
-    if (error) {
-      console.warn('Failed to fetch released features:', error)
-      return DEFAULT_USER_ACCESS
-    }
-    
-    const access: FeatureAccess = { ...DEFAULT_USER_ACCESS }
-    
-    if (data) {
-      for (const row of data) {
-        if (row.feature in access) {
-          access[row.feature as keyof FeatureAccess] = true
-        }
-      }
-    }
-    
-    return access
-  } catch (err) {
-    console.warn('Error fetching released features:', err)
-    return DEFAULT_USER_ACCESS
-  }
+  // TODO: Replace with real DB after migrations
+  console.log('[MOCK] getReleasedFeaturesClient')
+  return { ...MOCK_FEATURES }
 }

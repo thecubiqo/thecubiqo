@@ -242,31 +242,9 @@ export const FEATURE_METADATA: FeatureMetadata[] = [
  * Returns current state of all features from database
  */
 export async function getAllFeatureFlags(): Promise<FeatureAccess> {
-  try {
-    const supabase = await createClient()
-    
-    const { data, error } = await supabase
-      .from('feature_flags')
-      .select('feature, released')
-    
-    if (error) {
-      console.warn('Failed to fetch all feature flags:', error)
-      return { ...DEFAULT_USER_ACCESS, ...FOUNDER_ACCESS }
-    }
-    
-    // Start with founder access as baseline
-    const flags: FeatureAccess = { ...FOUNDER_ACCESS }
-    
-    // Override with database values if they exist
-    if (data) {
-      for (const row of data) {
-        if (row.feature in flags) {
-          flags[row.feature as keyof FeatureAccess] = row.released
-        }
-      }
-    }
-    
-    return flags
+  // TODO: Replace with real DB after migrations
+  console.log('[MOCK] getAllFeatureFlags')
+  return { ...FOUNDER_ACCESS }
   } catch (err) {
     console.warn('Error fetching all feature flags:', err)
     return { ...DEFAULT_USER_ACCESS, ...FOUNDER_ACCESS }
@@ -280,25 +258,7 @@ export async function updateFeatureFlag(
   feature: keyof FeatureAccess,
   released: boolean
 ): Promise<boolean> {
-  try {
-    const supabase = await createClient()
-    
-    const { error } = await supabase
-      .from('feature_flags')
-      .upsert({
-        feature,
-        released,
-        updated_at: new Date().toISOString(),
-      })
-    
-    if (error) {
-      console.error('Failed to update feature flag:', error)
-      return false
-    }
-    
-    return true
-  } catch (err) {
-    console.error('Error updating feature flag:', err)
-    return false
-  }
+  // TODO: Replace with real DB after migrations
+  console.log('[MOCK] updateFeatureFlag:', feature, released)
+  return true
 }
