@@ -38,18 +38,17 @@ export default function FoundersDashboard() {
 
     const supabase = createClient()
 
-    // Check session storage auth
+    // Check session storage auth and load features
     useEffect(() => {
         const founderAuth = sessionStorage.getItem('founders_pass_auth')
         if (founderAuth !== 'true') {
             router.push('/founders')
-        } else {
-            setIsAuthed(true)
+            return
         }
-    }, [router])
 
-    // Load feature flags
-    useEffect(() => {
+        setIsAuthed(true)
+
+        // Load features immediately after confirming auth
         const loadFeatures = async () => {
             console.log('[Dashboard] Loading features...')
             try {
@@ -79,10 +78,8 @@ export default function FoundersDashboard() {
             setIsLoading(false)
         }
 
-        if (isAuthed) {
-            loadFeatures()
-        }
-    }, [isAuthed, supabase])
+        loadFeatures()
+    }, [router, supabase])
 
     // Default features fallback
     function getDefaultFeatures(): FeatureFlag[] {
