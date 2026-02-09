@@ -1,5 +1,4 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 /**
@@ -11,7 +10,7 @@ import { NextResponse } from 'next/server'
  */
 
 export async function POST(request: Request) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = await createClient()
 
   // Get current user
   const {
@@ -53,7 +52,7 @@ export async function POST(request: Request) {
     }
 
     const { access_token, metadata } = connection
-    const team_id = metadata?.team_id
+    const team_id = (metadata as any)?.team_id
 
     // Get project details
     const projectUrl = team_id
@@ -90,9 +89,9 @@ export async function POST(request: Request) {
     if (!latestDeployment) {
       // No deployments yet, trigger via build (requires Git connection)
       return NextResponse.json(
-        { 
+        {
           error: 'No deployments found for this project. Please deploy via Git first.',
-          requiresGit: true 
+          requiresGit: true
         },
         { status: 400 }
       )
@@ -184,7 +183,7 @@ export async function POST(request: Request) {
  * Get deployment status and logs
  */
 export async function GET(request: Request) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = await createClient()
   const { searchParams } = new URL(request.url)
   const deploymentId = searchParams.get('deploymentId')
 
@@ -218,7 +217,7 @@ export async function GET(request: Request) {
     }
 
     const { access_token, metadata } = connection
-    const team_id = metadata?.team_id
+    const team_id = (metadata as any)?.team_id
 
     // Fetch deployment status
     const deploymentUrl = team_id

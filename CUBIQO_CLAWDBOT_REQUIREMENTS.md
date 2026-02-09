@@ -15,12 +15,12 @@ Transform CubiQo from an AI chat companion into a **full autonomous agent platfo
 #### 1.1 Multi-Agent System
 - **What ClawdBot has:** Multiple isolated agents with separate workspaces, memory, personalities (SOUL.md), and session stores
 - **CubiQo needs:**
-  - [ ] Agent creation UI — users create named agents with custom roles/personalities
-  - [ ] Agent workspace isolation — each agent gets its own file space, memory, context
-  - [ ] Agent-to-agent messaging — agents can delegate tasks to each other
-  - [ ] Agent coordinator (like Henry) — main agent routes tasks to specialists
-  - [ ] Agent roster dashboard — see all agents, their status, current tasks
-  - [ ] Per-agent model selection (Claude, GPT, Llama, Mistral, etc.)
+  - [x] Agent creation UI — users create named agents with custom roles/personalities
+  - [x] Agent workspace isolation — each agent gets its own file space, memory, context
+  - [x] Agent-to-agent messaging — agents can delegate tasks to each other
+  - [x] Agent coordinator (like Henry) — main agent routes tasks to specialists
+  - [x] Agent roster dashboard — see all agents, their status, current tasks
+  - [x] Per-agent model selection (Claude, GPT, Llama, Mistral, etc.)
 
 #### 1.2 Subagent Spawning
 - **What ClawdBot has:** `sessions_spawn` — background parallel agents that report back
@@ -35,10 +35,10 @@ Transform CubiQo from an AI chat companion into a **full autonomous agent platfo
 #### 1.3 Session Management
 - **What ClawdBot has:** Persistent sessions, session history, session pruning, compaction
 - **CubiQo needs:**
-  - [ ] Persistent conversation sessions per agent
-  - [ ] Session history retrieval and search
+  - [x] Persistent conversation sessions per agent
+  - [x] Session history retrieval and search
   - [ ] Session pruning (auto-delete old sessions)
-  - [ ] Context compaction (summarize long conversations to save tokens)
+  - [x] Context compaction (summarize long conversations to save tokens)
   - [ ] Session branching — fork a conversation into a new thread
   - [ ] Session export (JSON, markdown)
 
@@ -89,14 +89,14 @@ Transform CubiQo from an AI chat companion into a **full autonomous agent platfo
 #### 3.1 Multi-Channel Messaging
 - **What ClawdBot has:** Telegram, WhatsApp, Discord, Slack, Signal, iMessage, Nostr, Teams, Matrix
 - **CubiQo needs:**
-  - [ ] Telegram bot integration
+  - [x] Telegram bot integration
   - [ ] WhatsApp (via Baileys)
-  - [ ] Discord bot
-  - [ ] Slack app
-  - [ ] Email (send/receive/reply)
+  - [x] Discord bot
+  - [x] Slack app
+  - [x] Email (send/receive/reply)
   - [ ] SMS (Twilio)
-  - [ ] Web chat (already exists — enhance)
-  - [ ] Channel routing — different agents on different channels
+  - [x] Web chat (already exists — enhance)
+  - [x] Channel routing — different agents on different channels
   - [ ] Multi-account support per channel
 
 #### 3.2 Channel Features
@@ -145,7 +145,7 @@ Transform CubiQo from an AI chat companion into a **full autonomous agent platfo
   - [ ] Audio message support in channels
 
 #### 5.2 Vision & Image
-- [ ] Image understanding (GPT-4V, Claude Vision)
+- [x] Image understanding (GPT-4V, Claude Vision)
 - [ ] Screenshot analysis
 - [ ] Image generation (DALL-E, Stable Diffusion)
 - [ ] Document/PDF analysis
@@ -158,7 +158,7 @@ Transform CubiQo from an AI chat companion into a **full autonomous agent platfo
 #### 6.1 Cron Jobs
 - **What ClawdBot has:** Scheduled tasks, recurring agent runs
 - **CubiQo needs:**
-  - [ ] Cron job scheduler — run agent tasks on schedule
+  - [x] Cron job scheduler — run agent tasks on schedule
   - [ ] Recurring tasks (daily reports, monitoring, backups)
   - [ ] Event-triggered tasks (new email → agent processes it)
   - [ ] Task queue with priority

@@ -1,14 +1,16 @@
 import { bootstrapAgents } from './bootstrap';
+import { startCron } from './cron';
 
 let initialized = false;
 
 export async function initializeEngine() {
   if (initialized) return;
-  
+
   console.log('🤖 Initializing CubiQo Agent Engine...');
-  
+
   try {
     await bootstrapAgents();
+    startCron();
     initialized = true;
     console.log('✅ Agent Engine ready');
   } catch (error) {

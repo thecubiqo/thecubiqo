@@ -107,14 +107,14 @@ export async function GET(request: NextRequest) {
 
     // Store or update the integration
     const { error: dbError } = await supabase
-      .from('user_integrations')
+      .from('connections')
       .upsert({
         user_id: user.id,
-        provider: 'github',
+        service: 'github',
         access_token: encryptedToken,
-        provider_user_id: githubUser.id.toString(),
-        provider_username: githubUser.login,
         metadata: {
+          id: githubUser.id.toString(),
+          username: githubUser.login,
           name: githubUser.name,
           email: githubUser.email,
           avatar_url: githubUser.avatar_url,
@@ -123,9 +123,9 @@ export async function GET(request: NextRequest) {
           scopes: tokenData.scope?.split(',') || [],
         },
         connected_at: new Date().toISOString(),
-        last_synced_at: new Date().toISOString(),
+        last_used_at: new Date().toISOString(),
       }, {
-        onConflict: 'user_id,provider'
+        onConflict: 'user_id,service'
       })
 
     if (dbError) {

@@ -31,7 +31,7 @@ async function testCompaction() {
   // Create a session with many messages
   const sessionStore = (agent as any).sessionStore;
   const session = await sessionStore.create('test-compaction', 'test');
-  
+
   console.log(`✓ Session created: ${session.id}\n`);
 
   // Add system message
@@ -42,7 +42,7 @@ async function testCompaction() {
 
   // Simulate a long conversation (50+ messages)
   console.log('Adding 50+ messages to simulate long conversation...');
-  
+
   for (let i = 1; i <= 25; i++) {
     // User message
     await sessionStore.addMessage(session.id, {
@@ -73,7 +73,7 @@ async function testCompaction() {
 
   // Test manual compaction with force flag
   console.log('Running forced compaction...\n');
-  
+
   try {
     const result = await sessionStore.compactSession(session.id, testModel, {
       keepRecentCount: 10,
@@ -92,8 +92,9 @@ async function testCompaction() {
       const history = await sessionStore.getHistory(session.id);
       console.log('=== Compacted Session Structure ===');
       history.forEach((msg: any, idx: number) => {
-        const preview = msg.content.substring(0, 60).replace(/\n/g, ' ');
-        console.log(`${idx + 1}. [${msg.role}] ${preview}${msg.content.length > 60 ? '...' : ''}`);
+        const contentStr = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+        const preview = contentStr.substring(0, 60).replace(/\n/g, ' ');
+        console.log(`${idx + 1}. [${msg.role}] ${preview}${contentStr.length > 60 ? '...' : ''}`);
         if (msg.isSummary) {
           console.log(`   ↳ Summary of ${msg.summarizedMessageIds?.length || 0} messages`);
         }
@@ -102,7 +103,7 @@ async function testCompaction() {
 
       // Test automatic compaction trigger
       console.log('=== Testing Auto-Compaction Trigger ===');
-      
+
       // Add more messages to simulate reaching threshold
       for (let i = 26; i <= 40; i++) {
         await sessionStore.addMessage(session.id, {
@@ -119,7 +120,7 @@ async function testCompaction() {
       const statsAfterAdding = sessionStore.getTokenStats(session.id);
       console.log(`Messages after adding more: ${statsAfterAdding.messageCount}`);
       console.log(`Tokens: ~${statsAfterAdding.totalTokens}`);
-      
+
       const needsAutoCompaction = sessionStore.needsCompaction(session.id, testModel.model);
       console.log(`Should trigger auto-compaction: ${needsAutoCompaction ? '✓ YES' : '✗ NO'}`);
       console.log();

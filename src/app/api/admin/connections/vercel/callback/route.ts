@@ -1,5 +1,4 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 /**
@@ -34,7 +33,7 @@ export async function GET(request: Request) {
     )
   }
 
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = await createClient()
 
   // Get current user
   const {
@@ -82,7 +81,7 @@ export async function GET(request: Request) {
 
     // Fetch user's projects
     const projectsResponse = await fetch(
-      team_id 
+      team_id
         ? `https://api.vercel.com/v9/projects?teamId=${team_id}`
         : 'https://api.vercel.com/v9/projects',
       {

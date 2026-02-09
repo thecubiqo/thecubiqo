@@ -10,7 +10,7 @@ async function simpleTest() {
   try {
     // Create two agents
     console.log('Creating agents...');
-    
+
     const henry = await createAgent({
       id: 'henry',
       name: 'Henry',
@@ -70,11 +70,12 @@ async function simpleTest() {
     console.log('\n📜 Dev message history:');
     const history = await dev.getHistory(devSessions[0].id);
     history.forEach((msg, i) => {
-      console.log(`\n[${i}] ${msg.role}: ${msg.content.substring(0, 80)}...`);
+      const contentStr = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      console.log(`\n[${i}] ${msg.role}: ${contentStr.substring(0, 80)}...`);
     });
 
     console.log('\n✅ Test complete!');
-    
+
   } catch (error) {
     console.error('❌ Error:', error);
     throw error;

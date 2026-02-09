@@ -11,7 +11,7 @@ export function estimateTokenCount(text: string): number {
 
 export function countMessageTokens(message: {
   role: string;
-  content: string;
+  content: string | any[];
   toolCalls?: any[];
   toolResults?: any[];
 }): number {
@@ -21,7 +21,17 @@ export function countMessageTokens(message: {
   tokens += 4;
 
   // Content tokens
-  tokens += estimateTokenCount(message.content);
+  if (typeof message.content === 'string') {
+    tokens += estimateTokenCount(message.content);
+  } else if (Array.isArray(message.content)) {
+    for (const block of message.content) {
+      if (block.type === 'text') {
+        tokens += estimateTokenCount(block.text || '');
+      } else if (block.type === 'image_url') {
+        tokens += 1000; // Rough estimate for image
+      }
+    }
+  }
 
   // Tool calls
   if (message.toolCalls && message.toolCalls.length > 0) {
@@ -39,7 +49,7 @@ export function countMessageTokens(message: {
 export function countConversationTokens(
   messages: Array<{
     role: string;
-    content: string;
+    content: string | any[];
     toolCalls?: any[];
     toolResults?: any[];
   }>

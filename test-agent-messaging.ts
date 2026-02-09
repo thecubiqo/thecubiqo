@@ -16,7 +16,7 @@ async function testAgentMessaging() {
   try {
     // Step 1: Create agents
     console.log('📝 Step 1: Creating agents...');
-    
+
     const henryConfig = {
       id: 'henry',
       name: 'Henry',
@@ -69,7 +69,7 @@ async function testAgentMessaging() {
     console.log('   Message: "What\'s the status?"\n');
 
     const henryMessage = `Please use the sessions_send tool to send this message to the dev agent: "What's the status?"`;
-    
+
     const henryResponse = await henry.run(henryMessage);
     console.log('📨 Henry\'s response:');
     console.log('---');
@@ -79,18 +79,20 @@ async function testAgentMessaging() {
     // Step 4: Check Dev's session history to see if message was received
     console.log('📝 Step 4: Checking Dev\'s message history...');
     const devHistory = await dev.getHistory(devSessionId);
-    
+
     console.log(`\n📜 Dev's conversation history (${devHistory.length} messages):`);
     devHistory.slice(-4).forEach((msg, idx) => {
       console.log(`\n[${idx + 1}] ${msg.role}:`);
-      console.log(msg.content.substring(0, 200) + (msg.content.length > 200 ? '...' : ''));
+      const contentStr = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      console.log(contentStr.substring(0, 200) + (contentStr.length > 200 ? '...' : ''));
     });
 
     // Step 5: Verify the messaging worked
     console.log('\n📝 Step 5: Verification...');
-    const hasMessageFromHenry = devHistory.some(
-      msg => msg.content.includes('agent:henry') || msg.content.includes('What\'s the status?')
-    );
+    const hasMessageFromHenry = devHistory.some(msg => {
+      const contentStr = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      return contentStr.includes('agent:henry') || contentStr.includes('What\'s the status?')
+    });
 
     if (hasMessageFromHenry) {
       console.log('✅ SUCCESS: Dev received message from Henry!');

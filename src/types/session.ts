@@ -17,11 +17,15 @@ export interface Session {
   totalTokens?: number;
 }
 
+export type ContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string; detail?: 'auto' | 'low' | 'high' } };
+
 export interface Message {
   id: string;
   sessionId: string;
   role: 'user' | 'assistant' | 'system' | 'tool' | 'summary';
-  content: string;
+  content: string | ContentBlock[];
   toolCalls?: ToolCall[];
   toolResults?: ToolResult[];
   tokenCount?: number;

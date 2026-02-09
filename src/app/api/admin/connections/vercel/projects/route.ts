@@ -1,5 +1,4 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 /**
@@ -10,7 +9,7 @@ import { NextResponse } from 'next/server'
  */
 
 export async function GET(request: Request) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = await createClient()
 
   // Get current user
   const {
@@ -42,7 +41,7 @@ export async function GET(request: Request) {
     }
 
     const { access_token, metadata } = connection
-    const team_id = metadata?.team_id
+    const team_id = (metadata as any)?.team_id
 
     // Fetch latest projects from Vercel API
     const projectsUrl = team_id
@@ -88,16 +87,16 @@ export async function GET(request: Request) {
             updatedAt: project.updatedAt,
             latestDeployment: latestDeployment
               ? {
-                  id: latestDeployment.uid,
-                  url: latestDeployment.url,
-                  state: latestDeployment.state,
-                  readyState: latestDeployment.readyState,
-                  createdAt: latestDeployment.createdAt,
-                  ready: latestDeployment.ready,
-                  buildingAt: latestDeployment.buildingAt,
-                  creator: latestDeployment.creator?.username,
-                  target: latestDeployment.target,
-                }
+                id: latestDeployment.uid,
+                url: latestDeployment.url,
+                state: latestDeployment.state,
+                readyState: latestDeployment.readyState,
+                createdAt: latestDeployment.createdAt,
+                ready: latestDeployment.ready,
+                buildingAt: latestDeployment.buildingAt,
+                creator: latestDeployment.creator?.username,
+                target: latestDeployment.target,
+              }
               : null,
           }
         } catch (error) {
@@ -121,7 +120,7 @@ export async function GET(request: Request) {
       .from('connections')
       .update({
         metadata: {
-          ...metadata,
+          ...(metadata as any),
           projects: projectsWithDeployments.map((p) => ({
             id: p.id,
             name: p.name,
@@ -135,8 +134,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       connected: true,
-      username: metadata?.username,
-      team_id: metadata?.team_id,
+      username: (metadata as any)?.username,
+      team_id: (metadata as any)?.team_id,
       projects: projectsWithDeployments,
       total: projectsWithDeployments.length,
     })
@@ -155,7 +154,7 @@ export async function GET(request: Request) {
  * Disconnect Vercel integration
  */
 export async function DELETE(request: Request) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = await createClient()
 
   const {
     data: { user },

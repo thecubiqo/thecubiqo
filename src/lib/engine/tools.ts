@@ -5,6 +5,11 @@ import { readFile, writeFile, unlink, readdir } from 'fs/promises';
 import { join } from 'path';
 import { webSearchTool, webFetchTool } from './web-tools';
 import { sessionsSendTool } from './tools/sessions-send';
+import { telegramSendTool } from './tools/telegram-tool';
+import { visionTool } from './tools/vision-tool';
+import { slackSendTool } from './tools/slack-tool';
+import { discordSendTool } from './tools/discord-tool';
+import { emailSendTool } from './tools/email-tool';
 
 const execAsync = promisify(exec);
 
@@ -26,6 +31,11 @@ export class ToolRegistry {
     this.register(gitTool);
     this.register(webSearchTool);
     this.register(webFetchTool);
+    this.register(telegramSendTool); // Import from tools/telegram-tool.ts
+    this.register(visionTool); // Import from tools/vision-tool.ts
+    this.register(slackSendTool); // Import from tools/slack-tool.ts
+    this.register(discordSendTool); // Import from tools/discord-tool.ts
+    this.register(emailSendTool); // Import from tools/email-tool.ts
   }
 
   register(tool: Tool) {
@@ -155,7 +165,7 @@ const fileWriteTool: Tool = {
     try {
       const { path, content } = params;
       const fullPath = join(context.workspace, path);
-      
+
       // Ensure parent directory exists
       const { mkdir } = await import('fs/promises');
       const dir = join(fullPath, '..');
@@ -229,7 +239,7 @@ const sessionsSpawnTool: Tool = {
   execute: async (params, context) => {
     try {
       const { task, agentId = context.agentId, label } = params;
-      
+
       // Import agent dynamically to avoid circular dependency
       const { getAgent } = await import('./agent');
       const agent = getAgent(agentId);
@@ -281,10 +291,10 @@ const gitTool: Tool = {
     try {
       const { action, args = '', message } = params;
       let command: string;
-      
+
       switch (action) {
         case 'status': command = 'git status'; break;
-        case 'add': command = `git add ${args || '.'}`;break;
+        case 'add': command = `git add ${args || '.'}`; break;
         case 'commit':
           if (!message) return { success: false, output: '', error: 'Commit message required' };
           command = `git commit -m "${message.replace(/"/g, '\\"')}"`; break;

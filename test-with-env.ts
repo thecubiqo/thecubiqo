@@ -23,7 +23,7 @@ async function testWithEnv() {
   try {
     // Create two agents
     console.log('📝 Step 1: Creating agents...');
-    
+
     const henry = await createAgent({
       id: 'henry',
       name: 'Henry',
@@ -54,7 +54,7 @@ async function testWithEnv() {
     console.log('\n📝 Step 2: Initializing Dev session...');
     const devResponse = await dev.run('Hello, I am Dev agent. I am ready to receive messages.');
     console.log('✅ Dev initialized. Response:', devResponse.substring(0, 50) + '...');
-    
+
     const devSessions = await dev.listSessions();
     console.log('✅ Dev session ID:', devSessions[0]?.id);
 
@@ -92,17 +92,19 @@ async function testWithEnv() {
     console.log('\n📝 Step 4: Checking Dev\'s message history...');
     const history = await dev.getHistory(devSessions[0].id);
     console.log(`  Total messages: ${history.length}`);
-    
+
     console.log('\n  Last 3 messages:');
     history.slice(-3).forEach((msg, i) => {
-      const preview = msg.content.substring(0, 80).replace(/\n/g, ' ');
-      console.log(`  [${i + 1}] ${msg.role}: ${preview}${msg.content.length > 80 ? '...' : ''}`);
+      const contentStr = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      const preview = contentStr.substring(0, 80).replace(/\n/g, ' ');
+      console.log(`  [${i + 1}] ${msg.role}: ${preview}${contentStr.length > 80 ? '...' : ''}`);
     });
 
     // Verify message was received
-    const hasHenryMessage = history.some(
-      msg => msg.content.includes('agent:henry') && msg.content.includes('status')
-    );
+    const hasHenryMessage = history.some(msg => {
+      const contentStr = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      return contentStr.includes('agent:henry') && contentStr.includes('status');
+    });
 
     console.log('\n📝 Step 5: Verification...');
     if (hasHenryMessage) {
@@ -113,7 +115,7 @@ async function testWithEnv() {
     }
 
     console.log('\n🎉 Test complete!\n');
-    
+
   } catch (error) {
     console.error('❌ Test failed:', error);
     throw error;

@@ -62,7 +62,7 @@ export class AgentInstance implements Agent {
         : await this.sessionStore.create(this.id);
 
       // Check if session needs compaction (before adding new message)
-      if (this.sessionStore.needsCompaction(session.id, this.model.model)) {
+      if (await this.sessionStore.needsCompaction(session.id, this.model.model)) {
         console.log(`[Agent] Auto-compacting session ${session.id}`);
         try {
           const result = await this.sessionStore.compactSession(session.id, this.model);
@@ -113,7 +113,7 @@ export class AgentInstance implements Agent {
       // Handle tool calls
       if (response.toolCalls && response.toolCalls.length > 0) {
         const toolResults = await this.executeTools(response.toolCalls, session.id);
-        
+
         // If tools were executed, make another LLM call with results
         if (toolResults.length > 0) {
           return await this.run(
@@ -185,7 +185,7 @@ export class AgentInstance implements Agent {
 
   private async buildSystemPrompt(): Promise<string> {
     let prompt = this.soul + '\n\n';
-    
+
     prompt += '# Available Tools\n';
     const tools = await this.toolRegistry.getTools(this.tools);
     tools.forEach((tool) => {
@@ -249,7 +249,7 @@ export function listAgents(): AgentInstance[] {
 export async function deleteAgent(id: string): Promise<boolean> {
   const agent = agents.get(id);
   if (!agent) return false;
-  
+
   await agent.stop();
   agents.delete(id);
   return true;
