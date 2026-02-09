@@ -352,8 +352,8 @@ export function FullscreenApp() {
       {/* Header */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4 backdrop-blur-[12px] transition-colors duration-400 ${isDark
-            ? 'bg-[rgba(5,5,5,0.7)]'
-            : 'bg-[rgba(255,255,255,0.8)]'
+          ? 'bg-[rgba(5,5,5,0.7)]'
+          : 'bg-[rgba(255,255,255,0.8)]'
           }`}
       >
         <div className="flex justify-between items-center w-full">
@@ -403,8 +403,8 @@ export function FullscreenApp() {
           onClick={() => setMenuOpen(!menuOpen)}
           data-testid="settings-gear-button"
           className={`flex items-center gap-2 text-[13px] transition-colors ${isDark
-              ? 'text-white/40 hover:text-white/60'
-              : 'text-gray-500 hover:text-gray-700'
+            ? 'text-white/40 hover:text-white/60'
+            : 'text-gray-500 hover:text-gray-700'
             }`}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -454,8 +454,8 @@ export function FullscreenApp() {
           onClick={() => setShowKeywordPanel(true)}
           data-testid="keywords-button"
           className={`flex flex-col items-center gap-1 transition-all duration-200 ${isDark
-              ? 'text-white/40 hover:text-white/60'
-              : 'text-gray-500 hover:text-gray-700'
+            ? 'text-white/40 hover:text-white/60'
+            : 'text-gray-500 hover:text-gray-700'
             }`}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -472,19 +472,19 @@ export function FullscreenApp() {
           disabled={!voiceSupported}
           data-testid="voice-control-button"
           className={`group flex flex-col items-center gap-3 px-6 py-4 rounded-2xl transition-all duration-200 ${voiceSupported
-              ? 'hover:bg-white/[0.03] cursor-pointer'
-              : 'cursor-default'
+            ? 'hover:bg-white/[0.03] cursor-pointer'
+            : 'cursor-default'
             }`}
         >
           {/* Speaker Icon - Smaller */}
           <div className={`relative p-3 rounded-full transition-all duration-300 ${voiceEnabled
-              ? 'bg-white/15'
-              : 'bg-white/[0.03] group-hover:bg-white/[0.06]'
+            ? 'bg-white/15'
+            : 'bg-white/[0.03] group-hover:bg-white/[0.06]'
             }`}>
             <svg
               className={`w-6 h-6 transition-all duration-200 ${voiceEnabled
-                  ? 'text-white'
-                  : 'text-white/50 group-hover:text-white/70'
+                ? 'text-white'
+                : 'text-white/50 group-hover:text-white/70'
                 }`}
               viewBox="0 0 24 24"
               fill="none"
@@ -507,8 +507,8 @@ export function FullscreenApp() {
           {/* Label - Simplified to just "Enable" */}
           <span
             className={`text-[13px] tracking-wide transition-all duration-300 ${voiceEnabled
-                ? 'opacity-0 h-0 overflow-hidden'
-                : 'opacity-100 text-white/40 group-hover:text-white/60'
+              ? 'opacity-0 h-0 overflow-hidden'
+              : 'opacity-100 text-white/40 group-hover:text-white/60'
               }`}
           >
             {!voiceSupported
@@ -607,8 +607,8 @@ export function FullscreenApp() {
               <button
                 onClick={() => setMenuOpen(false)}
                 className={`p-1.5 rounded-full transition-all ${isDark
-                    ? 'text-white/40 hover:text-white/70 hover:bg-white/5'
-                    : 'text-gray-400 hover:text-gray-600 hover:bg-black/5'
+                  ? 'text-white/40 hover:text-white/70 hover:bg-white/5'
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-black/5'
                   }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -779,43 +779,6 @@ export function FullscreenApp() {
           onComplete={handleLandingComplete}
           detectedColor={colorName}
         />
-      )}
-
-      {/* Bottom Left Link - Access Full App */}
-      {isAuthenticated && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          left: '20px',
-          zIndex: 1000,
-        }}>
-          <a
-            href="/chat"
-            style={{
-              display: 'inline-block',
-              padding: '12px 24px',
-              background: 'rgba(0, 0, 0, 0.8)',
-              color: '#FF6F00',
-              textDecoration: 'none',
-              borderRadius: '8px',
-              border: '1px solid rgba(255, 111, 0, 0.3)',
-              fontSize: '14px',
-              fontWeight: 600,
-              backdropFilter: 'blur(10px)',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 111, 0, 0.2)'
-              e.currentTarget.style.borderColor = '#FF6F00'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)'
-              e.currentTarget.style.borderColor = 'rgba(255, 111, 0, 0.3)'
-            }}
-          >
-            🚀 Access Full App
-          </a>
-        </div>
       )}
 
       {/* Founder Portal - Only visible for aditya@cubiqo.ai */}
