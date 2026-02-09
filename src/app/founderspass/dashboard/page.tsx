@@ -1,9 +1,9 @@
 'use client'
 
 /**
- * Founders Dashboard
- * Control panel for managing what features are available to generic users
- * Includes conversational interface for getting AI recommendations
+ * Founders Dashboard v2
+ * Control panel for managing features with dual-toggle (Founder vs Public) support
+ * Includes expanded integration list and granular permissions
  */
 
 import { useState, useEffect } from 'react'
@@ -18,7 +18,7 @@ type FeatureFlag = {
     enabled_for_production: boolean
     enabled_for_founders: boolean
     risk_level: 'safe' | 'moderate' | 'dangerous'
-    category: string
+    category: 'tools' | 'experience' | 'integrations' | 'agents'
 }
 
 type ChatMessage = {
@@ -30,7 +30,7 @@ export default function FoundersDashboard() {
     const router = useRouter()
     const [features, setFeatures] = useState<FeatureFlag[]>([])
     const [isLoading, setIsLoading] = useState(true)
-    const [saving, setSaving] = useState<string | null>(null)
+    const [saving, setSaving] = useState<{ id: string, target: 'production' | 'founders' } | null>(null)
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
     const [chatInput, setChatInput] = useState('')
     const [chatLoading, setChatLoading] = useState(false)
@@ -38,7 +38,7 @@ export default function FoundersDashboard() {
 
     const supabase = createClient()
 
-    // Check session storage auth and load features
+    // Check auth and load features
     useEffect(() => {
         const checkAuth = async () => {
             const founderAuth = sessionStorage.getItem('founders_pass_auth')
@@ -65,7 +65,7 @@ export default function FoundersDashboard() {
             }
 
             // 3. Failed
-            console.log('[Dashboard] Auth failed, redirecting to /founderspass')
+            console.log('[Dashboard] Auth failed, redirecting...')
             router.push('/founderspass')
         }
 
@@ -96,7 +96,13 @@ export default function FoundersDashboard() {
             try {
                 const data = await Promise.race([fetchPromise, timeoutPromise]) as FeatureFlag[]
                 if (data && data.length > 0) {
-                    setFeatures(data)
+                    // Merge with defaults to ensure new features appear
+                    const defaults = getDefaultFeatures()
+                    const merged = defaults.map(def => {
+                        const existing = data.find(d => d.feature_id === def.feature_id)
+                        return existing ? { ...def, ...existing } : def
+                    })
+                    setFeatures(merged)
                 } else {
                     setFeatures(getDefaultFeatures())
                 }
@@ -111,48 +117,103 @@ export default function FoundersDashboard() {
         checkAuth()
     }, [router, supabase])
 
-    // Default features fallback
+    // Default features fallback - EXPANDED LIST
     function getDefaultFeatures(): FeatureFlag[] {
         return [
+            // Core Tools
             { id: '1', feature_id: 'web_search', name: 'Web Search', description: 'Search the web', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'tools' },
             { id: '2', feature_id: 'vision_analyze', name: 'Vision Analysis', description: 'Analyze images', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'tools' },
             { id: '3', feature_id: 'file_read', name: 'File Read', description: 'Read files', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'tools' },
             { id: '4', feature_id: 'exec', name: 'Shell Execution', description: 'Execute commands', enabled_for_production: false, enabled_for_founders: true, risk_level: 'dangerous', category: 'tools' },
-            { id: '5', feature_id: 'email_send', name: 'Email Send', description: 'Send emails', enabled_for_production: false, enabled_for_founders: true, risk_level: 'moderate', category: 'integrations' },
+            { id: '8', feature_id: 'code_panel', name: 'Code Panel', description: 'Visual code editor', enabled_for_production: false, enabled_for_founders: true, risk_level: 'moderate', category: 'tools' },
+            { id: '24', feature_id: 'browser_control', name: 'Browser Control', description: 'Full browser automation', enabled_for_production: false, enabled_for_founders: true, risk_level: 'dangerous', category: 'tools' },
+
+            // Experience
             { id: '6', feature_id: 'voice_mode', name: 'Voice Mode', description: 'Voice input/output', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'experience' },
             { id: '7', feature_id: 'duo_mode', name: 'Duo Mode', description: 'Proactive AI interjections', enabled_for_production: false, enabled_for_founders: true, risk_level: 'safe', category: 'experience' },
-            { id: '8', feature_id: 'code_panel', name: 'Code Panel', description: 'Visual code editor', enabled_for_production: false, enabled_for_founders: true, risk_level: 'moderate', category: 'tools' },
             { id: '9', feature_id: 'action_cards', name: 'Action Cards', description: 'Confirmation cards for actions', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'experience' },
+
+            // Integrations: Email
+            { id: '5a', feature_id: 'email_read', name: 'Email (Read)', description: 'Read & Draft Emails', enabled_for_production: false, enabled_for_founders: true, risk_level: 'moderate', category: 'integrations' },
+            { id: '5b', feature_id: 'email_send', name: 'Email (Send)', description: 'Send Emails', enabled_for_production: false, enabled_for_founders: true, risk_level: 'moderate', category: 'integrations' },
+
+            // Integrations: WhatsApp
+            { id: '10a', feature_id: 'whatsapp_read', name: 'WhatsApp (Read)', description: 'Read & Draft', enabled_for_production: false, enabled_for_founders: true, risk_level: 'safe', category: 'integrations' },
+            { id: '10b', feature_id: 'whatsapp_send', name: 'WhatsApp (Send)', description: 'Send Messages', enabled_for_production: false, enabled_for_founders: true, risk_level: 'moderate', category: 'integrations' },
+
+            // Integrations: Telegram
+            { id: '11a', feature_id: 'telegram_read', name: 'Telegram (Read)', description: 'Read & Draft', enabled_for_production: false, enabled_for_founders: true, risk_level: 'safe', category: 'integrations' },
+            { id: '11b', feature_id: 'telegram_send', name: 'Telegram (Send)', description: 'Send Messages', enabled_for_production: false, enabled_for_founders: true, risk_level: 'moderate', category: 'integrations' },
+
+            // Integrations: Discord
+            { id: '12a', feature_id: 'discord_read', name: 'Discord (Read)', description: 'Read & Draft', enabled_for_production: false, enabled_for_founders: true, risk_level: 'safe', category: 'integrations' },
+            { id: '12b', feature_id: 'discord_send', name: 'Discord (Send)', description: 'Send Messages', enabled_for_production: false, enabled_for_founders: true, risk_level: 'moderate', category: 'integrations' },
+
+            // Integrations: Slack
+            { id: '13a', feature_id: 'slack_read', name: 'Slack (Read)', description: 'Read & Draft', enabled_for_production: false, enabled_for_founders: true, risk_level: 'safe', category: 'integrations' },
+            { id: '13b', feature_id: 'slack_send', name: 'Slack (Send)', description: 'Send Messages', enabled_for_production: false, enabled_for_founders: true, risk_level: 'moderate', category: 'integrations' },
+
+            // Integrations: Maps
+            { id: '14a', feature_id: 'maps_read', name: 'Maps (Read)', description: 'Search & View', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'integrations' },
+            { id: '14b', feature_id: 'maps_write', name: 'Maps (Nav)', description: 'Start Navigation', enabled_for_production: false, enabled_for_founders: true, risk_level: 'moderate', category: 'integrations' },
+
+            // Integrations: Uber
+            { id: '15a', feature_id: 'uber_read', name: 'Uber (Read)', description: 'Estimates & View', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'integrations' },
+            { id: '15b', feature_id: 'uber_write', name: 'Uber (Request)', description: 'Request Rides', enabled_for_production: false, enabled_for_founders: true, risk_level: 'dangerous', category: 'integrations' },
         ]
     }
 
-    // Toggle feature for production
-    const toggleFeature = async (featureId: string) => {
+    // Toggle feature for production or founders
+    const toggleFeature = async (featureId: string, target: 'production' | 'founders') => {
         const feature = features.find(f => f.feature_id === featureId)
         if (!feature) return
 
-        setSaving(featureId)
-        const newValue = !feature.enabled_for_production
+        setSaving({ id: featureId, target })
 
-        const { error } = await (supabase as any)
-            .from('feature_flags')
-            .update({
-                enabled_for_production: newValue,
-                updated_at: new Date().toISOString()
-            })
-            .eq('feature_id', featureId)
+        const field = target === 'production' ? 'enabled_for_production' : 'enabled_for_founders'
+        const newValue = !feature[field]
 
-        if (!error) {
-            setFeatures(prev => prev.map(f =>
-                f.feature_id === featureId
-                    ? { ...f, enabled_for_production: newValue }
-                    : f
-            ))
+        // Update local state immediately for responsiveness
+        setFeatures(prev => prev.map(f =>
+            f.feature_id === featureId
+                ? { ...f, [field]: newValue }
+                : f
+        ))
+
+        try {
+            // Upsert into Supabase (insert if not exists, update if exists)
+            const { error } = await (supabase as any)
+                .from('feature_flags')
+                .upsert({
+                    feature_id: feature.feature_id,
+                    name: feature.name,
+                    description: feature.description,
+                    category: feature.category,
+                    risk_level: feature.risk_level,
+                    [field]: newValue,
+                    // Preserve the OTHER field's value if we are inserting for the first time
+                    // Safe bet: provide both fields from current state since one is changing
+                    enabled_for_production: target === 'production' ? newValue : feature.enabled_for_production,
+                    enabled_for_founders: target === 'founders' ? newValue : feature.enabled_for_founders,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'feature_id' })
+
+            if (error) {
+                console.error('[Dashboard] Error saving feature:', error)
+                // Revert on error
+                setFeatures(prev => prev.map(f =>
+                    f.feature_id === featureId
+                        ? { ...f, [field]: !newValue }
+                        : f
+                ))
+            }
+        } catch (e) {
+            console.error('[Dashboard] Exception saving feature:', e)
         }
+
         setSaving(null)
     }
 
-    // Send chat message to get AI recommendations
     const sendChat = async () => {
         if (!chatInput.trim() || chatLoading) return
 
@@ -162,12 +223,13 @@ export default function FoundersDashboard() {
         setChatLoading(true)
 
         try {
-            // Call the chat API with founder context
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    message: `[FOUNDER CONTEXT] I'm the founder of CubiQo deciding which features to enable for generic users. Current feature states: ${JSON.stringify(features.map(f => ({ name: f.name, enabled: f.enabled_for_production, risk: f.risk_level })))}. User question: ${userMessage}`,
+                    message: `[FOUNDER CONTEXT] I'm the founder of CubiQo deciding which features to enable. 
+                    Current feature states: ${JSON.stringify(features.map(f => ({ name: f.name, public: f.enabled_for_production, founder: f.enabled_for_founders, risk: f.risk_level })))}. 
+                    User question: ${userMessage}`,
                     currentColor: 'ORANGE'
                 })
             })
@@ -216,21 +278,21 @@ export default function FoundersDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-black">
+        <div className="min-h-screen bg-black font-sans">
             {/* Header */}
             <header className="bg-gray-900/50 backdrop-blur-xl border-b border-gray-800 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+                <div className="max-w-[1400px] mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center">
                             <span className="text-xl font-bold text-black">F</span>
                         </div>
                         <div>
                             <h1 className="text-xl font-bold text-white">Founders Pass</h1>
-                            <p className="text-sm text-gray-400">Control what users see on cubiqo.ai</p>
+                            <p className="text-sm text-gray-400 hidden sm:block">Control what users see on cubiqo.ai</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <span className="text-sm text-amber-400 font-medium">Founder Access</span>
+                        <span className="text-sm text-amber-400 font-medium hidden sm:inline">Founder Access</span>
                         <button
                             onClick={() => {
                                 sessionStorage.removeItem('founders_pass_auth')
@@ -244,61 +306,98 @@ export default function FoundersDashboard() {
                 </div>
             </header>
 
-            <div className="max-w-7xl mx-auto px-6 py-8">
-                {/* Two Column Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="max-w-[1400px] mx-auto px-6 py-8">
+                {/* Layout: Features Left, Chat Right */}
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
 
-                    {/* Left: Feature Toggles */}
-                    <div>
+                    {/* Left: Feature Toggles (Span 2 cols) */}
+                    <div className="xl:col-span-2">
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-semibold text-white">Production Features</h2>
-                            <div className="flex items-center gap-2 text-xs">
-                                <span className="px-2 py-1 rounded bg-green-500/20 text-green-400">ON = Generic users can use</span>
-                                <span className="px-2 py-1 rounded bg-gray-500/20 text-gray-400">OFF = Founders only</span>
+                            <h2 className="text-lg font-semibold text-white">Feature Controls</h2>
+                            <div className="flex items-center gap-4 text-xs">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                    <span className="text-gray-400">Enabled</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-gray-600"></div>
+                                    <span className="text-gray-400">Disabled</span>
+                                </div>
                             </div>
                         </div>
 
                         {isLoading ? (
                             <div className="text-gray-400 text-center py-12">Loading features...</div>
                         ) : (
-                            <div className="space-y-6">
+                            <div className="space-y-8">
                                 {Object.entries(groupedFeatures).map(([category, categoryFeatures]) => (
-                                    <div key={category} className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-                                        <h3 className="text-sm font-semibold text-gray-300 mb-4">
-                                            {categoryLabels[category] || category}
-                                        </h3>
-                                        <div className="space-y-3">
+                                    <div key={category} className="bg-gray-900/50 border border-gray-800 rounded-2xl overflow-hidden">
+                                        <div className="px-6 py-4 bg-gray-800/30 border-b border-gray-800 flex justify-between items-center">
+                                            <h3 className="text-sm font-semibold text-gray-200">
+                                                {categoryLabels[category] || category}
+                                            </h3>
+                                            <div className="flex gap-8 text-[10px] uppercase tracking-wider font-semibold text-gray-500 pr-4">
+                                                <span className="w-16 text-center">My Systems</span>
+                                                <span className="w-16 text-center">Generic Users</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="divide-y divide-gray-800">
                                             {categoryFeatures.map(feature => (
                                                 <div
                                                     key={feature.feature_id}
-                                                    className="flex items-center justify-between py-2"
+                                                    className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.02] transition-colors"
                                                 >
-                                                    <div className="flex items-center gap-3">
-                                                        <span className={`text-xs px-2 py-0.5 rounded ${riskColors[feature.risk_level]}`}>
+                                                    {/* Feature Info */}
+                                                    <div className="flex items-center gap-4 flex-1">
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded uppercase tracking-wide font-bold ${riskColors[feature.risk_level]}`}>
                                                             {feature.risk_level}
                                                         </span>
                                                         <div>
-                                                            <div className="text-white font-medium">{feature.name}</div>
+                                                            <div className="text-white font-medium text-sm">{feature.name}</div>
                                                             <div className="text-xs text-gray-500">{feature.description}</div>
                                                         </div>
                                                     </div>
-                                                    <button
-                                                        onClick={() => toggleFeature(feature.feature_id)}
-                                                        disabled={saving === feature.feature_id}
-                                                        className={`
-                              relative w-12 h-6 rounded-full transition-all
-                              ${feature.enabled_for_production
-                                                                ? 'bg-green-500'
-                                                                : 'bg-gray-600'
-                                                            }
-                              ${saving === feature.feature_id ? 'opacity-50' : ''}
-                            `}
-                                                    >
-                                                        <div className={`
-                              absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all
-                              ${feature.enabled_for_production ? 'left-6' : 'left-0.5'}
-                            `} />
-                                                    </button>
+
+                                                    {/* Toggles Container */}
+                                                    <div className="flex items-center gap-8">
+
+                                                        {/* Founder Toggle */}
+                                                        <div className="flex flex-col items-center gap-1 w-16">
+                                                            <button
+                                                                onClick={() => toggleFeature(feature.feature_id, 'founders')}
+                                                                disabled={saving?.id === feature.feature_id}
+                                                                className={`
+                                                                    relative w-10 h-5 rounded-full transition-all duration-200
+                                                                    ${feature.enabled_for_founders ? 'bg-amber-500' : 'bg-gray-700'}
+                                                                    ${saving?.id === feature.feature_id ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
+                                                                `}
+                                                            >
+                                                                <div className={`
+                                                                    absolute top-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-200
+                                                                    ${feature.enabled_for_founders ? 'left-6' : 'left-1'}
+                                                                `} />
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Public Toggle */}
+                                                        <div className="flex flex-col items-center gap-1 w-16">
+                                                            <button
+                                                                onClick={() => toggleFeature(feature.feature_id, 'production')}
+                                                                disabled={saving?.id === feature.feature_id}
+                                                                className={`
+                                                                    relative w-10 h-5 rounded-full transition-all duration-200
+                                                                    ${feature.enabled_for_production ? 'bg-green-500' : 'bg-gray-700'}
+                                                                    ${saving?.id === feature.feature_id ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
+                                                                `}
+                                                            >
+                                                                <div className={`
+                                                                    absolute top-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-200
+                                                                    ${feature.enabled_for_production ? 'left-6' : 'left-1'}
+                                                                `} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -308,106 +407,93 @@ export default function FoundersDashboard() {
                         )}
                     </div>
 
-                    {/* Right: AI Assistant */}
-                    <div className="lg:sticky lg:top-24 h-fit">
-                        <div className="bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden">
-                            <div className="p-4 border-b border-gray-800 bg-gradient-to-r from-purple-900/30 to-blue-900/30">
-                                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                                    💬 Ask CubiQo
-                                </h2>
-                                <p className="text-xs text-gray-400 mt-1">
-                                    Get recommendations on which features to enable for users
-                                </p>
-                            </div>
+                    {/* Right: AI Assistant (Sticky) */}
+                    <div className="xl:col-span-1">
+                        <div className="sticky top-24">
+                            <div className="bg-gray-900/50 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                                <div className="p-5 border-b border-gray-800 bg-gradient-to-r from-purple-900/20 to-blue-900/20">
+                                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                                        💬 Ask CubiQo
+                                    </h2>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        Get recommendations on safe configuration
+                                    </p>
+                                </div>
 
-                            {/* Chat Messages */}
-                            <div className="h-80 overflow-y-auto p-4 space-y-4">
-                                {chatMessages.length === 0 ? (
-                                    <div className="text-center text-gray-500 py-8">
-                                        <p className="mb-4">Ask me about feature decisions:</p>
-                                        <div className="space-y-2 text-sm">
-                                            <button
-                                                onClick={() => setChatInput("Should I enable email for generic users?")}
-                                                className="block w-full text-left px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
-                                            >
-                                                "Should I enable email for generic users?"
-                                            </button>
-                                            <button
-                                                onClick={() => setChatInput("What's the risk of enabling browser automation?")}
-                                                className="block w-full text-left px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
-                                            >
-                                                "What's the risk of browser automation?"
-                                            </button>
-                                            <button
-                                                onClick={() => setChatInput("Give me a safe default configuration")}
-                                                className="block w-full text-left px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
-                                            >
-                                                "Give me a safe default configuration"
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    chatMessages.map((msg, i) => (
-                                        <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`max-w-[85%] px-4 py-2 rounded-xl ${msg.role === 'user'
-                                                ? 'bg-purple-600 text-white'
-                                                : 'bg-gray-800 text-gray-200'
-                                                }`}>
-                                                {msg.content}
+                                {/* Chat Messages */}
+                                <div className="h-[500px] overflow-y-auto p-4 space-y-4">
+                                    {chatMessages.length === 0 ? (
+                                        <div className="text-center text-gray-500 py-12 px-4">
+                                            <div className="w-12 h-12 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <span className="text-2xl">🤖</span>
+                                            </div>
+                                            <p className="mb-6 text-sm">I can help you decide what's safe to enable for the public vs yourself.</p>
+                                            <div className="space-y-2 text-xs text-left">
+                                                <button
+                                                    onClick={() => setChatInput("Should I enable Uber requests for generic users?")}
+                                                    className="block w-full px-4 py-3 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors border border-gray-700/50 hover:border-gray-600"
+                                                >
+                                                    "Should I enable Uber for public?"
+                                                </button>
+                                                <button
+                                                    onClick={() => setChatInput("What are the risks of Browser Control?")}
+                                                    className="block w-full px-4 py-3 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors border border-gray-700/50 hover:border-gray-600"
+                                                >
+                                                    "Risks of Browser Control?"
+                                                </button>
+                                                <button
+                                                    onClick={() => setChatInput("Configure a safe 'Read-Only' public mode")}
+                                                    className="block w-full px-4 py-3 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors border border-gray-700/50 hover:border-gray-600"
+                                                >
+                                                    "Set safe public defaults"
+                                                </button>
                                             </div>
                                         </div>
-                                    ))
-                                )}
-                                {chatLoading && (
-                                    <div className="flex justify-start">
-                                        <div className="bg-gray-800 text-gray-400 px-4 py-2 rounded-xl">
-                                            Thinking...
+                                    ) : (
+                                        chatMessages.map((msg, i) => (
+                                            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                                <div className={`max-w-[90%] px-4 py-3 rounded-2xl text-sm ${msg.role === 'user'
+                                                    ? 'bg-purple-600/20 border border-purple-500/30 text-white rounded-br-sm'
+                                                    : 'bg-gray-800/50 border border-gray-700/50 text-gray-200 rounded-bl-sm'
+                                                    }`}>
+                                                    {msg.content}
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                    {chatLoading && (
+                                        <div className="flex justify-start">
+                                            <div className="bg-gray-800/50 px-4 py-3 rounded-2xl rounded-bl-sm">
+                                                <div className="flex gap-1.5">
+                                                    <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                                    <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                                    <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                                </div>
+                                            </div>
                                         </div>
+                                    )}
+                                </div>
+
+                                {/* Chat Input */}
+                                <div className="p-4 border-t border-gray-800 bg-gray-900/30">
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={chatInput}
+                                            onChange={(e) => setChatInput(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && sendChat()}
+                                            placeholder="Ask about safety..."
+                                            className="flex-1 px-4 py-2.5 bg-black/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all text-sm"
+                                        />
+                                        <button
+                                            onClick={sendChat}
+                                            disabled={chatLoading || !chatInput.trim()}
+                                            className="px-4 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+                                        >
+                                            Send
+                                        </button>
                                     </div>
-                                )}
-                            </div>
-
-                            {/* Chat Input */}
-                            <div className="p-4 border-t border-gray-800">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={chatInput}
-                                        onChange={(e) => setChatInput(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && sendChat()}
-                                        placeholder="Ask about feature decisions..."
-                                        className="flex-1 px-4 py-2 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
-                                    />
-                                    <button
-                                        onClick={sendChat}
-                                        disabled={chatLoading || !chatInput.trim()}
-                                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-colors disabled:opacity-50"
-                                    >
-                                        Send
-                                    </button>
                                 </div>
-                            </div>
-                        </div>
-
-                        {/* Quick Stats */}
-                        <div className="mt-4 grid grid-cols-3 gap-3">
-                            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 text-center">
-                                <div className="text-2xl font-bold text-green-400">
-                                    {features.filter(f => f.enabled_for_production).length}
-                                </div>
-                                <div className="text-xs text-gray-500">Enabled</div>
-                            </div>
-                            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 text-center">
-                                <div className="text-2xl font-bold text-gray-400">
-                                    {features.filter(f => !f.enabled_for_production).length}
-                                </div>
-                                <div className="text-xs text-gray-500">Disabled</div>
-                            </div>
-                            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 text-center">
-                                <div className="text-2xl font-bold text-red-400">
-                                    {features.filter(f => f.risk_level === 'dangerous').length}
-                                </div>
-                                <div className="text-xs text-gray-500">Dangerous</div>
                             </div>
                         </div>
                     </div>
