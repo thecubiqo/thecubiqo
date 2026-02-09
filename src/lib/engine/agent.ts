@@ -61,6 +61,17 @@ export class AgentInstance implements Agent {
         ? await this.sessionStore.get(sessionId)
         : await this.sessionStore.create(this.id);
 
+      // Check if session needs compaction (before adding new message)
+      if (this.sessionStore.needsCompaction(session.id, this.model.model)) {
+        console.log(`[Agent] Auto-compacting session ${session.id}`);
+        try {
+          const result = await this.sessionStore.compactSession(session.id, this.model);
+          console.log(`[Agent] Compaction saved ~${result.tokensSaved} tokens`);
+        } catch (error) {
+          console.error(`[Agent] Compaction failed, continuing anyway:`, error);
+        }
+      }
+
       // Get conversation history
       const history = await this.sessionStore.getHistory(session.id);
 

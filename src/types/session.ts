@@ -13,18 +13,22 @@ export interface Session {
   createdAt: Date;
   updatedAt: Date;
   userId?: string;
+  lastCompactedAt?: Date;
+  totalTokens?: number;
 }
 
 export interface Message {
   id: string;
   sessionId: string;
-  role: 'user' | 'assistant' | 'system' | 'tool';
+  role: 'user' | 'assistant' | 'system' | 'tool' | 'summary';
   content: string;
   toolCalls?: ToolCall[];
   toolResults?: ToolResult[];
   tokenCount?: number;
   model?: string;
   createdAt: Date;
+  isSummary?: boolean;
+  summarizedMessageIds?: string[];
 }
 
 export interface ToolCall {
