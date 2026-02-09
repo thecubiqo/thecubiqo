@@ -40,7 +40,8 @@ export default function FoundersLoginPage() {
         setMessage(null)
 
         try {
-            await signInWithEmail(email)
+            // Pass the redirect destination so user lands on dashboard after auth
+            await signInWithEmail(email, '/founders/dashboard')
             setMessage({
                 type: 'success',
                 text: '✅ Magic link sent! Check your email and click the link to access Founders Pass.'
@@ -102,10 +103,10 @@ export default function FoundersLoginPage() {
 
                     {message && (
                         <div className={`mt-6 p-4 rounded-xl text-sm ${message.type === 'success'
-                                ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                                : message.type === 'error'
-                                    ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                                    : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                            ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                            : message.type === 'error'
+                                ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                             }`}>
                             {message.text}
                         </div>

@@ -89,11 +89,17 @@ export function useAuth() {
   }, [supabase, fetchProfile])
 
   // Sign in with magic link
-  const signInWithEmail = useCallback(async (email: string) => {
+  const signInWithEmail = useCallback(async (email: string, redirectTo?: string) => {
+    // Build the callback URL with optional next parameter
+    const callbackUrl = new URL(`${window.location.origin}/auth/callback`)
+    if (redirectTo) {
+      callbackUrl.searchParams.set('next', redirectTo)
+    }
+
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: callbackUrl.toString(),
       },
     })
 
