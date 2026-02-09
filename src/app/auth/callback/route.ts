@@ -43,13 +43,32 @@ export async function GET(request: Request) {
       // Redirect to requested page or home
       const isLocalEnv = process.env.NODE_ENV === 'development'
       const productionUrl = 'https://www.cubiqo.ai'
-
-      if (isLocalEnv) {
-        return NextResponse.redirect(`${origin}${next}`)
-      } else {
-        // Always redirect to cubiqo.ai in production
-        return NextResponse.redirect(`${productionUrl}${next}`)
+      
+      const redirectUrl = isLocalEnv ? `${origin}${next}` : `${productionUrl}${next}`
+      
+      // Create response with redirect
+      const response = NextResponse.redirect(redirectUrl)
+      
+      // IMPORTANT: Copy session cookies to response
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        response.cookies.set('sb-access-token', session.access_token, {
+          path: '/',
+          httpOnly: true,
+          secure: true,
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7 // 7 days
+        })
+        response.cookies.set('sb-refresh-token', session.refresh_token, {
+          path: '/',
+          httpOnly: true,
+          secure: true,
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 30 // 30 days
+        })
       }
+      
+      return response
     }
   }
 
