@@ -9,64 +9,47 @@ export default function RescuePage() {
     const handleRescue = () => {
         if (pin === '2026') {
             setStatus('Success! Redirecting...')
-            sessionStorage.setItem('founders_pass_auth', 'true')
-            window.location.href = '/founderspass/dashboard'
+            // Set the session storage flag directly
+            if (typeof window !== 'undefined') {
+                sessionStorage.setItem('founders_pass_auth', 'true')
+                // Force hard reload to dashboard
+                window.location.href = '/founderspass/dashboard'
+            }
         } else {
             setStatus('Invalid PIN')
         }
     }
 
     return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100vh',
-            backgroundColor: '#000',
-            color: '#fff',
-            fontFamily: 'sans-serif'
-        }}>
-            <h1>Emergency Access</h1>
-            <p style={{ marginBottom: '20px', color: '#888' }}>
-                Bypass all systems. Enter PIN to force-enable Founder mode.
+        <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
+            <h1 className="text-3xl font-bold mb-8">Emergency Access</h1>
+            <p className="text-gray-400 mb-8 text-center max-w-md">
+                Standard Route Bypass. Enter PIN to force-enable Founder mode.
             </p>
 
-            <input
-                type="password"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                placeholder="PIN"
-                style={{
-                    padding: '12px',
-                    borderRadius: '8px',
-                    border: '1px solid #333',
-                    background: '#111',
-                    color: '#fff',
-                    marginBottom: '10px',
-                    width: '200px',
-                    textAlign: 'center',
-                    fontSize: '24px',
-                    letterSpacing: '4px'
-                }}
-            />
+            <div className="flex flex-col gap-4 w-full max-w-xs">
+                <input
+                    type="password"
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value)}
+                    placeholder="PIN"
+                    className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-amber-500"
+                    maxLength={4}
+                />
 
-            <button
-                onClick={handleRescue}
-                style={{
-                    padding: '12px 24px',
-                    borderRadius: '8px',
-                    background: '#f59e0b',
-                    color: '#000',
-                    fontWeight: 'bold',
-                    border: 'none',
-                    cursor: 'pointer'
-                }}
-            >
-                Force Entry
-            </button>
+                <button
+                    onClick={handleRescue}
+                    className="bg-amber-500 hover:bg-amber-600 text-black font-bold py-3 rounded-lg transition-colors"
+                >
+                    Force Entry
+                </button>
+            </div>
 
-            {status && <p style={{ marginTop: '20px', color: status.includes('Success') ? '#10b981' : '#ef4444' }}>{status}</p>}
+            {status && (
+                <p className={`mt-6 text-lg ${status.includes('Success') ? 'text-green-500' : 'text-red-500'}`}>
+                    {status}
+                </p>
+            )}
         </div>
     )
 }
