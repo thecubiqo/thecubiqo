@@ -122,42 +122,9 @@ export const RELEASABLE_FEATURES: (keyof FeatureAccess)[] = [
  * This is what regular authenticated users get access to
  */
 export async function getReleasedFeatures(): Promise<FeatureAccess> {
-  try {
-    const supabase = await createClient()
-    
-    const { data, error } = await supabase
-      .from('released_features')
-      .select('feature_name, is_released')
-      .eq('is_released', true)
-
-    if (error) {
-      console.error('Error fetching released features:', error)
-      return DEFAULT_USER_ACCESS
-    }
-
-    // Start with default (everything false)
-    const access: FeatureAccess = { ...DEFAULT_USER_ACCESS }
-
-    // Enable released features
-    if (data) {
-      data.forEach((row) => {
-        const featureName = row.feature_name as keyof FeatureAccess
-        if (featureName in access) {
-          access[featureName] = true
-        }
-      })
-    }
-
-    // Ensure admin features stay locked
-    PERMANENTLY_FOUNDER_ONLY.forEach((feature) => {
-      access[feature] = false
-    })
-
-    return access
-  } catch (error) {
-    console.error('Error in getReleasedFeatures:', error)
-    return DEFAULT_USER_ACCESS
-  }
+  // TODO: Replace with real DB after migrations
+  console.log('[MOCK] getReleasedFeatures')
+  return DEFAULT_USER_ACCESS
 }
 
 /**
@@ -245,10 +212,6 @@ export async function getAllFeatureFlags(): Promise<FeatureAccess> {
   // TODO: Replace with real DB after migrations
   console.log('[MOCK] getAllFeatureFlags')
   return { ...FOUNDER_ACCESS }
-  } catch (err) {
-    console.warn('Error fetching all feature flags:', err)
-    return { ...DEFAULT_USER_ACCESS, ...FOUNDER_ACCESS }
-  }
 }
 
 /**

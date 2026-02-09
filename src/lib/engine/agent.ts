@@ -65,7 +65,7 @@ export class AgentInstance implements Agent {
       const history = await this.sessionStore.getHistory(session.id);
 
       // Build context
-      const systemPrompt = this.buildSystemPrompt();
+      const systemPrompt = await this.buildSystemPrompt();
       const messages = [
         { role: 'system' as const, content: systemPrompt },
         ...history.map((msg) => ({
@@ -172,11 +172,11 @@ export class AgentInstance implements Agent {
     return await this.sessionStore.list();
   }
 
-  private buildSystemPrompt(): string {
+  private async buildSystemPrompt(): Promise<string> {
     let prompt = this.soul + '\n\n';
     
     prompt += '# Available Tools\n';
-    const tools = this.toolRegistry.getTools(this.tools);
+    const tools = await this.toolRegistry.getTools(this.tools);
     tools.forEach((tool) => {
       prompt += `- ${tool.name}: ${tool.description}\n`;
     });
