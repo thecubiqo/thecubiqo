@@ -1,4 +1,5 @@
 import { Tool, ToolContext, ToolResult, ToolDefinition } from '@/types/tool';
+import { createClient } from '@supabase/supabase-js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { readFile, writeFile, unlink, readdir } from 'fs/promises';
@@ -43,12 +44,47 @@ export class ToolRegistry {
   }
 
   async getTools(toolIds?: string[], userId?: string): Promise<ToolDefinition[]> {
-    const tools = toolIds
+    let tools = toolIds
       ? toolIds.map((id) => this.tools.get(id)).filter(Boolean) as Tool[]
       : Array.from(this.tools.values());
 
-    // TODO: Tool filtering based on integrations (removed for now)
-    // All tools available - can add filtering later
+    // Founders Pass Logic
+    let isFounder = false;
+
+    if (userId) {
+      try {
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', userId)
+          .single();
+
+        if (profile?.email && profile.email.toLowerCase() === 'aditya@cubiqo.ai') {
+          isFounder = true;
+        }
+      } catch (e) {
+        console.error('Failed to check founder status:', e);
+      }
+    }
+
+    if (!isFounder) {
+      // Filter out dangerous/admin tools for generic users
+      const RESTRICTED_TOOLS = [
+        'exec',
+        'git',
+        'file_write',
+        'sessions_spawn',
+        'email_send',
+        'slack_send',
+        'discord_send',
+        'telegram_send'
+      ];
+      tools = tools.filter(t => !RESTRICTED_TOOLS.includes(t.id));
+    }
 
     return tools.map((tool) => ({
       name: tool.id,

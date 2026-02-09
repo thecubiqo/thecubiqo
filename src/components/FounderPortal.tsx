@@ -7,9 +7,9 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { 
-  isFounder, 
-  getUserAccessState, 
+import {
+  isFounder,
+  getUserAccessState,
   updateUserAccess,
   FEATURE_METADATA,
   type FeatureAccess,
@@ -22,7 +22,7 @@ export function FounderPortal() {
   const [isOpen, setIsOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'connections' | 'features'>('connections')
   const [userAccess, setUserAccess] = useState<FeatureAccess>(getUserAccessState())
-  
+
   // Only show for founders
   if (!isFounder(user?.email)) {
     return null
@@ -31,7 +31,7 @@ export function FounderPortal() {
   const handleToggle = (featureId: keyof FeatureAccess) => {
     const newValue = !userAccess[featureId]
     const updates = { [featureId]: newValue }
-    
+
     updateUserAccess(updates)
     setUserAccess(getUserAccessState())
   }
@@ -46,13 +46,17 @@ export function FounderPortal() {
 
   return (
     <>
-      {/* Founder Portal Button - Top Right */}
+      {/* Founder Portal Button - Premium Badge Style */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed top-4 right-4 z-50 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold shadow-lg transition-all flex items-center gap-2"
+        className="fixed bottom-6 right-6 z-50 group flex items-center gap-3 pl-4 pr-1 py-1 rounded-full glass-card border border-amber-500/30 hover:border-amber-400/80 transition-all duration-300 hover:shadow-[0_0_30px_rgba(245,158,11,0.3)] bg-black/60"
       >
-        <span>🎚️</span>
-        <span>Founder Portal</span>
+        <span className="text-sm font-medium bg-gradient-to-r from-amber-200 to-yellow-500 bg-clip-text text-transparent tracking-wide uppercase">
+          Founder Mode
+        </span>
+        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-600 flex items-center justify-center text-black font-bold text-xs shadow-lg group-hover:scale-110 transition-transform">
+          A
+        </div>
       </button>
 
       {/* Portal Modal */}
@@ -84,21 +88,19 @@ export function FounderPortal() {
               <div className="flex gap-4">
                 <button
                   onClick={() => setActiveTab('connections')}
-                  className={`px-4 py-3 font-semibold transition-colors border-b-2 ${
-                    activeTab === 'connections'
+                  className={`px-4 py-3 font-semibold transition-colors border-b-2 ${activeTab === 'connections'
                       ? 'text-purple-400 border-purple-400'
                       : 'text-gray-400 border-transparent hover:text-gray-300'
-                  }`}
+                    }`}
                 >
                   🔗 Connections
                 </button>
                 <button
                   onClick={() => setActiveTab('features')}
-                  className={`px-4 py-3 font-semibold transition-colors border-b-2 ${
-                    activeTab === 'features'
+                  className={`px-4 py-3 font-semibold transition-colors border-b-2 ${activeTab === 'features'
                       ? 'text-purple-400 border-purple-400'
                       : 'text-gray-400 border-transparent hover:text-gray-300'
-                  }`}
+                    }`}
                 >
                   🎚️ Feature Toggles
                 </button>
@@ -110,71 +112,71 @@ export function FounderPortal() {
               {activeTab === 'connections' ? (
                 <ConnectionsPanel />
               ) : (
-              <div className="space-y-8">
-                {Object.entries(groupedFeatures).map(([category, features]) => (
-                  <div key={category}>
-                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                      <span className="text-purple-400">
-                        {category === 'Navigation' ? '🧭' : category === 'Agent Features' ? '🤖' : '🔗'}
-                      </span>
-                      {category}
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {features.map((feature) => {
-                        const isEnabled = userAccess[feature.id]
-                        const isFounderOnly = feature.id === 'admin'
-                        
-                        return (
-                          <div
-                            key={feature.id}
-                            className={`
+                <div className="space-y-8">
+                  {Object.entries(groupedFeatures).map(([category, features]) => (
+                    <div key={category}>
+                      <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        <span className="text-purple-400">
+                          {category === 'Navigation' ? '🧭' : category === 'Agent Features' ? '🤖' : '🔗'}
+                        </span>
+                        {category}
+                      </h3>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {features.map((feature) => {
+                          const isEnabled = userAccess[feature.id]
+                          const isFounderOnly = feature.id === 'admin'
+
+                          return (
+                            <div
+                              key={feature.id}
+                              className={`
                               bg-gray-800 rounded-xl p-4 border transition-all
                               ${isEnabled ? 'border-green-500/50 bg-green-500/5' : 'border-gray-700'}
                               ${isFounderOnly ? 'opacity-60' : ''}
                             `}
-                          >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-semibold text-white">
-                                    {feature.name}
-                                  </h4>
-                                  {isFounderOnly && (
-                                    <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">
-                                      Founder Only
-                                    </span>
-                                  )}
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className="font-semibold text-white">
+                                      {feature.name}
+                                    </h4>
+                                    {isFounderOnly && (
+                                      <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">
+                                        Founder Only
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-gray-400">
+                                    {feature.description}
+                                  </p>
                                 </div>
-                                <p className="text-sm text-gray-400">
-                                  {feature.description}
-                                </p>
-                              </div>
-                              
-                              <button
-                                onClick={() => handleToggle(feature.id)}
-                                disabled={isFounderOnly}
-                                className={`
+
+                                <button
+                                  onClick={() => handleToggle(feature.id)}
+                                  disabled={isFounderOnly}
+                                  className={`
                                   relative w-14 h-8 rounded-full transition-all
                                   ${isEnabled ? 'bg-green-500' : 'bg-gray-600'}
                                   ${isFounderOnly ? 'cursor-not-allowed' : 'cursor-pointer'}
                                 `}
-                              >
-                                <div
-                                  className={`
+                                >
+                                  <div
+                                    className={`
                                     absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all
                                     ${isEnabled ? 'left-7' : 'left-1'}
                                   `}
-                                />
-                              </button>
+                                  />
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        )
-                      })}
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
               )}
             </div>
 
