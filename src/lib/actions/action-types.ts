@@ -82,7 +82,6 @@ export interface CalendarEventAction extends BaseAction {
     endTime: string
     location?: string
     attendees?: string[]
-    description?: string
 }
 
 export interface SocialPostAction extends BaseAction {
