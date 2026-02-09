@@ -51,15 +51,30 @@ export default function FoundersDashboard() {
     // Load feature flags
     useEffect(() => {
         const loadFeatures = async () => {
-            // Cast to any because feature_flags table may not be in generated types yet
-            const { data, error } = await (supabase as any)
-                .from('feature_flags')
-                .select('*')
-                .order('category', { ascending: true })
-                .order('name', { ascending: true })
+            console.log('[Dashboard] Loading features...')
+            try {
+                // Cast to any because feature_flags table may not be in generated types yet
+                const { data, error } = await (supabase as any)
+                    .from('feature_flags')
+                    .select('*')
+                    .order('category', { ascending: true })
+                    .order('name', { ascending: true })
 
-            if (!error && data) {
-                setFeatures(data as FeatureFlag[])
+                console.log('[Dashboard] Feature load result:', { data, error })
+
+                if (error) {
+                    console.error('[Dashboard] Error loading features:', error)
+                    // Use default features as fallback
+                    setFeatures(getDefaultFeatures())
+                } else if (data && data.length > 0) {
+                    setFeatures(data as FeatureFlag[])
+                } else {
+                    console.log('[Dashboard] No features found, using defaults')
+                    setFeatures(getDefaultFeatures())
+                }
+            } catch (e) {
+                console.error('[Dashboard] Exception loading features:', e)
+                setFeatures(getDefaultFeatures())
             }
             setIsLoading(false)
         }
@@ -68,6 +83,18 @@ export default function FoundersDashboard() {
             loadFeatures()
         }
     }, [isAuthed, supabase])
+
+    // Default features fallback
+    function getDefaultFeatures(): FeatureFlag[] {
+        return [
+            { id: '1', feature_id: 'web_search', name: 'Web Search', description: 'Search the web', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'tools' },
+            { id: '2', feature_id: 'vision_analyze', name: 'Vision Analysis', description: 'Analyze images', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'tools' },
+            { id: '3', feature_id: 'file_read', name: 'File Read', description: 'Read files', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'tools' },
+            { id: '4', feature_id: 'exec', name: 'Shell Execution', description: 'Execute commands', enabled_for_production: false, enabled_for_founders: true, risk_level: 'dangerous', category: 'tools' },
+            { id: '5', feature_id: 'email_send', name: 'Email Send', description: 'Send emails', enabled_for_production: false, enabled_for_founders: true, risk_level: 'moderate', category: 'integrations' },
+            { id: '6', feature_id: 'voice_mode', name: 'Voice Mode', description: 'Voice input/output', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'experience' },
+        ]
+    }
 
     // Toggle feature for production
     const toggleFeature = async (featureId: string) => {
