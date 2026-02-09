@@ -26,7 +26,7 @@ export async function bootstrapAgents() {
       id: 'a2',
       name: 'A2 (Dev)',
       model: defaultModel,
-      tools: ['exec', 'file_read', 'file_write', 'file_list', 'sessions_spawn', 'sessions_send', 'git', 'web_fetch'],
+      tools: ['exec', 'file_read', 'file_write', 'file_patch', 'file_list', 'sessions_spawn', 'sessions_send', 'git', 'web_fetch'],
       maxConcurrent: 3,
     });
 

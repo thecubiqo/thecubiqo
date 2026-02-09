@@ -119,7 +119,32 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
             {conversationHistory.map((entry, index) => (
               <div key={index}>
                 <ChatMessage role="user" content={entry.userMessage} timestamp={entry.timestamp} />
-                <ChatMessage role="assistant" content={entry.aiResponse} color={entry.color} timestamp={entry.timestamp} />
+                <ChatMessage
+                  role="assistant"
+                  content={entry.aiResponse}
+                  color={entry.color}
+                  timestamp={entry.timestamp}
+                  onActionConfirm={async (actionId, action) => {
+                    console.log('Action confirmed:', actionId, action)
+
+                    let resultMessage = `[System Note] I have confirmed the action: ${action.title}`
+
+                    try {
+                      if (action.type === 'system_command') {
+                        const result = await executeSystemCommand(action)
+                        resultMessage += `\n\nExecution Result:\n${result}`
+                      } else if (action.type === 'file_operation') {
+                        const result = await executeFileOperation(action)
+                        resultMessage += `\n\nOperation Result:\n${result}`
+                      }
+                    } catch (err) {
+                      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+                      resultMessage += `\n\n❌ Error: ${errorMessage}`
+                    }
+
+                    await handleSend(resultMessage)
+                  }}
+                />
               </div>
             ))}
             {isLoading && (
@@ -154,4 +179,83 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
       <ChatInput onSend={handleSend} disabled={isLoading || !isInitialized} />
     </div>
   )
+}
+
+// --- Execution Helpers ---
+
+async function executeSystemCommand(action: any): Promise<string> {
+  const response = await fetch('/api/code/execute', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      language: 'bash',
+      code: action.command,
+      context: {
+        workdir: action.workingDirectory
+      }
+    })
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Execution failed')
+  }
+
+  if (data.exitCode === 0) {
+    return `✅ Success\nOutput:\n${data.stdout || '(no output)'}`
+  } else {
+    return `⚠️ Failed (Exit Code: ${data.exitCode})\nStderr:\n${data.stderr}\nStdout:\n${data.stdout}`
+  }
+}
+
+async function executeFileOperation(action: any): Promise<string> {
+  const operationMap: Record<string, string> = {
+    'create': 'write',
+    'edit': 'write',
+    'delete': 'delete',
+    'list': 'list',
+    'move': 'move', // Not directly supported by simple API yet, might fail
+    'rename': 'move'
+  }
+
+  const apiOp = operationMap[action.operation]
+
+  if (!apiOp) {
+    return `⚠️ Operation '${action.operation}' is not fully supported yet.`
+  }
+
+  // Special handling for move/rename if not supported by API, or map to 'write' if it's a create
+  // The current API supports: read, write, delete, list, create-dir
+
+  if (['move', 'rename'].includes(apiOp)) {
+    return `⚠️ Operation '${action.operation}' is not supported by the backend yet.`
+  }
+
+  const payload: any = {
+    operation: apiOp,
+    path: action.path
+  }
+
+  if (apiOp === 'write') {
+    payload.content = action.content || ''
+  }
+
+  const response = await fetch('/api/code/file-ops', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Operation failed')
+  }
+
+  if (data.success) {
+    return `✅ Success: ${action.operation} on ${action.path}`
+  } else {
+    return `⚠️ Failed: ${data.error}`
+  }
 }

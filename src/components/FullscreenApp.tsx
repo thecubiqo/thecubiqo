@@ -22,6 +22,7 @@ import { useElevenLabsTTS } from '@/hooks/useElevenLabsTTS'
 import { useChat } from '@/hooks/useChat'
 import { useBYO } from '@/hooks/useBYO'
 import type { ColorName } from '@/config/colors'
+import CodePanel from './CodePanel'
 import type { AnimationState } from './cube/Cube'
 
 // App states matching legacy
@@ -46,6 +47,7 @@ export function FullscreenApp() {
   const [showRGYChats, setShowRGYChats] = useState(false)
   const [showLandingCube, setShowLandingCube] = useState(false)
   const [showGettingStarted, setShowGettingStarted] = useState(false)
+  const [devMode, setDevMode] = useState(false)
 
   // RGY Signal pulse state - triggers brief pulse when keyword is saved
   const [rgyPulseColor, setRgyPulseColor] = useState<'RED' | 'YELLOW' | 'GREEN' | null>(null)
@@ -396,8 +398,21 @@ export function FullscreenApp() {
         </div>
       </header>
 
-      {/* Bottom Left Stack: Settings above Sign In */}
       <div className="fixed left-6 bottom-6 z-[55] flex flex-col gap-3">
+        {/* Dev Mode Toggle */}
+        <button
+          onClick={() => setDevMode(!devMode)}
+          className={`flex items-center gap-2 text-[13px] transition-colors ${isDark
+            ? 'text-white/40 hover:text-white/60'
+            : 'text-gray-500 hover:text-gray-700'
+            } ${devMode ? 'text-blue-400 hover:text-blue-300' : ''}`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 18" />
+          </svg>
+          <span className="font-medium">Code</span>
+        </button>
+
         {/* Settings */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
@@ -783,6 +798,18 @@ export function FullscreenApp() {
 
       {/* Founder Portal - Only visible for aditya@cubiqo.ai */}
       <FounderPortal />
+
+      {/* Dev Mode Code Panel Overlay */}
+      {devMode && (
+        <div
+          className="fixed right-0 top-[70px] bottom-0 w-[500px] max-w-[90vw] z-[45] shadow-2xl transition-transform duration-300 transform translate-x-0"
+          style={{
+            borderLeft: '1px solid rgba(255,255,255,0.1)'
+          }}
+        >
+          <CodePanel agentId="a2" onClose={() => setDevMode(false)} />
+        </div>
+      )}
     </div>
   )
 }

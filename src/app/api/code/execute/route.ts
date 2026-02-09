@@ -8,8 +8,9 @@ import { randomUUID } from 'crypto';
 const execAsync = promisify(exec);
 
 interface ExecuteRequest {
-  language: 'python' | 'javascript' | 'typescript' | 'bash';
+  language: 'python' | 'javascript' | 'typescript' | 'bash' | 'swift';
   code: string;
+  agentId?: string; // Execute in agent's workspace
   context?: {
     workdir?: string;
     timeout?: number; // milliseconds
@@ -40,9 +41,27 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Create temp directory for execution
-    const tempDir = join('/tmp', 'cubiqo-exec', randomUUID());
-    await mkdir(tempDir, { recursive: true });
+    // Determine execution directory
+    let execDir: string;
+    let isTemp = false;
+
+    if (body.agentId) {
+      // Use /tmp for workspace in production environment (Vercel)
+      const os = require('os');
+      const baseDir = process.env.NODE_ENV === 'production' ? os.tmpdir() : process.cwd();
+      execDir = join(baseDir, 'data', 'workspaces', body.agentId);
+
+      // Ensure agent workspace exists
+      try {
+        await mkdir(execDir, { recursive: true });
+      } catch (e) {
+        // Ignore if exists
+      }
+    } else {
+      execDir = join('/tmp', 'cubiqo-exec', randomUUID());
+      isTemp = true;
+      await mkdir(execDir, { recursive: true });
+    }
 
     const startTime = Date.now();
     let result: ExecuteResponse;
@@ -50,16 +69,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     try {
       switch (language) {
         case 'python':
-          result = await executePython(code, tempDir, context?.timeout);
+          result = await executePython(code, execDir, context?.timeout);
           break;
         case 'javascript':
-          result = await executeJavaScript(code, tempDir, context?.timeout);
+          result = await executeJavaScript(code, execDir, context?.timeout);
           break;
         case 'typescript':
-          result = await executeTypeScript(code, tempDir, context?.timeout);
+          result = await executeTypeScript(code, execDir, context?.timeout);
           break;
         case 'bash':
-          result = await executeBash(code, tempDir, context?.timeout);
+          result = await executeBash(code, execDir, context?.timeout);
+          break;
+        case 'swift':
+          result = await executeSwift(code, execDir, context?.timeout);
           break;
         default:
           return NextResponse.json(
@@ -70,13 +92,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       result.executionTime = Date.now() - startTime;
 
-      // Cleanup temp directory
-      await execAsync(`rm -rf ${tempDir}`).catch(() => {});
+      // Cleanup temp directory if it was temp
+      if (isTemp) {
+        await execAsync(`rm -rf ${execDir}`).catch(() => { });
+      }
 
       return NextResponse.json(result);
     } catch (error) {
-      // Cleanup on error
-      await execAsync(`rm -rf ${tempDir}`).catch(() => {});
+      // Cleanup on error if temp
+      if (isTemp) {
+        await execAsync(`rm -rf ${execDir}`).catch(() => { });
+      }
       throw error;
     }
   } catch (error) {
@@ -124,7 +150,7 @@ async function executePython(
       error: error.message,
     };
   } finally {
-    await unlink(filename).catch(() => {});
+    await unlink(filename).catch(() => { });
   }
 }
 
@@ -161,7 +187,7 @@ async function executeJavaScript(
       error: error.message,
     };
   } finally {
-    await unlink(filename).catch(() => {});
+    await unlink(filename).catch(() => { });
   }
 }
 
@@ -205,7 +231,7 @@ async function executeTypeScript(
       error: error.message,
     };
   } finally {
-    await unlink(filename).catch(() => {});
+    await unlink(filename).catch(() => { });
   }
 }
 
@@ -243,6 +269,46 @@ async function executeBash(
       error: error.message,
     };
   } finally {
-    await unlink(filename).catch(() => {});
+    await unlink(filename).catch(() => { });
+  }
+}
+
+async function executeSwift(
+  code: string,
+  workdir: string,
+  timeout = MAX_EXECUTION_TIME
+): Promise<ExecuteResponse> {
+  const filename = join(workdir, 'script.swift');
+  await writeFile(filename, code);
+
+  try {
+    const { stdout, stderr } = await execAsync(
+      `swift ${filename}`,
+      {
+        cwd: workdir,
+        timeout,
+        maxBuffer: MAX_OUTPUT_SIZE,
+      }
+    );
+
+    return {
+      stdout: stdout.trim().slice(0, MAX_OUTPUT_SIZE),
+      stderr: stderr.trim().slice(0, MAX_OUTPUT_SIZE),
+      exitCode: 0,
+      executionTime: 0,
+    };
+  } catch (error: any) {
+    const isNotFound = error.message.includes('not found') || (error.stderr && error.stderr.includes('not found'));
+    return {
+      stdout: error.stdout?.trim().slice(0, MAX_OUTPUT_SIZE) || '',
+      stderr: isNotFound
+        ? 'Swift compiler not found. Please install Swift to run this code.'
+        : (error.stderr?.trim().slice(0, MAX_OUTPUT_SIZE) || error.message),
+      exitCode: error.code || 1,
+      executionTime: 0,
+      error: error.message,
+    };
+  } finally {
+    await unlink(filename).catch(() => { });
   }
 }

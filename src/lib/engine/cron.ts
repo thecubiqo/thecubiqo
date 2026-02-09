@@ -15,7 +15,12 @@ const jobs: CronJob[] = [
         id: 'daily-report',
         schedule: 'daily',
         agentId: 'a1',
-        task: 'Generate a brief status report of the workspace and save it to REPORTS/DAILY.md. Include updates from other agents if possible.'
+        task: `
+        1. Analyze the system logs and recent agent activities.
+        2. Identify any anomalies, errors, or failed tasks.
+        3. Compile a summary report.
+        4. Send an email to 'aditya@cubiqo.ai' with the subject 'CubiQo Daily System Report' and the summary as the body.
+        `
     }
 ];
 

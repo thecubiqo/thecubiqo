@@ -40,15 +40,23 @@ export default function FoundersDashboard() {
 
     // Check session storage auth and load features
     useEffect(() => {
-        const founderAuth = sessionStorage.getItem('founders_pass_auth')
-        if (founderAuth !== 'true') {
-            router.push('/founderspass')
-            return
+        const checkAuth = async () => {
+            const founderAuth = sessionStorage.getItem('founders_pass_auth')
+            const { data: { user } } = await supabase.auth.getUser()
+
+            // Allow access if they have the session OR if they are logged in as the specific founder email
+            const isFounderUser = user?.email === 'aditya@cubiqo.ai'
+
+            if (founderAuth !== 'true' && !isFounderUser) {
+                console.log('[Dashboard] Auth failed, redirecting to /founderspass')
+                router.push('/founderspass')
+                return
+            }
+
+            setIsAuthed(true)
+            await loadFeatures()
         }
 
-        setIsAuthed(true)
-
-        // Load features immediately after confirming auth
         const loadFeatures = async () => {
             console.log('[Dashboard] Loading features...')
             try {
@@ -78,7 +86,7 @@ export default function FoundersDashboard() {
             setIsLoading(false)
         }
 
-        loadFeatures()
+        checkAuth()
     }, [router, supabase])
 
     // Default features fallback

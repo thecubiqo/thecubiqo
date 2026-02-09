@@ -6,6 +6,7 @@ interface FileOpsRequest {
   operation: 'read' | 'write' | 'delete' | 'list' | 'create-dir';
   path: string;
   content?: string;
+  agentId?: string;
 }
 
 interface FileOpsResponse {
@@ -17,31 +18,33 @@ interface FileOpsResponse {
 // Security: Only allow operations in workspace
 const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || '/tmp/cubiqo-workspace';
 
-function sanitizePath(userPath: string): string {
-  const resolvedPath = resolve(WORKSPACE_ROOT, userPath);
-  const relativePath = relative(WORKSPACE_ROOT, resolvedPath);
-  
+function sanitizePath(userPath: string, root = WORKSPACE_ROOT): string {
+  const resolvedPath = resolve(root, userPath);
+  const relativePath = relative(root, resolvedPath);
+
   // Prevent directory traversal
   if (relativePath.startsWith('..') || resolve(relativePath) !== resolvedPath) {
     throw new Error('Invalid path: directory traversal detected');
   }
-  
+
   return resolvedPath;
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const body: FileOpsRequest = await req.json();
-    const { operation, path, content } = body;
+    const { operation, path, content, agentId } = body;
 
-    if (!operation || !path) {
-      return NextResponse.json(
-        { success: false, error: 'Missing operation or path' },
-        { status: 400 }
-      );
+    // If agentId is provided, target that agent's workspace
+    let basePath = WORKSPACE_ROOT;
+    if (agentId) {
+      // Use /tmp for workspace in production environment (Vercel)
+      const os = require('os');
+      const baseDir = process.env.NODE_ENV === 'production' ? os.tmpdir() : process.cwd();
+      basePath = join(baseDir, 'data', 'workspaces', agentId);
     }
 
-    const safePath = sanitizePath(path);
+    const safePath = sanitizePath(path, basePath);
     let result: FileOpsResponse;
 
     switch (operation) {
@@ -90,7 +93,7 @@ async function readFileOp(path: string): Promise<FileOpsResponse> {
   try {
     const content = await readFile(path, 'utf-8');
     const stats = await stat(path);
-    
+
     return {
       success: true,
       data: {
@@ -112,9 +115,9 @@ async function writeFileOp(path: string, content: string): Promise<FileOpsRespon
     // Ensure parent directory exists
     const dir = join(path, '..');
     await mkdir(dir, { recursive: true });
-    
+
     await writeFile(path, content, 'utf-8');
-    
+
     return {
       success: true,
       data: { path, bytes: content.length },
@@ -130,7 +133,7 @@ async function writeFileOp(path: string, content: string): Promise<FileOpsRespon
 async function deleteFileOp(path: string): Promise<FileOpsResponse> {
   try {
     await unlink(path);
-    
+
     return {
       success: true,
       data: { deleted: path },
@@ -146,12 +149,12 @@ async function deleteFileOp(path: string): Promise<FileOpsResponse> {
 async function listFilesOp(path: string): Promise<FileOpsResponse> {
   try {
     const entries = await readdir(path, { withFileTypes: true });
-    
+
     const files = await Promise.all(
       entries.map(async (entry) => {
         const fullPath = join(path, entry.name);
         const stats = await stat(fullPath);
-        
+
         return {
           name: entry.name,
           path: fullPath,
@@ -161,7 +164,7 @@ async function listFilesOp(path: string): Promise<FileOpsResponse> {
         };
       })
     );
-    
+
     return {
       success: true,
       data: { files },
@@ -177,7 +180,7 @@ async function listFilesOp(path: string): Promise<FileOpsResponse> {
 async function createDirOp(path: string): Promise<FileOpsResponse> {
   try {
     await mkdir(path, { recursive: true });
-    
+
     return {
       success: true,
       data: { created: path },
