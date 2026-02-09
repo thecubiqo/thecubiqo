@@ -4,6 +4,7 @@ import { promisify } from 'util';
 import { readFile, writeFile, unlink, readdir } from 'fs/promises';
 import { join } from 'path';
 import { webSearchTool, webFetchTool } from './web-tools';
+import { sessionsSendTool } from './tools/sessions-send';
 
 const execAsync = promisify(exec);
 
@@ -21,7 +22,7 @@ export class ToolRegistry {
     this.register(fileWriteTool);
     this.register(fileListTool);
     this.register(sessionsSpawnTool);
-    this.register(sessionsSendTool);
+    this.register(sessionsSendTool); // Import from tools/sessions-send.ts
     this.register(gitTool);
     this.register(webSearchTool);
     this.register(webFetchTool);
@@ -257,49 +258,7 @@ const sessionsSpawnTool: Tool = {
   },
 };
 
-const sessionsSendTool: Tool = {
-  id: 'sessions_send',
-  name: 'Send Message to Agent',
-  description: 'Send a message to another agent session.',
-  parameters: {
-    type: 'object',
-    properties: {
-      agentId: { type: 'string', description: 'Target agent ID' },
-      message: { type: 'string', description: 'Message to send' },
-      sessionId: { type: 'string', description: 'Target session ID (optional)' },
-    },
-    required: ['agentId', 'message'],
-  },
-  execute: async (params, context) => {
-    try {
-      const { agentId, message, sessionId } = params;
-      
-      const { getAgent } = await import('./agent');
-      const agent = getAgent(agentId);
-
-      if (!agent) {
-        return {
-          success: false,
-          output: '',
-          error: `Agent not found: ${agentId}`,
-        };
-      }
-
-      const response = await agent.run(message, sessionId);
-
-      return {
-        success: true,
-        output: response,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        output: '',
-        error: error instanceof Error ? error.message : 'Failed to send message',
-      };
-    }
-  },
-};
+// sessionsSendTool moved to tools/sessions-send.ts for better organization
 
 const gitTool: Tool = {
   id: 'git',
