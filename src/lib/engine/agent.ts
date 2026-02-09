@@ -29,7 +29,10 @@ export class AgentInstance implements Agent {
     this.model = config.model;
     this.tools = config.tools || [];
     this.maxConcurrent = config.maxConcurrent || 2;
-    this.workspace = join(process.cwd(), 'data', 'workspaces', this.id);
+    // Use /tmp for workspace in production environment (Vercel)
+    const os = require('os');
+    const baseDir = process.env.NODE_ENV === 'production' ? os.tmpdir() : process.cwd();
+    this.workspace = join(baseDir, 'data', 'workspaces', this.id);
     this.createdAt = new Date();
     this.updatedAt = new Date();
 
