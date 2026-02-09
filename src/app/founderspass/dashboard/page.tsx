@@ -120,6 +120,9 @@ export default function FoundersDashboard() {
             { id: '4', feature_id: 'exec', name: 'Shell Execution', description: 'Execute commands', enabled_for_production: false, enabled_for_founders: true, risk_level: 'dangerous', category: 'tools' },
             { id: '5', feature_id: 'email_send', name: 'Email Send', description: 'Send emails', enabled_for_production: false, enabled_for_founders: true, risk_level: 'moderate', category: 'integrations' },
             { id: '6', feature_id: 'voice_mode', name: 'Voice Mode', description: 'Voice input/output', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'experience' },
+            { id: '7', feature_id: 'duo_mode', name: 'Duo Mode', description: 'Proactive AI interjections', enabled_for_production: false, enabled_for_founders: true, risk_level: 'safe', category: 'experience' },
+            { id: '8', feature_id: 'code_panel', name: 'Code Panel', description: 'Visual code editor', enabled_for_production: false, enabled_for_founders: true, risk_level: 'moderate', category: 'tools' },
+            { id: '9', feature_id: 'action_cards', name: 'Action Cards', description: 'Confirmation cards for actions', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'experience' },
         ]
     }
 
