@@ -4,9 +4,10 @@
  * ChatContainer - Main chat interface with voice and persistence
  */
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
+import { DuoModeToggle } from './DuoModeToggle'
 import { useChat } from '@/hooks/useChat'
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
 import type { ColorName } from '@/config/colors'
@@ -22,6 +23,7 @@ interface ChatContainerProps {
 export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeakingChange, regionId }: ChatContainerProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const lastSpokenIndexRef = useRef<number>(-1)
+  const [isDuoModeEnabled, setIsDuoModeEnabled] = useState(false)
 
   const { speak, stop, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis({
     rate: 0.95,
@@ -74,7 +76,7 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
     if (isSpeaking) {
       stop()
     }
-    await sendMessage(message, currentColor)
+    await sendMessage(message, currentColor, { duoMode: isDuoModeEnabled })
   }
 
   if (!sessionId) {
@@ -89,9 +91,12 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
     <div className="flex flex-col h-[500px] bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800">
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">
-          {!isInitialized ? 'Loading...' : isLoading ? 'Thinking...' : isSpeaking ? 'Speaking...' : 'Ready'}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            {!isInitialized ? 'Loading...' : isLoading ? 'Thinking...' : isSpeaking ? 'Speaking...' : 'Ready'}
+          </span>
+          <DuoModeToggle isEnabled={isDuoModeEnabled} onToggle={setIsDuoModeEnabled} />
+        </div>
         {ttsSupported && isSpeaking && (
           <button onClick={stop} className="text-xs text-red-500 hover:text-red-600">
             Stop

@@ -227,7 +227,8 @@ export function useChat(options: UseChatOptions) {
 
   const sendMessage = useCallback(async (
     message: string,
-    currentColor: ColorName = 'ORANGE'
+    currentColor: ColorName = 'ORANGE',
+    options?: { duoMode?: boolean }
   ): Promise<AIResponse | null> => {
     if (!state.conversationId) {
       setState(prev => ({ ...prev, error: 'No conversation initialized. Please refresh the page.' }))
@@ -250,7 +251,8 @@ export function useChat(options: UseChatOptions) {
           isGuest,
           messageCount: state.conversationHistory.length + 1,
           sessionId,
-          region: regionId || undefined
+          region: regionId || undefined,
+          duoMode: options?.duoMode
         })
       })
 
@@ -300,7 +302,7 @@ export function useChat(options: UseChatOptions) {
             userMessage: message,
             aiResponse: data.response
           })
-        }).catch(() => {}) // Silently ignore extraction errors
+        }).catch(() => { }) // Silently ignore extraction errors
       }
 
       const newEntry: ConversationEntry = {

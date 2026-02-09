@@ -39,16 +39,16 @@ const MINIMAX_RATE_WINDOW = 60 * 60 * 1000 // 1 hour in ms
 function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining: number } {
   const now = Date.now()
   const record = minimaxRateLimitMap.get(sessionId)
-  
+
   if (!record || now > record.resetTime) {
     minimaxRateLimitMap.set(sessionId, { count: 1, resetTime: now + MINIMAX_RATE_WINDOW })
     return { allowed: true, remaining: MINIMAX_RATE_LIMIT - 1 }
   }
-  
+
   if (record.count >= MINIMAX_RATE_LIMIT) {
     return { allowed: false, remaining: 0 }
   }
-  
+
   record.count++
   return { allowed: true, remaining: MINIMAX_RATE_LIMIT - record.count }
 }
@@ -100,12 +100,12 @@ async function callMiniMax(
   }
 
   const data = await response.json()
-  
+
   // MiniMax returns choices similar to OpenAI
   if (data.choices && data.choices[0]?.message?.content) {
     return data.choices[0].message.content
   }
-  
+
   throw new Error('Invalid MiniMax response format')
 }
 
@@ -187,7 +187,7 @@ async function callClaude(
 
   const data = await response.json()
   const outputText = data.content[0].text
-  
+
   // Record spending (skip if using BYO key)
   if (!byoApiKey) {
     const estimatedOutputTokens = estimateTokens(outputText)
@@ -272,8 +272,8 @@ function buildAuthNudgePrompt(isGuest: boolean, messageCount: number): string {
 SPECIAL CONTEXT (use wisely):
 The person you're talking to is a guest - they haven't signed in yet. You've had ${messageCount} exchanges with them.
 ${isMandatory
-    ? 'This is your LAST chance to suggest signing in. You MUST include the sign-in suggestion in this response - find a natural way to weave it in.'
-    : 'When you feel the moment is RIGHT - perhaps when they share something personal, meaningful, or show real interest - you MAY naturally and warmly suggest they sign in so you can remember them forever.'}
+      ? 'This is your LAST chance to suggest signing in. You MUST include the sign-in suggestion in this response - find a natural way to weave it in.'
+      : 'When you feel the moment is RIGHT - perhaps when they share something personal, meaningful, or show real interest - you MAY naturally and warmly suggest they sign in so you can remember them forever.'}
 
 Rules for this suggestion:
 - ${isMandatory ? 'You MUST suggest signing in this time' : 'Do it ONLY ONCE, and only when it feels genuinely caring, not pushy'}
@@ -295,8 +295,8 @@ Remember: This is about creating an emotional moment with an easy next step, not
 
 export async function POST(request: NextRequest) {
   try {
-    const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string } = await request.json()
-    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region } = body
+    const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string; duoMode?: boolean } = await request.json()
+    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region, duoMode = false } = body
 
     // Get BYO API keys from headers (if user has BYO mode enabled)
     const byoClaudeKey = request.headers.get('x-byo-claude-key')
@@ -352,13 +352,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Build Duo Mode context
+    let duoModeContext = ''
+    if (duoMode) {
+      duoModeContext = `
+      
+--- DUO MODE ACTIVE ---
+The user has enabled "Duo Mode". In this mode, you act as a proactive partner alongside them.
+1. INTERJECT: If the user's input suggests they are doing something risky, unhealthy, or could use advice (e.g. eating junk food, sending an angry text, struggling with a task), proactively offer advice or a better alternative.
+2. BE BRIEF: Keep your interjections short and punchy.
+3. BE HELPFUL: Focus on health, safety, tone, and productivity.
+4. If the input is neutral/standard, just respond normally.
+`
+    }
+
     // Build full system prompt with memory, regional context, and optional auth nudge
     const authNudge = buildAuthNudgePrompt(isGuest, messageCount)
-    const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + regionalContext + authNudge
+    const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + regionalContext + duoModeContext + authNudge
 
     let content: string
     let provider: 'minimax' | 'openclaw' | 'claude' | 'openai' = 'minimax'
-    
+
     // Check MiniMax rate limit
     const { allowed: minimaxAllowed } = checkMiniMaxRateLimit(sessionId || 'anonymous')
 
