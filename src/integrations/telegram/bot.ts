@@ -128,5 +128,11 @@ function setupBot(bot: Bot) {
     })
 }
 
-// Webhook handler
-export const handleUpdate = webhookCallback(getBot()!, 'std/http')
+// Webhook handler wrapper
+export const handleUpdate = async (req: Request) => {
+    const bot = getBot()
+    if (!bot) {
+        return new Response('Telegram bot not configured', { status: 503 })
+    }
+    return webhookCallback(bot, 'std/http')(req)
+}
