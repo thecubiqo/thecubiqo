@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { AppLayout } from '@/components/AppLayout';
 import { FileTree } from '@/components/files/FileTree';
 import { FileNode } from '@/types/files';
 
@@ -109,7 +110,8 @@ export default function FilesPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-950">
+    <AppLayout>
+    <div className="h-screen flex flex-col">
       {/* Header */}
       <div className="h-14 border-b border-gray-800 bg-gray-900 flex items-center px-4">
         <h1 className="text-xl font-semibold text-white">File Browser</h1>
@@ -175,5 +177,6 @@ export default function FilesPage() {
         </div>
       </div>
     </div>
+    </AppLayout>
   );
 }

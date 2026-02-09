@@ -14,6 +14,12 @@ import { createClient } from '@/lib/supabase/server'
  * This is the source of truth for what can be toggled
  */
 export interface FeatureAccess {
+  // Navigation Features
+  home: boolean
+  chat: boolean
+  settings: boolean
+  cubikey: boolean
+  
   // Core Features (can be released)
   agents: boolean
   files: boolean
@@ -33,6 +39,10 @@ export interface FeatureAccess {
  * Founders always have access to everything
  */
 export const FOUNDER_ACCESS: FeatureAccess = {
+  home: true,
+  chat: true,
+  settings: true,
+  cubikey: true,
   agents: true,
   files: true,
   memory: true,
@@ -49,6 +59,10 @@ export const FOUNDER_ACCESS: FeatureAccess = {
  * Very limited, read-only type access
  */
 export const PUBLIC_ACCESS: FeatureAccess = {
+  home: true,
+  chat: false,
+  settings: false,
+  cubikey: false,
   agents: false,
   files: false,
   memory: false,
@@ -65,6 +79,10 @@ export const PUBLIC_ACCESS: FeatureAccess = {
  * Start with nothing, features are released gradually
  */
 export const DEFAULT_USER_ACCESS: FeatureAccess = {
+  home: true,
+  chat: true,
+  settings: true,
+  cubikey: false,
   agents: false,
   files: false,
   memory: false,
@@ -218,3 +236,69 @@ export const FEATURE_METADATA: FeatureMetadata[] = [
     releasable: false,
   },
 ]
+
+/**
+ * Get all feature flags (for admin panel)
+ * Returns current state of all features from database
+ */
+export async function getAllFeatureFlags(): Promise<FeatureAccess> {
+  try {
+    const supabase = await createClient()
+    
+    const { data, error } = await supabase
+      .from('feature_flags')
+      .select('feature, released')
+    
+    if (error) {
+      console.warn('Failed to fetch all feature flags:', error)
+      return { ...DEFAULT_USER_ACCESS, ...FOUNDER_ACCESS }
+    }
+    
+    // Start with founder access as baseline
+    const flags: FeatureAccess = { ...FOUNDER_ACCESS }
+    
+    // Override with database values if they exist
+    if (data) {
+      for (const row of data) {
+        if (row.feature in flags) {
+          flags[row.feature as keyof FeatureAccess] = row.released
+        }
+      }
+    }
+    
+    return flags
+  } catch (err) {
+    console.warn('Error fetching all feature flags:', err)
+    return { ...DEFAULT_USER_ACCESS, ...FOUNDER_ACCESS }
+  }
+}
+
+/**
+ * Update a feature flag's released status (admin only)
+ */
+export async function updateFeatureFlag(
+  feature: keyof FeatureAccess,
+  released: boolean
+): Promise<boolean> {
+  try {
+    const supabase = await createClient()
+    
+    const { error } = await supabase
+      .from('feature_flags')
+      .upsert({
+        feature,
+        released,
+        updated_at: new Date().toISOString(),
+      })
+    
+    if (error) {
+      console.error('Failed to update feature flag:', error)
+      return false
+    }
+    
+    return true
+  } catch (err) {
+    console.error('Error updating feature flag:', err)
+    return false
+  }
+}

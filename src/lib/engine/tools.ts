@@ -31,12 +31,19 @@ export class ToolRegistry {
     this.tools.set(tool.id, tool);
   }
 
-  getTools(toolIds?: string[]): ToolDefinition[] {
+  async getTools(toolIds?: string[], userId?: string): Promise<ToolDefinition[]> {
     const tools = toolIds
       ? toolIds.map((id) => this.tools.get(id)).filter(Boolean) as Tool[]
       : Array.from(this.tools.values());
 
-    return tools.map((tool) => ({
+    // Filter tools based on user integrations if userId provided
+    let filteredTools = tools;
+    if (userId) {
+      const { filterTools } = await import('@/lib/integrations/tool-filter');
+      filteredTools = await filterTools(userId, tools) as Tool[];
+    }
+
+    return filteredTools.map((tool) => ({
       name: tool.id,
       description: tool.description,
       input_schema: tool.parameters,

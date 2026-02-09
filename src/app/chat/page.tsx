@@ -1,11 +1,11 @@
 'use client'
 
 /**
- * Chat Page - Text-based chat interface
+ * Chat Page - Text-based chat interface with navigation
  */
 
 import { useState, useCallback } from 'react'
-import Link from 'next/link'
+import { AppLayout } from '@/components/AppLayout'
 import { ChatContainer } from '@/components/chat'
 import { CubeScene } from '@/components/cube'
 import { PoweredByLogosCompact } from '@/components/PoweredByLogos'
@@ -23,55 +23,38 @@ export default function ChatPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 px-4 py-3 bg-zinc-950/90 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">Q</span>
+    <AppLayout>
+      <div className="min-h-screen text-white">
+        {/* Main Content */}
+        <main className="p-4">
+          <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-4 h-[calc(100vh-2rem)]">
+            {/* Mini Cube */}
+            <div className="hidden lg:flex flex-col">
+              <div className="flex-1 rounded-xl overflow-hidden bg-black/50 border border-white/10">
+                <CubeScene colorName={colorName} animationState={animationState} />
+              </div>
+              <div className="mt-2 text-center text-xs text-white/50">
+                Mood: <span className="text-white/80">{colorName === 'GREEN_BLUE' ? 'Sattva' : colorName === 'ORANGE' ? 'Fourth Way' : colorName === 'RED' ? 'Tamas' : 'Rajas'}</span>
+              </div>
             </div>
-            <span className="font-bold tracking-widest text-sm">CubiQo™</span>
-          </Link>
 
-          <Link
-            href="/"
-            className="text-xs px-3 py-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/15 transition-colors"
-          >
-            Voice Mode
-          </Link>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="pt-16 pb-4 px-4">
-        <div className="max-w-4xl mx-auto grid lg:grid-cols-2 gap-4 h-[calc(100vh-5rem)]">
-          {/* Mini Cube */}
-          <div className="hidden lg:flex flex-col">
-            <div className="flex-1 rounded-xl overflow-hidden bg-black/50 border border-white/10">
-              <CubeScene colorName={colorName} animationState={animationState} />
-            </div>
-            <div className="mt-2 text-center text-xs text-white/50">
-              Mood: <span className="text-white/80">{colorName === 'GREEN_BLUE' ? 'Sattva' : colorName === 'ORANGE' ? 'Fourth Way' : colorName === 'RED' ? 'Tamas' : 'Rajas'}</span>
+            {/* Chat */}
+            <div className="flex flex-col h-full">
+              <ChatContainer
+                sessionId={session?.id ?? null}
+                currentColor={colorName}
+                onColorChange={setColorName}
+                onSpeakingChange={handleSpeakingChange}
+              />
             </div>
           </div>
-
-          {/* Chat */}
-          <div className="flex flex-col h-full">
-            <ChatContainer
-              sessionId={session?.id ?? null}
-              currentColor={colorName}
-              onColorChange={setColorName}
-              onSpeakingChange={handleSpeakingChange}
-            />
+          
+          {/* Powered By Logos - Bottom Center */}
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+            <PoweredByLogosCompact isDark={true} />
           </div>
-        </div>
-        
-        {/* Powered By Logos - Bottom Center */}
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-          <PoweredByLogosCompact isDark={true} />
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </AppLayout>
   )
 }

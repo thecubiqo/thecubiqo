@@ -51,7 +51,7 @@ export class AgentInstance implements Agent {
     await mkdir(this.workspace, { recursive: true });
   }
 
-  async run(prompt: string, sessionId?: string): Promise<string> {
+  async run(prompt: string, sessionId?: string, userId?: string): Promise<string> {
     this.status = 'running';
     this.updatedAt = new Date();
 
@@ -75,8 +75,8 @@ export class AgentInstance implements Agent {
         { role: 'user' as const, content: prompt },
       ];
 
-      // Get tools for LLM
-      const availableTools = this.toolRegistry.getTools(this.tools);
+      // Get tools for LLM (filtered by user integrations)
+      const availableTools = await this.toolRegistry.getTools(this.tools, userId);
 
       // Call LLM
       const response = await callLLM({
