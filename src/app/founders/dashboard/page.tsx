@@ -8,7 +8,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
 
 type FeatureFlag = {
@@ -29,23 +28,25 @@ type ChatMessage = {
 
 export default function FoundersDashboard() {
     const router = useRouter()
-    const { user, isAuthenticated, isLoading: authLoading, signOut } = useAuth()
     const [features, setFeatures] = useState<FeatureFlag[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [saving, setSaving] = useState<string | null>(null)
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
     const [chatInput, setChatInput] = useState('')
     const [chatLoading, setChatLoading] = useState(false)
+    const [isAuthed, setIsAuthed] = useState(false)
 
     const supabase = createClient()
-    const isFounder = user?.email?.toLowerCase() === 'aditya@cubiqo.ai'
 
-    // Redirect non-founders
+    // Check session storage auth
     useEffect(() => {
-        if (!authLoading && (!isAuthenticated || !isFounder)) {
+        const founderAuth = sessionStorage.getItem('founders_pass_auth')
+        if (founderAuth !== 'true') {
             router.push('/founders')
+        } else {
+            setIsAuthed(true)
         }
-    }, [authLoading, isAuthenticated, isFounder, router])
+    }, [router])
 
     // Load feature flags
     useEffect(() => {
@@ -63,10 +64,10 @@ export default function FoundersDashboard() {
             setIsLoading(false)
         }
 
-        if (isFounder) {
+        if (isAuthed) {
             loadFeatures()
         }
-    }, [isFounder, supabase])
+    }, [isAuthed, supabase])
 
     // Toggle feature for production
     const toggleFeature = async (featureId: string) => {
@@ -149,7 +150,7 @@ export default function FoundersDashboard() {
         dangerous: 'text-red-400 bg-red-500/10'
     }
 
-    if (authLoading || !isFounder) {
+    if (!isAuthed) {
         return (
             <div className="min-h-screen bg-black flex items-center justify-center">
                 <div className="text-gray-400">Loading...</div>
@@ -172,9 +173,12 @@ export default function FoundersDashboard() {
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <span className="text-sm text-gray-400">{user?.email}</span>
+                        <span className="text-sm text-amber-400 font-medium">Founder Access</span>
                         <button
-                            onClick={() => signOut()}
+                            onClick={() => {
+                                sessionStorage.removeItem('founders_pass_auth')
+                                router.push('/founders')
+                            }}
                             className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
                         >
                             Sign Out
