@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
             "\n\nRemember: When you write files using [FILE:write:...], they are saved to this virtual workspace."
 
         // 2. Call AI (MiniMax is best for coding)
-        const messages = buildMessages(message, conversationHistory, 'BLUE') // Blue for coding mode
+        const messages = buildMessages(message, conversationHistory, 'RED') // Red for coding/focus mode
 
         let content = ""
         try {

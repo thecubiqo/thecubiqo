@@ -18,7 +18,7 @@ export default async function RegionalLayout({
   const { region } = await params
 
   // Validate region
-  if (region.startsWith('found')) return children; // Pass through to middleware or static routes
+  if (region.startsWith('found') || region === 'rescue') return children; // Pass through to middleware or static routes
 
   if (!VALID_REGIONS.includes(region)) {
     notFound()
