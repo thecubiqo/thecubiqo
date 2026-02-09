@@ -21,6 +21,7 @@ import {
   type AIResponse
 } from '@/lib/ai'
 import { callOpenClaw } from '@/lib/ai/openclaw'
+import { callMiniMax } from '@/lib/ai/minimax'
 import { buildMemoryContext } from '@/lib/ai/memory-extraction.server'
 import { getRegionConfig, buildRegionalPrompt } from '@/lib/config/regions'
 import {
@@ -59,6 +60,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
 )
 
+/*
 // MiniMax API call (primary)
 async function callMiniMax(
   systemPrompt: string,
@@ -108,6 +110,7 @@ async function callMiniMax(
 
   throw new Error('Invalid MiniMax response format')
 }
+*/
 
 // Claude API call with prompt caching
 async function callClaude(
