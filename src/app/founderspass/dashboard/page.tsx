@@ -35,6 +35,7 @@ export default function FoundersDashboard() {
     const [chatInput, setChatInput] = useState('')
     const [chatLoading, setChatLoading] = useState(false)
     const [isAuthed, setIsAuthed] = useState(false)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
     const supabase = createClient()
 
@@ -165,11 +166,13 @@ export default function FoundersDashboard() {
 
     // Toggle feature for production or founders
     // Toggle feature for production or founders
+    // Toggle feature for production or founders
     const toggleFeature = async (featureId: string, target: 'production' | 'founders') => {
         const feature = features.find(f => f.feature_id === featureId)
         if (!feature) return
 
         setSaving({ id: featureId, target })
+        setErrorMessage(null)
 
         const field = target === 'production' ? 'enabled_for_production' : 'enabled_for_founders'
         const newValue = !feature[field]
@@ -247,6 +250,7 @@ export default function FoundersDashboard() {
 
             if (error) {
                 console.error('[Dashboard] Error saving feature:', error)
+                setErrorMessage(`Failed to save ${feature.name}: ${error.message}`)
                 // Revert on error
                 setFeatures(prev => prev.map(f =>
                     f.feature_id === featureId
@@ -254,8 +258,15 @@ export default function FoundersDashboard() {
                         : f
                 ))
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('[Dashboard] Exception saving feature:', e)
+            setErrorMessage(`Exception saving ${feature.name}: ${e.message || e}`)
+            // Revert on exception
+            setFeatures(prev => prev.map(f =>
+                f.feature_id === featureId
+                    ? { ...f, [field]: !newValue }
+                    : f
+            ))
         }
 
         setSaving(null)
@@ -387,6 +398,14 @@ export default function FoundersDashboard() {
 
                     {/* Left: Feature Toggles (Span 2 cols) */}
                     <div className="xl:col-span-2">
+                        {errorMessage && (
+                            <div className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/50 text-red-200 flex items-center gap-3">
+                                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                <span className="text-sm font-medium">{errorMessage}</span>
+                                <button onClick={() => setErrorMessage(null)} className="ml-auto hover:text-white"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                            </div>
+                        )}
+
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-lg font-semibold text-white">Feature Controls</h2>
                             <div className="flex items-center gap-4 text-xs">
