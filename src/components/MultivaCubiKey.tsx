@@ -9,17 +9,19 @@ interface MultivaCubiKeyProps {
 
 export function MultivaCubiKey({ isDark }: MultivaCubiKeyProps) {
     const [copied, setCopied] = useState(false)
-    const apiKey = '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' // Public Key
+    // Masked for security - never expose full key in client bundle if not needed
+    const displayKey = 'sk-or-v1-57...ec518'
+    const fullKey = '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'
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(apiKey)
+        navigator.clipboard.writeText(fullKey)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
     }
 
     return (
         <div className={`
-      relative group overflow-hidden rounded-2xl border transition-all duration-300
+      relative group overflow-hidden rounded-xl border transition-all duration-300 w-full
       ${isDark
                 ? 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-white/20'
                 : 'bg-black/[0.03] border-black/5 hover:bg-black/[0.05] hover:border-black/10'}
@@ -32,9 +34,9 @@ export function MultivaCubiKey({ isDark }: MultivaCubiKeyProps) {
                     Multiva Cubi Key
                 </span>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between w-full">
                     <code className={`font-mono text-[11px] ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
-                        {apiKey.substring(0, 12)}...{apiKey.substring(apiKey.length - 8)}
+                        {displayKey}
                     </code>
 
                     <button

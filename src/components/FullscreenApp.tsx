@@ -541,8 +541,7 @@ export function FullscreenApp() {
       <footer className="fixed bottom-2 left-0 right-0 z-50 pointer-events-none">
         <div className="flex flex-col items-center gap-4 pointer-events-auto">
 
-          {/* Multiva Cubi Key Display */}
-          <MultivaCubiKey isDark={isDark} />
+
 
           <p className="text-[10px] text-white/25 tracking-wide text-center">
             All conversations are confidential. CubiQo never retains user voice by policy.
@@ -723,6 +722,15 @@ export function FullscreenApp() {
                     <BYOSettings onClose={() => setShowBYOSettings(false)} />
                   </div>
                 )}
+              </div>
+
+              {/* Soft Divider */}
+              <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
+
+              {/* 4. API Access */}
+              <div>
+                <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>API Access</h3>
+                <MultivaCubiKey isDark={isDark} />
               </div>
             </div>
           </div>
