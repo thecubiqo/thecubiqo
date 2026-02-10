@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
         const db = supabase as unknown as SupabaseClient<DatabaseWithAbTesting>;
 
         // 1. Get experiment ID
-        const { data: experiment } = await db
+        const { data: experiment } = await (db as any)
             .from('experiments')
             .select('id')
             .eq('name', experimentName)
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
         // 3. Find current variant assignment
         // We need to know which variant they are assigned to associate the event correctly
-        let query = db
+        let query = (db as any)
             .from('experiment_assignments')
             .select('variant')
             .eq('experiment_id', experiment.id);
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 4. Record Event
-        const { error } = await db.from('experiment_events').insert({
+        const { error } = await (db as any).from('experiment_events').insert({
             experiment_id: experiment.id,
             variant: assignment.variant,
             event_name: eventName,

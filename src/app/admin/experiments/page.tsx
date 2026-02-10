@@ -10,7 +10,7 @@ async function getExperiments() {
     const supabase = await createClient()
     const db = supabase as unknown as SupabaseClient<DatabaseWithAbTesting>
 
-    const { data: experiments } = await db
+    const { data: experiments } = await (db as any)
         .from('experiments')
         .select('*')
         .order('created_at', { ascending: false })
@@ -18,23 +18,23 @@ async function getExperiments() {
     if (!experiments) return []
 
     // For each experiment, get stats
-    const experimentsWithStats = await Promise.all(experiments.map(async (exp) => {
+    const experimentsWithStats = await Promise.all(experiments.map(async (exp: any) => {
         // get user counts per variant
-        const { data: assignments } = await db
+        const { data: assignments } = await (db as any)
             .from('experiment_assignments')
             .select('variant')
             .eq('experiment_id', exp.id)
 
         // get event counts/values per variant
-        const { data: events } = await db
+        const { data: events } = await (db as any)
             .from('experiment_events')
             .select('variant, value, event_name')
             .eq('experiment_id', exp.id)
 
         const stats = (exp.variants as string[]).map(variant => {
-            const variantAssignments = assignments?.filter(a => a.variant === variant).length || 0
-            const variantEvents = events?.filter(e => e.variant === variant) || []
-            const totalValue = variantEvents.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0)
+            const variantAssignments = assignments?.filter((a: any) => a.variant === variant).length || 0
+            const variantEvents = events?.filter((e: any) => e.variant === variant) || []
+            const totalValue = variantEvents.reduce((acc: number, curr: any) => acc + (Number(curr.value) || 0), 0)
 
             return {
                 variant,
@@ -122,7 +122,7 @@ export default async function ExperimentsPage() {
 
                                     {/* Stats Grid */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10 relative z-10">
-                                        {exp.stats.map((stat, idx) => (
+                                        {exp.stats.map((stat: any, idx: number) => (
                                             <div
                                                 key={stat.variant}
                                                 className={`p-6 rounded-2xl border ${idx === 0 ? 'bg-white/5 border-white/10' : 'bg-gray-900/60 border-gray-700/30'

@@ -19,7 +19,7 @@ export async function getExperimentVariant(experimentName: string): Promise<Expe
         const supabase = await getDb()
 
         // 1. Get the experiment definition
-        const { data: experiment, error: expError } = await supabase
+        const { data: experiment, error: expError } = await (supabase as any)
             .from('experiments')
             .select('*')
             .eq('name', experimentName)
@@ -47,7 +47,7 @@ export async function getExperimentVariant(experimentName: string): Promise<Expe
         }
 
         // 3. Check for existing assignment
-        let query = supabase
+        let query = (supabase as any)
             .from('experiment_assignments')
             .select('variant')
             .eq('experiment_id', experiment.id)
@@ -71,7 +71,7 @@ export async function getExperimentVariant(experimentName: string): Promise<Expe
 
         // 5. Persist assignment
         // Use upsert to handle race conditions safely
-        await supabase.from('experiment_assignments').upsert({
+        await (supabase as any).from('experiment_assignments').upsert({
             experiment_id: experiment.id,
             user_id: user?.id,
             session_id: user ? undefined : sessionId, // Prefer user_id if available

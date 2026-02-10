@@ -5,7 +5,7 @@ import { DatabaseWithAbTesting } from '@/types/database.types'
 
 export async function updateExperimentMetadata(experimentId: string, metadata: any) {
     const supabase = createClient()
-    const { error } = await supabase
+    const { error } = await (supabase as any)
         .from('experiments')
         .update({ metadata })
         .eq('id', experimentId)
