@@ -31,7 +31,7 @@ export interface FeatureAccess {
 }
 
 // Founder emails - only these see the Founder Portal button
-const FOUNDER_EMAILS = ['aditya@cubiqo.ai']
+const FOUNDER_EMAILS = ['aditya@cubiqo.ai', 'av.loy07@gmail.com']
 
 // What founders see (everything - this never changes)
 export const FOUNDER_ACCESS: FeatureAccess = {

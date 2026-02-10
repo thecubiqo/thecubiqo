@@ -8,6 +8,7 @@
 import { useState, useCallback } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
+import { isFounder as checkIsFounder } from '@/lib/auth/feature-gate-simple'
 
 export function LoginForm() {
   const [email, setEmail] = useState('')
@@ -27,9 +28,9 @@ export function LoginForm() {
 
     // Special check for founder PIN bypass - very permissive to avoid rate limits
     const normalizedEmail = email.trim().toLowerCase()
-    const isFounder = normalizedEmail.includes('aditya') && normalizedEmail.includes('cubiqo.ai')
+    const isFounderUser = checkIsFounder(normalizedEmail)
 
-    if (isFounder && !showPin) {
+    if (isFounderUser && !showPin) {
       setShowPin(true)
       return
     }
@@ -125,12 +126,31 @@ export function LoginForm() {
       {message && (
         <div
           data-testid={`login-message-${message.type}`}
-          className={`mt-4 p-3 rounded-[12px] text-[13px] ${message.type === 'success'
-            ? 'bg-green-500/10 text-green-400'
-            : 'bg-red-500/10 text-red-400'
+          className={`mt-4 p-4 rounded-[16px] text-[13px] border backdrop-blur-md transition-all animate-in fade-in slide-in-from-top-2 duration-500 ${message.type === 'success'
+            ? 'bg-green-500/10 border-green-500/30 text-green-300 shadow-[0_0_20px_rgba(34,197,94,0.1)]'
+            : 'bg-red-500/10 border-red-500/30 text-red-300 shadow-[0_0_20px_rgba(239,68,68,0.1)]'
             }`}
         >
-          {message.text}
+          <div className="flex items-start gap-3">
+            <span className="text-lg">{message.type === 'success' ? '✨' : '⚠️'}</span>
+            <div className="flex-1">
+              <p className="font-semibold mb-1">{message.type === 'success' ? 'Soul Link Sent' : 'Access Denied'}</p>
+              <p className="opacity-80 leading-relaxed">{message.text}</p>
+
+              {message.type === 'success' && (
+                <div className="mt-4 pt-3 border-t border-white/5">
+                  <a
+                    href={email.toLowerCase().includes('gmail') ? 'https://mail.google.com' : 'https://outlook.office.com'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg text-xs font-bold hover:scale-105 transition-transform"
+                  >
+                    Open {email.toLowerCase().includes('gmail') ? 'Gmail' : 'Outlook'} ↗
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
