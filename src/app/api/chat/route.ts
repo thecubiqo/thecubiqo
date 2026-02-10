@@ -54,10 +54,18 @@ function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining
 }
 
 // Server-side Supabase client for loading memories
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Made optional - if not configured, memory features are disabled
+let supabaseAdmin: ReturnType<typeof createClient> | null = null
+try {
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+  }
+} catch (e) {
+  console.warn('Supabase admin client not configured - memory features disabled')
+}
 
 // MiniMax API call (primary)
 async function callMiniMax(
@@ -319,9 +327,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Load memories for this session (if sessionId provided)
+    // Load memories for this session (if sessionId provided and Supabase configured)
     let memoryContext = ''
-    if (sessionId) {
+    if (sessionId && supabaseAdmin) {
       try {
         const { data: memories } = await supabaseAdmin
           .from('memory')
@@ -359,57 +367,80 @@ export async function POST(request: NextRequest) {
     let content: string
     let provider: 'minimax' | 'openclaw' | 'claude' | 'openai' = 'minimax'
     
+    // Log which API keys are available (for debugging)
+    console.log('[Chat API] Available providers:', {
+      minimax: !!process.env.MINIMAX_API_KEY,
+      openclaw: !!process.env.OPENCLAW_API_KEY,
+      claude: !!process.env.ANTHROPIC_API_KEY || !!byoClaudeKey,
+      openai: !!process.env.OPENAI_API_KEY || !!byoOpenaiKey
+    })
+    
     // Check MiniMax rate limit
     const { allowed: minimaxAllowed } = checkMiniMaxRateLimit(sessionId || 'anonymous')
 
+    // Collect all errors for debugging
+    const errors: string[] = []
+
     // Try MiniMax first (primary)
-    if (minimaxAllowed) {
+    if (minimaxAllowed && process.env.MINIMAX_API_KEY) {
       try {
         content = await callMiniMax(fullSystemPrompt, messages)
       } catch (minimaxError) {
-        console.warn('MiniMax failed, falling back to OpenClaw:', minimaxError)
-        // Fallback to OpenClaw
-        try {
-          content = await callOpenClaw(fullSystemPrompt, messages)
-          provider = 'openclaw'
-        } catch (openclawError) {
-          console.warn('OpenClaw failed, falling back to Claude:', openclawError)
-          // Fallback to Claude
-          try {
-            content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
-            provider = 'claude'
-          } catch (claudeError) {
-            // Final fallback to OpenAI
-            try {
-              content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
-              provider = 'openai'
-            } catch {
-              throw new Error('All AI providers failed')
-            }
-          }
-        }
+        const errMsg = minimaxError instanceof Error ? minimaxError.message : 'Unknown MiniMax error'
+        errors.push(`MiniMax: ${errMsg}`)
+        console.warn('MiniMax failed:', errMsg)
+        content = '' // Will try fallback
       }
     } else {
-      // MiniMax rate limited, skip to OpenClaw
-      console.warn('MiniMax rate limited, using OpenClaw')
+      errors.push('MiniMax: Skipped (rate limited or no API key)')
+    }
+
+    // Fallback to OpenClaw if MiniMax failed
+    if (!content && process.env.OPENCLAW_API_KEY) {
       try {
         content = await callOpenClaw(fullSystemPrompt, messages)
         provider = 'openclaw'
       } catch (openclawError) {
-        console.warn('OpenClaw failed, falling back to Claude:', openclawError)
-        try {
-          content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
-          provider = 'claude'
-        } catch (claudeError) {
-          try {
-            content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
-            provider = 'openai'
-          } catch {
-            throw new Error('All AI providers failed')
-          }
-        }
+        const errMsg = openclawError instanceof Error ? openclawError.message : 'Unknown OpenClaw error'
+        errors.push(`OpenClaw: ${errMsg}`)
+        console.warn('OpenClaw failed:', errMsg)
       }
+    } else if (!content) {
+      errors.push('OpenClaw: Skipped (no API key)')
     }
+
+    // Fallback to Claude
+    if (!content && (process.env.ANTHROPIC_API_KEY || byoClaudeKey)) {
+      try {
+        content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
+        provider = 'claude'
+      } catch (claudeError) {
+        const errMsg = claudeError instanceof Error ? claudeError.message : 'Unknown Claude error'
+        errors.push(`Claude: ${errMsg}`)
+        console.warn('Claude failed:', errMsg)
+      }
+    } else if (!content) {
+      errors.push('Claude: Skipped (no API key)')
+    }
+
+    // Final fallback to OpenAI
+    if (!content && (process.env.OPENAI_API_KEY || byoOpenaiKey)) {
+      try {
+        content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
+        provider = 'openai'
+      } catch (openaiError) {
+        const errMsg = openaiError instanceof Error ? openaiError.message : 'Unknown OpenAI error'
+        errors.push(`OpenAI: ${errMsg}`)
+        console.warn('OpenAI failed:', errMsg)
+      }
+    } else if (!content) {
+      errors.push('OpenAI: Skipped (no API key)')
+    }
+
+    // If still no content, all providers failed
+    if (!content) {
+      console.error('[Chat API] All providers failed:', errors)
+      throw new Error(`AI Router failed: ${errors.join(' | ')}`)
 
     // Parse response
     const aiResponse: AIResponse = parseResponse(content)
