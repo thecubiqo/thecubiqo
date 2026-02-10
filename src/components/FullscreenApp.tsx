@@ -431,6 +431,20 @@ export function FullscreenApp() {
           </button>
         )}
 
+        {/* Exit User Preview Button - Only visible when simulating */}
+        {typeof window !== 'undefined' && localStorage.getItem('cubiqo_simulate_user') === 'true' && (
+          <button
+            onClick={() => {
+              localStorage.removeItem('cubiqo_simulate_user')
+              window.location.reload()
+            }}
+            className="flex items-center gap-2 text-[13px] text-amber-500 hover:text-amber-400 font-bold bg-amber-950/30 px-3 py-1.5 rounded-full border border-amber-500/30"
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            Exit User View
+          </button>
+        )}
+
         {/* Settings */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}

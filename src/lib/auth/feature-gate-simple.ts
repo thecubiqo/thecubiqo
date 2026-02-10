@@ -22,6 +22,10 @@ export interface FeatureAccess {
   cubikey: boolean
   settings: boolean
   admin: boolean
+  // New features
+  voice_mode: boolean
+  duo_mode: boolean
+  action_cards: boolean
 }
 
 // Founder emails - only these see the Founder Portal button
@@ -47,6 +51,9 @@ export const FOUNDER_ACCESS: FeatureAccess = {
   cubikey: true,
   settings: true,
   admin: true,
+  voice_mode: true,
+  duo_mode: true,
+  action_cards: true,
 }
 
 // What regular users see (controlled by toggles in Founder Portal)
@@ -70,17 +77,27 @@ export let USER_ACCESS: FeatureAccess = {
   cubikey: false,
   settings: true,
   admin: false,
+  voice_mode: true,
+  duo_mode: false,
+  action_cards: true,
 }
 
 // Check if email is a founder
 export function isFounder(email: string | null | undefined): boolean {
+  // Allow simulation of generic user for testing
+  if (typeof window !== 'undefined' && localStorage.getItem('cubiqo_simulate_user') === 'true') {
+    return false
+  }
+
   if (!email) return false
   return FOUNDER_EMAILS.includes(email.toLowerCase())
 }
 
 // Get feature access for a user
 export function getFeatureAccess(email: string | null | undefined): FeatureAccess {
-  return isFounder(email) ? FOUNDER_ACCESS : USER_ACCESS
+  // Force reload from local storage to ensure fresh state
+  const state = getUserAccessState()
+  return isFounder(email) ? FOUNDER_ACCESS : state
 }
 
 // Check if user has a specific feature
@@ -133,11 +150,11 @@ export const FEATURE_METADATA: FeatureMetadata[] = [
   { id: 'cubikey', name: 'CubiKey', description: 'API key management', category: 'Navigation' },
   { id: 'settings', name: 'Settings', description: 'User settings', category: 'Navigation' },
   { id: 'admin', name: 'Admin', description: 'Admin dashboard (Founder only)', category: 'Navigation' },
-  
+
   // Agent Features
   { id: 'codeExecution', name: 'Code Execution', description: 'Execute code in agents', category: 'Agent Features' },
   { id: 'browser', name: 'Browser Control', description: 'Browser automation', category: 'Agent Features' },
-  
+
   // Integrations
   { id: 'gmail', name: 'Gmail (Read)', description: 'Read emails', category: 'Integrations' },
   { id: 'gmailWrite', name: 'Gmail (Write)', description: 'Send emails', category: 'Integrations' },

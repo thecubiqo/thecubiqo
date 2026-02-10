@@ -164,6 +164,7 @@ export default function FoundersDashboard() {
     }
 
     // Toggle feature for production or founders
+    // Toggle feature for production or founders
     const toggleFeature = async (featureId: string, target: 'production' | 'founders') => {
         const feature = features.find(f => f.feature_id === featureId)
         if (!feature) return
@@ -179,6 +180,52 @@ export default function FoundersDashboard() {
                 ? { ...f, [field]: newValue }
                 : f
         ))
+
+        // SYNC WITH LOCAL STORAGE FOR USER PREVIEW (Run My CubiQo)
+        if (target === 'production') {
+            try {
+                // Map feature_id to feature-gate keys
+                // Mapping table based on feature-gate-simple.ts
+                const keyMap: Record<string, string> = {
+                    'web_search': 'browser',
+                    'vision_analyze': 'browser',
+                    'file_read': 'files',
+                    'exec': 'codeExecution',
+                    'code_panel': 'codeExecution',
+                    'browser_control': 'browser',
+                    'voice_mode': 'voice_mode',
+                    'duo_mode': 'duo_mode',
+                    'action_cards': 'action_cards',
+                    'email_read': 'gmail',
+                    'email_send': 'gmailWrite',
+                    'whatsapp_read': 'integrations',
+                    'whatsapp_send': 'integrations',
+                    'telegram_read': 'integrations',
+                    'telegram_send': 'integrations',
+                    'discord_read': 'discord',
+                    'discord_send': 'discord',
+                    'slack_read': 'slack',
+                    'slack_send': 'slack',
+                    'maps_read': 'integrations',
+                    'maps_write': 'integrations',
+                    'uber_read': 'integrations',
+                    'uber_write': 'integrations',
+                    'extension_download': 'admin'
+                }
+
+                const simpleKey = keyMap[featureId]
+                if (simpleKey) {
+                    const stored = localStorage.getItem('userAccess')
+                    const currentAccess = stored ? JSON.parse(stored) : {}
+                    const updatedAccess = { ...currentAccess, [simpleKey]: newValue }
+                    localStorage.setItem('userAccess', JSON.stringify(updatedAccess))
+                    // Dispatch storage event so other tabs might update if they listen
+                    window.dispatchEvent(new Event('storage'))
+                }
+            } catch (e) {
+                console.error("Failed to sync local storage", e)
+            }
+        }
 
         try {
             // Upsert into Supabase (insert if not exists, update if exists)
@@ -312,7 +359,10 @@ export default function FoundersDashboard() {
                         <span className="text-sm text-amber-400 font-medium hidden sm:inline">Founder Access</span>
 
                         <button
-                            onClick={() => window.open('/', '_blank')}
+                            onClick={() => {
+                                localStorage.setItem('cubiqo_simulate_user', 'true')
+                                window.open('/', '_blank')
+                            }}
                             className="px-4 py-2 text-sm bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors border border-white/10"
                         >
                             Run My CubiQo ↗
@@ -361,9 +411,9 @@ export default function FoundersDashboard() {
                                             <h3 className="text-sm font-semibold text-gray-200">
                                                 {categoryLabels[category] || category}
                                             </h3>
-                                            <div className="flex gap-8 text-[10px] uppercase tracking-wider font-semibold text-gray-500 pr-4">
-                                                <span className="w-16 text-center">My Systems</span>
-                                                <span className="w-16 text-center">Generic Users</span>
+                                            <div className="flex gap-12 text-[10px] uppercase tracking-wider font-semibold text-gray-500 pr-8">
+                                                <span className="w-24 text-center">My Systems</span>
+                                                <span className="w-24 text-center">Generic Users</span>
                                             </div>
                                         </div>
 
@@ -371,7 +421,7 @@ export default function FoundersDashboard() {
                                             {categoryFeatures.map(feature => (
                                                 <div
                                                     key={feature.feature_id}
-                                                    className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.02] transition-colors"
+                                                    className="flex items-center justify-between px-6 py-5 hover:bg-white/[0.02] transition-colors"
                                                 >
                                                     {/* Feature Info */}
                                                     <div className="flex items-center gap-4 flex-1">
@@ -385,40 +435,40 @@ export default function FoundersDashboard() {
                                                     </div>
 
                                                     {/* Toggles Container */}
-                                                    <div className="flex items-center gap-8">
+                                                    <div className="flex items-center gap-12">
 
                                                         {/* Founder Toggle */}
-                                                        <div className="flex flex-col items-center gap-1 w-16">
+                                                        <div className="flex flex-col items-center gap-2 w-24">
                                                             <button
                                                                 onClick={() => toggleFeature(feature.feature_id, 'founders')}
                                                                 disabled={saving?.id === feature.feature_id}
                                                                 className={`
-                                                                    relative w-10 h-5 rounded-full transition-all duration-200
-                                                                    ${feature.enabled_for_founders ? 'bg-amber-500' : 'bg-gray-700'}
-                                                                    ${saving?.id === feature.feature_id ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
+                                                                    relative w-14 h-7 rounded-full transition-all duration-300 shadow-inner
+                                                                    ${feature.enabled_for_founders ? 'bg-amber-500 shadow-amber-500/50' : 'bg-gray-800 border border-gray-700'}
+                                                                    ${saving?.id === feature.feature_id ? 'opacity-50 cursor-wait' : 'cursor-pointer hover:scale-105'}
                                                                 `}
                                                             >
                                                                 <div className={`
-                                                                    absolute top-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-200
-                                                                    ${feature.enabled_for_founders ? 'left-6' : 'left-1'}
+                                                                    absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-300
+                                                                    ${feature.enabled_for_founders ? 'left-8' : 'left-1'}
                                                                 `} />
                                                             </button>
                                                         </div>
 
                                                         {/* Public Toggle */}
-                                                        <div className="flex flex-col items-center gap-1 w-16">
+                                                        <div className="flex flex-col items-center gap-2 w-24">
                                                             <button
                                                                 onClick={() => toggleFeature(feature.feature_id, 'production')}
                                                                 disabled={saving?.id === feature.feature_id}
                                                                 className={`
-                                                                    relative w-10 h-5 rounded-full transition-all duration-200
-                                                                    ${feature.enabled_for_production ? 'bg-green-500' : 'bg-gray-700'}
-                                                                    ${saving?.id === feature.feature_id ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
+                                                                    relative w-14 h-7 rounded-full transition-all duration-300 shadow-inner
+                                                                    ${feature.enabled_for_production ? 'bg-green-500 shadow-green-500/50' : 'bg-gray-800 border border-gray-700'}
+                                                                    ${saving?.id === feature.feature_id ? 'opacity-50 cursor-wait' : 'cursor-pointer hover:scale-105'}
                                                                 `}
                                                             >
                                                                 <div className={`
-                                                                    absolute top-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-200
-                                                                    ${feature.enabled_for_production ? 'left-6' : 'left-1'}
+                                                                    absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-300
+                                                                    ${feature.enabled_for_production ? 'left-8' : 'left-1'}
                                                                 `} />
                                                             </button>
                                                         </div>
