@@ -11,6 +11,7 @@ export interface RouterConfig {
     // Context for caching/logging
     userId?: string
     sessionId?: string
+    isFounder?: boolean
 }
 
 // Model Definitions (Centralized)
@@ -59,7 +60,7 @@ export class PolicyRouter {
                 return this.executeRedPath(systemPrompt, messages)
             case 'GREEN':
             default:
-                return this.executeGreenPath(systemPrompt, messages)
+                return this.executeGreenPath(systemPrompt, messages, config.isFounder)
         }
     }
 
@@ -88,7 +89,19 @@ export class PolicyRouter {
     }
 
     // Green: Task -> MiniMax -> DeepSeek -> Gemini/Opus (Ultimate Fallback)
-    private static async executeGreenPath(sys: string, msgs: any[]): Promise<string> {
+    private static async executeGreenPath(sys: string, msgs: any[], isFounder?: boolean): Promise<string> {
+        const openRouterMsgs = this.formatMsgs(sys, msgs)
+
+        // 0. Founder Escalation: Direct to High-Efficiency Sonnet 3.5
+        if (isFounder) {
+            console.log('[PolicyRouter] Founder escalation -> Claude 3.5 Sonnet')
+            try {
+                return (await callOpenRouter(MODELS.SONNET_3_5, openRouterMsgs)).content
+            } catch (e) {
+                console.warn('[Router] Founder escalation to Sonnet failed, falling back...', e)
+            }
+        }
+
         // 1. Primary: MiniMax (Direct via existing integration or OpenRouter)
         // Using direct integration if key exists, else OpenRouter
         if (process.env.MINIMAX_API_KEY) {
@@ -99,7 +112,15 @@ export class PolicyRouter {
             }
         }
 
-        const openRouterMsgs = this.formatMsgs(sys, msgs)
+        // 1. Primary: MiniMax (Direct via existing integration or OpenRouter)
+        // Using direct integration if key exists, else OpenRouter
+        if (process.env.MINIMAX_API_KEY) {
+            try {
+                return await callMiniMax(sys, msgs)
+            } catch (e) {
+                console.warn('[Router] Green primary (MiniMax) failed, escalating...', e)
+            }
+        }
 
         // 2. Secondary: DeepSeek V3 (Performance/Cost balance)
         try {

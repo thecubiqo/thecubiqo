@@ -21,6 +21,7 @@ import { buildMemoryContext } from '@/lib/ai/memory-extraction.server'
 import { getRegionConfig, buildRegionalPrompt } from '@/lib/config/regions'
 import { PolicyRouter, ZoneColor } from '@/lib/ai/policy-router'
 import { SemanticCache } from '@/lib/ai/cache'
+import { FOUNDER_SYSTEM_PROMPT } from '@/lib/ai/founder-prompt'
 
 // Server-side Supabase client for loading memories
 const supabaseAdmin = createClient(
@@ -41,8 +42,8 @@ Rules: mention no passwords, easy magic link. End with [AUTH_NUDGE:short CTA].`
 
 export async function POST(request: NextRequest) {
   try {
-    const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string; duoMode?: boolean; context?: string; userId?: string } = await request.json()
-    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region, duoMode = false, context, userId } = body
+    const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string; duoMode?: boolean; context?: string; userId?: string; isFounder?: boolean } = await request.json()
+    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region, duoMode = false, context, userId, isFounder = false } = body
 
     // Get region from body or header
     const regionId = region || request.headers.get('x-user-region')
@@ -86,7 +87,10 @@ export async function POST(request: NextRequest) {
     }
 
     const authNudge = buildAuthNudgePrompt(isGuest, messageCount)
-    const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + regionalContext + duoModeContext + extensionContext + authNudge
+
+    // Choose base system prompt
+    const basePrompt = isFounder ? FOUNDER_SYSTEM_PROMPT : SYSTEM_PROMPT
+    const fullSystemPrompt = basePrompt + memoryContext + regionalContext + duoModeContext + extensionContext + authNudge
 
     // --- POLICY ROUTER & CACHING ---
 
@@ -97,7 +101,7 @@ export async function POST(request: NextRequest) {
     if (currentColor === 'RED') zone = 'RED'
 
     // Check Cache
-    const cacheKey = fullSystemPrompt + messages.map(m => m.content).join('')
+    const cacheKey = fullSystemPrompt + messages.map(m => m.content).join('') + (isFounder ? ':founder' : '')
     const cachedResponse = await SemanticCache.get(cacheKey, zone)
 
     if (cachedResponse) {
@@ -105,7 +109,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ...parseResponse(cachedResponse), provider: 'cache', byo: false })
     }
 
-    console.log(`[API] Routing to ${zone} zone`)
+    console.log(`[API] Routing to ${zone} zone ${isFounder ? '(FOUNDER)' : ''}`)
 
     let content: string
     try {
@@ -113,7 +117,8 @@ export async function POST(request: NextRequest) {
         zone,
         reasoning: false, // Default to false until UI toggle added
         userId: userId || 'anonymous',
-        sessionId
+        sessionId,
+        isFounder // Passed isFounder to PolicyRouter.route
       })
 
       // Save to Cache
