@@ -133,6 +133,11 @@ export default function FoundersDashboard() {
             { id: '6', feature_id: 'voice_mode', name: 'Voice Mode', description: 'Voice input/output', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'experience' },
             { id: '7', feature_id: 'duo_mode', name: 'Duo Mode', description: 'Proactive AI interjections', enabled_for_production: false, enabled_for_founders: true, risk_level: 'safe', category: 'experience' },
             { id: '9', feature_id: 'action_cards', name: 'Action Cards', description: 'Confirmation cards for actions', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'experience' },
+            { id: '16', feature_id: 'sidekick_mode', name: 'Sidekick Companion', description: 'AI companion mode', enabled_for_production: false, enabled_for_founders: true, risk_level: 'safe', category: 'experience' },
+            { id: '17', feature_id: 'cope_mode', name: 'Cope Up Mode', description: 'Therapeutic support mode', enabled_for_production: false, enabled_for_founders: true, risk_level: 'safe', category: 'experience' },
+
+            // Chrome Extension
+            { id: 'ext_download', feature_id: 'extension_download', name: 'Chrome Extension', description: 'Install the CubiQo Sidekick', enabled_for_production: true, enabled_for_founders: true, risk_level: 'safe', category: 'extension' },
 
             // Integrations: Email
             { id: '5a', feature_id: 'email_read', name: 'Email (Read)', description: 'Read & Draft Emails', enabled_for_production: false, enabled_for_founders: true, risk_level: 'moderate', category: 'integrations' },
@@ -199,6 +204,8 @@ export default function FoundersDashboard() {
                     'voice_mode': 'voice_mode',
                     'duo_mode': 'duo_mode',
                     'action_cards': 'action_cards',
+                    'sidekick_mode': 'sidekick_mode',
+                    'cope_mode': 'cope_mode',
                     'email_read': 'gmail',
                     'email_send': 'gmailWrite',
                     'whatsapp_read': 'integrations',
@@ -315,6 +322,8 @@ export default function FoundersDashboard() {
         extension: '🧩 Extension'
     }
 
+    // Extension features are now in default features
+    /*
     const extensionFeatures: FeatureFlag[] = [{
         id: 'ext_download',
         feature_id: 'extension_download',
@@ -325,11 +334,10 @@ export default function FoundersDashboard() {
         risk_level: 'safe',
         category: 'extension'
     }]
-
-    // Merge extension features into groupedFeatures for display
     if (!groupedFeatures['extension']) {
         groupedFeatures['extension'] = extensionFeatures
     }
+    */
 
     const riskColors = {
         safe: 'text-green-400 bg-green-500/10',

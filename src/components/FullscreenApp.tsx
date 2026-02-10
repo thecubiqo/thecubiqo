@@ -560,7 +560,7 @@ export function FullscreenApp() {
           >
             {!voiceSupported
               ? 'Voice access is controlled by your browser.'
-              : 'Enable'
+              : ''
             }
           </span>
         </button>

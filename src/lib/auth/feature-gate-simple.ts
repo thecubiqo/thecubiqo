@@ -26,6 +26,8 @@ export interface FeatureAccess {
   voice_mode: boolean
   duo_mode: boolean
   action_cards: boolean
+  sidekick_mode: boolean
+  cope_mode: boolean
 }
 
 // Founder emails - only these see the Founder Portal button
@@ -54,6 +56,8 @@ export const FOUNDER_ACCESS: FeatureAccess = {
   voice_mode: true,
   duo_mode: true,
   action_cards: true,
+  sidekick_mode: true,
+  cope_mode: true,
 }
 
 // What regular users see (controlled by toggles in Founder Portal)
@@ -80,6 +84,8 @@ export let USER_ACCESS: FeatureAccess = {
   voice_mode: true,
   duo_mode: false,
   action_cards: true,
+  sidekick_mode: false,
+  cope_mode: false,
 }
 
 // Check if email is a founder
