@@ -1,6 +1,10 @@
-// Open side panel on action click
-chrome.action.onClicked.addListener((tab) => {
-    chrome.sidePanel.open({ tabId: tab.id });
+// Configure side panel behavior on installation
+chrome.runtime.onInstalled.addListener(() => {
+    console.log('CubiQo Sidekick installed');
+    if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
+        chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
+            .catch((error) => console.error(error));
+    }
 });
 
 // Allow content scripts to send messsages

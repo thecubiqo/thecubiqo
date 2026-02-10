@@ -104,8 +104,7 @@ export class PolicyRouter {
     private static async executeGreenPath(sys: string, msgs: any[]): Promise<string> {
         const openRouterMsgs = this.formatMsgs(sys, msgs)
 
-        // 1. Primary: MiniMax (Direct via existing integration or OpenRouter)
-        // Using direct integration if key exists, else OpenRouter
+        // 1. Primary: MiniMax
         if (process.env.MINIMAX_API_KEY) {
             try {
                 return await callMiniMax(sys, msgs)
@@ -114,17 +113,7 @@ export class PolicyRouter {
             }
         }
 
-        // 1. Primary: MiniMax (Direct via existing integration or OpenRouter)
-        // Using direct integration if key exists, else OpenRouter
-        if (process.env.MINIMAX_API_KEY) {
-            try {
-                return await callMiniMax(sys, msgs)
-            } catch (e) {
-                console.warn('[Router] Green primary (MiniMax) failed, escalating...', e)
-            }
-        }
-
-        // 2. Secondary: DeepSeek V3 (Performance/Cost balance)
+        // 2. Secondary: DeepSeek V3
         try {
             return (await callOpenRouter(MODELS.DEEPSEEK_V3, openRouterMsgs)).content
         } catch (e) {
@@ -132,12 +121,16 @@ export class PolicyRouter {
         }
 
         // 3. Ultimate Fallback: Gemini Pro 1.5 or Opus
-        // "Get the task done"
         try {
             return (await callOpenRouter(MODELS.GEMINI_PRO_1_5, openRouterMsgs)).content
         } catch (e) {
             console.warn('[Router] Gemini failed, LAST RESORT: OPUS', e)
-            return (await callOpenRouter(MODELS.OPUS_3, openRouterMsgs)).content
+            try {
+                return (await callOpenRouter(MODELS.OPUS_3, openRouterMsgs)).content
+            } catch (finalError) {
+                console.error('[Router] ALL AI MODELS FAILED', finalError)
+                return "I apologize, but my AI core is currently unreachable. Please check your API keys or try again later."
+            }
         }
     }
 
