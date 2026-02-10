@@ -44,7 +44,19 @@ export class PolicyRouter {
         messages: { role: string; content: string }[],
         config: RouterConfig
     ): Promise<string> {
-        const { zone, reasoning = false } = config
+        const { zone, reasoning = false, isFounder = false } = config
+
+        // 0. Founder Escalation (Global): Direct to High-Efficiency Sonnet 3.5
+        // This ensures founders always get the top model regardless of session color
+        if (isFounder) {
+            console.log('[PolicyRouter] Founder escalation -> Claude 3.5 Sonnet')
+            const openRouterMsgs = this.formatMsgs(systemPrompt, messages)
+            try {
+                return (await callOpenRouter(MODELS.SONNET_3_5, openRouterMsgs)).content
+            } catch (e) {
+                console.warn('[Router] Founder escalation to Sonnet failed, falling back to zone routing...', e)
+            }
+        }
 
         // 1. Reasoning Flag Override
         if (reasoning) {
@@ -60,7 +72,7 @@ export class PolicyRouter {
                 return this.executeRedPath(systemPrompt, messages)
             case 'GREEN':
             default:
-                return this.executeGreenPath(systemPrompt, messages, config.isFounder)
+                return this.executeGreenPath(systemPrompt, messages)
         }
     }
 
@@ -89,18 +101,8 @@ export class PolicyRouter {
     }
 
     // Green: Task -> MiniMax -> DeepSeek -> Gemini/Opus (Ultimate Fallback)
-    private static async executeGreenPath(sys: string, msgs: any[], isFounder?: boolean): Promise<string> {
+    private static async executeGreenPath(sys: string, msgs: any[]): Promise<string> {
         const openRouterMsgs = this.formatMsgs(sys, msgs)
-
-        // 0. Founder Escalation: Direct to High-Efficiency Sonnet 3.5
-        if (isFounder) {
-            console.log('[PolicyRouter] Founder escalation -> Claude 3.5 Sonnet')
-            try {
-                return (await callOpenRouter(MODELS.SONNET_3_5, openRouterMsgs)).content
-            } catch (e) {
-                console.warn('[Router] Founder escalation to Sonnet failed, falling back...', e)
-            }
-        }
 
         // 1. Primary: MiniMax (Direct via existing integration or OpenRouter)
         // Using direct integration if key exists, else OpenRouter

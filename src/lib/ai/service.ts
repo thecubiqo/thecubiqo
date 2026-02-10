@@ -126,7 +126,7 @@ export function parseResponse(content: string): AIResponse {
 
     return {
       color: parsed.color as ColorName,
-      response: parsed.response
+      response: parsed.response || content || "I'm listening, though my processing core returned a blank vector. How else can I assist?"
     }
   } catch (error) {
     // Fallback if response is not valid JSON
@@ -134,7 +134,7 @@ export function parseResponse(content: string): AIResponse {
     console.error('Raw content:', content)
     return {
       color: 'ORANGE',
-      response: content // Use raw response
+      response: content || "I'm processing your request, but the output stream is currently void. Please try rephrasing."
     }
   }
 }
