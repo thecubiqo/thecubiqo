@@ -266,6 +266,14 @@ export default function FoundersDashboard() {
                 throw new Error(result.error || 'Failed to update')
             }
 
+            // Success feedback
+            if (target === 'production') {
+                setErrorMessage(null) // clear any old errors
+                // We reuse the errorMessage state briefly for a success toast or add a new one
+                // For now, let's just log and clear saving
+                console.log(`[Dashboard] ${feature.name} pushed to production.`)
+            }
+
         } catch (e: any) {
             console.error('[Dashboard] Exception saving feature:', e)
             setErrorMessage(`Exception saving ${feature.name}: ${e.message || e}`)

@@ -57,17 +57,36 @@ export function FullscreenApp() {
   const [userToggles, setUserToggles] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
-    // Read dashboard's production feature flags
+    // 1. Initial local read (fastest)
     const dashStored = localStorage.getItem('cubiqo_dashboard_production')
     if (dashStored) {
       try { setEnabledFeatures(JSON.parse(dashStored)) } catch { }
     }
-    // Read user's personal toggle overrides
+
+    // 2. Global Sync (Real Push)
+    const fetchGlobalFeatures = async () => {
+      try {
+        const res = await fetch('/api/features')
+        if (res.ok) {
+          const data = await res.json()
+          if (data.features) {
+            setEnabledFeatures(data.features)
+            // Save to local for faster next load
+            localStorage.setItem('cubiqo_dashboard_production', JSON.stringify(data.features))
+          }
+        }
+      } catch (e) {
+        console.warn('[CubiQo] Feature sync failed')
+      }
+    }
+    fetchGlobalFeatures()
+
+    // 3. Read user's personal toggle overrides
     const userStored = localStorage.getItem('cubiqo_user_toggles')
     if (userStored) {
       try { setUserToggles(JSON.parse(userStored)) } catch { }
     }
-    // Listen for dashboard updates
+    // Listen for dashboard updates (local sync)
     const onStorage = () => {
       const d = localStorage.getItem('cubiqo_dashboard_production')
       if (d) try { setEnabledFeatures(JSON.parse(d)) } catch { }
