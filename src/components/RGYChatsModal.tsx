@@ -81,12 +81,12 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim()) return
-    
+
     // Store in localStorage for now
     const testers = JSON.parse(localStorage.getItem('signal_early_access') || '[]')
     testers.push({ email, timestamp: Date.now() })
     localStorage.setItem('signal_early_access', JSON.stringify(testers))
-    
+
     setIsSubmitted(true)
     setTimeout(() => setIsSubmitted(false), 3000)
     setEmail('')
@@ -95,7 +95,7 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
   if (!isOpen) return null
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-[90] bg-[#0a0a0a] overflow-y-auto"
       onClick={onClose}
     >
@@ -113,10 +113,10 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
               <div className="text-[10px] text-white/40 tracking-wide">One is enough.</div>
             </div>
           </div>
-          
-          <button 
+
+          <button
             onClick={onClose}
-            className="ml-auto p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            className="fixed top-5 right-6 z-[100] p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors bg-black/50 backdrop-blur-md border border-white/10"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -126,42 +126,6 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
 
         {/* Content */}
         <div className="max-w-4xl mx-auto px-6 py-16">
-          {/* Early Access Banner */}
-          <div className="mb-12 p-6 rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent backdrop-blur-sm">
-            <div className="flex items-center justify-between gap-6">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    EARLY ACCESS
-                  </span>
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-1">
-                  Join us in testing Signal
-                </h3>
-                <p className="text-sm text-white/50">
-                  Be among the first to experience intent-based matching. Get early access and help shape the future.
-                </p>
-              </div>
-              <form onSubmit={handleEmailSubmit} className="flex gap-2 min-w-[320px]">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  required
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-colors"
-                />
-                <button
-                  type="submit"
-                  disabled={isSubmitted}
-                  className="px-6 py-2.5 rounded-xl bg-white text-black font-medium hover:bg-white/90 transition-all disabled:opacity-50"
-                >
-                  {isSubmitted ? '✓ Joined' : 'Join'}
-                </button>
-              </form>
-            </div>
-          </div>
-
           {/* Title */}
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-white mb-4">Choose Your Context</h1>
@@ -176,9 +140,8 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
               <button
                 key={zone.id}
                 onClick={() => setSelectedZone(zone.id)}
-                className={`relative p-6 rounded-2xl text-left transition-all duration-200 ${
-                  selectedZone === zone.id ? 'scale-[1.02]' : 'hover:scale-[1.01]'
-                }`}
+                className={`relative p-6 rounded-2xl text-left transition-all duration-200 ${selectedZone === zone.id ? 'scale-[1.02]' : 'hover:scale-[1.01]'
+                  }`}
                 style={{
                   background: zone.bgGradient,
                   border: `1px solid ${selectedZone === zone.id ? zone.color : zone.borderColor}`,
@@ -208,7 +171,7 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
                 </div>
 
                 {/* Bottom accent line */}
-                <div 
+                <div
                   className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full"
                   style={{ backgroundColor: zone.color }}
                 />
@@ -237,12 +200,13 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
 interface RGYSignalButtonProps {
   onClick: () => void
   isDark?: boolean
-  pulseColor?: 'RED' | 'YELLOW' | 'GREEN' | null // Which color to pulse
+  pulseColor?: 'RED' | 'YELLOW' | 'GREEN' | null
+  compact?: boolean
 }
 
-export function RGYSignalButton({ onClick, isDark = true, pulseColor = null }: RGYSignalButtonProps) {
+export function RGYSignalButton({ onClick, isDark = true, pulseColor = null, compact = false }: RGYSignalButtonProps) {
   const [activePulse, setActivePulse] = useState<'RED' | 'YELLOW' | 'GREEN' | null>(null)
-  
+
   // Handle pulse when pulseColor changes
   useEffect(() => {
     if (pulseColor) {
@@ -264,39 +228,40 @@ export function RGYSignalButton({ onClick, isDark = true, pulseColor = null }: R
       onClick={onClick}
       data-testid="rgy-signal-button"
       className={`
-        w-10 h-20 rounded-full
-        flex flex-col items-center justify-center gap-1.5
+        ${compact ? 'w-8 h-16 gap-1' : 'w-10 h-20 gap-1.5'}
+        rounded-full
+        flex flex-col items-center justify-center
         transition-all duration-200
-        ${isDark 
-          ? 'bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] hover:bg-white/[0.05]' 
+        ${isDark
+          ? 'bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] hover:bg-white/[0.05]'
           : 'bg-black/[0.03] backdrop-blur-sm border border-black/[0.06] hover:bg-black/[0.05]'
         }
       `}
     >
       {/* Red dot */}
-      <div 
+      <div
         className="w-2.5 h-2.5 rounded-full transition-all duration-300"
-        style={{ 
+        style={{
           backgroundColor: isRedActive ? '#ef4444' : 'rgba(239, 68, 68, 0.25)',
           boxShadow: isRedActive ? '0 0 12px rgba(239, 68, 68, 0.8)' : 'none',
           transform: isRedActive ? 'scale(1.3)' : 'scale(1)',
         }}
       />
-      
+
       {/* Yellow dot */}
-      <div 
+      <div
         className="w-2.5 h-2.5 rounded-full transition-all duration-300"
-        style={{ 
+        style={{
           backgroundColor: isYellowActive ? '#eab308' : 'rgba(234, 179, 8, 0.25)',
           boxShadow: isYellowActive ? '0 0 12px rgba(234, 179, 8, 0.8)' : 'none',
           transform: isYellowActive ? 'scale(1.3)' : 'scale(1)',
         }}
       />
-      
+
       {/* Green dot */}
-      <div 
+      <div
         className="w-2.5 h-2.5 rounded-full transition-all duration-300"
-        style={{ 
+        style={{
           backgroundColor: isGreenActive ? '#22c55e' : 'rgba(34, 197, 94, 0.25)',
           boxShadow: isGreenActive ? '0 0 12px rgba(34, 197, 94, 0.8)' : 'none',
           transform: isGreenActive ? 'scale(1.3)' : 'scale(1)',

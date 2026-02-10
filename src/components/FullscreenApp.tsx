@@ -25,6 +25,8 @@ import { useBYO } from '@/hooks/useBYO'
 import type { ColorName } from '@/config/colors'
 import CodePanel from './CodePanel'
 import type { AnimationState } from './cube/Cube'
+import { ActionCardList } from './actions/ActionCard'
+import type { Action } from '@/lib/actions/action-types'
 
 // App states matching legacy
 type AppState = 'idle' | 'listening' | 'thinking' | 'speaking'
@@ -50,6 +52,32 @@ export function FullscreenApp() {
   const [showGettingStarted, setShowGettingStarted] = useState(false)
   const [devMode, setDevMode] = useState(false)
 
+  // Integration toggles — always visible in Settings
+  const [integrationToggles, setIntegrationToggles] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    const stored = localStorage.getItem('cubiqo_user_toggles')
+    if (stored) setIntegrationToggles(JSON.parse(stored))
+  }, [])
+  const toggleIntegration = (key: string) => {
+    setIntegrationToggles(prev => {
+      const updated = { ...prev, [key]: !prev[key] }
+      localStorage.setItem('cubiqo_user_toggles', JSON.stringify(updated))
+      return updated
+    })
+  }
+
+  // SSR-safe localStorage state — default to safe values, read in useEffect
+  const [hideQuestions, setHideQuestions] = useState(true)
+  const [isSimulatingUser, setIsSimulatingUser] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    setHideQuestions(localStorage.getItem('cubiqo_hide_questions') === 'true')
+    setIsSimulatingUser(localStorage.getItem('cubiqo_simulate_user') === 'true')
+    setHydrated(true)
+  }, [])
+
   // RGY Signal pulse state - triggers brief pulse when keyword is saved
   const [rgyPulseColor, setRgyPulseColor] = useState<'RED' | 'YELLOW' | 'GREEN' | null>(null)
 
@@ -57,6 +85,33 @@ export function FullscreenApp() {
   const [earlyAccessEmail, setEarlyAccessEmail] = useState('')
   const [earlyAccessSubmitted, setEarlyAccessSubmitted] = useState(false)
   const [showEarlyAccess, setShowEarlyAccess] = useState(true)
+
+  // Actions State
+  const [pendingActions, setPendingActions] = useState<Action[]>([])
+
+  // Mock Action for Demo (remove later)
+  useEffect(() => {
+    // Only verify if we have the feature flag or just for testing
+    // setPendingActions([
+    //   { id: '1', type: 'email', title: 'Send Email', description: 'Draft to Aditya', status: 'pending', risk: 'medium', to: ['aditya@cubiqo.ai'], subject: 'Updates', body: 'All fixed!' }
+    // ])
+  }, [])
+
+  const handleActionConfirm = async (id: string) => {
+    // Simulate confirmation
+    setPendingActions(prev => prev.map(a => a.id === id ? { ...a, status: 'confirmed' } : a))
+    // Clear after delay
+    setTimeout(() => {
+      setPendingActions(prev => prev.filter(a => a.id !== id))
+    }, 2000)
+  }
+
+  const handleActionCancel = (id: string) => {
+    setPendingActions(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' } : a))
+    setTimeout(() => {
+      setPendingActions(prev => prev.filter(a => a.id !== id))
+    }, 2000)
+  }
 
   // Combined Founder Check (Email OR PIN)
   const [isFounderMode, setIsFounderMode] = useState(false)
@@ -222,6 +277,24 @@ export function FullscreenApp() {
             responseText = responseText.replace('[AUTH_NUDGE]', '').trim()
           }
 
+          // Check for actions [ACTION]...[/ACTION]
+          const actionMatch = responseText.match(/\[ACTION\]([\s\S]*?)\[\/ACTION\]/)
+          if (actionMatch) {
+            try {
+              const actionData = JSON.parse(actionMatch[1])
+              const newAction: Action = {
+                ...actionData,
+                id: Date.now().toString(),
+                status: 'pending',
+                createdAt: new Date()
+              }
+              setPendingActions(prev => [...prev, newAction])
+              responseText = responseText.replace(actionMatch[0], '').trim()
+            } catch (e) {
+              console.error('Failed to parse action:', e)
+            }
+          }
+
           // Transition: thinking → speaking (handled by TTS onStart)
           speak(responseText)
         } else {
@@ -331,15 +404,17 @@ export function FullscreenApp() {
       </div>
 
       {/* Floating Questions - Slow Scroll */}
-      {!window.localStorage.getItem('cubiqo_hide_questions') && (
+      {!hideQuestions && (
         <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[400px] h-[300px] overflow-visible pointer-events-auto group">
           <button
             onClick={() => {
               const el = document.getElementById('questions-panel');
               if (el) el.style.display = 'none';
               localStorage.setItem('cubiqo_hide_questions', 'true');
+              setHideQuestions(true);
             }}
-            className="absolute -top-6 left-0 text-white/20 hover:text-white/60 transition-colors opacity-0 group-hover:opacity-100"
+            className="absolute -top-8 left-0 p-1.5 rounded-full text-white/40 hover:text-white/80 hover:bg-white/10 transition-all"
+            title="Hide questions"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
@@ -408,18 +483,8 @@ export function FullscreenApp() {
             </span>
           </div>
 
-          {/* Right side - RGY Signal + Keywords + SIGNAL Logo */}
-          <div className="flex items-center gap-6">
-            {/* RGY Traffic Light - Moved to Header */}
-            <div className="flex flex-col items-center">
-              <RGYSignalButton
-                onClick={() => setShowKeywordPanel(true)}
-                isDark={isDark}
-                pulseColor={rgyPulseColor}
-                compact={true}
-              />
-            </div>
-
+          {/* Right side - SIGNAL Logo only in header */}
+          <div className="flex items-center gap-4">
             <button
               onClick={() => setShowRGYChats(true)}
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
@@ -430,36 +495,90 @@ export function FullscreenApp() {
                 className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
               />
               <div className="flex flex-col items-start">
-                <span className="text-xl sm:text-2xl font-semibold tracking-[0.08em] text-white leading-tight">SIGNAL</span>
-                <span className="text-[10px] sm:text-[11px] text-white/60 tracking-wide">One is enough.</span>
+                <span className={`text-xl sm:text-2xl font-semibold tracking-[0.08em] leading-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>SIGNAL</span>
+                <span className={`text-[10px] sm:text-[11px] tracking-wide ${isDark ? 'text-white/60' : 'text-gray-500'}`}>One is enough.</span>
               </div>
             </button>
           </div>
         </div>
       </header>
 
+      {/* Action Cards Overlay - Top Right, below header */}
+      <div className="fixed top-24 right-6 z-[60] w-[350px] max-w-[90vw]">
+        <ActionCardList
+          actions={pendingActions}
+          onConfirm={handleActionConfirm}
+          onCancel={handleActionCancel}
+        />
+      </div>
+
+      {/* RGY Traffic Light + Keywords - Right side, floated higher */}
+      <div className="fixed right-6 top-[35%] -translate-y-1/2 z-[40] flex flex-col items-center gap-3">
+        <RGYSignalButton
+          onClick={() => setShowKeywordPanel(true)}
+          isDark={isDark}
+          pulseColor={rgyPulseColor}
+          compact={true}
+        />
+        <button
+          onClick={() => setShowKeywordPanel(true)}
+          className={`flex items-center gap-1.5 text-[11px] transition-colors ${isDark ? 'text-white/30 hover:text-white/50' : 'text-gray-400 hover:text-gray-600'}`}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+          </svg>
+          Keywords
+        </button>
+      </div>
+
       <div className="fixed left-6 bottom-6 z-[55] flex flex-col gap-3">
         {/* Dev Mode Toggle - Founders Only */}
         {isFounderMode && (
-          <button
-            onClick={() => setDevMode(!devMode)}
-            className={`flex items-center gap-2 text-[13px] transition-colors ${isDark
-              ? 'text-white/40 hover:text-white/60'
-              : 'text-gray-500 hover:text-gray-700'
-              } ${devMode ? 'text-blue-400 hover:text-blue-300' : ''}`}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 18" />
-            </svg>
-            <span className="font-medium">Dev Panel</span>
-          </button>
+          <div className="flex flex-col gap-2 items-start pointer-events-auto">
+            <button
+              onClick={() => setDevMode(!devMode)}
+              className={`flex items-center gap-2 text-[13px] transition-colors ${isDark
+                ? 'text-white/40 hover:text-white/60'
+                : 'text-gray-500 hover:text-gray-700'
+                } ${devMode ? 'text-blue-400 hover:text-blue-300' : ''}`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 18" />
+              </svg>
+              <span className="font-medium">Dev Panel</span>
+            </button>
+
+            {devMode && (
+              <button
+                onClick={() => {
+                  const mockAction = {
+                    id: Date.now().toString(),
+                    type: 'email' as const,
+                    title: 'Send Email',
+                    description: 'Draft to Team',
+                    status: 'pending' as const,
+                    risk: 'medium' as const,
+                    createdAt: new Date(),
+                    to: ['team@cubiqo.ai'],
+                    subject: 'Project Updates',
+                    body: 'Here are the latest updates...'
+                  }
+                  setPendingActions(prev => [...prev, mockAction])
+                }}
+                className="ml-6 text-[11px] text-green-400 hover:text-green-300 flex items-center gap-1"
+              >
+                <span>+ Test Action</span>
+              </button>
+            )}
+          </div>
         )}
 
         {/* Exit User Preview Button - Only visible when simulating */}
-        {typeof window !== 'undefined' && localStorage.getItem('cubiqo_simulate_user') === 'true' && (
+        {isSimulatingUser && (
           <button
             onClick={() => {
               localStorage.removeItem('cubiqo_simulate_user')
+              setIsSimulatingUser(false)
               window.location.reload()
             }}
             className="flex items-center gap-2 text-[13px] text-amber-500 hover:text-amber-400 font-bold bg-amber-950/30 px-3 py-1.5 rounded-full border border-amber-500/30"
@@ -485,23 +604,12 @@ export function FullscreenApp() {
           <span className="font-medium">Settings</span>
         </button>
 
-        {/* Sign In - Hide if Founder Simulation active (implied signed in but hiding UI) */}
-        {!isFounderMode && localStorage.getItem('cubiqo_simulate_user') !== 'true' && (
-          isAuthenticated ? (
-            <button
-              onClick={() => setMenuOpen(true)}
-              className="flex items-center gap-2 text-[13px] text-white/40 hover:text-white/60 transition-colors"
-              data-testid="user-profile-button"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-              </svg>
-              <span className="truncate max-w-[100px]">{user?.email?.split('@')[0]}</span>
-            </button>
-          ) : (
+        {/* Sign In / Profile - Only show Sign In when NOT authenticated */}
+        {!isSimulatingUser && (
+          isAuthenticated || isFounderMode ? null : (
             <button
               onClick={() => setShowAuthForm(true)}
-              className="flex items-center gap-2 text-[13px] text-white/40 hover:text-white/60 transition-colors"
+              className={`flex items-center gap-2 text-[13px] transition-colors ${isDark ? 'text-white/40 hover:text-white/60' : 'text-gray-500 hover:text-gray-700'}`}
               data-testid="sign-in-button"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -582,186 +690,295 @@ export function FullscreenApp() {
 
 
 
-      <div className={`text-[10px] tracking-widest uppercase ${isDark ? 'text-white/20' : 'text-gray-400/50'}`}>
-        Anthropic · OpenAI · Llama · Mistral · Gemini · DeepSeek
-      </div>
-    </div>
-      </footer >
 
-    {/* Sign In Modal - Premium Apple Style */ }
-  {
-    showAuthForm && !isAuthenticated && (
-      <div
-        className="fixed inset-0 z-[80] flex items-center justify-center"
-        style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(20px)' }}
-        onClick={() => setShowAuthForm(false)}
-        data-testid="sign-in-modal-overlay"
-      >
-        <div
-          className="w-[340px] max-w-[85vw] rounded-[24px] px-8 py-7"
-          style={{
-            background: 'rgba(38,38,40,0.95)',
-            backdropFilter: 'blur(40px)',
-            WebkitBackdropFilter: 'blur(40px)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(255,255,255,0.08)'
-          }}
-          onClick={(e) => e.stopPropagation()}
-          data-testid="sign-in-modal"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between mb-7">
-            <h2 className="text-[19px] font-normal text-white/90 tracking-tight">Sign In</h2>
-            <button
-              onClick={() => setShowAuthForm(false)}
-              className="p-1 -mr-1 text-white/30 hover:text-white/50 transition-colors"
-              data-testid="sign-in-modal-close"
+      {/* Sign In Modal - Premium Apple Style */}
+      {
+        showAuthForm && !isAuthenticated && (
+          <div
+            className="fixed inset-0 z-[80] flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(20px)' }}
+            onClick={() => setShowAuthForm(false)}
+            data-testid="sign-in-modal-overlay"
+          >
+            <div
+              className="w-[340px] max-w-[85vw] rounded-[24px] px-8 py-7"
+              style={{
+                background: isDark ? 'rgba(38,38,40,0.95)' : 'rgba(255,255,255,0.95)',
+                backdropFilter: 'blur(40px)',
+                WebkitBackdropFilter: 'blur(40px)',
+                boxShadow: isDark
+                  ? '0 8px 32px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(255,255,255,0.08)'
+                  : '0 8px 32px rgba(0,0,0,0.1), 0 0 0 0.5px rgba(0,0,0,0.05)'
+              }}
+              onClick={(e) => e.stopPropagation()}
+              data-testid="sign-in-modal"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Login Form */}
-          <LoginForm />
-        </div>
-      </div>
-    )
-  }
-
-  {/* Settings Panel - Premium Frosted Glass */ }
-  {
-    menuOpen && (
-      <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-[2px]" onClick={() => setMenuOpen(false)}>
-        <div
-          className="absolute left-0 top-0 bottom-0 w-[320px] max-w-[90vw] flex flex-col"
-          style={{
-            animation: 'slideInLeft 0.3s ease-out',
-            background: isDark
-              ? 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)'
-              : 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(245,245,245,0.98) 100%)',
-            backdropFilter: 'blur(24px) saturate(1.2)',
-            WebkitBackdropFilter: 'blur(24px) saturate(1.2)',
-            borderRight: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.08)',
-            boxShadow: isDark
-              ? '0 0 80px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)'
-              : '0 0 80px rgba(0,0,0,0.15), 4px 0 24px rgba(0,0,0,0.1)'
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header - Just close button */}
-          <div className="flex items-center justify-end px-7 py-5">
-            <button
-              onClick={() => setMenuOpen(false)}
-              className={`p-1.5 rounded-full transition-all ${isDark
-                ? 'text-white/40 hover:text-white/70 hover:bg-white/5'
-                : 'text-gray-400 hover:text-gray-600 hover:bg-black/5'
-                }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Content - Clean Sections (no scrollbar) */}
-          <div className="flex-1 overflow-y-auto px-7 pb-8 space-y-7 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-
-            {/* 1. Mode */}
-            <div>
-              <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Mode</h3>
-              <div className="space-y-2">
-                <div className={`flex items-center justify-between py-3 px-4 rounded-xl ${isDark ? 'bg-white/[0.04] border border-white/[0.04]' : 'bg-gray-100 border border-gray-200'
-                  }`}>
-                  <span className={`text-[14px] ${isDark ? 'text-white/80' : 'text-gray-800'}`}>Voice Mode</span>
-                  <span className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-white/[0.08] text-white/50' : 'bg-gray-200 text-gray-500'
-                    }`}>active</span>
-                </div>
-                <a
-                  href="/chat"
-                  className={`flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
-                    }`}
-                >
-                  <span className={`text-[14px] ${isDark ? 'text-white/50' : 'text-gray-500'}`}>Chat Mode</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Soft Divider */}
-            <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
-
-            {/* 2. Experience */}
-            <div>
-              <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Experience</h3>
-              <div className="space-y-2">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-7">
+                <h2 className={`text-[19px] font-normal tracking-tight ${isDark ? 'text-white/90' : 'text-gray-900'}`}>Sign In</h2>
                 <button
-                  onClick={toggleTheme}
-                  className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
+                  onClick={() => setShowAuthForm(false)}
+                  className={`p-1 -mr-1 transition-colors ${isDark ? 'text-white/30 hover:text-white/50' : 'text-gray-400 hover:text-gray-600'}`}
+                  data-testid="sign-in-modal-close"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Login Form */}
+              <LoginForm />
+            </div>
+          </div>
+        )
+      }
+
+      {/* Settings Panel - Premium Frosted Glass */}
+      {
+        menuOpen && (
+          <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-[2px]" onClick={() => setMenuOpen(false)}>
+            <div
+              className="absolute left-0 top-0 bottom-0 w-[320px] max-w-[90vw] flex flex-col"
+              style={{
+                animation: 'slideInLeft 0.3s ease-out',
+                background: isDark
+                  ? 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)'
+                  : 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(245,245,245,0.98) 100%)',
+                backdropFilter: 'blur(24px) saturate(1.2)',
+                WebkitBackdropFilter: 'blur(24px) saturate(1.2)',
+                borderRight: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.08)',
+                boxShadow: isDark
+                  ? '0 0 80px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)'
+                  : '0 0 80px rgba(0,0,0,0.15), 4px 0 24px rgba(0,0,0,0.1)'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header - Just close button */}
+              <div className="flex items-center justify-end px-7 py-5">
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  className={`p-1.5 rounded-full transition-all ${isDark
+                    ? 'text-white/40 hover:text-white/70 hover:bg-white/5'
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-black/5'
                     }`}
                 >
-                  <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>Theme</span>
-                  <span className={`text-[13px] ${isDark ? 'text-white/40' : 'text-gray-400'}`}>{isDark ? 'Dark' : 'Light'}</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
+              </div>
 
-                <div className={`py-3 px-4 rounded-xl ${isDark ? 'bg-white/[0.02]' : 'bg-gray-50'}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>Cube Size</span>
-                    <span className={`text-[13px] ${isDark ? 'text-white/40' : 'text-gray-400'}`}>{cubeSize}%</span>
+              {/* Content - Clean Sections (no scrollbar) */}
+              <div className="flex-1 overflow-y-auto px-7 pb-8 space-y-7 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+
+                {/* 1. Mode */}
+                <div>
+                  <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Mode</h3>
+                  <div className="space-y-2">
+                    <div className={`flex items-center justify-between py-3 px-4 rounded-xl ${isDark ? 'bg-white/[0.04] border border-white/[0.04]' : 'bg-gray-100 border border-gray-200'
+                      }`}>
+                      <span className={`text-[14px] ${isDark ? 'text-white/80' : 'text-gray-800'}`}>Voice Mode</span>
+                      <span className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-white/[0.08] text-white/50' : 'bg-gray-200 text-gray-500'
+                        }`}>active</span>
+                    </div>
+                    <a
+                      href="/chat"
+                      className={`flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
+                        }`}
+                    >
+                      <span className={`text-[14px] ${isDark ? 'text-white/50' : 'text-gray-500'}`}>Chat Mode</span>
+                    </a>
                   </div>
-                  <input
-                    type="range"
-                    min="50"
-                    max="150"
-                    value={cubeSize}
-                    onChange={(e) => handleCubeSizeChange(parseInt(e.target.value))}
-                    className="w-full h-1 rounded-full appearance-none cursor-pointer"
-                    style={{
-                      background: isDark
-                        ? `linear-gradient(to right, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.25) ${(cubeSize - 50) / 100 * 100}%, rgba(255,255,255,0.08) ${(cubeSize - 50) / 100 * 100}%, rgba(255,255,255,0.08) 100%)`
-                        : `linear-gradient(to right, rgba(100,100,100,0.4) 0%, rgba(100,100,100,0.4) ${(cubeSize - 50) / 100 * 100}%, rgba(200,200,200,0.5) ${(cubeSize - 50) / 100 * 100}%, rgba(200,200,200,0.5) 100%)`
-                    }}
-                    data-testid="cube-size-slider"
-                  />
+                </div>
+
+                {/* Soft Divider */}
+                <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
+
+                {/* 2. Experience */}
+                <div>
+                  <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Experience</h3>
+                  <div className="space-y-2">
+                    <button
+                      onClick={toggleTheme}
+                      className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
+                        }`}
+                    >
+                      <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>Theme</span>
+                      <span className={`text-[13px] ${isDark ? 'text-white/40' : 'text-gray-400'}`}>{isDark ? 'Dark' : 'Light'}</span>
+                    </button>
+
+                    <div className={`py-3 px-4 rounded-xl ${isDark ? 'bg-white/[0.02]' : 'bg-gray-50'}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>Cube Size</span>
+                        <span className={`text-[13px] ${isDark ? 'text-white/40' : 'text-gray-400'}`}>{cubeSize}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="50"
+                        max="150"
+                        value={cubeSize}
+                        onChange={(e) => handleCubeSizeChange(parseInt(e.target.value))}
+                        className="w-full h-1 rounded-full appearance-none cursor-pointer"
+                        style={{
+                          background: isDark
+                            ? `linear-gradient(to right, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.25) ${(cubeSize - 50) / 100 * 100}%, rgba(255,255,255,0.08) ${(cubeSize - 50) / 100 * 100}%, rgba(255,255,255,0.08) 100%)`
+                            : `linear-gradient(to right, rgba(100,100,100,0.4) 0%, rgba(100,100,100,0.4) ${(cubeSize - 50) / 100 * 100}%, rgba(200,200,200,0.5) ${(cubeSize - 50) / 100 * 100}%, rgba(200,200,200,0.5) 100%)`
+                        }}
+                        data-testid="cube-size-slider"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Soft Divider */}
+                <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
+
+                {/* 3. Privacy */}
+                <div>
+                  <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Privacy</h3>
+                  <button
+                    onClick={() => setShowBYOSettings(!showBYOSettings)}
+                    className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
+                      }`}
+                  >
+                    <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>BYO Mode</span>
+                    <span className={`text-[13px] ${isBYOEnabled ? (isDark ? 'text-white/60' : 'text-gray-600') : (isDark ? 'text-white/30' : 'text-gray-400')}`}>
+                      {isBYOEnabled ? 'On' : 'Off'}
+                    </span>
+                  </button>
+
+                  {showBYOSettings && (
+                    <div className={`mt-2 rounded-xl overflow-hidden ${isDark ? 'bg-white/[0.02] border border-white/[0.04]' : 'bg-gray-50 border border-gray-200'}`}>
+                      <BYOSettings onClose={() => setShowBYOSettings(false)} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Soft Divider */}
+                <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
+
+                {/* 4. Features — All Dashboard Items */}
+                <div>
+                  <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-2 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Features</h3>
+                  <p className={`text-[11px] mb-4 ${isDark ? 'text-white/25' : 'text-gray-400'}`}>Choose what CubiQo can access. You decide.</p>
+
+                  <div className="space-y-5 max-h-[400px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    {/* Tools */}
+                    <div>
+                      <div className={`text-[10px] uppercase tracking-wider mb-2 px-3 ${isDark ? 'text-white/20' : 'text-gray-400'}`}>🛠️ Tools</div>
+                      <div className="space-y-0.5">
+                        {[
+                          { key: 'web_search', name: 'Web Search' },
+                          { key: 'vision', name: 'Vision Analysis' },
+                          { key: 'file_read', name: 'File Read' },
+                          { key: 'exec', name: 'Shell Execution' },
+                          { key: 'code_panel', name: 'Code Panel' },
+                          { key: 'browser_control', name: 'Browser Control' },
+                        ].map(item => {
+                          const isOn = !!integrationToggles[item.key]
+                          return (
+                            <div key={item.key} className={`flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'}`}>
+                              <span className={`text-[13px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>{item.name}</span>
+                              <button onClick={() => toggleIntegration(item.key)} className={`relative rounded-full transition-colors flex-shrink-0 ${isOn ? 'bg-green-500' : (isDark ? 'bg-white/10' : 'bg-gray-300')}`} style={{ width: 36, height: 20 }}>
+                                <span className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-200 shadow-sm ${isOn ? 'left-[18px]' : 'left-[2px]'}`} />
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Experience */}
+                    <div>
+                      <div className={`text-[10px] uppercase tracking-wider mb-2 px-3 ${isDark ? 'text-white/20' : 'text-gray-400'}`}>✨ Experience</div>
+                      <div className="space-y-0.5">
+                        {[
+                          { key: 'duo_mode', name: 'Duo Mode' },
+                          { key: 'action_cards', name: 'Action Cards' },
+                          { key: 'sidekick_mode', name: 'Sidekick Companion' },
+                          { key: 'cope_mode', name: 'Cope Up Mode' },
+                        ].map(item => {
+                          const isOn = !!integrationToggles[item.key]
+                          return (
+                            <div key={item.key} className={`flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'}`}>
+                              <span className={`text-[13px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>{item.name}</span>
+                              <button onClick={() => toggleIntegration(item.key)} className={`relative rounded-full transition-colors flex-shrink-0 ${isOn ? 'bg-green-500' : (isDark ? 'bg-white/10' : 'bg-gray-300')}`} style={{ width: 36, height: 20 }}>
+                                <span className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-200 shadow-sm ${isOn ? 'left-[18px]' : 'left-[2px]'}`} />
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Extension */}
+                    <div>
+                      <div className={`text-[10px] uppercase tracking-wider mb-2 px-3 ${isDark ? 'text-white/20' : 'text-gray-400'}`}>🧩 Extension</div>
+                      <div className="space-y-0.5">
+                        {[
+                          { key: 'extension_download', name: 'Chrome Extension' },
+                        ].map(item => {
+                          const isOn = !!integrationToggles[item.key]
+                          return (
+                            <div key={item.key} className={`flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'}`}>
+                              <span className={`text-[13px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>{item.name}</span>
+                              <button onClick={() => toggleIntegration(item.key)} className={`relative rounded-full transition-colors flex-shrink-0 ${isOn ? 'bg-green-500' : (isDark ? 'bg-white/10' : 'bg-gray-300')}`} style={{ width: 36, height: 20 }}>
+                                <span className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-200 shadow-sm ${isOn ? 'left-[18px]' : 'left-[2px]'}`} />
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Integrations */}
+                    <div>
+                      <div className={`text-[10px] uppercase tracking-wider mb-2 px-3 ${isDark ? 'text-white/20' : 'text-gray-400'}`}>🔗 Integrations</div>
+                      <div className="space-y-0.5">
+                        {[
+                          { key: 'email_read', name: 'Email (Read)' },
+                          { key: 'email_send', name: 'Email (Send)' },
+                          { key: 'whatsapp_read', name: 'WhatsApp (Read)' },
+                          { key: 'whatsapp_send', name: 'WhatsApp (Send)' },
+                          { key: 'telegram_read', name: 'Telegram (Read)' },
+                          { key: 'telegram_send', name: 'Telegram (Send)' },
+                          { key: 'discord_read', name: 'Discord (Read)' },
+                          { key: 'discord_send', name: 'Discord (Send)' },
+                          { key: 'slack_read', name: 'Slack (Read)' },
+                          { key: 'slack_send', name: 'Slack (Send)' },
+                          { key: 'maps_read', name: 'Maps (Search)' },
+                          { key: 'maps_write', name: 'Maps (Navigate)' },
+                          { key: 'uber_read', name: 'Uber (View)' },
+                          { key: 'uber_write', name: 'Uber (Request)' },
+                        ].map(item => {
+                          const isOn = !!integrationToggles[item.key]
+                          return (
+                            <div key={item.key} className={`flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'}`}>
+                              <span className={`text-[13px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>{item.name}</span>
+                              <button onClick={() => toggleIntegration(item.key)} className={`relative rounded-full transition-colors flex-shrink-0 ${isOn ? 'bg-green-500' : (isDark ? 'bg-white/10' : 'bg-gray-300')}`} style={{ width: 36, height: 20 }}>
+                                <span className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-200 shadow-sm ${isOn ? 'left-[18px]' : 'left-[2px]'}`} />
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Soft Divider */}
+                <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
+
+                {/* 5. API Access */}
+                <div>
+                  <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>API Access</h3>
+                  <MultivaCubiKey isDark={isDark} />
                 </div>
               </div>
             </div>
 
-            {/* Soft Divider */}
-            <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
-
-            {/* 3. Privacy */}
-            <div>
-              <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Privacy</h3>
-              <button
-                onClick={() => setShowBYOSettings(!showBYOSettings)}
-                className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
-                  }`}
-              >
-                <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>BYO Mode</span>
-                <span className={`text-[13px] ${isBYOEnabled ? (isDark ? 'text-white/60' : 'text-gray-600') : (isDark ? 'text-white/30' : 'text-gray-400')}`}>
-                  {isBYOEnabled ? 'On' : 'Off'}
-                </span>
-              </button>
-
-              {showBYOSettings && (
-                <div className={`mt-2 rounded-xl overflow-hidden ${isDark ? 'bg-white/[0.02] border border-white/[0.04]' : 'bg-gray-50 border border-gray-200'}`}>
-                  <BYOSettings onClose={() => setShowBYOSettings(false)} />
-                </div>
-              )}
-            </div>
-
-            {/* Soft Divider */}
-            <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
-
-            {/* 4. API Access */}
-            <div>
-              <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>API Access</h3>
-              <MultivaCubiKey isDark={isDark} />
-            </div>
-          </div>
-        </div>
-
-        <style jsx global>{`
+            <style jsx global>{`
             @keyframes slideInLeft {
               from { transform: translateX(-100%); }
               to { transform: translateX(0); }
@@ -793,69 +1010,69 @@ export function FullscreenApp() {
               box-shadow: 0 2px 6px rgba(0,0,0,0.3);
             }
           `}</style>
-      </div>
-    )
-  }
+          </div>
+        )
+      }
 
-  {/* Auth Nudge Modal */ }
-  <AuthNudgeModal
-    isOpen={showNudgeModal}
-    onClose={() => setShowNudgeModal(false)}
-    cta={nudgeCta}
-  />
-
-  {/* Getting Started Panel (Left side) */ }
-  <GettingStartedPanel
-    isOpen={showGettingStarted}
-    onClose={() => setShowGettingStarted(false)}
-    isDark={isDark}
-    onExampleClick={(text) => {
-      // TODO: Send example text to chat
-      console.log('Example clicked:', text)
-      setShowGettingStarted(false)
-    }}
-  />
-
-  {/* Keyword Panel (Right side - slides in smoothly) */ }
-  <KeywordPanel
-    isOpen={showKeywordPanel}
-    onClose={() => setShowKeywordPanel(false)}
-    isDark={isDark}
-  />
-
-  {/* RGY Chats Modal */ }
-  <RGYChatsModal
-    isOpen={showRGYChats}
-    onClose={() => setShowRGYChats(false)}
-    isDark={isDark}
-  />
-
-  {/* Landing Cube - Shown once per day or after 4+ hours */ }
-  {
-    showLandingCube && (
-      <LandingCube
-        onComplete={handleLandingComplete}
-        detectedColor={colorName}
+      {/* Auth Nudge Modal */}
+      <AuthNudgeModal
+        isOpen={showNudgeModal}
+        onClose={() => setShowNudgeModal(false)}
+        cta={nudgeCta}
       />
-    )
-  }
 
-  {/* Founder Portal - Only visible for founders */ }
-  { isFounderMode && <FounderPortal override={true} /> }
-
-  {/* Dev Mode Code Panel Overlay */ }
-  {
-    devMode && isFounderMode && (
-      <div
-        className="fixed right-0 top-[70px] bottom-0 w-[500px] max-w-[90vw] z-[45] shadow-2xl transition-transform duration-300 transform translate-x-0"
-        style={{
-          borderLeft: '1px solid rgba(255,255,255,0.1)'
+      {/* Getting Started Panel (Left side) */}
+      <GettingStartedPanel
+        isOpen={showGettingStarted}
+        onClose={() => setShowGettingStarted(false)}
+        isDark={isDark}
+        onExampleClick={(text) => {
+          // TODO: Send example text to chat
+          console.log('Example clicked:', text)
+          setShowGettingStarted(false)
         }}
-      >
-        <CodePanel agentId="a2" onClose={() => setDevMode(false)} />
-      </div>
-    )
-  }
+      />
+
+      {/* Keyword Panel (Right side - slides in smoothly) */}
+      <KeywordPanel
+        isOpen={showKeywordPanel}
+        onClose={() => setShowKeywordPanel(false)}
+        isDark={isDark}
+      />
+
+      {/* RGY Chats Modal */}
+      <RGYChatsModal
+        isOpen={showRGYChats}
+        onClose={() => setShowRGYChats(false)}
+        isDark={isDark}
+      />
+
+      {/* Landing Cube - Shown once per day or after 4+ hours */}
+      {
+        showLandingCube && (
+          <LandingCube
+            onComplete={handleLandingComplete}
+            detectedColor={colorName}
+          />
+        )
+      }
+
+      {/* Founder Portal - Only visible for founders */}
+      {isFounderMode && <FounderPortal override={true} />}
+
+      {/* Dev Mode Code Panel Overlay */}
+      {
+        devMode && isFounderMode && (
+          <div
+            className="fixed right-0 top-[70px] bottom-0 w-[500px] max-w-[90vw] z-[45] shadow-2xl transition-transform duration-300 transform translate-x-0"
+            style={{
+              borderLeft: '1px solid rgba(255,255,255,0.1)'
+            }}
+          >
+            <CodePanel agentId="a2" onClose={() => setDevMode(false)} />
+          </div>
+        )
+      }
     </div >
   )
 }

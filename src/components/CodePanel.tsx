@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import Editor, { useMonaco } from '@monaco-editor/react';
 
 interface CodePanelProps {
   agentId?: string; // If provided, targets specific agent's workspace
@@ -21,6 +22,7 @@ export default function CodePanel({ agentId, onClose }: CodePanelProps) {
   const [fileContent, setFileContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<string>('');
+  const editorRef = useRef<unknown>(null);
 
   // Initial load
   useEffect(() => {
@@ -82,7 +84,16 @@ export default function CodePanel({ agentId, onClose }: CodePanelProps) {
     }
   };
 
-  // Safe save function (optional, if user wants to intervene)
+  const handleEditorChange = (value: string | undefined) => {
+    if (value !== undefined) {
+      setFileContent(value);
+    }
+  };
+
+  const handleEditorDidMount = (editor: unknown) => {
+    editorRef.current = editor;
+  };
+
   const saveFile = async () => {
     if (!currentFile) return;
     setIsLoading(true);
@@ -142,20 +153,31 @@ export default function CodePanel({ agentId, onClose }: CodePanelProps) {
     }
   };
 
+  // Determine language based on file extension
+  const getLanguage = (filename: string) => {
+    if (filename.endsWith('.ts') || filename.endsWith('.tsx')) return 'typescript';
+    if (filename.endsWith('.js') || filename.endsWith('.jsx')) return 'javascript';
+    if (filename.endsWith('.html')) return 'html';
+    if (filename.endsWith('.css')) return 'css';
+    if (filename.endsWith('.json')) return 'json';
+    if (filename.endsWith('.md')) return 'markdown';
+    return 'plaintext';
+  };
+
   return (
-    <div className="flex flex-col h-full bg-[#1e1e1e] text-[#d4d4d4] font-mono text-sm border-l border-[#333]">
+    <div className="flex flex-col h-full bg-[#1e1e1e] text-[#d4d4d4] font-sans text-sm border-l border-[#333]">
       {/* Header */}
       <div className="h-10 bg-[#2d2d2d] flex items-center justify-between px-4 border-b border-[#333]">
         <div className="flex items-center gap-2">
-          <span className="text-green-400">●</span>
-          <span className="font-semibold text-gray-200">
+          <span className="text-blue-400">⚡</span>
+          <span className="font-medium text-gray-200 text-xs uppercase tracking-wider">
             {agentId ? `Dev Workspace (${agentId})` : 'Local Workspace'}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={refreshFiles}
-            className="p-1 hover:bg-[#3d3d3d] rounded text-gray-400 hover:text-white"
+            className="p-1 hover:bg-[#3d3d3d] rounded text-gray-400 hover:text-white transition-colors"
             title="Refresh Files"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,7 +187,7 @@ export default function CodePanel({ agentId, onClose }: CodePanelProps) {
 
           <button
             onClick={handleRollback}
-            className="p-1 hover:bg-[#3d3d3d] rounded text-red-400 hover:text-red-300 ml-1"
+            className="p-1 hover:bg-[#3d3d3d] rounded text-red-400 hover:text-red-300 ml-1 transition-colors"
             title="Rollback Changes (Git)"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -173,8 +195,8 @@ export default function CodePanel({ agentId, onClose }: CodePanelProps) {
             </svg>
           </button>
           {onClose && (
-            <button onClick={onClose} className="text-gray-400 hover:text-white">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onClick={onClose} className="text-gray-400 hover:text-white bg-[#3d3d3d] p-1 rounded transition-colors ml-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -184,26 +206,26 @@ export default function CodePanel({ agentId, onClose }: CodePanelProps) {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar - File Tree */}
-        <div className="w-48 bg-[#252526] flex flex-col border-r border-[#333]">
-          <div className="p-2 text-xs font-bold text-gray-500 uppercase tracking-wider">Explorer</div>
-          <div className="flex-1 overflow-y-auto">
+        <div className="w-56 bg-[#252526] flex flex-col border-r border-[#333]">
+          <div className="p-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-4">Explorer</div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
             {files.map((file) => (
               <div
                 key={file.name}
                 onClick={() => file.type === 'file' && openFile(file.name)}
-                className={`px-3 py-1 cursor-pointer flex items-center gap-2 hover:bg-[#2a2d2e] ${currentFile === file.name || currentFile?.endsWith('/' + file.name)
-                  ? 'bg-[#37373d] text-white'
-                  : 'text-gray-400'
+                className={`px-4 py-1.5 cursor-pointer flex items-center gap-2.5 text-xs transition-colors border-l-2 ${(currentFile === file.name || currentFile?.endsWith('/' + file.name))
+                  ? 'bg-[#37373d] text-white border-blue-400'
+                  : 'text-gray-400 hover:bg-[#2a2d2e] hover:text-gray-300 border-transparent'
                   }`}
               >
                 <span className={file.type === 'directory' ? 'text-yellow-400' : 'text-blue-400'}>
-                  {file.type === 'directory' ? '📁' : '📄'}
+                  {file.type === 'directory' ? '📂' : '📄'}
                 </span>
                 <span className="truncate">{file.name}</span>
               </div>
             ))}
             {files.length === 0 && !isLoading && (
-              <div className="p-4 text-gray-500 italic text-xs text-center">
+              <div className="p-4 text-gray-600 italic text-xs text-center mt-10">
                 Workspace empty
               </div>
             )}
@@ -216,9 +238,12 @@ export default function CodePanel({ agentId, onClose }: CodePanelProps) {
           <div className="flex h-9 bg-[#2d2d2d] border-b border-[#333]">
             <button
               onClick={() => setActiveTab('editor')}
-              className={`px-4 flex items-center gap-2 text-xs border-r border-[#333] ${activeTab === 'editor' ? 'bg-[#1e1e1e] text-white' : 'text-gray-500 hover:bg-[#2a2d2e]'
+              className={`px-4 flex items-center gap-2 text-xs border-r border-[#333] transition-colors ${activeTab === 'editor'
+                ? 'bg-[#1e1e1e] text-orange-300 border-t-2 border-t-orange-400'
+                : 'text-gray-500 hover:bg-[#2a2d2e]'
                 }`}
             >
+              <span className="text-blue-400 text-xs">TS</span>
               {currentFile ? currentFile.split('/').pop() : 'Untitled'}
             </button>
           </div>
@@ -226,29 +251,48 @@ export default function CodePanel({ agentId, onClose }: CodePanelProps) {
           {/* Editor Area */}
           <div className="flex-1 relative">
             {activeTab === 'editor' && (
-              <textarea
-                value={fileContent}
-                onChange={(e) => setFileContent(e.target.value)}
-                className="absolute inset-0 w-full h-full bg-[#1e1e1e] text-[#d4d4d4] p-4 resize-none focus:outline-none leading-relaxed"
-                spellCheck={false}
-                placeholder="// Select a file to view content..."
-              />
+              <div className="absolute inset-0 pt-2">
+                <Editor
+                  height="100%"
+                  defaultLanguage="typescript"
+                  language={currentFile ? getLanguage(currentFile) : 'typescript'}
+                  value={fileContent}
+                  theme="vs-dark"
+                  onChange={handleEditorChange}
+                  onMount={handleEditorDidMount}
+                  options={{
+                    minimap: { enabled: true },
+                    fontSize: 13,
+                    fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    padding: { top: 16 },
+                    lineNumbers: 'on',
+                    renderWhitespace: 'none',
+                  }}
+                />
+              </div>
             )}
           </div>
 
           {/* Status Bar */}
-          <div className="h-6 bg-[#007acc] text-white flex items-center px-3 text-xs justify-between">
-            <span>{status}</span>
+          <div className="h-6 bg-[#007acc] text-white flex items-center px-3 text-[11px] justify-between font-medium">
+            <div className="flex items-center gap-3">
+              <span>{status}</span>
+              {isLoading && <span className="animate-pulse">...</span>}
+            </div>
             <div className="flex gap-4">
               <button
                 onClick={saveFile}
                 disabled={!currentFile}
-                className="hover:bg-white/10 px-2 rounded disabled:opacity-50"
+                className="hover:bg-white/20 px-2 rounded disabled:opacity-50 transition-colors"
+                title="Ctrl+S"
               >
                 Save
               </button>
               <span>UTF-8</span>
               <span>{agentId ? 'REMOTE' : 'LOCAL'}</span>
+              <span>TypeScript</span>
             </div>
           </div>
         </div>
