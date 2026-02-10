@@ -23,7 +23,7 @@ import { useElevenLabsTTS } from '@/hooks/useElevenLabsTTS'
 import { useChat } from '@/hooks/useChat'
 import { useBYO } from '@/hooks/useBYO'
 import type { ColorName } from '@/config/colors'
-import CodePanel from './CodePanel'
+// CodePanel removed — not production-ready
 import type { AnimationState } from './cube/Cube'
 import { ActionCardList } from './actions/ActionCard'
 import type { Action } from '@/lib/actions/action-types'
@@ -52,15 +52,32 @@ export function FullscreenApp() {
   const [showGettingStarted, setShowGettingStarted] = useState(false)
   const [devMode, setDevMode] = useState(false)
 
-  // Integration toggles — always visible in Settings
-  const [integrationToggles, setIntegrationToggles] = useState<Record<string, boolean>>({})
+  // Feature toggles — reads from dashboard's production flags + user overrides
+  const [enabledFeatures, setEnabledFeatures] = useState<Record<string, boolean>>({})
+  const [userToggles, setUserToggles] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
-    const stored = localStorage.getItem('cubiqo_user_toggles')
-    if (stored) setIntegrationToggles(JSON.parse(stored))
+    // Read dashboard's production feature flags
+    const dashStored = localStorage.getItem('cubiqo_dashboard_production')
+    if (dashStored) {
+      try { setEnabledFeatures(JSON.parse(dashStored)) } catch { }
+    }
+    // Read user's personal toggle overrides
+    const userStored = localStorage.getItem('cubiqo_user_toggles')
+    if (userStored) {
+      try { setUserToggles(JSON.parse(userStored)) } catch { }
+    }
+    // Listen for dashboard updates
+    const onStorage = () => {
+      const d = localStorage.getItem('cubiqo_dashboard_production')
+      if (d) try { setEnabledFeatures(JSON.parse(d)) } catch { }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
   }, [])
-  const toggleIntegration = (key: string) => {
-    setIntegrationToggles(prev => {
+
+  const toggleUserFeature = (key: string) => {
+    setUserToggles(prev => {
       const updated = { ...prev, [key]: !prev[key] }
       localStorage.setItem('cubiqo_user_toggles', JSON.stringify(updated))
       return updated
@@ -513,7 +530,7 @@ export function FullscreenApp() {
       </div>
 
       {/* RGY Traffic Light + Keywords - Right side, floated higher */}
-      <div className="fixed right-6 top-[35%] -translate-y-1/2 z-[40] flex flex-col items-center gap-3">
+      <div className="fixed right-6 top-[22%] -translate-y-1/2 z-[40] flex flex-col items-center gap-3">
         <RGYSignalButton
           onClick={() => setShowKeywordPanel(true)}
           isDark={isDark}
@@ -573,20 +590,7 @@ export function FullscreenApp() {
           </div>
         )}
 
-        {/* Exit User Preview Button - Only visible when simulating */}
-        {isSimulatingUser && (
-          <button
-            onClick={() => {
-              localStorage.removeItem('cubiqo_simulate_user')
-              setIsSimulatingUser(false)
-              window.location.reload()
-            }}
-            className="flex items-center gap-2 text-[13px] text-amber-500 hover:text-amber-400 font-bold bg-amber-950/30 px-3 py-1.5 rounded-full border border-amber-500/30"
-          >
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            Exit User View
-          </button>
-        )}
+        {/* Exit User View removed — user exits via Founder Mode button on right */}
 
         {/* Settings - Only show if NO simulation flag, OR keep it but hide Sign In */}
         <button
@@ -858,85 +862,39 @@ export function FullscreenApp() {
                 {/* Soft Divider */}
                 <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
 
-                {/* 4. Features — All Dashboard Items */}
+                {/* 4. Features — Only shows what founder enabled for production */}
                 <div>
                   <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-2 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Features</h3>
                   <p className={`text-[11px] mb-4 ${isDark ? 'text-white/25' : 'text-gray-400'}`}>Choose what CubiQo can access. You decide.</p>
 
-                  <div className="space-y-5 max-h-[400px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    {/* Tools */}
-                    <div>
-                      <div className={`text-[10px] uppercase tracking-wider mb-2 px-3 ${isDark ? 'text-white/20' : 'text-gray-400'}`}>🛠️ Tools</div>
-                      <div className="space-y-0.5">
-                        {[
+                  {(() => {
+                    // All possible features grouped by category
+                    const ALL_FEATURES = [
+                      {
+                        category: '🛠️ Tools', items: [
                           { key: 'web_search', name: 'Web Search' },
-                          { key: 'vision', name: 'Vision Analysis' },
+                          { key: 'vision_analyze', name: 'Vision Analysis' },
                           { key: 'file_read', name: 'File Read' },
                           { key: 'exec', name: 'Shell Execution' },
-                          { key: 'code_panel', name: 'Code Panel' },
                           { key: 'browser_control', name: 'Browser Control' },
-                        ].map(item => {
-                          const isOn = !!integrationToggles[item.key]
-                          return (
-                            <div key={item.key} className={`flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'}`}>
-                              <span className={`text-[13px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>{item.name}</span>
-                              <button onClick={() => toggleIntegration(item.key)} className={`relative rounded-full transition-colors flex-shrink-0 ${isOn ? 'bg-green-500' : (isDark ? 'bg-white/10' : 'bg-gray-300')}`} style={{ width: 36, height: 20 }}>
-                                <span className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-200 shadow-sm ${isOn ? 'left-[18px]' : 'left-[2px]'}`} />
-                              </button>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Experience */}
-                    <div>
-                      <div className={`text-[10px] uppercase tracking-wider mb-2 px-3 ${isDark ? 'text-white/20' : 'text-gray-400'}`}>✨ Experience</div>
-                      <div className="space-y-0.5">
-                        {[
+                        ]
+                      },
+                      {
+                        category: '✨ Experience', items: [
+                          { key: 'voice_mode', name: 'Voice Mode' },
                           { key: 'duo_mode', name: 'Duo Mode' },
                           { key: 'action_cards', name: 'Action Cards' },
                           { key: 'sidekick_mode', name: 'Sidekick Companion' },
                           { key: 'cope_mode', name: 'Cope Up Mode' },
-                        ].map(item => {
-                          const isOn = !!integrationToggles[item.key]
-                          return (
-                            <div key={item.key} className={`flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'}`}>
-                              <span className={`text-[13px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>{item.name}</span>
-                              <button onClick={() => toggleIntegration(item.key)} className={`relative rounded-full transition-colors flex-shrink-0 ${isOn ? 'bg-green-500' : (isDark ? 'bg-white/10' : 'bg-gray-300')}`} style={{ width: 36, height: 20 }}>
-                                <span className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-200 shadow-sm ${isOn ? 'left-[18px]' : 'left-[2px]'}`} />
-                              </button>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Extension */}
-                    <div>
-                      <div className={`text-[10px] uppercase tracking-wider mb-2 px-3 ${isDark ? 'text-white/20' : 'text-gray-400'}`}>🧩 Extension</div>
-                      <div className="space-y-0.5">
-                        {[
+                        ]
+                      },
+                      {
+                        category: '🧩 Extension', items: [
                           { key: 'extension_download', name: 'Chrome Extension' },
-                        ].map(item => {
-                          const isOn = !!integrationToggles[item.key]
-                          return (
-                            <div key={item.key} className={`flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'}`}>
-                              <span className={`text-[13px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>{item.name}</span>
-                              <button onClick={() => toggleIntegration(item.key)} className={`relative rounded-full transition-colors flex-shrink-0 ${isOn ? 'bg-green-500' : (isDark ? 'bg-white/10' : 'bg-gray-300')}`} style={{ width: 36, height: 20 }}>
-                                <span className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-200 shadow-sm ${isOn ? 'left-[18px]' : 'left-[2px]'}`} />
-                              </button>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Integrations */}
-                    <div>
-                      <div className={`text-[10px] uppercase tracking-wider mb-2 px-3 ${isDark ? 'text-white/20' : 'text-gray-400'}`}>🔗 Integrations</div>
-                      <div className="space-y-0.5">
-                        {[
+                        ]
+                      },
+                      {
+                        category: '🔗 Integrations', items: [
                           { key: 'email_read', name: 'Email (Read)' },
                           { key: 'email_send', name: 'Email (Send)' },
                           { key: 'whatsapp_read', name: 'WhatsApp (Read)' },
@@ -951,20 +909,51 @@ export function FullscreenApp() {
                           { key: 'maps_write', name: 'Maps (Navigate)' },
                           { key: 'uber_read', name: 'Uber (View)' },
                           { key: 'uber_write', name: 'Uber (Request)' },
-                        ].map(item => {
-                          const isOn = !!integrationToggles[item.key]
-                          return (
-                            <div key={item.key} className={`flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'}`}>
-                              <span className={`text-[13px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>{item.name}</span>
-                              <button onClick={() => toggleIntegration(item.key)} className={`relative rounded-full transition-colors flex-shrink-0 ${isOn ? 'bg-green-500' : (isDark ? 'bg-white/10' : 'bg-gray-300')}`} style={{ width: 36, height: 20 }}>
-                                <span className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-200 shadow-sm ${isOn ? 'left-[18px]' : 'left-[2px]'}`} />
-                              </button>
+                        ]
+                      },
+                    ]
+
+                    const hasAnyEnabled = Object.keys(enabledFeatures).length > 0
+
+                    // Filter each category to only production-enabled features
+                    const filtered = ALL_FEATURES.map(group => ({
+                      ...group,
+                      items: hasAnyEnabled
+                        ? group.items.filter(item => enabledFeatures[item.key])
+                        : group.items // show all if no dashboard data yet
+                    })).filter(group => group.items.length > 0)
+
+                    if (filtered.length === 0) {
+                      return (
+                        <p className={`text-[12px] italic px-3 ${isDark ? 'text-white/20' : 'text-gray-400'}`}>
+                          No features enabled yet. Ask your admin to enable features from the Founders Dashboard.
+                        </p>
+                      )
+                    }
+
+                    return (
+                      <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        {filtered.map(group => (
+                          <div key={group.category}>
+                            <div className={`text-[10px] uppercase tracking-wider mb-2 px-3 ${isDark ? 'text-white/20' : 'text-gray-400'}`}>{group.category}</div>
+                            <div className="space-y-0.5">
+                              {group.items.map(item => {
+                                const isOn = userToggles[item.key] !== undefined ? !!userToggles[item.key] : true
+                                return (
+                                  <div key={item.key} className={`flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'}`}>
+                                    <span className={`text-[13px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>{item.name}</span>
+                                    <button onClick={() => toggleUserFeature(item.key)} className={`relative rounded-full transition-colors flex-shrink-0 ${isOn ? 'bg-green-500' : (isDark ? 'bg-white/10' : 'bg-gray-300')}`} style={{ width: 36, height: 20 }}>
+                                      <span className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-200 shadow-sm ${isOn ? 'left-[18px]' : 'left-[2px]'}`} />
+                                    </button>
+                                  </div>
+                                )
+                              })}
                             </div>
-                          )
-                        })}
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  </div>
+                    )
+                  })()}
                 </div>
 
                 {/* Soft Divider */}
@@ -1060,19 +1049,7 @@ export function FullscreenApp() {
       {/* Founder Portal - Only visible for founders */}
       {isFounderMode && <FounderPortal override={true} />}
 
-      {/* Dev Mode Code Panel Overlay */}
-      {
-        devMode && isFounderMode && (
-          <div
-            className="fixed right-0 top-[70px] bottom-0 w-[500px] max-w-[90vw] z-[45] shadow-2xl transition-transform duration-300 transform translate-x-0"
-            style={{
-              borderLeft: '1px solid rgba(255,255,255,0.1)'
-            }}
-          >
-            <CodePanel agentId="a2" onClose={() => setDevMode(false)} />
-          </div>
-        )
-      }
+      {/* Code Panel removed — not production-ready */}
     </div >
   )
 }

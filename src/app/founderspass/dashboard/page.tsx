@@ -229,9 +229,17 @@ export default function FoundersDashboard() {
                     const currentAccess = stored ? JSON.parse(stored) : {}
                     const updatedAccess = { ...currentAccess, [simpleKey]: newValue }
                     localStorage.setItem('userAccess', JSON.stringify(updatedAccess))
-                    // Dispatch storage event so other tabs might update if they listen
-                    window.dispatchEvent(new Event('storage'))
                 }
+
+                // Sync the FULL production map for the Settings panel filtering
+                const productionMap: Record<string, boolean> = {}
+                features.forEach(f => {
+                    productionMap[f.feature_id] = f.feature_id === featureId ? newValue : f.enabled_for_production
+                })
+                localStorage.setItem('cubiqo_dashboard_production', JSON.stringify(productionMap))
+
+                // Dispatch storage event so other tabs/components update
+                window.dispatchEvent(new Event('storage'))
             } catch (e) {
                 console.error("Failed to sync local storage", e)
             }

@@ -51,17 +51,18 @@ const CARD_CONFIG = {
   },
 }
 
-export function KeywordPanel({ 
-  isOpen, 
-  onClose, 
+export function KeywordPanel({
+  isOpen,
+  onClose,
   isDark = true,
   sessionId
 }: KeywordPanelProps) {
   const [isVisible, setIsVisible] = useState(false)
+  const [showDisclaimer, setShowDisclaimer] = useState(true)
   const [isAnimating, setIsAnimating] = useState(false)
   const [editingCard, setEditingCard] = useState<CardType | null>(null)
   const [newKeyword, setNewKeyword] = useState('')
-  
+
   const [cards, setCards] = useState<Record<CardType, CardData>>({
     green: { keywords: [] },
     yellow: { keywords: [] },
@@ -129,18 +130,16 @@ export function KeywordPanel({
   if (!isVisible) return null
 
   return (
-    <div 
-      className={`fixed inset-0 z-[80] transition-opacity duration-300 ${
-        isAnimating ? 'opacity-100' : 'opacity-0'
-      }`}
+    <div
+      className={`fixed inset-0 z-[80] transition-opacity duration-300 ${isAnimating ? 'opacity-100' : 'opacity-0'
+        }`}
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
-      
+
       <div
-        className={`absolute right-0 top-0 bottom-0 w-[480px] max-w-[92vw] flex flex-col transition-transform duration-300 ease-out ${
-          isAnimating ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className={`absolute right-0 top-0 bottom-0 w-[480px] max-w-[92vw] flex flex-col transition-transform duration-300 ease-out ${isAnimating ? 'translate-x-0' : 'translate-x-full'
+          }`}
         style={{
           background: 'linear-gradient(to bottom, rgba(25, 25, 30, 0.92), rgba(20, 20, 25, 0.95))',
           backdropFilter: 'blur(40px)',
@@ -153,7 +152,7 @@ export function KeywordPanel({
             <h2 className="text-3xl font-light text-white/95 tracking-tight">
               Keywords
             </h2>
-            <button 
+            <button
               onClick={onClose}
               className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white/80 transition-all"
             >
@@ -162,11 +161,11 @@ export function KeywordPanel({
               </svg>
             </button>
           </div>
-          
+
           <p className="text-sm text-white/40 leading-relaxed mb-2">
             Keywords per color is one of the way how CubiQo knows you. Words are populated based on conversations or you can edit as you feel fit.
           </p>
-          
+
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(0, 137, 123, 0.15)', border: '1px solid rgba(0, 137, 123, 0.3)' }}>
               <div className="w-2 h-2 rounded-full" style={{ background: '#00897b' }} />
@@ -189,7 +188,7 @@ export function KeywordPanel({
             const config = CARD_CONFIG[cardType]
             const cardData = cards[cardType]
             const isEditing = editingCard === cardType
-            
+
             return (
               <div
                 key={cardType}
@@ -198,8 +197,8 @@ export function KeywordPanel({
                 style={{
                   background: `linear-gradient(135deg, ${config.borderColor}08 0%, rgba(255, 255, 255, 0.02) 100%)`,
                   border: `2px solid ${config.borderColor}`,
-                  boxShadow: isEditing 
-                    ? `0 8px 32px ${config.borderColor}40, inset 0 1px 0 ${config.borderColor}20` 
+                  boxShadow: isEditing
+                    ? `0 8px 32px ${config.borderColor}40, inset 0 1px 0 ${config.borderColor}20`
                     : `0 2px 8px ${config.borderColor}15`,
                   minHeight: '150px'
                 }}
@@ -207,9 +206,9 @@ export function KeywordPanel({
                 {/* Card Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div 
+                    <div
                       className="w-12 h-12 rounded-[18px] flex items-center justify-center text-xl transition-all duration-300"
-                      style={{ 
+                      style={{
                         background: isEditing ? `${config.borderColor}30` : `${config.borderColor}15`,
                         boxShadow: isEditing ? `0 4px 12px ${config.borderColor}30` : 'none',
                       }}
@@ -277,7 +276,7 @@ export function KeywordPanel({
 
                 {/* Edit Mode Input */}
                 {isEditing && (
-                  <div 
+                  <div
                     className="flex gap-2"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -298,7 +297,7 @@ export function KeywordPanel({
                       onClick={() => addKeyword(cardType)}
                       disabled={!newKeyword.trim() || cardData.keywords.length >= 50}
                       className="px-4 py-2 rounded-full text-sm font-medium text-white transition-all disabled:opacity-25"
-                      style={{ 
+                      style={{
                         background: config.borderColor,
                       }}
                     >
@@ -319,46 +318,58 @@ export function KeywordPanel({
         </div>
 
         {/* Disclaimers Section */}
-        <div className="px-8 pb-6">
-          <div className="rounded-2xl p-5 space-y-3.5"
-            style={{
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
-            }}>
-            <div className="flex items-start gap-3">
-              <div className="w-1 h-1 rounded-full mt-2 flex-shrink-0" style={{ background: '#ffa000' }} />
-              <p className="text-xs text-white/50 leading-relaxed">
-                <span className="text-white/70 font-medium">Privacy:</span> Keywords are stored locally on your device and used only to personalize your CubiQo experience. Your data is never shared.
-              </p>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <div className="w-1 h-1 rounded-full mt-2 flex-shrink-0" style={{ background: '#00897b' }} />
-              <p className="text-xs text-white/50 leading-relaxed">
-                <span className="text-white/70 font-medium">Learning:</span> CubiQo learns from your conversations and automatically categorizes keywords. You can edit or remove them anytime.
-              </p>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <div className="w-1 h-1 rounded-full mt-2 flex-shrink-0" style={{ background: '#c2185b' }} />
-              <p className="text-xs text-white/50 leading-relaxed">
-                <span className="text-white/70 font-medium">Colors:</span> Green represents growth & wellness, Yellow for social & energy, Red for attraction & exploration. Colors adapt to your conversation tone.
-              </p>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <div className="w-1 h-1 rounded-full mt-2 flex-shrink-0" style={{ background: '#ff6f00' }} />
-              <p className="text-xs text-white/50 leading-relaxed">
-                <span className="text-white/70 font-medium">Matching:</span> Keywords power CubiQo's intelligent matching system (coming soon). Keep your keywords current for best results.
-              </p>
+        {showDisclaimer && (
+          <div className="px-8 pb-6 group/disclaimer relative">
+            <div className="rounded-2xl p-5 space-y-3.5 transition-all duration-300 hover:bg-white/[0.05]"
+              style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+              }}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] uppercase tracking-wider text-white/30 font-medium font-mono">Guiding Principles</span>
+                <button
+                  onClick={() => setShowDisclaimer(false)}
+                  className="p-1 rounded-md hover:bg-white/10 text-white/30 hover:text-white/60 transition-all pointer-events-auto"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-1 h-1 rounded-full mt-2 flex-shrink-0" style={{ background: '#00897b' }} />
+                <p className="text-xs text-white/50 leading-relaxed">
+                  <span className="text-white/70 font-medium">Privacy:</span> Keywords are stored locally on your device and used only to personalize your CubiQo experience. Your data is never shared.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-1 h-1 rounded-full mt-2 flex-shrink-0" style={{ background: '#ffa000' }} />
+                <p className="text-xs text-white/50 leading-relaxed">
+                  <span className="text-white/70 font-medium">Learning:</span> CubiQo learns from your conversations and automatically categorizes keywords. You can edit or remove them anytime.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-1 h-1 rounded-full mt-2 flex-shrink-0" style={{ background: '#c2185b' }} />
+                <p className="text-xs text-white/50 leading-relaxed">
+                  <span className="text-white/70 font-medium">Colors:</span> Green represents growth & wellness, Yellow for social & energy, Red for attraction & exploration. Colors adapt to your conversation tone.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-1 h-1 rounded-full mt-2 flex-shrink-0" style={{ background: '#ff6f00' }} />
+                <p className="text-xs text-white/50 leading-relaxed">
+                  <span className="text-white/70 font-medium">Matching:</span> Keywords power CubiQo's intelligent matching system (coming soon). Keep your keywords current for best results.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Trending Keywords Widget at Bottom */}
         <div className="px-8 pb-8">
-          <div className="relative overflow-hidden rounded-3xl backdrop-blur-2xl border border-white/[0.08]" 
-            style={{ 
+          <div className="relative overflow-hidden rounded-3xl backdrop-blur-2xl border border-white/[0.08]"
+            style={{
               background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
             }}>
@@ -387,7 +398,7 @@ export function KeywordPanel({
                   <span
                     key={i}
                     className="inline-block px-3.5 py-1.5 rounded-full text-xs font-medium text-white/90"
-                    style={{ 
+                    style={{
                       background: `linear-gradient(135deg, ${item.color}20, ${item.color}08)`,
                       border: `1px solid ${item.color}30`,
                       boxShadow: `0 2px 8px ${item.color}15`
@@ -398,16 +409,17 @@ export function KeywordPanel({
                 ))}
               </div>
               {/* Gradient fade edges */}
-              <div className="absolute inset-x-0 top-0 h-6 pointer-events-none" 
+              <div className="absolute inset-x-0 top-0 h-6 pointer-events-none"
                 style={{ background: 'linear-gradient(to bottom, rgba(20, 20, 25, 0.9), transparent)' }} />
-              <div className="absolute inset-x-0 bottom-0 h-6 pointer-events-none" 
+              <div className="absolute inset-x-0 bottom-0 h-6 pointer-events-none"
                 style={{ background: 'linear-gradient(to top, rgba(20, 20, 25, 0.9), transparent)' }} />
             </div>
           </div>
         </div>
       </div>
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes scroll-vertical-slow {
           0% { transform: translateY(0); }
           100% { transform: translateY(-40%); }
