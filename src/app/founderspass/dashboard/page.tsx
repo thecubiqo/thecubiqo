@@ -67,6 +67,11 @@ export default function FoundersDashboard() {
                     loadFeaturesWithTimeout()
                     return
                 }
+
+                // If not founder user but session is valid, what then?
+                // Currently, if session PIN is valid, we already returned.
+                // If Supabase user is not founder, we should NOT grant access.
+                // So falling through to redirect is correct behavior here.
             } catch (e) {
                 console.error("Auth check error", e)
             }

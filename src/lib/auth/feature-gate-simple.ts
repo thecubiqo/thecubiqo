@@ -96,7 +96,8 @@ export function isFounder(email: string | null | undefined): boolean {
   }
 
   if (!email) return false
-  return FOUNDER_EMAILS.includes(email.toLowerCase())
+  const normalizedEmail = email.toLowerCase().trim()
+  return FOUNDER_EMAILS.some(f => f.toLowerCase() === normalizedEmail)
 }
 
 // Get feature access for a user

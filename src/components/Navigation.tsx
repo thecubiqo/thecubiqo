@@ -8,7 +8,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { getFeatureAccess } from '@/lib/auth'
+import { getFeatureAccess, FOUNDER_ACCESS } from '@/lib/auth'
 import { useState, useEffect } from 'react'
 
 const NAV_ITEMS = [
@@ -31,9 +31,19 @@ export function Navigation() {
 
   // Re-check access periodically (for live updates from Founder Portal)
   useEffect(() => {
-    const interval = setInterval(() => {
-      setAccess(getFeatureAccess(user?.email))
-    }, 1000)
+    const updateAccess = () => {
+      // Check for PIN bypass first
+      if (typeof window !== 'undefined' && sessionStorage.getItem('founders_pass_auth') === 'true') {
+        setAccess(FOUNDER_ACCESS)
+      } else {
+        setAccess(getFeatureAccess(user?.email))
+      }
+    }
+
+    // Initial check
+    updateAccess()
+
+    const interval = setInterval(updateAccess, 1000)
 
     return () => clearInterval(interval)
   }, [user?.email])
