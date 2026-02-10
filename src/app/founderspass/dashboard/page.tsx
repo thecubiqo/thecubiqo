@@ -230,34 +230,27 @@ export default function FoundersDashboard() {
             }
         }
 
+        // 3. Persist to DB via Admin API (Bypassing RLS)
         try {
-            // Upsert into Supabase (insert if not exists, update if exists)
-            const { error } = await (supabase as any)
-                .from('feature_flags')
-                .upsert({
-                    feature_id: feature.feature_id,
-                    name: feature.name,
-                    description: feature.description,
-                    category: feature.category,
-                    risk_level: feature.risk_level,
-                    [field]: newValue,
-                    // Preserve the OTHER field's value if we are inserting for the first time
-                    // Safe bet: provide both fields from current state since one is changing
-                    enabled_for_production: target === 'production' ? newValue : feature.enabled_for_production,
-                    enabled_for_founders: target === 'founders' ? newValue : feature.enabled_for_founders,
-                    updated_at: new Date().toISOString()
-                }, { onConflict: 'feature_id' })
+            const response = await fetch('/api/admin/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-founder-auth': sessionStorage.getItem('founders_pass_auth') || 'false'
+                },
+                body: JSON.stringify({
+                    featureId: feature.feature_id,
+                    target,
+                    enabled: newValue
+                })
+            })
 
-            if (error) {
-                console.error('[Dashboard] Error saving feature:', error)
-                setErrorMessage(`Failed to save ${feature.name}: ${error.message}`)
-                // Revert on error
-                setFeatures(prev => prev.map(f =>
-                    f.feature_id === featureId
-                        ? { ...f, [field]: !newValue }
-                        : f
-                ))
+            const result = await response.json()
+
+            if (!response.ok || result.error) {
+                throw new Error(result.error || 'Failed to update')
             }
+
         } catch (e: any) {
             console.error('[Dashboard] Exception saving feature:', e)
             setErrorMessage(`Exception saving ${feature.name}: ${e.message || e}`)
