@@ -15,8 +15,8 @@ import { callMiniMax } from '@/lib/ai/minimax'
 
 // Server-side Supabase client
 const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+    process.env.NEXT_PUBLIC_SUPABASE_URL1 || 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY1 || 'placeholder-key'
 )
 
 export async function POST(request: NextRequest) {

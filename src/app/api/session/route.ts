@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 // Server-side Supabase client with service role (bypasses RLS)
 // Server-side Supabase client with service role (bypasses RLS)
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY1 || 'placeholder-key'
+  process.env.NEXT_PUBLIC_SUPABASE_URL1 || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.SUPABASE_SERVICE_ROLE_KEY1 || 'placeholder-key'
 )
 
 export async function POST(req: NextRequest) {

@@ -105,7 +105,7 @@ export class PolicyRouter {
         const openRouterMsgs = this.formatMsgs(sys, msgs)
 
         // 1. Primary: MiniMax
-        if (process.env.MINIMAX_API_KEY) {
+        if (process.env.MINIMAX_KEY) {
             try {
                 return await callMiniMax(sys, msgs)
             } catch (e) {

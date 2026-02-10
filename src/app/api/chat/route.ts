@@ -25,8 +25,8 @@ import { FOUNDER_SYSTEM_PROMPT } from '@/lib/ai/founder-prompt'
 
 // Server-side Supabase client for loading memories
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY1 || 'placeholder-key'
+  process.env.NEXT_PUBLIC_SUPABASE_URL1 || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY1 || 'placeholder-key'
 )
 
 // Build auth nudge prompt for guest users

@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server'
 
 // Initialize Supabase with Service Role Key for Admin Access
 const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL1!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY1!
 )
 
 export async function POST(req: Request) {

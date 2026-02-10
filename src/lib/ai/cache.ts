@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 
 // Simple direct Supabase client for caching (bypassing the heavy service-role one if possible, 
 // or reusing the one from env if we want to keep it simple)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1!
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY1!
 // Note: In real prod, we might use a dedicated cache service or Redis. 
 // For now, we use a 'cache_entries' table in Supabase.
 

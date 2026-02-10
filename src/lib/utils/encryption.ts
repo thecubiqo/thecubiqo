@@ -6,11 +6,11 @@
 
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto'
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 32) || ''
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY1?.slice(0, 32) || ''
 const ALGORITHM = 'aes-256-gcm'
 
 if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length < 32) {
-  console.warn('⚠️  ENCRYPTION_KEY not set or too short. Using fallback from SUPABASE_SERVICE_ROLE_KEY.')
+  console.warn('⚠️  ENCRYPTION_KEY not set or too short. Using fallback from SUPABASE_SERVICE_ROLE_KEY1.')
 }
 
 /**

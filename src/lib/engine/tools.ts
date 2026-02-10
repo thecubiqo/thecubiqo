@@ -53,10 +53,10 @@ export class ToolRegistry {
     // Founders Pass Logic
     let isFounder = false;
 
-    if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL1 && process.env.SUPABASE_SERVICE_ROLE_KEY1) {
       try {
         const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.NEXT_PUBLIC_SUPABASE_URL1,
           process.env.SUPABASE_SERVICE_ROLE_KEY
         );
         const { data: profile } = await supabase

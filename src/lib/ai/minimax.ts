@@ -6,10 +6,10 @@ export async function callMiniMax(
     systemPrompt: string,
     messages: { role: string; content: string }[]
 ): Promise<string> {
-    const apiKey = process.env.MINIMAX_API_KEY
+    const apiKey = process.env.MINIMAX_KEY
 
     if (!apiKey) {
-        throw new Error('MINIMAX_API_KEY not configured')
+        throw new Error('MINIMAX_KEY not configured')
     }
 
     // Build messages for MiniMax API
