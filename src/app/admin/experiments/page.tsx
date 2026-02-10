@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { DatabaseWithAbTesting } from '@/types/database.types'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { AppLayout } from '@/components/AppLayout'
+import { AssetManager } from '@/components/experiments/AssetManager'
 
 export const dynamic = 'force-dynamic'
 
@@ -153,20 +154,14 @@ export default async function ExperimentsPage() {
                                                     </div>
                                                 </div>
 
-                                                {/* Asset Management Trigger - FOR "B" CHALLENGER ONLY */}
+                                                {/* Asset Management Trigger - FOR CHALLENGERS ONLY */}
                                                 {idx > 0 && (
-                                                    <div className="mt-8 pt-6 border-t border-gray-800">
-                                                        <div className="flex items-center justify-between mb-4">
-                                                            <span className="text-[10px] uppercase font-black text-gray-500 tracking-widest">GIF Asset Layer</span>
-                                                            <span className="text-[10px] text-yellow-500 font-bold bg-yellow-500/10 px-2 rounded">PENDING</span>
-                                                        </div>
-                                                        <button
-                                                            className="w-full py-4 bg-gray-950 border border-dashed border-gray-700 rounded-xl text-gray-400 hover:text-white hover:border-purple-500 transition-all flex flex-col items-center justify-center gap-2 group/upload"
-                                                        >
-                                                            <span className="text-xl group-hover/upload:scale-125 transition-transform">🖼️</span>
-                                                            <span className="text-[10px] uppercase font-bold tracking-widest">Drop GIF to Apply Variant B Design</span>
-                                                        </button>
-                                                    </div>
+                                                    <AssetManager
+                                                        experimentId={exp.id}
+                                                        variant={stat.variant}
+                                                        currentAsset={(exp.metadata as any)?.assets?.[stat.variant]}
+                                                        metadata={exp.metadata}
+                                                    />
                                                 )}
                                             </div>
                                         ))}

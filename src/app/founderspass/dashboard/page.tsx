@@ -36,6 +36,8 @@ export default function FoundersDashboard() {
     const [chatLoading, setChatLoading] = useState(false)
     const [isAuthed, setIsAuthed] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [successMessage, setSuccessMessage] = useState<string | null>(null)
+    const [searchTerm, setSearchTerm] = useState('')
 
     const supabase = createClient()
 
@@ -268,9 +270,9 @@ export default function FoundersDashboard() {
 
             // Success feedback
             if (target === 'production') {
-                setErrorMessage(null) // clear any old errors
-                // We reuse the errorMessage state briefly for a success toast or add a new one
-                // For now, let's just log and clear saving
+                setErrorMessage(null)
+                setSuccessMessage(`${feature.name} Pushed Live!`)
+                setTimeout(() => setSuccessMessage(null), 3000)
                 console.log(`[Dashboard] ${feature.name} pushed to production.`)
             }
 
@@ -420,6 +422,13 @@ export default function FoundersDashboard() {
                                 <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                                 <span className="text-sm font-medium">{errorMessage}</span>
                                 <button onClick={() => setErrorMessage(null)} className="ml-auto hover:text-white"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                            </div>
+                        )}
+
+                        {successMessage && (
+                            <div className="mb-4 p-4 rounded-xl bg-green-500/10 border border-green-500/50 text-green-200 flex items-center gap-3 animate-pulse">
+                                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                <span className="text-sm font-medium">{successMessage}</span>
                             </div>
                         )}
 

@@ -13,6 +13,7 @@ import { KeywordPanel } from './KeywordPanel'
 import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
 import { GettingStartedPanel } from './GettingStartedPanel'
 import { LandingCube } from './LandingCube'
+import { HandshakeWizard } from './HandshakeWizard'
 import { PoweredByLogosCompact } from './PoweredByLogos'
 import { FounderPortal } from './FounderPortal'
 import { MultivaCubiKey } from './MultivaCubiKey'
@@ -148,6 +149,18 @@ export function FullscreenApp() {
       setPendingActions(prev => prev.filter(a => a.id !== id))
     }, 2000)
   }
+
+  // Handshake Wizard State
+  const [showHandshake, setShowHandshake] = useState(false)
+  useEffect(() => {
+    // Only show handshake if authenticated AND not completed
+    if (isAuthenticated && hydrated) {
+      const completed = localStorage.getItem('cubiqo_handshake_complete') === 'true'
+      if (!completed) {
+        setShowHandshake(true)
+      }
+    }
+  }, [isAuthenticated, hydrated])
 
   // Combined Founder Check (Email OR PIN)
   const [isFounderMode, setIsFounderMode] = useState(false)
@@ -1067,6 +1080,12 @@ export function FullscreenApp() {
 
       {/* Founder Portal - Only visible for founders */}
       {isFounderMode && <FounderPortal override={true} />}
+
+      {/* Handshake Onboarding Wizard */}
+      <HandshakeWizard
+        isOpen={showHandshake}
+        onComplete={() => setShowHandshake(false)}
+      />
 
       {/* Code Panel removed — not production-ready */}
     </div >

@@ -5,7 +5,7 @@
  * User-facing settings with integration toggles always visible
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useBYO } from '@/hooks/useBYO'
 
 interface BYOSettingsProps {
@@ -47,6 +47,18 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
     const stored = localStorage.getItem('cubiqo_user_toggles')
     return stored ? JSON.parse(stored) : {}
   })
+
+  // Listen for storage updates (e.g. from Handshake Wizard)
+  useEffect(() => {
+    const handleStorage = () => {
+      const stored = localStorage.getItem('cubiqo_user_toggles')
+      if (stored) {
+        setToggles(JSON.parse(stored))
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
 
   const toggleIntegration = (key: string) => {
     setToggles(prev => {
@@ -199,6 +211,11 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
                     <div className="text-[11px] text-gray-500 truncate">{integration.desc}</div>
                   </div>
                 </div>
+                {isOn && (
+                  <span className="hidden sm:inline-block text-[10px] font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded uppercase tracking-wider mr-2 border border-green-500/20">
+                    Linked
+                  </span>
+                )}
                 <button
                   onClick={() => toggleIntegration(integration.key)}
                   className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ml-3 ${isOn ? 'bg-green-500' : 'bg-gray-600'}`}

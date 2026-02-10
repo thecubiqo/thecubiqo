@@ -464,6 +464,7 @@ export interface DatabaseWithAbTesting extends Database {
           description: string | null
           variants: Json
           status: string
+          metadata: Json | null
           created_at: string
           updated_at: string
         }
@@ -473,6 +474,7 @@ export interface DatabaseWithAbTesting extends Database {
           description?: string | null
           variants: Json
           status?: string
+          metadata?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -482,6 +484,7 @@ export interface DatabaseWithAbTesting extends Database {
           description?: string | null
           variants?: Json
           status?: string
+          metadata?: Json | null
           created_at?: string
           updated_at?: string
         }
