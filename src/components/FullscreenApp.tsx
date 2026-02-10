@@ -558,9 +558,9 @@ export function FullscreenApp() {
             <span className="text-white/20">© 2025 Cubiqo United Inc.</span>
           </p>
 
-          {/* Powered By Logos */}
-          <div className="flex items-center gap-3">
-            <PoweredByLogosCompact isDark={isDark} />
+          {/* Mother AI Models Text */}
+          <div className={`text-[10px] tracking-widest uppercase ${isDark ? 'text-white/20' : 'text-gray-400/50'}`}>
+            Anthropic · OpenAI · Llama · Mistral · Gemini · DeepSeek
           </div>
         </div>
       </footer>

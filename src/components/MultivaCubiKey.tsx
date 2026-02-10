@@ -60,9 +60,14 @@ export function MultivaCubiKey({ isDark }: MultivaCubiKeyProps) {
                     </button>
                 </div>
 
-                <span className={`text-[9px] ${isDark ? 'text-white/20' : 'text-gray-400'}`}>
-                    CubiQo all purpose API key
-                </span>
+                <div className="flex flex-col gap-1 w-full text-center">
+                    <span className={`text-[9px] ${isDark ? 'text-white/30' : 'text-gray-400'}`}>
+                        CubiQo Universal Key · Standard Limits
+                    </span>
+                    <button className={`text-[9px] hover:underline ${isDark ? 'text-purple-400/80' : 'text-purple-600/80'}`}>
+                        Create custom key with higher limits &rarr;
+                    </button>
+                </div>
             </div>
         </div>
     )
