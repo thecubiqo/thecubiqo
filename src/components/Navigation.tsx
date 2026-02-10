@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { href: '/integrations', label: 'Integrations', icon: '🔗', feature: 'integrations' as const },
   { href: '/cubikey', label: 'CubiKey', icon: '🔑', feature: 'cubikey' as const },
   { href: '/settings', label: 'Settings', icon: '⚙️', feature: 'settings' as const },
+  { href: '/admin/experiments', label: 'Experiments', icon: '🧪', feature: 'admin' as const },
   { href: '/admin', label: 'Admin', icon: '👑', feature: 'admin' as const },
 ]
 
@@ -57,7 +58,7 @@ export function Navigation() {
         <ul className="space-y-1">
           {NAV_ITEMS.map((item) => {
             if (!access[item.feature]) return null
-            
+
             const isActive = pathname === item.href
             return (
               <li key={item.href}>
@@ -65,8 +66,8 @@ export function Navigation() {
                   href={item.href}
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-lg transition-all
-                    ${isActive 
-                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30' 
+                    ${isActive
+                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
                       : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                     }
                   `}

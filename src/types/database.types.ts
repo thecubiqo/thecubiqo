@@ -453,6 +453,127 @@ export type Database = {
   }
 }
 
+// Manual extension for A/B testing tables until codegen is run
+export interface DatabaseWithAbTesting extends Database {
+  public: {
+    Tables: Database['public']['Tables'] & {
+      experiments: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          variants: Json
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          variants: Json
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          variants?: Json
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      experiment_assignments: {
+        Row: {
+          id: string
+          experiment_id: string
+          user_id: string | null
+          session_id: string | null
+          variant: string
+          assigned_at: string
+        }
+        Insert: {
+          id?: string
+          experiment_id: string
+          user_id?: string | null
+          session_id?: string | null
+          variant: string
+          assigned_at?: string
+        }
+        Update: {
+          id?: string
+          experiment_id?: string
+          user_id?: string | null
+          session_id?: string | null
+          variant?: string
+          assigned_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "experiment_assignments_experiment_id_fkey"
+            columns: ["experiment_id"]
+            isOneToOne: false
+            referencedRelation: "experiments"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      experiment_events: {
+        Row: {
+          id: string
+          experiment_id: string
+          variant: string
+          event_name: string
+          value: number
+          user_id: string | null
+          session_id: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          experiment_id: string
+          variant: string
+          event_name: string
+          value?: number
+          user_id?: string | null
+          session_id?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          experiment_id?: string
+          variant?: string
+          event_name?: string
+          value?: number
+          user_id?: string | null
+          session_id?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "experiment_events_experiment_id_fkey"
+            columns: ["experiment_id"]
+            isOneToOne: false
+            referencedRelation: "experiments"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+    }
+    Views: Database['public']['Views']
+    Functions: Database['public']['Functions']
+    Enums: Database['public']['Enums']
+    CompositeTypes: Database['public']['CompositeTypes']
+  }
+}
+
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
