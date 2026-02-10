@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 // Server-side Supabase client with service role (bypasses RLS)
+// Server-side Supabase client with service role (bypasses RLS)
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY1 || 'placeholder-key'
 )
 
 export async function POST(req: NextRequest) {
@@ -32,6 +33,22 @@ export async function POST(req: NextRequest) {
       }
 
       // Create new conversation
+
+      // 1. Ensure Session exists (to satisfy FK constraint)
+      const { error: sessionError } = await supabaseAdmin
+        .from('sessions')
+        .upsert({
+          id: sessionId,
+          is_guest: true,
+          user_id: null, // Explicitly null for guests
+          // last_active removed as it doesn't exist in schema
+        }, { onConflict: 'id', ignoreDuplicates: true })
+
+      if (sessionError) {
+        console.warn('[API/session] Note: Session upsert warning (might exist):', sessionError)
+      }
+
+      // 2. Create conversation
       const { data: newConv, error: convError } = await supabaseAdmin
         .from('conversations')
         .insert({ session_id: sessionId, color_state: 'ORANGE' })

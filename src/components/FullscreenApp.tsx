@@ -15,6 +15,7 @@ import { GettingStartedPanel } from './GettingStartedPanel'
 import { LandingCube } from './LandingCube'
 import { PoweredByLogosCompact } from './PoweredByLogos'
 import { FounderPortal } from './FounderPortal'
+import { MultivaCubiKey } from './MultivaCubiKey'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
@@ -537,8 +538,12 @@ export function FullscreenApp() {
       </div>
 
       {/* Footer - Much lower on screen */}
-      <footer className="fixed bottom-2 left-0 right-0 z-50">
-        <div className="flex flex-col items-center gap-2">
+      <footer className="fixed bottom-2 left-0 right-0 z-50 pointer-events-none">
+        <div className="flex flex-col items-center gap-4 pointer-events-auto">
+
+          {/* Multiva Cubi Key Display */}
+          <MultivaCubiKey isDark={isDark} />
+
           <p className="text-[10px] text-white/25 tracking-wide text-center">
             All conversations are confidential. CubiQo never retains user voice by policy.
             <span className="mx-2">·</span>

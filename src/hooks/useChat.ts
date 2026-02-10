@@ -228,7 +228,7 @@ export function useChat(options: UseChatOptions) {
   const sendMessage = useCallback(async (
     message: string,
     currentColor: ColorName = 'ORANGE',
-    options?: { duoMode?: boolean }
+    options?: { duoMode?: boolean, context?: string }
   ): Promise<AIResponse | null> => {
     if (!state.conversationId) {
       setState(prev => ({ ...prev, error: 'No conversation initialized. Please refresh the page.' }))
@@ -252,7 +252,8 @@ export function useChat(options: UseChatOptions) {
           messageCount: state.conversationHistory.length + 1,
           sessionId,
           region: regionId || undefined,
-          duoMode: options?.duoMode
+          duoMode: options?.duoMode,
+          context: options?.context // Pass extension context (URL/Title)
         })
       })
 

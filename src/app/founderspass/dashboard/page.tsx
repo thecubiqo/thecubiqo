@@ -18,7 +18,7 @@ type FeatureFlag = {
     enabled_for_production: boolean
     enabled_for_founders: boolean
     risk_level: 'safe' | 'moderate' | 'dangerous'
-    category: 'tools' | 'experience' | 'integrations' | 'agents'
+    category: 'tools' | 'experience' | 'integrations' | 'agents' | 'extension'
 }
 
 type ChatMessage = {
@@ -260,7 +260,24 @@ export default function FoundersDashboard() {
         tools: '🛠️ Tools',
         integrations: '🔗 Integrations',
         agents: '🤖 Agents',
-        experience: '✨ Experience'
+        experience: '✨ Experience',
+        extension: '🧩 Extension'
+    }
+
+    const extensionFeatures: FeatureFlag[] = [{
+        id: 'ext_download',
+        feature_id: 'extension_download',
+        name: 'Chrome Extension',
+        description: 'Install the CubiQo Sidekick',
+        enabled_for_production: true,
+        enabled_for_founders: true,
+        risk_level: 'safe',
+        category: 'extension'
+    }]
+
+    // Merge extension features into groupedFeatures for display
+    if (!groupedFeatures['extension']) {
+        groupedFeatures['extension'] = extensionFeatures
     }
 
     const riskColors = {

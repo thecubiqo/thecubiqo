@@ -18,9 +18,12 @@ interface ChatContainerProps {
   onColorChange: (color: ColorName) => void
   onSpeakingChange?: (isSpeaking: boolean) => void
   regionId?: string | null
+  initialContext?: string
+  isExtension?: boolean
+  isGuest?: boolean
 }
 
-export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeakingChange, regionId }: ChatContainerProps) {
+export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeakingChange, regionId, initialContext, isExtension, isGuest = false }: ChatContainerProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const lastSpokenIndexRef = useRef<number>(-1)
   const [isDuoModeEnabled, setIsDuoModeEnabled] = useState(false)
@@ -42,7 +45,8 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
   } = useChat({
     sessionId,
     onColorChange,
-    regionId
+    regionId,
+    isGuest
   })
 
   // Auto-scroll to bottom when new messages arrive
@@ -76,7 +80,10 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
     if (isSpeaking) {
       stop()
     }
-    await sendMessage(message, currentColor, { duoMode: isDuoModeEnabled })
+    await sendMessage(message, currentColor, {
+      duoMode: isDuoModeEnabled,
+      context: initialContext // Pass the current context (URL/Title)
+    })
   }
 
   if (!sessionId) {
