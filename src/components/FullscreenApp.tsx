@@ -58,6 +58,21 @@ export function FullscreenApp() {
   const [earlyAccessSubmitted, setEarlyAccessSubmitted] = useState(false)
   const [showEarlyAccess, setShowEarlyAccess] = useState(true)
 
+  // Combined Founder Check (Email OR PIN)
+  const [isFounderMode, setIsFounderMode] = useState(false)
+
+  useEffect(() => {
+    const checkFounder = () => {
+      const isEmail = user?.email === 'aditya@cubiqo.ai'
+      const isPin = typeof window !== 'undefined' && sessionStorage.getItem('founders_pass_auth') === 'true'
+      setIsFounderMode(isEmail || isPin)
+    }
+    checkFounder()
+    // Listen for storage changes in case they log in via another tab/window logic
+    window.addEventListener('storage', checkFounder)
+    return () => window.removeEventListener('storage', checkFounder)
+  }, [user])
+
   const handleEarlyAccessSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!earlyAccessEmail.trim()) return
@@ -401,7 +416,7 @@ export function FullscreenApp() {
 
       <div className="fixed left-6 bottom-6 z-[55] flex flex-col gap-3">
         {/* Dev Mode Toggle - Founders Only */}
-        {user?.email === 'aditya@cubiqo.ai' && (
+        {isFounderMode && (
           <button
             onClick={() => setDevMode(!devMode)}
             className={`flex items-center gap-2 text-[13px] transition-colors ${isDark
@@ -412,7 +427,7 @@ export function FullscreenApp() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 18" />
             </svg>
-            <span className="font-medium">Code</span>
+            <span className="font-medium">Dev Panel</span>
           </button>
         )}
 
@@ -811,11 +826,11 @@ export function FullscreenApp() {
         />
       )}
 
-      {/* Founder Portal - Only visible for aditya@cubiqo.ai */}
-      <FounderPortal />
+      {/* Founder Portal - Only visible for founders */}
+      {isFounderMode && <FounderPortal override={true} />}
 
       {/* Dev Mode Code Panel Overlay */}
-      {devMode && user?.email === 'aditya@cubiqo.ai' && (
+      {devMode && isFounderMode && (
         <div
           className="fixed right-0 top-[70px] bottom-0 w-[500px] max-w-[90vw] z-[45] shadow-2xl transition-transform duration-300 transform translate-x-0"
           style={{

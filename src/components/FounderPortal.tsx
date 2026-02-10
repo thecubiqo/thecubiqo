@@ -9,11 +9,11 @@ import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
 import { isFounder } from '@/lib/auth'
 
-export function FounderPortal() {
+export function FounderPortal({ override }: { override?: boolean }) {
   const { user } = useAuth()
 
-  // Only show for founders
-  if (!isFounder(user?.email)) {
+  // Only show for founders (or if overridden by parent check like PIN auth)
+  if (!isFounder(user?.email) && !override) {
     return null
   }
 

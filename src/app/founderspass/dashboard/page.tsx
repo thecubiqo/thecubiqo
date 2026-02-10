@@ -310,6 +310,14 @@ export default function FoundersDashboard() {
                     </div>
                     <div className="flex items-center gap-4">
                         <span className="text-sm text-amber-400 font-medium hidden sm:inline">Founder Access</span>
+
+                        <button
+                            onClick={() => window.open('/', '_blank')}
+                            className="px-4 py-2 text-sm bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors border border-white/10"
+                        >
+                            Run My CubiQo ↗
+                        </button>
+
                         <button
                             onClick={() => {
                                 sessionStorage.removeItem('founders_pass_auth')
