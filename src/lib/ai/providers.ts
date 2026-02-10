@@ -9,7 +9,7 @@ export const MINIMAX_CONFIG: ProviderConfig = {
   name: 'minimax',
   model: 'MiniMax-M2',
   maxTokens: 200,
-  apiKeyEnv: 'MINIMAX_API_KEY'
+  apiKeyEnv: 'MINIMAX_KEY'
 }
 
 export const CLAUDE_CONFIG: ProviderConfig = {

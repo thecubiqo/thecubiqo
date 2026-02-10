@@ -57,10 +57,10 @@ function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining
 // Made optional - if not configured, memory features are disabled
 let supabaseAdmin: ReturnType<typeof createClient> | null = null
 try {
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL1 && process.env.SUPABASE_SERVICE_ROLE_KEY1) {
     supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
+      process.env.NEXT_PUBLIC_SUPABASE_URL1,
+      process.env.SUPABASE_SERVICE_ROLE_KEY1
     )
   }
 } catch (e) {
@@ -72,10 +72,10 @@ async function callMiniMax(
   systemPrompt: string,
   messages: { role: string; content: string }[]
 ): Promise<string> {
-  const apiKey = process.env.MINIMAX_API_KEY
+  const apiKey = process.env.MINIMAX_KEY
 
   if (!apiKey) {
-    throw new Error('MINIMAX_API_KEY not configured')
+    throw new Error('MINIMAX_KEY not configured')
   }
 
   // Build messages for MiniMax API
@@ -369,8 +369,8 @@ export async function POST(request: NextRequest) {
     
     // Log which API keys are available (for debugging)
     console.log('[Chat API] Available providers:', {
-      minimax: !!process.env.MINIMAX_API_KEY,
-      openclaw: !!process.env.OPENCLAW_API_KEY,
+      minimax: !!process.env.MINIMAX_KEY,
+      openclaw: !!process.env.OPENROUTER_KEY_CUBIKEY,
       claude: !!process.env.ANTHROPIC_API_KEY || !!byoClaudeKey,
       openai: !!process.env.OPENAI_API_KEY || !!byoOpenaiKey
     })
@@ -382,7 +382,7 @@ export async function POST(request: NextRequest) {
     const errors: string[] = []
 
     // Try MiniMax first (primary)
-    if (minimaxAllowed && process.env.MINIMAX_API_KEY) {
+    if (minimaxAllowed && process.env.MINIMAX_KEY) {
       try {
         content = await callMiniMax(fullSystemPrompt, messages)
       } catch (minimaxError) {
@@ -396,7 +396,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fallback to OpenClaw if MiniMax failed
-    if (!content && process.env.OPENCLAW_API_KEY) {
+    if (!content && process.env.OPENROUTER_KEY_CUBIKEY) {
       try {
         content = await callOpenClaw(fullSystemPrompt, messages)
         provider = 'openclaw'
