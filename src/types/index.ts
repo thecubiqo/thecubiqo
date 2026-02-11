@@ -45,6 +45,7 @@ export type EventUpdate = Database['public']['Tables']['events']['Update']
 // ENUM TYPES - For color states, roles, etc.
 // ============================================================================
 
+export type ColorName = 'RED' | 'YELLOW' | 'GREEN_BLUE' | 'ORANGE'
 export type ColorState = 'trcl' | 'green' | 'yellow' | 'red'
 export type AIModel = 'claude' | 'openai'
 export type MessageRole = 'user' | 'assistant' | 'system'

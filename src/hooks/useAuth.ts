@@ -50,9 +50,11 @@ export function useAuth() {
     // Set up auth state listener - this handles all auth events including initial load
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // Handle any event that provides session info
+        console.log('[useAuth] Auth Event:', event, 'HasSession:', !!session)
+
         if (session?.user) {
-          // IMPORTANT: Set isAuthenticated immediately, don't wait for profile
+          console.log('[useAuth] Session detected for:', session.user.email)
+          // IMPORTANT: Set isAuthenticated immediately
           setState(prev => ({
             ...prev,
             user: session.user,
@@ -61,17 +63,16 @@ export function useAuth() {
             isGuest: false,
           }))
 
-          // Fetch profile in background (may fail due to RLS, that's ok)
           try {
             const profile = await fetchProfile(session.user.id)
             if (profile) {
               setState(prev => ({ ...prev, profile }))
             }
-          } catch {
-            // Profile fetch may fail for new users - that's ok
+          } catch (e) {
+            console.error('[useAuth] Profile fetch background error:', e)
           }
         } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
-          // No session - either signed out or initial load with no auth
+          console.log('[useAuth] No session state')
           setState({
             user: null,
             profile: null,
@@ -89,28 +90,25 @@ export function useAuth() {
   }, [supabase, fetchProfile])
 
   // Sign in with magic link
-  const signInWithEmail = useCallback(async (email: string) => {
+  const signInWithEmail = useCallback(async (email: string, redirectTo?: string) => {
+    const callbackUrl = new URL(`${window.location.origin}/auth/callback`)
+    if (redirectTo) callbackUrl.searchParams.set('next', redirectTo)
+
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: callbackUrl.toString(),
       },
     })
 
-    if (error) {
-      throw error
-    }
-
+    if (error) throw error
     return { success: true }
   }, [supabase])
 
   // Sign out
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut()
-
-    if (error) {
-      throw error
-    }
+    if (error) throw error
 
     setState({
       user: null,

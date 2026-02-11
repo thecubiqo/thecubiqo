@@ -8,7 +8,7 @@ export const OPENCLAW_CONFIG = {
   baseUrl: process.env.OPENCLAW_BASE_URL || 'http://localhost:18789',
   model: 'emergent-claude/claude-sonnet-4-5', // or any model configured in Clawdbot
   maxTokens: 4000,
-  apiKeyEnv: 'OPENCLAW_API_KEY'
+  apiKeyEnv: 'OPENROUTER_KEY_CUBIKEY'
 }
 
 /**
@@ -19,11 +19,11 @@ export async function callOpenClaw(
   messages: { role: string; content: string }[],
   apiKey?: string | null
 ): Promise<string> {
-  const key = apiKey || process.env.OPENCLAW_API_KEY
+  const key = apiKey || process.env.OPENROUTER_KEY_CUBIKEY
   const baseUrl = process.env.OPENCLAW_BASE_URL || 'http://localhost:18789'
 
   if (!key) {
-    throw new Error('OPENCLAW_API_KEY not configured')
+    throw new Error('OPENROUTER_KEY_CUBIKEY not configured')
   }
 
   // Format messages for OpenAI-compatible API

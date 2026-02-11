@@ -14,13 +14,9 @@ import {
   SYSTEM_PROMPT,
   buildMessages,
   parseResponse,
-  CLAUDE_CONFIG,
-  OPENAI_CONFIG,
-  MINIMAX_CONFIG,
   type ChatRequest,
   type AIResponse
 } from '@/lib/ai'
-import { callOpenClaw } from '@/lib/ai/openclaw'
 import { buildMemoryContext } from '@/lib/ai/memory-extraction.server'
 import { getRegionConfig, buildRegionalPrompt } from '@/lib/config/regions'
 import { routeAIRequest, trackCost } from '@/lib/ai/router'
@@ -55,20 +51,13 @@ function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining
 }
 
 // Server-side Supabase client for loading memories
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-// MiniMax API call (primary)
-async function callMiniMax(
-  systemPrompt: string,
-  messages: { role: string; content: string }[]
-): Promise<string> {
-  const apiKey = process.env.MINIMAX_API_KEY
-
-  if (!apiKey) {
-    throw new Error('MINIMAX_API_KEY not configured')
+// Made optional during build to prevent errors
+let supabaseAdmin: ReturnType<typeof createClient> | null = null;
+try {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL1;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY1;
+  if (url && key && url.includes('supabase')) {
+    supabaseAdmin = createClient(url, key);
   }
 
   // Build messages for MiniMax API
@@ -114,15 +103,9 @@ async function callMiniMax(
 
 // Build auth nudge prompt for guest users
 function buildAuthNudgePrompt(isGuest: boolean, messageCount: number): string {
-  // Only add nudge for guests with 5-10 messages who haven't been nudged yet
-  if (!isGuest || messageCount < 5 || messageCount > 10) {
-    return ''
-  }
-
+  if (!isGuest || messageCount < 5 || messageCount > 10) return ''
   const isMandatory = messageCount >= 10
-
   return `
-
 SPECIAL CONTEXT (use wisely):
 The person you're talking to is a guest - they haven't signed in yet. You've had ${messageCount} exchanges with them.
 ${isMandatory
@@ -149,28 +132,14 @@ Remember: This is about creating an emotional moment with an easy next step, not
 
 export async function POST(request: NextRequest) {
   try {
-    const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string } = await request.json()
-    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region } = body
-
-    // Get BYO API keys from headers (if user has BYO mode enabled)
-    const byoClaudeKey = request.headers.get('x-byo-claude-key')
-    const byoOpenaiKey = request.headers.get('x-byo-openai-key')
-    const isBYO = !!(byoClaudeKey || byoOpenaiKey)
-
-    console.log('[BYO API] Headers received:', {
-      hasByoClaudeKey: !!byoClaudeKey,
-      hasByoOpenaiKey: !!byoOpenaiKey,
-      isBYO
-    })
+    const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string; duoMode?: boolean; context?: string; userId?: string; isFounder?: boolean } = await request.json()
+    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region, duoMode = false, context, userId, isFounder = false } = body
 
     // Get region from body or header
     const regionId = region || request.headers.get('x-user-region')
 
     if (!message) {
-      return NextResponse.json(
-        { error: 'Missing required field: message' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Missing required field: message' }, { status: 400 })
     }
 
     // Load memories and check Founder status
@@ -220,17 +189,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Build messages with temporal context
+    // Build messages & Context
     const messages = buildMessages(message, conversationHistory, currentColor)
 
-    // Build regional context (if user is in a regional version)
     let regionalContext = ''
     if (regionId) {
       try {
-        const regionConfig = await getRegionConfig(regionId)
-        if (regionConfig) {
-          regionalContext = '\n\n--- REGIONAL CONTEXT ---\n' + buildRegionalPrompt(regionConfig)
-        }
+        const conf = await getRegionConfig(regionId)
+        if (conf) regionalContext = '\n\n--- REGIONAL CONTEXT ---\n' + buildRegionalPrompt(conf)
       } catch {
         // Ignore regional config errors - not critical
       }
@@ -260,8 +226,53 @@ export async function POST(request: NextRequest) {
 
     console.log('[Chat] Provider used:', provider, '| Cost:', routerResult.cost.toFixed(6), 'USD')
 
-    // Parse response
-    const aiResponse: AIResponse = parseResponse(content)
+    let extensionContext = ''
+    if (context) {
+      extensionContext = `\n\n[USER CONTEXT]\nUser viewing: ${context}\n`
+    }
+
+    const authNudge = buildAuthNudgePrompt(isGuest, messageCount)
+
+    // Choose base system prompt
+    const basePrompt = isFounder ? FOUNDER_SYSTEM_PROMPT : SYSTEM_PROMPT
+    const fullSystemPrompt = basePrompt + memoryContext + regionalContext + duoModeContext + extensionContext + authNudge
+
+    // --- POLICY ROUTER & CACHING ---
+
+    // Map App Colors to Router Zones
+    let zone: ZoneColor = 'GREEN'
+    if (currentColor === 'YELLOW' || currentColor === 'ORANGE') zone = 'YELLOW'
+    if (currentColor === 'GREEN_BLUE') zone = 'GREEN'
+    if (currentColor === 'RED') zone = 'RED'
+
+    // Check Cache
+    const cacheKey = fullSystemPrompt + messages.map(m => m.content).join('') + (isFounder ? ':founder' : '')
+    const cachedResponse = await SemanticCache.get(cacheKey, zone)
+
+    if (cachedResponse) {
+      console.log('[API] Cache Hit!')
+      return NextResponse.json({ ...parseResponse(cachedResponse), provider: 'cache', byo: false })
+    }
+
+    console.log(`[API] Routing to ${zone} zone ${isFounder ? '(FOUNDER)' : ''}`)
+
+    let content: string
+    try {
+      content = await PolicyRouter.route(fullSystemPrompt, messages, {
+        zone,
+        reasoning: false, // Default to false until UI toggle added
+        userId: userId || 'anonymous',
+        sessionId,
+        isFounder // Passed isFounder to PolicyRouter.route
+      })
+
+      // Save to Cache
+      SemanticCache.set(cacheKey, content, zone)
+
+    } catch (error) {
+      console.error('[API] Router Failed:', error)
+      throw new Error('AI Router failed.')
+    }
 
     return NextResponse.json({
       ...aiResponse,
@@ -272,17 +283,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Chat API error:', error)
-
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Internal server error'
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal error' }, { status: 500 })
   }
 }
 
-// Handle OPTIONS for CORS
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,

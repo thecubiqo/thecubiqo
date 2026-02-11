@@ -2,11 +2,11 @@
 
 /**
  * Settings Cube Page
- * Cube with live code panels on faces
+ * Live agent activity visualization with code on cube faces
  */
 
-import { SettingsCubeApp } from '@/components/settings-cube/SettingsCubeApp'
+import { AgentActivityCubeApp } from '@/components/AgentActivityCube'
 
 export default function SettingsCubePage() {
-  return <SettingsCubeApp />
+  return <AgentActivityCubeApp />
 }

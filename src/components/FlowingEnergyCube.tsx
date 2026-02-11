@@ -1,308 +1,305 @@
 'use client'
 
 /**
- * FlowingEnergyCube - High-definition energy cube matching the mockup
- * Flowing blue/purple/pink/orange energy with defined edges and sparkles
+ * FlowingEnergyCube - Geometric energy ribbons defining cube structure
+ * Uses 3D curves/tubes to create defined flowing paths
  */
 
 import React, { useRef, useMemo, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { RoundedBox } from '@react-three/drei'
-
-// Flowing plasma energy shader
-const flowingVertexShader = `
-  varying vec3 vPosition;
-  varying vec3 vNormal;
-  varying vec3 vWorldPosition;
-  
-  uniform float uTime;
-  uniform float uIntensity;
-  
-  void main() {
-    vPosition = position;
-    vNormal = normalize(normalMatrix * normal);
-    
-    // Gentle breathing
-    float breathe = sin(uTime * 0.5) * 0.015 * uIntensity;
-    vec3 displaced = position * (1.0 + breathe);
-    
-    vec4 worldPos = modelMatrix * vec4(displaced, 1.0);
-    vWorldPosition = worldPos.xyz;
-    
-    gl_Position = projectionMatrix * viewMatrix * worldPos;
-  }
-`
-
-const flowingFragmentShader = `
-  precision highp float;
-  
-  varying vec3 vPosition;
-  varying vec3 vNormal;
-  varying vec3 vWorldPosition;
-  
-  uniform float uTime;
-  uniform float uIntensity;
-  
-  // Simplex noise
-  vec4 permute(vec4 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
-  vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
-  
-  float snoise(vec3 v) { 
-    const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-    
-    vec3 i = floor(v + dot(v, C.yyy));
-    vec3 x0 = v - i + dot(i, C.xxx);
-    
-    vec3 g = step(x0.yzx, x0.xyz);
-    vec3 l = 1.0 - g;
-    vec3 i1 = min(g.xyz, l.zxy);
-    vec3 i2 = max(g.xyz, l.zxy);
-    
-    vec3 x1 = x0 - i1 + C.xxx;
-    vec3 x2 = x0 - i2 + C.yyy;
-    vec3 x3 = x0 - D.yyy;
-    
-    i = mod(i, 289.0);
-    vec4 p = permute(permute(permute(
-              i.z + vec4(0.0, i1.z, i2.z, 1.0))
-            + i.y + vec4(0.0, i1.y, i2.y, 1.0))
-            + i.x + vec4(0.0, i1.x, i2.x, 1.0));
-            
-    float n_ = 1.0/7.0;
-    vec3 ns = n_ * D.wyz - D.xzx;
-    
-    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-    
-    vec4 x_ = floor(j * ns.z);
-    vec4 y_ = floor(j - 7.0 * x_);
-    
-    vec4 x = x_ * ns.x + ns.yyyy;
-    vec4 y = y_ * ns.x + ns.yyyy;
-    vec4 h = 1.0 - abs(x) - abs(y);
-    
-    vec4 b0 = vec4(x.xy, y.xy);
-    vec4 b1 = vec4(x.zw, y.zw);
-    
-    vec4 s0 = floor(b0)*2.0 + 1.0;
-    vec4 s1 = floor(b1)*2.0 + 1.0;
-    vec4 sh = -step(h, vec4(0.0));
-    
-    vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
-    vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
-    
-    vec3 p0 = vec3(a0.xy, h.x);
-    vec3 p1 = vec3(a0.zw, h.y);
-    vec3 p2 = vec3(a1.xy, h.z);
-    vec3 p3 = vec3(a1.zw, h.w);
-    
-    vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
-    p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
-    
-    vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-    m = m * m;
-    return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
-  }
-  
-  float fbm(vec3 p) {
-    float value = 0.0;
-    float amplitude = 0.5;
-    for (int i = 0; i < 6; i++) {
-      value += amplitude * snoise(p);
-      p *= 2.0;
-      amplitude *= 0.5;
-    }
-    return value;
-  }
-  
-  void main() {
-    float time = uTime * 0.15;
-    vec3 pos = vPosition * 2.5;
-    
-    // Multiple flowing energy layers
-    float flow1 = fbm(pos + vec3(time * 0.5, time * 0.3, time * 0.2));
-    float flow2 = fbm(pos * 1.2 + vec3(-time * 0.4, time * 0.6, 0.0));
-    float flow3 = fbm(pos * 0.8 - vec3(0.0, time * 0.5, time * 0.4));
-    float flow4 = fbm(pos * 1.5 + vec3(time * 0.3, -time * 0.2, time * 0.4));
-    
-    // Combine flows
-    float energy = flow1 * 0.35 + flow2 * 0.25 + flow3 * 0.25 + flow4 * 0.15;
-    energy = smoothstep(-0.4, 0.7, energy);
-    
-    // Beautiful colors - blue, purple, pink, cyan, orange
-    vec3 deepBlue = vec3(0.2, 0.4, 1.0);
-    vec3 purple = vec3(0.5, 0.2, 0.9);
-    vec3 hotPink = vec3(1.0, 0.3, 0.7);
-    vec3 cyan = vec3(0.3, 0.9, 1.0);
-    vec3 orange = vec3(1.0, 0.55, 0.2);
-    vec3 white = vec3(1.0, 0.95, 0.98);
-    
-    // Build complex color gradient
-    vec3 color = mix(deepBlue, purple, smoothstep(-0.3, 0.5, flow1));
-    color = mix(color, hotPink, smoothstep(-0.2, 0.6, flow2) * 0.7);
-    color = mix(color, cyan, smoothstep(0.0, 0.7, flow3) * 0.5);
-    
-    // Orange accents
-    float centerDist = length(vPosition);
-    float coreGlow = smoothstep(0.9, 0.0, centerDist);
-    color = mix(color, orange, coreGlow * 0.5);
-    
-    // Bright energy veins
-    float veins = pow(energy, 2.0);
-    color = mix(color, white, veins * 0.4);
-    
-    // Sparkle effect
-    float sparkle = snoise(pos * 12.0 + vec3(time * 3.0));
-    float sparkleIntensity = smoothstep(0.75, 0.95, sparkle);
-    color += white * sparkleIntensity * 0.6;
-    
-    // Intensity modulation
-    color *= 0.85 + uIntensity * 0.3;
-    
-    // Pulsing
-    float pulse = sin(uTime * 0.5) * 0.5 + 0.5;
-    color *= 0.85 + pulse * 0.15;
-    
-    // Fresnel rim glow
-    vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-    float fresnel = pow(1.0 - abs(dot(vNormal, viewDir)), 2.5);
-    vec3 rimColor = mix(cyan, hotPink, sin(uTime * 0.3) * 0.5 + 0.5);
-    color += rimColor * fresnel * 0.8;
-    
-    // Alpha
-    float alpha = 0.5 + energy * 0.35 + coreGlow * 0.15;
-    alpha = clamp(alpha, 0.35, 0.85);
-    
-    gl_FragColor = vec4(color, alpha);
-  }
-`
 
 interface FlowingEnergyCubeProps {
   intensity?: number
 }
 
 export function FlowingEnergyCube({ intensity = 0.5 }: FlowingEnergyCubeProps) {
-  const innerRef = useRef<THREE.Mesh>(null)
-  const outerRef = useRef<THREE.Mesh>(null)
   const groupRef = useRef<THREE.Group>(null)
-  const edgesRef = useRef<THREE.LineSegments>(null)
   
-  const uniforms = useMemo(() => ({
-    uTime: { value: 0 },
-    uIntensity: { value: intensity },
-  }), [])
-  
-  useEffect(() => {
-    uniforms.uIntensity.value = intensity
-  }, [intensity, uniforms])
-  
-  // Glowing edges
-  const edges = useMemo(() => {
-    const geometry = new THREE.BoxGeometry(1.52, 1.52, 1.52)
-    return new THREE.EdgesGeometry(geometry)
+  // Create flowing ribbon paths using CatmullRomCurve3
+  const ribbonPaths = useMemo(() => {
+    const size = 0.75
+    const curves: THREE.CatmullRomCurve3[] = []
+    
+    // Edge flows - following cube edges with curves
+    // Bottom square flowing
+    curves.push(new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-size, -size, -size),
+      new THREE.Vector3(-size * 0.7, -size, -size * 1.1),
+      new THREE.Vector3(0, -size, -size * 1.05),
+      new THREE.Vector3(size * 0.7, -size, -size * 1.1),
+      new THREE.Vector3(size, -size, -size),
+    ]))
+    
+    curves.push(new THREE.CatmullRomCurve3([
+      new THREE.Vector3(size, -size, -size),
+      new THREE.Vector3(size * 1.1, -size, -size * 0.7),
+      new THREE.Vector3(size * 1.05, -size, 0),
+      new THREE.Vector3(size * 1.1, -size, size * 0.7),
+      new THREE.Vector3(size, -size, size),
+    ]))
+    
+    curves.push(new THREE.CatmullRomCurve3([
+      new THREE.Vector3(size, -size, size),
+      new THREE.Vector3(size * 0.7, -size, size * 1.1),
+      new THREE.Vector3(0, -size, size * 1.05),
+      new THREE.Vector3(-size * 0.7, -size, size * 1.1),
+      new THREE.Vector3(-size, -size, size),
+    ]))
+    
+    curves.push(new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-size, -size, size),
+      new THREE.Vector3(-size * 1.1, -size, size * 0.7),
+      new THREE.Vector3(-size * 1.05, -size, 0),
+      new THREE.Vector3(-size * 1.1, -size, -size * 0.7),
+      new THREE.Vector3(-size, -size, -size),
+    ]))
+    
+    // Top square flowing
+    curves.push(new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-size, size, -size),
+      new THREE.Vector3(-size * 0.7, size, -size * 1.1),
+      new THREE.Vector3(0, size, -size * 1.05),
+      new THREE.Vector3(size * 0.7, size, -size * 1.1),
+      new THREE.Vector3(size, size, -size),
+    ]))
+    
+    curves.push(new THREE.CatmullRomCurve3([
+      new THREE.Vector3(size, size, -size),
+      new THREE.Vector3(size * 1.1, size, -size * 0.7),
+      new THREE.Vector3(size * 1.05, size, 0),
+      new THREE.Vector3(size * 1.1, size, size * 0.7),
+      new THREE.Vector3(size, size, size),
+    ]))
+    
+    curves.push(new THREE.CatmullRomCurve3([
+      new THREE.Vector3(size, size, size),
+      new THREE.Vector3(size * 0.7, size, size * 1.1),
+      new THREE.Vector3(0, size, size * 1.05),
+      new THREE.Vector3(-size * 0.7, size, size * 1.1),
+      new THREE.Vector3(-size, size, size),
+    ]))
+    
+    curves.push(new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-size, size, size),
+      new THREE.Vector3(-size * 1.1, size, size * 0.7),
+      new THREE.Vector3(-size * 1.05, size, 0),
+      new THREE.Vector3(-size * 1.1, size, -size * 0.7),
+      new THREE.Vector3(-size, size, -size),
+    ]))
+    
+    // Vertical edges
+    curves.push(new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-size, -size, -size),
+      new THREE.Vector3(-size * 1.05, -size * 0.5, -size * 1.05),
+      new THREE.Vector3(-size * 1.05, 0, -size * 1.05),
+      new THREE.Vector3(-size * 1.05, size * 0.5, -size * 1.05),
+      new THREE.Vector3(-size, size, -size),
+    ]))
+    
+    curves.push(new THREE.CatmullRomCurve3([
+      new THREE.Vector3(size, -size, -size),
+      new THREE.Vector3(size * 1.05, -size * 0.5, -size * 1.05),
+      new THREE.Vector3(size * 1.05, 0, -size * 1.05),
+      new THREE.Vector3(size * 1.05, size * 0.5, -size * 1.05),
+      new THREE.Vector3(size, size, -size),
+    ]))
+    
+    curves.push(new THREE.CatmullRomCurve3([
+      new THREE.Vector3(size, -size, size),
+      new THREE.Vector3(size * 1.05, -size * 0.5, size * 1.05),
+      new THREE.Vector3(size * 1.05, 0, size * 1.05),
+      new THREE.Vector3(size * 1.05, size * 0.5, size * 1.05),
+      new THREE.Vector3(size, size, size),
+    ]))
+    
+    curves.push(new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-size, -size, size),
+      new THREE.Vector3(-size * 1.05, -size * 0.5, size * 1.05),
+      new THREE.Vector3(-size * 1.05, 0, size * 1.05),
+      new THREE.Vector3(-size * 1.05, size * 0.5, size * 1.05),
+      new THREE.Vector3(-size, size, size),
+    ]))
+    
+    // Diagonal flowing ribbons through center
+    curves.push(new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-size, -size, -size),
+      new THREE.Vector3(-size * 0.5, -size * 0.3, -size * 0.3),
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(size * 0.5, size * 0.3, size * 0.3),
+      new THREE.Vector3(size, size, size),
+    ]))
+    
+    curves.push(new THREE.CatmullRomCurve3([
+      new THREE.Vector3(size, -size, -size),
+      new THREE.Vector3(size * 0.5, -size * 0.3, -size * 0.3),
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(-size * 0.5, size * 0.3, size * 0.3),
+      new THREE.Vector3(-size, size, size),
+    ]))
+    
+    return curves
   }, [])
+  
+  // Create tube geometries from curves
+  const ribbonTubes = useMemo(() => {
+    return ribbonPaths.map((curve, i) => {
+      const geometry = new THREE.TubeGeometry(curve, 64, 0.015, 8, false)
+      return { geometry, index: i }
+    })
+  }, [ribbonPaths])
+  
+  // Color gradient material
+  const createRibbonMaterial = (index: number, time: number) => {
+    const offset = (index / ribbonPaths.length + time * 0.1) % 1
+    
+    let color: THREE.Color
+    if (offset < 0.25) {
+      // Blue to Purple
+      color = new THREE.Color().lerpColors(
+        new THREE.Color(0.2, 0.4, 1.0),
+        new THREE.Color(0.5, 0.2, 0.9),
+        offset * 4
+      )
+    } else if (offset < 0.5) {
+      // Purple to Pink
+      color = new THREE.Color().lerpColors(
+        new THREE.Color(0.5, 0.2, 0.9),
+        new THREE.Color(1.0, 0.3, 0.6),
+        (offset - 0.25) * 4
+      )
+    } else if (offset < 0.75) {
+      // Pink to Orange
+      color = new THREE.Color().lerpColors(
+        new THREE.Color(1.0, 0.3, 0.6),
+        new THREE.Color(1.0, 0.5, 0.2),
+        (offset - 0.5) * 4
+      )
+    } else {
+      // Orange to Cyan
+      color = new THREE.Color().lerpColors(
+        new THREE.Color(1.0, 0.5, 0.2),
+        new THREE.Color(0.3, 0.8, 1.0),
+        (offset - 0.75) * 4
+      )
+    }
+    
+    return new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.8 + Math.sin(time + index) * 0.2,
+      blending: THREE.AdditiveBlending,
+    })
+  }
+  
+  const materialsRef = useRef<THREE.MeshBasicMaterial[]>([])
   
   useFrame((state) => {
     const time = state.clock.getElapsedTime()
-    uniforms.uTime.value = time
     
     if (groupRef.current) {
-      groupRef.current.rotation.y = time * 0.12
-      groupRef.current.rotation.x = Math.sin(time * 0.08) * 0.1
-      groupRef.current.rotation.z = Math.sin(time * 0.06) * 0.06
-      groupRef.current.position.y = Math.sin(time * 0.4) * 0.06
+      groupRef.current.rotation.y = time * 0.08
+      groupRef.current.rotation.x = Math.sin(time * 0.06) * 0.08
+      groupRef.current.position.y = Math.sin(time * 0.3) * 0.05
     }
     
-    if (edgesRef.current) {
-      const material = edgesRef.current.material as THREE.LineBasicMaterial
-      material.opacity = 0.7 + Math.sin(time * 1.5) * 0.3
-    }
+    // Update materials with flowing colors
+    materialsRef.current.forEach((material, i) => {
+      const offset = (i / ribbonPaths.length + time * 0.1) % 1
+      
+      let color: THREE.Color
+      if (offset < 0.25) {
+        color = new THREE.Color().lerpColors(
+          new THREE.Color(0.2, 0.4, 1.0),
+          new THREE.Color(0.5, 0.2, 0.9),
+          offset * 4
+        )
+      } else if (offset < 0.5) {
+        color = new THREE.Color().lerpColors(
+          new THREE.Color(0.5, 0.2, 0.9),
+          new THREE.Color(1.0, 0.3, 0.6),
+          (offset - 0.25) * 4
+        )
+      } else if (offset < 0.75) {
+        color = new THREE.Color().lerpColors(
+          new THREE.Color(1.0, 0.3, 0.6),
+          new THREE.Color(1.0, 0.5, 0.2),
+          (offset - 0.5) * 4
+        )
+      } else {
+        color = new THREE.Color().lerpColors(
+          new THREE.Color(1.0, 0.5, 0.2),
+          new THREE.Color(0.3, 0.8, 1.0),
+          (offset - 0.75) * 4
+        )
+      }
+      
+      material.color = color
+      material.opacity = 0.75 + Math.sin(time * 2 + i) * 0.25 + intensity * 0.3
+    })
   })
+  
+  useEffect(() => {
+    materialsRef.current = ribbonTubes.map((_, i) => 
+      createRibbonMaterial(i, 0)
+    )
+  }, [ribbonTubes])
   
   return (
     <group ref={groupRef}>
-      {/* Inner energy core - primary layer */}
-      <RoundedBox args={[1.5, 1.5, 1.5]} radius={0.15} smoothness={10} ref={innerRef}>
-        <shaderMaterial
-          vertexShader={flowingVertexShader}
-          fragmentShader={flowingFragmentShader}
-          uniforms={uniforms}
-          transparent
-          side={THREE.DoubleSide}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </RoundedBox>
+      {/* Render all ribbon tubes */}
+      {ribbonTubes.map(({ geometry, index }) => (
+        <mesh key={index} geometry={geometry}>
+          <meshBasicMaterial
+            ref={(ref) => {
+              if (ref && !materialsRef.current[index]) {
+                materialsRef.current[index] = ref
+              }
+            }}
+            color={0x66ccff}
+            transparent
+            opacity={0.8}
+            blending={THREE.AdditiveBlending}
+          />
+        </mesh>
+      ))}
       
-      {/* Secondary layer for depth */}
-      <RoundedBox args={[1.3, 1.3, 1.3]} radius={0.13} smoothness={10}>
-        <shaderMaterial
-          vertexShader={flowingVertexShader}
-          fragmentShader={flowingFragmentShader}
-          uniforms={uniforms}
+      {/* Orange core */}
+      <mesh>
+        <sphereGeometry args={[0.15, 32, 32]} />
+        <meshBasicMaterial
+          color="#ff7733"
           transparent
-          side={THREE.BackSide}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </RoundedBox>
-      
-      {/* Bright defined edges */}
-      <lineSegments ref={edgesRef} geometry={edges}>
-        <lineBasicMaterial
-          color="#66ccff"
-          transparent
-          opacity={0.8}
-          linewidth={3}
-          blending={THREE.AdditiveBlending}
-        />
-      </lineSegments>
-      
-      {/* Core orange glow */}
-      <mesh scale={0.25}>
-        <sphereGeometry args={[1, 32, 32]} />
-        <meshBasicMaterial 
-          color="#ff8844" 
-          transparent 
-          opacity={0.6}
+          opacity={0.7 + intensity * 0.3}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
       
-      {/* Sparkle particles */}
-      {[...Array(50)].map((_, i) => {
-        const x = (Math.random() - 0.5) * 1.3
-        const y = (Math.random() - 0.5) * 1.3
-        const z = (Math.random() - 0.5) * 1.3
+      {/* Sparkles */}
+      {[...Array(40)].map((_, i) => {
+        const angle1 = (i / 40) * Math.PI * 2
+        const angle2 = Math.sin(i * 0.5) * Math.PI * 0.5
+        const radius = 0.4 + Math.random() * 0.3
+        
+        const x = Math.cos(angle1) * Math.cos(angle2) * radius
+        const y = Math.sin(angle2) * radius
+        const z = Math.sin(angle1) * Math.cos(angle2) * radius
+        
         const isOrange = i % 4 === 0
+        const color = isOrange ? "#ff9944" : (i % 2 === 0 ? "#66ddff" : "#ff66cc")
+        
         return (
           <mesh key={i} position={[x, y, z]}>
-            <sphereGeometry args={[0.012, 8, 8]} />
-            <meshBasicMaterial 
-              color={isOrange ? "#ff9944" : "#66ddff"}
+            <sphereGeometry args={[0.008, 6, 6]} />
+            <meshBasicMaterial
+              color={color}
               transparent
-              opacity={0.8}
+              opacity={0.9}
               blending={THREE.AdditiveBlending}
             />
           </mesh>
         )
       })}
-      
-      {/* Glass outer shell */}
-      <RoundedBox args={[1.52, 1.52, 1.52]} radius={0.16} smoothness={10} ref={outerRef}>
-        <meshPhysicalMaterial
-          color="#ffffff"
-          transparent
-          opacity={0.08}
-          roughness={0.1}
-          metalness={0.1}
-          transmission={0.95}
-          thickness={0.5}
-          clearcoat={1.0}
-          clearcoatRoughness={0.1}
-        />
-      </RoundedBox>
     </group>
   )
 }

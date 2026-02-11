@@ -4,9 +4,10 @@
  * ChatContainer - Main chat interface with voice and persistence
  */
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
+import { DuoModeToggle } from './DuoModeToggle'
 import { useChat } from '@/hooks/useChat'
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
 import type { ColorName } from '@/config/colors'
@@ -17,11 +18,15 @@ interface ChatContainerProps {
   onColorChange: (color: ColorName) => void
   onSpeakingChange?: (isSpeaking: boolean) => void
   regionId?: string | null
+  initialContext?: string
+  isExtension?: boolean
+  isGuest?: boolean
 }
 
-export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeakingChange, regionId }: ChatContainerProps) {
+export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeakingChange, regionId, initialContext, isExtension, isGuest = false }: ChatContainerProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const lastSpokenIndexRef = useRef<number>(-1)
+  const [isDuoModeEnabled, setIsDuoModeEnabled] = useState(false)
 
   const { speak, stop, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis({
     rate: 0.95,
@@ -40,7 +45,8 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
   } = useChat({
     sessionId,
     onColorChange,
-    regionId
+    regionId,
+    isGuest
   })
 
   // Auto-scroll to bottom when new messages arrive
@@ -74,7 +80,10 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
     if (isSpeaking) {
       stop()
     }
-    await sendMessage(message, currentColor)
+    await sendMessage(message, currentColor, {
+      duoMode: isDuoModeEnabled,
+      context: initialContext // Pass the current context (URL/Title)
+    })
   }
 
   if (!sessionId) {
@@ -89,9 +98,12 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
     <div className="flex flex-col h-[500px] bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800">
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">
-          {!isInitialized ? 'Loading...' : isLoading ? 'Thinking...' : isSpeaking ? 'Speaking...' : 'Ready'}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            {!isInitialized ? 'Loading...' : isLoading ? 'Thinking...' : isSpeaking ? 'Speaking...' : 'Ready'}
+          </span>
+          <DuoModeToggle isEnabled={isDuoModeEnabled} onToggle={setIsDuoModeEnabled} />
+        </div>
         {ttsSupported && isSpeaking && (
           <button onClick={stop} className="text-xs text-red-500 hover:text-red-600">
             Stop
@@ -114,7 +126,32 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
             {conversationHistory.map((entry, index) => (
               <div key={index}>
                 <ChatMessage role="user" content={entry.userMessage} timestamp={entry.timestamp} />
-                <ChatMessage role="assistant" content={entry.aiResponse} color={entry.color} timestamp={entry.timestamp} />
+                <ChatMessage
+                  role="assistant"
+                  content={entry.aiResponse}
+                  color={entry.color}
+                  timestamp={entry.timestamp}
+                  onActionConfirm={async (actionId, action) => {
+                    console.log('Action confirmed:', actionId, action)
+
+                    let resultMessage = `[System Note] I have confirmed the action: ${action.title}`
+
+                    try {
+                      if (action.type === 'system_command') {
+                        const result = await executeSystemCommand(action)
+                        resultMessage += `\n\nExecution Result:\n${result}`
+                      } else if (action.type === 'file_operation') {
+                        const result = await executeFileOperation(action)
+                        resultMessage += `\n\nOperation Result:\n${result}`
+                      }
+                    } catch (err) {
+                      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+                      resultMessage += `\n\n❌ Error: ${errorMessage}`
+                    }
+
+                    await handleSend(resultMessage)
+                  }}
+                />
               </div>
             ))}
             {isLoading && (
@@ -149,4 +186,83 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
       <ChatInput onSend={handleSend} disabled={isLoading || !isInitialized} />
     </div>
   )
+}
+
+// --- Execution Helpers ---
+
+async function executeSystemCommand(action: any): Promise<string> {
+  const response = await fetch('/api/code/execute', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      language: 'bash',
+      code: action.command,
+      context: {
+        workdir: action.workingDirectory
+      }
+    })
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Execution failed')
+  }
+
+  if (data.exitCode === 0) {
+    return `✅ Success\nOutput:\n${data.stdout || '(no output)'}`
+  } else {
+    return `⚠️ Failed (Exit Code: ${data.exitCode})\nStderr:\n${data.stderr}\nStdout:\n${data.stdout}`
+  }
+}
+
+async function executeFileOperation(action: any): Promise<string> {
+  const operationMap: Record<string, string> = {
+    'create': 'write',
+    'edit': 'write',
+    'delete': 'delete',
+    'list': 'list',
+    'move': 'move', // Not directly supported by simple API yet, might fail
+    'rename': 'move'
+  }
+
+  const apiOp = operationMap[action.operation]
+
+  if (!apiOp) {
+    return `⚠️ Operation '${action.operation}' is not fully supported yet.`
+  }
+
+  // Special handling for move/rename if not supported by API, or map to 'write' if it's a create
+  // The current API supports: read, write, delete, list, create-dir
+
+  if (['move', 'rename'].includes(apiOp)) {
+    return `⚠️ Operation '${action.operation}' is not supported by the backend yet.`
+  }
+
+  const payload: any = {
+    operation: apiOp,
+    path: action.path
+  }
+
+  if (apiOp === 'write') {
+    payload.content = action.content || ''
+  }
+
+  const response = await fetch('/api/code/file-ops', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Operation failed')
+  }
+
+  if (data.success) {
+    return `✅ Success: ${action.operation} on ${action.path}`
+  } else {
+    return `⚠️ Failed: ${data.error}`
+  }
 }
