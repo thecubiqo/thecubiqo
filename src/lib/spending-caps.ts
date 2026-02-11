@@ -12,6 +12,7 @@
 
 // Spending caps in dollars
 export const SPENDING_CAPS = {
+  minimax: 200,    // $200 max for MiniMax
   anthropic: 200,  // $200 max for Claude
   openai: 200,     // $200 max for OpenAI
   elevenlabs: 200  // $200 max for ElevenLabs TTS
@@ -22,6 +23,7 @@ export const SPENDING_CAPS = {
 // OpenAI: ~$5/1M input tokens, ~$15/1M output tokens (GPT-4o)
 // ElevenLabs: ~$0.30 per 1000 characters
 export const COST_PER_UNIT = {
+  minimax_token: 0.000001,      // $1 per 1M tokens (avg)
   anthropic_input: 0.000015,    // $15 per 1M tokens = $0.000015 per token
   anthropic_output: 0.000075,   // $75 per 1M tokens = $0.000075 per token
   openai_input: 0.000005,       // $5 per 1M tokens = $0.000005 per token
@@ -33,6 +35,7 @@ export const COST_PER_UNIT = {
 // This persists across requests but resets on server restart
 // For production, store in Supabase or Redis
 interface SpendingRecord {
+  minimax: number
   anthropic: number
   openai: number
   elevenlabs: number
@@ -41,6 +44,7 @@ interface SpendingRecord {
 }
 
 let spendingRecord: SpendingRecord = {
+  minimax: 0,
   anthropic: 0,
   openai: 0,
   elevenlabs: 0,
@@ -59,6 +63,7 @@ function checkMonthlyReset(): void {
   if (currentMonthStart > spendingRecord.monthStart) {
     console.log('[SpendingCaps] Monthly reset - new billing period')
     spendingRecord = {
+      minimax: 0,
       anthropic: 0,
       openai: 0,
       elevenlabs: 0,
@@ -71,18 +76,18 @@ function checkMonthlyReset(): void {
 /**
  * Check if spending is within cap for a provider
  */
-export function checkSpendingCap(provider: 'anthropic' | 'openai' | 'elevenlabs'): {
+export function checkSpendingCap(provider: 'minimax' | 'anthropic' | 'openai' | 'elevenlabs'): {
   allowed: boolean
   currentSpend: number
   cap: number
   remaining: number
 } {
   checkMonthlyReset()
-  
+
   const cap = SPENDING_CAPS[provider]
   const currentSpend = spendingRecord[provider]
   const remaining = Math.max(0, cap - currentSpend)
-  
+
   return {
     allowed: currentSpend < cap,
     currentSpend: Math.round(currentSpend * 100) / 100,
@@ -95,12 +100,12 @@ export function checkSpendingCap(provider: 'anthropic' | 'openai' | 'elevenlabs'
  * Record spending for a provider
  */
 export function recordSpending(
-  provider: 'anthropic' | 'openai' | 'elevenlabs',
+  provider: 'minimax' | 'anthropic' | 'openai' | 'elevenlabs',
   cost: number
 ): void {
   checkMonthlyReset()
   spendingRecord[provider] += cost
-  
+
   console.log(`[SpendingCaps] ${provider}: +$${cost.toFixed(4)} | Total: $${spendingRecord[provider].toFixed(2)} / $${SPENDING_CAPS[provider]}`)
 }
 
@@ -108,16 +113,23 @@ export function recordSpending(
  * Estimate cost for Claude (Anthropic) API call
  */
 export function estimateAnthropicCost(inputTokens: number, outputTokens: number): number {
-  return (inputTokens * COST_PER_UNIT.anthropic_input) + 
-         (outputTokens * COST_PER_UNIT.anthropic_output)
+  return (inputTokens * COST_PER_UNIT.anthropic_input) +
+    (outputTokens * COST_PER_UNIT.anthropic_output)
+}
+
+/**
+ * Estimate cost for MiniMax API call
+ */
+export function estimateMiniMaxCost(tokens: number): number {
+  return tokens * COST_PER_UNIT.minimax_token
 }
 
 /**
  * Estimate cost for OpenAI API call
  */
 export function estimateOpenAICost(inputTokens: number, outputTokens: number): number {
-  return (inputTokens * COST_PER_UNIT.openai_input) + 
-         (outputTokens * COST_PER_UNIT.openai_output)
+  return (inputTokens * COST_PER_UNIT.openai_input) +
+    (outputTokens * COST_PER_UNIT.openai_output)
 }
 
 /**
@@ -144,8 +156,14 @@ export function getSpendingStatus(): Record<string, {
   percentUsed: number
 }> {
   checkMonthlyReset()
-  
+
   return {
+    minimax: {
+      spent: Math.round(spendingRecord.minimax * 100) / 100,
+      cap: SPENDING_CAPS.minimax,
+      remaining: Math.round((SPENDING_CAPS.minimax - spendingRecord.minimax) * 100) / 100,
+      percentUsed: Math.round((spendingRecord.minimax / SPENDING_CAPS.minimax) * 100)
+    },
     anthropic: {
       spent: Math.round(spendingRecord.anthropic * 100) / 100,
       cap: SPENDING_CAPS.anthropic,
@@ -170,12 +188,13 @@ export function getSpendingStatus(): Record<string, {
 /**
  * Admin function to manually reset spending
  */
-export function resetSpending(provider?: 'anthropic' | 'openai' | 'elevenlabs'): void {
+export function resetSpending(provider?: 'minimax' | 'anthropic' | 'openai' | 'elevenlabs'): void {
   if (provider) {
     spendingRecord[provider] = 0
     console.log(`[SpendingCaps] Reset ${provider} spending to $0`)
   } else {
     spendingRecord = {
+      minimax: 0,
       anthropic: 0,
       openai: 0,
       elevenlabs: 0,

@@ -9,6 +9,7 @@ import {
   recordSpending,
   estimateAnthropicCost,
   estimateOpenAICost,
+  estimateMiniMaxCost,
   estimateTokens
 } from '@/lib/spending-caps'
 
@@ -121,7 +122,7 @@ export async function callClaude(
 
   const data = await response.json()
   const outputText = data.content[0].text
-  
+
   // Record spending (skip if using BYO key)
   if (!byoApiKey) {
     const estimatedOutputTokens = estimateTokens(outputText)
@@ -190,6 +191,75 @@ export async function callOpenAI(
     const estimatedOutputTokens = estimateTokens(outputText)
     const cost = estimateOpenAICost(estimatedInputTokens, estimatedOutputTokens)
     recordSpending('openai', cost)
+  }
+
+  return outputText
+}
+
+/**
+ * MiniMax API call (Primary Provider)
+ */
+export async function callMiniMax(
+  systemPrompt: string,
+  messages: { role: string; content: string }[],
+  byoApiKey?: string | null
+): Promise<string> {
+  // Check spending cap
+  if (!byoApiKey) {
+    const capCheck = checkSpendingCap('minimax')
+    if (!capCheck.allowed) {
+      console.error(`[MiniMax] Spending cap reached: $${capCheck.currentSpend}/$${capCheck.cap}`)
+      throw new Error('MiniMax spending cap reached ($200/month). Falling back.')
+    }
+  }
+
+  const apiKey = byoApiKey || process.env.MINIMAX_KEY
+
+  if (!apiKey) {
+    throw new Error('MINIMAX_KEY not configured')
+  }
+
+  // MiniMax API v2 expects messages with role 'system', 'user', 'assistant'
+  const minimaxMessages = [
+    { role: 'system', content: systemPrompt },
+    ...messages
+  ]
+
+  const response = await fetch('https://api.minimaxi.chat/v1/text/chatcompletion_v2', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: MINIMAX_CONFIG.model,
+      messages: minimaxMessages,
+      max_tokens: MINIMAX_CONFIG.maxTokens,
+      temperature: 0.7
+    })
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('MiniMax API error:', response.status, errorText)
+    throw new Error(`MiniMax API request failed with status ${response.status}`)
+  }
+
+  const data = await response.json()
+
+  // MiniMax v2 response format: data.choices[0].message.content
+  if (!data.choices || !data.choices[0]?.message?.content) {
+    console.error('MiniMax invalid response format:', data)
+    throw new Error('Invalid MiniMax response format')
+  }
+
+  const outputText = data.choices[0].message.content
+
+  // Record spending
+  if (!byoApiKey) {
+    const totalTokens = (data.usage?.total_tokens) || estimateTokens(systemPrompt + outputText)
+    const cost = estimateMiniMaxCost(totalTokens)
+    recordSpending('minimax', cost)
   }
 
   return outputText

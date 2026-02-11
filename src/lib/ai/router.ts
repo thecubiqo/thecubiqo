@@ -18,12 +18,11 @@
  */
 
 import { callOllamaWithFallback, isOllamaAvailable } from './ollama'
-import { callClaude } from './providers'
-import { callOpenAI } from './providers'
+import { callClaude, callOpenAI, callMiniMax } from './providers'
 import { callOpenClaw } from './openclaw'
 import { SYSTEM_PROMPT_UNHINGED } from './system-prompt-unhinged'
 
-export type AIProvider = 'ollama' | 'claude' | 'openai' | 'openclaw'
+export type AIProvider = 'ollama' | 'claude' | 'openai' | 'openclaw' | 'minimax'
 
 export interface RouterResult {
   content: string
@@ -38,7 +37,7 @@ interface RouterOptions {
   byoClaudeKey?: string | null
   byoOpenaiKey?: string | null
   forceCloud?: boolean // Force cloud provider (skip Ollama)
-  preferredCloud?: 'claude' | 'openai' | 'openclaw' // Which cloud to prefer
+  preferredCloud?: 'claude' | 'openai' | 'openclaw' | 'minimax' // Which cloud to prefer
   isFounder?: boolean // Special access for aditya@cubiqo.ai
   abTestVariant?: 'A' | 'B' // Personality variant
 }
@@ -187,25 +186,39 @@ export async function routeAIRequest(options: RouterOptions): Promise<RouterResu
  * Use cloud provider (fallback)
  */
 async function useCloudProvider(options: RouterOptions, inputTokens: number): Promise<RouterResult> {
-  const { systemPrompt, messages, byoClaudeKey, byoOpenaiKey, preferredCloud = 'openclaw' } = options
+  const { systemPrompt, messages, byoClaudeKey, byoOpenaiKey, preferredCloud = 'minimax' } = options
 
-  // Try preferred cloud provider first
-  if (preferredCloud === 'openclaw') {
+  // 1. Try MiniMax (PRIMARY CLOUD)
+  if (preferredCloud === 'minimax') {
     try {
-      console.log('[Router] Trying OpenClaw')
-      const content = await callOpenClaw(systemPrompt, messages)
+      console.log('[Router] Trying MiniMax')
+      const content = await callMiniMax(systemPrompt, messages)
       return {
         content,
-        provider: 'openclaw',
-        cost: estimateOpenClawCost(inputTokens),
+        provider: 'minimax',
+        cost: estimateMiniMaxCost(inputTokens),
         cached: false
       }
-    } catch (openclawError) {
-      console.warn('[Router] OpenClaw failed, trying Claude:', openclawError)
+    } catch (minimaxError) {
+      console.warn('[Router] MiniMax failed, trying next:', minimaxError)
     }
   }
 
-  // Try Claude
+  // 2. Try OpenClaw (Claude Sonnet)
+  try {
+    console.log('[Router] Trying OpenClaw')
+    const content = await callOpenClaw(systemPrompt, messages)
+    return {
+      content,
+      provider: 'openclaw',
+      cost: estimateOpenClawCost(inputTokens),
+      cached: false
+    }
+  } catch (openclawError) {
+    console.warn('[Router] OpenClaw failed, trying Claude:', openclawError)
+  }
+
+  // 3. Try Claude
   try {
     console.log('[Router] Trying Claude')
     const content = await callClaude(systemPrompt, messages, byoClaudeKey)
@@ -220,7 +233,7 @@ async function useCloudProvider(options: RouterOptions, inputTokens: number): Pr
     console.warn('[Router] Claude failed, trying OpenAI:', claudeError)
   }
 
-  // Final fallback: OpenAI
+  // 4. Final fallback: OpenAI
   try {
     console.log('[Router] Trying OpenAI (final fallback)')
     const content = await callOpenAI(systemPrompt, messages, byoOpenaiKey)
@@ -234,6 +247,11 @@ async function useCloudProvider(options: RouterOptions, inputTokens: number): Pr
   } catch (openaiError) {
     throw new Error('All providers failed')
   }
+}
+
+function estimateMiniMaxCost(inputTokens: number): number {
+  // MiniMax average cost per token
+  return inputTokens * 0.000001
 }
 
 /**

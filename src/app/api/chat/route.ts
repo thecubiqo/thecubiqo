@@ -18,6 +18,7 @@ import {
   type AIResponse
 } from '@/lib/ai'
 import { buildMemoryContext } from '@/lib/ai/memory-extraction.server'
+import { FOUNDER_SYSTEM_PROMPT } from '@/lib/ai/founder-prompt'
 import { getRegionConfig, buildRegionalPrompt } from '@/lib/config/regions'
 import { routeAIRequest, trackCost } from '@/lib/ai/router'
 import {
@@ -53,50 +54,10 @@ function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining
 // Server-side Supabase client for loading memories
 // Made optional during build to prevent errors
 let supabaseAdmin: ReturnType<typeof createClient> | null = null;
-try {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL1;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY1;
-  if (url && key && url.includes('supabase')) {
-    supabaseAdmin = createClient(url, key);
-  }
-
-  // Build messages for MiniMax API
-  const minimaxMessages = [
-    { role: 'system', content: systemPrompt },
-    ...messages.map(msg => ({
-      role: msg.role === 'assistant' ? 'assistant' : 'user',
-      content: msg.content
-    }))
-  ]
-
-  const response = await fetch('https://api.minimaxi.chat/v1/text/chatcompletion_v2', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: MINIMAX_CONFIG.model,
-      messages: minimaxMessages,
-      max_tokens: MINIMAX_CONFIG.maxTokens,
-      temperature: 0.7
-    })
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    console.error('MiniMax API error:', response.status, errorText)
-    throw new Error(`MiniMax API error: ${response.status}`)
-  }
-
-  const data = await response.json()
-
-  // MiniMax returns choices similar to OpenAI
-  if (data.choices && data.choices[0]?.message?.content) {
-    return data.choices[0].message.content
-  }
-
-  throw new Error('Invalid MiniMax response format')
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY1;
+if (supabaseUrl && supabaseKey && supabaseUrl.includes('supabase')) {
+  supabaseAdmin = createClient(supabaseUrl, supabaseKey);
 }
 
 // Claude and OpenAI functions now in @/lib/ai/providers
@@ -133,7 +94,8 @@ Remember: This is about creating an emotional moment with an easy next step, not
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string; duoMode?: boolean; context?: string; userId?: string; isFounder?: boolean } = await request.json()
-    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region, duoMode = false, context, userId, isFounder = false } = body
+    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region, duoMode = false, context, userId } = body
+    let isFounder = body.isFounder || false
 
     // Get region from body or header
     const regionId = region || request.headers.get('x-user-region')
@@ -144,7 +106,6 @@ export async function POST(request: NextRequest) {
 
     // Load memories and check Founder status
     let memoryContext = ''
-    let isFounder = false
     let abTestVariant: 'A' | 'B' = 'A'
 
     if (sessionId) {
@@ -155,32 +116,34 @@ export async function POST(request: NextRequest) {
 
       try {
         // Parallel: Load memories AND check user profile
-        const [memoriesResult, sessionResult] = await Promise.all([
-          supabaseAdmin
-            .from('memory')
-            .select('key, value, zone')
-            .eq('session_id', sessionId),
+        if (supabaseAdmin) {
+          const [memoriesResult, sessionResult] = await Promise.all([
+            supabaseAdmin
+              .from('memory')
+              .select('key, value, zone')
+              .eq('session_id', sessionId),
 
-          supabaseAdmin
-            .from('sessions')
-            .select('user_id, profiles(email)')
-            .eq('id', sessionId)
-            .single()
-        ])
+            supabaseAdmin
+              .from('sessions')
+              .select('user_id, profiles(email)')
+              .eq('id', sessionId)
+              .single()
+          ])
 
-        // Process Memories
-        const memories = memoriesResult.data
-        if (memories && memories.length > 0) {
-          memoryContext = buildMemoryContext(memories)
-        }
+          // Process Memories
+          const memories = memoriesResult.data
+          if (memories && memories.length > 0) {
+            memoryContext = buildMemoryContext(memories)
+          }
 
-        // Process Founder Status
-        if (sessionResult.data?.profiles) {
-          // @ts-ignore - Supabase types might be tricky with joins
-          const email = sessionResult.data.profiles.email
-          if (email === 'aditya@cubiqo.ai') {
-            isFounder = true
-            console.log('[Chat] 👑 Founder identified:', email)
+          // Process Founder Status
+          const sessionData = sessionResult.data as any
+          if (sessionData?.profiles) {
+            const email = sessionData.profiles.email
+            if (email === 'aditya@cubiqo.ai') {
+              isFounder = true
+              console.log('[Chat] 👑 Founder identified:', email)
+            }
           }
         }
       } catch (e) {
@@ -204,18 +167,31 @@ export async function POST(request: NextRequest) {
 
     // Build full system prompt with memory, regional context, and optional auth nudge
     const authNudge = buildAuthNudgePrompt(isGuest, messageCount)
-    const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + regionalContext + authNudge
 
-    // NEW ROUTER: Try Ollama first (local, free, no guardrails), fallback to cloud
+    // Extension context
+    let extensionContext = ''
+    if (context) {
+      extensionContext = `\n\n[USER CONTEXT]\nUser viewing: ${context}\n`
+    }
+
+    // Choose base system prompt
+    const basePrompt = isFounder ? FOUNDER_SYSTEM_PROMPT : SYSTEM_PROMPT
+    const fullSystemPrompt = basePrompt + memoryContext + regionalContext + extensionContext + authNudge
+
+    // Extract BYO keys from headers
+    const byoClaudeKey = request.headers.get('x-byo-claude-key')
+    const byoOpenaiKey = request.headers.get('x-byo-openai-key')
+
+    // ROUTER: Try Ollama first (local, free, no guardrails), fallback to cloud
     const routerResult = await routeAIRequest({
       systemPrompt: fullSystemPrompt,
       messages,
       byoClaudeKey,
       byoOpenaiKey,
-      forceCloud: false, // Let router decide
-      preferredCloud: 'openclaw',
-      isFounder,      // Pass founder status
-      abTestVariant   // Pass AB variant
+      forceCloud: false,
+      preferredCloud: 'minimax',
+      isFounder,
+      abTestVariant
     })
 
     const content = routerResult.content
@@ -226,59 +202,14 @@ export async function POST(request: NextRequest) {
 
     console.log('[Chat] Provider used:', provider, '| Cost:', routerResult.cost.toFixed(6), 'USD')
 
-    let extensionContext = ''
-    if (context) {
-      extensionContext = `\n\n[USER CONTEXT]\nUser viewing: ${context}\n`
-    }
-
-    const authNudge = buildAuthNudgePrompt(isGuest, messageCount)
-
-    // Choose base system prompt
-    const basePrompt = isFounder ? FOUNDER_SYSTEM_PROMPT : SYSTEM_PROMPT
-    const fullSystemPrompt = basePrompt + memoryContext + regionalContext + duoModeContext + extensionContext + authNudge
-
-    // --- POLICY ROUTER & CACHING ---
-
-    // Map App Colors to Router Zones
-    let zone: ZoneColor = 'GREEN'
-    if (currentColor === 'YELLOW' || currentColor === 'ORANGE') zone = 'YELLOW'
-    if (currentColor === 'GREEN_BLUE') zone = 'GREEN'
-    if (currentColor === 'RED') zone = 'RED'
-
-    // Check Cache
-    const cacheKey = fullSystemPrompt + messages.map(m => m.content).join('') + (isFounder ? ':founder' : '')
-    const cachedResponse = await SemanticCache.get(cacheKey, zone)
-
-    if (cachedResponse) {
-      console.log('[API] Cache Hit!')
-      return NextResponse.json({ ...parseResponse(cachedResponse), provider: 'cache', byo: false })
-    }
-
-    console.log(`[API] Routing to ${zone} zone ${isFounder ? '(FOUNDER)' : ''}`)
-
-    let content: string
-    try {
-      content = await PolicyRouter.route(fullSystemPrompt, messages, {
-        zone,
-        reasoning: false, // Default to false until UI toggle added
-        userId: userId || 'anonymous',
-        sessionId,
-        isFounder // Passed isFounder to PolicyRouter.route
-      })
-
-      // Save to Cache
-      SemanticCache.set(cacheKey, content, zone)
-
-    } catch (error) {
-      console.error('[API] Router Failed:', error)
-      throw new Error('AI Router failed.')
-    }
+    // Parse the response (extract color and speaker)
+    const aiResponse = parseResponse(content)
 
     return NextResponse.json({
       ...aiResponse,
       provider,
-      byo: isBYO, // Indicate if BYO keys were used
-      abTest: abTestVariant // Return variant for debugging
+      byo: !!(byoClaudeKey || byoOpenaiKey),
+      abTest: abTestVariant
     })
 
   } catch (error) {
