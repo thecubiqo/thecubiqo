@@ -12,8 +12,8 @@ export function useBYO() {
   const [config, setConfig] = useState<BYOConfig>(defaultBYOConfig)
   const [isLoaded, setIsLoaded] = useState(false)
 
-  // Load from localStorage on mount
-  useEffect(() => {
+  // Load from localStorage
+  const loadConfig = useCallback(() => {
     const stored = localStorage.getItem(BYO_STORAGE_KEY)
     if (stored) {
       try {
@@ -25,29 +25,53 @@ export function useBYO() {
     setIsLoaded(true)
   }, [])
 
-  // Save to localStorage
+  // Initial load and event setup
+  useEffect(() => {
+    loadConfig()
+
+    const handleUpdate = () => loadConfig()
+
+    // Listen for custom event (same window) and storage event (cross-tab)
+    window.addEventListener('cubiqo-byo-update', handleUpdate)
+    window.addEventListener('storage', handleUpdate)
+
+    return () => {
+      window.removeEventListener('cubiqo-byo-update', handleUpdate)
+      window.removeEventListener('storage', handleUpdate)
+    }
+  }, [loadConfig])
+
+  // Save to localStorage and dispatch event
   const saveConfig = useCallback((newConfig: BYOConfig) => {
     setConfig(newConfig)
     localStorage.setItem(BYO_STORAGE_KEY, JSON.stringify(newConfig))
+    // Dispatch event to sync other hook instances
+    window.dispatchEvent(new Event('cubiqo-byo-update'))
   }, [])
 
-  // Toggle BYO mode
+  // Toggle BYO mode - uses functional update to avoid stale state issues in callback
   const toggleBYO = useCallback(() => {
-    saveConfig({ ...config, enabled: !config.enabled })
-  }, [config, saveConfig])
-
-  // Update API keys (reads fresh from localStorage to avoid stale closure)
-  const setApiKeys = useCallback((claude: string | null, openai: string | null) => {
-    // Get fresh state from localStorage to avoid race condition
     const stored = localStorage.getItem(BYO_STORAGE_KEY)
-    const freshConfig: BYOConfig = stored ? JSON.parse(stored) : defaultBYOConfig
+    const currentConfig = stored ? JSON.parse(stored) : defaultBYOConfig
+    const newConfig = { ...currentConfig, enabled: !currentConfig.enabled }
+    saveConfig(newConfig)
+  }, [saveConfig])
+
+  // Update API keys
+  const setApiKeys = useCallback((claude: string | null, openai: string | null) => {
+    const stored = localStorage.getItem(BYO_STORAGE_KEY)
+    const currentConfig = stored ? JSON.parse(stored) : defaultBYOConfig
 
     const newConfig = {
-      ...freshConfig,
+      ...currentConfig,
       claudeApiKey: claude,
       openaiApiKey: openai,
     }
-    console.log('[useBYO] setApiKeys - freshConfig.enabled:', freshConfig.enabled, 'saving:', newConfig)
+    // Auto-enable if keys are provided
+    if (claude || openai) {
+      newConfig.enabled = true
+    }
+
     saveConfig(newConfig)
   }, [saveConfig])
 
@@ -58,6 +82,7 @@ export function useBYO() {
 
   // Get headers for API requests
   const getHeaders = useCallback((): Record<string, string> => {
+    // Read directly from state - which is now synced
     if (!config.enabled) return {}
 
     const headers: Record<string, string> = {}

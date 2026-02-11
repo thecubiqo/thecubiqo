@@ -39,6 +39,8 @@ interface RouterOptions {
   byoOpenaiKey?: string | null
   forceCloud?: boolean // Force cloud provider (skip Ollama)
   preferredCloud?: 'claude' | 'openai' | 'openclaw' // Which cloud to prefer
+  isFounder?: boolean // Special access for aditya@cubiqo.ai
+  abTestVariant?: 'A' | 'B' // Personality variant
 }
 
 // Track Ollama availability to avoid repeated timeout checks
@@ -50,18 +52,18 @@ const OLLAMA_CACHE_DURATION = 60000 // 1 minute
  */
 async function checkOllamaAvailable(): Promise<boolean> {
   const now = Date.now()
-  
+
   // Use cached result if recent
   if (ollamaAvailableCache && (now - ollamaAvailableCache.checkedAt) < OLLAMA_CACHE_DURATION) {
     return ollamaAvailableCache.available
   }
-  
+
   // Check availability
   const available = await isOllamaAvailable()
-  
+
   // Cache result
   ollamaAvailableCache = { available, checkedAt: now }
-  
+
   return available
 }
 
@@ -79,7 +81,7 @@ function needsAdvancedReasoning(messages: { role: string; content: string }[]): 
   const lastUserMessage = messages
     .filter(m => m.role === 'user')
     .pop()?.content || ''
-  
+
   // Keywords that suggest complex reasoning
   const complexKeywords = [
     'analyze',
@@ -94,7 +96,7 @@ function needsAdvancedReasoning(messages: { role: string; content: string }[]): 
     'debug',
     'complex'
   ]
-  
+
   const lowerMessage = lastUserMessage.toLowerCase()
   return complexKeywords.some(keyword => lowerMessage.includes(keyword))
 }
@@ -103,44 +105,65 @@ function needsAdvancedReasoning(messages: { role: string; content: string }[]): 
  * Main router - decides which provider to use
  */
 export async function routeAIRequest(options: RouterOptions): Promise<RouterResult> {
-  const { systemPrompt, messages, byoClaudeKey, byoOpenaiKey, forceCloud = false, preferredCloud = 'openclaw' } = options
-  
+  const {
+    systemPrompt,
+    messages,
+    byoClaudeKey,
+    byoOpenaiKey,
+    forceCloud = false,
+    preferredCloud = 'openclaw',
+    isFounder = false,
+    abTestVariant = 'A'
+  } = options
+
   // Calculate estimated input tokens for cost tracking
   const inputText = systemPrompt + messages.map(m => m.content).join('')
   const inputTokens = estimateTokens(inputText)
-  
+
   // Log routing decision
   console.log('[Router] Request:', {
     forceCloud,
     preferredCloud,
     hasByoKeys: !!(byoClaudeKey || byoOpenaiKey),
-    inputTokens
+    inputTokens,
+    isFounder,
+    abTestVariant
   })
-  
+
+  // Founder Mode: Always use the smartest model (Claude/OpenClaw) for maximum efficiency
+  if (isFounder) {
+    console.log('[Router] 🚀 FOUNDER MODE: Bypassing checks, using smartest provider')
+    return await useCloudProvider({
+      ...options,
+      preferredCloud: 'openclaw' // Force OpenClaw (Claude Sonnet) for Founder
+    }, inputTokens)
+  }
+
   // OPTION 1: Force cloud provider (skip Ollama)
   if (forceCloud) {
     console.log('[Router] Forcing cloud provider')
     return await useCloudProvider(options, inputTokens)
   }
-  
+
   // OPTION 2: Check if query needs advanced reasoning
   const needsAdvanced = needsAdvancedReasoning(messages)
   if (needsAdvanced) {
     console.log('[Router] Complex query detected, using cloud provider')
     return await useCloudProvider(options, inputTokens)
   }
-  
+
   // OPTION 3: Try Ollama first (PRIMARY - free, no guardrails)
+  // AB Test: Variant B always tries Ollama first regardless of complexity? (Already default behavior basically)
   const ollamaAvailable = await checkOllamaAvailable()
-  
+
   if (ollamaAvailable) {
     try {
       console.log('[Router] Trying Ollama (local, free, no guardrails)')
-      
+
       // Use UNHINGED prompt for local Ollama (no censorship!)
       const unhingedPrompt = SYSTEM_PROMPT_UNHINGED || systemPrompt
       const content = await callOllamaWithFallback(unhingedPrompt, messages)
-      
+
       return {
         content,
         provider: 'ollama',
@@ -155,7 +178,7 @@ export async function routeAIRequest(options: RouterOptions): Promise<RouterResu
   } else {
     console.log('[Router] Ollama not available, using cloud provider')
   }
-  
+
   // OPTION 4: Fallback to cloud provider
   return await useCloudProvider(options, inputTokens)
 }
@@ -165,7 +188,7 @@ export async function routeAIRequest(options: RouterOptions): Promise<RouterResu
  */
 async function useCloudProvider(options: RouterOptions, inputTokens: number): Promise<RouterResult> {
   const { systemPrompt, messages, byoClaudeKey, byoOpenaiKey, preferredCloud = 'openclaw' } = options
-  
+
   // Try preferred cloud provider first
   if (preferredCloud === 'openclaw') {
     try {
@@ -181,7 +204,7 @@ async function useCloudProvider(options: RouterOptions, inputTokens: number): Pr
       console.warn('[Router] OpenClaw failed, trying Claude:', openclawError)
     }
   }
-  
+
   // Try Claude
   try {
     console.log('[Router] Trying Claude')
@@ -196,7 +219,7 @@ async function useCloudProvider(options: RouterOptions, inputTokens: number): Pr
   } catch (claudeError) {
     console.warn('[Router] Claude failed, trying OpenAI:', claudeError)
   }
-  
+
   // Final fallback: OpenAI
   try {
     console.log('[Router] Trying OpenAI (final fallback)')
@@ -266,7 +289,7 @@ let costStats: CostStats = {
  */
 export function trackCost(provider: AIProvider, cost: number) {
   costStats.totalRequests++
-  
+
   if (provider === 'ollama') {
     costStats.ollamaRequests++
     // Estimate what this would have cost on cloud (assume Claude)
@@ -275,7 +298,7 @@ export function trackCost(provider: AIProvider, cost: number) {
     costStats.cloudRequests++
     costStats.totalCost += cost
   }
-  
+
   costStats.avgCostPerRequest = costStats.totalCost / Math.max(costStats.cloudRequests, 1)
 }
 

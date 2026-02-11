@@ -40,16 +40,16 @@ const MINIMAX_RATE_WINDOW = 60 * 60 * 1000 // 1 hour in ms
 function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining: number } {
   const now = Date.now()
   const record = minimaxRateLimitMap.get(sessionId)
-  
+
   if (!record || now > record.resetTime) {
     minimaxRateLimitMap.set(sessionId, { count: 1, resetTime: now + MINIMAX_RATE_WINDOW })
     return { allowed: true, remaining: MINIMAX_RATE_LIMIT - 1 }
   }
-  
+
   if (record.count >= MINIMAX_RATE_LIMIT) {
     return { allowed: false, remaining: 0 }
   }
-  
+
   record.count++
   return { allowed: true, remaining: MINIMAX_RATE_LIMIT - record.count }
 }
@@ -101,12 +101,12 @@ async function callMiniMax(
   }
 
   const data = await response.json()
-  
+
   // MiniMax returns choices similar to OpenAI
   if (data.choices && data.choices[0]?.message?.content) {
     return data.choices[0].message.content
   }
-  
+
   throw new Error('Invalid MiniMax response format')
 }
 
@@ -126,8 +126,8 @@ function buildAuthNudgePrompt(isGuest: boolean, messageCount: number): string {
 SPECIAL CONTEXT (use wisely):
 The person you're talking to is a guest - they haven't signed in yet. You've had ${messageCount} exchanges with them.
 ${isMandatory
-    ? 'This is your LAST chance to suggest signing in. You MUST include the sign-in suggestion in this response - find a natural way to weave it in.'
-    : 'When you feel the moment is RIGHT - perhaps when they share something personal, meaningful, or show real interest - you MAY naturally and warmly suggest they sign in so you can remember them forever.'}
+      ? 'This is your LAST chance to suggest signing in. You MUST include the sign-in suggestion in this response - find a natural way to weave it in.'
+      : 'When you feel the moment is RIGHT - perhaps when they share something personal, meaningful, or show real interest - you MAY naturally and warmly suggest they sign in so you can remember them forever.'}
 
 Rules for this suggestion:
 - ${isMandatory ? 'You MUST suggest signing in this time' : 'Do it ONLY ONCE, and only when it feels genuinely caring, not pushy'}
@@ -173,20 +173,50 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Load memories for this session (if sessionId provided)
+    // Load memories and check Founder status
     let memoryContext = ''
-    if (sessionId) {
-      try {
-        const { data: memories } = await supabaseAdmin
-          .from('memory')
-          .select('key, value, zone')
-          .eq('session_id', sessionId)
+    let isFounder = false
+    let abTestVariant: 'A' | 'B' = 'A'
 
+    if (sessionId) {
+      // Deterministic AB Test Variant based on Session ID
+      const firstChar = sessionId.charCodeAt(0)
+      abTestVariant = firstChar % 2 === 0 ? 'A' : 'B'
+      console.log('[AB Test] Variant:', abTestVariant, 'Session:', sessionId)
+
+      try {
+        // Parallel: Load memories AND check user profile
+        const [memoriesResult, sessionResult] = await Promise.all([
+          supabaseAdmin
+            .from('memory')
+            .select('key, value, zone')
+            .eq('session_id', sessionId),
+
+          supabaseAdmin
+            .from('sessions')
+            .select('user_id, profiles(email)')
+            .eq('id', sessionId)
+            .single()
+        ])
+
+        // Process Memories
+        const memories = memoriesResult.data
         if (memories && memories.length > 0) {
           memoryContext = buildMemoryContext(memories)
         }
-      } catch {
-        // Ignore memory loading errors - not critical
+
+        // Process Founder Status
+        if (sessionResult.data?.profiles) {
+          // @ts-ignore - Supabase types might be tricky with joins
+          const email = sessionResult.data.profiles.email
+          if (email === 'aditya@cubiqo.ai') {
+            isFounder = true
+            console.log('[Chat] 👑 Founder identified:', email)
+          }
+        }
+      } catch (e) {
+        console.warn('[Chat] Stats lookup failed:', e)
+        // Non-critical, continue
       }
     }
 
@@ -217,7 +247,9 @@ export async function POST(request: NextRequest) {
       byoClaudeKey,
       byoOpenaiKey,
       forceCloud: false, // Let router decide
-      preferredCloud: 'openclaw'
+      preferredCloud: 'openclaw',
+      isFounder,      // Pass founder status
+      abTestVariant   // Pass AB variant
     })
 
     const content = routerResult.content
@@ -234,7 +266,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ...aiResponse,
       provider,
-      byo: isBYO // Indicate if BYO keys were used
+      byo: isBYO, // Indicate if BYO keys were used
+      abTest: abTestVariant // Return variant for debugging
     })
 
   } catch (error) {

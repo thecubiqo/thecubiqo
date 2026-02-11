@@ -18,6 +18,7 @@ interface EnergyCubeSceneProps {
   colorName?: ColorName
   animationState?: AnimationState
   className?: string
+  visualVariant?: 'A' | 'B'
 }
 
 function Lights() {
@@ -44,20 +45,29 @@ function mapIntensity(animationState: AnimationState): number {
   }
 }
 
-export function EnergyCubeScene({ 
-  colorName = 'ORANGE', 
+export function EnergyCubeScene({
+  colorName = 'ORANGE',
   animationState = 'idle',
-  className = ''
+  className = '',
+  visualVariant = 'A'
 }: EnergyCubeSceneProps) {
+  // A: Existing Logic (Orange = Ethereal, Others = Flowing)
+  // B: Force Ethereal (New Plasma look) for all states
+
   const isLandingState = colorName === 'ORANGE'
   const isTalking = animationState === 'speaking'
   const isListening = animationState === 'listening'
   const intensity = mapIntensity(animationState)
-  
+
+  // Logic:
+  // If B: Always use EtherealCube
+  // If A: Use EtherealCube only if isLandingState (Orange), else FlowingEnergyCube
+  const useEthereal = visualVariant === 'B' || (visualVariant === 'A' && isLandingState)
+
   return (
     <div className={`w-full h-full ${className}`}>
       <Canvas
-        camera={{ 
+        camera={{
           position: [4, 3.5, 4], // Isometric-style elevated angle
           fov: 35,
           near: 0.1,
@@ -72,10 +82,10 @@ export function EnergyCubeScene({
         style={{ background: 'transparent' }}
       >
         <Lights />
-        
+
         <Suspense fallback={null}>
-          {isLandingState ? (
-            <EtherealCube 
+          {useEthereal ? (
+            <EtherealCube
               isTalking={isTalking}
               isListening={isListening}
             />
