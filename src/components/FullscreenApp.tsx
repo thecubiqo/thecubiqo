@@ -894,14 +894,14 @@ export function FullscreenApp() {
                 {/* Soft Divider */}
                 <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
 
-                {/* 4. Features — Only shows what founder enabled for production */}
+                {/* 4. Features — Tools & Experience */}
                 <div>
                   <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-2 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Features</h3>
-                  <p className={`text-[11px] mb-4 ${isDark ? 'text-white/25' : 'text-gray-400'}`}>Choose what CubiQo can access. You decide.</p>
+                  <p className={`text-[11px] mb-4 ${isDark ? 'text-white/25' : 'text-gray-400'}`}>Tools and experience settings.</p>
 
                   {(() => {
-                    // All possible features grouped by category
-                    const ALL_FEATURES = [
+                    // Features without Integrations (Tools, Experience, Extension)
+                    const FEATURES_WITHOUT_INTEGRATIONS = [
                       {
                         category: '🛠️ Tools', items: [
                           { key: 'web_search', name: 'Web Search' },
@@ -925,30 +925,12 @@ export function FullscreenApp() {
                           { key: 'extension_download', name: 'Chrome Extension' },
                         ]
                       },
-                      {
-                        category: '🔗 Integrations', items: [
-                          { key: 'email_read', name: 'Email (Read)' },
-                          { key: 'email_send', name: 'Email (Send)' },
-                          { key: 'whatsapp_read', name: 'WhatsApp (Read)' },
-                          { key: 'whatsapp_send', name: 'WhatsApp (Send)' },
-                          { key: 'telegram_read', name: 'Telegram (Read)' },
-                          { key: 'telegram_send', name: 'Telegram (Send)' },
-                          { key: 'discord_read', name: 'Discord (Read)' },
-                          { key: 'discord_send', name: 'Discord (Send)' },
-                          { key: 'slack_read', name: 'Slack (Read)' },
-                          { key: 'slack_send', name: 'Slack (Send)' },
-                          { key: 'maps_read', name: 'Maps (Search)' },
-                          { key: 'maps_write', name: 'Maps (Navigate)' },
-                          { key: 'uber_read', name: 'Uber (View)' },
-                          { key: 'uber_write', name: 'Uber (Request)' },
-                        ]
-                      },
                     ]
 
                     const hasAnyEnabled = Object.keys(enabledFeatures).length > 0
 
                     // Filter each category to only production-enabled features
-                    const filtered = ALL_FEATURES.map(group => ({
+                    const filtered = FEATURES_WITHOUT_INTEGRATIONS.map(group => ({
                       ...group,
                       items: hasAnyEnabled
                         ? group.items.filter(item => enabledFeatures[item.key])
@@ -964,10 +946,13 @@ export function FullscreenApp() {
                     }
 
                     return (
-                      <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                        {filtered.map(group => (
+                      <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        {filtered.map((group, index) => (
                           <div key={group.category}>
-                            <div className={`text-[10px] uppercase tracking-wider mb-2 px-3 ${isDark ? 'text-white/20' : 'text-gray-400'}`}>{group.category}</div>
+                            <div className={`text-[10px] uppercase tracking-wider mb-2 px-3 ${isDark ? 'text-white/30' : 'text-gray-500'}`}>
+                              {group.category}
+                            </div>
+                            
                             <div className="space-y-0.5">
                               {group.items.map(item => {
                                 const isOn = userToggles[item.key] !== undefined ? !!userToggles[item.key] : true
@@ -991,7 +976,84 @@ export function FullscreenApp() {
                 {/* Soft Divider */}
                 <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
 
-                {/* 5. API Access */}
+                {/* 5. Integrations — Now separate from Features */}
+                <div>
+                  <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-2 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>🔗 Integrations</h3>
+                  <p className={`text-[11px] mb-4 ${isDark ? 'text-white/25' : 'text-gray-400'}`}>Connect your accounts and services.</p>
+
+                  {(() => {
+                    // Integrations only
+                    const INTEGRATIONS = [
+                      {
+                        category: '🔗 Integrations', items: [
+                          { key: 'email_read', name: 'Email (Read)' },
+                          { key: 'email_send', name: 'Email (Send)' },
+                          { key: 'whatsapp_read', name: 'WhatsApp (Read)' },
+                          { key: 'whatsapp_send', name: 'WhatsApp (Send)' },
+                          { key: 'telegram_read', name: 'Telegram (Read)' },
+                          { key: 'telegram_send', name: 'Telegram (Send)' },
+                          { key: 'discord_read', name: 'Discord (Read)' },
+                          { key: 'discord_send', name: 'Discord (Send)' },
+                          { key: 'slack_read', name: 'Slack (Read)' },
+                          { key: 'slack_send', name: 'Slack (Send)' },
+                          { key: 'maps_read', name: 'Maps (Search)' },
+                          { key: 'maps_write', name: 'Maps (Navigate)' },
+                          { key: 'uber_read', name: 'Uber (View)' },
+                          { key: 'uber_write', name: 'Uber (Request)' },
+                        ]
+                      }
+                    ]
+
+                    const hasAnyEnabled = Object.keys(enabledFeatures).length > 0
+
+                    // Filter integrations to only production-enabled
+                    const filteredIntegrations = INTEGRATIONS.map(group => ({
+                      ...group,
+                      items: hasAnyEnabled
+                        ? group.items.filter(item => enabledFeatures[item.key])
+                        : group.items // show all if no dashboard data yet
+                    })).filter(group => group.items.length > 0)
+
+                    if (filteredIntegrations.length === 0) {
+                      return (
+                        <p className={`text-[12px] italic px-3 ${isDark ? 'text-white/20' : 'text-gray-400'}`}>
+                          No integrations enabled yet. Ask your admin to enable integrations from the Founders Dashboard.
+                        </p>
+                      )
+                    }
+
+                    return (
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        {filteredIntegrations.map((group, index) => (
+                          <div key={group.category}>
+                            <div className={`text-[10px] uppercase tracking-wider mb-2 px-3 ${isDark ? 'text-blue-400 font-bold' : 'text-blue-600 font-bold'}`}>
+                              {group.category}
+                            </div>
+                            
+                            <div className="space-y-0.5">
+                              {group.items.map(item => {
+                                const isOn = userToggles[item.key] !== undefined ? !!userToggles[item.key] : true
+                                return (
+                                  <div key={item.key} className={`flex items-center justify-between py-2 px-3 rounded-lg transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'}`}>
+                                    <span className={`text-[13px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>{item.name}</span>
+                                    <button onClick={() => toggleUserFeature(item.key)} className={`relative rounded-full transition-colors flex-shrink-0 ${isOn ? 'bg-green-500' : (isDark ? 'bg-white/10' : 'bg-gray-300')}`} style={{ width: 36, height: 20 }}>
+                                      <span className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-200 shadow-sm ${isOn ? 'left-[18px]' : 'left-[2px]'}`} />
+                                    </button>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                {/* Soft Divider */}
+                <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
+
+                {/* 6. API Access */}
                 <div>
                   <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>API Access</h3>
                   <MultivaCubiKey isDark={isDark} />
