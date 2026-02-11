@@ -24,10 +24,17 @@ import { SemanticCache } from '@/lib/ai/cache'
 import { FOUNDER_SYSTEM_PROMPT } from '@/lib/ai/founder-prompt'
 
 // Server-side Supabase client for loading memories
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL1 || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY1 || 'placeholder-key'
-)
+// Made optional during build to prevent errors
+let supabaseAdmin: ReturnType<typeof createClient> | null = null;
+try {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL1;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY1;
+  if (url && key && url.includes('supabase')) {
+    supabaseAdmin = createClient(url, key);
+  }
+} catch {
+  // Ignore - not critical
+}
 
 // Build auth nudge prompt for guest users
 function buildAuthNudgePrompt(isGuest: boolean, messageCount: number): string {
@@ -54,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     // Load memories
     let memoryContext = ''
-    if (sessionId) {
+    if (sessionId && supabaseAdmin) {
       try {
         const { data: memories } = await supabaseAdmin.from('memory').select('key, value, zone').eq('session_id', sessionId)
         if (memories?.length) memoryContext = buildMemoryContext(memories)

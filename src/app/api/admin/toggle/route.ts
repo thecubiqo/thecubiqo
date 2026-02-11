@@ -1,11 +1,14 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 // Initialize Supabase with Service Role Key for Admin Access
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL1!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY1!
-)
+let supabaseAdmin: SupabaseClient | null = null
+if (process.env.NEXT_PUBLIC_SUPABASE_URL1 && process.env.SUPABASE_SERVICE_ROLE_KEY1) {
+    supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL1,
+        process.env.SUPABASE_SERVICE_ROLE_KEY1
+    )
+}
 
 export async function POST(req: Request) {
     try {
@@ -23,6 +26,10 @@ export async function POST(req: Request) {
         // END SIMPLE SECURITY CHECK
 
         const field = target === 'production' ? 'enabled_for_production' : 'enabled_for_founders'
+
+        if (!supabaseAdmin) {
+            return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
+        }
 
         // Update using Service Role (bypasses RLS)
         const { data, error } = await supabaseAdmin

@@ -36,10 +36,10 @@ export async function callOpenRouter(
     temperature: number = 0.7,
     maxTokens: number = 4000
 ): Promise<OpenRouterResponse> {
-    const apiKey = process.env.CUBIQO_UNIVERSAL_KEY || process.env.OPENROUTER_KEY_CUBIKEY || process.env.OPENROUTER_API_KEY
+    const apiKey = process.env.CUBIQO_UNIVERSAL_KEY || process.env.OPENROUTER_KEY || process.env.MULTIVA_CUBI_KEY || process.env.OPENROUTER_KEY_CUBIKEY || process.env.OPENROUTER_API_KEY
 
     if (!apiKey) {
-        throw new Error('OPENROUTER_KEY_CUBIKEY not configured')
+        throw new Error('OPENROUTER_KEY not configured')
     }
 
     try {
