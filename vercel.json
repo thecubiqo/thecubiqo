@@ -1,0 +1,12 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/(.*)",
+            "destination": "/backend/api/index.js"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/frontend/ai-browser-plasma-ui/dist/$1"
+        }
+    ]
+}
