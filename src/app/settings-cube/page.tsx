@@ -2,11 +2,11 @@
 
 /**
  * Settings Cube Page
- * Live agent activity visualization with code on cube faces
+ * Wireframe energy cube with Mode, Experience, Privacy, Integrations faces
  */
 
-import { AgentActivityCubeApp } from '@/components/AgentActivityCube'
+import { EnergyCubeWireframe } from '@/components/cube/EnergyCubeWireframe'
 
 export default function SettingsCubePage() {
-  return <AgentActivityCubeApp />
+  return <EnergyCubeWireframe />
 }
