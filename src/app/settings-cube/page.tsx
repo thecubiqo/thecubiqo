@@ -2,11 +2,11 @@
 
 /**
  * Settings Cube Page
- * Cube with live code panels on faces
+ * Wireframe energy cube with Mode, Experience, Privacy, Integrations faces
  */
 
-import { SettingsCubeApp } from '@/components/settings-cube/SettingsCubeApp'
+import { EnergyCubeWireframe } from '@/components/cube/EnergyCubeWireframe'
 
 export default function SettingsCubePage() {
-  return <SettingsCubeApp />
+  return <EnergyCubeWireframe />
 }

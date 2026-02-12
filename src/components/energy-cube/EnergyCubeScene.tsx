@@ -45,7 +45,7 @@ export function EnergyCubeScene({
       <pointLight position={[0, 3, -3]} intensity={0.3} color="#ffffff" />
 
       <Suspense fallback={null}>
-        <EnergyCube color={color} mode={mode} reducedMotion={reducedMotion} />
+        <EnergyCube color={color} mode={mode} />
       </Suspense>
     </Canvas>
   )
