@@ -275,7 +275,7 @@ const CubiQoVisual = ({
       
       // Smooth morph transition
       const targetMorph = isEnabledRef.current ? 1 : 0;
-      morphProgressRef.current += (targetMorph - morphProgressRef.current) * 0.03;
+      morphProgressRef.current += (targetMorph - morphProgressRef.current) * 0.08;
       const morph = morphProgressRef.current;
       
       const currentPalette = colorPalettes[aiStateRef.current] || colorPalettes.neutral;
