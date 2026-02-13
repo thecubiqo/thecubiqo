@@ -12,6 +12,7 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
   const mouseRef = useRef({ x: 0, y: 0 });
   const audioLevelRef = useRef(0);
   const timeRef = useRef(0);
+  const currentAiStateRef = useRef(aiState);
   
   const [audioLevel, setAudioLevel] = useState(0);
   const [isListening, setIsListening] = useState(false);
@@ -19,13 +20,18 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
   const analyserRef = useRef(null);
   const audioAnimationRef = useRef(null);
   
-  // Color palettes
+  // Update aiState ref
+  useEffect(() => {
+    currentAiStateRef.current = aiState;
+  }, [aiState]);
+  
+  // Color palettes for different AI states
   const colorPalettes = {
-    neutral: ['#00d4ff', '#7b2cbf', '#e040fb', '#ff1744'],
-    thinking: ['#00e5ff', '#651fff', '#d500f9', '#ff9100'],
-    speaking: ['#00ffc6', '#536dfe', '#f50057', '#ffea00'],
-    listening: ['#18ffff', '#7c4dff', '#ff4081', '#ff6e40'],
-    error: ['#ff1744', '#d50000', '#ff5252', '#ff8a80']
+    neutral: ['#00d4ff', '#7b2cbf', '#e040fb', '#ff1744', '#ff69b4'],
+    thinking: ['#00e5ff', '#651fff', '#d500f9', '#ff9100', '#00bcd4'],
+    speaking: ['#00ffc6', '#536dfe', '#f50057', '#ffea00', '#76ff03'],
+    listening: ['#18ffff', '#7c4dff', '#ff4081', '#ff6e40', '#ea80fc'],
+    error: ['#ff1744', '#d50000', '#ff5252', '#ff8a80', '#ff1744']
   };
   
   // Initialize Three.js scene
@@ -43,7 +49,8 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
     
     // Camera
     const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
-    camera.position.set(0, 5, 12);
+    camera.position.set(0, 8, 15);
+    camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
     
     // Renderer
@@ -53,8 +60,8 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
     
-    // Particles
-    const particleCount = 12000;
+    // Main Plasma Particles
+    const particleCount = 20000;
     const geometry = new THREE.BufferGeometry();
     
     const positions = new Float32Array(particleCount * 3);
@@ -63,21 +70,27 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
     const phases = new Float32Array(particleCount);
     const baseY = new Float32Array(particleCount);
     const initialSizes = new Float32Array(particleCount);
+    const velocityY = new Float32Array(particleCount);
     
     const palette = colorPalettes.neutral.map(c => new THREE.Color(c));
     
     for (let i = 0; i < particleCount; i++) {
       const i3 = i * 3;
       
-      positions[i3] = (Math.random() - 0.5) * 20;
+      // Distribute in a wider grid pattern for wave effect
+      positions[i3] = (Math.random() - 0.5) * 30;
       positions[i3 + 1] = 0;
-      positions[i3 + 2] = (Math.random() - 0.5) * 15;
+      positions[i3 + 2] = (Math.random() - 0.5) * 20;
       
       phases[i] = Math.random() * Math.PI * 2;
-      baseY[i] = (Math.random() - 0.5) * 2;
-      initialSizes[i] = Math.random() * 0.08 + 0.02;
+      baseY[i] = (Math.random() - 0.5) * 1.5;
+      velocityY[i] = (Math.random() - 0.5) * 0.5;
+      
+      // Larger particles for more visible plasma effect
+      initialSizes[i] = Math.random() * 0.15 + 0.05;
       sizes[i] = initialSizes[i];
       
+      // Initial colors
       const color = palette[Math.floor(Math.random() * palette.length)];
       colors[i3] = color.r;
       colors[i3 + 1] = color.g;
@@ -89,34 +102,45 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
     geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
     
     // Store extra data
-    geometry.userData = { phases, baseY, initialSizes };
+    geometry.userData = { phases, baseY, initialSizes, velocityY };
     
-    // Shader material
+    // Enhanced Shader material for glowing plasma effect
     const material = new THREE.ShaderMaterial({
-      uniforms: {},
+      uniforms: {
+        time: { value: 0 },
+      },
       vertexShader: `
         attribute float size;
         varying vec3 vColor;
+        varying float vSize;
         
         void main() {
           vColor = color;
+          vSize = size;
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = size * (300.0 / -mvPosition.z);
+          gl_PointSize = size * (400.0 / -mvPosition.z);
           gl_Position = projectionMatrix * mvPosition;
         }
       `,
       fragmentShader: `
         varying vec3 vColor;
+        varying float vSize;
         
         void main() {
-          float dist = length(gl_PointCoord - vec2(0.5));
+          vec2 center = gl_PointCoord - vec2(0.5);
+          float dist = length(center);
+          
           if (dist > 0.5) discard;
           
-          float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
-          float glow = exp(-dist * 3.0);
+          // Soft glow with bright core
+          float core = 1.0 - smoothstep(0.0, 0.15, dist);
+          float glow = exp(-dist * 4.0);
+          float outer = exp(-dist * 2.0) * 0.5;
           
-          vec3 finalColor = vColor * (1.0 + glow * 0.5);
-          gl_FragColor = vec4(finalColor, alpha * 0.8);
+          float alpha = core + glow * 0.8 + outer;
+          vec3 finalColor = vColor * (1.0 + core * 2.0 + glow);
+          
+          gl_FragColor = vec4(finalColor, alpha * 0.9);
         }
       `,
       transparent: true,
@@ -129,24 +153,34 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
     scene.add(particles);
     particlesRef.current = particles;
     
-    // Ambient particles
+    // Floating ambient particles (stars)
     const ambientGeo = new THREE.BufferGeometry();
-    const ambientCount = 400;
+    const ambientCount = 600;
     const ambientPositions = new Float32Array(ambientCount * 3);
+    const ambientColors = new Float32Array(ambientCount * 3);
     
     for (let i = 0; i < ambientCount; i++) {
-      ambientPositions[i * 3] = (Math.random() - 0.5) * 25;
-      ambientPositions[i * 3 + 1] = (Math.random() - 0.5) * 15;
-      ambientPositions[i * 3 + 2] = (Math.random() - 0.5) * 20;
+      const i3 = i * 3;
+      ambientPositions[i3] = (Math.random() - 0.5) * 40;
+      ambientPositions[i3 + 1] = (Math.random() - 0.5) * 25;
+      ambientPositions[i3 + 2] = (Math.random() - 0.5) * 30;
+      
+      // Random colors
+      const hue = Math.random();
+      const color = new THREE.Color().setHSL(hue, 0.8, 0.6);
+      ambientColors[i3] = color.r;
+      ambientColors[i3 + 1] = color.g;
+      ambientColors[i3 + 2] = color.b;
     }
     
     ambientGeo.setAttribute('position', new THREE.BufferAttribute(ambientPositions, 3));
+    ambientGeo.setAttribute('color', new THREE.BufferAttribute(ambientColors, 3));
     
     const ambientMat = new THREE.PointsMaterial({
-      size: 0.03,
-      color: '#ff69b4',
+      size: 0.05,
+      vertexColors: true,
       transparent: true,
-      opacity: 0.4,
+      opacity: 0.6,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -154,7 +188,7 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
     const ambientParticles = new THREE.Points(ambientGeo, ambientMat);
     scene.add(ambientParticles);
     
-    // Animation
+    // Animation loop
     const animate = () => {
       timeRef.current += 0.016;
       const time = timeRef.current;
@@ -164,43 +198,54 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
         const posAttr = geom.attributes.position;
         const colorAttr = geom.attributes.color;
         const sizeAttr = geom.attributes.size;
-        const { phases, baseY, initialSizes } = geom.userData;
+        const { phases, baseY, initialSizes, velocityY } = geom.userData;
         
-        const currentPalette = colorPalettes[aiState] || colorPalettes.neutral;
+        const currentPalette = colorPalettes[currentAiStateRef.current] || colorPalettes.neutral;
         const paletteColors = currentPalette.map(c => new THREE.Color(c));
-        const audioMult = 1 + (audioLevelRef.current * 3);
+        const audioMult = 1 + (audioLevelRef.current * 4);
         
         for (let i = 0; i < particleCount; i++) {
           const i3 = i * 3;
           const x = posAttr.array[i3];
           const z = posAttr.array[i3 + 2];
           
-          // Waves
-          const wave1 = Math.sin(x * 0.5 + time * 0.8 + phases[i]) * 1.5;
-          const wave2 = Math.cos(z * 0.3 + time * 0.6) * 1.2;
-          const wave3 = Math.sin((x + z) * 0.2 + time * 1.2) * 0.8;
+          // Multiple wave frequencies for organic plasma flow
+          const wave1 = Math.sin(x * 0.3 + time * 0.8 + phases[i]) * 2.5;
+          const wave2 = Math.cos(z * 0.25 + time * 0.6 + phases[i] * 0.5) * 2.0;
+          const wave3 = Math.sin((x + z) * 0.15 + time * 1.2) * 1.5;
+          const wave4 = Math.cos(x * 0.4 - time * 0.4) * Math.sin(z * 0.3 + time * 0.5) * 1.2;
           
-          // Mouse influence
-          const dx = x - (mouseRef.current.x * 10);
-          const dz = z - (mouseRef.current.y * 7.5);
+          // Mouse influence - creates ripple effect
+          const dx = x - (mouseRef.current.x * 15);
+          const dz = z - (mouseRef.current.y * 10);
           const dist = Math.sqrt(dx * dx + dz * dz);
-          const mouseInf = Math.max(0, 1 - dist / 4) * 2;
+          const mouseInf = Math.max(0, 1 - dist / 6) * 3;
+          const mouseWave = mouseInf * Math.sin(time * 5 + dist * 0.5);
           
-          // Y position
-          posAttr.array[i3 + 1] = (wave1 + wave2 + wave3) * audioMult + baseY[i] + mouseInf * Math.sin(time * 3 + phases[i]);
+          // Combined Y position with all effects
+          const y = (wave1 + wave2 + wave3 + wave4) * audioMult * 0.5 + 
+                    baseY[i] + 
+                    mouseWave +
+                    Math.sin(time * 2 + i * 0.01) * velocityY[i];
           
-          // Colors
-          const t = (Math.sin(time * 0.5 + x * 0.1 + z * 0.1) * 0.5 + 0.5);
-          const idx = Math.floor(t * (paletteColors.length - 1));
+          posAttr.array[i3 + 1] = y;
+          
+          // Dynamic color blending based on position and time
+          const colorPhase = (Math.sin(time * 0.3 + x * 0.08 + z * 0.08 + phases[i]) * 0.5 + 0.5);
+          const idx = Math.floor(colorPhase * (paletteColors.length - 1));
           const nextIdx = (idx + 1) % paletteColors.length;
-          const blend = (t * (paletteColors.length - 1)) % 1;
+          const blend = (colorPhase * (paletteColors.length - 1)) % 1;
           
-          colorAttr.array[i3] = THREE.MathUtils.lerp(paletteColors[idx].r, paletteColors[nextIdx].r, blend);
-          colorAttr.array[i3 + 1] = THREE.MathUtils.lerp(paletteColors[idx].g, paletteColors[nextIdx].g, blend);
-          colorAttr.array[i3 + 2] = THREE.MathUtils.lerp(paletteColors[idx].b, paletteColors[nextIdx].b, blend);
+          // Add intensity based on Y height
+          const heightIntensity = 1 + Math.abs(y) * 0.1;
           
-          // Sizes
-          sizeAttr.array[i] = initialSizes[i] * (1 + audioLevelRef.current * 2 + mouseInf * 0.5);
+          colorAttr.array[i3] = THREE.MathUtils.lerp(paletteColors[idx].r, paletteColors[nextIdx].r, blend) * heightIntensity;
+          colorAttr.array[i3 + 1] = THREE.MathUtils.lerp(paletteColors[idx].g, paletteColors[nextIdx].g, blend) * heightIntensity;
+          colorAttr.array[i3 + 2] = THREE.MathUtils.lerp(paletteColors[idx].b, paletteColors[nextIdx].b, blend) * heightIntensity;
+          
+          // Pulsing sizes based on audio and position
+          const sizePulse = 1 + Math.sin(time * 3 + phases[i]) * 0.3;
+          sizeAttr.array[i] = initialSizes[i] * (sizePulse + audioLevelRef.current * 2 + mouseInf * 0.3);
         }
         
         posAttr.needsUpdate = true;
@@ -208,16 +253,17 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
         sizeAttr.needsUpdate = true;
       }
       
-      // Rotate camera slowly
-      camera.position.x = Math.sin(time * 0.1) * 2;
+      // Gentle camera movement
+      camera.position.x = Math.sin(time * 0.1) * 3;
+      camera.position.y = 8 + Math.sin(time * 0.15) * 1;
       camera.lookAt(0, 0, 0);
       
       // Animate ambient particles
       const ambientPos = ambientParticles.geometry.attributes.position;
       for (let i = 0; i < ambientCount; i++) {
         const i3 = i * 3;
-        ambientPos.array[i3 + 1] += Math.sin(time + i) * 0.002;
-        ambientPos.array[i3] += Math.cos(time * 0.5 + i) * 0.001;
+        ambientPos.array[i3 + 1] += Math.sin(time * 0.5 + i * 0.1) * 0.003;
+        ambientPos.array[i3] += Math.cos(time * 0.3 + i * 0.05) * 0.002;
       }
       ambientPos.needsUpdate = true;
       
@@ -247,9 +293,11 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
       material.dispose();
       ambientGeo.dispose();
       ambientMat.dispose();
-      container.removeChild(renderer.domElement);
+      if (container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement);
+      }
     };
-  }, [aiState]);
+  }, []);
   
   // Mouse tracking
   useEffect(() => {
@@ -290,7 +338,7 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
       analyze();
       setIsListening(true);
     } catch (err) {
-      console.log('Mic unavailable');
+      console.log('Mic unavailable:', err);
     }
   }, [onAudioLevelChange]);
   
@@ -329,9 +377,10 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
           fontSize: 14,
           backdropFilter: 'blur(10px)',
           fontFamily: 'Inter, sans-serif',
+          transition: 'all 0.3s ease',
         }}
       >
-        {isListening ? '🎤 Stop' : '🎙️ Audio React'}
+        {isListening ? '🎤 Stop Listening' : '🎙️ Enable Audio React'}
       </button>
       
       {/* State indicator */}
@@ -356,14 +405,14 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
         AI: {aiState}
       </div>
       
-      {/* Audio level */}
+      {/* Audio level indicator */}
       {isListening && (
         <div style={{
           position: 'absolute',
           bottom: 80,
           right: 20,
           zIndex: 100,
-          width: 150,
+          width: 180,
           height: 8,
           background: 'rgba(255,255,255,0.1)',
           borderRadius: 4,
@@ -372,7 +421,7 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
           <div style={{
             width: `${audioLevel * 100}%`,
             height: '100%',
-            background: 'linear-gradient(90deg, #00d4ff, #e040fb, #ff1744)',
+            background: 'linear-gradient(90deg, #00d4ff, #7b2cbf, #e040fb, #ff1744)',
             transition: 'width 0.05s ease',
           }} />
         </div>
