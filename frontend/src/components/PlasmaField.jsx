@@ -214,7 +214,6 @@ const Scene = ({ mousePosition, audioLevel, aiState }) => {
         autoRotate
         autoRotateSpeed={0.3}
       />
-      <fog attach="fog" args={['#050510', 10, 30]} />
     </>
   );
 };
