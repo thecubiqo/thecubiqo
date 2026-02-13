@@ -365,9 +365,9 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
         onClick={isListening ? stopAudio : startAudio}
         style={{
           position: 'absolute',
-          bottom: 20,
+          bottom: 80,
           right: 20,
-          zIndex: 100,
+          zIndex: 1000,
           padding: '12px 24px',
           background: isListening ? 'rgba(255, 23, 68, 0.3)' : 'rgba(0, 212, 255, 0.3)',
           border: `1px solid ${isListening ? '#ff1744' : '#00d4ff'}`,
