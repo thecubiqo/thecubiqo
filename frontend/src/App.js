@@ -12,13 +12,13 @@ const AIStateControls = ({ currentState, onStateChange }) => {
       data-testid="ai-state-controls"
       style={{
         position: 'absolute',
-        top: '20px',
-        right: '20px',
+        top: 20,
+        right: 20,
         zIndex: 100,
         display: 'flex',
-        gap: '8px',
+        gap: 8,
         flexWrap: 'wrap',
-        maxWidth: '300px',
+        maxWidth: 300,
       }}
     >
       {states.map((state) => (
@@ -34,13 +34,14 @@ const AIStateControls = ({ currentState, onStateChange }) => {
             border: currentState === state 
               ? '1px solid #00d4ff' 
               : '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: '20px',
+            borderRadius: 20,
             color: '#fff',
             cursor: 'pointer',
-            fontSize: '12px',
+            fontSize: 12,
             textTransform: 'capitalize',
             backdropFilter: 'blur(10px)',
             transition: 'all 0.3s ease',
+            fontFamily: 'Inter, sans-serif',
           }}
         >
           {state}
@@ -85,8 +86,8 @@ const LandingPage = () => {
             fontWeight: 800,
             color: '#fff',
             textShadow: '0 0 40px rgba(0, 212, 255, 0.5), 0 0 80px rgba(224, 64, 251, 0.3)',
-            marginBottom: '20px',
-            letterSpacing: '-2px',
+            marginBottom: 20,
+            letterSpacing: -2,
             fontFamily: "'Inter', -apple-system, sans-serif",
           }}
         >
@@ -96,7 +97,7 @@ const LandingPage = () => {
           style={{
             fontSize: 'clamp(1rem, 2.5vw, 1.5rem)',
             color: 'rgba(255, 255, 255, 0.7)',
-            maxWidth: '600px',
+            maxWidth: 600,
             margin: '0 auto 30px',
             lineHeight: 1.6,
             fontFamily: "'Inter', -apple-system, sans-serif",
@@ -119,17 +120,18 @@ const LandingPage = () => {
       <div
         style={{
           position: 'absolute',
-          bottom: '20px',
+          bottom: 20,
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 100,
           textAlign: 'center',
           color: 'rgba(255, 255, 255, 0.5)',
-          fontSize: '12px',
+          fontSize: 12,
+          fontFamily: 'Inter, sans-serif',
         }}
       >
-        <p>3D Plasma Particle System • Three.js + React Three Fiber</p>
-        <p style={{ marginTop: '4px', opacity: 0.6 }}>
+        <p>3D Plasma Particle System • Three.js</p>
+        <p style={{ marginTop: 4, opacity: 0.6 }}>
           Audio Level: {(audioLevel * 100).toFixed(0)}%
         </p>
       </div>
