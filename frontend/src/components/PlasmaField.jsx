@@ -364,29 +364,6 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
   return (
     <div style={{ width: '100%', height: '100vh', position: 'relative', background: '#020208' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-      
-      <button data-testid="audio-toggle-btn" onClick={isListening ? stopAudio : startAudio}
-        style={{ position: 'absolute', bottom: 80, right: 20, zIndex: 1000, padding: '12px 24px',
-          background: isListening ? 'rgba(255, 23, 68, 0.3)' : 'rgba(0, 212, 255, 0.3)',
-          border: `1px solid ${isListening ? '#ff1744' : '#00d4ff'}`, borderRadius: 30, color: '#fff',
-          cursor: 'pointer', fontSize: 14, backdropFilter: 'blur(10px)', fontFamily: 'Inter, sans-serif' }}>
-        {isListening ? '🎤 Stop' : '🎙️ Audio React'}
-      </button>
-      
-      <div data-testid="ai-state-indicator"
-        style={{ position: 'absolute', top: 20, left: 20, zIndex: 1000, padding: '8px 16px',
-          background: 'rgba(0, 0, 0, 0.6)', borderRadius: 20, color: '#fff', fontSize: 12,
-          backdropFilter: 'blur(10px)', textTransform: 'uppercase', letterSpacing: 2, fontFamily: 'Inter' }}>
-        AI: {aiState}
-      </div>
-      
-      {isListening && (
-        <div style={{ position: 'absolute', bottom: 140, right: 20, zIndex: 1000, width: 180, height: 8,
-          background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
-          <div style={{ width: `${audioLevel * 100}%`, height: '100%',
-            background: 'linear-gradient(90deg, #00d4ff, #8b5cf6, #ec4899, #ef4444)' }} />
-        </div>
-      )}
     </div>
   );
 };
