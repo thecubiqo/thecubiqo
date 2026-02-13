@@ -145,9 +145,9 @@ const PlasmaCube = ({ isActive, onReady }) => {
         positions[idx * 3 + 2] = z * inset;
         
         // Mix of colors based on position
-        const colorT = (y / cubeSize + 0.5);
-        const cIdx = Math.floor(colorT * 3);
-        const c = baseColors[Math.min(cIdx, 3)];
+        const colorT = Math.max(0, Math.min(1, y / cubeSize + 0.5));
+        const cIdx = Math.min(Math.floor(colorT * 4), 3);
+        const c = baseColors[cIdx];
         colors[idx * 3] = c.r;
         colors[idx * 3 + 1] = c.g;
         colors[idx * 3 + 2] = c.b;
