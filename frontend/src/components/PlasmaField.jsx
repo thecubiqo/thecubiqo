@@ -1,155 +1,74 @@
 import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
-import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Particle system with plasma wave effect
-const ParticleWave = ({ mousePosition, audioLevel, aiState, particleCount = 15000 }) => {
-  const meshRef = useRef();
+const ParticleWave = ({ mousePosition, audioLevel, aiState, particleCount = 12000 }) => {
+  const pointsRef = useRef();
   const { viewport } = useThree();
+  
+  // Store persistent data
+  const dataRef = useRef({
+    phases: new Float32Array(particleCount),
+    baseY: new Float32Array(particleCount),
+    initialSizes: new Float32Array(particleCount),
+    initialized: false
+  });
   
   // Color palettes for different AI states
   const colorPalettes = useMemo(() => ({
-    neutral: [
-      new THREE.Color('#00d4ff'), // Cyan
-      new THREE.Color('#7b2cbf'), // Purple
-      new THREE.Color('#e040fb'), // Magenta
-      new THREE.Color('#ff1744'), // Red
-    ],
-    thinking: [
-      new THREE.Color('#00e5ff'), // Bright cyan
-      new THREE.Color('#651fff'), // Deep purple
-      new THREE.Color('#d500f9'), // Bright magenta
-      new THREE.Color('#ff9100'), // Orange
-    ],
-    speaking: [
-      new THREE.Color('#00ffc6'), // Teal
-      new THREE.Color('#536dfe'), // Indigo
-      new THREE.Color('#f50057'), // Pink
-      new THREE.Color('#ffea00'), // Yellow
-    ],
-    listening: [
-      new THREE.Color('#18ffff'), // Aqua
-      new THREE.Color('#7c4dff'), // Violet
-      new THREE.Color('#ff4081'), // Pink
-      new THREE.Color('#ff6e40'), // Deep orange
-    ],
-    error: [
-      new THREE.Color('#ff1744'), // Red
-      new THREE.Color('#d50000'), // Dark red
-      new THREE.Color('#ff5252'), // Light red
-      new THREE.Color('#ff8a80'), // Pale red
-    ]
+    neutral: ['#00d4ff', '#7b2cbf', '#e040fb', '#ff1744'],
+    thinking: ['#00e5ff', '#651fff', '#d500f9', '#ff9100'],
+    speaking: ['#00ffc6', '#536dfe', '#f50057', '#ffea00'],
+    listening: ['#18ffff', '#7c4dff', '#ff4081', '#ff6e40'],
+    error: ['#ff1744', '#d50000', '#ff5252', '#ff8a80']
   }), []);
 
-  // Create particle geometry
-  const { geometry, phases, baseY, initialSizes } = useMemo(() => {
+  // Initialize geometry
+  const geometry = useMemo(() => {
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
     const sizes = new Float32Array(particleCount);
-    const phases = new Float32Array(particleCount);
-    const baseY = new Float32Array(particleCount);
     
-    const palette = colorPalettes.neutral;
+    const palette = colorPalettes.neutral.map(c => new THREE.Color(c));
     
     for (let i = 0; i < particleCount; i++) {
       const i3 = i * 3;
       
-      // Distribute particles in a wave-like grid
-      const x = (Math.random() - 0.5) * 20;
-      const z = (Math.random() - 0.5) * 15;
-      const y = 0;
+      // Distribute particles
+      positions[i3] = (Math.random() - 0.5) * 20;
+      positions[i3 + 1] = 0;
+      positions[i3 + 2] = (Math.random() - 0.5) * 15;
       
-      positions[i3] = x;
-      positions[i3 + 1] = y;
-      positions[i3 + 2] = z;
+      // Store persistent data
+      dataRef.current.phases[i] = Math.random() * Math.PI * 2;
+      dataRef.current.baseY[i] = (Math.random() - 0.5) * 2;
+      dataRef.current.initialSizes[i] = Math.random() * 0.08 + 0.02;
       
-      baseY[i] = (Math.random() - 0.5) * 2;
-      
-      // Random color from palette
+      // Initial colors
       const color = palette[Math.floor(Math.random() * palette.length)];
       colors[i3] = color.r;
       colors[i3 + 1] = color.g;
       colors[i3 + 2] = color.b;
       
-      // Random sizes
-      sizes[i] = Math.random() * 0.08 + 0.02;
-      
-      // Random phase for wave animation
-      phases[i] = Math.random() * Math.PI * 2;
+      sizes[i] = dataRef.current.initialSizes[i];
     }
     
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    dataRef.current.initialized = true;
     
-    return { geometry, phases, baseY, initialSizes: sizes.slice() };
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geom.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+    
+    return geom;
   }, [particleCount, colorPalettes]);
 
-  // Update particles each frame
-  useFrame((state) => {
-    if (!meshRef.current) return;
-    
-    const time = state.clock.elapsedTime;
-    const positionAttr = meshRef.current.geometry.attributes.position;
-    const colorAttr = meshRef.current.geometry.attributes.color;
-    const sizeAttr = meshRef.current.geometry.attributes.size;
-    
-    const palette = colorPalettes[aiState] || colorPalettes.neutral;
-    const audioMultiplier = 1 + (audioLevel * 3);
-    
-    for (let i = 0; i < particleCount; i++) {
-      const i3 = i * 3;
-      
-      const x = positionAttr.array[i3];
-      const z = positionAttr.array[i3 + 2];
-      
-      // Wave calculation with multiple frequencies
-      const wave1 = Math.sin(x * 0.5 + time * 0.8 + phases[i]) * 1.5;
-      const wave2 = Math.cos(z * 0.3 + time * 0.6) * 1.2;
-      const wave3 = Math.sin((x + z) * 0.2 + time * 1.2) * 0.8;
-      
-      // Mouse influence
-      const dx = x - (mousePosition.x * viewport.width * 0.5);
-      const dz = z - (mousePosition.y * viewport.height * 0.5);
-      const dist = Math.sqrt(dx * dx + dz * dz);
-      const mouseInfluence = Math.max(0, 1 - dist / 4) * 2;
-      
-      // Combine waves with audio and mouse
-      const y = (wave1 + wave2 + wave3) * audioMultiplier + 
-                baseY[i] + 
-                mouseInfluence * Math.sin(time * 3 + phases[i]);
-      
-      positionAttr.array[i3 + 1] = y;
-      
-      // Update colors based on AI state and position
-      const colorIndex = Math.floor((Math.sin(time * 0.5 + x * 0.1 + z * 0.1) * 0.5 + 0.5) * (palette.length - 1));
-      const nextColorIndex = (colorIndex + 1) % palette.length;
-      const blend = (Math.sin(time * 0.5 + x * 0.1 + z * 0.1) * 0.5 + 0.5) % 1;
-      
-      const color1 = palette[colorIndex];
-      const color2 = palette[nextColorIndex];
-      
-      colorAttr.array[i3] = THREE.MathUtils.lerp(color1.r, color2.r, blend);
-      colorAttr.array[i3 + 1] = THREE.MathUtils.lerp(color1.g, color2.g, blend);
-      colorAttr.array[i3 + 2] = THREE.MathUtils.lerp(color1.b, color2.b, blend);
-      
-      // Pulse sizes with audio
-      sizeAttr.array[i] = initialSizes[i] * (1 + audioLevel * 2 + mouseInfluence * 0.5);
-    }
-    
-    positionAttr.needsUpdate = true;
-    colorAttr.needsUpdate = true;
-    sizeAttr.needsUpdate = true;
-  });
-
-  // Custom shader material for glowing particles
-  const shaderMaterial = useMemo(() => {
+  // Shader material
+  const material = useMemo(() => {
     return new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-      },
+      uniforms: {},
       vertexShader: `
         attribute float size;
         varying vec3 vColor;
@@ -182,33 +101,81 @@ const ParticleWave = ({ mousePosition, audioLevel, aiState, particleCount = 1500
     });
   }, []);
 
-  return (
-    <points ref={meshRef} geometry={geometry} material={shaderMaterial} />
-  );
+  // Animation
+  useFrame((state) => {
+    if (!pointsRef.current || !dataRef.current.initialized) return;
+    
+    const time = state.clock.elapsedTime;
+    const geom = pointsRef.current.geometry;
+    const posAttr = geom.attributes.position;
+    const colorAttr = geom.attributes.color;
+    const sizeAttr = geom.attributes.size;
+    
+    const palette = (colorPalettes[aiState] || colorPalettes.neutral).map(c => new THREE.Color(c));
+    const audioMult = 1 + (audioLevel * 3);
+    const { phases, baseY, initialSizes } = dataRef.current;
+    
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+      const x = posAttr.array[i3];
+      const z = posAttr.array[i3 + 2];
+      
+      // Waves
+      const wave1 = Math.sin(x * 0.5 + time * 0.8 + phases[i]) * 1.5;
+      const wave2 = Math.cos(z * 0.3 + time * 0.6) * 1.2;
+      const wave3 = Math.sin((x + z) * 0.2 + time * 1.2) * 0.8;
+      
+      // Mouse
+      const dx = x - (mousePosition.x * viewport.width * 0.5);
+      const dz = z - (mousePosition.y * viewport.height * 0.5);
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      const mouseInf = Math.max(0, 1 - dist / 4) * 2;
+      
+      // Y position
+      posAttr.array[i3 + 1] = (wave1 + wave2 + wave3) * audioMult + baseY[i] + mouseInf * Math.sin(time * 3 + phases[i]);
+      
+      // Colors
+      const t = (Math.sin(time * 0.5 + x * 0.1 + z * 0.1) * 0.5 + 0.5);
+      const idx = Math.floor(t * (palette.length - 1));
+      const nextIdx = (idx + 1) % palette.length;
+      const blend = t % (1 / palette.length) * palette.length;
+      
+      colorAttr.array[i3] = THREE.MathUtils.lerp(palette[idx].r, palette[nextIdx].r, blend);
+      colorAttr.array[i3 + 1] = THREE.MathUtils.lerp(palette[idx].g, palette[nextIdx].g, blend);
+      colorAttr.array[i3 + 2] = THREE.MathUtils.lerp(palette[idx].b, palette[nextIdx].b, blend);
+      
+      // Sizes
+      sizeAttr.array[i] = initialSizes[i] * (1 + audioLevel * 2 + mouseInf * 0.5);
+    }
+    
+    posAttr.needsUpdate = true;
+    colorAttr.needsUpdate = true;
+    sizeAttr.needsUpdate = true;
+  });
+
+  return <points ref={pointsRef} geometry={geometry} material={material} />;
 };
 
-// Ambient floating particles
-const AmbientParticles = ({ count = 500 }) => {
-  const meshRef = useRef();
+// Ambient particles
+const AmbientParticles = ({ count = 400 }) => {
+  const pointsRef = useRef();
   
   const geometry = useMemo(() => {
     const positions = new Float32Array(count * 3);
-    
     for (let i = 0; i < count; i++) {
       positions[i * 3] = (Math.random() - 0.5) * 25;
       positions[i * 3 + 1] = (Math.random() - 0.5) * 15;
       positions[i * 3 + 2] = (Math.random() - 0.5) * 20;
     }
-    
     const geom = new THREE.BufferGeometry();
-    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     return geom;
   }, [count]);
   
   useFrame((state) => {
-    if (!meshRef.current) return;
+    if (!pointsRef.current) return;
     const time = state.clock.elapsedTime;
-    const posAttr = meshRef.current.geometry.attributes.position;
+    const posAttr = pointsRef.current.geometry.attributes.position;
     
     for (let i = 0; i < count; i++) {
       const i3 = i * 3;
@@ -219,7 +186,7 @@ const AmbientParticles = ({ count = 500 }) => {
   });
   
   return (
-    <points ref={meshRef} geometry={geometry}>
+    <points ref={pointsRef} geometry={geometry}>
       <pointsMaterial
         size={0.03}
         color="#ff69b4"
@@ -232,7 +199,27 @@ const AmbientParticles = ({ count = 500 }) => {
   );
 };
 
-// Main Plasma Field component
+// Scene component
+const Scene = ({ mousePosition, audioLevel, aiState }) => {
+  return (
+    <>
+      <ambientLight intensity={0.1} />
+      <ParticleWave mousePosition={mousePosition} audioLevel={audioLevel} aiState={aiState} />
+      <AmbientParticles />
+      <OrbitControls
+        enableZoom={true}
+        enablePan={false}
+        minDistance={5}
+        maxDistance={25}
+        autoRotate
+        autoRotateSpeed={0.3}
+      />
+      <fog attach="fog" args={['#050510', 10, 30]} />
+    </>
+  );
+};
+
+// Main component
 const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [audioLevel, setAudioLevel] = useState(0);
@@ -242,20 +229,19 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
   const animationFrameRef = useRef(null);
   
   // Mouse tracking
-  const handleMouseMove = useCallback((e) => {
-    setMousePosition({
-      x: (e.clientX / window.innerWidth) * 2 - 1,
-      y: -(e.clientY / window.innerHeight) * 2 + 1,
-    });
+  useEffect(() => {
+    const handleMove = (e) => {
+      setMousePosition({
+        x: (e.clientX / window.innerWidth) * 2 - 1,
+        y: -(e.clientY / window.innerHeight) * 2 + 1,
+      });
+    };
+    window.addEventListener('mousemove', handleMove);
+    return () => window.removeEventListener('mousemove', handleMove);
   }, []);
   
-  useEffect(() => {
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [handleMouseMove]);
-  
-  // Audio analysis
-  const startAudioAnalysis = useCallback(async () => {
+  // Audio
+  const startAudio = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -263,34 +249,29 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
       
       const source = audioContextRef.current.createMediaStreamSource(stream);
       source.connect(analyserRef.current);
-      
       analyserRef.current.fftSize = 256;
+      
       const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
       
       const analyze = () => {
         if (!analyserRef.current) return;
-        
         analyserRef.current.getByteFrequencyData(dataArray);
-        const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-        const normalizedLevel = average / 255;
-        
-        setAudioLevel(normalizedLevel);
-        if (onAudioLevelChange) onAudioLevelChange(normalizedLevel);
-        
+        const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+        const level = avg / 255;
+        setAudioLevel(level);
+        if (onAudioLevelChange) onAudioLevelChange(level);
         animationFrameRef.current = requestAnimationFrame(analyze);
       };
       
       analyze();
       setIsListening(true);
     } catch (err) {
-      console.log('Microphone access denied or unavailable');
+      console.log('Mic unavailable');
     }
   }, [onAudioLevelChange]);
   
-  const stopAudioAnalysis = useCallback(() => {
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
+  const stopAudio = useCallback(() => {
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
@@ -299,106 +280,76 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
     setAudioLevel(0);
   }, []);
   
-  useEffect(() => {
-    return () => stopAudioAnalysis();
-  }, [stopAudioAnalysis]);
+  useEffect(() => () => stopAudio(), [stopAudio]);
   
   return (
-    <div className="plasma-container" style={{ width: '100%', height: '100vh', background: '#050510' }}>
-      {/* Audio toggle button */}
+    <div style={{ width: '100%', height: '100vh', background: '#050510', position: 'relative' }}>
+      {/* Audio button */}
       <button
         data-testid="audio-toggle-btn"
-        onClick={isListening ? stopAudioAnalysis : startAudioAnalysis}
+        onClick={isListening ? stopAudio : startAudio}
         style={{
           position: 'absolute',
-          bottom: '20px',
-          right: '20px',
+          bottom: 20,
+          right: 20,
           zIndex: 100,
           padding: '12px 24px',
           background: isListening ? 'rgba(255, 23, 68, 0.3)' : 'rgba(0, 212, 255, 0.3)',
           border: `1px solid ${isListening ? '#ff1744' : '#00d4ff'}`,
-          borderRadius: '30px',
+          borderRadius: 30,
           color: '#fff',
           cursor: 'pointer',
-          fontFamily: 'inherit',
-          fontSize: '14px',
+          fontSize: 14,
           backdropFilter: 'blur(10px)',
-          transition: 'all 0.3s ease',
         }}
       >
-        {isListening ? '🎤 Stop Listening' : '🎙️ Enable Audio React'}
+        {isListening ? '🎤 Stop' : '🎙️ Audio React'}
       </button>
       
-      {/* AI State indicator */}
+      {/* State indicator */}
       <div
         data-testid="ai-state-indicator"
         style={{
           position: 'absolute',
-          top: '20px',
-          left: '20px',
+          top: 20,
+          left: 20,
           zIndex: 100,
           padding: '8px 16px',
           background: 'rgba(0, 0, 0, 0.5)',
-          borderRadius: '20px',
+          borderRadius: 20,
           color: '#fff',
-          fontSize: '12px',
+          fontSize: 12,
           backdropFilter: 'blur(10px)',
           textTransform: 'uppercase',
-          letterSpacing: '2px',
+          letterSpacing: 2,
         }}
       >
-        AI State: {aiState}
+        AI: {aiState}
       </div>
       
-      {/* Audio level indicator */}
+      {/* Audio level */}
       {isListening && (
-        <div
-          data-testid="audio-level-indicator"
-          style={{
-            position: 'absolute',
-            bottom: '80px',
-            right: '20px',
-            zIndex: 100,
-            width: '150px',
-            height: '8px',
-            background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '4px',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              width: `${audioLevel * 100}%`,
-              height: '100%',
-              background: `linear-gradient(90deg, #00d4ff, #e040fb, #ff1744)`,
-              transition: 'width 0.05s ease',
-            }}
-          />
+        <div style={{
+          position: 'absolute',
+          bottom: 80,
+          right: 20,
+          zIndex: 100,
+          width: 150,
+          height: 8,
+          background: 'rgba(255,255,255,0.1)',
+          borderRadius: 4,
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            width: `${audioLevel * 100}%`,
+            height: '100%',
+            background: 'linear-gradient(90deg, #00d4ff, #e040fb, #ff1744)',
+          }} />
         </div>
       )}
       
-      <Canvas dpr={[1, 2]}>
-        <PerspectiveCamera makeDefault position={[0, 5, 12]} fov={60} />
-        <ambientLight intensity={0.1} />
-        
-        <ParticleWave
-          mousePosition={mousePosition}
-          audioLevel={audioLevel}
-          aiState={aiState}
-        />
-        <AmbientParticles />
-        
-        <OrbitControls
-          enableZoom={true}
-          enablePan={false}
-          minDistance={5}
-          maxDistance={25}
-          autoRotate
-          autoRotateSpeed={0.3}
-        />
-        
-        {/* Fog for depth */}
-        <fog attach="fog" args={['#050510', 10, 30]} />
+      <Canvas camera={{ position: [0, 5, 12], fov: 60 }} dpr={[1, 2]}>
+        <Scene mousePosition={mousePosition} audioLevel={audioLevel} aiState={aiState} />
       </Canvas>
     </div>
   );
