@@ -1,0 +1,28 @@
+# CubiQo AI Overview
+
+CubiQo is a conversation-first, voice-first AI assistant designed as a digital private secretary.
+
+It uses color-based operational intent signals (Red, Green, Yellow) to adapt interaction style, voice tone, and intelligence routing without storing conversations or user memory.
+
+CubiQo does not require users to select AI models. It automatically routes tasks to the most suitable intelligence backend.
+
+Core principles:
+- Privacy-first (zero conversation retention)
+- Voice-first interaction
+- Intent-driven orchestration
+- Cooperative AI (human + AI working together)
+- One interface replacing multiple apps
+
+CubiQo is not a chatbot and not an emotional AI.
+CubiQo is an AI orchestration interface focused on action, trust, and privacy.
+
+## Key Features
+- Voice-first private AI assistant
+- Color-based intent system (Red, Green, Yellow)
+- No conversation storage or memory retention
+- Automatic intelligence routing
+- Bring-Your-Own AI keys supported
+- Digital private secretary capabilities
+
+## Contact
+Website: https://cubiqo.ai
