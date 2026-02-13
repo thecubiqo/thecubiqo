@@ -49,6 +49,22 @@ Create an interactive 3D plasma particle wave effect for CubiQo landing page as 
 | Listening | Aqua → Cyan → Blue → Violet → Magenta → Pink → Orange |
 | Error | Red shades with pink accents |
 
+### Phase 3 - App Flow (Feb 13, 2026)
+- **Landing Page**: Clean plasma waves, click anywhere to enter
+- **App Page**: Dark cube with floating orange soul nodes
+- **Plasma Cube**: Activated via speaker button
+  - Glowing cyan/blue edges
+  - Purple/pink face particles
+  - Orange soul nodes swirling inside
+  - Isometric rotation animation
+  - 30,000 particles total
+
+### User Flow
+1. **Landing** → Plasma waves with "Tap to begin"
+2. Click anywhere → **App Page** (dark cube + orange nodes)
+3. Click "Enable" speaker → **Plasma Cube** (glowing active state)
+4. Click again → Return to dark cube
+
 ## Tech Stack
 - React 19
 - Three.js (vanilla, not React Three Fiber)
