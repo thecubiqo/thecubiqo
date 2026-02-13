@@ -106,7 +106,8 @@ const PlasmaCube = ({ isActive, onReady }) => {
         positions[idx * 3 + 2] = z;
         
         // Edge particles are bright white/blue
-        const c = Math.random() < 0.8 ? baseColors[0] : baseColors[Math.floor(Math.random() * 3)];
+        const colorRand = Math.random();
+        const c = colorRand < 0.8 ? baseColors[0] : baseColors[Math.floor(Math.random() * 4)];
         colors[idx * 3] = c.r;
         colors[idx * 3 + 1] = c.g;
         colors[idx * 3 + 2] = c.b;
