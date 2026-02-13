@@ -1,13 +1,13 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
 
-// Pure Three.js Plasma Field Component
+// High Definition Plasma Field Component
 const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
   const containerRef = useRef(null);
   const sceneRef = useRef(null);
   const cameraRef = useRef(null);
   const rendererRef = useRef(null);
-  const particlesRef = useRef(null);
+  const waveSystemsRef = useRef([]);
   const animationRef = useRef(null);
   const mouseRef = useRef({ x: 0, y: 0 });
   const audioLevelRef = useRef(0);
@@ -20,21 +20,34 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
   const analyserRef = useRef(null);
   const audioAnimationRef = useRef(null);
   
-  // Update aiState ref
   useEffect(() => {
     currentAiStateRef.current = aiState;
   }, [aiState]);
   
-  // Color palettes for different AI states
+  // Enhanced color palettes with gradient positions
   const colorPalettes = {
-    neutral: ['#00d4ff', '#7b2cbf', '#e040fb', '#ff1744', '#ff69b4'],
-    thinking: ['#00e5ff', '#651fff', '#d500f9', '#ff9100', '#00bcd4'],
-    speaking: ['#00ffc6', '#536dfe', '#f50057', '#ffea00', '#76ff03'],
-    listening: ['#18ffff', '#7c4dff', '#ff4081', '#ff6e40', '#ea80fc'],
-    error: ['#ff1744', '#d50000', '#ff5252', '#ff8a80', '#ff1744']
+    neutral: {
+      colors: ['#00d4ff', '#0099ff', '#7b2cbf', '#9c27b0', '#e040fb', '#ff1744', '#ff4081'],
+      positions: [0, 0.15, 0.35, 0.5, 0.65, 0.85, 1]
+    },
+    thinking: {
+      colors: ['#00e5ff', '#00bcd4', '#651fff', '#7c4dff', '#d500f9', '#ff9100', '#ffab00'],
+      positions: [0, 0.15, 0.35, 0.5, 0.65, 0.85, 1]
+    },
+    speaking: {
+      colors: ['#00ffc6', '#1de9b6', '#536dfe', '#7c4dff', '#f50057', '#ff5722', '#ffea00'],
+      positions: [0, 0.15, 0.35, 0.5, 0.65, 0.85, 1]
+    },
+    listening: {
+      colors: ['#18ffff', '#00e5ff', '#7c4dff', '#aa00ff', '#ff4081', '#ff6e40', '#ea80fc'],
+      positions: [0, 0.15, 0.35, 0.5, 0.65, 0.85, 1]
+    },
+    error: {
+      colors: ['#ff1744', '#d50000', '#ff5252', '#ff8a80', '#f44336', '#e91e63', '#ff1744'],
+      positions: [0, 0.15, 0.35, 0.5, 0.65, 0.85, 1]
+    }
   };
   
-  // Initialize Three.js scene
   useEffect(() => {
     if (!containerRef.current) return;
     
@@ -42,105 +55,229 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
     const width = container.clientWidth;
     const height = container.clientHeight;
     
-    // Scene
+    // Scene setup
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#050510');
+    scene.background = new THREE.Color('#030308');
     sceneRef.current = scene;
     
     // Camera
-    const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
-    camera.position.set(0, 8, 15);
+    const camera = new THREE.PerspectiveCamera(65, width / height, 0.1, 1000);
+    camera.position.set(0, 6, 14);
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
     
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    // High-quality renderer
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true, 
+      alpha: true,
+      powerPreference: 'high-performance'
+    });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.5));
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
     
-    // Main Plasma Particles
-    const particleCount = 20000;
-    const geometry = new THREE.BufferGeometry();
+    // Create multiple wave layers for depth
+    const waveLayers = [];
     
-    const positions = new Float32Array(particleCount * 3);
-    const colors = new Float32Array(particleCount * 3);
-    const sizes = new Float32Array(particleCount);
-    const phases = new Float32Array(particleCount);
-    const baseY = new Float32Array(particleCount);
-    const initialSizes = new Float32Array(particleCount);
-    const velocityY = new Float32Array(particleCount);
+    // Layer configurations [particleCount, yOffset, zOffset, amplitude, speed, opacity]
+    const layerConfigs = [
+      { count: 35000, yOffset: 0, zOffset: 0, amplitude: 1.0, speed: 1.0, opacity: 1.0 },      // Main wave
+      { count: 25000, yOffset: 2, zOffset: -3, amplitude: 0.7, speed: 0.8, opacity: 0.6 },    // Back wave
+      { count: 20000, yOffset: -1.5, zOffset: 2, amplitude: 0.5, speed: 1.2, opacity: 0.5 },  // Front wave
+      { count: 15000, yOffset: 3.5, zOffset: -5, amplitude: 0.4, speed: 0.6, opacity: 0.35 }, // Far back
+    ];
     
-    const palette = colorPalettes.neutral.map(c => new THREE.Color(c));
+    layerConfigs.forEach((config, layerIndex) => {
+      const geometry = new THREE.BufferGeometry();
+      const { count, yOffset, zOffset, amplitude, speed, opacity } = config;
+      
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+      const sizes = new Float32Array(count);
+      const wavePhases = new Float32Array(count);
+      const ribbonIndex = new Float32Array(count);
+      const particleDepth = new Float32Array(count);
+      
+      const palette = colorPalettes.neutral;
+      
+      // Create ribbon-like wave structures
+      const ribbonCount = 8 + layerIndex * 2;
+      const particlesPerRibbon = Math.floor(count / ribbonCount);
+      
+      for (let ribbon = 0; ribbon < ribbonCount; ribbon++) {
+        const ribbonYBase = (ribbon / ribbonCount - 0.5) * 4 + yOffset;
+        
+        for (let p = 0; p < particlesPerRibbon; p++) {
+          const i = ribbon * particlesPerRibbon + p;
+          if (i >= count) break;
+          
+          const i3 = i * 3;
+          
+          // X position spread across the wave
+          const xProgress = p / particlesPerRibbon;
+          const x = (xProgress - 0.5) * 32;
+          
+          // Add variation to create thickness
+          const ribbonThickness = 0.4 + Math.random() * 0.6;
+          const yVariation = (Math.random() - 0.5) * ribbonThickness;
+          const zVariation = (Math.random() - 0.5) * ribbonThickness * 2;
+          
+          positions[i3] = x;
+          positions[i3 + 1] = ribbonYBase + yVariation;
+          positions[i3 + 2] = zOffset + zVariation + (Math.random() - 0.5) * 3;
+          
+          // Store ribbon data for animation
+          wavePhases[i] = xProgress * Math.PI * 4 + ribbon * 0.5;
+          ribbonIndex[i] = ribbon / ribbonCount;
+          particleDepth[i] = Math.random();
+          
+          // Color based on x position (gradient from blue to purple to red)
+          const colorProgress = xProgress;
+          const colorIdx = Math.min(Math.floor(colorProgress * (palette.colors.length - 1)), palette.colors.length - 2);
+          const colorBlend = (colorProgress * (palette.colors.length - 1)) % 1;
+          
+          const color1 = new THREE.Color(palette.colors[colorIdx]);
+          const color2 = new THREE.Color(palette.colors[colorIdx + 1]);
+          
+          colors[i3] = THREE.MathUtils.lerp(color1.r, color2.r, colorBlend);
+          colors[i3 + 1] = THREE.MathUtils.lerp(color1.g, color2.g, colorBlend);
+          colors[i3 + 2] = THREE.MathUtils.lerp(color1.b, color2.b, colorBlend);
+          
+          // Size variation - smaller particles at edges, larger in center
+          const centerProximity = 1 - Math.abs(xProgress - 0.5) * 2;
+          sizes[i] = (0.04 + Math.random() * 0.08 + centerProximity * 0.04) * (layerIndex === 0 ? 1 : 0.7);
+        }
+      }
+      
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+      
+      geometry.userData = { wavePhases, ribbonIndex, particleDepth, amplitude, speed, yOffset, zOffset, opacity };
+      
+      // Enhanced shader for HD glow effect
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { value: 0 },
+          opacity: { value: opacity },
+        },
+        vertexShader: `
+          attribute float size;
+          varying vec3 vColor;
+          varying float vSize;
+          varying float vDist;
+          
+          void main() {
+            vColor = color;
+            vSize = size;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            vDist = -mvPosition.z;
+            gl_PointSize = size * (450.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          uniform float opacity;
+          varying vec3 vColor;
+          varying float vSize;
+          varying float vDist;
+          
+          void main() {
+            vec2 center = gl_PointCoord - vec2(0.5);
+            float dist = length(center);
+            
+            if (dist > 0.5) discard;
+            
+            // Multi-layer glow for HD effect
+            float innerCore = 1.0 - smoothstep(0.0, 0.08, dist);
+            float midGlow = exp(-dist * 6.0);
+            float outerGlow = exp(-dist * 3.0) * 0.6;
+            float softEdge = exp(-dist * 1.5) * 0.3;
+            
+            float totalGlow = innerCore + midGlow + outerGlow + softEdge;
+            
+            // Brighten colors for bloom effect
+            vec3 brightColor = vColor * 1.4;
+            vec3 coreColor = vec3(1.0, 1.0, 1.0) * innerCore * 0.5;
+            vec3 finalColor = brightColor * (midGlow + outerGlow + softEdge) + coreColor;
+            
+            float alpha = totalGlow * opacity * 0.95;
+            
+            gl_FragColor = vec4(finalColor, alpha);
+          }
+        `,
+        transparent: true,
+        vertexColors: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      
+      const points = new THREE.Points(geometry, material);
+      scene.add(points);
+      waveLayers.push({ points, config });
+    });
     
-    for (let i = 0; i < particleCount; i++) {
+    waveSystemsRef.current = waveLayers;
+    
+    // Scattered ambient particles (bokeh effect)
+    const scatterCount = 2000;
+    const scatterGeo = new THREE.BufferGeometry();
+    const scatterPositions = new Float32Array(scatterCount * 3);
+    const scatterColors = new Float32Array(scatterCount * 3);
+    const scatterSizes = new Float32Array(scatterCount);
+    
+    for (let i = 0; i < scatterCount; i++) {
       const i3 = i * 3;
+      scatterPositions[i3] = (Math.random() - 0.5) * 50;
+      scatterPositions[i3 + 1] = (Math.random() - 0.5) * 30;
+      scatterPositions[i3 + 2] = (Math.random() - 0.5) * 40;
       
-      // Distribute in a wider grid pattern for wave effect
-      positions[i3] = (Math.random() - 0.5) * 30;
-      positions[i3 + 1] = 0;
-      positions[i3 + 2] = (Math.random() - 0.5) * 20;
+      // Random colors from palette
+      const colorChoice = Math.random();
+      let color;
+      if (colorChoice < 0.3) color = new THREE.Color('#00d4ff');
+      else if (colorChoice < 0.5) color = new THREE.Color('#7b2cbf');
+      else if (colorChoice < 0.7) color = new THREE.Color('#e040fb');
+      else if (colorChoice < 0.85) color = new THREE.Color('#ff1744');
+      else color = new THREE.Color('#ff69b4');
       
-      phases[i] = Math.random() * Math.PI * 2;
-      baseY[i] = (Math.random() - 0.5) * 1.5;
-      velocityY[i] = (Math.random() - 0.5) * 0.5;
+      scatterColors[i3] = color.r;
+      scatterColors[i3 + 1] = color.g;
+      scatterColors[i3 + 2] = color.b;
       
-      // Larger particles for more visible plasma effect
-      initialSizes[i] = Math.random() * 0.15 + 0.05;
-      sizes[i] = initialSizes[i];
-      
-      // Initial colors
-      const color = palette[Math.floor(Math.random() * palette.length)];
-      colors[i3] = color.r;
-      colors[i3 + 1] = color.g;
-      colors[i3 + 2] = color.b;
+      // Varied sizes for bokeh
+      scatterSizes[i] = Math.random() * 0.15 + 0.03;
     }
     
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    scatterGeo.setAttribute('position', new THREE.BufferAttribute(scatterPositions, 3));
+    scatterGeo.setAttribute('color', new THREE.BufferAttribute(scatterColors, 3));
+    scatterGeo.setAttribute('size', new THREE.BufferAttribute(scatterSizes, 1));
     
-    // Store extra data
-    geometry.userData = { phases, baseY, initialSizes, velocityY };
-    
-    // Enhanced Shader material for glowing plasma effect
-    const material = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-      },
+    const scatterMat = new THREE.ShaderMaterial({
+      uniforms: {},
       vertexShader: `
         attribute float size;
         varying vec3 vColor;
-        varying float vSize;
         
         void main() {
           vColor = color;
-          vSize = size;
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = size * (400.0 / -mvPosition.z);
+          gl_PointSize = size * (200.0 / -mvPosition.z);
           gl_Position = projectionMatrix * mvPosition;
         }
       `,
       fragmentShader: `
         varying vec3 vColor;
-        varying float vSize;
         
         void main() {
-          vec2 center = gl_PointCoord - vec2(0.5);
-          float dist = length(center);
-          
+          float dist = length(gl_PointCoord - vec2(0.5));
           if (dist > 0.5) discard;
           
-          // Soft glow with bright core
-          float core = 1.0 - smoothstep(0.0, 0.15, dist);
           float glow = exp(-dist * 4.0);
-          float outer = exp(-dist * 2.0) * 0.5;
+          float alpha = glow * 0.5;
           
-          float alpha = core + glow * 0.8 + outer;
-          vec3 finalColor = vColor * (1.0 + core * 2.0 + glow);
-          
-          gl_FragColor = vec4(finalColor, alpha * 0.9);
+          gl_FragColor = vec4(vColor * 1.2, alpha);
         }
       `,
       transparent: true,
@@ -149,123 +286,91 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
       depthWrite: false,
     });
     
-    const particles = new THREE.Points(geometry, material);
-    scene.add(particles);
-    particlesRef.current = particles;
-    
-    // Floating ambient particles (stars)
-    const ambientGeo = new THREE.BufferGeometry();
-    const ambientCount = 600;
-    const ambientPositions = new Float32Array(ambientCount * 3);
-    const ambientColors = new Float32Array(ambientCount * 3);
-    
-    for (let i = 0; i < ambientCount; i++) {
-      const i3 = i * 3;
-      ambientPositions[i3] = (Math.random() - 0.5) * 40;
-      ambientPositions[i3 + 1] = (Math.random() - 0.5) * 25;
-      ambientPositions[i3 + 2] = (Math.random() - 0.5) * 30;
-      
-      // Random colors
-      const hue = Math.random();
-      const color = new THREE.Color().setHSL(hue, 0.8, 0.6);
-      ambientColors[i3] = color.r;
-      ambientColors[i3 + 1] = color.g;
-      ambientColors[i3 + 2] = color.b;
-    }
-    
-    ambientGeo.setAttribute('position', new THREE.BufferAttribute(ambientPositions, 3));
-    ambientGeo.setAttribute('color', new THREE.BufferAttribute(ambientColors, 3));
-    
-    const ambientMat = new THREE.PointsMaterial({
-      size: 0.05,
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.6,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-    
-    const ambientParticles = new THREE.Points(ambientGeo, ambientMat);
-    scene.add(ambientParticles);
+    const scatterParticles = new THREE.Points(scatterGeo, scatterMat);
+    scene.add(scatterParticles);
     
     // Animation loop
     const animate = () => {
-      timeRef.current += 0.016;
+      timeRef.current += 0.012;
       const time = timeRef.current;
       
-      if (particlesRef.current) {
-        const geom = particlesRef.current.geometry;
+      const currentPalette = colorPalettes[currentAiStateRef.current] || colorPalettes.neutral;
+      const audioMult = 1 + (audioLevelRef.current * 2);
+      
+      // Animate each wave layer
+      waveSystemsRef.current.forEach(({ points, config }) => {
+        const geom = points.geometry;
         const posAttr = geom.attributes.position;
         const colorAttr = geom.attributes.color;
         const sizeAttr = geom.attributes.size;
-        const { phases, baseY, initialSizes, velocityY } = geom.userData;
+        const { wavePhases, ribbonIndex, particleDepth, amplitude, speed, yOffset } = geom.userData;
         
-        const currentPalette = colorPalettes[currentAiStateRef.current] || colorPalettes.neutral;
-        const paletteColors = currentPalette.map(c => new THREE.Color(c));
-        const audioMult = 1 + (audioLevelRef.current * 4);
+        const count = posAttr.count;
         
-        for (let i = 0; i < particleCount; i++) {
+        for (let i = 0; i < count; i++) {
           const i3 = i * 3;
           const x = posAttr.array[i3];
-          const z = posAttr.array[i3 + 2];
+          const xProgress = (x / 32) + 0.5;
           
-          // Multiple wave frequencies for organic plasma flow
-          const wave1 = Math.sin(x * 0.3 + time * 0.8 + phases[i]) * 2.5;
-          const wave2 = Math.cos(z * 0.25 + time * 0.6 + phases[i] * 0.5) * 2.0;
-          const wave3 = Math.sin((x + z) * 0.15 + time * 1.2) * 1.5;
-          const wave4 = Math.cos(x * 0.4 - time * 0.4) * Math.sin(z * 0.3 + time * 0.5) * 1.2;
+          // Complex wave function for realistic flow
+          const phase = wavePhases[i];
+          const ribbon = ribbonIndex[i];
+          const depth = particleDepth[i];
           
-          // Mouse influence - creates ripple effect
-          const dx = x - (mouseRef.current.x * 15);
-          const dz = z - (mouseRef.current.y * 10);
-          const dist = Math.sqrt(dx * dx + dz * dz);
-          const mouseInf = Math.max(0, 1 - dist / 6) * 3;
-          const mouseWave = mouseInf * Math.sin(time * 5 + dist * 0.5);
+          // Multiple sine waves combined for organic movement
+          const wave1 = Math.sin(phase + time * speed * 0.8) * 2.0;
+          const wave2 = Math.sin(phase * 0.5 + time * speed * 0.5 + ribbon * Math.PI) * 1.5;
+          const wave3 = Math.cos(phase * 0.3 + time * speed * 0.3) * 1.0;
+          const wave4 = Math.sin(x * 0.2 + time * speed * 0.6) * 0.8;
           
-          // Combined Y position with all effects
-          const y = (wave1 + wave2 + wave3 + wave4) * audioMult * 0.5 + 
-                    baseY[i] + 
-                    mouseWave +
-                    Math.sin(time * 2 + i * 0.01) * velocityY[i];
+          // Mouse influence
+          const dx = x - (mouseRef.current.x * 16);
+          const dz = posAttr.array[i3 + 2] - (mouseRef.current.y * 10);
+          const mouseDist = Math.sqrt(dx * dx + dz * dz);
+          const mouseInf = Math.max(0, 1 - mouseDist / 8) * 3 * Math.sin(time * 4 + mouseDist * 0.3);
           
+          // Combined Y position
+          const y = yOffset + (wave1 + wave2 + wave3 + wave4) * amplitude * audioMult * 0.4 + mouseInf + depth * 0.3;
           posAttr.array[i3 + 1] = y;
           
-          // Dynamic color blending based on position and time
-          const colorPhase = (Math.sin(time * 0.3 + x * 0.08 + z * 0.08 + phases[i]) * 0.5 + 0.5);
-          const idx = Math.floor(colorPhase * (paletteColors.length - 1));
-          const nextIdx = (idx + 1) % paletteColors.length;
-          const blend = (colorPhase * (paletteColors.length - 1)) % 1;
+          // Dynamic colors based on position and state
+          const colorIdx = Math.min(Math.floor(xProgress * (currentPalette.colors.length - 1)), currentPalette.colors.length - 2);
+          const colorBlend = (xProgress * (currentPalette.colors.length - 1)) % 1;
           
-          // Add intensity based on Y height
-          const heightIntensity = 1 + Math.abs(y) * 0.1;
+          const c1 = new THREE.Color(currentPalette.colors[colorIdx]);
+          const c2 = new THREE.Color(currentPalette.colors[colorIdx + 1]);
           
-          colorAttr.array[i3] = THREE.MathUtils.lerp(paletteColors[idx].r, paletteColors[nextIdx].r, blend) * heightIntensity;
-          colorAttr.array[i3 + 1] = THREE.MathUtils.lerp(paletteColors[idx].g, paletteColors[nextIdx].g, blend) * heightIntensity;
-          colorAttr.array[i3 + 2] = THREE.MathUtils.lerp(paletteColors[idx].b, paletteColors[nextIdx].b, blend) * heightIntensity;
+          // Add intensity based on wave height
+          const heightIntensity = 1 + Math.abs(wave1 + wave2) * 0.1;
           
-          // Pulsing sizes based on audio and position
-          const sizePulse = 1 + Math.sin(time * 3 + phases[i]) * 0.3;
-          sizeAttr.array[i] = initialSizes[i] * (sizePulse + audioLevelRef.current * 2 + mouseInf * 0.3);
+          colorAttr.array[i3] = THREE.MathUtils.lerp(c1.r, c2.r, colorBlend) * heightIntensity;
+          colorAttr.array[i3 + 1] = THREE.MathUtils.lerp(c1.g, c2.g, colorBlend) * heightIntensity;
+          colorAttr.array[i3 + 2] = THREE.MathUtils.lerp(c1.b, c2.b, colorBlend) * heightIntensity;
+          
+          // Pulsing sizes
+          const sizePulse = 1 + Math.sin(time * 2 + phase) * 0.2 + audioLevelRef.current * 0.5;
+          sizeAttr.array[i] *= 0.99;
+          sizeAttr.array[i] = Math.max(sizeAttr.array[i], 0.02) * sizePulse;
         }
         
         posAttr.needsUpdate = true;
         colorAttr.needsUpdate = true;
         sizeAttr.needsUpdate = true;
-      }
+      });
       
-      // Gentle camera movement
-      camera.position.x = Math.sin(time * 0.1) * 3;
-      camera.position.y = 8 + Math.sin(time * 0.15) * 1;
-      camera.lookAt(0, 0, 0);
-      
-      // Animate ambient particles
-      const ambientPos = ambientParticles.geometry.attributes.position;
-      for (let i = 0; i < ambientCount; i++) {
+      // Animate scatter particles
+      const scatterPos = scatterParticles.geometry.attributes.position;
+      for (let i = 0; i < scatterCount; i++) {
         const i3 = i * 3;
-        ambientPos.array[i3 + 1] += Math.sin(time * 0.5 + i * 0.1) * 0.003;
-        ambientPos.array[i3] += Math.cos(time * 0.3 + i * 0.05) * 0.002;
+        scatterPos.array[i3 + 1] += Math.sin(time * 0.3 + i * 0.1) * 0.005;
+        scatterPos.array[i3] += Math.cos(time * 0.2 + i * 0.05) * 0.003;
       }
-      ambientPos.needsUpdate = true;
+      scatterPos.needsUpdate = true;
+      
+      // Smooth camera movement
+      camera.position.x = Math.sin(time * 0.08) * 2.5;
+      camera.position.y = 6 + Math.sin(time * 0.1) * 0.8;
+      camera.lookAt(0, 0.5, 0);
       
       renderer.render(scene, camera);
       animationRef.current = requestAnimationFrame(animate);
@@ -284,15 +389,16 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
     
     window.addEventListener('resize', handleResize);
     
-    // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationRef.current);
       renderer.dispose();
-      geometry.dispose();
-      material.dispose();
-      ambientGeo.dispose();
-      ambientMat.dispose();
+      waveLayers.forEach(({ points }) => {
+        points.geometry.dispose();
+        points.material.dispose();
+      });
+      scatterGeo.dispose();
+      scatterMat.dispose();
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
@@ -356,7 +462,7 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
   useEffect(() => () => stopAudio(), [stopAudio]);
   
   return (
-    <div style={{ width: '100%', height: '100vh', position: 'relative', background: '#050510' }}>
+    <div style={{ width: '100%', height: '100vh', position: 'relative', background: '#030308' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
       
       {/* Audio button */}
@@ -390,9 +496,9 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
           position: 'absolute',
           top: 20,
           left: 20,
-          zIndex: 100,
+          zIndex: 1000,
           padding: '8px 16px',
-          background: 'rgba(0, 0, 0, 0.5)',
+          background: 'rgba(0, 0, 0, 0.6)',
           borderRadius: 20,
           color: '#fff',
           fontSize: 12,
