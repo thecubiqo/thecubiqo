@@ -409,9 +409,9 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
       {isListening && (
         <div style={{
           position: 'absolute',
-          bottom: 80,
+          bottom: 140,
           right: 20,
-          zIndex: 100,
+          zIndex: 1000,
           width: 180,
           height: 8,
           background: 'rgba(255,255,255,0.1)',
