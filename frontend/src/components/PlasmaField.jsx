@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -43,7 +43,7 @@ const ParticleWave = ({ mousePosition, audioLevel, aiState, particleCount = 1500
   }), []);
 
   // Create particle geometry
-  const { positions, colors, sizes, phases, baseY } = useMemo(() => {
+  const { geometry, phases, baseY, initialSizes } = useMemo(() => {
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
     const sizes = new Float32Array(particleCount);
@@ -79,7 +79,12 @@ const ParticleWave = ({ mousePosition, audioLevel, aiState, particleCount = 1500
       phases[i] = Math.random() * Math.PI * 2;
     }
     
-    return { positions, colors, sizes, phases, baseY };
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    
+    return { geometry, phases, baseY, initialSizes: sizes.slice() };
   }, [particleCount, colorPalettes]);
 
   // Update particles each frame
@@ -131,7 +136,7 @@ const ParticleWave = ({ mousePosition, audioLevel, aiState, particleCount = 1500
       colorAttr.array[i3 + 2] = THREE.MathUtils.lerp(color1.b, color2.b, blend);
       
       // Pulse sizes with audio
-      sizeAttr.array[i] = sizes[i] * (1 + audioLevel * 2 + mouseInfluence * 0.5);
+      sizeAttr.array[i] = initialSizes[i] * (1 + audioLevel * 2 + mouseInfluence * 0.5);
     }
     
     positionAttr.needsUpdate = true;
@@ -178,28 +183,7 @@ const ParticleWave = ({ mousePosition, audioLevel, aiState, particleCount = 1500
   }, []);
 
   return (
-    <points ref={meshRef} material={shaderMaterial}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={particleCount}
-          array={positions}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-color"
-          count={particleCount}
-          array={colors}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-size"
-          count={particleCount}
-          array={sizes}
-          itemSize={1}
-        />
-      </bufferGeometry>
-    </points>
+    <points ref={meshRef} geometry={geometry} material={shaderMaterial} />
   );
 };
 
@@ -207,18 +191,18 @@ const ParticleWave = ({ mousePosition, audioLevel, aiState, particleCount = 1500
 const AmbientParticles = ({ count = 500 }) => {
   const meshRef = useRef();
   
-  const { positions, sizes } = useMemo(() => {
+  const geometry = useMemo(() => {
     const positions = new Float32Array(count * 3);
-    const sizes = new Float32Array(count);
     
     for (let i = 0; i < count; i++) {
       positions[i * 3] = (Math.random() - 0.5) * 25;
       positions[i * 3 + 1] = (Math.random() - 0.5) * 15;
       positions[i * 3 + 2] = (Math.random() - 0.5) * 20;
-      sizes[i] = Math.random() * 0.05 + 0.01;
     }
     
-    return { positions, sizes };
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    return geom;
   }, [count]);
   
   useFrame((state) => {
@@ -235,21 +219,7 @@ const AmbientParticles = ({ count = 500 }) => {
   });
   
   return (
-    <points ref={meshRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={count}
-          array={positions}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-size"
-          count={count}
-          array={sizes}
-          itemSize={1}
-        />
-      </bufferGeometry>
+    <points ref={meshRef} geometry={geometry}>
       <pointsMaterial
         size={0.03}
         color="#ff69b4"
