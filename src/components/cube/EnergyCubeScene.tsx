@@ -1,15 +1,15 @@
 'use client'
 
 /**
- * EnergyCubeScene - Canvas wrapper for the Energy Cube
+ * EnergyCubeScene - Canvas wrapper for the Plasma Wave Field
  * 
- * ORANGE uses EtherealCube (transparent glass + wispy plasma)
- * Other colors use EnergyCube (rounded cube, voice states)
+ * Features HD plasma waves that morph into a rotating cube
+ * when voice is enabled (listening/speaking states)
  */
 
 import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { NextGenPlasmaCube } from './NextGenPlasmaCube'
+import { PlasmaWaveField } from './PlasmaWaveField'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './EnergyCube'
 
@@ -19,27 +19,18 @@ interface EnergyCubeSceneProps {
   className?: string
 }
 
-function Lights() {
-  return (
-    <>
-      <ambientLight intensity={0.3} />
-      <pointLight position={[5, 5, 5]} intensity={0.5} />
-      <pointLight position={[-5, -5, -5]} intensity={0.3} color="#4488ff" />
-    </>
-  )
-}
-
-function mapIntensity(animationState: AnimationState): number {
+// Map animation state to AI state for color palettes
+function mapAIState(animationState: AnimationState): 'neutral' | 'thinking' | 'speaking' | 'listening' | 'error' {
   switch (animationState) {
     case 'speaking':
-      return 1.0
+      return 'speaking'
     case 'thinking':
-      return 0.7
+      return 'thinking'
     case 'listening':
-      return 0.5
+      return 'listening'
     case 'idle':
     default:
-      return 0.3
+      return 'neutral'
   }
 }
 
@@ -48,17 +39,16 @@ export function EnergyCubeScene({
   animationState = 'idle',
   className = ''
 }: EnergyCubeSceneProps) {
-  const isLandingState = colorName === 'ORANGE'
-  const isTalking = animationState === 'speaking'
-  const isListening = animationState === 'listening'
-  const intensity = mapIntensity(animationState)
+  // Voice is enabled when listening or speaking
+  const isVoiceEnabled = animationState === 'listening' || animationState === 'speaking'
+  const aiState = mapAIState(animationState)
   
   return (
     <div className={`w-full h-full ${className}`}>
       <Canvas
         camera={{ 
-          position: [4, 3.5, 4], // Isometric-style elevated angle
-          fov: 35,
+          position: [0, 0, 5], // Front view for waves
+          fov: 50,
           near: 0.1,
           far: 1000
         }}
@@ -70,12 +60,14 @@ export function EnergyCubeScene({
         dpr={[1, 2]}
         style={{ background: 'transparent' }}
       >
-        <Lights />
+        <ambientLight intensity={0.2} />
+        <pointLight position={[5, 5, 5]} intensity={0.3} color="#00ffff" />
+        <pointLight position={[-5, -5, -5]} intensity={0.2} color="#ff00ff" />
         
         <Suspense fallback={null}>
-          <NextGenPlasmaCube
-            isTalking={isTalking}
-            isListening={isListening}
+          <PlasmaWaveField
+            isEnabled={isVoiceEnabled}
+            aiState={aiState}
           />
         </Suspense>
       </Canvas>
