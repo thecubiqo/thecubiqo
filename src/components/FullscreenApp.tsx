@@ -268,9 +268,6 @@ export function FullscreenApp() {
 
   // Voice button click handler - Toggle ON/OFF for seamless conversation
   const handleVoiceClick = useCallback(async () => {
-    // Don't allow voice input if chat isn't initialized
-    if (!chatInitialized) return
-
     // CRITICAL: Unlock audio on user gesture (browser requires this)
     await unlockAudio()
 
@@ -279,7 +276,9 @@ export function FullscreenApp() {
       setVoiceEnabled(true)
       setAppState('listening')
       setAnimationState('listening')
-      startListening()
+      if (chatInitialized) {
+        startListening()
+      }
     } else {
       // Turn OFF - Stop everything and go to idle
       setVoiceEnabled(false)
