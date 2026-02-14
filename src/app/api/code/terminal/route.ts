@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { spawn } from 'child_process'
+import { spawn, ChildProcess } from 'child_process'
 import { join } from 'path'
 
 interface TerminalRequest {
@@ -34,7 +34,7 @@ interface TerminalResponse {
 const WORKSPACE_BASE = process.env.CODE_WORKSPACE_BASE || '/tmp/cubiqo-workspaces'
 
 // Store background processes
-const backgroundProcesses = new Map<string, { process: any; startTime: number }>()
+const backgroundProcesses = new Map<string, { process: ChildProcess; startTime: number }>()
 
 // Get user workspace
 function getUserWorkspace(sessionId: string): string {

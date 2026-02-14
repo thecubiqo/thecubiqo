@@ -129,8 +129,9 @@ export async function GET(request: NextRequest) {
         }
 
         // Calculate similarity scores
-        const results = memories
-          .map((memory: any) => {
+        type MemoryWithEmbedding = { id: string; agent_id: string; content: string; metadata: unknown; created_at: string; embedding: number[] };
+        const results = (memories as MemoryWithEmbedding[])
+          .map((memory) => {
             const similarity = cosineSimilarity(queryEmbedding, memory.embedding)
             return {
               id: memory.id,
