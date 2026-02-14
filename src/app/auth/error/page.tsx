@@ -148,7 +148,7 @@ export default function AuthErrorPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white/60">Loading...</div>
+        <div className="text-white/60" aria-live="polite">Loading...</div>
       </div>
     }>
       <AuthErrorContent />
