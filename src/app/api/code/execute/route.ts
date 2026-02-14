@@ -24,6 +24,13 @@ interface ExecuteResponse {
   error?: string;
 }
 
+interface ExecutionError {
+  stdout?: string;
+  stderr?: string;
+  message: string;
+  code?: number;
+}
+
 // Security: Resource limits
 const MAX_EXECUTION_TIME = 30000; // 30 seconds
 const MAX_OUTPUT_SIZE = 10000; // characters
@@ -115,13 +122,14 @@ async function executePython(
       exitCode: 0,
       executionTime: 0,
     };
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ExecutionError;
     return {
-      stdout: error.stdout?.trim().slice(0, MAX_OUTPUT_SIZE) || '',
-      stderr: error.stderr?.trim().slice(0, MAX_OUTPUT_SIZE) || error.message,
-      exitCode: error.code || 1,
+      stdout: err.stdout?.trim().slice(0, MAX_OUTPUT_SIZE) || '',
+      stderr: err.stderr?.trim().slice(0, MAX_OUTPUT_SIZE) || err.message,
+      exitCode: err.code || 1,
       executionTime: 0,
-      error: error.message,
+      error: err.message,
     };
   } finally {
     await unlink(filename).catch(() => {});
@@ -152,13 +160,14 @@ async function executeJavaScript(
       exitCode: 0,
       executionTime: 0,
     };
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ExecutionError;
     return {
-      stdout: error.stdout?.trim().slice(0, MAX_OUTPUT_SIZE) || '',
-      stderr: error.stderr?.trim().slice(0, MAX_OUTPUT_SIZE) || error.message,
-      exitCode: error.code || 1,
+      stdout: err.stdout?.trim().slice(0, MAX_OUTPUT_SIZE) || '',
+      stderr: err.stderr?.trim().slice(0, MAX_OUTPUT_SIZE) || err.message,
+      exitCode: err.code || 1,
       executionTime: 0,
-      error: error.message,
+      error: err.message,
     };
   } finally {
     await unlink(filename).catch(() => {});
@@ -196,13 +205,14 @@ async function executeTypeScript(
       exitCode: 0,
       executionTime: 0,
     };
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ExecutionError;
     return {
-      stdout: error.stdout?.trim().slice(0, MAX_OUTPUT_SIZE) || '',
-      stderr: error.stderr?.trim().slice(0, MAX_OUTPUT_SIZE) || error.message,
-      exitCode: error.code || 1,
+      stdout: err.stdout?.trim().slice(0, MAX_OUTPUT_SIZE) || '',
+      stderr: err.stderr?.trim().slice(0, MAX_OUTPUT_SIZE) || err.message,
+      exitCode: err.code || 1,
       executionTime: 0,
-      error: error.message,
+      error: err.message,
     };
   } finally {
     await unlink(filename).catch(() => {});
@@ -234,13 +244,14 @@ async function executeBash(
       exitCode: 0,
       executionTime: 0,
     };
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ExecutionError;
     return {
-      stdout: error.stdout?.trim().slice(0, MAX_OUTPUT_SIZE) || '',
-      stderr: error.stderr?.trim().slice(0, MAX_OUTPUT_SIZE) || error.message,
-      exitCode: error.code || 1,
+      stdout: err.stdout?.trim().slice(0, MAX_OUTPUT_SIZE) || '',
+      stderr: err.stderr?.trim().slice(0, MAX_OUTPUT_SIZE) || err.message,
+      exitCode: err.code || 1,
       executionTime: 0,
-      error: error.message,
+      error: err.message,
     };
   } finally {
     await unlink(filename).catch(() => {});

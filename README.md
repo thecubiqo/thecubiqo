@@ -40,10 +40,42 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 🔧 Configuration
 
-### BYO Mode (Recommended)
-No setup needed! Click "Settings" → "Try BYO Mode" and enter your own API keys.
+### Supabase Setup (Required)
 
-### Hosted Mode
+CubiQo uses Supabase for authentication and data storage. Follow these steps:
+
+1. **Create a Supabase Project**
+   - Go to [supabase.com](https://supabase.com) and create a free account
+   - Create a new project
+
+2. **Get Your API Keys**
+   - Navigate to Project Settings → API
+   - Copy your `Project URL` and `anon` key
+   - Copy your `service_role` key (keep this secret!)
+
+3. **Set Up Environment Variables**
+   - Edit `.env.local` with your Supabase credentials:
+
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   ```
+
+4. **Run Database Migrations**
+   - Install Supabase CLI: `npm install -g supabase`
+   - Link your project: `supabase link --project-ref your-project-ref`
+   - Run migrations: `supabase db push`
+
+   Or manually run the SQL files in `supabase/migrations/` in order:
+   - `20251124000001_initial_schema.sql`
+   - `20251126000001_fix_color_constraint.sql`
+   - `20251127000001_ensure_profile_function.sql`
+
+### BYO Mode (Recommended for AI)
+No AI API setup needed! Click "Settings" → "Try BYO Mode" and enter your own API keys.
+
+### Hosted Mode (Optional)
 If you want to provide API keys for users, edit `.env.local`:
 
 ```env
@@ -55,6 +87,8 @@ ELEVENLABS_API_KEY=your_key_here
 ## 🏗️ Tech Stack
 
 - **Framework:** Next.js 14 (App Router)
+- **Database:** Supabase (PostgreSQL)
+- **Authentication:** Supabase Auth (Magic Links)
 - **3D Graphics:** Three.js / React Three Fiber
 - **AI:** OpenRouter-compatible APIs (supports open models)
 - **Voice:** ElevenLabs TTS
@@ -89,6 +123,14 @@ Open source under MIT License. See `LICENSE` file for details.
 - [ ] Full open model integration (Llama 3, Mixtral)
 - [ ] Self-hosted deployment guides
 - [ ] Mobile apps (iOS/Android)
+
+## 📚 Documentation
+
+- **[BRANCHES.md](./BRANCHES.md)** - Complete guide to branch structure and deployment
+- **[BRANCHES_QUICK_REF.md](./BRANCHES_QUICK_REF.md)** - Quick reference for branches
+- **[AUTH_TROUBLESHOOTING.md](./AUTH_TROUBLESHOOTING.md)** - Authentication troubleshooting
+- **[VALIDATION_REPORT.md](./VALIDATION_REPORT.md)** - Environment validation report
+- **[AUTH_FIX_SUMMARY.md](./AUTH_FIX_SUMMARY.md)** - Auth bug fix documentation
 
 ## 📧 Contact
 

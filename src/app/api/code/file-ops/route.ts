@@ -10,7 +10,7 @@ interface FileOpsRequest {
 
 interface FileOpsResponse {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
 }
 
