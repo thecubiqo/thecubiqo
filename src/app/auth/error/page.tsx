@@ -6,18 +6,13 @@
  */
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useEffect, useState, Suspense } from 'react'
+import { Suspense } from 'react'
 
 function AuthErrorContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [mounted, setMounted] = useState(false)
   
   const error = searchParams.get('error') || 'unknown_error'
-  
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const getErrorMessage = (errorCode: string) => {
     switch (errorCode) {
@@ -52,10 +47,6 @@ function AuthErrorContent() {
 
   const handleRetry = () => {
     router.push('/')
-  }
-
-  if (!mounted) {
-    return null
   }
 
   return (
