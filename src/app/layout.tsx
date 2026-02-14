@@ -4,12 +4,6 @@ import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistratio
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-// Using system fonts as fallback to avoid Google Fonts network dependency
-const fontVariables = {
-  sans: "--font-geist-sans",
-  mono: "--font-geist-mono",
-};
-
 // SEO Metadata
 export const metadata: Metadata = {
   title: "CubiQo | Voice-First Private AI Assistant & Digital Secretary",
@@ -189,10 +183,9 @@ export default function RootLayout({
       <body
         className="antialiased"
         style={{
-          // Using CSS variables for font customization
-          ['--font-geist-sans' as string]: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-          ['--font-geist-mono' as string]: '"SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace',
-        }}
+          '--font-geist-sans': 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+          '--font-geist-mono': '"SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace',
+        } as React.CSSProperties}
       >
         {children}
         <ServiceWorkerRegistration />
