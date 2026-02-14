@@ -124,6 +124,14 @@ Open source under MIT License. See `LICENSE` file for details.
 - [ ] Self-hosted deployment guides
 - [ ] Mobile apps (iOS/Android)
 
+## 📚 Documentation
+
+- **[BRANCHES.md](./BRANCHES.md)** - Complete guide to branch structure and deployment
+- **[BRANCHES_QUICK_REF.md](./BRANCHES_QUICK_REF.md)** - Quick reference for branches
+- **[AUTH_TROUBLESHOOTING.md](./AUTH_TROUBLESHOOTING.md)** - Authentication troubleshooting
+- **[VALIDATION_REPORT.md](./VALIDATION_REPORT.md)** - Environment validation report
+- **[AUTH_FIX_SUMMARY.md](./AUTH_FIX_SUMMARY.md)** - Auth bug fix documentation
+
 ## 📧 Contact
 
 - Website: [cubiqo.ai](https://cubiqo.ai)
