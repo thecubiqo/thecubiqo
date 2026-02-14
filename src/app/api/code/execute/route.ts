@@ -24,6 +24,13 @@ interface ExecuteResponse {
   error?: string;
 }
 
+interface ExecutionError {
+  stdout?: string;
+  stderr?: string;
+  message: string;
+  code?: number;
+}
+
 // Security: Resource limits
 const MAX_EXECUTION_TIME = 30000; // 30 seconds
 const MAX_OUTPUT_SIZE = 10000; // characters
@@ -116,7 +123,7 @@ async function executePython(
       executionTime: 0,
     };
   } catch (error) {
-    const err = error as { stdout?: string; stderr?: string; message: string; code?: number };
+    const err = error as ExecutionError;
     return {
       stdout: err.stdout?.trim().slice(0, MAX_OUTPUT_SIZE) || '',
       stderr: err.stderr?.trim().slice(0, MAX_OUTPUT_SIZE) || err.message,
@@ -154,7 +161,7 @@ async function executeJavaScript(
       executionTime: 0,
     };
   } catch (error) {
-    const err = error as { stdout?: string; stderr?: string; message: string; code?: number };
+    const err = error as ExecutionError;
     return {
       stdout: err.stdout?.trim().slice(0, MAX_OUTPUT_SIZE) || '',
       stderr: err.stderr?.trim().slice(0, MAX_OUTPUT_SIZE) || err.message,
@@ -199,7 +206,7 @@ async function executeTypeScript(
       executionTime: 0,
     };
   } catch (error) {
-    const err = error as { stdout?: string; stderr?: string; message: string; code?: number };
+    const err = error as ExecutionError;
     return {
       stdout: err.stdout?.trim().slice(0, MAX_OUTPUT_SIZE) || '',
       stderr: err.stderr?.trim().slice(0, MAX_OUTPUT_SIZE) || err.message,
@@ -238,7 +245,7 @@ async function executeBash(
       executionTime: 0,
     };
   } catch (error) {
-    const err = error as { stdout?: string; stderr?: string; message: string; code?: number };
+    const err = error as ExecutionError;
     return {
       stdout: err.stdout?.trim().slice(0, MAX_OUTPUT_SIZE) || '',
       stderr: err.stderr?.trim().slice(0, MAX_OUTPUT_SIZE) || err.message,
