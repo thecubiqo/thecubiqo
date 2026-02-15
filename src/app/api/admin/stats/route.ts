@@ -1,22 +1,42 @@
 import { NextResponse } from 'next/server';
 import { listAgents } from '@/lib/engine/agent';
+<<<<<<< Updated upstream
 import { getCurrentUser } from '@/lib/auth/actions';
+=======
+import { createClient } from '@/lib/supabase/server';
+>>>>>>> Stashed changes
 import '@/lib/engine/init';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+<<<<<<< Updated upstream
     // Check authentication
     const user = await getCurrentUser();
     
     if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin access required' },
+=======
+    // Authentication check
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+>>>>>>> Stashed changes
         { status: 401 }
       );
     }
     
+<<<<<<< Updated upstream
+=======
+    // TODO: Add admin role check - for now, any authenticated user can view stats
+    // In production, add: if (user.role !== 'admin') return 403
+    
+>>>>>>> Stashed changes
     const agents = listAgents();
     
     // Calculate stats
