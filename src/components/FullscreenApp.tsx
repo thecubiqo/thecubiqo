@@ -647,6 +647,17 @@ export function FullscreenApp() {
                   >
                     <span className={`text-[14px] ${isDark ? 'text-white/50' : 'text-gray-500'}`}>Chat Mode</span>
                   </a>
+                  <a
+                    href="/journal"
+                    className={`flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${
+                      isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className={`text-[14px] ${isDark ? 'text-white/50' : 'text-gray-500'}`}>Daily Journal</span>
+                    <span className={`text-[10px] px-2.5 py-1 rounded-full ${
+                      isDark ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-100 text-orange-600'
+                    }`}>new</span>
+                  </a>
                 </div>
               </div>
 
