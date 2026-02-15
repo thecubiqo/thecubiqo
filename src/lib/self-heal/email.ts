@@ -5,7 +5,11 @@
 
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend only if API key is available
+let resend: Resend | null = null;
+if (process.env.RESEND_API_KEY) {
+  resend = new Resend(process.env.RESEND_API_KEY);
+}
 
 export interface EmailReport {
   timestamp: string;
@@ -206,7 +210,7 @@ export async function sendSelfHealReport(
   recipient: string = 'aditya@cubiqo.ai'
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    if (!process.env.RESEND_API_KEY) {
+    if (!resend || !process.env.RESEND_API_KEY) {
       console.warn('RESEND_API_KEY not configured, skipping email');
       return {
         success: false,
