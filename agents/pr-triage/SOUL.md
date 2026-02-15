@@ -15,12 +15,12 @@ For every Draft PR the agent inspects:
 5. **AUTO_CONVERT_OK marker** — the PR body must contain the string `AUTO_CONVERT_OK`.
 
 ## Output
-- Posts a summary comment on each Draft PR listing pass/fail per check.
+- Posts a summary comment on each Draft PR summarizing pass/fail per check.
 - Prints a final report to stdout listing which PRs would be converted and why.
 
 ## Rules
 - NEVER actually convert a Draft PR — this is dry-run mode.
-- ALWAYS post a comment summarising the triage result on each PR.
+- ALWAYS post a comment summarizing the triage result on each PR.
 - Use the GitHub API via `@octokit/rest`.
 - Requires a `GITHUB_TOKEN` environment variable with `repo` scope.
 

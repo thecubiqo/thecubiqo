@@ -8,7 +8,7 @@
  *   4. At least one reviewer assigned
  *   5. PR description contains "AUTO_CONVERT_OK"
  *
- * Posts a comment on each PR summarising pass/fail.
+ * Posts a comment on each PR summarizing pass/fail.
  * Does NOT convert any PRs (dry-run only).
  */
 
