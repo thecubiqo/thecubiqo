@@ -41,7 +41,6 @@ export default function FoundersDashboard() {
     const [isAuthed, setIsAuthed] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
-    const [searchTerm, setSearchTerm] = useState('')
 
     const supabase = createClient()
 
@@ -297,42 +296,6 @@ export default function FoundersDashboard() {
         }
 
         setSaving(null)
-    }
-
-    const handleActionConfirm = async (actionId: string, action: Action) => {
-        console.log('[Dashboard] Confirming action:', action)
-
-        try {
-            if (action.type === 'system_command') {
-                // Implementation for system command
-                const cmd = (action as any).command
-                await fetch('/api/code/execute', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code: cmd, language: 'bash' })
-                })
-            } else if (action.type === 'generic' && (action as any).actionLabel === 'Deploy to Vercel') {
-                // Quick Vercel deploy hook
-                const projectId = (action as any).details?.projectId
-                await fetch('/api/admin/connections/vercel/deploy', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ projectId })
-                })
-            } else if (action.type === 'generic' && (action as any).actionLabel === 'Update Experiment') {
-                // Experiment update hook
-                const { experimentId, metadata } = (action as any).details
-                await fetch('/api/admin/experiments/ai', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ experimentId, command: 'force_update', metadata })
-                })
-            }
-            setSuccessMessage(`Action ${action.title} executed successfully.`)
-            setTimeout(() => setSuccessMessage(null), 3000)
-        } catch (e) {
-            setErrorMessage(`Failed to execute action: ${e}`)
-        }
     }
 
     const sendChat = async () => {

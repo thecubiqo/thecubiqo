@@ -74,7 +74,6 @@ export function ConnectionsPanel() {
     const params = new URLSearchParams(window.location.search)
     const success = params.get('success')
     const error = params.get('error')
-    const projects = params.get('projects')
 
     if (success === 'vercel_connected') {
       // Update connection status

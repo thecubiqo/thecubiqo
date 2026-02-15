@@ -247,7 +247,7 @@ async function useCloudProvider(options: RouterOptions, inputTokens: number): Pr
   const { systemPrompt, messages, byoClaudeKey, byoOpenaiKey, preferredCloud = 'minimax' } = options
 
   // 1. Try MiniMax (PRIMARY CLOUD)
-  if (preferredCloud === 'minimax') {
+  if (preferredCloud === 'minimax' && typeof callMiniMax === 'function') {
     try {
       console.log('[Router] Trying MiniMax')
       const content = await callMiniMax(systemPrompt, messages)
@@ -277,21 +277,26 @@ async function useCloudProvider(options: RouterOptions, inputTokens: number): Pr
   }
 
   // 3. Try Claude
-  try {
-    console.log('[Router] Trying Claude')
-    const content = await callClaude(systemPrompt, messages, byoClaudeKey)
-    const outputTokens = estimateTokens(content)
-    return {
-      content,
-      provider: 'claude',
-      cost: estimateClaudeCost(inputTokens, outputTokens),
-      cached: false
+  if (typeof callClaude === 'function') {
+    try {
+      console.log('[Router] Trying Claude')
+      const content = await callClaude(systemPrompt, messages, byoClaudeKey)
+      const outputTokens = estimateTokens(content)
+      return {
+        content,
+        provider: 'claude',
+        cost: estimateClaudeCost(inputTokens, outputTokens),
+        cached: false
+      }
+    } catch (claudeError) {
+      console.warn('[Router] Claude failed, trying OpenAI:', claudeError)
     }
-  } catch (claudeError) {
-    console.warn('[Router] Claude failed, trying OpenAI:', claudeError)
   }
 
   // 4. Final fallback: OpenAI
+  if (typeof callOpenAI !== 'function') {
+    throw new Error('OpenAI provider is not available')
+  }
   try {
     console.log('[Router] Trying OpenAI (final fallback)')
     const content = await callOpenAI(systemPrompt, messages, byoOpenaiKey)

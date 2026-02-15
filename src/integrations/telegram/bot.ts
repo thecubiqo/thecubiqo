@@ -1,9 +1,7 @@
 import { Bot, webhookCallback } from 'grammy'
 import { createClient } from '@/lib/supabase/client'
-import { callMiniMax } from '@/lib/ai/minimax'
 import { callOpenClaw } from '@/lib/ai/openclaw'
 import { SYSTEM_PROMPT, buildMessages } from '@/lib/ai'
-import { v4 as uuidv4 } from 'uuid'
 
 // Singleton bot instance
 let bot: Bot | null = null

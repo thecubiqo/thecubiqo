@@ -13,7 +13,6 @@ export function MultivaCubiKey({ isDark }: MultivaCubiKeyProps) {
     const displayKey = 'sk-or-v1-57...ec518'
     // NOTE: Full key should be retrieved from a secure API endpoint for authorized users
     // This is just a display component - actual key should come from server
-    const fullKey = displayKey // Only display masked version
 
     const handleCopy = () => {
         // In production, this would call an API to get the real key for authorized users

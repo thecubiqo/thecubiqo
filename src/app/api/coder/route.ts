@@ -5,8 +5,6 @@ import {
     CODING_AGENT_PROMPT,
     parseCodingMarkers,
     buildMessages,
-    parseResponse,
-    MINIMAX_CONFIG,
     type ChatRequest,
     type AIResponse
 } from '@/lib/ai'

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { FounderPortal } from './FounderPortal';
 
 export function PremiumFoundersBadge() {
     const { user } = useAuth();

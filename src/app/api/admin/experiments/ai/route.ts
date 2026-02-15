@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { SupabaseClient } from '@supabase/supabase-js'
+
 export async function POST(req: NextRequest) {
     try {
         const { command, experimentId } = await req.json()
@@ -23,7 +23,6 @@ export async function POST(req: NextRequest) {
         // For now, we'll use a rule-based parser that handles typical "design" requests.
 
         const metadata = (experiment.metadata as any) || {}
-        const assets = metadata.assets || {}
         let responseMessage = ""
 
         const cmd = command.toLowerCase()

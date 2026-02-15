@@ -6,8 +6,6 @@
  * during the user's activity.
  */
 
-import { useState } from 'react'
-
 interface DuoModeToggleProps {
     isEnabled: boolean
     onToggle: (enabled: boolean) => void
