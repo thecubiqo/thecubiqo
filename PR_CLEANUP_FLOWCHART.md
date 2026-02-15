@@ -138,7 +138,7 @@ PRs are grouped into 5 priorities:
 | P5       | 13  | 30 min    | 61 min     |
 | **Total**| **27** | **~61 min** | **~1 hour** |
 
-**Quick cleanup (P1+P2 only): ~10 minutes**
+**Quick cleanup (P1+P2+P3): ~11 minutes**
 
 ## Key Decision Points
 

@@ -165,7 +165,7 @@ ${categories.likely_superseded.map(pr => `### PR #${pr.number}: ${pr.title}
 ${categories.documentation_only.length > 0 || categories.clarification_needed.length > 0 ?
   [...categories.documentation_only, ...categories.clarification_needed].map(pr => `### PR #${pr.number}: ${pr.title}
 
-- **Type:** ${pr.title.includes('Clarify') ? 'Clarification' : 'Documentation'}
+- **Type:** ${pr.title.toLowerCase().includes('clarify') ? 'Clarification' : 'Documentation'}
 - **Action:** Review content, merge if valuable, otherwise close
 - **Note:** Documentation PRs should be quick to review and merge or close
 

@@ -129,8 +129,8 @@ Use this checklist to track your progress. Check off each PR as you process it.
 
 **Track Your Progress:**
 - Count checked boxes: ___ / 27
-- Estimated time: ~30-45 minutes for full cleanup
-- Recommended: Start with Priority 1 & 2 (5 PRs, ~10 minutes)
+- Estimated time: ~60 minutes for full cleanup
+- Recommended: Start with Priority 1 & 2 (5 PRs, ~9 minutes)
 
 **Need Help?**
 - See `PR_CLEANUP_GUIDE.md` for detailed instructions
