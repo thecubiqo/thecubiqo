@@ -50,6 +50,41 @@ export function useAuth() {
     if (process.env.NODE_ENV === 'development') {
       console.log('[useAuth] Setting up auth state listener')
     }
+    
+    // First, check for existing session immediately (critical for magic-link redirects)
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (session?.user) {
+        setState(prev => ({
+          ...prev,
+          user: session.user,
+          isLoading: false,
+          isAuthenticated: true,
+          isGuest: false,
+        }))
+
+        // Fetch profile in background
+        try {
+          const profile = await fetchProfile(session.user.id)
+          if (profile) {
+            setState(prev => ({ ...prev, profile }))
+          }
+        } catch {
+          // Profile fetch may fail for new users - that's ok
+        }
+      } else {
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          isAuthenticated: false,
+          isGuest: true,
+        }))
+      }
+    }
+
+    checkSession()
+    
     // Set up auth state listener - this handles all auth events including initial load
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
