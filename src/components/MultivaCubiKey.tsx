@@ -9,12 +9,15 @@ interface MultivaCubiKeyProps {
 
 export function MultivaCubiKey({ isDark }: MultivaCubiKeyProps) {
     const [copied, setCopied] = useState(false)
-    // Masked for security - never expose full key in client bundle if not needed
+    // Masked for security - never expose full key in client bundle
     const displayKey = 'sk-or-v1-57...ec518'
-    const fullKey = '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'
+    // NOTE: Full key should be retrieved from a secure API endpoint for authorized users
+    // This is just a display component - actual key should come from server
+    const fullKey = displayKey // Only display masked version
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(fullKey)
+        // In production, this would call an API to get the real key for authorized users
+        navigator.clipboard.writeText(displayKey)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
     }
