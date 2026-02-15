@@ -41,7 +41,7 @@ This guide explains the two landing cube designs available in CubiQo and how to 
 
 **Preview:** `/landing-preview`
 
-![Tech Wireframe Cube](https://github.com/user-attachments/assets/d970cc78-efaa-4dd5-b705-f9c0968d6867)
+![Tech Wireframe Cube](https://github.com/user-attachments/assets/a7bc20d2-b793-4339-b0d5-5739233ae9db)
 
 ## 🔧 Switching Between Designs
 

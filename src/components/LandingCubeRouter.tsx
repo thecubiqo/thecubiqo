@@ -9,7 +9,7 @@
 
 import { LandingCube } from './LandingCube'
 import { TechLandingCube } from './TechLandingCube'
-import { landingConfig, type LandingCubeVariant } from '@/config/landing'
+import { getLandingVariant, type LandingCubeVariant } from '@/config/landing'
 import { useSearchParams } from 'next/navigation'
 
 interface LandingCubeRouterProps {
@@ -25,10 +25,8 @@ export function LandingCubeRouter({
 }: LandingCubeRouterProps) {
   const searchParams = useSearchParams()
   
-  // Determine which variant to use
-  const activeVariant = variant || 
-    (landingConfig.allowUrlOverride && searchParams?.get('landing') as LandingCubeVariant) ||
-    landingConfig.defaultVariant
+  // Determine which variant to use (with proper validation)
+  const activeVariant = variant || getLandingVariant(searchParams || undefined)
   
   // Render the appropriate landing cube
   if (activeVariant === 'tech-wireframe') {
