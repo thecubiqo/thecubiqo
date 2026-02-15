@@ -21,7 +21,7 @@ function getBYOHeaders(): Record<string, string> {
     if (!stored) return {}
 
     const config: BYOConfig = JSON.parse(stored)
-    console.log('[BYO Debug] parsed config:', { enabled: config.enabled, hasClaudeKey: !!config.claudeApiKey, hasOpenaiKey: !!config.openaiApiKey })
+    console.log('[BYO Debug] parsed config:', { enabled: config.enabled, hasClaudeKey: !!config.claudeApiKey })
     if (!config.enabled) {
       console.log('[BYO Debug] BYO not enabled, returning empty headers')
       return {}
@@ -31,10 +31,6 @@ function getBYOHeaders(): Record<string, string> {
     if (config.claudeApiKey) {
       headers['x-byo-claude-key'] = config.claudeApiKey
       console.log('[BYO Debug] Adding Claude key header')
-    }
-    if (config.openaiApiKey) {
-      headers['x-byo-openai-key'] = config.openaiApiKey
-      console.log('[BYO Debug] Adding OpenAI key header')
     }
     console.log('[BYO Debug] Final headers count:', Object.keys(headers).length)
     return headers
@@ -56,7 +52,7 @@ interface ChatState {
   error: string | null
   conversationHistory: ConversationEntry[]
   conversationId: string | null
-  lastProvider: 'claude' | 'openai' | null
+  lastProvider: 'claude' | 'minimax' | 'mixtral' | 'llama' | null
   isInitialized: boolean
 }
 
