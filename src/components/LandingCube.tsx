@@ -17,7 +17,7 @@ interface LandingCubeProps {
 
 export function LandingCube({ onComplete }: LandingCubeProps) {
   return (
-    <div 
+    <div
       className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center cursor-pointer"
       onClick={onComplete}
       data-testid="landing-cube-screen"
@@ -25,10 +25,10 @@ export function LandingCube({ onComplete }: LandingCubeProps) {
       {/* Deep space background */}
       <div className="absolute inset-0 bg-gradient-to-b from-purple-950/20 via-black to-black" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(100,50,180,0.1)_0%,_transparent_70%)]" />
-      
+
       {/* 3D Canvas with Plasma Waves */}
       <div className="w-full h-[70vh] max-w-5xl relative z-10">
-        <Canvas 
+        <Canvas
           camera={{ position: [0, 0, 5], fov: 50 }}
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
           dpr={[1, 2]}
@@ -36,24 +36,26 @@ export function LandingCube({ onComplete }: LandingCubeProps) {
           <ambientLight intensity={0.2} />
           <pointLight position={[5, 5, 5]} intensity={0.3} color="#00ffff" />
           <pointLight position={[-5, -5, -5]} intensity={0.2} color="#ff00ff" />
-          
+
           <PlasmaWaveField isEnabled={false} aiState="neutral" />
         </Canvas>
       </div>
-      
-      {/* Welcome text */}
-      <div className="text-center mt-2 relative z-10">
-        <h1 className="text-white/90 text-4xl font-extralight tracking-[0.4em] mb-3">
+
+      {/* Welcome text - Ported from LandingOverlay */}
+      <div className="text-center mt-2 relative z-10 pointer-events-none">
+        <h1 className="text-8xl md:text-[10rem] font-thin tracking-[0.4em] mb-8 drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] text-white/90">
           CUBIQO
         </h1>
-        <p className="text-cyan-300/60 text-base font-light tracking-wider mb-10">
+        <p className="text-2xl md:text-3xl font-light tracking-[0.2em] mb-16 opacity-80 text-cyan-300/60">
           One Mind. Many Dimensions.
         </p>
-        <p className="text-white/25 text-xs tracking-wide uppercase">
-          Tap anywhere to begin
-        </p>
+        <div className="animate-pulse">
+          <p className="text-xl tracking-[0.1em] font-light text-cyan-400 drop-shadow-[0_0_10px_rgba(0,255,255,0.5)]">
+            YOU MAY TAP NOW
+          </p>
+        </div>
       </div>
-      
+
       {/* Ambient floating particles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {[...Array(25)].map((_, i) => (
@@ -63,7 +65,7 @@ export function LandingCube({ onComplete }: LandingCubeProps) {
             style={{
               width: `${2 + Math.random() * 3}px`,
               height: `${2 + Math.random() * 3}px`,
-              background: i % 3 === 0 
+              background: i % 3 === 0
                 ? `rgba(255, 150, 80, ${0.3 + Math.random() * 0.4})`
                 : `rgba(${100 + Math.random() * 100}, ${150 + Math.random() * 100}, 255, ${0.3 + Math.random() * 0.4})`,
               left: `${Math.random() * 100}%`,
@@ -75,7 +77,7 @@ export function LandingCube({ onComplete }: LandingCubeProps) {
           />
         ))}
       </div>
-      
+
       <style jsx>{`
         @keyframes float-particle {
           0%, 100% {

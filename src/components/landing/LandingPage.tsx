@@ -7,11 +7,15 @@ import { Suspense } from 'react'
 
 interface LandingPageProps {
     showTopRightCTA: boolean
+    onComplete?: () => void
 }
 
-export function LandingPage({ showTopRightCTA }: LandingPageProps) {
+export function LandingPage({ showTopRightCTA, onComplete }: LandingPageProps) {
     return (
-        <div className="relative w-full h-screen bg-black overflow-hidden">
+        <div
+            className="relative w-full h-screen bg-black overflow-hidden cursor-pointer"
+            onClick={onComplete}
+        >
             {/* 3D Scene */}
             <div className="absolute inset-0 z-0">
                 <Canvas

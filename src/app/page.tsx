@@ -1,5 +1,5 @@
 import { checkFeatureFlag } from '@/lib/feature-flags/server'
-import { LandingPage } from '@/components/landing/LandingPage'
+import { FullscreenApp } from '@/components/FullscreenApp'
 
 // Force dynamic rendering to ensure auth/flag state updates are reflected immediately
 export const dynamic = 'force-dynamic';
@@ -10,5 +10,5 @@ export default async function Home() {
     flag_name: 'ui.topRightCTA.v1'
   });
 
-  return <LandingPage showTopRightCTA={showTopRightCTA} />
+  return <FullscreenApp showTopRightCTA={showTopRightCTA} />
 }
