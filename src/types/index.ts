@@ -6,6 +6,9 @@
 export type { Database } from './database.types'
 export type { Tables, Enums } from './database.types'
 
+// CQ-to-CQ Communication Types
+export * from './cq'
+
 import type { Database } from './database.types'
 
 // ============================================================================

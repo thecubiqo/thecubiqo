@@ -19,11 +19,12 @@ export async function callOpenClaw(
   messages: { role: string; content: string }[],
   apiKey?: string | null
 ): Promise<string> {
-  const key = apiKey || process.env.OPENCLAW_API_KEY
+  // Support both old and new env var names (fallback pattern)
+  const key = apiKey || process.env.OPENROUTER_KEY_CUBIKEY || process.env.OPENCLAW_API_KEY
   const baseUrl = process.env.OPENCLAW_BASE_URL || 'http://localhost:18789'
 
   if (!key) {
-    throw new Error('OPENCLAW_API_KEY not configured')
+    throw new Error('OPENROUTER_KEY_CUBIKEY or OPENCLAW_API_KEY not configured')
   }
 
   // Format messages for OpenAI-compatible API
