@@ -1,10 +1,3 @@
-/**
- * Edge Proxy for Auth & Geo-Routing
- *
- * Handles Supabase session refresh and routes users to regional versions.
- * Runs at the edge for minimal latency.
- */
-
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -18,7 +11,7 @@ const COUNTRY_TO_REGION: Record<string, string> = {
 // Countries that should stay on main by default
 const MAIN_COUNTRIES = new Set(['US'])
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
     // Get user's country from Vercel geo headers (Next.js 16+ uses headers only)
@@ -31,9 +24,22 @@ export async function proxy(request: NextRequest) {
     response.headers.set('x-user-city', city)
 
     // Handle Supabase session refresh
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    // Skip Supabase session handling if environment variables are not set
+    if (!supabaseUrl || !supabaseAnonKey) {
+        console.warn('Supabase environment variables not set, skipping session refresh')
+        // Continue with geo-routing
+        if (pathname === '/') {
+            return handleRootRouting(request, country, response)
+        }
+        return response
+    }
+
     const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        supabaseUrl,
+        supabaseAnonKey,
         {
             cookies: {
                 getAll() {
@@ -57,8 +63,10 @@ export async function proxy(request: NextRequest) {
 
     // Skip routing for regional paths (already routed)
     if (pathname.match(/^\/(uk|in|jp|us)/)) {
-        const region = pathname.split('/')[1]
-        response.headers.set('x-user-region', region)
+        const region = pathname.split('/')[1] ?? ''
+        if (region) {
+            response.headers.set('x-user-region', region)
+        }
         return response
     }
 
@@ -118,11 +126,10 @@ export const config = {
     matcher: [
         /*
          * Match all request paths except:
-         * - api routes (API is region-agnostic, uses headers)
          * - _next/static (static files)
-         * - _next/image (image optimization)
-         * - favicon.ico, icons, manifest
-         * - public files
+         * - _next/image (image optimization files)
+         * - favicon.ico, icons, manifest, service worker
+         * - image files
          */
         '/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
