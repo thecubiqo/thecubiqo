@@ -174,8 +174,13 @@ export function useSession() {
   useEffect(() => {
     // First check for existing session immediately
     const initAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setAuthUser(user)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        setAuthUser(user)
+      } catch (error) {
+        console.error('[useSession] Error getting user:', error)
+        setAuthUser(null)
+      }
     }
     
     initAuth()

@@ -3,6 +3,7 @@ import { getRegionConfig } from '@/lib/config/regions'
 import { RegionProvider } from '@/contexts/RegionContext'
 
 // Force dynamic rendering to prevent auth state caching
+// This is necessary for proper magic-link authentication flow
 export const dynamic = 'force-dynamic'
 
 // Valid region IDs - static list for build time

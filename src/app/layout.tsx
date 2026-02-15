@@ -5,6 +5,8 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // Force dynamic rendering to prevent auth state caching
+// This is necessary for proper magic-link authentication flow
+// Without this, the authenticated state may not reflect after redirect
 export const dynamic = 'force-dynamic'
 
 // SEO Metadata
