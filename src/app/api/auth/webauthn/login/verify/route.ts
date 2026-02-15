@@ -1,23 +1,10 @@
 import { verifyAuthenticationResponse } from '@simplewebauthn/server'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthenticatorByCredentialId, updateAuthenticatorCounter } from '@/lib/webauthn'
+import { getAuthenticatorByCredentialId, updateAuthenticatorCounter, getSupabaseAdmin } from '@/lib/webauthn'
 
 const RP_ID = process.env.NEXT_PUBLIC_RP_ID || 'localhost'
 const ORIGIN = process.env.NEXT_PUBLIC_ORIGIN || 'http://localhost:3000'
-
-function getSupabaseAdmin() {
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        {
-            auth: {
-                autoRefreshToken: false,
-                persistSession: false
-            }
-        }
-    )
-}
 
 export async function POST(request: NextRequest) {
     const supabaseAdmin = getSupabaseAdmin()

@@ -1,18 +1,24 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
+
+// Cached admin client instance
+let cachedSupabaseAdmin: SupabaseClient | null = null
 
 // Use a service role client for authenticator management to bypass RLS for inserts/updates
 // and to access auth.users
-function getSupabaseAdmin() {
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        {
-            auth: {
-                autoRefreshToken: false,
-                persistSession: false
+export function getSupabaseAdmin() {
+    if (!cachedSupabaseAdmin) {
+        cachedSupabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
             }
-        }
-    )
+        )
+    }
+    return cachedSupabaseAdmin
 }
 
 export interface Authenticator {
