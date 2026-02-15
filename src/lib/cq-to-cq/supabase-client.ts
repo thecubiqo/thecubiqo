@@ -25,7 +25,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // ==================== CQ NUMBERS ====================
 
-export async function createCQNumber(data: Omit<CQNumber, 'id'>) {
+export async function saveCQNumber(data: Omit<CQNumber, 'id'>) {
   const { data: result, error } = await supabase
     .from('cq_numbers')
     .insert({
@@ -90,7 +90,7 @@ export async function rotateCQNumber(
     .eq('status', 'active');
 
   // Create new CQ#
-  return createCQNumber({
+  return saveCQNumber({
     cqNumber: newCQNumber,
     userId,
     createdAt: new Date(),

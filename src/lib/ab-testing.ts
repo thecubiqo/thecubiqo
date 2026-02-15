@@ -1,14 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
-import { DatabaseWithAbTesting } from '@/types/database.types'
 import { cookies } from 'next/headers'
 import { SupabaseClient } from '@supabase/supabase-js'
-
 type ExperimentVariant = string | null
 
 // Helper to get typed client
 async function getDb() {
     const supabase = await createClient()
-    return supabase as unknown as SupabaseClient<DatabaseWithAbTesting>
+    return supabase
 }
 
 /**

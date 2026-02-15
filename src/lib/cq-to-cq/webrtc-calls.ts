@@ -49,7 +49,7 @@ export class CQCallManager {
       this.remoteUserId = recipientId;
 
       // Get local media stream
-      await this.getLocalStream(type === 'video');
+      await this.initLocalStream(type === 'video');
 
       // Create peer connection
       this.createPeerConnection();
@@ -94,7 +94,7 @@ export class CQCallManager {
       this.callId = callId;
 
       // Get local media stream
-      await this.getLocalStream(callType === 'video');
+      await this.initLocalStream(callType === 'video');
 
       // Create peer connection
       this.createPeerConnection();
@@ -229,9 +229,9 @@ export class CQCallManager {
     try {
       // @ts-ignore - getDisplayMedia is available in browser
       this.screenShareStream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
+        video: ({
           cursor: 'always',
-        },
+        } as any),
         audio: false,
       });
 
@@ -310,7 +310,7 @@ export class CQCallManager {
   /**
    * Get local media stream
    */
-  private async getLocalStream(includeVideo: boolean) {
+  private async initLocalStream(includeVideo: boolean) {
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -425,7 +425,6 @@ export function createCallManager(userId: string): CQCallManager {
 export function isWebRTCSupported(): boolean {
   return !!(
     navigator.mediaDevices &&
-    navigator.mediaDevices.getUserMedia &&
     window.RTCPeerConnection
   );
 }

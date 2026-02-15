@@ -623,7 +623,6 @@ export default function FoundersDashboard() {
                                                     role={msg.role}
                                                     content={msg.content}
                                                     color="ORANGE"
-                                                    onActionConfirm={handleActionConfirm}
                                                 />
                                             ))
                                         )}

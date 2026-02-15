@@ -65,19 +65,19 @@ export class CommandRouter {
       // Route to appropriate service
       switch (intent.type) {
         case 'email':
-          return await this.gmail.executeCommand(intent.parameters);
+          return await this.gmail.executeCommand(intent.parameters as any);
 
         case 'twitter':
-          return await this.twitter.executeCommand(intent.parameters);
+          return await this.twitter.executeCommand(intent.parameters as any);
 
         case 'maps':
-          return await this.maps.executeCommand(intent.parameters);
+          return await this.maps.executeCommand(intent.parameters as any);
 
         case 'uber':
-          return await this.uber.executeCommand(intent.parameters);
+          return await this.uber.executeCommand(intent.parameters as any);
 
         case 'whatsapp':
-          return await this.whatsapp.executeCommand(intent.parameters);
+          return await this.whatsapp.executeCommand(intent.parameters as any);
 
         default:
           return {

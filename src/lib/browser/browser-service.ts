@@ -196,7 +196,7 @@ export class BrowserService {
   private async screenshot(action: ScreenshotAction): Promise<BrowserResult> {
     if (!this.page) throw new Error('Browser not initialized');
 
-    let screenshot: Buffer;
+    let screenshot: Buffer | Uint8Array;
 
     if (action.selector) {
       const element = await this.page.$(action.selector);
@@ -212,7 +212,7 @@ export class BrowserService {
 
     return {
       success: true,
-      screenshot: screenshot.toString('base64'),
+      screenshot: Buffer.from(screenshot).toString('base64'),
       url: this.page.url(),
       timestamp: Date.now(),
     };
