@@ -7,7 +7,7 @@
  * Similar to NextAuth's SessionProvider pattern but using Supabase Auth.
  */
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import type { Profile } from '@/types'
@@ -41,7 +41,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isGuest: true,
   })
 
-  const supabase = createClient()
+  // Create Supabase client once and memoize it
+  const supabase = useMemo(() => createClient(), [])
 
   // Fetch user profile
   const fetchProfile = useCallback(async (userId: string) => {
