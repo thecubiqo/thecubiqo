@@ -8,7 +8,7 @@
 - **Total open PRs:** 27
 - **Confirmed merged (should close):** 1
 - **Likely superseded (review & close):** 4
-- **Documentation/clarification PRs:** 0
+- **Documentation/clarification PRs:** 1
 - **Draft PRs needing review:** 8
 - **Ready PRs (non-draft):** 13
 

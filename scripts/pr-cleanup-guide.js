@@ -69,12 +69,15 @@ function categorizePRs() {
     }
 
     // Documentation/clarification PRs (non-draft only for quick review)
-    if (!pr.draft && (pr.title.includes('clarification') || pr.title.includes('Clarify'))) {
+    // Use case-insensitive matching for better coverage
+    const titleLower = pr.title.toLowerCase();
+    
+    if (!pr.draft && (titleLower.includes('clarification') || titleLower.includes('clarify'))) {
       categories.clarification_needed.push(pr);
       return;
     }
 
-    if (!pr.draft && (pr.title.includes('document') || pr.title.includes('comparison document'))) {
+    if (!pr.draft && titleLower.includes('document')) {
       categories.documentation_only.push(pr);
       return;
     }
