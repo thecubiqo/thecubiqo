@@ -5,6 +5,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { isRateLimitError } from '@/lib/auth/utils'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
     const errorMessage = error_description || error
     
     // Check if it's a rate limit error
-    if (errorMessage.toLowerCase().includes('rate limit') || errorMessage.toLowerCase().includes('too many')) {
+    if (isRateLimitError(errorMessage)) {
       return NextResponse.redirect(
         `${origin}/auth/error?error=rate_limit_exceeded&description=${encodeURIComponent(errorMessage)}`
       )
@@ -46,7 +47,7 @@ export async function GET(request: Request) {
       console.error('[Auth Callback] Exchange error:', exchangeError.message)
       
       // Check if it's a rate limit error
-      if (exchangeError.message.toLowerCase().includes('rate limit') || exchangeError.message.toLowerCase().includes('too many')) {
+      if (isRateLimitError(exchangeError.message)) {
         return NextResponse.redirect(
           `${origin}/auth/error?error=rate_limit_exceeded&description=${encodeURIComponent(exchangeError.message)}`
         )

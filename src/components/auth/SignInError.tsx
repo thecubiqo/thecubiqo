@@ -5,6 +5,8 @@
  * Displays authentication errors with proper styling and context
  */
 
+import { isRateLimitError } from '@/lib/auth/utils'
+
 interface SignInErrorProps {
   error: string | null
   onDismiss: () => void
@@ -13,7 +15,7 @@ interface SignInErrorProps {
 export function SignInError({ error, onDismiss }: SignInErrorProps) {
   if (!error) return null
 
-  const isRateLimit = error.toLowerCase().includes('rate limit') || error.toLowerCase().includes('too many')
+  const isRateLimit = isRateLimitError(error)
 
   return (
     <div 

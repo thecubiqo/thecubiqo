@@ -8,6 +8,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { BiometricLogin } from '@/components/auth/BiometricLogin'
+import { isRateLimitError } from '@/lib/auth/utils'
 
 const RATE_LIMIT_WINDOW = 60000 // 60 seconds
 const MAX_ATTEMPTS = 3
@@ -100,7 +101,7 @@ export function LoginForm() {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send magic link'
       
       // Check if it's a rate limit error from Supabase
-      if (errorMessage.toLowerCase().includes('rate limit') || errorMessage.toLowerCase().includes('too many')) {
+      if (isRateLimitError(errorMessage)) {
         setMessage({
           type: 'error',
           text: 'Too many sign-in attempts. Please wait a few minutes before trying again.',
@@ -158,11 +159,7 @@ export function LoginForm() {
       {message && (
         <div
           data-testid={`login-message-${message.type}`}
-          className={`mt-4 p-3 rounded-[12px] text-[13px] ${
-            message.type === 'success'
-              ? 'bg-green-500/10 text-green-400'
-              : 'bg-red-500/10 text-red-400'
-          }`}
+          className={`mt-4 p-3 rounded-[12px] text-[13px] ${message.type === 'success' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}
         >
           {message.text}
           {message.type === 'success' && cooldownSeconds > 0 && (
@@ -170,7 +167,7 @@ export function LoginForm() {
               You can request another link in {cooldownSeconds} seconds.
             </p>
           )}
-          {message.type === 'error' && message.text.toLowerCase().includes('rate limit') && (
+          {message.type === 'error' && isRateLimitError(message.text) && (
             <p className="text-xs mt-2 text-red-300/80">
               This is a security measure to prevent abuse. Please wait before trying again.
             </p>
