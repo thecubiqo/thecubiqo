@@ -62,7 +62,6 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
             className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 ${isBYOEnabled ? 'translate-x-5' : 'translate-x-0'
               }`}
           />
-          />
         </button>
       </div>
 
