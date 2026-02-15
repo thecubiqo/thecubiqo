@@ -5,10 +5,19 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getCurrentUser } from '@/lib/auth/actions';
 
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Add admin authentication check
+    // Check authentication
+    const user = await getCurrentUser();
+    
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Admin access required' },
+        { status: 401 }
+      );
+    }
 
     // Initialize Supabase admin client
     const supabaseAdmin = createClient(
