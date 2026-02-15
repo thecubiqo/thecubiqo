@@ -9,7 +9,7 @@
  * 5. Conversation history is maintained
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 describe('CQ Messaging Flow - Happy Path', () => {
   describe('Message Sending', () => {
@@ -184,7 +184,7 @@ describe('CQ Messaging Flow - Happy Path', () => {
     });
 
     it('should handle empty conversation history', () => {
-      const conversationHistory: any[] = [];
+      const conversationHistory: Array<{userMessage: string; aiResponse: string}> = [];
       
       expect(conversationHistory).toHaveLength(0);
       expect(Array.isArray(conversationHistory)).toBe(true);
@@ -195,7 +195,6 @@ describe('CQ Messaging Flow - Happy Path', () => {
         { userMessage: 'What\'s your name?', aiResponse: 'I\'m CubiQo!' }
       ];
 
-      const newMessage = 'Can you remind me of your name?';
       const includeHistory = conversationHistory.length > 0;
 
       expect(includeHistory).toBe(true);
@@ -216,11 +215,6 @@ describe('CQ Messaging Flow - Happy Path', () => {
     });
 
     it('should update state when response arrives', () => {
-      const initialState = {
-        isLoading: true,
-        conversationHistory: []
-      };
-
       const updatedState = {
         isLoading: false,
         conversationHistory: [
@@ -286,7 +280,7 @@ describe('CQ Messaging Flow - Happy Path', () => {
       const silentFailure = () => {
         try {
           throw new Error('Memory extraction failed');
-        } catch (e) {
+        } catch {
           // Silently caught
           return null;
         }

@@ -13,12 +13,6 @@ import { describe, it, expect } from 'vitest';
 describe('Onboarding Flow - Happy Path', () => {
   describe('First-Time User Detection', () => {
     it('should detect new user with no conversation history', () => {
-      const mockUser = {
-        id: 'user-123',
-        email: 'newuser@example.com',
-        created_at: new Date().toISOString()
-      };
-
       const conversationCount = 0;
       const isFirstTimeUser = conversationCount === 0;
 
@@ -26,12 +20,6 @@ describe('Onboarding Flow - Happy Path', () => {
     });
 
     it('should detect returning user with conversation history', () => {
-      const mockUser = {
-        id: 'user-456',
-        email: 'returning@example.com',
-        created_at: new Date(Date.now() - 86400000).toISOString() // 1 day ago
-      };
-
       const conversationCount = 5;
       const isFirstTimeUser = conversationCount === 0;
 

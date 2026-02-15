@@ -17,25 +17,35 @@ function getBYOHeaders(): Record<string, string> {
 
   try {
     const stored = localStorage.getItem(BYO_STORAGE_KEY)
-    console.log('[BYO Debug] localStorage raw:', stored)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[BYO Debug] localStorage raw:', stored)
+    }
     if (!stored) return {}
 
     const config: BYOConfig = JSON.parse(stored)
-    console.log('[BYO Debug] parsed config:', { enabled: config.enabled, hasClaudeKey: !!config.claudeApiKey })
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[BYO Debug] parsed config:', { enabled: config.enabled, hasClaudeKey: !!config.claudeApiKey })
+    }
     if (!config.enabled) {
-      console.log('[BYO Debug] BYO not enabled, returning empty headers')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[BYO Debug] BYO not enabled, returning empty headers')
+      }
       return {}
     }
 
     const headers: Record<string, string> = {}
     if (config.claudeApiKey) {
       headers['x-byo-claude-key'] = config.claudeApiKey
-      console.log('[BYO Debug] Adding Claude key header')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[BYO Debug] Adding Claude key header')
+      }
     }
-    console.log('[BYO Debug] Final headers count:', Object.keys(headers).length)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[BYO Debug] Final headers count:', Object.keys(headers).length)
+    }
     return headers
   } catch (e) {
-    console.error('[BYO Debug] Error parsing config:', e)
+    console.error('[BYO] Error parsing config:', e)
     return {}
   }
 }
@@ -153,11 +163,14 @@ export function useChat(options: UseChatOptions) {
             .order('created_at', { ascending: true })
 
           if (messages) {
+            // Optimized: Build conversation pairs more efficiently
+            const pairs: ConversationEntry[] = []
             for (let i = 0; i < messages.length; i += 2) {
               const userMsg = messages[i]
               const aiMsg = messages[i + 1]
-              if (userMsg && aiMsg && userMsg.role === 'user' && aiMsg.role === 'assistant') {
-                history.push({
+              // Only add valid pairs
+              if (userMsg?.role === 'user' && aiMsg?.role === 'assistant') {
+                pairs.push({
                   userMessage: userMsg.content,
                   aiResponse: aiMsg.content,
                   color: (aiMsg.color as ColorName) || 'ORANGE',
@@ -165,6 +178,7 @@ export function useChat(options: UseChatOptions) {
                 })
               }
             }
+            history = pairs
           }
         } else {
           // Get messages via API
@@ -177,11 +191,14 @@ export function useChat(options: UseChatOptions) {
           if (msgRes.ok) {
             const { messages } = await msgRes.json()
             if (messages) {
+              // Optimized: Build conversation pairs more efficiently
+              const pairs: ConversationEntry[] = []
               for (let i = 0; i < messages.length; i += 2) {
                 const userMsg = messages[i]
                 const aiMsg = messages[i + 1]
-                if (userMsg && aiMsg && userMsg.role === 'user' && aiMsg.role === 'assistant') {
-                  history.push({
+                // Only add valid pairs
+                if (userMsg?.role === 'user' && aiMsg?.role === 'assistant') {
+                  pairs.push({
                     userMessage: userMsg.content,
                     aiResponse: aiMsg.content,
                     color: (aiMsg.color as ColorName) || 'ORANGE',
@@ -189,6 +206,7 @@ export function useChat(options: UseChatOptions) {
                   })
                 }
               }
+              history = pairs
             }
           }
         }
@@ -258,32 +276,29 @@ export function useChat(options: UseChatOptions) {
       const data = await response.json()
       const timestamp = new Date().toISOString()
 
-      // Save messages via API (bypasses RLS)
+      // Batch save both messages in a single request (performance optimization)
       await fetch('/api/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'save_message',
+          action: 'save_messages_batch',
           conversationId: state.conversationId,
-          role: 'user',
-          content: message,
-          color: currentColor
+          messages: [
+            {
+              role: 'user',
+              content: message,
+              color: currentColor
+            },
+            {
+              role: 'assistant',
+              content: data.response,
+              color: data.color
+            }
+          ]
         })
       })
 
-      await fetch('/api/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'save_message',
-          conversationId: state.conversationId,
-          role: 'assistant',
-          content: data.response,
-          color: data.color
-        })
-      })
-
-      // Trigger memory extraction in background (fire-and-forget)
+      // Trigger memory extraction in background (fire-and-forget with error logging)
       if (sessionId) {
         fetch('/api/extract-memories', {
           method: 'POST',
@@ -296,7 +311,10 @@ export function useChat(options: UseChatOptions) {
             userMessage: message,
             aiResponse: data.response
           })
-        }).catch(() => {}) // Silently ignore extraction errors
+        }).catch((error) => {
+          // Log extraction errors but don't block user experience
+          console.warn('[useChat] Memory extraction failed:', error.message)
+        })
       }
 
       const newEntry: ConversationEntry = {
