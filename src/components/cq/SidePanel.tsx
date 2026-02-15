@@ -28,7 +28,7 @@ export function SidePanel({ isOpen, onClose }: SidePanelProps) {
   const [activeTab, setActiveTab] = useState<'friends' | 'requests'>('friends')
   
   // Get unread counts for all friends
-  const { unreadCount } = useDirectMessages()
+  const { unreadCount } = useDirectMessages((selectedFriend as FriendWithProfile | null)?.friend_id)
 
   useEffect(() => {
     // Close chat when panel closes
@@ -131,7 +131,8 @@ export function SidePanel({ isOpen, onClose }: SidePanelProps) {
               {activeTab === 'friends' ? (
                 <FriendsList
                   onSelectFriend={(friendId, friend) => setSelectedFriend(friend)}
-                  selectedFriendId={selectedFriend?.friend_id}
+                  selectedFriendId={(selectedFriend as FriendWithProfile | null)?.friend_id}
+                  unreadCounts={{}}
                 />
               ) : (
                 <div className="space-y-3">

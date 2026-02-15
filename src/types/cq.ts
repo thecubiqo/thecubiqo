@@ -21,7 +21,7 @@ export interface Friend {
 // Friend with profile data joined
 export interface FriendWithProfile extends Friend {
   friend_profile: {
-    handle: string
+    handle: string | null
     display_name: string | null
     avatar_url: string | null
   }
@@ -44,7 +44,7 @@ export interface DirectMessage {
 // Message with sender profile data
 export interface DirectMessageWithProfile extends DirectMessage {
   sender_profile: {
-    handle: string
+    handle: string | null
     display_name: string | null
     avatar_url: string | null
   }
