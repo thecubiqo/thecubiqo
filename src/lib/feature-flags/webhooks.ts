@@ -103,7 +103,7 @@ async function deliverWebhook(
       flag_id: payload.flag.id,
       url: webhook.url,
       event: payload.event,
-      payload,
+      payload: payload as any,
       status_code: response.status,
       response_body: responseBody.substring(0, 1000), // Limit size
       error: response.ok ? null : `HTTP ${response.status}`,
@@ -126,7 +126,7 @@ async function deliverWebhook(
       flag_id: payload.flag.id,
       url: webhook.url,
       event: payload.event,
-      payload,
+      payload: payload as any,
       status_code: null,
       response_body: null,
       error: errorMessage,

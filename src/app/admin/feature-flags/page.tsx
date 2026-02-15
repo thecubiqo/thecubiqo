@@ -320,7 +320,7 @@ function FlagModal({ flag, onClose, onSave }: FlagModalProps) {
   const [name, setName] = useState(flag?.name || '');
   const [description, setDescription] = useState(flag?.description || '');
   const [enabled, setEnabled] = useState(flag?.enabled ?? false);
-  const [scope, setScope] = useState(flag?.scope || 'global');
+  const [scope, setScope] = useState<'global' | 'site' | 'user'>(flag?.scope || 'global');
   const [targetId, setTargetId] = useState(flag?.target_id || '');
   const [percentage, setPercentage] = useState(
     flag?.config?.percentage?.toString() || '100'
@@ -398,7 +398,7 @@ function FlagModal({ flag, onClose, onSave }: FlagModalProps) {
             <label className="block text-sm font-medium mb-2">Scope</label>
             <select
               value={scope}
-              onChange={(e) => setScope(e.target.value)}
+              onChange={(e) => setScope(e.target.value as 'global' | 'site' | 'user')}
               className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
             >
               <option value="global">Global</option>

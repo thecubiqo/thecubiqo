@@ -35,22 +35,25 @@ export async function checkFeatureFlag(
       };
     }
 
+    // Cast to our type
+    const featureFlag = flag as unknown as FeatureFlag;
+
     // Master switch check
-    if (!flag.enabled) {
+    if (!featureFlag.enabled) {
       return {
         enabled: false,
-        flag,
+        flag: featureFlag,
         reason: 'Flag is disabled',
       };
     }
 
     // Check scope
-    if (flag.scope === 'global') {
+    if (featureFlag.scope === 'global') {
       // Check percentage rollout
-      const percentage = flag.config?.percentage ?? 100;
+      const percentage = featureFlag.config?.percentage ?? 100;
       
       if (percentage === 100) {
-        return { enabled: true, flag };
+        return { enabled: true, flag: featureFlag };
       }
 
       // If user_id provided, use consistent hashing for percentage rollout
@@ -61,37 +64,37 @@ export async function checkFeatureFlag(
         
         return {
           enabled,
-          flag,
+          flag: featureFlag,
           reason: enabled
             ? `User in rollout bucket (${bucket} < ${percentage})`
             : `User not in rollout bucket (${bucket} >= ${percentage})`,
         };
       }
 
-      return { enabled: true, flag };
+      return { enabled: true, flag: featureFlag };
     }
 
-    if (flag.scope === 'site') {
-      const enabled = flag.target_id === request.site_id;
+    if (featureFlag.scope === 'site') {
+      const enabled = featureFlag.target_id === request.site_id;
       return {
         enabled,
-        flag,
+        flag: featureFlag,
         reason: enabled ? 'Site matches target' : 'Site does not match target',
       };
     }
 
-    if (flag.scope === 'user') {
-      const enabled = flag.target_id === request.user_id;
+    if (featureFlag.scope === 'user') {
+      const enabled = featureFlag.target_id === request.user_id;
       return {
         enabled,
-        flag,
+        flag: featureFlag,
         reason: enabled ? 'User matches target' : 'User does not match target',
       };
     }
 
     return {
       enabled: false,
-      flag,
+      flag: featureFlag,
       reason: 'Unknown scope',
     };
   } catch (error) {
@@ -119,7 +122,7 @@ export async function getAllFeatureFlags(): Promise<FeatureFlag[]> {
     return [];
   }
 
-  return data as FeatureFlag[];
+  return (data || []) as unknown as FeatureFlag[];
 }
 
 /**
@@ -139,7 +142,7 @@ export async function getFeatureFlag(id: string): Promise<FeatureFlag | null> {
     return null;
   }
 
-  return data as FeatureFlag;
+  return data as unknown as FeatureFlag;
 }
 
 /**
@@ -159,7 +162,7 @@ export async function createFeatureFlag(
       enabled: request.enabled ?? false,
       scope: request.scope || 'global',
       target_id: request.target_id || null,
-      config: request.config || {},
+      config: (request.config || {}) as any,
       created_by: created_by || null,
     })
     .select()
@@ -170,7 +173,7 @@ export async function createFeatureFlag(
     return { data: null, error: error.message };
   }
 
-  return { data: data as FeatureFlag, error: null };
+  return { data: data as unknown as FeatureFlag, error: null };
 }
 
 /**
@@ -187,7 +190,7 @@ export async function updateFeatureFlag(
   if (request.enabled !== undefined) updateData.enabled = request.enabled;
   if (request.scope !== undefined) updateData.scope = request.scope;
   if (request.target_id !== undefined) updateData.target_id = request.target_id;
-  if (request.config !== undefined) updateData.config = request.config;
+  if (request.config !== undefined) updateData.config = request.config as any;
 
   const { data, error } = await supabase
     .from('feature_flags')
@@ -201,7 +204,7 @@ export async function updateFeatureFlag(
     return { data: null, error: error.message };
   }
 
-  return { data: data as FeatureFlag, error: null };
+  return { data: data as unknown as FeatureFlag, error: null };
 }
 
 /**
@@ -246,7 +249,7 @@ export async function toggleFeatureFlag(
     return { data: null, error: error.message };
   }
 
-  return { data: data as FeatureFlag, error: null };
+  return { data: data as unknown as FeatureFlag, error: null };
 }
 
 /**

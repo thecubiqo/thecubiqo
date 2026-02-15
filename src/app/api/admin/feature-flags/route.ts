@@ -215,7 +215,7 @@ export async function DELETE(request: NextRequest) {
 
     // Trigger webhooks if flag existed
     if (flag) {
-      await triggerWebhooks(flag.id, 'deleted', flag, user.id);
+      await triggerWebhooks(flag.id, 'deleted', flag as any, user.id);
     }
 
     return NextResponse.json({ success: true });
