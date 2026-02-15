@@ -714,6 +714,44 @@ export function FullscreenApp() {
                   </div>
                 )}
               </div>
+
+              {/* 4. Account (only when authenticated) */}
+              {isAuthenticated && (
+                <>
+                  {/* Soft Divider */}
+                  <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
+
+                  <div>
+                    <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Account</h3>
+                    <div className="space-y-2">
+                      {/* User email display */}
+                      <div className={`py-3 px-4 rounded-xl ${isDark ? 'bg-white/[0.02]' : 'bg-gray-50'}`}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                            {user?.email?.charAt(0).toUpperCase()}
+                          </div>
+                          <span className={`text-[13px] truncate ${isDark ? 'text-white/70' : 'text-gray-700'}`}>
+                            {user?.email}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Sign Out button */}
+                      <button
+                        onClick={() => signOut()}
+                        className={`w-full py-3 px-4 rounded-xl transition-colors ${
+                          isDark 
+                            ? 'bg-red-600/10 hover:bg-red-600/20 text-red-400' 
+                            : 'bg-red-50 hover:bg-red-100 text-red-600'
+                        }`}
+                        data-testid="sign-out-button"
+                      >
+                        <span className="text-[14px] font-medium">Sign Out</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
           
