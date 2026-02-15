@@ -8,7 +8,7 @@
  * redirect) are reflected immediately without a full page refresh.
  */
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import type { Profile } from '@/types'
@@ -40,7 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const supabase = createClient()
+  // createClient returns a singleton, but useMemo makes the stable reference explicit
+  const supabase = useMemo(() => createClient(), [])
 
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
@@ -72,9 +73,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch {
             // Profile fetch may fail for new users
           }
-        } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+        } else if (event === 'SIGNED_OUT') {
           setUser(null)
           setProfile(null)
+          setIsLoading(false)
+        } else if (event === 'INITIAL_SESSION') {
+          // No session on initial load — just mark loading as complete
           setIsLoading(false)
         }
       }
