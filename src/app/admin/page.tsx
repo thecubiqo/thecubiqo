@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 interface AdminStats {
   stats: {
@@ -104,15 +105,26 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-gray-400">
-            Real-time monitoring of agents, sessions, and system health
-          </p>
-          {stats && (
-            <p className="text-sm text-gray-500 mt-2">
-              Last updated: {formatDate(stats.timestamp)}
-            </p>
-          )}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
+              <p className="text-gray-400">
+                Real-time monitoring of agents, sessions, and system health
+              </p>
+              {stats && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Last updated: {formatDate(stats.timestamp)}
+                </p>
+              )}
+            </div>
+            <Link
+              href="/admin/email-preview"
+              className="bg-gradient-to-r from-orange-600 to-yellow-600 hover:from-orange-700 hover:to-yellow-700 
+                         text-white font-semibold py-2 px-4 rounded-lg transition-all"
+            >
+              📧 Email Preview
+            </Link>
+          </div>
         </div>
 
         {error && (
