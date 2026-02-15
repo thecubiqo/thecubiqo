@@ -13,6 +13,8 @@ import { KeywordPanel } from './KeywordPanel'
 import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
 import { GettingStartedPanel } from './GettingStartedPanel'
 import { LandingCube } from './LandingCube'
+// Optional: Use LandingCubeRouter for flexible design switching
+// import { LandingCubeRouter as LandingCube } from './LandingCubeRouter'
 import { PoweredByLogosCompact } from './PoweredByLogos'
 import { AdminControls } from './admin'
 import { useSession } from '@/hooks/useSession'
@@ -841,7 +843,12 @@ export function FullscreenApp() {
         isDark={isDark}
       />
 
-      {/* Landing Cube - Shown once per day or after 4+ hours */}
+      {/* Landing Cube - Shown once per day or after 4+ hours 
+          Two designs available:
+          1. LandingCube (current) - Plasma wave field
+          2. TechLandingCube - Wireframe energy cube
+          See LANDING_UI_GUIDE.md for switching instructions
+      */}
       {showLandingCube && (
         <LandingCube 
           onComplete={handleLandingComplete}
