@@ -144,12 +144,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [state.user, fetchProfile])
 
-  const value: AuthContextType = {
+  const value: AuthContextType = useMemo(() => ({
     ...state,
     signInWithEmail,
     signOut,
     refreshProfile,
-  }
+  }), [state, signInWithEmail, signOut, refreshProfile])
 
   return (
     <AuthContext.Provider value={value}>
