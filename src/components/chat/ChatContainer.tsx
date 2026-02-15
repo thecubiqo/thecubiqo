@@ -137,11 +137,7 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
       {error && (
         <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border-t border-red-200 dark:border-red-800">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-red-600 dark:text-red-400">
-              {error.includes('NO_PROVIDERS_CONFIGURED') || error.includes('ALL_PROVIDERS_FAILED')
-                ? 'CubiQo is temporarily unable to respond. Please try again shortly.'
-                : error}
-            </p>
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             <button onClick={clearError} className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm">
               Dismiss
             </button>

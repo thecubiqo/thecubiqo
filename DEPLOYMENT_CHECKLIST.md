@@ -16,11 +16,12 @@ vercel login
 
 #### Prod-A (Admin) - cubiqo-admin project:
 ```
-MINIMAX_API_KEY=***
-MISTRAL_API_KEY=***
-TOGETHER_API_KEY=***
-ANTHROPIC_API_KEY=***
-ELEVENLABS_API_KEY=***
+NEXT_PUBLIC_USE_EMERGENT=true
+EMERGENT_API_URL=https://integrations.emergentagent.com/llm
+EMERGENT_API_KEY=sk-emergent-936E79916C0DbB0396
+ANTHROPIC_API_KEY=emergent
+OPENAI_API_KEY=emergent
+ELEVENLABS_API_KEY=emergent
 NEXT_PUBLIC_ADMIN_MODE=true
 NEXT_PUBLIC_SHOW_API_MANAGEMENT=true
 NEXT_PUBLIC_SHOW_ANALYTICS=true
@@ -32,6 +33,7 @@ NEXT_PUBLIC_APP_URL=https://admin.cubiqo.com
 
 #### Prod-B (Public) - cubiqo-public project:
 ```
+NEXT_PUBLIC_USE_EMERGENT=false
 NEXT_PUBLIC_BYO_KEYS_MODE=true
 NEXT_PUBLIC_ADMIN_MODE=false
 NEXT_PUBLIC_RATE_LIMIT_ENABLED=true

@@ -1,11 +1,11 @@
 /**
  * Chat API Route Handler
- * Fallback chain: MiniMax (primary) → Mixtral → Llama → Claude Haiku (final fallback)
- * With classification layer to route sensitive content directly to Claude Haiku
+ * Triple routing: MiniMax (primary) → Claude → OpenAI (fallback)
  * Rate limited: 100 requests/hour per session
  * 
  * SPENDING CAPS:
  * - Anthropic (Claude): $200/month
+ * - OpenAI: $200/month
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -15,8 +15,7 @@ import {
   buildMessages,
   parseResponse,
   CLAUDE_CONFIG,
-  MIXTRAL_CONFIG,
-  LLAMA_CONFIG,
+  OPENAI_CONFIG,
   MINIMAX_CONFIG,
   type ChatRequest,
   type AIResponse
@@ -28,6 +27,7 @@ import {
   checkSpendingCap,
   recordSpending,
   estimateAnthropicCost,
+  estimateOpenAICost,
   estimateTokens
 } from '@/lib/spending-caps'
 
@@ -35,28 +35,9 @@ import {
 const minimaxRateLimitMap = new Map<string, { count: number; resetTime: number }>()
 const MINIMAX_RATE_LIMIT = 100 // requests per hour
 const MINIMAX_RATE_WINDOW = 60 * 60 * 1000 // 1 hour in ms
-const MAX_RATE_LIMIT_ENTRIES = 10000 // Prevent memory leaks
-
-// Sensitive content patterns for classification layer
-// These patterns route messages directly to Claude Haiku for better handling
-const SENSITIVE_CONTENT_PATTERNS = [
-  /\b(intimate|sexual|erotic|nsfw|adult|explicit)\b/i,
-  /\b(love|romance|relationship|dating|flirt)\b.*\b(private|secret|personal)\b/i,
-  /\b(feel|feeling|emotion|emotional)\b.*\b(close|connection|bond|deep)\b/i,
-]
 
 function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining: number } {
   const now = Date.now()
-  
-  // Cleanup expired entries to prevent memory leak
-  if (minimaxRateLimitMap.size > MAX_RATE_LIMIT_ENTRIES) {
-    for (const [key, value] of minimaxRateLimitMap.entries()) {
-      if (now > value.resetTime) {
-        minimaxRateLimitMap.delete(key)
-      }
-    }
-  }
-  
   const record = minimaxRateLimitMap.get(sessionId)
   
   if (!record || now > record.resetTime) {
@@ -73,31 +54,20 @@ function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining
 }
 
 // Server-side Supabase client for loading memories
-// Support both old and new env var names (fallback pattern)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
-
-// Check which API keys are configured
-function getConfiguredProviders(): { minimax: boolean; mixtral: boolean; llama: boolean; claude: boolean } {
-  return {
-    minimax: !!process.env.MINIMAX_API_KEY,
-    mixtral: !!process.env.MISTRAL_API_KEY,
-    llama: !!process.env.TOGETHER_API_KEY,
-    claude: !!process.env.ANTHROPIC_API_KEY
-  }
-}
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+)
 
 // MiniMax API call (primary)
 async function callMiniMax(
   systemPrompt: string,
   messages: { role: string; content: string }[]
 ): Promise<string> {
-  // Support both old and new env var names (fallback pattern)
-  const apiKey = process.env.MINIMAX_KEY || process.env.MINIMAX_API_KEY
+  const apiKey = process.env.MINIMAX_API_KEY
 
   if (!apiKey) {
-    throw new Error('MINIMAX_KEY or MINIMAX_API_KEY not configured')
+    throw new Error('MINIMAX_API_KEY not configured')
   }
 
   // Build messages for MiniMax API
@@ -139,99 +109,7 @@ async function callMiniMax(
   throw new Error('Invalid MiniMax response format')
 }
 
-// Simple classification layer to detect sensitive/intimate content
-// Returns true if content should skip directly to Claude Haiku
-function classifyMessage(message: string): boolean {
-  return SENSITIVE_CONTENT_PATTERNS.some(pattern => pattern.test(message))
-}
-
-// Mixtral API call (first fallback)
-async function callMixtral(
-  systemPrompt: string,
-  messages: { role: string; content: string }[]
-): Promise<string> {
-  const apiKey = process.env.MISTRAL_API_KEY
-
-  if (!apiKey) {
-    throw new Error('MISTRAL_API_KEY not configured')
-  }
-
-  const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: MIXTRAL_CONFIG.model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages
-      ],
-      max_tokens: MIXTRAL_CONFIG.maxTokens,
-      temperature: 0.7
-    })
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    console.error('Mixtral API error:', response.status, errorText)
-    throw new Error(`Mixtral API error: ${response.status}`)
-  }
-
-  const data = await response.json()
-  
-  if (data.choices && data.choices[0]?.message?.content) {
-    return data.choices[0].message.content
-  }
-  
-  throw new Error('Invalid Mixtral response format')
-}
-
-// Llama API call via Together AI (second fallback)
-async function callLlama(
-  systemPrompt: string,
-  messages: { role: string; content: string }[]
-): Promise<string> {
-  const apiKey = process.env.TOGETHER_API_KEY
-
-  if (!apiKey) {
-    throw new Error('TOGETHER_API_KEY not configured')
-  }
-
-  const response = await fetch('https://api.together.xyz/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: LLAMA_CONFIG.model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages
-      ],
-      max_tokens: LLAMA_CONFIG.maxTokens,
-      temperature: 0.7
-    })
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    console.error('Llama API error:', response.status, errorText)
-    throw new Error(`Llama API error: ${response.status}`)
-  }
-
-  const data = await response.json()
-  
-  if (data.choices && data.choices[0]?.message?.content) {
-    return data.choices[0].message.content
-  }
-  
-  throw new Error('Invalid Llama response format')
-}
-
-// Claude API call with prompt caching (final fallback)
+// Claude API call with prompt caching
 async function callClaude(
   systemPrompt: string,
   messages: { role: string; content: string }[],
@@ -242,7 +120,7 @@ async function callClaude(
     const capCheck = checkSpendingCap('anthropic')
     if (!capCheck.allowed) {
       console.error(`[Claude] Spending cap reached: $${capCheck.currentSpend}/$${capCheck.cap}`)
-      throw new Error('Anthropic spending cap reached ($200/month). All providers exhausted.')
+      throw new Error('Anthropic spending cap reached ($200/month). Using fallback.')
     }
   }
 
@@ -320,6 +198,66 @@ async function callClaude(
   return outputText
 }
 
+// OpenAI API call (fallback)
+async function callOpenAI(
+  systemPrompt: string,
+  messages: { role: string; content: string }[],
+  byoApiKey?: string | null
+): Promise<string> {
+  // Check spending cap (skip if using BYO key)
+  if (!byoApiKey) {
+    const capCheck = checkSpendingCap('openai')
+    if (!capCheck.allowed) {
+      console.error(`[OpenAI] Spending cap reached: $${capCheck.currentSpend}/$${capCheck.cap}`)
+      throw new Error('OpenAI spending cap reached ($200/month). All providers exhausted.')
+    }
+  }
+
+  const apiKey = byoApiKey || process.env.OPENAI_API_KEY
+
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY not configured')
+  }
+
+  // Estimate input tokens for cost tracking
+  const inputText = systemPrompt + messages.map(m => m.content).join('')
+  const estimatedInputTokens = estimateTokens(inputText)
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: OPENAI_CONFIG.model,
+      max_tokens: OPENAI_CONFIG.maxTokens,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...messages
+      ]
+    })
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    console.error('OpenAI API error:', errorData)
+    throw new Error(errorData.error?.message || 'OpenAI API request failed')
+  }
+
+  const data = await response.json()
+  const outputText = data.choices[0].message.content
+
+  // Record spending (skip if using BYO key)
+  if (!byoApiKey) {
+    const estimatedOutputTokens = estimateTokens(outputText)
+    const cost = estimateOpenAICost(estimatedInputTokens, estimatedOutputTokens)
+    recordSpending('openai', cost)
+  }
+
+  return outputText
+}
+
 // Build auth nudge prompt for guest users
 function buildAuthNudgePrompt(isGuest: boolean, messageCount: number): string {
   // Only add nudge for guests with 5-10 messages who haven't been nudged yet
@@ -360,12 +298,14 @@ export async function POST(request: NextRequest) {
     const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string } = await request.json()
     const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region } = body
 
-    // Get BYO API key from headers (if user has BYO mode enabled)
+    // Get BYO API keys from headers (if user has BYO mode enabled)
     const byoClaudeKey = request.headers.get('x-byo-claude-key')
-    const isBYO = !!byoClaudeKey
+    const byoOpenaiKey = request.headers.get('x-byo-openai-key')
+    const isBYO = !!(byoClaudeKey || byoOpenaiKey)
 
     console.log('[BYO API] Headers received:', {
       hasByoClaudeKey: !!byoClaudeKey,
+      hasByoOpenaiKey: !!byoOpenaiKey,
       isBYO
     })
 
@@ -416,110 +356,58 @@ export async function POST(request: NextRequest) {
     const authNudge = buildAuthNudgePrompt(isGuest, messageCount)
     const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + regionalContext + authNudge
 
-    // Check which providers are available
-    const configured = getConfiguredProviders()
-    const hasAnyProvider = configured.minimax || configured.mixtral || configured.llama || configured.claude || !!byoClaudeKey
-
-    if (!hasAnyProvider) {
-      console.error('[AI Router] No AI provider API keys configured')
-      return NextResponse.json(
-        {
-          error: 'No AI providers are configured. Please set up at least one API key (MINIMAX_API_KEY, MISTRAL_API_KEY, TOGETHER_API_KEY, or ANTHROPIC_API_KEY) or enable BYO mode with your own API key.',
-          code: 'NO_PROVIDERS_CONFIGURED'
-        },
-        { status: 503 }
-      )
-    }
-
-    // Classify message to determine if we should skip directly to Claude
-    const isSensitiveContent = classifyMessage(message)
-
-    let content: string | undefined
-    let provider: 'minimax' | 'mixtral' | 'llama' | 'claude' = 'minimax'
-    const errors: string[] = []
+    let content: string
+    let provider: 'minimax' | 'openclaw' | 'claude' | 'openai' = 'minimax'
     
-    // If sensitive content detected, skip directly to Claude Haiku
-    if (isSensitiveContent) {
-      console.log('[AI Router] Sensitive content detected, routing to Claude Haiku')
+    // Check MiniMax rate limit
+    const { allowed: minimaxAllowed } = checkMiniMaxRateLimit(sessionId || 'anonymous')
+
+    // Try MiniMax first (primary)
+    if (minimaxAllowed) {
       try {
-        content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
-        provider = 'claude'
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : 'Unknown error'
-        errors.push(`claude: ${msg}`)
-        throw new Error(`Claude failed for sensitive content: ${msg}`)
+        content = await callMiniMax(fullSystemPrompt, messages)
+      } catch (minimaxError) {
+        console.warn('MiniMax failed, falling back to OpenClaw:', minimaxError)
+        // Fallback to OpenClaw
+        try {
+          content = await callOpenClaw(fullSystemPrompt, messages)
+          provider = 'openclaw'
+        } catch (openclawError) {
+          console.warn('OpenClaw failed, falling back to Claude:', openclawError)
+          // Fallback to Claude
+          try {
+            content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
+            provider = 'claude'
+          } catch (claudeError) {
+            // Final fallback to OpenAI
+            try {
+              content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
+              provider = 'openai'
+            } catch {
+              throw new Error('All AI providers failed')
+            }
+          }
+        }
       }
     } else {
-      // Check MiniMax rate limit
-      const { allowed: minimaxAllowed } = checkMiniMaxRateLimit(sessionId || 'anonymous')
-
-      // Try MiniMax first (primary) - only if configured
-      if (configured.minimax && minimaxAllowed) {
-        try {
-          content = await callMiniMax(fullSystemPrompt, messages)
-        } catch (minimaxError) {
-          const msg = minimaxError instanceof Error ? minimaxError.message : 'Unknown error'
-          errors.push(`minimax: ${msg}`)
-          console.warn('MiniMax failed, falling back:', msg)
-        }
-      } else if (!configured.minimax) {
-        errors.push('minimax: not configured')
-      } else {
-        errors.push('minimax: rate limited')
-      }
-
-      // Try Mixtral if MiniMax didn't succeed
-      if (!content && configured.mixtral) {
-        try {
-          content = await callMixtral(fullSystemPrompt, messages)
-          provider = 'mixtral'
-        } catch (mixtralError) {
-          const msg = mixtralError instanceof Error ? mixtralError.message : 'Unknown error'
-          errors.push(`mixtral: ${msg}`)
-          console.warn('Mixtral failed, falling back:', msg)
-        }
-      } else if (!content && !configured.mixtral) {
-        errors.push('mixtral: not configured')
-      }
-
-      // Try Llama if previous providers didn't succeed
-      if (!content && configured.llama) {
-        try {
-          content = await callLlama(fullSystemPrompt, messages)
-          provider = 'llama'
-        } catch (llamaError) {
-          const msg = llamaError instanceof Error ? llamaError.message : 'Unknown error'
-          errors.push(`llama: ${msg}`)
-          console.warn('Llama failed, falling back:', msg)
-        }
-      } else if (!content && !configured.llama) {
-        errors.push('llama: not configured')
-      }
-
-      // Try Claude as final fallback
-      if (!content && (configured.claude || byoClaudeKey)) {
+      // MiniMax rate limited, skip to OpenClaw
+      console.warn('MiniMax rate limited, using OpenClaw')
+      try {
+        content = await callOpenClaw(fullSystemPrompt, messages)
+        provider = 'openclaw'
+      } catch (openclawError) {
+        console.warn('OpenClaw failed, falling back to Claude:', openclawError)
         try {
           content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
           provider = 'claude'
         } catch (claudeError) {
-          const msg = claudeError instanceof Error ? claudeError.message : 'Unknown error'
-          errors.push(`claude: ${msg}`)
-          console.warn('Claude failed:', msg)
+          try {
+            content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
+            provider = 'openai'
+          } catch {
+            throw new Error('All AI providers failed')
+          }
         }
-      } else if (!content && !configured.claude && !byoClaudeKey) {
-        errors.push('claude: not configured')
-      }
-
-      // If no provider succeeded
-      if (!content) {
-        console.error('[AI Router] All providers failed:', errors.join('; '))
-        return NextResponse.json(
-          {
-            error: 'All AI providers are temporarily unavailable. Please try again in a moment.',
-            code: 'ALL_PROVIDERS_FAILED'
-          },
-          { status: 503 }
-        )
       }
     }
 
@@ -551,7 +439,7 @@ export async function OPTIONS() {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, x-byo-claude-key'
+      'Access-Control-Allow-Headers': 'Content-Type, x-byo-claude-key, x-byo-openai-key'
     }
   })
 }
