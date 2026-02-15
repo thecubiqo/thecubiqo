@@ -9,7 +9,26 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const error = searchParams.get('error')
+  const error_description = searchParams.get('error_description')
   const next = searchParams.get('next') ?? '/'
+
+  // Handle error from URL params (e.g., rate limit errors)
+  if (error) {
+    console.error('[Auth Callback] URL param error:', error, error_description)
+    const errorMessage = error_description || error
+    
+    // Check if it's a rate limit error
+    if (errorMessage.toLowerCase().includes('rate limit') || errorMessage.toLowerCase().includes('too many')) {
+      return NextResponse.redirect(
+        `${origin}/auth/error?error=rate_limit_exceeded&description=${encodeURIComponent(errorMessage)}`
+      )
+    }
+    
+    return NextResponse.redirect(
+      `${origin}/auth/error?error=${encodeURIComponent(error)}&description=${encodeURIComponent(errorMessage)}`
+    )
+  }
 
   // No code provided
   if (!code) {
@@ -25,6 +44,14 @@ export async function GET(request: Request) {
 
     if (exchangeError) {
       console.error('[Auth Callback] Exchange error:', exchangeError.message)
+      
+      // Check if it's a rate limit error
+      if (exchangeError.message.toLowerCase().includes('rate limit') || exchangeError.message.toLowerCase().includes('too many')) {
+        return NextResponse.redirect(
+          `${origin}/auth/error?error=rate_limit_exceeded&description=${encodeURIComponent(exchangeError.message)}`
+        )
+      }
+      
       return NextResponse.redirect(`${origin}/auth/error?error=auth_callback_failed`)
     }
 

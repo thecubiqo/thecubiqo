@@ -14,6 +14,7 @@ function AuthErrorContent() {
   const [mounted, setMounted] = useState(false)
   
   const error = searchParams.get('error') || 'unknown_error'
+  const description = searchParams.get('description')
   
   useEffect(() => {
     setMounted(true)
@@ -21,6 +22,12 @@ function AuthErrorContent() {
 
   const getErrorMessage = (errorCode: string) => {
     switch (errorCode) {
+      case 'rate_limit_exceeded':
+        return {
+          title: 'Too Many Attempts',
+          description: description || 'You\'ve made too many sign-in attempts. This is a security measure to protect your account.',
+          suggestion: 'Please wait a few minutes before trying again.'
+        }
       case 'auth_callback_failed':
         return {
           title: 'Authentication Failed',
@@ -42,7 +49,7 @@ function AuthErrorContent() {
       default:
         return {
           title: 'Authentication Error',
-          description: 'Something went wrong during authentication.',
+          description: description || 'Something went wrong during authentication.',
           suggestion: 'Please try again or contact support if the issue persists.'
         }
     }
