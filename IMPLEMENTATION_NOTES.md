@@ -68,8 +68,8 @@
 Out of 27 open PRs:
 - **1 PR** confirmed merged (PR #34) - close immediately
 - **4 PRs** likely superseded - review and close
-- **3 PRs** documentation/clarification - quick review
-- **6 PRs** drafts - triage needed
+- **1 PR** documentation/clarification - quick review
+- **8 PRs** drafts - triage needed
 - **13 PRs** ready - standard review process
 
 ## Technical Approach

@@ -38,8 +38,8 @@ Out of 27 open PRs:
 
 - **1 PR** - Already merged, just needs to be closed (PR #34)
 - **4 PRs** - Likely superseded by other work
-- **3 PRs** - Documentation/clarification (quick review needed)
-- **6 PRs** - Draft PRs needing triage
+- **1 PR** - Documentation/clarification (quick review needed)
+- **8 PRs** - Draft PRs needing triage
 - **13 PRs** - Ready PRs awaiting review/merge decision
 
 ## 🚀 Fastest Way to Clean Up
