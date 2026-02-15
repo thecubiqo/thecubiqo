@@ -53,7 +53,7 @@ export default function PromptPane({ onCodePatch }: PromptPaneProps) {
 
       setHistory((prev) => [
         {
-          id: Date.now().toString(),
+          id: crypto.randomUUID(),
           prompt,
           response: reply,
           timestamp: new Date(),

@@ -152,7 +152,7 @@ export default function DevConsole() {
           </div>
           {/* Live Coder Pane – 60% */}
           <div style={{ width: '60%' }}>
-            <LiveCoderPane initialCode={liveCode} />
+            <LiveCoderPane key={liveCode} initialCode={liveCode} />
           </div>
         </div>
 

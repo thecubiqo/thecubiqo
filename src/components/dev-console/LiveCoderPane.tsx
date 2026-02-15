@@ -62,10 +62,13 @@ export default function LiveCoderPane({ initialCode }: LiveCoderPaneProps) {
     setDiagnostics([])
   }, [code])
 
+  // Monaco MarkerSeverity: Hint=1, Info=2, Warning=4, Error=8
+  const MONACO_SEVERITY_ERROR = 8
+
   const handleEditorValidation = useCallback((markers: Array<{ message: string; startLineNumber: number; severity: number }>) => {
     setDiagnostics(
       markers
-        .filter((m) => m.severity >= 4) // errors only
+        .filter((m) => m.severity >= MONACO_SEVERITY_ERROR)
         .map((m) => `Line ${m.startLineNumber}: ${m.message}`)
     )
   }, [])
