@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { listAgents } from '@/lib/engine/agent';
 import { getCurrentUser } from '@/lib/auth/actions';
 import '@/lib/engine/init';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // Check authentication
     const user = await getCurrentUser();
