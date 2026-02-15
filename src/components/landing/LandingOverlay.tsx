@@ -3,9 +3,20 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 
-export function LandingOverlay() {
+import { TopRightCTA } from '@/components/TopRightCTA.client'
+
+interface LandingOverlayProps {
+    showTopRightCTA?: boolean
+}
+
+export function LandingOverlay({ showTopRightCTA = false }: LandingOverlayProps) {
     return (
         <div className="pointer-events-none fixed inset-0 flex flex-col items-center justify-center text-center z-10 text-white">
+            {showTopRightCTA && (
+                <div className="pointer-events-auto">
+                    <TopRightCTA />
+                </div>
+            )}
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
