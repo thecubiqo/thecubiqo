@@ -5,19 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import type { Database } from '@/types/database.types';
 
-interface DesignToggle {
-  id: string;
-  name: string;
-  display_name: string;
-  description: string | null;
-  category: 'design' | 'feature' | 'experiment';
-  is_enabled: boolean;
-  config: Record<string, any>;
-  updated_by: string | null;
-  created_at: string;
-  updated_at: string;
-}
+type DesignToggle = Database['public']['Tables']['design_toggles']['Row'];
 
 /**
  * GET /api/admin/designs
@@ -94,7 +84,7 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     const adminEmails = ['aditya@cubiqo.ai'];
-    if (!profile || !adminEmails.includes(profile.email)) {
+    if (!profile || !profile.email || !adminEmails.includes(profile.email)) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
@@ -173,7 +163,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     const adminEmails = ['aditya@cubiqo.ai'];
-    if (!profile || !adminEmails.includes(profile.email)) {
+    if (!profile || !profile.email || !adminEmails.includes(profile.email)) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 

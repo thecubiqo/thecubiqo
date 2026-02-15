@@ -449,6 +449,45 @@ export type Database = {
         }
         Relationships: []
       }
+      design_toggles: {
+        Row: {
+          id: string
+          name: string
+          display_name: string
+          description: string | null
+          category: 'design' | 'feature' | 'experiment'
+          is_enabled: boolean
+          config: Json
+          updated_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          display_name: string
+          description?: string | null
+          category?: 'design' | 'feature' | 'experiment'
+          is_enabled?: boolean
+          config?: Json
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          display_name?: string
+          description?: string | null
+          category?: 'design' | 'feature' | 'experiment'
+          is_enabled?: boolean
+          config?: Json
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sessions: {
         Row: {
           created_at: string | null
