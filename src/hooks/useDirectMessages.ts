@@ -52,7 +52,7 @@ export function useDirectMessages(friendId?: string) {
     } finally {
       setLoading(false)
     }
-  }, [friendId])
+  }, [friendId, supabase])
 
   // Fetch unread message count
   const fetchUnreadCount = useCallback(async () => {
@@ -76,7 +76,7 @@ export function useDirectMessages(friendId?: string) {
     } catch (err) {
       console.error('[useDirectMessages] Error fetching unread count:', err)
     }
-  }, [])
+  }, [supabase])
 
   useEffect(() => {
     fetchMessages()
@@ -133,7 +133,7 @@ export function useDirectMessages(friendId?: string) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [friendId, fetchMessages, fetchUnreadCount])
+  }, [friendId, fetchMessages, fetchUnreadCount, supabase])
 
   // Send a message
   const sendMessage = useCallback(
@@ -167,7 +167,7 @@ export function useDirectMessages(friendId?: string) {
         return false
       }
     },
-    [friendId]
+    [friendId, supabase]
   )
 
   // Mark messages as read
@@ -193,7 +193,7 @@ export function useDirectMessages(friendId?: string) {
       console.error('[useDirectMessages] Error marking as read:', err)
       return false
     }
-  }, [friendId, fetchUnreadCount])
+  }, [friendId, supabase, fetchUnreadCount])
 
   // Mark message as voice delivered
   const markAsVoiceDelivered = useCallback(
@@ -219,7 +219,7 @@ export function useDirectMessages(friendId?: string) {
         return false
       }
     },
-    []
+    [supabase]
   )
 
   return {

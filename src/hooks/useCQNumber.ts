@@ -46,7 +46,7 @@ export function useCQNumber() {
     }
 
     fetchCurrentCQ()
-  }, [])
+  }, [supabase])
 
   // Lookup user by CQ number
   const lookupByCQ = useCallback(async (cqNumber: string): Promise<CQProfile | null> => {
@@ -73,7 +73,7 @@ export function useCQNumber() {
       setError(err instanceof Error ? err.message : 'Failed to lookup CQ number')
       return null
     }
-  }, [])
+  }, [supabase])
 
   // Copy CQ number to clipboard
   const copyCQ = useCallback(async () => {

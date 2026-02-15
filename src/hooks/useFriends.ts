@@ -61,7 +61,7 @@ export function useFriends() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [supabase])
 
   useEffect(() => {
     fetchFriends()
@@ -127,7 +127,7 @@ export function useFriends() {
       setError(err instanceof Error ? err.message : 'Failed to send friend request')
       return false
     }
-  }, [fetchFriends])
+  }, [supabase, fetchFriends])
 
   // Accept friend request
   const acceptFriendRequest = useCallback(async (friendshipId: string): Promise<boolean> => {
@@ -148,7 +148,7 @@ export function useFriends() {
       setError(err instanceof Error ? err.message : 'Failed to accept friend request')
       return false
     }
-  }, [fetchFriends])
+  }, [supabase, fetchFriends])
 
   // Decline friend request
   const declineFriendRequest = useCallback(async (friendshipId: string): Promise<boolean> => {
@@ -169,7 +169,7 @@ export function useFriends() {
       setError(err instanceof Error ? err.message : 'Failed to decline friend request')
       return false
     }
-  }, [fetchFriends])
+  }, [supabase, fetchFriends])
 
   // Block user
   const blockUser = useCallback(async (friendshipId: string): Promise<boolean> => {
@@ -190,7 +190,7 @@ export function useFriends() {
       setError(err instanceof Error ? err.message : 'Failed to block user')
       return false
     }
-  }, [fetchFriends])
+  }, [supabase, fetchFriends])
 
   // Remove friend
   const removeFriend = useCallback(async (friendshipId: string): Promise<boolean> => {
@@ -211,7 +211,7 @@ export function useFriends() {
       setError(err instanceof Error ? err.message : 'Failed to remove friend')
       return false
     }
-  }, [fetchFriends])
+  }, [supabase, fetchFriends])
 
   return {
     friends,
