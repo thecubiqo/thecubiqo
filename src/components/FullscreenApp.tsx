@@ -207,27 +207,13 @@ export function FullscreenApp() {
           // Transition: thinking → speaking (handled by TTS onStart)
           speak(responseText)
         } else {
-          // No response - if voice enabled, go back to listening
-          if (voiceEnabledRef.current && startListeningRef.current) {
-            setAppState('listening')
-            setAnimationState('listening')
-            startListeningRef.current()
-          } else {
-            setAppState('idle')
-            setAnimationState('idle')
-          }
+          // No response (API error) - speak an error message so user knows
+          speak("I'm having trouble connecting right now. Please try again in a moment.")
         }
       } catch (error) {
         console.error('AI Error:', error)
-        // On error - if voice enabled, go back to listening
-        if (voiceEnabledRef.current && startListeningRef.current) {
-          setAppState('listening')
-          setAnimationState('listening')
-          startListeningRef.current()
-        } else {
-          setAppState('idle')
-          setAnimationState('idle')
-        }
+        // On error - speak error message and return to appropriate state
+        speak("Sorry, I couldn't process that. Please try again.")
       }
     },
     onEnd: () => {
