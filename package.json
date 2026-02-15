@@ -8,11 +8,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "validate-env": "node scripts/validate-env.js"
+    "validate-env": "node scripts/validate-env.js",
+    "pr-triage": "tsx scripts/pr-triage-agent.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.70.1",
     "@monaco-editor/react": "^4.7.0",
+    "@octokit/rest": "^22.0.1",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.0",
     "@react-three/postprocessing": "^3.0.4",
