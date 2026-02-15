@@ -32,7 +32,7 @@ export function CubeControls({
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
-    <div className="mt-3 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 premium-card">
+    <div className="mt-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 premium-card">
       {/* Header - Always visible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}

@@ -123,7 +123,7 @@ export function CubiQoApp() {
 
         {/* Auth Panel (collapsible) */}
         {showAuth && !isAuthenticated && (
-          <div className="mb-4 p-4 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 premium-card">
+          <div className="mb-4 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 premium-card">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <h3 className="text-sm font-medium text-zinc-900 dark:text-white mb-2">
