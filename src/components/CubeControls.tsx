@@ -32,11 +32,13 @@ export function CubeControls({
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
-    <div className="mt-3 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+    <div className="mt-3 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 premium-card">
       {/* Header - Always visible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-2 flex items-center justify-between text-sm font-medium text-zinc-900 dark:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors rounded-lg"
+        className="w-full px-4 py-2 flex items-center justify-between text-sm font-medium text-zinc-900 dark:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-premium rounded-lg"
+        aria-expanded={isExpanded}
+        aria-controls="cube-settings-panel"
       >
         <span>Cube Settings</span>
         <svg
@@ -51,7 +53,7 @@ export function CubeControls({
 
       {/* Controls - Collapsible */}
       {isExpanded && (
-        <div className="px-4 pb-4 space-y-4 border-t border-zinc-200 dark:border-zinc-800 pt-4">
+        <div id="cube-settings-panel" className="px-4 pb-4 space-y-4 border-t border-zinc-200 dark:border-zinc-800 pt-4">
           {/* Size Control */}
           <div>
             <label className="flex items-center justify-between text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">
@@ -81,7 +83,7 @@ export function CubeControls({
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => onShapeChange('energy')}
-                className={`px-3 py-2 text-xs font-medium rounded transition-colors ${
+                className={`px-3 py-2 text-xs font-medium rounded-md transition-premium ${
                   shapeType === 'energy'
                     ? 'bg-orange-500 text-white'
                     : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -91,7 +93,7 @@ export function CubeControls({
               </button>
               <button
                 onClick={() => onShapeChange('isometric')}
-                className={`px-3 py-2 text-xs font-medium rounded transition-colors ${
+                className={`px-3 py-2 text-xs font-medium rounded-md transition-premium ${
                   shapeType === 'isometric'
                     ? 'bg-orange-500 text-white'
                     : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -108,7 +110,9 @@ export function CubeControls({
               <span>Show Eyes</span>
               <button
                 onClick={() => onEyesToggle(!showEyes)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                role="switch"
+                aria-checked={showEyes}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-premium ${
                   showEyes ? 'bg-orange-500' : 'bg-zinc-300 dark:bg-zinc-700'
                 }`}
               >

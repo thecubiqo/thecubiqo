@@ -27,7 +27,7 @@ export function PoweredByLogos({ isDark = true, position = 'footer' }: PoweredBy
         href="https://www.anthropic.com/claude"
         target="_blank"
         rel="noopener noreferrer"
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 ${
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-premium ${
           isDark 
             ? 'bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05]' 
             : 'bg-gray-100 hover:bg-gray-200 border border-gray-200'
@@ -44,6 +44,7 @@ export function PoweredByLogos({ isDark = true, position = 'footer' }: PoweredBy
           viewBox="0 0 100 24" 
           fill="currentColor"
           xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
         >
           {/* Claude logo - simplified wordmark */}
           <text 
@@ -64,7 +65,7 @@ export function PoweredByLogos({ isDark = true, position = 'footer' }: PoweredBy
         href="https://openai.com"
         target="_blank"
         rel="noopener noreferrer"
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 ${
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-premium ${
           isDark 
             ? 'bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05]' 
             : 'bg-gray-100 hover:bg-gray-200 border border-gray-200'
@@ -81,6 +82,7 @@ export function PoweredByLogos({ isDark = true, position = 'footer' }: PoweredBy
           viewBox="0 0 100 24" 
           fill="currentColor"
           xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
         >
           {/* OpenAI logo - simplified wordmark */}
           <text 
