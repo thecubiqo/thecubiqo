@@ -154,7 +154,7 @@ export function AuthNudgeModal({ isOpen, onClose, cta }: AuthNudgeModalProps) {
                 <p className="text-zinc-500 text-xs mb-3">
                   Open your email now:
                 </p>
-                <MagicLinkButtons source="auth_modal" email={email} className="justify-center" />
+                <MagicLinkButtons source="auth_modal" email={email} />
               </div>
               
               <p className="text-zinc-500 text-xs">

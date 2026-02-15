@@ -40,8 +40,6 @@ export async function trackEvent(
     
     if (error) {
       console.error('[Analytics] Failed to track event:', error)
-    } else {
-      console.log('[Analytics] Event tracked:', type, properties)
     }
   } catch (error) {
     // Silently fail - analytics should not break the app
