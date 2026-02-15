@@ -3,6 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { saveAuthenticator } from '@/lib/webauthn'
 
+// Mark as dynamic to skip during build
+export const dynamic = 'force-dynamic'
+
 const RP_ID = process.env.NEXT_PUBLIC_RP_ID || 'localhost'
 const ORIGIN = process.env.NEXT_PUBLIC_ORIGIN || 'http://localhost:3000'
 

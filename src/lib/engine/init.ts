@@ -16,7 +16,7 @@ export async function initializeEngine() {
   }
 }
 
-// Auto-initialize on import (server-side only)
-if (typeof window === 'undefined') {
+// Auto-initialize on import (server-side only, skip during build)
+if (typeof window === 'undefined' && process.env.NODE_ENV !== 'production') {
   initializeEngine();
 }

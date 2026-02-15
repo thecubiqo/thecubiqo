@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserAuthenticators } from '@/lib/webauthn'
 
+// Mark as dynamic to skip during build\nexport const dynamic = 'force-dynamic'\n
+
 const RP_NAME = 'CubiQo'
 const RP_ID = process.env.NEXT_PUBLIC_RP_ID || 'localhost'
 
