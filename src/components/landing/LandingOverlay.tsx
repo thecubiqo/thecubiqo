@@ -28,6 +28,22 @@ export function LandingOverlay() {
                     YOU MAY TAP NOW
                 </motion.p>
             </motion.div>
+
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                transition={{ delay: 2, duration: 2 }}
+                className="absolute bottom-8 w-full text-center"
+            >
+                <div className="flex justify-center items-center space-x-8 md:space-x-16 text-sm md:text-base font-light tracking-[0.2em] text-gray-400 uppercase">
+                    <span>OpenAI</span>
+                    <span>Anthropic</span>
+                    <span>Meta Llama</span>
+                    <span>Mistral</span>
+                    <span>Gemini</span>
+                    <span>DeepSeek</span>
+                </div>
+            </motion.div>
         </div>
     )
 }
