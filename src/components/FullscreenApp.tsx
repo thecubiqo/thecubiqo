@@ -15,12 +15,14 @@ import { GettingStartedPanel } from './GettingStartedPanel'
 import { LandingCube } from './LandingCube'
 import { PoweredByLogosCompact } from './PoweredByLogos'
 import { AdminControls } from './admin'
+import { SidePanel } from './cq'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
 import { useElevenLabsTTS } from '@/hooks/useElevenLabsTTS'
 import { useChat } from '@/hooks/useChat'
 import { useBYO } from '@/hooks/useBYO'
+import { useDirectMessages } from '@/hooks/useDirectMessages'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './cube/Cube'
 
@@ -30,6 +32,7 @@ type AppState = 'idle' | 'listening' | 'thinking' | 'speaking'
 export function FullscreenApp() {
   const { session, isGuest, isLoading: sessionLoading } = useSession()
   const { user, isAuthenticated, signOut } = useAuth()
+  const { unreadCount } = useDirectMessages()
 
   const [colorName, setColorName] = useState<ColorName>('ORANGE')
   const [animationState, setAnimationState] = useState<AnimationState>('idle')
@@ -46,6 +49,7 @@ export function FullscreenApp() {
   const [showRGYChats, setShowRGYChats] = useState(false)
   const [showLandingCube, setShowLandingCube] = useState(false)
   const [showGettingStarted, setShowGettingStarted] = useState(false)
+  const [showCQPanel, setShowCQPanel] = useState(false)
   
   // RGY Signal pulse state - triggers brief pulse when keyword is saved
   const [rgyPulseColor, setRgyPulseColor] = useState<'RED' | 'YELLOW' | 'GREEN' | null>(null)
@@ -434,8 +438,30 @@ export function FullscreenApp() {
         )}
       </div>
 
-      {/* Right side - RGY Signal + Keywords underneath */}
+      {/* Right side - CQ Connect + RGY Signal + Keywords underneath */}
       <div className="fixed right-[4.5rem] top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
+        {/* CQ Connect Button - Only shown when authenticated */}
+        {isAuthenticated && (
+          <button
+            onClick={() => setShowCQPanel(true)}
+            className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 ${
+              isDark 
+                ? 'bg-zinc-800/80 hover:bg-zinc-700/80 text-white/60 hover:text-white/80' 
+                : 'bg-white/80 hover:bg-white text-gray-600 hover:text-gray-800'
+            } backdrop-blur-md shadow-lg`}
+            title="CQ Connect"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            {unreadCount > 0 && (
+              <div className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#FF6F00] text-white text-[11px] font-bold">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </div>
+            )}
+          </button>
+        )}
+        
         {/* RGY Traffic Light - Opens Keywords Panel */}
         <RGYSignalButton 
           onClick={() => setShowKeywordPanel(true)} 
@@ -834,6 +860,9 @@ export function FullscreenApp() {
           detectedColor={colorName}
         />
       )}
+
+      {/* CQ Connect Side Panel */}
+      <SidePanel isOpen={showCQPanel} onClose={() => setShowCQPanel(false)} />
     </div>
   )
 }
