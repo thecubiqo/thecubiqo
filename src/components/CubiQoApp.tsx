@@ -33,6 +33,11 @@ export function CubiQoApp() {
   const [shapeType, setShapeType] = useState<CubeShape>('energy')
   const [showEyes, setShowEyes] = useState<boolean>(false)
 
+  // Log auth state changes for debugging
+  useEffect(() => {
+    console.log('[CubiQoApp] Auth state updated - isAuthenticated:', isAuthenticated, 'user:', user?.email)
+  }, [isAuthenticated, user])
+
   // Load preferences from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
