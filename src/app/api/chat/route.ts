@@ -62,20 +62,21 @@ function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining
 }
 
 // Server-side Supabase client for loading memories
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
-)
+// Support both old and new env var names (fallback pattern)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
 // MiniMax API call (primary)
 async function callMiniMax(
   systemPrompt: string,
   messages: { role: string; content: string }[]
 ): Promise<string> {
-  const apiKey = process.env.MINIMAX_API_KEY
+  // Support both old and new env var names (fallback pattern)
+  const apiKey = process.env.MINIMAX_KEY || process.env.MINIMAX_API_KEY
 
   if (!apiKey) {
-    throw new Error('MINIMAX_API_KEY not configured')
+    throw new Error('MINIMAX_KEY or MINIMAX_API_KEY not configured')
   }
 
   // Build messages for MiniMax API
