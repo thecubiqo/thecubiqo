@@ -5,7 +5,7 @@ import { ParticleLanding } from '@/components/landing/ParticleLanding'
 import { LandingOverlay } from '@/components/landing/LandingOverlay'
 import { Suspense } from 'react'
 
-// Force dynamic rendering to ensure auth state updates are reflected immediately
+// Force dynamic rendering to ensure fresh content on each request
 export const dynamic = 'force-dynamic';
 
 export default function Home() {
@@ -18,7 +18,7 @@ export default function Home() {
           dpr={[1, 2]} // High Def scaling
           gl={{
             powerPreference: "high-performance",
-            antialias: false, // ToneMapping handles this usually with postprocessing
+            antialias: false, // Tone mapping handles this usually with postprocessing
             alpha: false
           }}
         >
