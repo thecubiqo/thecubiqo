@@ -1,5 +1,5 @@
 /**
- * Edge Proxy for Auth & Geo-Routing
+ * Edge Middleware for Auth & Geo-Routing
  *
  * Handles Supabase session refresh and routes users to regional versions.
  * Runs at the edge for minimal latency.
@@ -18,7 +18,7 @@ const COUNTRY_TO_REGION: Record<string, string> = {
 // Countries that should stay on main by default
 const MAIN_COUNTRIES = new Set(['US'])
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
     // Get user's country from Vercel geo headers (Next.js 16+ uses headers only)
@@ -26,7 +26,11 @@ export async function proxy(request: NextRequest) {
     const city = request.headers.get('x-vercel-ip-city') || ''
 
     // Create base response with geo headers
-    let response = NextResponse.next({ request })
+    let response = NextResponse.next({ 
+        request: {
+            headers: request.headers,
+        },
+    })
     response.headers.set('x-user-country', country)
     response.headers.set('x-user-city', city)
 
@@ -118,7 +122,6 @@ export const config = {
     matcher: [
         /*
          * Match all request paths except:
-         * - api routes (API is region-agnostic, uses headers)
          * - _next/static (static files)
          * - _next/image (image optimization)
          * - favicon.ico, icons, manifest
