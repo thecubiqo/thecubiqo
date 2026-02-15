@@ -36,6 +36,14 @@ const minimaxRateLimitMap = new Map<string, { count: number; resetTime: number }
 const MINIMAX_RATE_LIMIT = 100 // requests per hour
 const MINIMAX_RATE_WINDOW = 60 * 60 * 1000 // 1 hour in ms
 
+// Sensitive content patterns for classification layer
+// These patterns route messages directly to Claude Haiku for better handling
+const SENSITIVE_CONTENT_PATTERNS = [
+  /\b(intimate|sexual|erotic|nsfw|adult|explicit)\b/i,
+  /\b(love|romance|relationship|dating|flirt)\b.*\b(private|secret|personal)\b/i,
+  /\b(feel|feeling|emotion|emotional)\b.*\b(close|connection|bond|deep)\b/i,
+]
+
 function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining: number } {
   const now = Date.now()
   const record = minimaxRateLimitMap.get(sessionId)
@@ -112,14 +120,7 @@ async function callMiniMax(
 // Simple classification layer to detect sensitive/intimate content
 // Returns true if content should skip directly to Claude Haiku
 function classifyMessage(message: string): boolean {
-  const sensitivePatterns = [
-    /\b(intimate|sexual|erotic|nsfw|adult|explicit)\b/i,
-    /\b(love|romance|relationship|dating|flirt)\b.*\b(private|secret|personal)\b/i,
-    /\b(feel|feeling|emotion|emotional)\b.*\b(close|connection|bond|deep)\b/i,
-  ]
-  
-  // Check if message matches sensitive patterns
-  return sensitivePatterns.some(pattern => pattern.test(message))
+  return SENSITIVE_CONTENT_PATTERNS.some(pattern => pattern.test(message))
 }
 
 // Mixtral API call (first fallback)
@@ -397,7 +398,7 @@ export async function POST(request: NextRequest) {
     const isSensitiveContent = classifyMessage(message)
 
     let content: string
-    let provider: 'minimax' | 'openclaw' | 'mixtral' | 'llama' | 'claude' = 'minimax'
+    let provider: 'minimax' | 'mixtral' | 'llama' | 'claude' = 'minimax'
     
     // If sensitive content detected, skip directly to Claude Haiku
     if (isSensitiveContent) {

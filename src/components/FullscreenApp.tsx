@@ -270,7 +270,9 @@ export function FullscreenApp() {
   // Voice button click handler - Toggle ON/OFF for seamless conversation
   const handleVoiceClick = useCallback(async () => {
     // CRITICAL: Unlock audio on user gesture (browser requires this)
-    // Call synchronously - don't await to ensure it happens in the same event loop tick
+    // Call synchronously (not awaited) to ensure it happens in the same event loop tick
+    // as the user's click event. Browsers require AudioContext to be initialized
+    // within a user gesture handler for security reasons. Awaiting would break this requirement.
     unlockAudio()
 
     if (!voiceEnabled) {
