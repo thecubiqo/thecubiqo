@@ -8,8 +8,8 @@ import { createClient } from '@supabase/supabase-js'
 import OpenAI from 'openai'
 
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+  process.env.NEXT_PUBLIC_SUPABASE_URL1 || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY1 || 'placeholder-key'
 )
 
 const openai = process.env.OPENAI_API_KEY 
@@ -129,9 +129,8 @@ export async function GET(request: NextRequest) {
         }
 
         // Calculate similarity scores
-        type MemoryWithEmbedding = { id: string; agent_id: string; content: string; metadata: unknown; created_at: string; embedding: number[] };
-        const results = (memories as MemoryWithEmbedding[])
-          .map((memory) => {
+        const results = memories
+          .map((memory: any) => {
             const similarity = cosineSimilarity(queryEmbedding, memory.embedding)
             return {
               id: memory.id,
