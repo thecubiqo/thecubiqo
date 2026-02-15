@@ -97,6 +97,202 @@ export type Database = {
           },
         ]
       }
+      feature_flags: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          enabled: boolean
+          scope: string
+          target_id: string | null
+          config: Json
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          enabled?: boolean
+          scope?: string
+          target_id?: string | null
+          config?: Json
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          enabled?: boolean
+          scope?: string
+          target_id?: string | null
+          config?: Json
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flags_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_flag_audit: {
+        Row: {
+          id: string
+          flag_id: string | null
+          flag_name: string
+          action: string
+          changed_by: string | null
+          changes: Json
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          flag_id?: string | null
+          flag_name: string
+          action: string
+          changed_by?: string | null
+          changes?: Json
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          flag_id?: string | null
+          flag_name?: string
+          action?: string
+          changed_by?: string | null
+          changes?: Json
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flag_audit_flag_id_fkey"
+            columns: ["flag_id"]
+            isOneToOne: false
+            referencedRelation: "feature_flags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_flag_audit_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_flag_webhooks: {
+        Row: {
+          id: string
+          flag_id: string | null
+          url: string
+          secret: string | null
+          enabled: boolean
+          events: string[]
+          retry_config: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          flag_id?: string | null
+          url: string
+          secret?: string | null
+          enabled?: boolean
+          events?: string[]
+          retry_config?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          flag_id?: string | null
+          url?: string
+          secret?: string | null
+          enabled?: boolean
+          events?: string[]
+          retry_config?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flag_webhooks_flag_id_fkey"
+            columns: ["flag_id"]
+            isOneToOne: false
+            referencedRelation: "feature_flags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_flag_webhook_logs: {
+        Row: {
+          id: string
+          webhook_id: string | null
+          flag_id: string | null
+          url: string
+          event: string
+          payload: Json
+          status_code: number | null
+          response_body: string | null
+          error: string | null
+          attempt_number: number
+          delivered_at: string
+        }
+        Insert: {
+          id?: string
+          webhook_id?: string | null
+          flag_id?: string | null
+          url: string
+          event: string
+          payload: Json
+          status_code?: number | null
+          response_body?: string | null
+          error?: string | null
+          attempt_number?: number
+          delivered_at?: string
+        }
+        Update: {
+          id?: string
+          webhook_id?: string | null
+          flag_id?: string | null
+          url?: string
+          event?: string
+          payload?: Json
+          status_code?: number | null
+          response_body?: string | null
+          error?: string | null
+          attempt_number?: number
+          delivered_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flag_webhook_logs_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "feature_flag_webhooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_flag_webhook_logs_flag_id_fkey"
+            columns: ["flag_id"]
+            isOneToOne: false
+            referencedRelation: "feature_flags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memory: {
         Row: {
           created_at: string | null
