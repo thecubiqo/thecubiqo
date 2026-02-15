@@ -63,7 +63,7 @@ export async function middleware(request: NextRequest) {
 
     // Skip routing for regional paths (already routed)
     if (pathname.match(/^\/(uk|in|jp|us)/)) {
-        const region = pathname.split('/')[1] ?? ''
+        const region = pathname.split('/')[1]
         if (region) {
             response.headers.set('x-user-region', region)
         }
