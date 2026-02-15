@@ -3,6 +3,7 @@ import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 // Force dynamic rendering to ensure auth state is always fresh
 export const dynamic = 'force-dynamic';
@@ -164,11 +165,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <link rel="canonical" href="https://www.cubiqo.ai" />
-
+        
         {/* JSON-LD Structured Data */}
         <script
           type="application/ld+json"
@@ -192,7 +193,9 @@ export default function RootLayout({
           } as React.CSSProperties
         }
       >
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
         <ServiceWorkerRegistration />
         <Analytics />
         <SpeedInsights />
