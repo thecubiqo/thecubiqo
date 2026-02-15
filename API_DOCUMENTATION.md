@@ -29,8 +29,7 @@ CubiQo is a multi-modal AI companion featuring:
 
 - **Voice-First Interface** - Natural speech interaction with emotional modulation
 - **Emotional Color System** - 8-color consciousness representing different emotional states
-- **Multi-Provider AI** - MiniMax (primary), Claude, OpenAI with intelligent routing
-- **Emergent Universal API** - Unified AI endpoint with spend tracking
+- **Multi-Provider AI** - MiniMax (primary), Mixtral, Llama, Claude Haiku with intelligent routing
 - **BYO Keys Mode** - Users can bring their own API keys for cost isolation
 - **Admin Controls** - Comprehensive spending caps and user management
 
@@ -50,7 +49,7 @@ CubiQo is a multi-modal AI companion featuring:
 
 **Features:**
 - Admin dashboard with user management
-- Unified API key management via Emergent
+- API key management for multiple providers
 - Analytics and spending caps monitoring
 - Browser headless automation controls
 - Supabase admin access
@@ -58,15 +57,12 @@ CubiQo is a multi-modal AI companion featuring:
 
 **Environment Variables:**
 ```env
-# Emergent Universal API (primary routing)
-NEXT_PUBLIC_USE_EMERGENT=true
-EMERGENT_API_URL=https://integrations.emergentagent.com/llm
-EMERGENT_API_KEY=sk-emergent-***
-
-# AI Models (routed through Emergent)
-ANTHROPIC_API_KEY=emergent
-OPENAI_API_KEY=emergent
-ELEVENLABS_API_KEY=emergent
+# AI Providers
+MINIMAX_API_KEY=***
+MISTRAL_API_KEY=***
+TOGETHER_API_KEY=***
+ANTHROPIC_API_KEY=***
+ELEVENLABS_API_KEY=***
 
 # Admin Features
 NEXT_PUBLIC_ADMIN_MODE=true
@@ -97,7 +93,6 @@ NEXT_PUBLIC_APP_URL=https://admin.cubiqo.com
 **Environment Variables:**
 ```env
 # Public Mode - Users bring their own keys
-NEXT_PUBLIC_USE_EMERGENT=false
 NEXT_PUBLIC_BYO_KEYS_MODE=true
 
 # Public Features Only
@@ -253,7 +248,7 @@ function MyComponent() {
 | `isLoading` | `boolean` | AI request in progress |
 | `error` | `string \| null` | Error message |
 | `conversationHistory` | `ConversationEntry[]` | Message history |
-| `lastProvider` | `'claude' \| 'openai' \| null` | Last AI provider used |
+| `lastProvider` | `'minimax' \| 'mixtral' \| 'llama' \| 'claude' \| null` | Last AI provider used |
 | `isInitialized` | `boolean` | Chat ready for use |
 
 #### Methods
@@ -565,13 +560,13 @@ Save message to conversation.
 
 ### POST /api/chat
 
-AI chat endpoint with multi-provider routing, memory personalization, and Emergent integration.
+AI chat endpoint with multi-provider routing and memory personalization.
 
-**Primary Providers:**
+**Provider Chain:**
 1. **MiniMax** (M2 model) - Primary, fastest response
-2. **Claude** (Haiku 4.5) - Fallback, high quality
-3. **OpenAI** (GPT-5.1) - Tertiary fallback
-4. **Emergent Universal API** - Admin mode routing (Prod-A)
+2. **Mixtral** (via Mistral API) - Fallback
+3. **Llama** (via Together API) - Secondary fallback
+4. **Claude Haiku** - Final fallback
 
 **Request**:
 ```json
@@ -600,10 +595,6 @@ AI chat endpoint with multi-provider routing, memory personalization, and Emerge
   "provider": "claude"
 }
 ```
-
-**Providers**:
-1. Claude (Anthropic) - primary
-2. OpenAI GPT-5.1 - red zone topics
 
 **Error Response**:
 ```json
@@ -853,45 +844,9 @@ CubiQo supports multiple AI providers with intelligent fallback:
 ```typescript
 // Provider chain (in order of preference)
 1. MiniMax M2 (fastest, cost-effective)
-2. Claude Haiku 4.5 (high quality, reliable)
-3. OpenAI GPT-5.1 (fallback)
-4. Emergent Universal API (admin unified routing)
-```
-
-### Emergent Universal API
-
-**Purpose:** Unified AI endpoint for admin deployments
-
-**Benefits:**
-- Single API key for all providers
-- Automatic spending tracking
-- Centralized error handling
-- Analytics and monitoring
-- Cost optimization
-
-**Configuration (Prod-A):**
-```env
-NEXT_PUBLIC_USE_EMERGENT=true
-EMERGENT_API_URL=https://integrations.emergentagent.com/llm
-EMERGENT_API_KEY=sk-emergent-***
-
-# Provider keys set to "emergent" flag
-ANTHROPIC_API_KEY=emergent
-OPENAI_API_KEY=emergent
-ELEVENLABS_API_KEY=emergent
-```
-
-**API Endpoint:**
-```
-POST https://integrations.emergentagent.com/llm/v1/chat/completions
-Authorization: Bearer sk-emergent-***
-Content-Type: application/json
-
-{
-  "model": "claude-haiku-4-5-20251001",
-  "messages": [...],
-  "max_tokens": 200
-}
+2. Mixtral (via Mistral API)
+3. Llama (via Together API)
+4. Claude Haiku (final fallback)
 ```
 
 ### BYO Keys Mode (Prod-B)
@@ -900,7 +855,7 @@ Content-Type: application/json
 
 **Flow:**
 1. User opens Settings → BYO Mode
-2. Enters API keys (Claude, OpenAI, MiniMax)
+2. Enters API keys (MiniMax, Mistral, Together, Claude)
 3. Keys stored in localStorage only
 4. Transmitted via HTTP headers
 
@@ -912,26 +867,30 @@ const { config, updateConfig, enabled } = useBYO()
 // Keys stored in localStorage: cubiqo_byo_config
 {
   enabled: true,
-  claudeApiKey: "sk-ant-***",
-  openaiApiKey: "sk-***",
-  minimaxApiKey: "***"
+  minimaxApiKey: "***",
+  mistralApiKey: "***",
+  togetherApiKey: "***",
+  claudeApiKey: "sk-ant-***"
 }
 
 // Headers sent to API
 {
-  "x-byo-claude-key": "sk-ant-***",
-  "x-byo-openai-key": "sk-***",
-  "x-byo-minimax-key": "***"
+  "x-byo-minimax-key": "***",
+  "x-byo-mistral-key": "***",
+  "x-byo-together-key": "***",
+  "x-byo-claude-key": "sk-ant-***"
 }
 ```
 
 **Server-Side:**
 ```typescript
 // /api/chat/route.ts
+const byoMinimaxKey = request.headers.get('x-byo-minimax-key')
+const byoMistralKey = request.headers.get('x-byo-mistral-key')
+const byoTogetherKey = request.headers.get('x-byo-together-key')
 const byoClaudeKey = request.headers.get('x-byo-claude-key')
-const byoOpenAIKey = request.headers.get('x-byo-openai-key')
 
-const apiKey = byoClaudeKey || process.env.ANTHROPIC_API_KEY
+const apiKey = byoMinimaxKey || process.env.MINIMAX_API_KEY
 // Use BYO key if provided, fallback to env
 ```
 
@@ -947,18 +906,25 @@ export const MINIMAX_CONFIG: ProviderConfig = {
   apiKeyEnv: 'MINIMAX_API_KEY'
 }
 
+export const MISTRAL_CONFIG: ProviderConfig = {
+  name: 'mixtral',
+  model: 'mixtral-8x7b-32768',
+  maxTokens: 200,
+  apiKeyEnv: 'MISTRAL_API_KEY'
+}
+
+export const LLAMA_CONFIG: ProviderConfig = {
+  name: 'llama',
+  model: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+  maxTokens: 200,
+  apiKeyEnv: 'TOGETHER_API_KEY'
+}
+
 export const CLAUDE_CONFIG: ProviderConfig = {
   name: 'claude',
   model: 'claude-haiku-4-5-20251001',
   maxTokens: 200,
   apiKeyEnv: 'ANTHROPIC_API_KEY'
-}
-
-export const OPENAI_CONFIG: ProviderConfig = {
-  name: 'openai',
-  model: 'gpt-5.1',
-  maxTokens: 200,
-  apiKeyEnv: 'OPENAI_API_KEY'
 }
 ```
 
@@ -984,7 +950,7 @@ const response = await callOpenClaw(
 ```
 
 **Features:**
-- OpenAI-compatible endpoint
+- Compatible API endpoint
 - Tool use capabilities
 - Memory and context management
 - Enhanced reasoning with Claude Sonnet 4.5
@@ -1084,8 +1050,10 @@ const settings = getVoiceSettings(text, mood, true)
 **Purpose:** Prevent runaway costs on all AI APIs
 
 **Limits:**
-- Anthropic (Claude): $200/month
-- OpenAI: $200/month
+- MiniMax: $200/month
+- Mistral (Mixtral): $200/month
+- Together (Llama): $200/month
+- Anthropic (Claude Haiku): $200/month
 - ElevenLabs (TTS): $200/month
 
 **Implementation:**
@@ -1109,15 +1077,19 @@ recordSpending('anthropic', cost)
 // Get status for dashboard
 const status = getSpendingStatus()
 // {
+//   minimax: { spent: 15.30, cap: 200, remaining: 184.70, percentUsed: 8 },
+//   mistral: { spent: 8.45, cap: 200, remaining: 191.55, percentUsed: 4 },
+//   together: { spent: 5.20, cap: 200, remaining: 194.80, percentUsed: 3 },
 //   anthropic: { spent: 45.23, cap: 200, remaining: 154.77, percentUsed: 23 },
-//   openai: { spent: 12.50, cap: 200, remaining: 187.50, percentUsed: 6 },
 //   elevenlabs: { spent: 89.10, cap: 200, remaining: 110.90, percentUsed: 45 }
 // }
 ```
 
 **Cost Estimation:**
-- Claude: ~$15/1M input tokens, ~$75/1M output tokens
-- OpenAI: ~$5/1M input tokens, ~$15/1M output tokens
+- MiniMax: ~$2/1M input tokens, ~$6/1M output tokens
+- Mixtral: ~$0.70/1M input tokens, ~$0.70/1M output tokens
+- Llama: ~$0.20/1M input tokens, ~$0.20/1M output tokens
+- Claude Haiku: ~$0.80/1M input tokens, ~$4/1M output tokens
 - ElevenLabs: ~$0.30 per 1000 characters
 
 **Reset Logic:**
@@ -1167,16 +1139,12 @@ const status = getSpendingStatus()
 ### Production-A (Admin)
 
 ```bash
-# Emergent Universal API
-NEXT_PUBLIC_USE_EMERGENT=true
-EMERGENT_API_URL=https://integrations.emergentagent.com/llm
-EMERGENT_API_KEY=sk-emergent-936E79916C0DbB0396
-
-# AI Providers (routed through Emergent)
-ANTHROPIC_API_KEY=emergent
-OPENAI_API_KEY=emergent
-ELEVENLABS_API_KEY=emergent
-MINIMAX_API_KEY=emergent
+# AI Providers
+MINIMAX_API_KEY=***
+MISTRAL_API_KEY=***
+TOGETHER_API_KEY=***
+ANTHROPIC_API_KEY=***
+ELEVENLABS_API_KEY=***
 
 # Admin Features
 NEXT_PUBLIC_ADMIN_MODE=true
@@ -1200,7 +1168,6 @@ VERCEL_ENV=production
 
 ```bash
 # Public Mode
-NEXT_PUBLIC_USE_EMERGENT=false
 NEXT_PUBLIC_BYO_KEYS_MODE=true
 
 # Public Features Only
@@ -1235,10 +1202,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 # AI Providers (direct keys for dev)
-ANTHROPIC_API_KEY=sk-ant-***
-OPENAI_API_KEY=sk-***
-ELEVENLABS_API_KEY=***
 MINIMAX_API_KEY=***
+MISTRAL_API_KEY=***
+TOGETHER_API_KEY=***
+ANTHROPIC_API_KEY=sk-ant-***
+ELEVENLABS_API_KEY=***
 
 # OpenClaw (optional)
 OPENCLAW_BASE_URL=http://localhost:18789

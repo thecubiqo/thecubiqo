@@ -16,23 +16,19 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
   const { config, toggleBYO, setApiKeys, clearKeys, isBYOEnabled } = useBYO()
 
   const [claudeKey, setClaudeKey] = useState('')
-  const [openaiKey, setOpenaiKey] = useState('')
   const [showKeys, setShowKeys] = useState(false)
 
   // Load existing keys when opening
   useEffect(() => {
     if (config.claudeApiKey) setClaudeKey(config.claudeApiKey)
-    if (config.openaiApiKey) setOpenaiKey(config.openaiApiKey)
   }, [config])
 
   const handleSave = () => {
     const claudeKeyTrimmed = claudeKey.trim() || null
-    const openaiKeyTrimmed = openaiKey.trim() || null
     console.log('[BYO Settings] Saving keys:', {
-      hasClaude: !!claudeKeyTrimmed,
-      hasOpenai: !!openaiKeyTrimmed
+      hasClaude: !!claudeKeyTrimmed
     })
-    setApiKeys(claudeKeyTrimmed, openaiKeyTrimmed)
+    setApiKeys(claudeKeyTrimmed)
     // Verify save
     setTimeout(() => {
       const stored = localStorage.getItem('cubiqo_byo_config')
@@ -44,7 +40,6 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
   const handleClear = () => {
     clearKeys()
     setClaudeKey('')
-    setOpenaiKey('')
   }
 
   const maskKey = (key: string) => {
@@ -73,7 +68,7 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
 
       {/* Description */}
       <p className="text-sm text-gray-400">
-        Use your own API keys for Claude and OpenAI.
+        Use your own Claude API key.
         Keys are stored locally and never sent to our servers.
       </p>
 
@@ -97,24 +92,6 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
             </div>
             <p className="text-xs text-gray-500 mt-1">
               Get your key at console.anthropic.com
-            </p>
-          </div>
-
-          {/* OpenAI API Key */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              OpenAI API Key
-            </label>
-            <input
-              type={showKeys ? 'text' : 'password'}
-              value={openaiKey}
-              onChange={(e) => setOpenaiKey(e.target.value)}
-              placeholder="sk-..."
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700
-                         rounded-lg text-sm focus:outline-none focus:border-green-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Get your key at platform.openai.com
             </p>
           </div>
 
@@ -147,7 +124,6 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
           {/* Status */}
           <div className="text-xs text-gray-500 space-y-1">
             <p>Claude: {config.claudeApiKey ? maskKey(config.claudeApiKey) : 'Not set'}</p>
-            <p>OpenAI: {config.openaiApiKey ? maskKey(config.openaiApiKey) : 'Not set'}</p>
           </div>
         </div>
       )}

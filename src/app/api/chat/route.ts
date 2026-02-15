@@ -1,11 +1,11 @@
 /**
  * Chat API Route Handler
- * Triple routing: MiniMax (primary) → Claude → OpenAI (fallback)
+ * Fallback chain: MiniMax (primary) → Mixtral → Llama → Claude Haiku (final fallback)
+ * With classification layer to route sensitive content directly to Claude Haiku
  * Rate limited: 100 requests/hour per session
  * 
  * SPENDING CAPS:
  * - Anthropic (Claude): $200/month
- * - OpenAI: $200/month
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -15,7 +15,8 @@ import {
   buildMessages,
   parseResponse,
   CLAUDE_CONFIG,
-  OPENAI_CONFIG,
+  MIXTRAL_CONFIG,
+  LLAMA_CONFIG,
   MINIMAX_CONFIG,
   type ChatRequest,
   type AIResponse
@@ -27,7 +28,6 @@ import {
   checkSpendingCap,
   recordSpending,
   estimateAnthropicCost,
-  estimateOpenAICost,
   estimateTokens
 } from '@/lib/spending-caps'
 
@@ -35,6 +35,14 @@ import {
 const minimaxRateLimitMap = new Map<string, { count: number; resetTime: number }>()
 const MINIMAX_RATE_LIMIT = 100 // requests per hour
 const MINIMAX_RATE_WINDOW = 60 * 60 * 1000 // 1 hour in ms
+
+// Sensitive content patterns for classification layer
+// These patterns route messages directly to Claude Haiku for better handling
+const SENSITIVE_CONTENT_PATTERNS = [
+  /\b(intimate|sexual|erotic|nsfw|adult|explicit)\b/i,
+  /\b(love|romance|relationship|dating|flirt)\b.*\b(private|secret|personal)\b/i,
+  /\b(feel|feeling|emotion|emotional)\b.*\b(close|connection|bond|deep)\b/i,
+]
 
 function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining: number } {
   const now = Date.now()
@@ -109,7 +117,99 @@ async function callMiniMax(
   throw new Error('Invalid MiniMax response format')
 }
 
-// Claude API call with prompt caching
+// Simple classification layer to detect sensitive/intimate content
+// Returns true if content should skip directly to Claude Haiku
+function classifyMessage(message: string): boolean {
+  return SENSITIVE_CONTENT_PATTERNS.some(pattern => pattern.test(message))
+}
+
+// Mixtral API call (first fallback)
+async function callMixtral(
+  systemPrompt: string,
+  messages: { role: string; content: string }[]
+): Promise<string> {
+  const apiKey = process.env.MISTRAL_API_KEY
+
+  if (!apiKey) {
+    throw new Error('MISTRAL_API_KEY not configured')
+  }
+
+  const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: MIXTRAL_CONFIG.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...messages
+      ],
+      max_tokens: MIXTRAL_CONFIG.maxTokens,
+      temperature: 0.7
+    })
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('Mixtral API error:', response.status, errorText)
+    throw new Error(`Mixtral API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+  
+  if (data.choices && data.choices[0]?.message?.content) {
+    return data.choices[0].message.content
+  }
+  
+  throw new Error('Invalid Mixtral response format')
+}
+
+// Llama API call via Together AI (second fallback)
+async function callLlama(
+  systemPrompt: string,
+  messages: { role: string; content: string }[]
+): Promise<string> {
+  const apiKey = process.env.TOGETHER_API_KEY
+
+  if (!apiKey) {
+    throw new Error('TOGETHER_API_KEY not configured')
+  }
+
+  const response = await fetch('https://api.together.xyz/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: LLAMA_CONFIG.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...messages
+      ],
+      max_tokens: LLAMA_CONFIG.maxTokens,
+      temperature: 0.7
+    })
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('Llama API error:', response.status, errorText)
+    throw new Error(`Llama API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+  
+  if (data.choices && data.choices[0]?.message?.content) {
+    return data.choices[0].message.content
+  }
+  
+  throw new Error('Invalid Llama response format')
+}
+
+// Claude API call with prompt caching (final fallback)
 async function callClaude(
   systemPrompt: string,
   messages: { role: string; content: string }[],
@@ -120,7 +220,7 @@ async function callClaude(
     const capCheck = checkSpendingCap('anthropic')
     if (!capCheck.allowed) {
       console.error(`[Claude] Spending cap reached: $${capCheck.currentSpend}/$${capCheck.cap}`)
-      throw new Error('Anthropic spending cap reached ($200/month). Using fallback.')
+      throw new Error('Anthropic spending cap reached ($200/month). All providers exhausted.')
     }
   }
 
@@ -198,66 +298,6 @@ async function callClaude(
   return outputText
 }
 
-// OpenAI API call (fallback)
-async function callOpenAI(
-  systemPrompt: string,
-  messages: { role: string; content: string }[],
-  byoApiKey?: string | null
-): Promise<string> {
-  // Check spending cap (skip if using BYO key)
-  if (!byoApiKey) {
-    const capCheck = checkSpendingCap('openai')
-    if (!capCheck.allowed) {
-      console.error(`[OpenAI] Spending cap reached: $${capCheck.currentSpend}/$${capCheck.cap}`)
-      throw new Error('OpenAI spending cap reached ($200/month). All providers exhausted.')
-    }
-  }
-
-  const apiKey = byoApiKey || process.env.OPENAI_API_KEY
-
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY not configured')
-  }
-
-  // Estimate input tokens for cost tracking
-  const inputText = systemPrompt + messages.map(m => m.content).join('')
-  const estimatedInputTokens = estimateTokens(inputText)
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: OPENAI_CONFIG.model,
-      max_tokens: OPENAI_CONFIG.maxTokens,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages
-      ]
-    })
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json()
-    console.error('OpenAI API error:', errorData)
-    throw new Error(errorData.error?.message || 'OpenAI API request failed')
-  }
-
-  const data = await response.json()
-  const outputText = data.choices[0].message.content
-
-  // Record spending (skip if using BYO key)
-  if (!byoApiKey) {
-    const estimatedOutputTokens = estimateTokens(outputText)
-    const cost = estimateOpenAICost(estimatedInputTokens, estimatedOutputTokens)
-    recordSpending('openai', cost)
-  }
-
-  return outputText
-}
-
 // Build auth nudge prompt for guest users
 function buildAuthNudgePrompt(isGuest: boolean, messageCount: number): string {
   // Only add nudge for guests with 5-10 messages who haven't been nudged yet
@@ -298,14 +338,12 @@ export async function POST(request: NextRequest) {
     const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string } = await request.json()
     const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region } = body
 
-    // Get BYO API keys from headers (if user has BYO mode enabled)
+    // Get BYO API key from headers (if user has BYO mode enabled)
     const byoClaudeKey = request.headers.get('x-byo-claude-key')
-    const byoOpenaiKey = request.headers.get('x-byo-openai-key')
-    const isBYO = !!(byoClaudeKey || byoOpenaiKey)
+    const isBYO = !!byoClaudeKey
 
     console.log('[BYO API] Headers received:', {
       hasByoClaudeKey: !!byoClaudeKey,
-      hasByoOpenaiKey: !!byoOpenaiKey,
       isBYO
     })
 
@@ -356,56 +394,72 @@ export async function POST(request: NextRequest) {
     const authNudge = buildAuthNudgePrompt(isGuest, messageCount)
     const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + regionalContext + authNudge
 
-    let content: string
-    let provider: 'minimax' | 'openclaw' | 'claude' | 'openai' = 'minimax'
-    
-    // Check MiniMax rate limit
-    const { allowed: minimaxAllowed } = checkMiniMaxRateLimit(sessionId || 'anonymous')
+    // Classify message to determine if we should skip directly to Claude
+    const isSensitiveContent = classifyMessage(message)
 
-    // Try MiniMax first (primary)
-    if (minimaxAllowed) {
+    let content: string
+    let provider: 'minimax' | 'mixtral' | 'llama' | 'claude' = 'minimax'
+    
+    // If sensitive content detected, skip directly to Claude Haiku
+    if (isSensitiveContent) {
+      console.log('[AI Router] Sensitive content detected, routing to Claude Haiku')
       try {
-        content = await callMiniMax(fullSystemPrompt, messages)
-      } catch (minimaxError) {
-        console.warn('MiniMax failed, falling back to OpenClaw:', minimaxError)
-        // Fallback to OpenClaw
+        content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
+        provider = 'claude'
+      } catch (error) {
+        throw new Error('Claude failed for sensitive content')
+      }
+    } else {
+      // Check MiniMax rate limit
+      const { allowed: minimaxAllowed } = checkMiniMaxRateLimit(sessionId || 'anonymous')
+
+      // Try MiniMax first (primary)
+      if (minimaxAllowed) {
         try {
-          content = await callOpenClaw(fullSystemPrompt, messages)
-          provider = 'openclaw'
-        } catch (openclawError) {
-          console.warn('OpenClaw failed, falling back to Claude:', openclawError)
-          // Fallback to Claude
+          content = await callMiniMax(fullSystemPrompt, messages)
+        } catch (minimaxError) {
+          console.warn('MiniMax failed, falling back to Mixtral:', minimaxError)
+          // Fallback to Mixtral
           try {
-            content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
-            provider = 'claude'
-          } catch (claudeError) {
-            // Final fallback to OpenAI
+            content = await callMixtral(fullSystemPrompt, messages)
+            provider = 'mixtral'
+          } catch (mixtralError) {
+            console.warn('Mixtral failed, falling back to Llama:', mixtralError)
+            // Fallback to Llama
             try {
-              content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
-              provider = 'openai'
-            } catch {
-              throw new Error('All AI providers failed')
+              content = await callLlama(fullSystemPrompt, messages)
+              provider = 'llama'
+            } catch (llamaError) {
+              console.warn('Llama failed, falling back to Claude:', llamaError)
+              // Final fallback to Claude Haiku
+              try {
+                content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
+                provider = 'claude'
+              } catch {
+                throw new Error('All AI providers failed')
+              }
             }
           }
         }
-      }
-    } else {
-      // MiniMax rate limited, skip to OpenClaw
-      console.warn('MiniMax rate limited, using OpenClaw')
-      try {
-        content = await callOpenClaw(fullSystemPrompt, messages)
-        provider = 'openclaw'
-      } catch (openclawError) {
-        console.warn('OpenClaw failed, falling back to Claude:', openclawError)
+      } else {
+        // MiniMax rate limited, skip to Mixtral
+        console.warn('MiniMax rate limited, using Mixtral')
         try {
-          content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
-          provider = 'claude'
-        } catch (claudeError) {
+          content = await callMixtral(fullSystemPrompt, messages)
+          provider = 'mixtral'
+        } catch (mixtralError) {
+          console.warn('Mixtral failed, falling back to Llama:', mixtralError)
           try {
-            content = await callOpenAI(fullSystemPrompt, messages, byoOpenaiKey)
-            provider = 'openai'
-          } catch {
-            throw new Error('All AI providers failed')
+            content = await callLlama(fullSystemPrompt, messages)
+            provider = 'llama'
+          } catch (llamaError) {
+            console.warn('Llama failed, falling back to Claude:', llamaError)
+            try {
+              content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
+              provider = 'claude'
+            } catch {
+              throw new Error('All AI providers failed')
+            }
           }
         }
       }
@@ -439,7 +493,7 @@ export async function OPTIONS() {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, x-byo-claude-key, x-byo-openai-key'
+      'Access-Control-Allow-Headers': 'Content-Type, x-byo-claude-key'
     }
   })
 }

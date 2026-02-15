@@ -65,7 +65,7 @@ Verified and committed documentation:
 - Premium glass aesthetic UI
 
 ### 🤖 AI Features
-- Multi-provider routing: MiniMax → OpenClaw → Claude → OpenAI
+- Multi-provider routing: MiniMax → Mixtral → Llama → Claude Haiku
 - Spending caps: $200/month per provider
 - BYO API keys support
 - Prompt caching (Claude)
@@ -129,10 +129,11 @@ Verified and committed documentation:
 NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key
 SUPABASE_SERVICE_ROLE_KEY=placeholder-key
-ANTHROPIC_API_KEY=
-OPENAI_API_KEY=
-ELEVENLABS_API_KEY=
 MINIMAX_API_KEY=
+MISTRAL_API_KEY=
+TOGETHER_API_KEY=
+ANTHROPIC_API_KEY=
+ELEVENLABS_API_KEY=
 DATABASE_URL=
 NODE_ENV=production
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -181,18 +182,17 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
    - NEXT_PUBLIC_SUPABASE_URL
    - NEXT_PUBLIC_SUPABASE_ANON_KEY
    - SUPABASE_SERVICE_ROLE_KEY
+   - MINIMAX_API_KEY (admin keys)
+   - MISTRAL_API_KEY (admin keys)
+   - TOGETHER_API_KEY (admin keys)
    - ANTHROPIC_API_KEY (admin keys)
-   - OPENAI_API_KEY (admin keys)
    - ELEVENLABS_API_KEY
-   - MINIMAX_API_KEY
    - ADMIN_MODE=true
    
    Prod-B (Public):
    - NEXT_PUBLIC_SUPABASE_URL (same)
    - NEXT_PUBLIC_SUPABASE_ANON_KEY (same)
    - SUPABASE_SERVICE_ROLE_KEY (same)
-   - ANTHROPIC_API_KEY (user keys or empty for BYO)
-   - OPENAI_API_KEY (user keys or empty for BYO)
    - ELEVENLABS_API_KEY (optional)
    - ADMIN_MODE=false
    ```
@@ -201,7 +201,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
    - Test Prod-A admin features
    - Test Prod-B public experience
    - Verify auth flows
-   - Test all LLM providers
+   - Test all AI providers (MiniMax, Mixtral, Llama, Claude)
    - Validate spending caps
    - Check cube visuals
    - Test voice interactions
