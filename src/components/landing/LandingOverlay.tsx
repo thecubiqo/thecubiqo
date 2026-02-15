@@ -3,9 +3,20 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 
-export function LandingOverlay() {
+import { TopRightCTA } from '@/components/TopRightCTA.client'
+
+interface LandingOverlayProps {
+    showTopRightCTA?: boolean
+}
+
+export function LandingOverlay({ showTopRightCTA = false }: LandingOverlayProps) {
     return (
         <div className="pointer-events-none fixed inset-0 flex flex-col items-center justify-center text-center z-10 text-white">
+            {showTopRightCTA && (
+                <div className="pointer-events-auto">
+                    <TopRightCTA />
+                </div>
+            )}
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -27,6 +38,22 @@ export function LandingOverlay() {
                 >
                     YOU MAY TAP NOW
                 </motion.p>
+            </motion.div>
+
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                transition={{ delay: 2, duration: 2 }}
+                className="absolute bottom-8 w-full text-center"
+            >
+                <div className="flex justify-center items-center space-x-8 md:space-x-16 text-sm md:text-base font-light tracking-[0.2em] text-gray-400 uppercase">
+                    <span>OpenAI</span>
+                    <span>Anthropic</span>
+                    <span>Meta Llama</span>
+                    <span>Mistral</span>
+                    <span>Gemini</span>
+                    <span>DeepSeek</span>
+                </div>
             </motion.div>
         </div>
     )
