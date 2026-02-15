@@ -132,6 +132,22 @@ This page displays:
 
 The current implementation logs email reports to the console. To enable actual email sending:
 
+### Email Addresses
+
+The self-heal system uses two email addresses:
+
+1. **FROM Email** (`SELF_HEAL_EMAIL_FROM`): The sender address for reports
+   - Default: `noreply@cubiqo.ai`
+   - This should be a valid email address from your domain
+   - Configure your email service to authenticate this sender
+
+2. **TO Email** (`SELF_HEAL_EMAIL_TO`): The recipient address for reports
+   - Default: `aditya@cubiqo.ai`
+   - This is where all self-heal reports will be delivered
+   - Can be changed to any valid email address
+
+### Setup Instructions
+
 1. Install an email service package:
    ```bash
    npm install resend
@@ -143,8 +159,13 @@ The current implementation logs email reports to the console. To enable actual e
 
 2. Update `src/lib/self-heal/executor.ts` in the `sendEmailReport` function to use the actual email service.
 
-3. Add email service credentials to your environment variables:
+3. Add email service credentials and addresses to your environment variables:
    ```env
+   # Self-Heal Email Configuration
+   SELF_HEAL_EMAIL_FROM=noreply@cubiqo.ai
+   SELF_HEAL_EMAIL_TO=aditya@cubiqo.ai
+   
+   # Email Service Credentials (choose one)
    RESEND_API_KEY=your_key
    # or
    SENDGRID_API_KEY=your_key
@@ -154,6 +175,38 @@ The current implementation logs email reports to the console. To enable actual e
    SMTP_USER=your_email
    SMTP_PASS=your_password
    ```
+
+### Example Implementation with Resend
+
+```typescript
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function sendEmailReport(report: SelfHealReport): Promise<boolean> {
+  try {
+    const htmlContent = formatReportAsHtml(report);
+    
+    const { data, error } = await resend.emails.send({
+      from: report.emailFrom,
+      to: report.emailTo,
+      subject: `CubiQo Self-Heal Report - ${report.status.toUpperCase()}`,
+      html: htmlContent,
+    });
+
+    if (error) {
+      console.error('[Self-Heal] Email send error:', error);
+      return false;
+    }
+
+    console.log('[Self-Heal] Email sent successfully:', data);
+    return true;
+  } catch (error) {
+    console.error('[Self-Heal] Failed to send email report:', error);
+    return false;
+  }
+}
+```
 
 ## Monitoring
 

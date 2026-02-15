@@ -58,6 +58,10 @@ export function generateReport(
     status = 'success';
   }
 
+  // Get email configuration from environment or use defaults
+  const emailFrom = process.env.SELF_HEAL_EMAIL_FROM || 'noreply@cubiqo.ai';
+  const emailTo = process.env.SELF_HEAL_EMAIL_TO || 'aditya@cubiqo.ai';
+
   return {
     runDate: new Date(),
     status,
@@ -68,7 +72,8 @@ export function generateReport(
     criticalIssues,
     recommendations,
     emailSent: false,
-    emailTo: 'aditya@cubiqo.ai',
+    emailFrom,
+    emailTo,
     executionTimeMs,
   };
 }

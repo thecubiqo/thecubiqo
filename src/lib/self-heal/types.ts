@@ -38,6 +38,7 @@ export interface SelfHealReport {
   recommendations: string[];
   emailSent: boolean;
   emailSentAt?: Date;
+  emailFrom: string;
   emailTo: string;
   executionTimeMs: number;
 }

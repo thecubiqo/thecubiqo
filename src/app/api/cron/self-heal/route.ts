@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
         critical_issues: report.criticalIssues,
         recommendations: report.recommendations,
         email_sent: false,
+        email_from: report.emailFrom,
         email_to: report.emailTo,
         execution_time_ms: report.executionTimeMs,
       })

@@ -15,6 +15,7 @@ interface SelfHealReport {
   recommendations: string[];
   email_sent: boolean;
   email_sent_at: string | null;
+  email_from: string;
   email_to: string;
   execution_time_ms: number;
   created_at: string;
@@ -382,6 +383,7 @@ export default function SelfHealReportsPage() {
               <div className="bg-gray-800 rounded-lg p-4">
                 <h3 className="text-lg font-bold mb-2">📧 Email Report</h3>
                 <div className="text-sm text-gray-400">
+                  <p>From: {selectedReport.email_from || 'noreply@cubiqo.ai'}</p>
                   <p>To: {selectedReport.email_to}</p>
                   <p>
                     Status: {selectedReport.email_sent ? (

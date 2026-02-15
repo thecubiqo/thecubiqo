@@ -49,6 +49,10 @@ export async function executeSelfHeal(): Promise<SelfHealReport> {
     const executionTime = Date.now() - startTime;
     console.error('[Self-Heal] Self-heal run failed:', error);
     
+    // Get email configuration from environment or use defaults
+    const emailFrom = process.env.SELF_HEAL_EMAIL_FROM || 'noreply@cubiqo.ai';
+    const emailTo = process.env.SELF_HEAL_EMAIL_TO || 'aditya@cubiqo.ai';
+    
     // Return a failed report
     return {
       runDate: new Date(),
@@ -64,7 +68,8 @@ export async function executeSelfHeal(): Promise<SelfHealReport> {
       criticalIssues: [`Self-heal run failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
       recommendations: ['Manual investigation required'],
       emailSent: false,
-      emailTo: 'aditya@cubiqo.ai',
+      emailFrom,
+      emailTo,
       executionTimeMs: executionTime,
     };
   }
@@ -82,13 +87,14 @@ export async function sendEmailReport(report: SelfHealReport): Promise<boolean> 
     // For now, we'll log the email content
     console.log('[Self-Heal] Email Report:');
     console.log('='.repeat(80));
+    console.log(`From: ${report.emailFrom}`);
     console.log(`To: ${report.emailTo}`);
     console.log(`Subject: CubiQo Self-Heal Report - ${report.status.toUpperCase()}`);
     console.log('='.repeat(80));
     console.log(textContent);
     console.log('='.repeat(80));
     console.log('[Self-Heal] HTML version available (not shown in console)');
-    console.log('[Self-Heal] Email would be sent to:', report.emailTo);
+    console.log(`[Self-Heal] Email would be sent FROM: ${report.emailFrom} TO: ${report.emailTo}`);
 
     // Simulate email sending delay
     await new Promise(resolve => setTimeout(resolve, 100));

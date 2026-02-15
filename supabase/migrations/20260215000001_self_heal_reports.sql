@@ -22,6 +22,7 @@ CREATE TABLE self_heal_reports (
   recommendations JSONB DEFAULT '[]'::jsonb, -- Recommendations for manual review
   email_sent BOOLEAN DEFAULT false,
   email_sent_at TIMESTAMPTZ,
+  email_from TEXT DEFAULT 'noreply@cubiqo.ai',
   email_to TEXT DEFAULT 'aditya@cubiqo.ai',
   execution_time_ms INTEGER,                -- Time taken to complete
   created_at TIMESTAMPTZ DEFAULT NOW()
