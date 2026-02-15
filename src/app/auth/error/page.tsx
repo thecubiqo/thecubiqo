@@ -6,18 +6,13 @@
  */
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { Suspense } from 'react'
 
-export default function AuthErrorPage() {
+function AuthErrorContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [mounted, setMounted] = useState(false)
   
   const error = searchParams.get('error') || 'unknown_error'
-  
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const getErrorMessage = (errorCode: string) => {
     switch (errorCode) {
@@ -52,10 +47,6 @@ export default function AuthErrorPage() {
 
   const handleRetry = () => {
     router.push('/')
-  }
-
-  if (!mounted) {
-    return null
   }
 
   return (
@@ -150,5 +141,17 @@ export default function AuthErrorPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white/60" aria-live="polite">Loading...</div>
+      </div>
+    }>
+      <AuthErrorContent />
+    </Suspense>
   )
 }
