@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const RP_ID = process.env.NEXT_PUBLIC_RP_ID || 'localhost'
 
+// Mark as dynamic to skip during build\nexport const dynamic = 'force-dynamic'\n
+
 export async function GET(request: NextRequest) {
     // We utilize "Discoverable Credentials" (Usernameless flow).
     // We do not pass 'allowCredentials' by default. 

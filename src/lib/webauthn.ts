@@ -2,16 +2,18 @@ import { createClient } from '@supabase/supabase-js'
 
 // Use a service role client for authenticator management to bypass RLS for inserts/updates
 // and to access auth.users
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false
+function getSupabaseAdmin() {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false
+            }
         }
-    }
-)
+    )
+}
 
 export interface Authenticator {
     id: string
@@ -23,6 +25,7 @@ export interface Authenticator {
 }
 
 export async function getUserAuthenticators(userId: string): Promise<Authenticator[]> {
+    const supabaseAdmin = getSupabaseAdmin()
     const { data, error } = await supabaseAdmin
         .from('user_authenticators')
         .select('*')
@@ -33,6 +36,7 @@ export async function getUserAuthenticators(userId: string): Promise<Authenticat
 }
 
 export async function getAuthenticatorByCredentialId(credentialId: string): Promise<Authenticator | null> {
+    const supabaseAdmin = getSupabaseAdmin()
     const { data, error } = await supabaseAdmin
         .from('user_authenticators')
         .select('*')
@@ -44,6 +48,7 @@ export async function getAuthenticatorByCredentialId(credentialId: string): Prom
 }
 
 export async function saveAuthenticator(authenticator: Omit<Authenticator, 'id'>) {
+    const supabaseAdmin = getSupabaseAdmin()
     const { data, error } = await supabaseAdmin
         .from('user_authenticators')
         .insert(authenticator)
@@ -55,6 +60,7 @@ export async function saveAuthenticator(authenticator: Omit<Authenticator, 'id'>
 }
 
 export async function updateAuthenticatorCounter(credentialId: string, newCounter: number) {
+    const supabaseAdmin = getSupabaseAdmin()
     const { error } = await supabaseAdmin
         .from('user_authenticators')
         .update({ counter: newCounter, updated_at: new Date().toISOString() })
@@ -64,6 +70,7 @@ export async function updateAuthenticatorCounter(credentialId: string, newCounte
 }
 
 export async function getUserIdByEmail(email: string): Promise<string | null> {
+    const supabaseAdmin = getSupabaseAdmin()
     // This requires access to auth.users which is restricted.
     // We can use listUsers() to find by email if we have service role
     const { data, error } = await supabaseAdmin.auth.admin.listUsers()
