@@ -14,6 +14,7 @@ import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
 import { GettingStartedPanel } from './GettingStartedPanel'
 import { LandingCube } from './LandingCube'
 import { PoweredByLogosCompact } from './PoweredByLogos'
+import { AdminControls } from './admin'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
@@ -297,6 +298,9 @@ export function FullscreenApp() {
       className="fixed inset-0 overflow-hidden transition-colors duration-400"
       style={{ background: bgColor, color: textColor }}
     >
+      {/* Admin Controls */}
+      <AdminControls />
+      
       {/* Energy Cube - Perfectly centered, industry standard */}
       <div 
         className="fixed left-1/2 z-[1]"

@@ -369,6 +369,47 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action_details: Json | null
+          action_type: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_details?: Json | null
+          action_type: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_details?: Json | null
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -377,6 +418,7 @@ export type Database = {
           email: string | null
           handle: string | null
           id: string
+          is_admin: boolean | null
           phone: string | null
           preferences: Json | null
           updated_at: string | null
@@ -388,6 +430,7 @@ export type Database = {
           email?: string | null
           handle?: string | null
           id: string
+          is_admin?: boolean | null
           phone?: string | null
           preferences?: Json | null
           updated_at?: string | null
@@ -399,6 +442,7 @@ export type Database = {
           email?: string | null
           handle?: string | null
           id?: string
+          is_admin?: boolean | null
           phone?: string | null
           preferences?: Json | null
           updated_at?: string | null
@@ -466,6 +510,17 @@ export type Database = {
         }[]
       }
       generate_unique_handle: { Args: never; Returns: string }
+      log_admin_action: {
+        Args: {
+          p_user_id: string
+          p_user_email: string
+          p_action_type: string
+          p_action_details?: Json
+          p_ip_address?: string
+          p_user_agent?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
