@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 interface JournalFlowProps {
   sessionId: string | null
@@ -64,8 +65,16 @@ export function JournalFlow({ sessionId, userId, onComplete }: JournalFlowProps)
   const [currentResponse, setCurrentResponse] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [startTime] = useState(Date.now())
-  const [mood, setMood] = useState<'neutral' | 'positive' | 'reflective' | 'challenged'>('neutral')
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Get user email for queuing email summary
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserEmail(user?.email || null)
+    })
+  }, [])
 
   // Auto-focus textarea when prompt changes
   useEffect(() => {
@@ -139,19 +148,21 @@ export function JournalFlow({ sessionId, userId, onComplete }: JournalFlowProps)
       const data = await response.json()
 
       if (response.ok && data.entry) {
-        // Queue email summary
-        const emailResponse = await fetch('/api/journal/queue', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            entryId: data.entry.id,
-            recipientEmail: userId ? 'user@example.com' : null, // TODO: Get real email
-            userId
+        // Queue email summary only if user has email
+        if (userEmail) {
+          const emailResponse = await fetch('/api/journal/queue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              entryId: data.entry.id,
+              recipientEmail: userEmail,
+              userId
+            })
           })
-        })
 
-        if (!emailResponse.ok) {
-          console.warn('Failed to queue email, but journal saved')
+          if (!emailResponse.ok) {
+            console.warn('Failed to queue email, but journal saved')
+          }
         }
 
         // Complete!
