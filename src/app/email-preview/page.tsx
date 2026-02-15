@@ -86,9 +86,9 @@ export default function EmailPreviewPage() {
           <ol className="text-sm text-zinc-400 space-y-2 list-decimal list-inside">
             <li>Go to your Supabase Dashboard → Authentication → Email Templates</li>
             <li>Select "Magic Link" template</li>
-            <li>Click "Download HTML" above and copy the content</li>
+            <li>Click "Download HTML" above to get the template</li>
             <li>Paste the HTML into the Supabase email template editor</li>
-            <li>Replace <code className="px-1 py-0.5 bg-zinc-800 rounded text-orange-400">{'{{ .ConfirmationURL }}'}</code> with the actual Supabase variable</li>
+            <li>Update the magic link href to use Supabase's template variable: <code className="px-1 py-0.5 bg-zinc-800 rounded text-orange-400">{'{{ .ConfirmationURL }}'}</code></li>
             <li>Save and test the template</li>
           </ol>
           <div className="mt-4 p-3 bg-zinc-800 rounded border border-zinc-700">

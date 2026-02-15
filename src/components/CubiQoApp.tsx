@@ -35,7 +35,9 @@ export function CubiQoApp() {
 
   // Log auth state changes for debugging
   useEffect(() => {
-    console.log('[CubiQoApp] Auth state updated - isAuthenticated:', isAuthenticated, 'user:', user?.email)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[CubiQoApp] Auth state updated - isAuthenticated:', isAuthenticated, 'userId:', user?.id)
+    }
   }, [isAuthenticated, user])
 
   // Load preferences from localStorage on mount
