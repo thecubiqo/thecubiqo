@@ -129,6 +129,11 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
           <div className="pt-4 border-t border-gray-700">
             <BiometricRegistration />
           </div>
+
+          {/* Biometric Registration */}
+          <div className="pt-4 border-t border-gray-700">
+            <BiometricRegistration />
+          </div>
         </div>
       )}
     </div>
