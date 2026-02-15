@@ -173,7 +173,7 @@ export function useSession() {
   // Step 1: Get initial auth state and listen for changes
   useEffect(() => {
     // First check for existing session immediately
-    const initAuth = async () => {
+    const getInitialAuthState = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         setAuthUser(user)
@@ -183,7 +183,7 @@ export function useSession() {
       }
     }
     
-    initAuth()
+    getInitialAuthState()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setAuthUser(session?.user ?? null)

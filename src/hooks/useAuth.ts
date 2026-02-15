@@ -52,7 +52,7 @@ export function useAuth() {
     }
     
     // First, check for existing session immediately (critical for magic-link redirects)
-    const checkSession = async () => {
+    const initializeSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       
       if (session?.user) {
@@ -83,7 +83,7 @@ export function useAuth() {
       }
     }
 
-    checkSession()
+    initializeSession()
     
     // Set up auth state listener - this handles all auth events including initial load
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
