@@ -164,7 +164,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="scroll-smooth">
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <link rel="canonical" href="https://www.cubiqo.ai" />
