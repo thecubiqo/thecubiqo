@@ -6,6 +6,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 
 describe('Build and Deployment Verification', () => {
   describe('Environment Configuration', () => {
@@ -15,9 +17,9 @@ describe('Build and Deployment Verification', () => {
       expect(process.env).toBeDefined();
     });
 
-    it('should have package.json configuration', () => {
+    it('should have package.json configuration', async () => {
       // This test verifies the build configuration exists
-      const pkg = require('../../../package.json');
+      const pkg = await import('../../../package.json');
       
       expect(pkg.name).toBe('cubiqo');
       expect(pkg.version).toBeDefined();
@@ -55,8 +57,8 @@ describe('Build and Deployment Verification', () => {
   });
 
   describe('Vercel Deployment Configuration', () => {
-    it('should have valid vercel.json configuration', () => {
-      const vercelConfig = require('../../../vercel.json');
+    it('should have valid vercel.json configuration', async () => {
+      const vercelConfig = await import('../../../vercel.json');
       
       expect(vercelConfig.buildCommand).toBe('npm run build');
       expect(vercelConfig.framework).toBe('nextjs');
@@ -66,8 +68,8 @@ describe('Build and Deployment Verification', () => {
   });
 
   describe('TypeScript Configuration', () => {
-    it('should have valid tsconfig.json', () => {
-      const tsConfig = require('../../../tsconfig.json');
+    it('should have valid tsconfig.json', async () => {
+      const tsConfig = await import('../../../tsconfig.json');
       
       expect(tsConfig.compilerOptions).toBeDefined();
       expect(tsConfig.compilerOptions.paths).toBeDefined();
@@ -76,11 +78,8 @@ describe('Build and Deployment Verification', () => {
   });
 
   describe('Next.js Configuration', () => {
-    it('should be able to load next.config', async () => {
+    it('should be able to load next.config', () => {
       // Verify next.config.ts exists and is valid
-      const fs = await import('fs');
-      const path = await import('path');
-      
       const configPath = path.resolve(process.cwd(), 'next.config.ts');
       expect(fs.existsSync(configPath)).toBe(true);
     });
