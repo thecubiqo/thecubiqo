@@ -162,11 +162,6 @@ export function LoginForm() {
           className={`mt-4 p-3 rounded-[12px] text-[13px] ${message.type === 'success' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}
         >
           {message.text}
-          {message.type === 'success' && cooldownSeconds > 0 && (
-            <p className="text-xs mt-2 text-green-300/80">
-              You can request another link in {cooldownSeconds} seconds.
-            </p>
-          )}
           {message.type === 'error' && isRateLimitError(message.text) && (
             <p className="text-xs mt-2 text-red-300/80">
               This is a security measure to prevent abuse. Please wait before trying again.
@@ -175,7 +170,7 @@ export function LoginForm() {
         </div>
       )}
 
-      {attemptCount > 0 && attemptCount < MAX_ATTEMPTS && !message && (
+      {attemptCount > 0 && attemptCount < MAX_ATTEMPTS && (!message || message.type === 'error') && (
         <div className="mt-4 p-3 rounded-[12px] text-[13px] bg-yellow-500/10 text-yellow-400">
           <p className="text-xs">
             Attempts used: {attemptCount}/{MAX_ATTEMPTS}
