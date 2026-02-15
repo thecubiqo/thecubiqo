@@ -1,4 +1,4 @@
-import { Agent, AgentConfig, Task, ModelConfig } from '@/types/agent';
+import { Agent, AgentConfig, Task, ModelConfig, AgentReport } from '@/types/agent';
 import { Session, Message } from '@/types/session';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
@@ -19,6 +19,9 @@ export class AgentInstance implements Agent {
   currentTasks: Task[] = [];
   createdAt: Date;
   updatedAt: Date;
+  skillTags?: string[];
+  contactEmail?: string;
+  contactPhone?: string;
 
   private sessionStore: SessionStore;
   private toolRegistry: ToolRegistry;
@@ -32,6 +35,9 @@ export class AgentInstance implements Agent {
     this.workspace = join(process.cwd(), 'data', 'workspaces', this.id);
     this.createdAt = new Date();
     this.updatedAt = new Date();
+    this.skillTags = config.skillTags;
+    this.contactEmail = config.contactEmail;
+    this.contactPhone = config.contactPhone;
 
     this.sessionStore = new SessionStore(this.id);
     this.toolRegistry = new ToolRegistry();
@@ -215,10 +221,28 @@ export class AgentInstance implements Agent {
 
     return results;
   }
+
+  async createReport(reportType: AgentReport['reportType'], data: Record<string, any>, message?: string): Promise<AgentReport> {
+    const report: AgentReport = {
+      id: randomUUID(),
+      agentId: this.id,
+      agentName: this.name,
+      timestamp: new Date(),
+      reportType,
+      data,
+      message,
+    };
+
+    // Store report in agent reports registry
+    agentReports.push(report);
+
+    return report;
+  }
 }
 
 // Agent registry
 const agents = new Map<string, AgentInstance>();
+const agentReports: AgentReport[] = [];
 
 export async function createAgent(config: AgentConfig): Promise<AgentInstance> {
   const agent = new AgentInstance(config);
@@ -242,4 +266,21 @@ export async function deleteAgent(id: string): Promise<boolean> {
   await agent.stop();
   agents.delete(id);
   return true;
+}
+
+export function getAgentReports(agentId?: string, limit?: number): AgentReport[] {
+  let reports = agentReports;
+  
+  if (agentId) {
+    reports = reports.filter(r => r.agentId === agentId);
+  }
+  
+  // Sort by timestamp descending
+  reports = reports.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  
+  if (limit) {
+    reports = reports.slice(0, limit);
+  }
+  
+  return reports;
 }
