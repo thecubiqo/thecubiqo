@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get current consent
-    const { data: consent, error } = await supabase
+    const { data: consent, error } = await (supabase as any)
       .from('journey_consents')
       .select('*')
       .eq('user_id', user.id)
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get current consent to see if one exists
-    const { data: existingConsent } = await supabase
+    const { data: existingConsent } = await (supabase as any)
       .from('journey_consents')
       .select('id')
       .eq('user_id', user.id)
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
 
     if (existingConsent) {
       // Update existing consent
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('journey_consents')
         .update({
           opted_in: optedIn,
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
       result = data;
     } else {
       // Create new consent
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('journey_consents')
         .insert({
           user_id: user.id,
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
 
     // If opting out, log it
     if (!optedIn) {
-      await supabase
+      await (supabase as any)
         .from('journey_rollback_logs')
         .insert({
           user_id: user.id,
@@ -198,7 +198,7 @@ export async function DELETE(request: NextRequest) {
     const deleteMemories = searchParams.get('deleteMemories') === 'true';
 
     // Revoke consent
-    const { error: revokeError } = await supabase
+    const { error: revokeError } = await (supabase as any)
       .from('journey_consents')
       .update({
         opted_in: false,
@@ -219,7 +219,7 @@ export async function DELETE(request: NextRequest) {
 
     // Delete memories if requested
     if (deleteMemories) {
-      const { data: memories } = await supabase
+      const { data: memories } = await (supabase as any)
         .from('journey_memories')
         .select('id')
         .eq('user_id', user.id);
@@ -227,7 +227,7 @@ export async function DELETE(request: NextRequest) {
       if (memories) {
         deletedCount = memories.length;
 
-        const { error: deleteError } = await supabase
+        const { error: deleteError } = await (supabase as any)
           .from('journey_memories')
           .delete()
           .eq('user_id', user.id);
@@ -239,7 +239,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Log the action
-    await supabase
+    await (supabase as any)
       .from('journey_rollback_logs')
       .insert({
         user_id: user.id,

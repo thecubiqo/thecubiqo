@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     const queryEmbedding = await generateEmbedding(query);
 
     // Search for similar memories using database function
-    const { data: memories, error: searchError } = await supabase.rpc(
+    const { data: memories, error: searchError } = await (supabase as any).rpc(
       'search_journey_memories',
       {
         query_embedding: JSON.stringify(queryEmbedding),
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const results: SimilarityResult[] = (memories || []).map((memory: any) => ({
+    const results: SimilarityResult[] = (Array.isArray(memories) ? memories : []).map((memory: any) => ({
       id: memory.id,
       content: memory.content,
       summary: memory.summary,

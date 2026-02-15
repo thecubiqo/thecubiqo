@@ -47,9 +47,14 @@ export async function GET(request: NextRequest) {
       .limit(10);
 
     // Get top users by memory count
-    const { data: topUsers } = await supabaseAdmin
-      .rpc('get_top_journey_users', { limit_count: 10 })
-      .catch(() => ({ data: [] }));
+    let topUsers = [];
+    try {
+      const { data } = await supabaseAdmin
+        .rpc('get_top_journey_users', { limit_count: 10 });
+      topUsers = data || [];
+    } catch (error) {
+      topUsers = [];
+    }
 
     // Get rollback logs
     const { data: rollbackLogs } = await supabaseAdmin

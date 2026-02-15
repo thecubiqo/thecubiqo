@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's memories
-    const { data: memories, error } = await supabase
+    const { data: memories, error } = await (supabase as any)
       .from('journey_memories')
       .select('id, content, summary, category, importance_score, created_at')
       .eq('user_id', user.id)
