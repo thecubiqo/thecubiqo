@@ -1,6 +1,6 @@
 # Pull Request Cleanup Guide
 
-**Generated:** 2026-02-15T17:24:54.350Z  
+**Generated:** 2026-02-15T17:27:28.894Z  
 **Purpose:** Clean up 27 open PRs to improve repository hygiene
 
 ## Executive Summary
@@ -8,8 +8,8 @@
 - **Total open PRs:** 27
 - **Confirmed merged (should close):** 1
 - **Likely superseded (review & close):** 4
-- **Documentation/clarification PRs:** 1
-- **Draft PRs needing review:** 6
+- **Documentation/clarification PRs:** 0
+- **Draft PRs needing review:** 8
 - **Ready PRs (non-draft):** 13
 
 ## 🔴 Priority 1: Close Confirmed Merged PRs
@@ -74,22 +74,6 @@ These PRs appear to be superseded by other work or are consolidation PRs:
 
 ## 📄 Priority 3: Documentation and Clarification PRs
 
-### PR #41: Add Spark AI comparison document
-
-- **Type:** Documentation
-- **Action:** Review content, merge if valuable, otherwise close
-- **Note:** Documentation PRs should be quick to review and merge or close
-
-[View PR #41](https://github.com/thecubiqo/thecubiqo/pull/41)
-
-### PR #45: No changes required - clarification on access question
-
-- **Type:** Documentation
-- **Action:** Review content, merge if valuable, otherwise close
-- **Note:** Documentation PRs should be quick to review and merge or close
-
-[View PR #45](https://github.com/thecubiqo/thecubiqo/pull/45)
-
 ### PR #20: Clarify PR #20 vs #27: competing implementations, not duplicates
 
 - **Type:** Clarification
@@ -100,15 +84,17 @@ These PRs appear to be superseded by other work or are consolidation PRs:
 
 ## 🔵 Priority 4: Review Draft PRs
 
-These 6 PRs are marked as drafts. Review each to determine if they should be:
+These 8 PRs are marked as drafts. Review each to determine if they should be:
 - Completed and marked ready for review
 - Closed as no longer needed
 - Kept as draft for future work
 
 - [ ] [PR #47](https://github.com/thecubiqo/thecubiqo/pull/47): [WIP] Consolidate middleware to resolve Vercel deployment conflicts
 - [ ] [PR #46](https://github.com/thecubiqo/thecubiqo/pull/46): feat: Biometric Authentication (Passkeys)
+- [ ] [PR #45](https://github.com/thecubiqo/thecubiqo/pull/45): No changes required - clarification on access question
 - [ ] [PR #43](https://github.com/thecubiqo/thecubiqo/pull/43): Add environment variable fallback patterns for Vercel production compatibility
 - [ ] [PR #42](https://github.com/thecubiqo/thecubiqo/pull/42): Add design toggle system with admin dashboard and env var fallback support
+- [ ] [PR #41](https://github.com/thecubiqo/thecubiqo/pull/41): Add Spark AI comparison document
 - [ ] [PR #39](https://github.com/thecubiqo/thecubiqo/pull/39): Fix critical production 404s: auth, dashboard, health API, and admin timeout
 - [ ] [PR #38](https://github.com/thecubiqo/thecubiqo/pull/38): Implement CQ-to-CQ communication system with voice message delivery
 
@@ -226,8 +212,8 @@ Create labels to track PR status:
 Total PRs to process:        27
 ├─ Confirmed merged:         1
 ├─ Likely superseded:        4
-├─ Documentation:            3
-├─ Draft PRs:                6
+├─ Documentation:            1
+├─ Draft PRs:                8
 └─ Ready PRs:                13
 ```
 

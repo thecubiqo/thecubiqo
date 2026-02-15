@@ -42,6 +42,13 @@ const ALL_PRS = [
 ];
 
 function categorizePRs() {
+  // Categorization priority order (checked in sequence):
+  // 1. Confirmed merged PRs
+  // 2. Documentation/clarification PRs
+  // 3. Superseded PRs
+  // 4. Draft PRs
+  // 5. Ready PRs (default)
+  
   const categories = {
     confirmed_merged: [],
     likely_superseded: [],
@@ -51,6 +58,9 @@ function categorizePRs() {
     clarification_needed: [],
   };
 
+  // Latest active PR number for middleware consolidation
+  const CURRENT_MIDDLEWARE_PR = 47;
+
   ALL_PRS.forEach(pr => {
     // Confirmed merged
     if (pr.merged) {
@@ -58,20 +68,20 @@ function categorizePRs() {
       return;
     }
 
-    // Documentation/clarification PRs
-    if (pr.title.includes('clarification') || pr.title.includes('Clarify')) {
+    // Documentation/clarification PRs (non-draft only for quick review)
+    if (!pr.draft && (pr.title.includes('clarification') || pr.title.includes('Clarify'))) {
       categories.clarification_needed.push(pr);
       return;
     }
 
-    if (pr.title.includes('document') || pr.title.includes('comparison document')) {
+    if (!pr.draft && (pr.title.includes('document') || pr.title.includes('comparison document'))) {
       categories.documentation_only.push(pr);
       return;
     }
 
     // Superseded PRs (multiple PRs addressing same thing)
-    if (pr.title.includes('Consolidate middleware') && pr.number !== 47) {
-      categories.likely_superseded.push({ ...pr, reason: 'Superseded by PR #47' });
+    if (pr.title.includes('Consolidate middleware') && pr.number !== CURRENT_MIDDLEWARE_PR) {
+      categories.likely_superseded.push({ ...pr, reason: `Superseded by PR #${CURRENT_MIDDLEWARE_PR}` });
       return;
     }
 
