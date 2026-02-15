@@ -185,12 +185,6 @@ export default function RootLayout({
       </head>
       <body
         className="antialiased"
-        style={
-          {
-            '--font-geist-sans': 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-            '--font-geist-mono': '"SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace',
-          } as React.CSSProperties
-        }
       >
         {children}
         <ServiceWorkerRegistration />

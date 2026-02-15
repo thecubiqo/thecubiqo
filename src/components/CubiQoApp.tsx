@@ -98,7 +98,7 @@ export function CubiQoApp() {
                 </span>
                 <button
                   onClick={() => signOut()}
-                  className="text-xs px-3 py-1 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-700"
+                  className="text-xs px-3 py-1 rounded-md bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-premium"
                 >
                   Sign Out
                 </button>
@@ -106,7 +106,7 @@ export function CubiQoApp() {
             ) : (
               <button
                 onClick={() => setShowAuth(!showAuth)}
-                className="text-xs px-3 py-1 rounded bg-orange-500 text-white hover:bg-orange-600"
+                className="text-xs px-3 py-1 rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-premium"
               >
                 {showAuth ? 'Close' : 'Sign In'}
               </button>
@@ -116,7 +116,7 @@ export function CubiQoApp() {
 
         {/* Auth Panel (collapsible) */}
         {showAuth && !isAuthenticated && (
-          <div className="mb-4 p-4 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+          <div className="mb-4 p-4 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 premium-card">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <h3 className="text-sm font-medium text-zinc-900 dark:text-white mb-2">
