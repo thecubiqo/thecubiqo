@@ -82,7 +82,7 @@ export function validatePath(path: string, workspaceRoot: string): SanitizationR
   const relativePath = relative(workspaceRoot, resolvedPath);
 
   // Prevent directory traversal
-  if (relativePath.startsWith('..') || resolve(relativePath) !== resolvedPath) {
+  if (relativePath.startsWith('..')) {
     return {
       allowed: false,
       reason: 'Path traversal detected - attempting to access files outside workspace',
