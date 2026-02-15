@@ -25,7 +25,7 @@ function AuthErrorContent() {
       case 'rate_limit_exceeded':
         return {
           title: 'Too Many Attempts',
-          description: description || 'You\'ve made too many sign-in attempts. This is a security measure to protect your account.',
+          description: description || 'You have made too many sign-in attempts. This is a security measure to protect your account.',
           suggestion: 'Please wait a few minutes before trying again.'
         }
       case 'auth_callback_failed':

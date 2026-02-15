@@ -10,6 +10,8 @@ import { useAuth } from '@/hooks/useAuth'
 
 const RATE_LIMIT_WINDOW = 60000 // 60 seconds
 const MAX_ATTEMPTS = 3
+const SUPABASE_RATE_LIMIT_COOLDOWN = 120 // 2 minutes in seconds
+const SUCCESS_MESSAGE_DURATION_MS = 10000 // 10 seconds
 
 export function LoginForm() {
   const [email, setEmail] = useState('')
@@ -37,6 +39,23 @@ export function LoginForm() {
       return () => clearInterval(timer)
     }
   }, [cooldownSeconds])
+
+  // Cleanup success message timeout on unmount
+  useEffect(() => {
+    let successTimeout: NodeJS.Timeout | null = null
+
+    if (message?.type === 'success') {
+      successTimeout = setTimeout(() => {
+        setMessage(null)
+      }, SUCCESS_MESSAGE_DURATION_MS)
+    }
+
+    return () => {
+      if (successTimeout) {
+        clearTimeout(successTimeout)
+      }
+    }
+  }, [message])
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,11 +94,6 @@ export function LoginForm() {
       if (newAttemptCount >= MAX_ATTEMPTS) {
         setCooldownSeconds(RATE_LIMIT_WINDOW / 1000)
       }
-
-      // Reset success message after 10 seconds
-      setTimeout(() => {
-        setMessage(null)
-      }, 10000)
     } catch (error) {
       console.error('[LoginForm] Sign in error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to send magic link'
@@ -91,7 +105,7 @@ export function LoginForm() {
           text: 'Too many sign-in attempts. Please wait a few minutes before trying again.',
         })
         // Set a longer cooldown for Supabase rate limits
-        setCooldownSeconds(120) // 2 minutes
+        setCooldownSeconds(SUPABASE_RATE_LIMIT_COOLDOWN)
         setAttemptCount(MAX_ATTEMPTS)
       } else {
         setMessage({
@@ -133,7 +147,7 @@ export function LoginForm() {
       </form>
 
       <p className="text-center text-[12px] text-white/35 mt-4">
-        We'll email you a secure sign-in link.
+        We&apos;ll email you a secure sign-in link.
       </p>
 
       {message && (
