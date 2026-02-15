@@ -31,9 +31,18 @@ export async function proxy(request: NextRequest) {
   response.headers.set('x-user-city', city)
 
   // Handle Supabase session refresh
+  // Skip Supabase handling if credentials are not configured (preview mode)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  if (!supabaseUrl || !supabaseKey) {
+    // Preview mode without Supabase - just pass through
+    return response
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {
