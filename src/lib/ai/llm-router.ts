@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { ModelConfig } from '@/types/agent';
 import { ToolDefinition } from '@/types/tool';
 
@@ -273,7 +273,11 @@ async function callGoogle(
     functionDeclarations: tools.map((tool) => ({
       name: tool.name,
       description: tool.description,
-      parameters: tool.input_schema,
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: tool.input_schema.properties,
+        required: tool.input_schema.required || [],
+      },
     })),
   }] : undefined;
 
@@ -295,7 +299,7 @@ async function callGoogle(
       maxOutputTokens: maxTokens || 4096,
       temperature,
     },
-    tools: googleTools,
+    tools: googleTools as any, // Google SDK types are strict, but this format works
     systemInstruction: systemInstruction || undefined,
   });
 
