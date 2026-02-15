@@ -35,6 +35,7 @@ import {
 const minimaxRateLimitMap = new Map<string, { count: number; resetTime: number }>()
 const MINIMAX_RATE_LIMIT = 100 // requests per hour
 const MINIMAX_RATE_WINDOW = 60 * 60 * 1000 // 1 hour in ms
+const MAX_RATE_LIMIT_ENTRIES = 10000 // Prevent memory leaks
 
 // Sensitive content patterns for classification layer
 // These patterns route messages directly to Claude Haiku for better handling
@@ -46,6 +47,16 @@ const SENSITIVE_CONTENT_PATTERNS = [
 
 function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining: number } {
   const now = Date.now()
+  
+  // Cleanup expired entries to prevent memory leak
+  if (minimaxRateLimitMap.size > MAX_RATE_LIMIT_ENTRIES) {
+    for (const [key, value] of minimaxRateLimitMap.entries()) {
+      if (now > value.resetTime) {
+        minimaxRateLimitMap.delete(key)
+      }
+    }
+  }
+  
   const record = minimaxRateLimitMap.get(sessionId)
   
   if (!record || now > record.resetTime) {
