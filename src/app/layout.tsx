@@ -3,6 +3,7 @@ import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 // Force dynamic rendering to ensure auth state is always fresh
 export const dynamic = 'force-dynamic';
@@ -192,7 +193,9 @@ export default function RootLayout({
           } as React.CSSProperties
         }
       >
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
         <ServiceWorkerRegistration />
         <Analytics />
         <SpeedInsights />
