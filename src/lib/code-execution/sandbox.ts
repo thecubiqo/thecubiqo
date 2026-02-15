@@ -168,25 +168,25 @@ export function sanitizeCommand(
   }
 
   // Additional security: prevent command chaining that might bypass checks
-  const dangerousChars = ['&', '|', ';', '`', '$', '(', ')'];
-  const hasDangerousChaining = dangerousChars.some(char => {
-    // Allow some safe uses (e.g., npm install && npm build)
-    // But block suspicious combinations
-    if (char === '&' && command.includes('&&')) {
-      // && is generally safe for chaining
-      return false;
-    }
-    if (char === '|' && command.includes('||')) {
-      // || is generally safe for fallbacks
-      return false;
-    }
-    // Block pipes and other dangerous chars
-    return command.includes(char);
-  });
+  // Note: We allow && for command chaining (e.g., npm install && npm test)
+  // and || for error fallbacks, but block pipes and other dangerous operators
+  const dangerousPipePattern = /(?<!\|)\|(?!\|)/; // Single pipe, but not || (with negative lookbehind and lookahead)
+  const dangerousRedirects = [/>\s*\/dev\//, />\s*\/etc\//];
+  
+  if (dangerousPipePattern.test(command)) {
+    return {
+      allowed: false,
+      reason: 'Pipe operator (|) is not allowed for security reasons. Use file redirection if needed.',
+    };
+  }
 
-  if (hasDangerousChaining) {
-    console.warn(`[Sandbox] Command contains potentially dangerous operators: ${command}`);
-    // We'll allow it but log it - some legitimate commands need pipes
+  for (const pattern of dangerousRedirects) {
+    if (pattern.test(command)) {
+      return {
+        allowed: false,
+        reason: 'Redirection to system directories is not allowed.',
+      };
+    }
   }
 
   return {

