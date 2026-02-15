@@ -8,6 +8,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { CubeScene, EnergyCubeScene } from './cube'
 import { LoginForm, AuthNudgeModal } from './auth'
+import { AuthButton } from './AuthButton.client'
 import { BYOSettings } from './byo'
 import { KeywordPanel } from './KeywordPanel'
 import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
@@ -416,29 +417,10 @@ export function FullscreenApp() {
         </button>
 
         {/* Sign In with profile icon */}
-        {isAuthenticated ? (
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="flex items-center gap-2 text-[13px] text-white/40 hover:text-white/60 transition-colors"
-            data-testid="user-profile-button"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-            </svg>
-            <span className="truncate max-w-[100px]">{user?.email?.split('@')[0]}</span>
-          </button>
-        ) : (
-          <button
-            onClick={() => setShowAuthForm(true)}
-            className="flex items-center gap-2 text-[13px] text-white/40 hover:text-white/60 transition-colors"
-            data-testid="sign-in-button"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-            </svg>
-            <span className="font-medium">Sign In</span>
-          </button>
-        )}
+        <AuthButton
+          onSignInClick={() => setShowAuthForm(true)}
+          onUserClick={() => setMenuOpen(true)}
+        />
       </div>
 
       {/* Right side - RGY Signal + Keywords underneath */}

@@ -8,6 +8,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { CubeScene } from './cube'
 import { ChatContainer } from './chat'
 import { LoginForm, AuthStatus } from './auth'
+import { AuthButton } from './AuthButton.client'
 import { CubeControls, type CubeShape } from './CubeControls'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
@@ -91,26 +92,11 @@ export function CubiQoApp() {
 
           {/* User Status */}
           <div className="flex items-center gap-3">
-            {isAuthenticated ? (
-              <>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                  {user?.email}
-                </span>
-                <button
-                  onClick={() => signOut()}
-                  className="text-xs px-3 py-1 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-700"
-                >
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => setShowAuth(!showAuth)}
-                className="text-xs px-3 py-1 rounded bg-orange-500 text-white hover:bg-orange-600"
-              >
-                {showAuth ? 'Close' : 'Sign In'}
-              </button>
-            )}
+            <AuthButton
+              onSignInClick={() => setShowAuth(!showAuth)}
+              onUserClick={() => signOut()}
+              isDark={false}
+            />
           </div>
         </div>
 
