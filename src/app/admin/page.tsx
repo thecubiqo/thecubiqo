@@ -44,8 +44,27 @@ interface AdminStats {
   timestamp: string;
 }
 
+interface Event {
+  id: string;
+  type: string;
+  properties: any;
+  user_id: string | null;
+  session_id: string | null;
+  created_at: string;
+}
+
+interface EventsData {
+  events: Event[];
+  stats: {
+    total: number;
+    typeCounts: Record<string, number>;
+  };
+  timestamp: string;
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [events, setEvents] = useState<EventsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -94,10 +113,25 @@ export default function AdminDashboard() {
     fetchStats();
   };
 
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch('/api/admin/events?limit=50');
+      if (!response.ok) throw new Error('Failed to fetch events');
+      const data = await response.json();
+      setEvents(data);
+    } catch (err) {
+      console.error('Failed to fetch events:', err);
+    }
+  };
+
   useEffect(() => {
     setLoadingStartTime(Date.now());
     fetchStats();
-    const interval = setInterval(fetchStats, 3000); // Refresh every 3 seconds
+    fetchEvents();
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchEvents();
+    }, 3000); // Refresh every 3 seconds
     return () => clearInterval(interval);
   }, []);
 
@@ -333,7 +367,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-gray-900 rounded-lg p-6">
+            <div className="bg-gray-900 rounded-lg p-6 mb-8">
               <h2 className="text-2xl font-bold mb-4">Recent Activity</h2>
               <div className="space-y-3">
                 {stats.recentActivity.length === 0 ? (
@@ -366,6 +400,102 @@ export default function AdminDashboard() {
                 )}
               </div>
             </div>
+
+            {/* Events Table */}
+            {events && (
+              <div className="bg-gray-900 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold">Analytics Events</h2>
+                  {events.stats.total > 0 && (
+                    <span className="text-sm text-gray-400">
+                      {events.stats.total} recent events
+                    </span>
+                  )}
+                </div>
+                
+                {/* Event Type Stats */}
+                {Object.keys(events.stats.typeCounts).length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {Object.entries(events.stats.typeCounts).map(([type, count]) => (
+                      <span
+                        key={type}
+                        className="px-3 py-1 bg-gray-800 rounded-full text-xs"
+                      >
+                        <span className="text-gray-400">{type}:</span>{' '}
+                        <span className="text-white font-semibold">{count}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-700">
+                        <th className="text-left py-3 px-4">Event Type</th>
+                        <th className="text-left py-3 px-4">Properties</th>
+                        <th className="text-left py-3 px-4">User ID</th>
+                        <th className="text-left py-3 px-4">Created At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {events.events.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="text-center py-8 text-gray-500">
+                            No events recorded yet
+                          </td>
+                        </tr>
+                      ) : (
+                        events.events.map((event) => (
+                          <tr
+                            key={event.id}
+                            className="border-b border-gray-800 hover:bg-gray-800/50"
+                          >
+                            <td className="py-3 px-4">
+                              <span className={`font-semibold ${
+                                event.type === 'magic_link_button_click' 
+                                  ? 'text-orange-400' 
+                                  : 'text-blue-400'
+                              }`}>
+                                {event.type}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-sm">
+                              {event.properties && typeof event.properties === 'object' ? (
+                                <div className="space-y-1">
+                                  {Object.entries(event.properties).map(([key, value]) => (
+                                    <div key={key} className="text-gray-400">
+                                      <span className="text-gray-500">{key}:</span>{' '}
+                                      <span className="text-white">
+                                        {typeof value === 'string' ? value : JSON.stringify(value)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-gray-500">—</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-gray-400">
+                              {event.user_id ? (
+                                <span className="font-mono text-xs">
+                                  {event.user_id.slice(0, 8)}...
+                                </span>
+                              ) : (
+                                <span className="text-gray-600">Anonymous</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-gray-500">
+                              {formatDate(event.created_at)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
