@@ -3,6 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+// Timeout constants
+const FETCH_TIMEOUT_MS = 5000;  // 5 seconds for individual fetch
+const OVERALL_TIMEOUT_MS = 10000;  // 10 seconds for overall loading
+
 interface AdminStats {
   stats: {
     totalAgents: number;
@@ -49,7 +53,7 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
     try {
       const response = await fetch('/api/admin/stats', {
@@ -69,7 +73,7 @@ export default function AdminDashboard() {
     } catch (err) {
       if (err instanceof Error) {
         if (err.name === 'AbortError') {
-          setError('Request timed out after 5 seconds. The admin API may be overloaded.');
+          setError(`Request timed out after ${FETCH_TIMEOUT_MS / 1000} seconds. The admin API may be overloaded.`);
         } else {
           setError(err.message);
         }
@@ -104,9 +108,9 @@ export default function AdminDashboard() {
     const timeoutId = setTimeout(() => {
       if (loading) {
         setLoading(false);
-        setError('Loading timed out after 10 seconds. Please check if the admin API is running.');
+        setError(`Loading timed out after ${OVERALL_TIMEOUT_MS / 1000} seconds. Please check if the admin API is running.`);
       }
-    }, 10000); // 10 second overall timeout
+    }, OVERALL_TIMEOUT_MS);
 
     return () => clearTimeout(timeoutId);
   }, [loading, loadingStartTime]);
