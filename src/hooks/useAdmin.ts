@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from './useAuth';
 import { isFeatureEnabled } from '@/config/feature-flags';
-import { logAdminActionClient, type AuditActionType } from '@/lib/audit';
+import { logAdminActionClient, type AuditActionType } from '@/lib/audit-client';
 
 export interface AdminState {
   isAdmin: boolean;

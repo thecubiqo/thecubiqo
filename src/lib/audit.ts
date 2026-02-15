@@ -1,12 +1,11 @@
 /**
- * Audit Logging Utility
+ * Audit Logging Server Utility
  * 
- * Logs privileged admin actions to the audit_logs table.
+ * Server-side utilities for logging admin actions to the audit_logs table.
  * All admin actions should be logged for security and compliance.
  */
 
 import { createClient } from '@/lib/supabase/server';
-import type { Database } from '@/types/database.types';
 
 export type AuditActionType =
   | 'debug_view_accessed'
@@ -26,7 +25,7 @@ export interface AuditLogData {
 }
 
 /**
- * Log a privileged admin action to the audit table
+ * Server-side: Log a privileged admin action to the audit table
  */
 export async function logAdminAction(data: AuditLogData): Promise<{ success: boolean; error?: string }> {
   try {
@@ -37,9 +36,9 @@ export async function logAdminAction(data: AuditLogData): Promise<{ success: boo
       p_user_id: data.userId,
       p_user_email: data.userEmail,
       p_action_type: data.actionType,
-      p_action_details: data.actionDetails || {},
-      p_ip_address: data.ipAddress || null,
-      p_user_agent: data.userAgent || null,
+      p_action_details: (data.actionDetails || {}) as any,
+      p_ip_address: data.ipAddress || undefined,
+      p_user_agent: data.userAgent || undefined,
     });
 
     if (error) {
@@ -58,7 +57,7 @@ export async function logAdminAction(data: AuditLogData): Promise<{ success: boo
 }
 
 /**
- * Get audit logs for a specific user (admin only)
+ * Server-side: Get audit logs for a specific user (admin only)
  */
 export async function getAuditLogs(options?: {
   userId?: string;
@@ -103,40 +102,6 @@ export async function getAuditLogs(options?: {
     return { 
       logs: [], 
       error: error instanceof Error ? error.message : 'Unknown error' 
-    };
-  }
-}
-
-/**
- * Client-side helper to log admin actions via API
- */
-export async function logAdminActionClient(
-  actionType: AuditActionType,
-  actionDetails?: Record<string, unknown>
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const response = await fetch('/api/admin/audit', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        actionType,
-        actionDetails,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      return { success: false, error };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Exception while logging admin action (client):', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }

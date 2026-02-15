@@ -14,7 +14,7 @@ import { useSession } from '@/hooks/useSession';
 
 export function DebugView() {
   const { isAdmin, elevatedControlsEnabled, logAction } = useAdmin();
-  const { sessionId } = useSession();
+  const { session } = useSession();
   const [debugData, setDebugData] = useState<Record<string, unknown>>({});
   const [isVisible, setIsVisible] = useState(false);
 
@@ -26,12 +26,12 @@ export function DebugView() {
       // Log access to debug view
       logAction('debug_view_accessed', {
         timestamp: new Date().toISOString(),
-        sessionId,
+        sessionId: session?.id,
       });
 
       // Collect debug data
       setDebugData({
-        sessionId,
+        sessionId: session?.id,
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent,
         screenSize: `${window.innerWidth}x${window.innerHeight}`,
@@ -40,7 +40,7 @@ export function DebugView() {
         onlineStatus: navigator.onLine,
       });
     }
-  }, [canSeeDebugView, isVisible, sessionId, logAction]);
+  }, [canSeeDebugView, isVisible, session?.id, logAction]);
 
   if (!canSeeDebugView) {
     return null;
