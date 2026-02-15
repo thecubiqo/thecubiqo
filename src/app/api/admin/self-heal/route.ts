@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const supabase = await createClient();
 
     // Build query
-    let query = supabase
+    let query = (supabase as any)
       .from('self_heal_reports')
       .select('*')
       .order('run_date', { ascending: false })

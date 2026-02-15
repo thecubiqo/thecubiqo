@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     // Save report to database
     const rollbackPatchText = formatRollbackPatch(report.rollbackPatch);
     
-    const { data: savedReport, error: reportError } = await supabase
+    const { data: savedReport, error: reportError } = await (supabase as any)
       .from('self_heal_reports')
       .insert({
         run_date: report.runDate.toISOString(),
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     }));
 
     if (auditLogs.length > 0) {
-      const { error: auditError } = await supabase
+      const { error: auditError } = await (supabase as any)
         .from('self_heal_audit_logs')
         .insert(auditLogs);
 
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     
     if (emailSent) {
       // Update report with email status
-      await supabase
+      await (supabase as any)
         .from('self_heal_reports')
         .update({
           email_sent: true,
