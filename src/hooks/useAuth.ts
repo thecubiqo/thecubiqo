@@ -47,12 +47,21 @@ export function useAuth() {
 
   // Initialize auth state using onAuthStateChange only
   useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[useAuth] Setting up auth state listener')
+    }
     // Set up auth state listener - this handles all auth events including initial load
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[useAuth] Auth state changed:', event, session?.user?.id || 'no user')
+        }
         // Handle any event that provides session info
         if (session?.user) {
           // IMPORTANT: Set isAuthenticated immediately, don't wait for profile
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[useAuth] User authenticated, updating state')
+          }
           setState(prev => ({
             ...prev,
             user: session.user,
@@ -65,13 +74,22 @@ export function useAuth() {
           try {
             const profile = await fetchProfile(session.user.id)
             if (profile) {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[useAuth] Profile loaded:', profile.handle)
+              }
               setState(prev => ({ ...prev, profile }))
             }
           } catch {
             // Profile fetch may fail for new users - that's ok
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[useAuth] Profile fetch failed (may be new user)')
+            }
           }
         } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
           // No session - either signed out or initial load with no auth
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[useAuth] No session, setting guest state')
+          }
           setState({
             user: null,
             profile: null,
@@ -84,6 +102,9 @@ export function useAuth() {
     )
 
     return () => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[useAuth] Cleaning up auth state listener')
+      }
       subscription.unsubscribe()
     }
   }, [supabase, fetchProfile])
