@@ -326,6 +326,25 @@ function FlagModal({ flag, onClose, onSave }: FlagModalProps) {
     flag?.config?.percentage?.toString() || '100'
   );
 
+  // Reset form when flag prop changes
+  useEffect(() => {
+    if (flag) {
+      setName(flag.name);
+      setDescription(flag.description || '');
+      setEnabled(flag.enabled);
+      setScope(flag.scope);
+      setTargetId(flag.target_id || '');
+      setPercentage(flag.config?.percentage?.toString() || '100');
+    } else {
+      setName('');
+      setDescription('');
+      setEnabled(false);
+      setScope('global');
+      setTargetId('');
+      setPercentage('100');
+    }
+  }, [flag]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const config: any = {};

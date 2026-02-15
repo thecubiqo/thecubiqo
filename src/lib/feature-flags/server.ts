@@ -170,7 +170,7 @@ export async function createFeatureFlag(
 
   if (error) {
     console.error('Error creating feature flag:', error);
-    return { data: null, error: error.message };
+    return { data: null, error: error.message || 'Failed to create feature flag' };
   }
 
   return { data: data as unknown as FeatureFlag, error: null };
@@ -279,6 +279,17 @@ export async function getFeatureFlagAuditLogs(flagId?: string) {
 
 /**
  * Simple hash function for consistent user bucketing
+ * 
+ * This function ensures that the same user always gets assigned to the same bucket
+ * in percentage-based rollouts. It uses a simple string hash algorithm that:
+ * - Produces a consistent numeric hash from a string input
+ * - Returns the same value for the same input
+ * - Distributes values relatively evenly across the range
+ * 
+ * Used for percentage-based feature rollouts to ensure user experience consistency.
+ * 
+ * @param str - The string to hash (typically a user ID)
+ * @returns A positive integer hash value
  */
 function simpleHash(str: string): number {
   let hash = 0;

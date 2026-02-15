@@ -5,6 +5,7 @@
 
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 
 interface FeatureFlagDemoProps {
@@ -54,24 +55,30 @@ export function FeatureFlagDemo({
  * Preview mode indicator banner
  */
 export function PreviewModeBanner() {
-  if (typeof window === 'undefined') return null;
+  const [hasPreview, setHasPreview] = useState(false);
 
-  // Check if preview mode is active
-  const cookies = document.cookie.split(';');
-  let hasPreview = false;
-  
-  for (const cookie of cookies) {
-    const [name] = cookie.trim().split('=');
-    if (name === '__cubiqo_preview_flags') {
-      hasPreview = true;
-      break;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Check if preview mode is active
+    const cookies = document.cookie.split(';');
+    let preview = false;
+    
+    for (const cookie of cookies) {
+      const [name] = cookie.trim().split('=');
+      if (name === '__cubiqo_preview_flags') {
+        preview = true;
+        break;
+      }
     }
-  }
 
-  const params = new URLSearchParams(window.location.search);
-  if (params.has('preview_flags')) {
-    hasPreview = true;
-  }
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('preview_flags')) {
+      preview = true;
+    }
+
+    setHasPreview(preview);
+  }, []);
 
   if (!hasPreview) return null;
 

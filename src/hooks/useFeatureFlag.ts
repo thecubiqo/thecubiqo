@@ -165,7 +165,14 @@ export function useFeatureFlags(
     if (flagNames.length > 0) {
       checkFlags();
     }
-  }, [JSON.stringify(flagNames), options.user_id, options.site_id, options.enablePreview]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    // Use flagNames.join() to create a stable dependency
+    flagNames.join(','),
+    options.user_id,
+    options.site_id,
+    options.enablePreview,
+  ]);
 
   return { flags, loading, error, previewFlags };
 }

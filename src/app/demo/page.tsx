@@ -194,7 +194,7 @@ function MyComponent() {
             To test webhooks:
           </p>
           <ol className="list-decimal list-inside space-y-2 text-gray-300">
-            <li>Go to <a href="/admin/feature-flags" className="text-blue-400 hover:underline">/admin/feature-flags</a></li>
+            <li>Go to the <a href="/admin/feature-flags" className="text-blue-400 hover:underline">Feature Flags Admin page</a></li>
             <li>Create or edit a feature flag</li>
             <li>Toggle the flag on/off</li>
             <li>Check your webhook endpoint for the notification</li>

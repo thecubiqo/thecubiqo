@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     const { data: flag, error } = await createFeatureFlag(body, user.id);
 
     if (error || !flag) {
-      return NextResponse.json({ error: error || 'Failed to create flag' }, { status: 500 });
+      return NextResponse.json({ error: error || 'Failed to create feature flag' }, { status: 500 });
     }
 
     // Trigger webhooks
