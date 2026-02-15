@@ -40,6 +40,12 @@ export default function ChatPage() {
           >
             Voice Mode
           </Link>
+          <Link
+            href="/journal"
+            className="text-xs px-3 py-2 rounded-lg bg-gradient-to-r from-orange-500/80 to-orange-600/80 hover:from-orange-500 hover:to-orange-600 border border-orange-400/30 transition-colors font-medium"
+          >
+            📝 Journal
+          </Link>
         </div>
       </header>
 
