@@ -189,8 +189,16 @@ export function generateReport(
   const content = JSON.stringify(report, null, 2);
   
   // Generate HMAC signature for verification
-  const secret = process.env.SELF_HEAL_SECRET || 'default-secret-change-in-production';
-  const signature = createHmac('sha256', secret)
+  const secret = process.env.SELF_HEAL_SECRET;
+  if (!secret) {
+    console.warn('SELF_HEAL_SECRET not set. Using insecure default for development only.');
+    // In production, this should fail
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SELF_HEAL_SECRET must be set in production');
+    }
+  }
+  
+  const signature = createHmac('sha256', secret || 'dev-only-secret')
     .update(content)
     .digest('hex');
 

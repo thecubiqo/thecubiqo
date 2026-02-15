@@ -4,7 +4,7 @@
  * Tests the complete flow: diagnostics → fixes → report → artifacts
  */
 
-import { executeSelfHeal } from '../src/lib/self-heal/core.ts';
+import { executeSelfHeal } from '../src/lib/self-heal/core.js';
 import { readFile, access } from 'fs/promises';
 import { constants } from 'fs';
 
@@ -137,7 +137,8 @@ async function testSelfHealIntegration() {
 
     // Test 8: Verify signature
     console.log('Test 8: Verify signature...');
-    if (result.signature && result.signature.length === 64) { // SHA-256 produces 64 hex chars
+    // SHA-256 produces a 32-byte digest, which is 64 hexadecimal characters
+    if (result.signature && result.signature.length === 64) {
       tests.push({ name: 'Signature', passed: true });
       passed++;
       console.log('✅ Signature generated correctly\n');

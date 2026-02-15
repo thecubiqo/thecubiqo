@@ -122,7 +122,15 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Allow GET for manual triggering (useful for testing)
+// Allow GET for manual triggering (useful for testing in development only)
+// In production, only POST should be used to prevent CSRF
 export async function GET(req: NextRequest) {
+  // Only allow GET in development
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { success: false, error: 'GET requests not allowed in production. Use POST.' },
+      { status: 405 }
+    );
+  }
   return POST(req);
 }
