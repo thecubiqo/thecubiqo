@@ -13,9 +13,10 @@ import type { UpdateMemoryInput } from '@/lib/conscious-memory/types';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -29,7 +30,7 @@ export async function GET(
     const { data: memory, error } = await supabase
       .from('conscious_memories')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -45,7 +46,7 @@ export async function GET(
     await supabase
       .from('conscious_memories')
       .update(updates)
-      .eq('id', params.id);
+      .eq('id', id);
 
     return NextResponse.json({ memory: { ...memory, ...updates } });
 
@@ -63,7 +64,7 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -82,7 +83,7 @@ export async function PATCH(
     const { data: existing, error: fetchError } = await supabase
       .from('conscious_memories')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -118,7 +119,7 @@ export async function PATCH(
     const { data: memory, error } = await supabase
       .from('conscious_memories')
       .update(updates)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .select()
       .single();
@@ -146,7 +147,7 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -162,7 +163,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('conscious_memories')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id);
 
     if (error) {

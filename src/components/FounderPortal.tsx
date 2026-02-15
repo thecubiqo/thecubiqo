@@ -7,7 +7,7 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
-import { isFounder } from '@/lib/auth'
+import { isFounder } from '@/lib/auth/feature-gate-simple'
 
 export function FounderPortal({ override }: { override?: boolean }) {
   const { user } = useAuth()

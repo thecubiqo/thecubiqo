@@ -18,9 +18,67 @@
  */
 
 import { callOllamaWithFallback, isOllamaAvailable } from './ollama'
-import { callClaude, callOpenAI, callMiniMax } from './providers'
+import { callMiniMax } from './minimax'
 import { callOpenClaw } from './openclaw'
 import { SYSTEM_PROMPT_UNHINGED } from './system-prompt-unhinged'
+import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
+
+/**
+ * Call Claude via Anthropic SDK (for BYO keys)
+ */
+async function callClaude(
+  systemPrompt: string,
+  messages: { role: string; content: string }[],
+  apiKey?: string | null
+): Promise<string> {
+  const key = apiKey || process.env.ANTHROPIC_API_KEY
+  if (!key) {
+    throw new Error('Claude API key not configured')
+  }
+
+  const client = new Anthropic({ apiKey: key })
+  const response = await client.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 4000,
+    system: systemPrompt,
+    messages: messages.map(m => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content
+    }))
+  })
+
+  return response.content[0].type === 'text' ? response.content[0].text : ''
+}
+
+/**
+ * Call OpenAI via SDK (for BYO keys)
+ */
+async function callOpenAI(
+  systemPrompt: string,
+  messages: { role: string; content: string }[],
+  apiKey?: string | null
+): Promise<string> {
+  const key = apiKey || process.env.OPENAI_API_KEY
+  if (!key) {
+    throw new Error('OpenAI API key not configured')
+  }
+
+  const client = new OpenAI({ apiKey: key })
+  const response = await client.chat.completions.create({
+    model: 'gpt-4o',
+    max_tokens: 4000,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      ...messages.map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content
+      }))
+    ]
+  })
+
+  return response.choices[0]?.message?.content || ''
+}
 
 export type AIProvider = 'ollama' | 'claude' | 'openai' | 'openclaw' | 'minimax'
 

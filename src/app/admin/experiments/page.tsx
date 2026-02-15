@@ -1,6 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { DatabaseWithAbTesting } from '@/types/database.types'
-import { SupabaseClient } from '@supabase/supabase-js'
 import { AppLayout } from '@/components/AppLayout'
 import { AssetManager } from '@/components/experiments/AssetManager'
 
@@ -8,9 +6,8 @@ export const dynamic = 'force-dynamic'
 
 async function getExperiments() {
     const supabase = await createClient()
-    const db = supabase as unknown as SupabaseClient<DatabaseWithAbTesting>
 
-    const { data: experiments } = await (db as any)
+    const { data: experiments } = await (supabase as any)
         .from('experiments')
         .select('*')
         .order('created_at', { ascending: false })
@@ -20,13 +17,13 @@ async function getExperiments() {
     // For each experiment, get stats
     const experimentsWithStats = await Promise.all(experiments.map(async (exp: any) => {
         // get user counts per variant
-        const { data: assignments } = await (db as any)
+        const { data: assignments } = await (supabase as any)
             .from('experiment_assignments')
             .select('variant')
             .eq('experiment_id', exp.id)
 
         // get event counts/values per variant
-        const { data: events } = await (db as any)
+        const { data: events } = await (supabase as any)
             .from('experiment_events')
             .select('variant, value, event_name')
             .eq('experiment_id', exp.id)

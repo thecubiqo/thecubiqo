@@ -8,7 +8,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { getFeatureAccess, FOUNDER_ACCESS } from '@/lib/auth'
+import { getFeatureAccess, FOUNDER_ACCESS } from '@/lib/auth/feature-gate-simple'
 import { useState, useEffect } from 'react'
 
 const NAV_ITEMS = [

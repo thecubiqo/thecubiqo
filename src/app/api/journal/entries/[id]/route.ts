@@ -12,9 +12,10 @@ import type { UpdateEntryInput } from '@/lib/journal/types';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -28,7 +29,7 @@ export async function GET(
     const { data: entry, error } = await supabase
       .from('journal_entries')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -55,9 +56,10 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -74,7 +76,7 @@ export async function PATCH(
     const { data: existingEntry, error: fetchError } = await supabase
       .from('journal_entries')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -115,7 +117,7 @@ export async function PATCH(
     const { data: entry, error } = await supabase
       .from('journal_entries')
       .update(updates)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .select()
       .single();
@@ -143,9 +145,10 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -159,7 +162,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('journal_entries')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id);
 
     if (error) {
