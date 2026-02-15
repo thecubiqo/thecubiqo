@@ -86,29 +86,7 @@ export function JournalFlow({ sessionId, userId, onComplete }: JournalFlowProps)
     setCurrentResponse(responses[currentPrompt] || '')
   }, [currentPrompt, responses])
 
-  const handleNext = useCallback(() => {
-    const newResponses = [...responses]
-    newResponses[currentPrompt] = currentResponse
-    setResponses(newResponses)
-
-    if (currentPrompt < JOURNAL_PROMPTS.length - 1) {
-      setCurrentPrompt(currentPrompt + 1)
-    } else {
-      // All prompts completed, save journal
-      handleSaveJournal(newResponses)
-    }
-  }, [currentPrompt, currentResponse, responses])
-
-  const handlePrevious = useCallback(() => {
-    if (currentPrompt > 0) {
-      const newResponses = [...responses]
-      newResponses[currentPrompt] = currentResponse
-      setResponses(newResponses)
-      setCurrentPrompt(currentPrompt - 1)
-    }
-  }, [currentPrompt, currentResponse, responses])
-
-  const handleSaveJournal = async (finalResponses: string[]) => {
+  const handleSaveJournal = useCallback(async (finalResponses: string[]) => {
     setIsSaving(true)
 
     try {
@@ -176,7 +154,29 @@ export function JournalFlow({ sessionId, userId, onComplete }: JournalFlowProps)
       alert('Failed to save journal. Please try again.')
       setIsSaving(false)
     }
-  }
+  }, [sessionId, userId, userEmail, startTime, onComplete])
+
+  const handleNext = useCallback(() => {
+    const newResponses = [...responses]
+    newResponses[currentPrompt] = currentResponse
+    setResponses(newResponses)
+
+    if (currentPrompt < JOURNAL_PROMPTS.length - 1) {
+      setCurrentPrompt(currentPrompt + 1)
+    } else {
+      // All prompts completed, save journal
+      handleSaveJournal(newResponses)
+    }
+  }, [currentPrompt, currentResponse, responses, handleSaveJournal])
+
+  const handlePrevious = useCallback(() => {
+    if (currentPrompt > 0) {
+      const newResponses = [...responses]
+      newResponses[currentPrompt] = currentResponse
+      setResponses(newResponses)
+      setCurrentPrompt(currentPrompt - 1)
+    }
+  }, [currentPrompt, currentResponse, responses])
 
   const progress = ((currentPrompt + 1) / JOURNAL_PROMPTS.length) * 100
   const prompt = JOURNAL_PROMPTS[currentPrompt]
