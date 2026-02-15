@@ -133,10 +133,10 @@ PRs are grouped into 5 priorities:
 |----------|-----|-----------|------------|
 | P1       | 1   | 1 min     | 1 min      |
 | P2       | 4   | 8 min     | 9 min      |
-| P3       | 3   | 6 min     | 15 min     |
-| P4       | 6   | 15 min    | 30 min     |
-| P5       | 13  | 30 min    | 60 min     |
-| **Total**| **27** | **~60 min** | **1 hour** |
+| P3       | 1   | 2 min     | 11 min     |
+| P4       | 8   | 20 min    | 31 min     |
+| P5       | 13  | 30 min    | 61 min     |
+| **Total**| **27** | **~61 min** | **~1 hour** |
 
 **Quick cleanup (P1+P2 only): ~10 minutes**
 

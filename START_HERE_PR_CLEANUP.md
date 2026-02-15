@@ -54,11 +54,11 @@ Out of 27 open PRs:
    - These are likely superseded
    - Review and close with explanatory comments
 
-3. **Quick Review Priority 3** (5 minutes):
-   - PRs #41, #45, #20
-   - Documentation PRs - merge if valuable, close if not
+3. **Quick Review Priority 3** (2 minutes):
+   - PR #20 only (non-draft clarification)
+   - Quick review - merge if valuable, close if not
 
-Total time to clean up the most obvious ones: **~15 minutes**
+Total time to clean up the most obvious ones: **~12 minutes**
 
 ## 📁 Files Created
 
