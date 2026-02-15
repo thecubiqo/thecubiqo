@@ -17,12 +17,12 @@ export default function Home() {
   // Check if particle landing is enabled, otherwise use fullscreen app
   // Note: Since we don't have a separate ParticleLanding page component yet,
   // we're using FullscreenApp for both for now. This can be easily swapped later.
-  const useParticleLanding = isEnabled('particle_landing');
-  const useFullscreenApp = isEnabled('fullscreen_app_landing');
+  const particleLandingEnabled = isEnabled('particle_landing');
+  const fullscreenAppEnabled = isEnabled('fullscreen_app_landing');
 
   // If fullscreen_app_landing is explicitly enabled, use it
   // Otherwise use particle_landing if enabled (default)
-  if (useFullscreenApp) {
+  if (fullscreenAppEnabled) {
     return <FullscreenApp />;
   }
 

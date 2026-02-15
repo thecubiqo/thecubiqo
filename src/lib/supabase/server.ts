@@ -6,6 +6,7 @@ export async function createClient() {
   const cookieStore = await cookies()
 
   // Support both old and new env var names with fallback
+  // Note: The "1" suffix is per legacy naming convention for backward compatibility
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
