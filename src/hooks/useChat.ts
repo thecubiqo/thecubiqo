@@ -252,7 +252,10 @@ export function useChat(options: UseChatOptions) {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to send message')
+        const errorCode = errorData.code || ''
+        const errorMsg = errorData.error || 'Failed to send message'
+        // Include error code in message for UI handling
+        throw new Error(errorCode ? `[${errorCode}] ${errorMsg}` : errorMsg)
       }
 
       const data = await response.json()
