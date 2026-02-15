@@ -225,8 +225,8 @@ function formatComment(results: CheckResult[], dryRun: boolean): string {
 // ---------------------------------------------------------------------------
 
 async function run(): Promise<void> {
-  const mode = DRY_RUN ? "dry-run" : "active";
-  console.log(`\n🔍 PR-Triage Agent (${mode}) — ${OWNER}/${REPO}\n`);
+  const operationMode = DRY_RUN ? "dry-run" : "active";
+  console.log(`\n🔍 PR-Triage Agent (${operationMode}) — ${OWNER}/${REPO}\n`);
 
   // 1. Fetch all open Draft PRs
   const { data: pullRequests } = await octokit.pulls.list({
@@ -277,8 +277,8 @@ async function run(): Promise<void> {
         await markReadyForReview(fullPr.node_id);
         converted = true;
         console.log("   ✅ Converted to Ready for Review.");
-      } catch (convErr) {
-        console.error("   ⚠️  Failed to convert PR:", convErr);
+      } catch (conversionError) {
+        console.error("   ⚠️  Failed to convert PR:", conversionError);
       }
     }
 
