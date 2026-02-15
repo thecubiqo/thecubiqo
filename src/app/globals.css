@@ -100,6 +100,10 @@
 *,
 *::before,
 *::after {
+  box-sizing: border-box;
+}
+
+body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -115,9 +119,6 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   line-height: 1.5;
-  letter-spacing: -0.01em;
-  /* Prevent layout shifts from scrollbar appearance */
-  overflow-y: scroll;
 }
 
 /* Premium text selection */

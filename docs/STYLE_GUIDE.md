@@ -232,7 +232,7 @@ globally.
 ### 5.4 Colour Contrast
 
 - Body on dark: `#f5f5f7` on `#000000` → 21:1 ✓
-- Body on light: `#1d1d1f` on `#ffffff` → 17.4:1 ✓
+- Body on light: `#1d1d1f` on `#ffffff` → 16.75:1 ✓
 - Muted: `#86868b` on `#000000` → 4.56:1 (AA normal ✓)
 - All new pairings must meet WCAG 2.1 AA (4.5:1 for normal text).
 
