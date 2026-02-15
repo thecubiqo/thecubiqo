@@ -4,6 +4,7 @@ import { promisify } from 'util';
 import { readFile, writeFile, unlink, readdir } from 'fs/promises';
 import { join } from 'path';
 import { webSearchTool, webFetchTool } from './web-tools';
+import { sanitizeCommand, getSandboxExecOptions } from '../code-execution/sandbox';
 
 const execAsync = promisify(exec);
 
@@ -71,7 +72,7 @@ export class ToolRegistry {
 const execTool: Tool = {
   id: 'exec',
   name: 'Execute Shell Command',
-  description: 'Run a shell command in the agent workspace. Returns stdout and stderr.',
+  description: 'Run a shell command in the agent workspace. Returns stdout and stderr. Commands are sandboxed for security.',
   parameters: {
     type: 'object',
     properties: {
@@ -83,11 +84,32 @@ const execTool: Tool = {
   execute: async (params, context) => {
     try {
       const { command, timeout = 30000 } = params;
-      const { stdout, stderr } = await execAsync(command, {
-        cwd: context.workspace,
-        timeout,
-        maxBuffer: 1024 * 1024, // 1MB
+      
+      // Sanitize command for security
+      const sanitizationResult = sanitizeCommand(command, {
+        workspaceRoot: context.workspace,
+        maxTimeout: timeout,
       });
+
+      if (!sanitizationResult.allowed) {
+        console.warn(`[Exec Tool] Blocked command: ${command}`);
+        console.warn(`[Exec Tool] Reason: ${sanitizationResult.reason}`);
+        return {
+          success: false,
+          output: '',
+          error: `Command blocked: ${sanitizationResult.reason}`,
+        };
+      }
+
+      // Get sandboxed execution options
+      const execOptions = getSandboxExecOptions({
+        workspaceRoot: context.workspace,
+        maxTimeout: timeout,
+      });
+
+      console.log(`[Exec Tool] Executing: ${command}`);
+      
+      const { stdout, stderr } = await execAsync(command, execOptions);
 
       return {
         success: true,

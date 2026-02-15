@@ -4,12 +4,19 @@ import { promisify } from 'util';
 import { writeFile, unlink, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
+import { 
+  sanitizeCommand, 
+  ensureWorkspace, 
+  getWorkspaceDir,
+  getSandboxExecOptions 
+} from '@/lib/code-execution/sandbox';
 
 const execAsync = promisify(exec);
 
 interface ExecuteRequest {
   language: 'python' | 'javascript' | 'typescript' | 'bash';
   code: string;
+  sessionId?: string;
   context?: {
     workdir?: string;
     timeout?: number; // milliseconds
@@ -38,7 +45,7 @@ const MAX_OUTPUT_SIZE = 10000; // characters
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const body: ExecuteRequest = await req.json();
-    const { language, code, context } = body;
+    const { language, code, sessionId = 'default', context } = body;
 
     if (!code || !language) {
       return NextResponse.json(
@@ -47,9 +54,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Create temp directory for execution
-    const tempDir = join('/tmp', 'cubiqo-exec', randomUUID());
-    await mkdir(tempDir, { recursive: true });
+    // Create session-specific workspace directory
+    const workspaceDir = await ensureWorkspace(sessionId);
+    console.log(`[Code Execute] Using workspace: ${workspaceDir}`);
 
     const startTime = Date.now();
     let result: ExecuteResponse;
@@ -57,16 +64,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     try {
       switch (language) {
         case 'python':
-          result = await executePython(code, tempDir, context?.timeout);
+          result = await executePython(code, workspaceDir, context?.timeout, sessionId);
           break;
         case 'javascript':
-          result = await executeJavaScript(code, tempDir, context?.timeout);
+          result = await executeJavaScript(code, workspaceDir, context?.timeout, sessionId);
           break;
         case 'typescript':
-          result = await executeTypeScript(code, tempDir, context?.timeout);
+          result = await executeTypeScript(code, workspaceDir, context?.timeout, sessionId);
           break;
         case 'bash':
-          result = await executeBash(code, tempDir, context?.timeout);
+          result = await executeBash(code, workspaceDir, context?.timeout, sessionId);
           break;
         default:
           return NextResponse.json(
@@ -77,13 +84,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       result.executionTime = Date.now() - startTime;
 
-      // Cleanup temp directory
-      await execAsync(`rm -rf ${tempDir}`).catch(() => {});
-
       return NextResponse.json(result);
     } catch (error) {
-      // Cleanup on error
-      await execAsync(`rm -rf ${tempDir}`).catch(() => {});
       throw error;
     }
   } catch (error) {
@@ -101,19 +103,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 async function executePython(
   code: string,
   workdir: string,
-  timeout = MAX_EXECUTION_TIME
+  timeout = MAX_EXECUTION_TIME,
+  sessionId: string = 'default'
 ): Promise<ExecuteResponse> {
   const filename = join(workdir, 'script.py');
   await writeFile(filename, code);
 
   try {
+    const execOptions = getSandboxExecOptions({
+      workspaceRoot: workdir,
+      maxTimeout: timeout,
+      sessionId,
+    });
+
     const { stdout, stderr } = await execAsync(
       `python3 ${filename}`,
-      {
-        cwd: workdir,
-        timeout,
-        maxBuffer: MAX_OUTPUT_SIZE,
-      }
+      execOptions
     );
 
     return {
@@ -139,19 +144,22 @@ async function executePython(
 async function executeJavaScript(
   code: string,
   workdir: string,
-  timeout = MAX_EXECUTION_TIME
+  timeout = MAX_EXECUTION_TIME,
+  sessionId: string = 'default'
 ): Promise<ExecuteResponse> {
   const filename = join(workdir, 'script.js');
   await writeFile(filename, code);
 
   try {
+    const execOptions = getSandboxExecOptions({
+      workspaceRoot: workdir,
+      maxTimeout: timeout,
+      sessionId,
+    });
+
     const { stdout, stderr } = await execAsync(
       `node ${filename}`,
-      {
-        cwd: workdir,
-        timeout,
-        maxBuffer: MAX_OUTPUT_SIZE,
-      }
+      execOptions
     );
 
     return {
@@ -177,26 +185,23 @@ async function executeJavaScript(
 async function executeTypeScript(
   code: string,
   workdir: string,
-  timeout = MAX_EXECUTION_TIME
+  timeout = MAX_EXECUTION_TIME,
+  sessionId: string = 'default'
 ): Promise<ExecuteResponse> {
   const filename = join(workdir, 'script.ts');
   await writeFile(filename, code);
 
   try {
-    // Compile TypeScript first
-    await execAsync(`npx tsx ${filename}`, {
-      cwd: workdir,
-      timeout: 5000, // Quick compile timeout
+    const execOptions = getSandboxExecOptions({
+      workspaceRoot: workdir,
+      maxTimeout: timeout,
+      sessionId,
     });
 
-    // Execute compiled JS
+    // Execute with tsx (TypeScript execution)
     const { stdout, stderr } = await execAsync(
       `npx tsx ${filename}`,
-      {
-        cwd: workdir,
-        timeout,
-        maxBuffer: MAX_OUTPUT_SIZE,
-      }
+      execOptions
     );
 
     return {
@@ -222,20 +227,23 @@ async function executeTypeScript(
 async function executeBash(
   code: string,
   workdir: string,
-  timeout = MAX_EXECUTION_TIME
+  timeout = MAX_EXECUTION_TIME,
+  sessionId: string = 'default'
 ): Promise<ExecuteResponse> {
   const filename = join(workdir, 'script.sh');
   await writeFile(filename, code);
   await execAsync(`chmod +x ${filename}`);
 
   try {
+    const execOptions = getSandboxExecOptions({
+      workspaceRoot: workdir,
+      maxTimeout: timeout,
+      sessionId,
+    });
+
     const { stdout, stderr } = await execAsync(
       `bash ${filename}`,
-      {
-        cwd: workdir,
-        timeout,
-        maxBuffer: MAX_OUTPUT_SIZE,
-      }
+      execOptions
     );
 
     return {
