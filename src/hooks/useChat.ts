@@ -17,35 +17,29 @@ function getBYOHeaders(): Record<string, string> {
 
   try {
     const stored = localStorage.getItem(BYO_STORAGE_KEY)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[BYO Debug] localStorage raw:', stored)
-    }
+    console.log('[BYO Debug] localStorage raw:', stored)
     if (!stored) return {}
 
     const config: BYOConfig = JSON.parse(stored)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[BYO Debug] parsed config:', { enabled: config.enabled, hasClaudeKey: !!config.claudeApiKey })
-    }
+    console.log('[BYO Debug] parsed config:', { enabled: config.enabled, hasClaudeKey: !!config.claudeApiKey, hasOpenaiKey: !!config.openaiApiKey })
     if (!config.enabled) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[BYO Debug] BYO not enabled, returning empty headers')
-      }
+      console.log('[BYO Debug] BYO not enabled, returning empty headers')
       return {}
     }
 
     const headers: Record<string, string> = {}
     if (config.claudeApiKey) {
       headers['x-byo-claude-key'] = config.claudeApiKey
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[BYO Debug] Adding Claude key header')
-      }
+      console.log('[BYO Debug] Adding Claude key header')
     }
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[BYO Debug] Final headers count:', Object.keys(headers).length)
+    if (config.openaiApiKey) {
+      headers['x-byo-openai-key'] = config.openaiApiKey
+      console.log('[BYO Debug] Adding OpenAI key header')
     }
+    console.log('[BYO Debug] Final headers count:', Object.keys(headers).length)
     return headers
   } catch (e) {
-    console.error('[BYO] Error parsing config:', e)
+    console.error('[BYO Debug] Error parsing config:', e)
     return {}
   }
 }
@@ -62,7 +56,7 @@ interface ChatState {
   error: string | null
   conversationHistory: ConversationEntry[]
   conversationId: string | null
-  lastProvider: 'claude' | 'minimax' | 'mixtral' | 'llama' | null
+  lastProvider: 'claude' | 'openai' | null
   isInitialized: boolean
 }
 
@@ -163,14 +157,11 @@ export function useChat(options: UseChatOptions) {
             .order('created_at', { ascending: true })
 
           if (messages) {
-            // Optimized: Build conversation pairs more efficiently
-            const pairs: ConversationEntry[] = []
             for (let i = 0; i < messages.length; i += 2) {
               const userMsg = messages[i]
               const aiMsg = messages[i + 1]
-              // Only add valid pairs
-              if (userMsg?.role === 'user' && aiMsg?.role === 'assistant') {
-                pairs.push({
+              if (userMsg && aiMsg && userMsg.role === 'user' && aiMsg.role === 'assistant') {
+                history.push({
                   userMessage: userMsg.content,
                   aiResponse: aiMsg.content,
                   color: (aiMsg.color as ColorName) || 'ORANGE',
@@ -178,7 +169,6 @@ export function useChat(options: UseChatOptions) {
                 })
               }
             }
-            history = pairs
           }
         } else {
           // Get messages via API
@@ -191,14 +181,11 @@ export function useChat(options: UseChatOptions) {
           if (msgRes.ok) {
             const { messages } = await msgRes.json()
             if (messages) {
-              // Optimized: Build conversation pairs more efficiently
-              const pairs: ConversationEntry[] = []
               for (let i = 0; i < messages.length; i += 2) {
                 const userMsg = messages[i]
                 const aiMsg = messages[i + 1]
-                // Only add valid pairs
-                if (userMsg?.role === 'user' && aiMsg?.role === 'assistant') {
-                  pairs.push({
+                if (userMsg && aiMsg && userMsg.role === 'user' && aiMsg.role === 'assistant') {
+                  history.push({
                     userMessage: userMsg.content,
                     aiResponse: aiMsg.content,
                     color: (aiMsg.color as ColorName) || 'ORANGE',
@@ -206,7 +193,6 @@ export function useChat(options: UseChatOptions) {
                   })
                 }
               }
-              history = pairs
             }
           }
         }
@@ -270,38 +256,38 @@ export function useChat(options: UseChatOptions) {
 
       if (!response.ok) {
         const errorData = await response.json()
-        const errorCode = errorData.code || ''
-        const errorMsg = errorData.error || 'Failed to send message'
-        // Include error code in message for UI handling
-        throw new Error(errorCode ? `[${errorCode}] ${errorMsg}` : errorMsg)
+        throw new Error(errorData.error || 'Failed to send message')
       }
 
       const data = await response.json()
       const timestamp = new Date().toISOString()
 
-      // Batch save both messages in a single request (performance optimization)
+      // Save messages via API (bypasses RLS)
       await fetch('/api/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'save_messages_batch',
+          action: 'save_message',
           conversationId: state.conversationId,
-          messages: [
-            {
-              role: 'user',
-              content: message,
-              color: currentColor
-            },
-            {
-              role: 'assistant',
-              content: data.response,
-              color: data.color
-            }
-          ]
+          role: 'user',
+          content: message,
+          color: currentColor
         })
       })
 
-      // Trigger memory extraction in background (fire-and-forget with error logging)
+      await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_message',
+          conversationId: state.conversationId,
+          role: 'assistant',
+          content: data.response,
+          color: data.color
+        })
+      })
+
+      // Trigger memory extraction in background (fire-and-forget)
       if (sessionId) {
         fetch('/api/extract-memories', {
           method: 'POST',
@@ -314,11 +300,7 @@ export function useChat(options: UseChatOptions) {
             userMessage: message,
             aiResponse: data.response
           })
-        }).catch((error) => {
-          // Log extraction errors but don't block user experience
-          const errorMessage = error instanceof Error ? error.message : String(error)
-          console.warn('[useChat] Memory extraction failed:', errorMessage)
-        })
+        }).catch(() => {}) // Silently ignore extraction errors
       }
 
       const newEntry: ConversationEntry = {

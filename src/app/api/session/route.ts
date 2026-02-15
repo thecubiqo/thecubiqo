@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 // Server-side Supabase client with service role (bypasses RLS)
-// Support both old and new env var names (fallback pattern)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+)
 
 export async function POST(req: NextRequest) {
   try {
@@ -81,54 +81,6 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin
         .from('conversations')
         .update({ color_state: color || 'ORANGE', updated_at: new Date().toISOString() })
-        .eq('id', conversationId)
-
-      return NextResponse.json({ success: true })
-    }
-
-    // Batch save messages (performance optimization)
-    if (action === 'save_messages_batch') {
-      const { messages } = body
-      if (!conversationId || !Array.isArray(messages) || messages.length === 0) {
-        return NextResponse.json({ error: 'conversationId and messages array required' }, { status: 400 })
-      }
-
-      // Type definition for batch message
-      interface BatchMessage {
-        role: string
-        content: string
-        color?: string
-      }
-
-      // Validate all messages have required fields
-      for (const msg of messages as BatchMessage[]) {
-        if (!msg.role || !msg.content) {
-          return NextResponse.json({ error: 'Each message must have role and content' }, { status: 400 })
-        }
-      }
-
-      // Batch insert all messages
-      const messagesToInsert = (messages as BatchMessage[]).map((msg) => ({
-        conversation_id: conversationId,
-        role: msg.role,
-        content: msg.content,
-        color: msg.color
-      }))
-
-      const { error: msgError } = await supabaseAdmin
-        .from('messages')
-        .insert(messagesToInsert)
-
-      if (msgError) {
-        console.error('[API/session] Batch message save error:', msgError)
-        return NextResponse.json({ error: msgError.message }, { status: 500 })
-      }
-
-      // Update conversation with the last message's color
-      const lastColor = (messages as BatchMessage[])[messages.length - 1].color || 'ORANGE'
-      await supabaseAdmin
-        .from('conversations')
-        .update({ color_state: lastColor, updated_at: new Date().toISOString() })
         .eq('id', conversationId)
 
       return NextResponse.json({ success: true })

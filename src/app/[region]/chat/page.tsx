@@ -9,7 +9,6 @@ import Link from 'next/link'
 import { ChatContainer } from '@/components/chat'
 import { CubeScene } from '@/components/cube'
 import { RegionBadge } from '@/components/RegionBadge'
-import { AdminControls } from '@/components/admin'
 import { useSession } from '@/hooks/useSession'
 import { useRegion } from '@/contexts/RegionContext'
 import type { ColorName } from '@/config/colors'
@@ -32,9 +31,6 @@ export default function RegionalChatPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      {/* Admin Controls */}
-      <AdminControls />
-      
       {/* Region Badge (dev only) */}
       <RegionBadge />
 

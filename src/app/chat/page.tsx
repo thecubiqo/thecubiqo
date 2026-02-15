@@ -9,7 +9,6 @@ import Link from 'next/link'
 import { ChatContainer } from '@/components/chat'
 import { CubeScene } from '@/components/cube'
 import { PoweredByLogosCompact } from '@/components/PoweredByLogos'
-import { AdminControls } from '@/components/admin'
 import { useSession } from '@/hooks/useSession'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from '@/components/cube/Cube'
@@ -25,9 +24,6 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      {/* Admin Controls */}
-      <AdminControls />
-      
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 px-4 py-3 bg-zinc-950/90 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -43,12 +39,6 @@ export default function ChatPage() {
             className="text-xs px-3 py-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/15 transition-colors"
           >
             Voice Mode
-          </Link>
-          <Link
-            href="/journal"
-            className="text-xs px-3 py-2 rounded-lg bg-gradient-to-r from-orange-500/80 to-orange-600/80 hover:from-orange-500 hover:to-orange-600 border border-orange-400/30 transition-colors font-medium"
-          >
-            📝 Journal
           </Link>
         </div>
       </header>

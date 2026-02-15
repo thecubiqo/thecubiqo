@@ -21,7 +21,7 @@ export async function triggerWebhooks(
   try {
     // Get all enabled webhooks for this flag
     const { data: webhooks, error } = await supabase
-      .from('feature_flag_webhooks')
+      .from('feature_flag_webhooks' as any)
       .select('*')
       .eq('flag_id', flagId)
       .eq('enabled', true);
@@ -32,7 +32,7 @@ export async function triggerWebhooks(
     }
 
     // Filter webhooks that listen to this event
-    const relevantWebhooks = webhooks.filter((webhook) =>
+    const relevantWebhooks = (webhooks as any[]).filter((webhook: any) =>
       webhook.events.includes(event)
     );
 
@@ -98,7 +98,7 @@ async function deliverWebhook(
     const responseBody = await response.text().catch(() => '');
 
     // Log delivery
-    await supabase.from('feature_flag_webhook_logs').insert({
+    await supabase.from('feature_flag_webhook_logs' as any).insert({
       webhook_id: webhook.id,
       flag_id: payload.flag.id,
       url: webhook.url,
@@ -121,7 +121,7 @@ async function deliverWebhook(
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     // Log failed delivery
-    await supabase.from('feature_flag_webhook_logs').insert({
+    await supabase.from('feature_flag_webhook_logs' as any).insert({
       webhook_id: webhook.id,
       flag_id: payload.flag.id,
       url: webhook.url,

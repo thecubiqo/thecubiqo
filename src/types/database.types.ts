@@ -14,6 +14,238 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          id: string
+          user_id: string | null
+          user_email: string | null
+          action_type: string
+          action_details: Json
+          ip_address: string | null
+          user_agent: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          user_email?: string | null
+          action_type: string
+          action_details?: Json
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          user_email?: string | null
+          action_type?: string
+          action_details?: Json
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_messages: {
+        Row: {
+          id: string
+          sender_id: string
+          receiver_id: string
+          content: string
+          is_read: boolean
+          is_voice_delivered: boolean
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          sender_id: string
+          receiver_id: string
+          content: string
+          is_read?: boolean
+          is_voice_delivered?: boolean
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          sender_id?: string
+          receiver_id?: string
+          content?: string
+          is_read?: boolean
+          is_voice_delivered?: boolean
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_messages_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_flags: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          enabled: boolean
+          scope: string
+          target_id: string | null
+          config: Json
+          created_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          enabled?: boolean
+          scope?: string
+          target_id?: string | null
+          config?: Json
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          enabled?: boolean
+          scope?: string
+          target_id?: string | null
+          config?: Json
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flags_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friends: {
+        Row: {
+          id: string
+          user_id: string
+          friend_id: string
+          status: string
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          friend_id: string
+          status?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          friend_id?: string
+          status?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friends_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friends_friend_id_fkey"
+            columns: ["friend_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entries: {
+        Row: {
+          id: string
+          session_id: string | null
+          user_id: string | null
+          content: string
+          mood: string | null
+          color_state: string | null
+          duration_seconds: number
+          word_count: number
+          email_queued: boolean
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          session_id?: string | null
+          user_id?: string | null
+          content: string
+          mood?: string | null
+          color_state?: string | null
+          duration_seconds?: number
+          word_count?: number
+          email_queued?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          session_id?: string | null
+          user_id?: string | null
+          content?: string
+          mood?: string | null
+          color_state?: string | null
+          duration_seconds?: number
+          word_count?: number
+          email_queued?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           ai_model: string | null
@@ -97,202 +329,6 @@ export type Database = {
           },
         ]
       }
-      feature_flags: {
-        Row: {
-          id: string
-          name: string
-          description: string | null
-          enabled: boolean
-          scope: string
-          target_id: string | null
-          config: Json
-          created_by: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          enabled?: boolean
-          scope?: string
-          target_id?: string | null
-          config?: Json
-          created_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          description?: string | null
-          enabled?: boolean
-          scope?: string
-          target_id?: string | null
-          config?: Json
-          created_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "feature_flags_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      feature_flag_audit: {
-        Row: {
-          id: string
-          flag_id: string | null
-          flag_name: string
-          action: string
-          changed_by: string | null
-          changes: Json
-          metadata: Json
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          flag_id?: string | null
-          flag_name: string
-          action: string
-          changed_by?: string | null
-          changes?: Json
-          metadata?: Json
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          flag_id?: string | null
-          flag_name?: string
-          action?: string
-          changed_by?: string | null
-          changes?: Json
-          metadata?: Json
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "feature_flag_audit_flag_id_fkey"
-            columns: ["flag_id"]
-            isOneToOne: false
-            referencedRelation: "feature_flags"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feature_flag_audit_changed_by_fkey"
-            columns: ["changed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      feature_flag_webhooks: {
-        Row: {
-          id: string
-          flag_id: string | null
-          url: string
-          secret: string | null
-          enabled: boolean
-          events: string[]
-          retry_config: Json
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          flag_id?: string | null
-          url: string
-          secret?: string | null
-          enabled?: boolean
-          events?: string[]
-          retry_config?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          flag_id?: string | null
-          url?: string
-          secret?: string | null
-          enabled?: boolean
-          events?: string[]
-          retry_config?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "feature_flag_webhooks_flag_id_fkey"
-            columns: ["flag_id"]
-            isOneToOne: false
-            referencedRelation: "feature_flags"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      feature_flag_webhook_logs: {
-        Row: {
-          id: string
-          webhook_id: string | null
-          flag_id: string | null
-          url: string
-          event: string
-          payload: Json
-          status_code: number | null
-          response_body: string | null
-          error: string | null
-          attempt_number: number
-          delivered_at: string
-        }
-        Insert: {
-          id?: string
-          webhook_id?: string | null
-          flag_id?: string | null
-          url: string
-          event: string
-          payload: Json
-          status_code?: number | null
-          response_body?: string | null
-          error?: string | null
-          attempt_number?: number
-          delivered_at?: string
-        }
-        Update: {
-          id?: string
-          webhook_id?: string | null
-          flag_id?: string | null
-          url?: string
-          event?: string
-          payload?: Json
-          status_code?: number | null
-          response_body?: string | null
-          error?: string | null
-          attempt_number?: number
-          delivered_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "feature_flag_webhook_logs_webhook_id_fkey"
-            columns: ["webhook_id"]
-            isOneToOne: false
-            referencedRelation: "feature_flag_webhooks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feature_flag_webhook_logs_flag_id_fkey"
-            columns: ["flag_id"]
-            isOneToOne: false
-            referencedRelation: "feature_flags"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       memory: {
         Row: {
           created_at: string | null
@@ -369,47 +405,6 @@ export type Database = {
           },
         ]
       }
-      audit_logs: {
-        Row: {
-          action_details: Json | null
-          action_type: string
-          created_at: string | null
-          id: string
-          ip_address: string | null
-          user_agent: string | null
-          user_email: string | null
-          user_id: string | null
-        }
-        Insert: {
-          action_details?: Json | null
-          action_type: string
-          created_at?: string | null
-          id?: string
-          ip_address?: string | null
-          user_agent?: string | null
-          user_email?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          action_details?: Json | null
-          action_type?: string
-          created_at?: string | null
-          id?: string
-          ip_address?: string | null
-          user_agent?: string | null
-          user_email?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "audit_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -481,93 +476,6 @@ export type Database = {
           {
             foreignKeyName: "sessions_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      friends: {
-        Row: {
-          id: string
-          user_id: string
-          friend_id: string
-          status: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          friend_id: string
-          status?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          friend_id?: string
-          status?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "friends_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "friends_friend_id_fkey"
-            columns: ["friend_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      direct_messages: {
-        Row: {
-          id: string
-          sender_id: string
-          receiver_id: string
-          content: string
-          is_read: boolean
-          is_voice_delivered: boolean
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          sender_id: string
-          receiver_id: string
-          content: string
-          is_read?: boolean
-          is_voice_delivered?: boolean
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          sender_id?: string
-          receiver_id?: string
-          content?: string
-          is_read?: boolean
-          is_voice_delivered?: boolean
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "direct_messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "direct_messages_receiver_id_fkey"
-            columns: ["receiver_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

@@ -111,9 +111,7 @@ function validateAIKeys(env) {
   
   const optional = {
     'ANTHROPIC_API_KEY': 'Anthropic/Claude API Key',
-    'MINIMAX_API_KEY': 'MiniMax API Key',
-    'MISTRAL_API_KEY': 'Mistral/Mixtral API Key',
-    'TOGETHER_API_KEY': 'Together AI (Llama) API Key',
+    'OPENAI_API_KEY': 'OpenAI API Key',
     'ELEVENLABS_API_KEY': 'ElevenLabs Voice API Key',
   };
   

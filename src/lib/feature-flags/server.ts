@@ -259,9 +259,9 @@ export async function getFeatureFlagAuditLogs(flagId?: string) {
   const supabase = await createClient();
 
   let query = supabase
-    .from('feature_flag_audit')
+    .from('feature_flag_audit' as any)
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false});
 
   if (flagId) {
     query = query.eq('flag_id', flagId);

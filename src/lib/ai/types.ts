@@ -32,7 +32,7 @@ export interface ChatAPIRequest {
   messages: ChatMessage[]
 }
 
-export type AIProvider = 'minimax' | 'mixtral' | 'llama' | 'claude'
+export type AIProvider = 'minimax' | 'claude' | 'openai'
 
 export interface ProviderConfig {
   name: AIProvider
