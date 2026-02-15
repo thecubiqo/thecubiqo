@@ -14,10 +14,10 @@ import { createClient } from '@supabase/supabase-js'
 
 // Server-side Supabase client with service role (bypasses RLS)
 // Allow build to succeed without env vars, but runtime will fail appropriately
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'fake-key-for-build'
-)
+// Support both old and new env var names (fallback pattern)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321'
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.SUPABASE_SERVICE_ROLE_KEY || 'fake-key-for-build'
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +28,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     // Check for required environment variables at runtime
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       return NextResponse.json(
         { error: 'Server configuration error: Missing database credentials' },
         { status: 500 }
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Check for required environment variables at runtime
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       return NextResponse.json(
         { error: 'Server configuration error: Missing database credentials' },
         { status: 500 }
@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     // Check for required environment variables at runtime
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       return NextResponse.json(
         { error: 'Server configuration error: Missing database credentials' },
         { status: 500 }
