@@ -169,7 +169,7 @@ const DemoPage = () => {
             position: 'relative'
           }}>
             <CubiQoVisual 
-              isEnabled={false}
+              isEnabled={speakerEnabled}
               aiState={aiState}
             />
           </div>
