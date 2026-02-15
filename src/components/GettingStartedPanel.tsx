@@ -6,6 +6,8 @@
  */
 
 import { useState, useEffect } from 'react'
+import { trackMagicLinkButtonClick } from '@/lib/analytics/events'
+import { openProviderUrl } from '@/lib/analytics/providers'
 
 interface GettingStartedPanelProps {
   isOpen: boolean
@@ -111,6 +113,67 @@ export function GettingStartedPanel({
 
         {/* Content - Scrollable */}
         <div className="flex-1 px-8 pb-8 overflow-y-auto space-y-8">
+          
+          {/* Quick Email Access */}
+          <section>
+            <h3 className="text-lg font-medium text-white/90 mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+              </svg>
+              Check for Magic Link
+            </h3>
+            <p className="text-sm text-white/40 mb-4">
+              Waiting for your magic link email? Quick access to your inbox:
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  trackMagicLinkButtonClick('gmail', 'side_panel')
+                  openProviderUrl('gmail')
+                }}
+                className="flex-1 p-4 rounded-2xl transition-all duration-200 hover:scale-[1.02] group"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                    <path d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6ZM20 6L12 11L4 6H20ZM20 18H4V8L12 13L20 8V18Z" fill="currentColor" className="text-red-400"/>
+                  </svg>
+                  <svg className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-white/90 group-hover:text-red-400 transition-colors">
+                  Open Gmail
+                </p>
+              </button>
+              <button
+                onClick={() => {
+                  trackMagicLinkButtonClick('outlook', 'side_panel')
+                  openProviderUrl('outlook')
+                }}
+                className="flex-1 p-4 rounded-2xl transition-all duration-200 hover:scale-[1.02] group"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 9H17V11H7V9ZM7 13H17V15H7V13ZM20 2H4C2.9 2 2 2.9 2 4V20C2 21.1 2.9 22 4 22H20C21.1 22 22 21.1 22 20V4C22 2.9 21.1 2 20 2ZM20 20H4V8L12 13L20 8V20ZM20 6L12 11L4 6V4H20V6Z" fill="currentColor" className="text-blue-400"/>
+                  </svg>
+                  <svg className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-white/90 group-hover:text-blue-400 transition-colors">
+                  Open Outlook
+                </p>
+              </button>
+            </div>
+          </section>
           
           {/* Example Interactions */}
           <section>

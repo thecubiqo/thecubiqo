@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { trackMagicLinkButtonClick } from '@/lib/analytics/events'
+import { openProviderUrl } from '@/lib/analytics/providers'
 
 interface AuthNudgeModalProps {
   isOpen: boolean
@@ -77,9 +79,46 @@ export function AuthNudgeModal({ isOpen, onClose, cta }: AuthNudgeModalProps) {
               </h2>
 
               {/* Subtitle */}
-              <p className="text-zinc-400 text-sm mb-8">
+              <p className="text-zinc-400 text-sm mb-6">
                 Just your email. One magic link. No passwords, ever.
               </p>
+
+              {/* Quick Jump Buttons */}
+              {sent && (
+                <div className="mb-6">
+                  <p className="text-zinc-500 text-xs mb-3 text-center">
+                    Open your email to find the magic link:
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        trackMagicLinkButtonClick('gmail', 'auth_modal')
+                        openProviderUrl('gmail', email)
+                      }}
+                      className="flex-1 py-2.5 px-4 bg-zinc-800/70 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 rounded-xl transition-all flex items-center justify-center gap-2 group"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                        <path d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6ZM20 6L12 11L4 6H20ZM20 18H4V8L12 13L20 8V18Z" fill="currentColor" className="text-red-400"/>
+                      </svg>
+                      <span className="text-sm font-medium text-white group-hover:text-red-400 transition-colors">Gmail</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        trackMagicLinkButtonClick('outlook', 'auth_modal')
+                        openProviderUrl('outlook', email)
+                      }}
+                      className="flex-1 py-2.5 px-4 bg-zinc-800/70 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 rounded-xl transition-all flex items-center justify-center gap-2 group"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                        <path d="M7 9H17V11H7V9ZM7 13H17V15H7V13ZM20 2H4C2.9 2 2 2.9 2 4V20C2 21.1 2.9 22 4 22H20C21.1 22 22 21.1 22 20V4C22 2.9 21.1 2 20 2ZM20 20H4V8L12 13L20 8V20ZM20 6L12 11L4 6V4H20V6Z" fill="currentColor" className="text-blue-400"/>
+                      </svg>
+                      <span className="text-sm font-medium text-white group-hover:text-blue-400 transition-colors">Outlook</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -137,6 +176,42 @@ export function AuthNudgeModal({ isOpen, onClose, cta }: AuthNudgeModalProps) {
               <p className="text-zinc-400 text-sm mb-6">
                 We sent a magic link to <span className="text-white">{email}</span>
               </p>
+              
+              {/* Quick Jump Buttons in Success State */}
+              <div className="mb-6">
+                <p className="text-zinc-500 text-xs mb-3">
+                  Open your email now:
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackMagicLinkButtonClick('gmail', 'auth_modal')
+                      openProviderUrl('gmail', email)
+                    }}
+                    className="py-2.5 px-6 bg-zinc-800/70 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 rounded-xl transition-all flex items-center gap-2 group"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                      <path d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6ZM20 6L12 11L4 6H20ZM20 18H4V8L12 13L20 8V18Z" fill="currentColor" className="text-red-400"/>
+                    </svg>
+                    <span className="text-sm font-medium text-white group-hover:text-red-400 transition-colors">Gmail</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackMagicLinkButtonClick('outlook', 'auth_modal')
+                      openProviderUrl('outlook', email)
+                    }}
+                    className="py-2.5 px-6 bg-zinc-800/70 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 rounded-xl transition-all flex items-center gap-2 group"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                      <path d="M7 9H17V11H7V9ZM7 13H17V15H7V13ZM20 2H4C2.9 2 2 2.9 2 4V20C2 21.1 2.9 22 4 22H20C21.1 22 22 21.1 22 20V4C22 2.9 21.1 2 20 2ZM20 20H4V8L12 13L20 8V20ZM20 6L12 11L4 6V4H20V6Z" fill="currentColor" className="text-blue-400"/>
+                    </svg>
+                    <span className="text-sm font-medium text-white group-hover:text-blue-400 transition-colors">Outlook</span>
+                  </button>
+                </div>
+              </div>
+              
               <p className="text-zinc-500 text-xs">
                 Click the link to connect. I'll be waiting.
               </p>
