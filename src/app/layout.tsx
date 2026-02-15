@@ -4,6 +4,9 @@ import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistratio
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
+// Force dynamic rendering to prevent auth state caching
+export const dynamic = 'force-dynamic'
+
 // SEO Metadata
 export const metadata: Metadata = {
   title: "CubiQo | Voice-First Private AI Assistant & Digital Secretary",

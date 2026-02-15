@@ -2,6 +2,9 @@ import { notFound } from 'next/navigation'
 import { getRegionConfig } from '@/lib/config/regions'
 import { RegionProvider } from '@/contexts/RegionContext'
 
+// Force dynamic rendering to prevent auth state caching
+export const dynamic = 'force-dynamic'
+
 // Valid region IDs - static list for build time
 const VALID_REGIONS = ['uk']
 

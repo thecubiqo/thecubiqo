@@ -1,15 +1,11 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/database.types'
 
-// Singleton client instance
-let client: ReturnType<typeof createBrowserClient<Database>> | null = null
-
+// Create client without singleton to ensure fresh session data
+// This fixes the issue where the client doesn't sync with server-set cookies
 export function createClient() {
-  if (!client) {
-    client = createBrowserClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
-    )
-  }
-  return client
+  return createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
+  )
 }
