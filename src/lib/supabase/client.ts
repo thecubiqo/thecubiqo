@@ -6,10 +6,11 @@ let client: ReturnType<typeof createBrowserClient<Database>> | null = null
 
 export function createClient() {
   if (!client) {
-    client = createBrowserClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
-    )
+    // Support both old and new env var names with fallback
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+    
+    client = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
   }
   return client
 }

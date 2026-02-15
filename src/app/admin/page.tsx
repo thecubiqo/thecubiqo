@@ -117,13 +117,22 @@ export default function AdminDashboard() {
                 </p>
               )}
             </div>
-            <Link
-              href="/admin/email-preview"
-              className="bg-gradient-to-r from-orange-600 to-yellow-600 hover:from-orange-700 hover:to-yellow-700 
-                         text-white font-semibold py-2 px-4 rounded-lg transition-all"
-            >
-              📧 Email Preview
-            </Link>
+            <div className="flex gap-3">
+              <Link
+                href="/admin/designs"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 
+                           text-white font-semibold py-2 px-4 rounded-lg transition-all"
+              >
+                🎨 Design Toggles
+              </Link>
+              <Link
+                href="/admin/email-preview"
+                className="bg-gradient-to-r from-orange-600 to-yellow-600 hover:from-orange-700 hover:to-yellow-700 
+                           text-white font-semibold py-2 px-4 rounded-lg transition-all"
+              >
+                📧 Email Preview
+              </Link>
+            </div>
           </div>
         </div>
 
