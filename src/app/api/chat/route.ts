@@ -412,7 +412,8 @@ export async function POST(request: NextRequest) {
       console.error('[AI Router] No AI provider API keys configured')
       return NextResponse.json(
         {
-          error: 'No AI providers are configured. Please set up at least one API key (MINIMAX_API_KEY, MISTRAL_API_KEY, TOGETHER_API_KEY, or ANTHROPIC_API_KEY) or enable BYO mode with your own API key.'
+          error: 'No AI providers are configured. Please set up at least one API key (MINIMAX_API_KEY, MISTRAL_API_KEY, TOGETHER_API_KEY, or ANTHROPIC_API_KEY) or enable BYO mode with your own API key.',
+          code: 'NO_PROVIDERS_CONFIGURED'
         },
         { status: 503 }
       )
@@ -500,12 +501,18 @@ export async function POST(request: NextRequest) {
       // If no provider succeeded
       if (!content) {
         console.error('[AI Router] All providers failed:', errors.join('; '))
-        throw new Error('All AI providers are temporarily unavailable. Please try again in a moment.')
+        return NextResponse.json(
+          {
+            error: 'All AI providers are temporarily unavailable. Please try again in a moment.',
+            code: 'ALL_PROVIDERS_FAILED'
+          },
+          { status: 503 }
+        )
       }
     }
 
     // Parse response
-    const aiResponse: AIResponse = parseResponse(content as string)
+    const aiResponse: AIResponse = parseResponse(content)
 
     return NextResponse.json({
       ...aiResponse,
