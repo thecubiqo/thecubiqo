@@ -16,9 +16,9 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// List of PRs mentioned in the issue
+// List of PRs mentioned in the issue (including PR #34 which is merged)
 const PR_NUMBERS = [
-  47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 
+  47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34,
   33, 31, 30, 29, 28, 27, 25, 22, 21, 20, 17, 15, 14
 ];
 

@@ -1,16 +1,16 @@
 # PR Cleanup Analysis Report
 
-Generated: 2026-02-15T17:24:54.328Z
+Generated: 2026-02-15T17:31:58.603Z
 
 ## Summary
 
-- **Total PRs analyzed:** 26
-- **Confirmed merged:** 0
+- **Total PRs analyzed:** 27
+- **Confirmed merged:** 1
 - **Need manual review:** 26
 
 ## Merged PRs (Can be closed)
 
-None detected in git history
+- [ ] PR #34 - Close via GitHub UI
 
 ## PRs Needing Manual Review
 
