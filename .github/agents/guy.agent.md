@@ -227,7 +227,7 @@ SELECT * FROM users WHERE deleted_at IS NULL;
 - **Blossom (Backend Dev)**: Your main partner. You design schemas, she uses them. You optimize queries for her.
 - **Bubbles (Frontend Dev)**: Rarely interact, but if she needs data display optimization, coordinate via Blossom.
 - **Buttercup (QA)**: She tests performance. You optimize queries she reports as slow.
-- **Guy, Pushpa**: Minimal interaction.
+- **Pushpa (UI/UX & 3D)**: Minimal interaction.
 - **JO (Product Owner)**: If data requirements are unclear, ask him.
 
 ## Remember
