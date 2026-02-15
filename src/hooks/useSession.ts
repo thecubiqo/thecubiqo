@@ -58,49 +58,8 @@ export function useSession() {
   const [authUser, setAuthUser] = useState<User | null | undefined>(undefined)
   const supabase = createClient()
 
-  // Step 1: Get initial auth state and listen for changes
-  useEffect(() => {
-    // First check for existing session immediately
-    const initAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setAuthUser(user)
-    }
-    
-    initAuth()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setAuthUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [supabase])
-
-  // Step 2: Once we know auth state, handle session
-  useEffect(() => {
-    if (authUser === undefined) return
-
-    const initSession = async () => {
-      try {
-        if (authUser) {
-          await handleAuthenticatedUser(authUser)
-        } else {
-          await handleGuestUser()
-        }
-      } catch (error) {
-        console.error('[useSession] Init error:', error)
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: 'Session initialization failed',
-        }))
-      }
-    }
-
-    initSession()
-  }, [authUser])
-
   // Handle authenticated user session via API
-  const handleAuthenticatedUser = async (user: User) => {
+  const handleAuthenticatedUser = useCallback(async (user: User) => {
     const storedSessionId = getStoredSessionId()
     const deviceInfo = getDeviceInfo()
 
@@ -159,10 +118,10 @@ export function useSession() {
       isGuest: false,
       error: null,
     })
-  }
+  }, [])
 
   // Handle guest user session (direct Supabase - RLS allows anonymous)
-  const handleGuestUser = async () => {
+  const handleGuestUser = useCallback(async () => {
     const storedSessionId = getStoredSessionId()
 
     if (storedSessionId) {
@@ -209,7 +168,48 @@ export function useSession() {
       isGuest: true,
       error: null,
     })
-  }
+  }, [supabase])
+
+  // Step 1: Get initial auth state and listen for changes
+  useEffect(() => {
+    // First check for existing session immediately
+    const initAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setAuthUser(user)
+    }
+    
+    initAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setAuthUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
+
+  // Step 2: Once we know auth state, handle session
+  useEffect(() => {
+    if (authUser === undefined) return
+
+    const initSession = async () => {
+      try {
+        if (authUser) {
+          await handleAuthenticatedUser(authUser)
+        } else {
+          await handleGuestUser()
+        }
+      } catch (error) {
+        console.error('[useSession] Init error:', error)
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: 'Session initialization failed',
+        }))
+      }
+    }
+
+    initSession()
+  }, [authUser, handleAuthenticatedUser, handleGuestUser])
 
   const convertToAuthenticated = useCallback(async (userId: string): Promise<boolean> => {
     if (!state.session) return false
