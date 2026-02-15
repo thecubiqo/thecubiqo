@@ -57,7 +57,7 @@ export async function bootstrapAgents() {
       maxConcurrent: 2,
     });
 
-    // Create PR-Triage (dry-run)
+    // Create PR-Triage
     await createAgent({
       id: 'pr-triage',
       name: 'PR-Triage',

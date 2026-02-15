@@ -1,5 +1,5 @@
 /**
- * PR-Triage Agent — Dry-Run Mode
+ * PR-Triage Agent
  *
  * Lists all Draft PRs and evaluates each against five readiness checks:
  *   1. No WIP label
@@ -9,7 +9,8 @@
  *   5. PR description contains "AUTO_CONVERT_OK"
  *
  * Posts a comment on each PR summarizing pass/fail.
- * Does NOT convert any PRs (dry-run only).
+ * When all checks pass, converts the Draft PR to "Ready for Review".
+ * Pass --dry-run to only report without converting.
  */
 
 import { Octokit } from "@octokit/rest";
@@ -30,6 +31,7 @@ interface TriageResult {
   prUrl: string;
   checks: CheckResult[];
   wouldConvert: boolean;
+  converted: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -46,6 +48,23 @@ const OWNER = process.env.PR_TRIAGE_OWNER ?? "thecubiqo";
 const REPO = process.env.PR_TRIAGE_REPO ?? "thecubiqo";
 
 const octokit = new Octokit({ auth: GITHUB_TOKEN });
+
+const DRY_RUN = process.argv.includes("--dry-run");
+
+// ---------------------------------------------------------------------------
+// Convert Draft → Ready for Review (GraphQL mutation)
+// ---------------------------------------------------------------------------
+
+async function markReadyForReview(pullRequestNodeId: string): Promise<void> {
+  await octokit.graphql(
+    `mutation($id: ID!) {
+      markPullRequestReadyForReview(input: { pullRequestId: $id }) {
+        pullRequest { id }
+      }
+    }`,
+    { id: pullRequestNodeId }
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Individual checks
@@ -164,8 +183,9 @@ function checkAutoConvertMarker(body: string | null): CheckResult {
 // ---------------------------------------------------------------------------
 
 function formatComment(results: CheckResult[], dryRun: boolean): string {
+  const modeLabel = dryRun ? "Dry-Run Report" : "Triage Report";
   const lines: string[] = [
-    "## 🤖 PR-Triage Agent — Dry-Run Report",
+    `## 🤖 PR-Triage Agent — ${modeLabel}`,
     "",
   ];
 
@@ -178,7 +198,11 @@ function formatComment(results: CheckResult[], dryRun: boolean): string {
 
   lines.push("");
 
-  if (allPassed) {
+  if (allPassed && !dryRun) {
+    lines.push(
+      "**Result**: All checks passed — this PR has been **converted from Draft to Ready for Review**. 🎉"
+    );
+  } else if (allPassed && dryRun) {
     lines.push(
       "**Result**: All checks passed — this PR **would be converted** from Draft to Ready for Review."
     );
@@ -201,7 +225,8 @@ function formatComment(results: CheckResult[], dryRun: boolean): string {
 // ---------------------------------------------------------------------------
 
 async function run(): Promise<void> {
-  console.log(`\n🔍 PR-Triage Agent (dry-run) — ${OWNER}/${REPO}\n`);
+  const mode = DRY_RUN ? "dry-run" : "active";
+  console.log(`\n🔍 PR-Triage Agent (${mode}) — ${OWNER}/${REPO}\n`);
 
   // 1. Fetch all open Draft PRs
   const { data: pullRequests } = await octokit.pulls.list({
@@ -244,6 +269,18 @@ async function run(): Promise<void> {
     ];
 
     const wouldConvert = checks.every((c) => c.passed);
+    let converted = false;
+
+    // Convert Draft → Ready for Review when all checks pass (unless dry-run)
+    if (wouldConvert && !DRY_RUN) {
+      try {
+        await markReadyForReview(fullPr.node_id);
+        converted = true;
+        console.log("   ✅ Converted to Ready for Review.");
+      } catch (convErr) {
+        console.error("   ⚠️  Failed to convert PR:", convErr);
+      }
+    }
 
     triageResults.push({
       prNumber: pr.number,
@@ -251,10 +288,11 @@ async function run(): Promise<void> {
       prUrl: fullPr.html_url,
       checks,
       wouldConvert,
+      converted,
     });
 
     // Post comment on the PR
-    const comment = formatComment(checks, true);
+    const comment = formatComment(checks, DRY_RUN);
     await octokit.issues.createComment({
       owner: OWNER,
       repo: REPO,
@@ -270,16 +308,18 @@ async function run(): Promise<void> {
   // ---------------------------------------------------------------------------
 
   console.log("═══════════════════════════════════════════════════════");
-  console.log("  PR-Triage Dry-Run Summary");
+  console.log(`  PR-Triage ${DRY_RUN ? "Dry-Run " : ""}Summary`);
   console.log("═══════════════════════════════════════════════════════\n");
 
   const convertible = triageResults.filter((r) => r.wouldConvert);
   const notConvertible = triageResults.filter((r) => !r.wouldConvert);
 
   if (convertible.length > 0) {
-    console.log("PRs that WOULD be converted:\n");
+    const verb = DRY_RUN ? "WOULD be converted" : "converted to Ready for Review";
+    console.log(`PRs ${verb}:\n`);
     for (const r of convertible) {
-      console.log(`  ✅ #${r.prNumber} — ${r.prTitle}`);
+      const icon = r.converted ? "🎉" : "✅";
+      console.log(`  ${icon} #${r.prNumber} — ${r.prTitle}`);
       console.log(`     ${r.prUrl}`);
       console.log(
         `     Reason: all ${r.checks.length} checks passed`
@@ -301,10 +341,18 @@ async function run(): Promise<void> {
     console.log();
   }
 
-  console.log(
-    `Total: ${triageResults.length} Draft PR(s), ${convertible.length} would convert, ${notConvertible.length} would not.\n`
-  );
-  console.log("ℹ️  Dry-run complete. No PRs were converted.\n");
+  const convertedCount = triageResults.filter((r) => r.converted).length;
+
+  if (DRY_RUN) {
+    console.log(
+      `Total: ${triageResults.length} Draft PR(s), ${convertible.length} would convert, ${notConvertible.length} would not.\n`
+    );
+    console.log("ℹ️  Dry-run complete. No PRs were converted.\n");
+  } else {
+    console.log(
+      `Total: ${triageResults.length} Draft PR(s), ${convertedCount} converted, ${notConvertible.length} not converted.\n`
+    );
+  }
 }
 
 run().catch((err) => {
