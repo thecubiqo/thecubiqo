@@ -301,7 +301,6 @@ async function callGoogle(
       maxOutputTokens: maxTokens || 4096,
       temperature,
     },
-    // @ts-expect-error - Google SDK types are strict about tool schema, but runtime accepts this format
     tools: googleTools ? [googleTools] : undefined,
     systemInstruction: systemInstruction || undefined,
   });
