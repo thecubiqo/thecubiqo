@@ -115,11 +115,32 @@ If you need authentication or data persistence:
 2. **`src/lib/supabase/server.ts`**
    - Changed from `!` assertion to fallback values
    - Uses placeholder URLs when env vars are missing
+   - Added `isSupabaseConfigured()` helper function to check for real credentials
    - Maintains compatibility with existing code
 
-3. **`.env.local`** (created, not committed)
+3. **`src/lib/supabase/client.ts`**
+   - Added `isSupabaseConfigured()` helper function
+   - Allows code to detect preview mode vs. full database mode
+
+4. **`.env.local`** (created, not committed)
    - Provides placeholder values for local development
    - Excluded from git via `.gitignore`
+
+## Checking Configuration Status
+
+To check if Supabase is properly configured in your code:
+
+```typescript
+import { isSupabaseConfigured } from '@/lib/supabase/server'
+// or
+import { isSupabaseConfigured } from '@/lib/supabase/client'
+
+if (isSupabaseConfigured()) {
+  // Database operations are available
+} else {
+  // Running in preview mode - show guest features only
+}
+```
 
 ## Related Documentation
 
