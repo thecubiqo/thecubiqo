@@ -59,9 +59,13 @@ export function buildAuthUrl(
     response_type: 'code',
     scope: scopes.join(' '),
     state: opts.state,
-    access_type: 'offline',
-    prompt: 'consent',
   });
+
+  // Google-specific parameters for offline access
+  if (provider === 'gmail') {
+    params.set('access_type', 'offline');
+    params.set('prompt', 'consent');
+  }
 
   return `${cfg.authUrl}?${params.toString()}`;
 }

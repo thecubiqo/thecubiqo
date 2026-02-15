@@ -135,8 +135,7 @@ describe('OAuth provider configs', () => {
 // ─── Type validation ──────────────────────────────────────────────
 
 describe('Type exports', () => {
-  test('EventType values are defined', () => {
-    // Just verify the module exports correctly
+  test('OAUTH_PROVIDERS are exported', () => {
     const types = require('../src/lib/founders-pass/types');
     expect(types.OAUTH_PROVIDERS).toBeDefined();
   });

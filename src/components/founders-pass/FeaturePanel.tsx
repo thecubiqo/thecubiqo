@@ -56,19 +56,11 @@ export default function FeaturePanel({ siteId, siteSlug, userId }: FeaturePanelP
     const cfg = OAUTH_PROVIDERS[provider];
     const scopes = cfg.scopes.join(' ');
 
-    const params = new URLSearchParams({
-      client_id: '', // Will be filled server-side; placeholder for demo
-      redirect_uri: redirectUri,
-      response_type: 'code',
-      scope: scopes,
-      state,
-      access_type: 'offline',
-      prompt: 'consent',
-    });
-
-    // In production, redirect to the OAuth provider
+    // In production, the OAuth flow would be initiated server-side
+    // with the actual client_id from environment variables.
+    // Demo mode: show the intended flow.
     alert(
-      `OAuth flow would redirect to:\n${cfg.authUrl}?${params}\n\nDemo mode: connection simulated.`,
+      `OAuth flow would redirect to:\n${cfg.authUrl}?redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${encodeURIComponent(scopes)}\n\nDemo mode: connection simulated.`,
     );
 
     // Emit event
