@@ -36,7 +36,6 @@ export async function trackEvent(
         properties: properties || {},
         user_id: session?.user?.id || null,
         session_id: null, // Can be enhanced to track session if needed
-        created_at: new Date().toISOString()
       })
     
     if (error) {
@@ -59,7 +58,6 @@ export async function trackMagicLinkButtonClick(
 ): Promise<void> {
   await trackEvent('magic_link_button_click', {
     provider,
-    source,
-    timestamp: new Date().toISOString()
+    source
   })
 }
