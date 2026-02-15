@@ -270,7 +270,8 @@ export function FullscreenApp() {
   // Voice button click handler - Toggle ON/OFF for seamless conversation
   const handleVoiceClick = useCallback(async () => {
     // CRITICAL: Unlock audio on user gesture (browser requires this)
-    await unlockAudio()
+    // Call synchronously - don't await to ensure it happens in the same event loop tick
+    unlockAudio()
 
     if (!voiceEnabled) {
       // Turn ON - Start listening and enable continuous conversation
