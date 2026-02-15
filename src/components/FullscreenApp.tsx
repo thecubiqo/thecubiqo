@@ -14,6 +14,7 @@ import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
 import { GettingStartedPanel } from './GettingStartedPanel'
 import { LandingCube } from './LandingCube'
 import { PoweredByLogosCompact } from './PoweredByLogos'
+import { JourneyMemoryPrompt } from './journey'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
@@ -830,6 +831,9 @@ export function FullscreenApp() {
           detectedColor={colorName}
         />
       )}
+
+      {/* Journey Memory Prompt - Shown when feature enabled and user not opted in */}
+      <JourneyMemoryPrompt position="bottom-left" />
     </div>
   )
 }

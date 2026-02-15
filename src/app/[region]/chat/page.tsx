@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { ChatContainer } from '@/components/chat'
 import { CubeScene } from '@/components/cube'
 import { RegionBadge } from '@/components/RegionBadge'
+import { JourneyMemoryPrompt } from '@/components/journey'
 import { useSession } from '@/hooks/useSession'
 import { useRegion } from '@/contexts/RegionContext'
 import type { ColorName } from '@/config/colors'
@@ -77,6 +78,9 @@ export default function RegionalChatPage() {
             />
           </div>
         </div>
+
+        {/* Journey Memory Prompt */}
+        <JourneyMemoryPrompt position="bottom-left" />
       </main>
     </div>
   )

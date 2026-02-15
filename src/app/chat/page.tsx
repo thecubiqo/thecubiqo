@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { ChatContainer } from '@/components/chat'
 import { CubeScene } from '@/components/cube'
 import { PoweredByLogosCompact } from '@/components/PoweredByLogos'
+import { JourneyMemoryPrompt } from '@/components/journey'
 import { useSession } from '@/hooks/useSession'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from '@/components/cube/Cube'
@@ -71,6 +72,9 @@ export default function ChatPage() {
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
           <PoweredByLogosCompact isDark={true} />
         </div>
+
+        {/* Journey Memory Prompt */}
+        <JourneyMemoryPrompt position="bottom-left" />
       </main>
     </div>
   )
