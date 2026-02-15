@@ -6,19 +6,29 @@
  * Gated: Once per 24 hours
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useSession } from '@/hooks/useSession'
+import { createClient } from '@/lib/supabase/client'
 import { JournalFlow } from '@/components/journal/JournalFlow'
 import { JournalGate } from '@/components/journal/JournalGate'
 
 export default function JournalPage() {
-  const { session, user } = useSession()
+  const { session, isGuest } = useSession()
+  const [userId, setUserId] = useState<string | null>(null)
   const [canJournal, setCanJournal] = useState<boolean | null>(null)
   const [todayEntry, setTodayEntry] = useState<any>(null)
   const [nextAvailable, setNextAvailable] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Get auth user
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id || null)
+    })
+  }, [])
 
   // Check if user can journal today
   useEffect(() => {
@@ -31,7 +41,7 @@ export default function JournalPage() {
       try {
         const params = new URLSearchParams({
           sessionId: session.id,
-          ...(user?.id && { userId: user.id })
+          ...(userId && { userId })
         })
 
         const response = await fetch(`/api/journal?${params}`)
@@ -53,7 +63,7 @@ export default function JournalPage() {
     }
 
     checkJournalStatus()
-  }, [session?.id, user?.id])
+  }, [session?.id, userId])
 
   const handleJournalComplete = useCallback(() => {
     // Refresh status after completing journal
@@ -124,7 +134,7 @@ export default function JournalPage() {
           {!isLoading && !error && canJournal === true && (
             <JournalFlow
               sessionId={session?.id || null}
-              userId={user?.id || null}
+              userId={userId}
               onComplete={handleJournalComplete}
             />
           )}
