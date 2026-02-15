@@ -51,11 +51,11 @@ This creates confusion and makes it difficult to track active work.
    - PR #33 - Superseded by PR #34 (merged)
    - PR #31, #40 - Consolidation PRs, features likely merged individually
 
-3. **📄 Priority 3 - Documentation (3 PRs)**
-   - PRs #41, #45, #20 - Quick review needed
+3. **📄 Priority 3 - Documentation (1 PR)**
+   - PR #20 - Quick review needed
 
-4. **🔵 Priority 4 - Draft PRs (6 PRs)**
-   - PRs #47, #46, #45, #43, #42, #39, #38 - Need review
+4. **🔵 Priority 4 - Draft PRs (8 PRs)**
+   - PRs #47, #46, #45, #43, #42, #41, #39, #38 - Need review
 
 5. **✅ Priority 5 - Ready PRs (13 PRs)**
    - Non-draft PRs awaiting review/merge decision

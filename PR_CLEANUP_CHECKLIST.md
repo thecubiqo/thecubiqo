@@ -33,16 +33,6 @@ Use this checklist to track your progress. Check off each PR as you process it.
 
 ## 📄 Priority 3: Documentation PRs (Quick Review)
 
-- [ ] **PR #41** - Add Spark AI comparison document
-  - Type: Documentation
-  - Action: Quick review → Merge or Close
-  - Link: https://github.com/thecubiqo/thecubiqo/pull/41
-
-- [ ] **PR #45** - No changes required - clarification
-  - Type: Clarification
-  - Action: Review → Probably close
-  - Link: https://github.com/thecubiqo/thecubiqo/pull/45
-
 - [ ] **PR #20** - Clarify PR #20 vs #27
   - Type: Clarification
   - Action: Review → Merge if valuable, otherwise close
@@ -59,6 +49,11 @@ Use this checklist to track your progress. Check off each PR as you process it.
   - Action: Keep as draft or close
   - Link: https://github.com/thecubiqo/thecubiqo/pull/46
 
+- [ ] **PR #45** - No changes required - clarification
+  - Type: Draft clarification
+  - Action: Review → Complete or close
+  - Link: https://github.com/thecubiqo/thecubiqo/pull/45
+
 - [ ] **PR #43** - Add env var fallback patterns
   - Action: Review → Complete or close
   - Link: https://github.com/thecubiqo/thecubiqo/pull/43
@@ -66,6 +61,11 @@ Use this checklist to track your progress. Check off each PR as you process it.
 - [ ] **PR #42** - Add design toggle system
   - Action: Review → Complete or close
   - Link: https://github.com/thecubiqo/thecubiqo/pull/42
+
+- [ ] **PR #41** - Add Spark AI comparison document
+  - Type: Draft documentation
+  - Action: Review → Complete or close
+  - Link: https://github.com/thecubiqo/thecubiqo/pull/41
 
 - [ ] **PR #39** - Fix critical production 404s
   - Action: Review → Complete or close
@@ -121,8 +121,8 @@ Use this checklist to track your progress. Check off each PR as you process it.
 - Total PRs: 27
 - Priority 1 (Close immediately): 1
 - Priority 2 (Likely close): 4
-- Priority 3 (Documentation): 3
-- Priority 4 (Draft PRs): 6
+- Priority 3 (Documentation): 1
+- Priority 4 (Draft PRs): 8
 - Priority 5 (Ready PRs): 13
 
 ---
