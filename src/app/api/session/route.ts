@@ -93,15 +93,22 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'conversationId and messages array required' }, { status: 400 })
       }
 
+      // Type definition for batch message
+      interface BatchMessage {
+        role: string
+        content: string
+        color?: string
+      }
+
       // Validate all messages have required fields
-      for (const msg of messages) {
+      for (const msg of messages as BatchMessage[]) {
         if (!msg.role || !msg.content) {
           return NextResponse.json({ error: 'Each message must have role and content' }, { status: 400 })
         }
       }
 
       // Batch insert all messages
-      const messagesToInsert = messages.map((msg: any) => ({
+      const messagesToInsert = (messages as BatchMessage[]).map((msg) => ({
         conversation_id: conversationId,
         role: msg.role,
         content: msg.content,
@@ -118,7 +125,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Update conversation with the last message's color
-      const lastColor = messages[messages.length - 1].color || 'ORANGE'
+      const lastColor = (messages as BatchMessage[])[messages.length - 1].color || 'ORANGE'
       await supabaseAdmin
         .from('conversations')
         .update({ color_state: lastColor, updated_at: new Date().toISOString() })

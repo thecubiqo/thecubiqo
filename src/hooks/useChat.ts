@@ -313,7 +313,8 @@ export function useChat(options: UseChatOptions) {
           })
         }).catch((error) => {
           // Log extraction errors but don't block user experience
-          console.warn('[useChat] Memory extraction failed:', error.message)
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          console.warn('[useChat] Memory extraction failed:', errorMessage)
         })
       }
 
