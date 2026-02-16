@@ -34,6 +34,17 @@ export interface ChatAPIRequest {
 
 export type AIProvider = 'minimax' | 'mixtral' | 'llama' | 'claude' | 'openclaw'
 
+/**
+ * Experimental AI Providers
+ * These are not part of the core provider set and may be unstable
+ */
+export type ExperimentalProvider = 'openclaw'
+
+/**
+ * All available AI providers (core + experimental)
+ */
+export type AllProviders = AIProvider | ExperimentalProvider
+
 export interface ProviderConfig {
   name: AIProvider
   model: string
