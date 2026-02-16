@@ -156,7 +156,12 @@ The application automatically selects providers based on:
    - Provider enablement before use
 
 4. **Production Deployment**:
-   - Not recommended for production unless you understand the implications
+   - Not recommended for production unless you understand the implications:
+     * Requires running Clawdbot service (additional infrastructure)
+     * Creates dependency on local/self-hosted service (single point of failure)
+     * Network connectivity requirements between app and Clawdbot
+     * Additional monitoring and maintenance overhead
+     * Potential security surface if not properly configured
    - Requires proper security configuration
    - Consider network segmentation and access controls
 

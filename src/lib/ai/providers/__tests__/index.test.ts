@@ -91,7 +91,7 @@ describe('Provider Abstraction', () => {
     it('should appear in enabled providers', () => {
       const enabledProviders = getEnabledProviders()
       expect(enabledProviders.length).toBeGreaterThan(0)
-      expect(enabledProviders.some(p => p.displayName.includes('OpenClaw'))).toBe(true)
+      expect(enabledProviders.some(p => p.name === 'openclaw')).toBe(true)
     })
 
     it('should return provider when getting enabled provider', () => {
