@@ -1,1 +1,0 @@
-import"./jsx-runtime-C5WNSv3b.js";import{r as o}from"./index-ukwzBNUP.js";import"./base64url-YC0aElVo.js";const r=o.createContext(void 0);function i(){const t=o.useContext(r);if(t===void 0)throw new Error("useAuth must be used within an AuthProvider");return t}export{i as u};
