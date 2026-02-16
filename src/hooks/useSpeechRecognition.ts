@@ -59,6 +59,12 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
     onEnd
   } = options
 
+  // Use refs for callback props to prevent startListening from being recreated
+  const onResultRef = useRef(onResult)
+  const onEndRef = useRef(onEnd)
+  useEffect(() => { onResultRef.current = onResult }, [onResult])
+  useEffect(() => { onEndRef.current = onEnd }, [onEnd])
+
   const [state, setState] = useState<SpeechRecognitionState>({
     isListening: false,
     isSupported: false,
@@ -113,8 +119,8 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
       const currentTranscript = finalTranscript || interimTranscript
       setState(prev => ({ ...prev, transcript: currentTranscript }))
 
-      if (finalTranscript && onResult) {
-        onResult(finalTranscript)
+      if (finalTranscript && onResultRef.current) {
+        onResultRef.current(finalTranscript)
       }
     }
 
@@ -130,12 +136,13 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
 
     recognition.onend = () => {
       setState(prev => ({ ...prev, isListening: false }))
-      onEnd?.()
+      onEndRef.current?.()
     }
 
     recognitionRef.current = recognition
     recognition.start()
-  }, [state.isSupported, continuous, lang, onResult, onEnd])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onResult/onEnd accessed via stable refs
+  }, [state.isSupported, continuous, lang])
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
