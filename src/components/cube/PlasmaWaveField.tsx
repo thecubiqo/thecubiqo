@@ -208,11 +208,14 @@ export function PlasmaWaveField({
     const time = state.clock.elapsedTime
 
     // Smooth morph transition
-    const morphSpeed = 0.03
-    if (morphProgress.current < targetMorph.current) {
-      morphProgress.current = Math.min(morphProgress.current + morphSpeed, 1)
-    } else if (morphProgress.current > targetMorph.current) {
-      morphProgress.current = Math.max(morphProgress.current - morphSpeed, 0)
+    // Smooth morph transition (or force snap if enabled to avoid waves)
+    if (isEnabled) {
+      morphProgress.current = 1
+    } else {
+      // Only animate cleanly if we are NOT in the forced enabled state
+      if (morphProgress.current > 0) {
+        morphProgress.current = Math.max(morphProgress.current - 0.03, 0)
+      }
     }
 
     const morph = morphProgress.current
