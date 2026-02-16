@@ -14,8 +14,6 @@ import { BYOSettings } from './byo'
 import { KeywordPanel } from './KeywordPanel'
 import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
 import { GettingStartedPanel } from './GettingStartedPanel'
-import { LandingCube } from './LandingCube'
-import { PoweredByLogosCompact } from './PoweredByLogos'
 import { JourneyMemoryPrompt } from './journey'
 import { AdminControls } from './admin'
 import { SidePanel } from './cq'
@@ -63,6 +61,7 @@ export function FullscreenApp({
   const [showLandingCube, setShowLandingCube] = useState(false)
   const [showGettingStarted, setShowGettingStarted] = useState(false)
   const [showCQPanel, setShowCQPanel] = useState(false)
+  const [showFloatingQuestions, setShowFloatingQuestions] = useState(true)
   // RGY Signal pulse state - triggers brief pulse when keyword is saved
   const [rgyPulseColor, setRgyPulseColor] = useState<'RED' | 'YELLOW' | 'GREEN' | null>(null)
 
@@ -116,7 +115,7 @@ export function FullscreenApp({
     }
 
     // If feature flag is disabled (and not forced), don't show
-    if (!showParticleLanding) return;
+   if (!showParticleLanding && !forceLanding) return;
 
     const LANDING_STORAGE_KEY = 'cubiqo_last_landing'
     const HOURS_THRESHOLD = 4
@@ -171,37 +170,103 @@ export function FullscreenApp({
   // Track if we should show auth nudge modal after speaking
   const nudgeCtaRef = useRef<string | null>(null)
 
+  // Stable TTS callbacks to prevent unnecessary re-creation of speak function
+  const handleTTSStart = useCallback(() => {
+    setAppState('speaking')
+    setAnimationState('speaking')
+  }, [])
+
+  const handleTTSEnd = useCallback(() => {
+    // Show auth nudge modal if AI suggested sign-in
+    if (nudgeCtaRef.current) {
+      setNudgeCta(nudgeCtaRef.current)
+      setShowNudgeModal(true)
+      nudgeCtaRef.current = null
+    }
+
+    // If voice is still enabled, go back to listening for seamless conversation
+    if (voiceEnabledRef.current && startListeningRef.current) {
+      setAppState('listening')
+      setAnimationState('listening')
+      startListeningRef.current()
+    } else {
+      setAppState('idle')
+      setAnimationState('idle')
+    }
+  }, [])
+
   // TTS for AI responses - Using ElevenLabs for natural voice
   const { speak, stop: stopSpeaking, isSpeaking, error: ttsError, unlockAudio } = useElevenLabsTTS({
     colorName,
-    onStart: () => {
-      setAppState('speaking')
-      setAnimationState('speaking')
-    },
-    onEnd: () => {
-      // Show auth nudge modal if AI suggested sign-in
-      if (nudgeCtaRef.current) {
-        setNudgeCta(nudgeCtaRef.current)
-        setShowNudgeModal(true)
-        nudgeCtaRef.current = null
-      }
-
-      // If voice is still enabled, go back to listening for seamless conversation
-      if (voiceEnabledRef.current && startListeningRef.current) {
-        setAppState('listening')
-        setAnimationState('listening')
-        startListeningRef.current()
-      } else {
-        setAppState('idle')
-        setAnimationState('idle')
-      }
-    }
+    onStart: handleTTSStart,
+    onEnd: handleTTSEnd
   })
 
   // Log TTS errors
   useEffect(() => {
     if (ttsError) console.error('[TTS] Error:', ttsError)
   }, [ttsError])
+
+  // Use refs for values used in speech recognition callbacks to avoid recreating startListening
+  const sendMessageRef = useRef(sendMessage)
+  const speakRef = useRef(speak)
+  const colorNameRef = useRef(colorName)
+
+  useEffect(() => { sendMessageRef.current = sendMessage }, [sendMessage])
+  useEffect(() => { speakRef.current = speak }, [speak])
+  useEffect(() => { colorNameRef.current = colorName }, [colorName])
+
+  const handleVoiceResult = useCallback(async (text: string) => {
+    // Transition: listening → thinking
+    setAppState('thinking')
+    setAnimationState('thinking')
+
+    try {
+      const response = await sendMessageRef.current(text, colorNameRef.current)
+
+      if (response?.response) {
+        let responseText = response.response
+
+        // Check for auth nudge marker [AUTH_NUDGE:CTA]
+        const nudgeMatch = responseText.match(/\[AUTH_NUDGE:([^\]]+)\]/)
+        if (nudgeMatch) {
+          nudgeCtaRef.current = nudgeMatch[1].trim()
+          responseText = responseText.replace(nudgeMatch[0], '').trim()
+        } else if (responseText.includes('[AUTH_NUDGE]')) {
+          // Fallback for old format
+          nudgeCtaRef.current = "Let's stay connected"
+          responseText = responseText.replace('[AUTH_NUDGE]', '').trim()
+        }
+
+        // Transition: thinking → speaking (handled by TTS onStart)
+        speakRef.current(responseText)
+      } else {
+        // No response (API error) - speak an error message so user knows
+        speakRef.current("I'm having trouble connecting right now. Please try again in a moment.")
+      }
+    } catch (error) {
+      console.error('AI Error:', error)
+      // On error - speak error message and return to appropriate state
+      speakRef.current("Sorry, I couldn't process that. Please try again.")
+    }
+  }, [])
+
+  const handleVoiceEnd = useCallback(() => {
+    // Speech recognition ended (timeout or no result)
+    // If voice is still enabled, restart listening for continuous conversation
+    if (voiceEnabledRef.current && startListeningRef.current && appStateRef.current === 'listening') {
+      // Small delay to avoid rapid restarts
+      setTimeout(() => {
+        if (voiceEnabledRef.current && startListeningRef.current) {
+          startListeningRef.current()
+        }
+      }, 100)
+    } else if (appStateRef.current === 'listening') {
+      // Voice was turned off, go to idle
+      setAppState('idle')
+      setAnimationState('idle')
+    }
+  }, [])
 
   const {
     startListening,
@@ -210,56 +275,8 @@ export function FullscreenApp({
     transcript
   } = useSpeechRecognition({
     lang: 'en-US',
-    onResult: async (text) => {
-      // Transition: listening → thinking
-      setAppState('thinking')
-      setAnimationState('thinking')
-
-      try {
-        const response = await sendMessage(text, colorName)
-
-        if (response?.response) {
-          let responseText = response.response
-
-          // Check for auth nudge marker [AUTH_NUDGE:CTA]
-          const nudgeMatch = responseText.match(/\[AUTH_NUDGE:([^\]]+)\]/)
-          if (nudgeMatch) {
-            nudgeCtaRef.current = nudgeMatch[1].trim()
-            responseText = responseText.replace(nudgeMatch[0], '').trim()
-          } else if (responseText.includes('[AUTH_NUDGE]')) {
-            // Fallback for old format
-            nudgeCtaRef.current = "Let's stay connected"
-            responseText = responseText.replace('[AUTH_NUDGE]', '').trim()
-          }
-
-          // Transition: thinking → speaking (handled by TTS onStart)
-          speak(responseText)
-        } else {
-          // No response (API error) - speak an error message so user knows
-          speak("I'm having trouble connecting right now. Please try again in a moment.")
-        }
-      } catch (error) {
-        console.error('AI Error:', error)
-        // On error - speak error message and return to appropriate state
-        speak("Sorry, I couldn't process that. Please try again.")
-      }
-    },
-    onEnd: () => {
-      // Speech recognition ended (timeout or no result)
-      // If voice is still enabled, restart listening for continuous conversation
-      if (voiceEnabledRef.current && startListeningRef.current && appStateRef.current === 'listening') {
-        // Small delay to avoid rapid restarts
-        setTimeout(() => {
-          if (voiceEnabledRef.current && startListeningRef.current) {
-            startListeningRef.current()
-          }
-        }, 100)
-      } else if (appStateRef.current === 'listening') {
-        // Voice was turned off, go to idle
-        setAppState('idle')
-        setAnimationState('idle')
-      }
-    }
+    onResult: handleVoiceResult,
+    onEnd: handleVoiceEnd
   })
 
   // Store startListening in ref for use in TTS callback
@@ -306,7 +323,7 @@ export function FullscreenApp({
     }
   }, [chatInitialized, voiceEnabled, startListening, stopListening, stopSpeaking, unlockAudio])
 
-  const bgColor = isDark ? '#0f0f12' : '#ffffff'
+  const bgColor = isDark ? '#0a0a0f' : '#fafafa'
   const textColor = isDark ? '#ffffff' : '#111111'
 
   return (
@@ -331,8 +348,18 @@ export function FullscreenApp({
       </div>
 
       {/* Floating Questions - Slow Scroll */}
-      <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[400px] h-[300px] overflow-hidden pointer-events-none">
-        <div className="animate-float-questions space-y-8">
+      {showFloatingQuestions && (
+      <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[400px] h-[300px] overflow-hidden">
+        <button
+          onClick={() => setShowFloatingQuestions(false)}
+          className="absolute top-0 right-0 z-10 p-1.5 rounded-full text-white/30 hover:text-white/60 hover:bg-white/10 transition-all duration-200"
+          aria-label="Dismiss questions"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <div className="animate-float-questions space-y-8 pointer-events-none">
           {[
             "What's a good book for understanding psychology?",
             "Help me plan a weekend trip to Paris",
@@ -349,11 +376,12 @@ export function FullscreenApp({
               key={i}
               className="text-white/30 text-sm leading-relaxed"
             >
-              "{question}"
+              {"\u201C"}{question}{"\u201D"}
             </div>
           ))}
         </div>
       </div>
+      )}
 
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -369,9 +397,9 @@ export function FullscreenApp({
 
       {/* Header */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4 backdrop-blur-[12px] transition-colors duration-400 ${isDark
-          ? 'bg-[rgba(5,5,5,0.7)]'
-          : 'bg-[rgba(255,255,255,0.8)]'
+        className={`fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4 backdrop-blur-[16px] transition-colors duration-400 ${isDark
+          ? 'bg-[rgba(10,10,15,0.75)] border-b border-white/[0.06]'
+          : 'bg-[rgba(250,250,250,0.85)] border-b border-black/[0.06]'
           }`}
       >
         <div className="flex justify-between items-center w-full">
@@ -491,15 +519,15 @@ export function FullscreenApp({
           onClick={handleVoiceClick}
           disabled={!voiceSupported}
           data-testid="voice-control-button"
-          className={`group flex flex-col items-center gap-3 px-6 py-4 rounded-2xl transition-all duration-200 ${voiceSupported
-            ? 'hover:bg-white/[0.03] cursor-pointer'
+          className={`group flex flex-col items-center gap-3 px-6 py-4 rounded-2xl transition-all duration-300 ${voiceSupported
+            ? 'hover:bg-white/[0.04] cursor-pointer'
             : 'cursor-default'
             }`}
         >
-          {/* Speaker Icon - Smaller */}
-          <div className={`relative p-3 rounded-full transition-all duration-300 ${voiceEnabled
-            ? 'bg-white/15'
-            : 'bg-white/[0.03] group-hover:bg-white/[0.06]'
+          {/* Speaker Icon */}
+          <div className={`relative p-3.5 rounded-full transition-all duration-300 ${voiceEnabled
+            ? 'bg-white/[0.12] shadow-[0_0_20px_rgba(255,255,255,0.06)]'
+            : 'bg-white/[0.04] group-hover:bg-white/[0.07] border border-white/[0.06]'
             }`}>
             <svg
               className={`w-6 h-6 transition-all duration-200 ${voiceEnabled
@@ -518,49 +546,40 @@ export function FullscreenApp({
             {/* Light pulse rings when voice is ON */}
             {voiceEnabled && (
               <>
-                <div className="absolute inset-0 rounded-full border border-white/30 animate-ping" style={{ animationDuration: '1.5s' }} />
-                <div className="absolute inset-[-4px] rounded-full border border-white/20 animate-pulse" />
+                <div className="absolute inset-0 rounded-full border border-white/20 animate-ping" style={{ animationDuration: '2s' }} />
+                <div className="absolute inset-[-4px] rounded-full border border-white/10 animate-pulse" />
               </>
             )}
           </div>
 
-          {/* Label - Simplified to just "Enable" */}
-          <span
-            className={`text-[13px] tracking-wide transition-all duration-300 ${voiceEnabled
-              ? 'opacity-0 h-0 overflow-hidden'
-              : 'opacity-100 text-white/40 group-hover:text-white/60'
-              }`}
-          >
-            {!voiceSupported
-              ? 'Voice access is controlled by your browser.'
-              : 'Enable'
-            }
-          </span>
+          {/* Label - Only show browser unsupported message */}
+          {!voiceSupported && (
+            <span
+              className="text-[13px] tracking-wide text-white/40"
+            >
+              Voice access is controlled by your browser.
+            </span>
+          )}
         </button>
       </div>
 
-      {/* Footer - Much lower on screen */}
+      {/* Footer */}
       <footer className="fixed bottom-2 left-0 right-0 z-50">
         <div className="flex flex-col items-center gap-2">
-          <p className="text-[10px] text-white/25 tracking-wide text-center">
+          <p className="text-[10px] text-white/20 tracking-wider text-center font-light">
             All conversations are confidential. CubiQo never retains user voice by policy.
             <span className="mx-2">·</span>
             <button
               onClick={() => setMenuOpen(true)}
-              className="text-white/40 hover:text-white/60 transition-colors"
+              className="text-white/30 hover:text-white/50 transition-colors"
             >
               Try BYO Mode
             </button>
             <span className="mx-1">—</span>
-            <span className="text-white/25">Your data · Your storage · Your API key</span>
+            <span className="text-white/20">Your data · Your storage · Your API key</span>
             <span className="mx-2">·</span>
-            <span className="text-white/20">© 2025 Cubiqo United Inc.</span>
+            <span className="text-white/15">© 2025 Cubiqo United Inc.</span>
           </p>
-
-          {/* Powered By Logos */}
-          <div className="flex items-center gap-3">
-            <PoweredByLogosCompact isDark={isDark} />
-          </div>
         </div>
       </footer>
 

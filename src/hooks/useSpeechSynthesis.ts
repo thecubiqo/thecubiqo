@@ -31,6 +31,12 @@ export function useSpeechSynthesis(options: UseSpeechSynthesisOptions = {}) {
     onEnd
   } = options
 
+  // Use refs for callback props to prevent speak from being recreated
+  const onStartRef = useRef(onStart)
+  const onEndRef = useRef(onEnd)
+  useEffect(() => { onStartRef.current = onStart }, [onStart])
+  useEffect(() => { onEndRef.current = onEnd }, [onEnd])
+
   const [state, setState] = useState<SpeechSynthesisState>({
     isSpeaking: false,
     isSupported: false,
@@ -62,12 +68,12 @@ export function useSpeechSynthesis(options: UseSpeechSynthesisOptions = {}) {
 
     utterance.onstart = () => {
       setState(prev => ({ ...prev, isSpeaking: true, error: null }))
-      onStart?.()
+      onStartRef.current?.()
     }
 
     utterance.onend = () => {
       setState(prev => ({ ...prev, isSpeaking: false }))
-      onEnd?.()
+      onEndRef.current?.()
     }
 
     utterance.onerror = (event) => {
@@ -80,7 +86,8 @@ export function useSpeechSynthesis(options: UseSpeechSynthesisOptions = {}) {
 
     utteranceRef.current = utterance
     window.speechSynthesis.speak(utterance)
-  }, [state.isSupported, lang, rate, pitch, volume, onStart, onEnd])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onStart/onEnd accessed via stable refs
+  }, [state.isSupported, lang, rate, pitch, volume])
 
   const stop = useCallback(() => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
