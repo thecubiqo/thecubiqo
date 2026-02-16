@@ -412,7 +412,7 @@ const CubiQoVisual = ({
         container.removeChild(renderer.domElement);
       }
     };
-  }, [width, height]);
+  }, [width, height]); // eslint-disable-line react-hooks/exhaustive-deps
   
   return (
     <div 

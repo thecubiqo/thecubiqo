@@ -320,7 +320,7 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
       floatGeo.dispose(); floatMat.dispose();
       if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   
   useEffect(() => {
     const handleMove = (e) => {
