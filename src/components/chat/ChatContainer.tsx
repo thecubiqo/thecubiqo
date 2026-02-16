@@ -4,7 +4,7 @@
  * ChatContainer - Main chat interface with voice and persistence
  */
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useCallback } from 'react'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { useChat } from '@/hooks/useChat'
@@ -22,12 +22,16 @@ interface ChatContainerProps {
 export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeakingChange, regionId }: ChatContainerProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const lastSpokenIndexRef = useRef<number>(-1)
+  const hasInitializedRef = useRef(false)
+
+  const handleSpeakStart = useCallback(() => onSpeakingChange?.(true), [onSpeakingChange])
+  const handleSpeakEnd = useCallback(() => onSpeakingChange?.(false), [onSpeakingChange])
 
   const { speak, stop, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis({
     rate: 0.95,
     pitch: 1,
-    onStart: () => onSpeakingChange?.(true),
-    onEnd: () => onSpeakingChange?.(false)
+    onStart: handleSpeakStart,
+    onEnd: handleSpeakEnd
   })
 
   const {
@@ -49,26 +53,25 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
   }, [conversationHistory.length])
 
   // Speak only NEW AI responses (not loaded from DB)
+  // On first initialization, set the index to skip loaded history
   useEffect(() => {
+    if (!isInitialized || conversationHistory.length === 0) return
+
     const currentIndex = conversationHistory.length - 1
-    if (
-      ttsSupported &&
-      isInitialized &&
-      conversationHistory.length > 0 &&
-      currentIndex > lastSpokenIndexRef.current
-    ) {
+
+    // On first initialization, skip speaking loaded history
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true
+      lastSpokenIndexRef.current = currentIndex
+      return
+    }
+
+    if (ttsSupported && currentIndex > lastSpokenIndexRef.current) {
       lastSpokenIndexRef.current = currentIndex
       const lastEntry = conversationHistory[currentIndex]
       speak(lastEntry.aiResponse)
     }
   }, [conversationHistory.length, ttsSupported, speak, isInitialized])
-
-  // Reset spoken index when initialized with existing history
-  useEffect(() => {
-    if (isInitialized && conversationHistory.length > 0) {
-      lastSpokenIndexRef.current = conversationHistory.length - 1
-    }
-  }, [isInitialized])
 
   const handleSend = async (message: string) => {
     if (isSpeaking) {

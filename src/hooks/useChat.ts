@@ -69,10 +69,14 @@ interface ChatState {
 export function useChat(options: UseChatOptions) {
   const { sessionId, isGuest = false, onColorChange, regionId } = options
   const supabase = createClient()
+  const supabaseRef = useRef(supabase)
   const lastSessionIdRef = useRef<string | null>(null)
+  const onColorChangeRef = useRef(onColorChange)
 
   // Use a promise ref to dedup initialization calls
   const initPromiseRef = useRef<Promise<string | null> | null>(null)
+  const conversationIdRef = useRef<string | null>(null)
+  const conversationHistoryRef = useRef<ConversationEntry[]>([])
 
   const [state, setState] = useState<ChatState>({
     isLoading: false,
@@ -83,10 +87,23 @@ export function useChat(options: UseChatOptions) {
     isInitialized: false
   })
 
+  // Keep refs in sync with state and props
+  useEffect(() => {
+    onColorChangeRef.current = onColorChange
+  }, [onColorChange])
+
+  useEffect(() => {
+    conversationIdRef.current = state.conversationId
+  }, [state.conversationId])
+
+  useEffect(() => {
+    conversationHistoryRef.current = state.conversationHistory
+  }, [state.conversationHistory])
+
   const ensureConversation = useCallback(async (currentSessionId: string): Promise<string | null> => {
     // If we already have a conversation for this session, return it
-    if (state.conversationId && lastSessionIdRef.current === currentSessionId) {
-      return state.conversationId
+    if (conversationIdRef.current && lastSessionIdRef.current === currentSessionId) {
+      return conversationIdRef.current
     }
 
     // If verification/creation is in progress, return the existing promise
@@ -101,7 +118,7 @@ export function useChat(options: UseChatOptions) {
 
         if (isGuest) {
           // Guest users: direct Supabase (RLS allows anonymous)
-          const { data: existingConv, error: findError } = await supabase
+          const { data: existingConv, error: findError } = await supabaseRef.current
             .from('conversations')
             .select('id, color_state')
             .eq('session_id', currentSessionId)
@@ -113,7 +130,7 @@ export function useChat(options: UseChatOptions) {
             conversationId = existingConv.id
             colorState = existingConv.color_state || 'ORANGE'
           } else {
-            const { data: newConv, error: createError } = await supabase
+            const { data: newConv, error: createError } = await supabaseRef.current
               .from('conversations')
               .insert({ session_id: currentSessionId, color_state: 'ORANGE' })
               .select('id')
@@ -146,7 +163,7 @@ export function useChat(options: UseChatOptions) {
         let history: ConversationEntry[] = []
 
         if (isGuest) {
-          const { data: messages } = await supabase
+          const { data: messages } = await supabaseRef.current
             .from('messages')
             .select('role, content, color, created_at')
             .eq('conversation_id', conversationId)
@@ -201,8 +218,8 @@ export function useChat(options: UseChatOptions) {
           ? history[history.length - 1].color
           : (colorState as ColorName) || 'ORANGE'
 
-        if (onColorChange && lastColor) {
-          onColorChange(lastColor)
+        if (onColorChangeRef.current && lastColor) {
+          onColorChangeRef.current(lastColor)
         }
 
         setState(prev => ({
@@ -228,12 +245,20 @@ export function useChat(options: UseChatOptions) {
 
     initPromiseRef.current = init()
     return initPromiseRef.current
-  }, [state.conversationId, isGuest, supabase, onColorChange])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- supabaseRef is stable, onColorChange used via ref pattern
+  }, [isGuest])
 
 
   // Trigger initialization when sessionId changes
   useEffect(() => {
-    if (!sessionId || lastSessionIdRef.current === sessionId) return
+    if (!sessionId) {
+      // For guests without session yet, mark as initialized anyway
+      // Conversation will be created lazily on first message
+      setState(prev => ({ ...prev, isInitialized: true }))
+      return
+    }
+
+    if (lastSessionIdRef.current === sessionId) return
     lastSessionIdRef.current = sessionId
     ensureConversation(sessionId)
   }, [sessionId, ensureConversation])
@@ -253,7 +278,7 @@ export function useChat(options: UseChatOptions) {
     setState(prev => ({ ...prev, isLoading: true, error: null }))
 
     // 2. Ensure conversation is initialized (awaits if pending, retries if missing)
-    let activeConversationId = state.conversationId
+    let activeConversationId = conversationIdRef.current
     if (!activeConversationId) {
       try {
         activeConversationId = await ensureConversation(sessionId)
@@ -265,6 +290,7 @@ export function useChat(options: UseChatOptions) {
     }
 
     try {
+      const currentHistory = conversationHistoryRef.current
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -273,10 +299,10 @@ export function useChat(options: UseChatOptions) {
         },
         body: JSON.stringify({
           message,
-          conversationHistory: state.conversationHistory,
+          conversationHistory: currentHistory,
           currentColor,
           isGuest,
-          messageCount: state.conversationHistory.length + 1,
+          messageCount: currentHistory.length + 1,
           sessionId, // Use sessionId from prop/closure
           region: regionId || undefined
         })
@@ -332,8 +358,8 @@ export function useChat(options: UseChatOptions) {
         lastProvider: data.provider
       }))
 
-      if (onColorChange && data.color !== currentColor) {
-        onColorChange(data.color)
+      if (onColorChangeRef.current && data.color !== currentColor) {
+        onColorChangeRef.current(data.color)
       }
 
       return { color: data.color, response: data.response }
@@ -343,7 +369,8 @@ export function useChat(options: UseChatOptions) {
       setState(prev => ({ ...prev, isLoading: false, error: errorMessage }))
       return null
     }
-  }, [state.conversationId, state.conversationHistory, sessionId, isGuest, ensureConversation, onColorChange, regionId])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refs used for conversationId, conversationHistory, onColorChange
+  }, [sessionId, isGuest, ensureConversation, regionId])
 
   const clearHistory = useCallback(async () => {
     setState(prev => ({ ...prev, conversationHistory: [], error: null }))

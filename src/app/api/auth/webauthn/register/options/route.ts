@@ -2,9 +2,7 @@ import { generateRegistrationOptions } from '@simplewebauthn/server'
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserAuthenticators } from '@/lib/webauthn'
-
-const RP_NAME = 'CubiQo'
-const RP_ID = process.env.NEXT_PUBLIC_RP_ID || 'localhost'
+import { getRPID, RP_NAME } from '@/lib/webauthn/config'
 
 export async function GET(request: NextRequest) {
     const supabase = await createClient()
@@ -14,12 +12,15 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Get RP ID dynamically based on request origin
+    const rpID = getRPID(request)
+
     // Get existing authenticators to prevent re-registration
     const userAuthenticators = await getUserAuthenticators(user.id)
 
     const options = await generateRegistrationOptions({
         rpName: RP_NAME,
-        rpID: RP_ID,
+        rpID: rpID,
         userID: new TextEncoder().encode(user.id), // Must be unique bytes
         userName: user.email || user.id,
         attestationType: 'none', // 'none' is recommended for privacy and compatibility

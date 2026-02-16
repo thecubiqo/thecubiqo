@@ -79,9 +79,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('[AuthProvider] Setting up auth state listener')
     }
 
+    let resolved = false
+
+    // Safety timeout: if onAuthStateChange never fires (e.g. Supabase unreachable),
+    // stop showing the loading state and fall back to guest after a short delay
+    const AUTH_TIMEOUT_MS = 4000
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[AuthProvider] Auth timeout - falling back to guest state')
+        }
+        setState(prev => {
+          if (prev.isLoading) {
+            return {
+              user: null,
+              profile: null,
+              isLoading: false,
+              isAuthenticated: false,
+              isGuest: true,
+            }
+          }
+          return prev
+        })
+      }
+    }, AUTH_TIMEOUT_MS)
+
     // Set up auth state listener - this handles all auth events including initial load
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        resolved = true
+
         if (process.env.NODE_ENV === 'development') {
           console.log('[AuthProvider] Auth state changed:', event, session?.user?.id || 'no user')
         }
@@ -115,8 +142,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
               console.log('[AuthProvider] Profile fetch failed (may be new user)')
             }
           }
-        } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
-          // No session - either signed out or initial load with no auth
+        } else {
+          // No session - set guest state for any event without a user
+          // Handles SIGNED_OUT, INITIAL_SESSION, and any other event (e.g. TOKEN_REFRESHED)
           if (process.env.NODE_ENV === 'development') {
             console.log('[AuthProvider] No session, setting guest state')
           }
@@ -132,6 +160,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     )
 
     return () => {
+      clearTimeout(timeout)
       if (process.env.NODE_ENV === 'development') {
         console.log('[AuthProvider] Cleaning up auth state listener')
       }

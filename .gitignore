@@ -1,15 +1,27 @@
 # Dependencies
 node_modules/
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
 # Environment variables
 .env
 .env.local
 .env.production
+.env*.local
 !.env.example
 
 # Build output
 dist/
 build/
+/build
+/.next/
+/out/
 
 # Editor
 .vscode/
@@ -25,6 +37,9 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
 # Vercel
 .vercel
@@ -33,129 +48,19 @@ npm-debug.log*
 idea.md
 *.confidential.md
 DEVELOPMENT-LOG.md
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
 
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
 # misc
-.DS_Store
 *.pem
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env
-.env*.local
-!.env.example
-
-# vercel
-.vercel
-
-<<<<<<< HEAD
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
-node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
-<<<<<<< HEAD
-=======
-# Data and databases
-agenthub/agents/youtube/db
-
-# Archive files and large assets
-**/*.zip
-**/*.tar.gz
-**/*.tar
-**/*.tgz
-*.pack
-*.deb
-*.dylib
-
-# Build caches
-.cache/
-
-# Mobile development
-android-sdk/ frontend/node_modules/.cache/default-development/0.pack
-frontend/node_modules/.cache/default-development/1.pack
-frontend/node_modules/.cache/default-development/2.pack
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
-frontend/node_modules/.cache/default-development/0.pack
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
->>>>>>> origin/copilot/update-cubiqo-ui-design
-=======
 
 # self-heal artifacts
 self-heal-artifacts/
->>>>>>> origin/copilot/add-daily-self-heal-job
+
+# Storybook
+storybook-static/
