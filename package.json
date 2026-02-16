@@ -10,6 +10,7 @@
         "lint": "eslint",
         "validate-env": "node scripts/validate-env.js",
         "pr-triage": "tsx scripts/pr-triage-agent.ts",
+        "audit-pr-merges": "tsx scripts/audit-pr-merges.ts",
         "test": "vitest",
         "test:ui": "vitest --ui",
         "test:run": "vitest run"
@@ -51,6 +52,7 @@
         "@vitest/ui": "^4.0.18",
         "eslint": "^9",
         "eslint-config-next": "16.0.3",
+        "happy-dom": "^20.6.1",
         "tailwindcss": "^4",
         "ts-jest": "^29.4.6",
         "tsx": "^4.21.0",
