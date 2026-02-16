@@ -9,7 +9,7 @@ export const MINIMAX_CONFIG: ProviderConfig = {
   name: 'minimax',
   model: 'MiniMax-M2',
   maxTokens: 200,
-  apiKeyEnv: 'MINIMAX_API_KEY'
+  apiKeyEnv: 'MINIMAX_API_KEY' // Also supports MINIMAX_KEY as fallback
 }
 
 export const MIXTRAL_CONFIG: ProviderConfig = {
