@@ -9,6 +9,8 @@
  *  5. Apple-style global resets (font-smoothing, selection, scrollbar) present.
  *  6. Cross-browser slider thumb styling.
  *  7. Component files consume the design system.
+ *  8. Energy cube components are present and properly structured.
+ *  9. Layout enforcement.
  *
  * Run:  npx tsx scripts/visual-smoke-test.ts
  */
@@ -182,7 +184,54 @@ const poweredBy = fs.readFileSync(poweredByPath, 'utf-8')
 assert(poweredBy.includes('transition-premium'), 'PoweredByLogos uses transition-premium')
 assert(poweredBy.includes('aria-hidden'), 'PoweredByLogos decorative SVGs have aria-hidden')
 
-// ── 8. Layout Enforcement ───────────────────────────────────────────
+// ── 8. Energy Cube Components ───────────────────────────────────────
+
+console.log('\n🔷  Energy Cube Components')
+
+const energyCubeWireframePath = path.resolve(
+  __dirname,
+  '..',
+  'src',
+  'components',
+  'cube',
+  'EnergyCubeWireframe.tsx'
+)
+const energyCubeWireframe = fs.readFileSync(energyCubeWireframePath, 'utf-8')
+
+assert(energyCubeWireframe.includes('EnergyCubeWireframe'), 'EnergyCubeWireframe component is exported')
+assert(energyCubeWireframe.includes('@react-three/fiber'), 'EnergyCubeWireframe uses React Three Fiber')
+assert(energyCubeWireframe.includes('Canvas'), 'EnergyCubeWireframe includes Canvas component')
+assert(energyCubeWireframe.includes('useFrame'), 'EnergyCubeWireframe uses animation hook')
+
+const flowingEnergyCubePath = path.resolve(
+  __dirname,
+  '..',
+  'src',
+  'components',
+  'FlowingEnergyCube.tsx'
+)
+const flowingEnergyCube = fs.readFileSync(flowingEnergyCubePath, 'utf-8')
+
+assert(flowingEnergyCube.includes('FlowingEnergyCube'), 'FlowingEnergyCube component is exported')
+assert(flowingEnergyCube.includes('@react-three/fiber'), 'FlowingEnergyCube uses React Three Fiber')
+assert(flowingEnergyCube.includes('useFrame'), 'FlowingEnergyCube uses animation hook')
+assert(flowingEnergyCube.includes('CatmullRomCurve3'), 'FlowingEnergyCube uses 3D curves for ribbons')
+assert(flowingEnergyCube.includes('TubeGeometry'), 'FlowingEnergyCube uses tube geometry for ribbons')
+
+// Energy cube wrapper pages should use premium design classes
+const settingsCubePagePath = path.resolve(
+  __dirname,
+  '..',
+  'src',
+  'app',
+  'settings-cube',
+  'page.tsx'
+)
+const settingsCubePage = fs.readFileSync(settingsCubePagePath, 'utf-8')
+
+assert(settingsCubePage.includes('EnergyCubeWireframe'), 'Settings cube page uses EnergyCubeWireframe')
+
+// ── 9. Layout Enforcement ───────────────────────────────────────────
 
 console.log('\n🔷  Layout Enforcement')
 
