@@ -240,6 +240,56 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
     }
   }, [onStart, onEnd, onError])
 
+  const stop = useCallback(() => {
+    isUserPausedRef.current = true
+    
+    // Abort fetch if in progress
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+
+    // Stop audio
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+      audioRef.current = null
+    }
+    
+    // Clean up URL
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current)
+      audioUrlRef.current = null
+    }
+
+    // Stop browser TTS
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+    }
+
+    setState(prev => ({ ...prev, isSpeaking: false, isLoading: false }))
+  }, [])
+
+  const pause = useCallback(() => {
+    isUserPausedRef.current = true
+    if (audioRef.current) {
+      audioRef.current.pause()
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.pause()
+    }
+  }, [])
+
+  const resume = useCallback(() => {
+    isUserPausedRef.current = false
+    if (audioRef.current) {
+      audioRef.current.play().catch(e => console.warn('[TTS] Resume failed:', e))
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.resume()
+    }
+  }, [])
+
   const speak = useCallback(async (text: string) => {
     if (!text.trim()) return
 
@@ -422,57 +472,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
       console.warn('[TTS] Error, falling back to browser TTS:', err)
       speakWithBrowserTTS(text)
     }
-  }, [voiceId, colorName, session?.id, onStart, onEnd, speakWithBrowserTTS])
-
-  const stop = useCallback(() => {
-    isUserPausedRef.current = true
-    
-    // Abort fetch if in progress
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-      abortControllerRef.current = null
-    }
-
-    // Stop audio
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.currentTime = 0
-      audioRef.current = null
-    }
-    
-    // Clean up URL
-    if (audioUrlRef.current) {
-      URL.revokeObjectURL(audioUrlRef.current)
-      audioUrlRef.current = null
-    }
-
-    // Stop browser TTS
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
-    }
-
-    setState(prev => ({ ...prev, isSpeaking: false, isLoading: false }))
-  }, [])
-
-  const pause = useCallback(() => {
-    isUserPausedRef.current = true
-    if (audioRef.current) {
-      audioRef.current.pause()
-    }
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.pause()
-    }
-  }, [])
-
-  const resume = useCallback(() => {
-    isUserPausedRef.current = false
-    if (audioRef.current) {
-      audioRef.current.play().catch(e => console.warn('[TTS] Resume failed:', e))
-    }
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.resume()
-    }
-  }, [])
+  }, [voiceId, colorName, session?.id, onStart, onEnd, speakWithBrowserTTS, stop])
 
   // Cleanup on unmount
   useEffect(() => {

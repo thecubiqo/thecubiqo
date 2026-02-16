@@ -170,37 +170,103 @@ export function FullscreenApp({
   // Track if we should show auth nudge modal after speaking
   const nudgeCtaRef = useRef<string | null>(null)
 
+  // Stable TTS callbacks to prevent unnecessary re-creation of speak function
+  const handleTTSStart = useCallback(() => {
+    setAppState('speaking')
+    setAnimationState('speaking')
+  }, [])
+
+  const handleTTSEnd = useCallback(() => {
+    // Show auth nudge modal if AI suggested sign-in
+    if (nudgeCtaRef.current) {
+      setNudgeCta(nudgeCtaRef.current)
+      setShowNudgeModal(true)
+      nudgeCtaRef.current = null
+    }
+
+    // If voice is still enabled, go back to listening for seamless conversation
+    if (voiceEnabledRef.current && startListeningRef.current) {
+      setAppState('listening')
+      setAnimationState('listening')
+      startListeningRef.current()
+    } else {
+      setAppState('idle')
+      setAnimationState('idle')
+    }
+  }, [])
+
   // TTS for AI responses - Using ElevenLabs for natural voice
   const { speak, stop: stopSpeaking, isSpeaking, error: ttsError, unlockAudio } = useElevenLabsTTS({
     colorName,
-    onStart: () => {
-      setAppState('speaking')
-      setAnimationState('speaking')
-    },
-    onEnd: () => {
-      // Show auth nudge modal if AI suggested sign-in
-      if (nudgeCtaRef.current) {
-        setNudgeCta(nudgeCtaRef.current)
-        setShowNudgeModal(true)
-        nudgeCtaRef.current = null
-      }
-
-      // If voice is still enabled, go back to listening for seamless conversation
-      if (voiceEnabledRef.current && startListeningRef.current) {
-        setAppState('listening')
-        setAnimationState('listening')
-        startListeningRef.current()
-      } else {
-        setAppState('idle')
-        setAnimationState('idle')
-      }
-    }
+    onStart: handleTTSStart,
+    onEnd: handleTTSEnd
   })
 
   // Log TTS errors
   useEffect(() => {
     if (ttsError) console.error('[TTS] Error:', ttsError)
   }, [ttsError])
+
+  // Use refs for values used in speech recognition callbacks to avoid recreating startListening
+  const sendMessageRef = useRef(sendMessage)
+  const speakRef = useRef(speak)
+  const colorNameRef = useRef(colorName)
+
+  useEffect(() => { sendMessageRef.current = sendMessage }, [sendMessage])
+  useEffect(() => { speakRef.current = speak }, [speak])
+  useEffect(() => { colorNameRef.current = colorName }, [colorName])
+
+  const handleVoiceResult = useCallback(async (text: string) => {
+    // Transition: listening → thinking
+    setAppState('thinking')
+    setAnimationState('thinking')
+
+    try {
+      const response = await sendMessageRef.current(text, colorNameRef.current)
+
+      if (response?.response) {
+        let responseText = response.response
+
+        // Check for auth nudge marker [AUTH_NUDGE:CTA]
+        const nudgeMatch = responseText.match(/\[AUTH_NUDGE:([^\]]+)\]/)
+        if (nudgeMatch) {
+          nudgeCtaRef.current = nudgeMatch[1].trim()
+          responseText = responseText.replace(nudgeMatch[0], '').trim()
+        } else if (responseText.includes('[AUTH_NUDGE]')) {
+          // Fallback for old format
+          nudgeCtaRef.current = "Let's stay connected"
+          responseText = responseText.replace('[AUTH_NUDGE]', '').trim()
+        }
+
+        // Transition: thinking → speaking (handled by TTS onStart)
+        speakRef.current(responseText)
+      } else {
+        // No response (API error) - speak an error message so user knows
+        speakRef.current("I'm having trouble connecting right now. Please try again in a moment.")
+      }
+    } catch (error) {
+      console.error('AI Error:', error)
+      // On error - speak error message and return to appropriate state
+      speakRef.current("Sorry, I couldn't process that. Please try again.")
+    }
+  }, [])
+
+  const handleVoiceEnd = useCallback(() => {
+    // Speech recognition ended (timeout or no result)
+    // If voice is still enabled, restart listening for continuous conversation
+    if (voiceEnabledRef.current && startListeningRef.current && appStateRef.current === 'listening') {
+      // Small delay to avoid rapid restarts
+      setTimeout(() => {
+        if (voiceEnabledRef.current && startListeningRef.current) {
+          startListeningRef.current()
+        }
+      }, 100)
+    } else if (appStateRef.current === 'listening') {
+      // Voice was turned off, go to idle
+      setAppState('idle')
+      setAnimationState('idle')
+    }
+  }, [])
 
   const {
     startListening,
@@ -209,56 +275,8 @@ export function FullscreenApp({
     transcript
   } = useSpeechRecognition({
     lang: 'en-US',
-    onResult: async (text) => {
-      // Transition: listening → thinking
-      setAppState('thinking')
-      setAnimationState('thinking')
-
-      try {
-        const response = await sendMessage(text, colorName)
-
-        if (response?.response) {
-          let responseText = response.response
-
-          // Check for auth nudge marker [AUTH_NUDGE:CTA]
-          const nudgeMatch = responseText.match(/\[AUTH_NUDGE:([^\]]+)\]/)
-          if (nudgeMatch) {
-            nudgeCtaRef.current = nudgeMatch[1].trim()
-            responseText = responseText.replace(nudgeMatch[0], '').trim()
-          } else if (responseText.includes('[AUTH_NUDGE]')) {
-            // Fallback for old format
-            nudgeCtaRef.current = "Let's stay connected"
-            responseText = responseText.replace('[AUTH_NUDGE]', '').trim()
-          }
-
-          // Transition: thinking → speaking (handled by TTS onStart)
-          speak(responseText)
-        } else {
-          // No response (API error) - speak an error message so user knows
-          speak("I'm having trouble connecting right now. Please try again in a moment.")
-        }
-      } catch (error) {
-        console.error('AI Error:', error)
-        // On error - speak error message and return to appropriate state
-        speak("Sorry, I couldn't process that. Please try again.")
-      }
-    },
-    onEnd: () => {
-      // Speech recognition ended (timeout or no result)
-      // If voice is still enabled, restart listening for continuous conversation
-      if (voiceEnabledRef.current && startListeningRef.current && appStateRef.current === 'listening') {
-        // Small delay to avoid rapid restarts
-        setTimeout(() => {
-          if (voiceEnabledRef.current && startListeningRef.current) {
-            startListeningRef.current()
-          }
-        }, 100)
-      } else if (appStateRef.current === 'listening') {
-        // Voice was turned off, go to idle
-        setAppState('idle')
-        setAnimationState('idle')
-      }
-    }
+    onResult: handleVoiceResult,
+    onEnd: handleVoiceEnd
   })
 
   // Store startListening in ref for use in TTS callback
