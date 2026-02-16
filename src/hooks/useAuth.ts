@@ -1,6 +1,12 @@
+'use client'
+
 /**
  * useAuth Hook
- * Re-exports the useAuth hook from AuthContext for backward compatibility
+ * Re-exports the centralized auth context from AuthContext.tsx
+ * 
+ * This maintains backward compatibility with existing components
+ * while ensuring all components use the same Supabase client instance
+ * and share auth state from the provider level.
  */
 
 export { useAuth } from '@/contexts/AuthContext'
