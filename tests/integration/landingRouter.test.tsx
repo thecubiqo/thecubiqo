@@ -44,6 +44,11 @@ describe('LandingCubeRouter Integration', () => {
     mockSearchParams.delete('landing')
   })
 
+  afterEach(() => {
+    // Clean up search params to prevent test pollution
+    mockSearchParams.delete('landing')
+  })
+
   describe('Default Behavior', () => {
     it('renders plasma-wave variant by default', () => {
       render(<LandingCubeRouter onComplete={mockOnComplete} />)

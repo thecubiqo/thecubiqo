@@ -44,7 +44,7 @@ function getLandingConfigFromEnv(): LandingConfig {
       ? envDefault 
       : 'plasma-wave' // Default to plasma-wave for production
   
-  const enableLanding = envEnable === 'false' ? false : true // Enabled by default
+  const enableLanding = envEnable !== 'false' // Enabled by default unless explicitly 'false'
   
   return {
     defaultVariant,
