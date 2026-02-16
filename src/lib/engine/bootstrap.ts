@@ -133,7 +133,16 @@ export async function bootstrapAgents() {
       maxConcurrent: 2,
     });
 
-    console.log('✅ Agents bootstrapped: henry, dev, writer, tester, marketing');
+    // Create PR-Triage
+    await createAgent({
+      id: 'pr-triage',
+      name: 'PR-Triage',
+      model: defaultModel,
+      tools: ['exec', 'file_read', 'file_list'],
+      maxConcurrent: 1,
+    });
+
+    console.log('✅ Agents bootstrapped: henry, dev, writer, tester, marketing, pr-triage');
   } catch (error) {
     console.error('Failed to bootstrap agents:', error);
   }
