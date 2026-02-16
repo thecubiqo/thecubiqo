@@ -80,17 +80,17 @@ export function LoginForm() {
       console.log('[LoginForm] Attempting sign in for:', email)
       await signInWithEmail(email)
       console.log('[LoginForm] Magic link sent successfully')
-      
+
       // Success - increment attempt counter and set cooldown
       const newAttemptCount = attemptCount + 1
       setAttemptCount(newAttemptCount)
-      
+
       setMessage({
         type: 'success',
         text: 'Check your email for the magic link!',
       })
       setEmail('')
-      
+
       // Start cooldown timer if this was the last allowed attempt
       if (newAttemptCount >= MAX_ATTEMPTS) {
         setCooldownSeconds(RATE_LIMIT_WINDOW / 1000)
@@ -98,7 +98,7 @@ export function LoginForm() {
     } catch (error) {
       console.error('[LoginForm] Sign in error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to send magic link'
-      
+
       // Check if it's a rate limit error from Supabase
       if (errorMessage.toLowerCase().includes('rate limit') || errorMessage.toLowerCase().includes('too many')) {
         setMessage({
@@ -164,7 +164,6 @@ export function LoginForm() {
             }`}
         >
           {message.text}
-<<<<<<< HEAD
 
           {/* Show provider buttons on success */}
           {message.type === 'success' && (
@@ -198,7 +197,7 @@ export function LoginForm() {
               </div>
             </div>
           )}
-=======
+
           {message.type === 'success' && cooldownSeconds > 0 && (
             <p className="text-xs mt-2 text-green-300/80">
               You can request another link in {cooldownSeconds} seconds.
@@ -217,7 +216,6 @@ export function LoginForm() {
           <p className="text-xs">
             Attempts used: {attemptCount}/{MAX_ATTEMPTS}
           </p>
->>>>>>> origin/copilot/fix-email-rate-limiting-issues
         </div>
       )}
     </div>
