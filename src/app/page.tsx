@@ -12,11 +12,15 @@ export default async function Home() {
     checkFeatureFlag({ flag_name: 'ui.landing.particles.v1' })
   ]);
 
+  // Default particle landing to true when flag is not found in DB
+  // This ensures the 120k particle PlasmaWaveField shows on the landing page
+  const showParticles = particleFlag.flag ? particleFlag.enabled : true;
+
   return (
     <Suspense fallback={null}>
       <FullscreenApp
         showTopRightCTA={ctaFlag.enabled}
-        showParticleLanding={particleFlag.enabled}
+        showParticleLanding={showParticles}
       />
     </Suspense>
   )
