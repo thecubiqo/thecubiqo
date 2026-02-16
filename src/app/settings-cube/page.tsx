@@ -2,11 +2,11 @@
 
 /**
  * Settings Cube Page
- * Glassy transparent cube with particle effects
+ * Wireframe energy cube with Mode, Experience, Privacy, Integrations faces
  */
 
-import { GlassyAgentCubeApp } from '@/components/GlassyAgentCube'
+import { EnergyCubeWireframe } from '@/components/cube/EnergyCubeWireframe'
 
 export default function SettingsCubePage() {
-  return <GlassyAgentCubeApp />
+  return <EnergyCubeWireframe />
 }

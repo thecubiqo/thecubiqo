@@ -7,7 +7,6 @@
 
 import { useState, useEffect } from 'react'
 import { useBYO } from '@/hooks/useBYO'
-import { BiometricRegistration } from '@/components/auth/BiometricRegistration'
 
 interface BYOSettingsProps {
   onClose?: () => void
@@ -17,19 +16,23 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
   const { config, toggleBYO, setApiKeys, clearKeys, isBYOEnabled } = useBYO()
 
   const [claudeKey, setClaudeKey] = useState('')
+  const [openaiKey, setOpenaiKey] = useState('')
   const [showKeys, setShowKeys] = useState(false)
 
   // Load existing keys when opening
   useEffect(() => {
     if (config.claudeApiKey) setClaudeKey(config.claudeApiKey)
+    if (config.openaiApiKey) setOpenaiKey(config.openaiApiKey)
   }, [config])
 
   const handleSave = () => {
     const claudeKeyTrimmed = claudeKey.trim() || null
+    const openaiKeyTrimmed = openaiKey.trim() || null
     console.log('[BYO Settings] Saving keys:', {
-      hasClaude: !!claudeKeyTrimmed
+      hasClaude: !!claudeKeyTrimmed,
+      hasOpenai: !!openaiKeyTrimmed
     })
-    setApiKeys(claudeKeyTrimmed)
+    setApiKeys(claudeKeyTrimmed, openaiKeyTrimmed)
     // Verify save
     setTimeout(() => {
       const stored = localStorage.getItem('cubiqo_byo_config')
@@ -41,6 +44,7 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
   const handleClear = () => {
     clearKeys()
     setClaudeKey('')
+    setOpenaiKey('')
   }
 
   const maskKey = (key: string) => {
@@ -55,19 +59,21 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
         <h2 className="text-base font-semibold">BYO Mode</h2>
         <button
           onClick={toggleBYO}
-          className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${isBYOEnabled ? 'bg-green-500' : 'bg-gray-600'
-            }`}
+          className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+            isBYOEnabled ? 'bg-green-500' : 'bg-gray-600'
+          }`}
         >
           <span
-            className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 ${isBYOEnabled ? 'translate-x-5' : 'translate-x-0'
-              }`}
+            className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 ${
+              isBYOEnabled ? 'translate-x-5' : 'translate-x-0'
+            }`}
           />
         </button>
       </div>
 
       {/* Description */}
       <p className="text-sm text-gray-400">
-        Use your own Claude API key.
+        Use your own API keys for Claude and OpenAI.
         Keys are stored locally and never sent to our servers.
       </p>
 
@@ -91,6 +97,24 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
             </div>
             <p className="text-xs text-gray-500 mt-1">
               Get your key at console.anthropic.com
+            </p>
+          </div>
+
+          {/* OpenAI API Key */}
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              OpenAI API Key
+            </label>
+            <input
+              type={showKeys ? 'text' : 'password'}
+              value={openaiKey}
+              onChange={(e) => setOpenaiKey(e.target.value)}
+              placeholder="sk-..."
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700
+                         rounded-lg text-sm focus:outline-none focus:border-green-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Get your key at platform.openai.com
             </p>
           </div>
 
@@ -123,16 +147,7 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
           {/* Status */}
           <div className="text-xs text-gray-500 space-y-1">
             <p>Claude: {config.claudeApiKey ? maskKey(config.claudeApiKey) : 'Not set'}</p>
-          </div>
-
-          {/* Biometric Registration */}
-          <div className="pt-4 border-t border-gray-700">
-            <BiometricRegistration />
-          </div>
-
-          {/* Biometric Registration */}
-          <div className="pt-4 border-t border-gray-700">
-            <BiometricRegistration />
+            <p>OpenAI: {config.openaiApiKey ? maskKey(config.openaiApiKey) : 'Not set'}</p>
           </div>
         </div>
       )}
