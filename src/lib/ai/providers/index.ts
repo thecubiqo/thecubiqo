@@ -79,7 +79,9 @@ export function isOpenClawEnabled(): boolean {
  * To enable, set OPENCLAW_API_KEY or OPENROUTER_KEY_CUBIKEY in your environment
  */
 export const OPENCLAW_PROVIDER: ExtendedProviderConfig = {
-  name: 'openclaw' as any, // Extended provider type
+  // Note: 'openclaw' is not part of the core AIProvider type as it's experimental
+  // This allows the provider to be registered without modifying the base type system
+  name: 'openclaw' as any,
   displayName: 'OpenClaw (via Clawdbot)',
   model: 'emergent-claude/claude-sonnet-4-5',
   maxTokens: 4000,

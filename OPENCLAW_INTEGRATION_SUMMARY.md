@@ -88,8 +88,8 @@ Experimental AI Providers (Optional)
 ⚠️ **Build Error (Pre-existing, not caused by this PR):**
 
 ```
-Error: Both middleware file "./src/src/middleware.ts" and proxy file "./src/src/proxy.ts" are detected. 
-Please use "./src/src/proxy.ts" only.
+Error: Both middleware file "./src/middleware.ts" and proxy file "./src/proxy.ts" are detected. 
+Please use "./src/proxy.ts" only.
 ```
 
 **Analysis:**
