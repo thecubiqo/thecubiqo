@@ -1,363 +1,444 @@
 'use client'
 
 /**
- * PlasmaWaveField - HD Plasma Wave Animation with Morph to Cube
+ * PlasmaWaveField - CubiQo AI Visual Component
  * 
- * Features:
- * - Default: Flowing plasma waves with orange soul nodes
- * - Active: Smooth morph transition to isometric rotating plasma cube
- * - AI state color palette support
- * - 120,000+ particles for HD effect
+ * A standalone Three.js component that:
+ * 1. Shows plasma waves with orange soul nodes (default state)
+ * 2. Morphs into a glowing plasma cube when enabled
+ * 
+ * Ported from CubiQoVisual.jsx with exact visual behavior.
+ * Uses vanilla Three.js with its own renderer, scene, and camera.
  */
 
-import { useRef, useMemo, useEffect } from 'react'
-import { useFrame } from '@react-three/fiber'
+import React, { useRef, useEffect } from 'react'
 import * as THREE from 'three'
 
-// Color palettes for different AI states
-const COLOR_PALETTES = {
-  neutral: [
-    new THREE.Color('#00ffff'),  // Cyan
-    new THREE.Color('#0088ff'),  // Blue
-    new THREE.Color('#8800ff'),  // Purple
-    new THREE.Color('#ff00ff'),  // Magenta
-    new THREE.Color('#ff0088'),  // Pink
-    new THREE.Color('#ff4400'),  // Red-Orange
-  ],
-  thinking: [
-    new THREE.Color('#00ffff'),  // Cyan
-    new THREE.Color('#00aa88'),  // Teal
-    new THREE.Color('#4400ff'),  // Indigo
-    new THREE.Color('#8800ff'),  // Violet
-    new THREE.Color('#ff8800'),  // Orange
-    new THREE.Color('#ffaa00'),  // Amber
-  ],
-  speaking: [
-    new THREE.Color('#00ff88'),  // Emerald
-    new THREE.Color('#00aa88'),  // Teal
-    new THREE.Color('#0088ff'),  // Blue
-    new THREE.Color('#8800ff'),  // Violet
-    new THREE.Color('#ff0088'),  // Pink
-    new THREE.Color('#ffff00'),  // Yellow
-  ],
-  listening: [
-    new THREE.Color('#00ffcc'),  // Aqua
-    new THREE.Color('#00ffff'),  // Cyan
-    new THREE.Color('#0088ff'),  // Blue
-    new THREE.Color('#8800ff'),  // Violet
-    new THREE.Color('#ff00ff'),  // Magenta
-    new THREE.Color('#ff0088'),  // Pink
-    new THREE.Color('#ff8800'),  // Orange
-  ],
-  error: [
-    new THREE.Color('#ff0000'),
-    new THREE.Color('#ff2200'),
-    new THREE.Color('#ff4400'),
-    new THREE.Color('#ff0044'),
-    new THREE.Color('#ff0088'),
-    new THREE.Color('#ff4488'),
-  ],
-}
+// Configuration constants
+const PARTICLE_COUNT = 50000
+const CUBE_SIZE = 3
+const MORPH_BLEND_RATE = 0.08 // 8% smooth blend per frame for wave↔cube transition
 
-type AIState = keyof typeof COLOR_PALETTES
-
-interface PlasmaWaveFieldProps {
+export interface PlasmaWaveFieldProps {
   isEnabled?: boolean
-  aiState?: AIState
+  aiState?: 'neutral' | 'thinking' | 'speaking' | 'listening' | 'error'
+  width?: number
+  height?: number
 }
 
-export function PlasmaWaveField({
-  isEnabled = false,
-  aiState = 'neutral'
+export function PlasmaWaveField({ 
+  isEnabled = false, 
+  aiState = 'neutral',
+  width,
+  height 
 }: PlasmaWaveFieldProps) {
-  const pointsRef = useRef<THREE.Points>(null)
-  const soulNodesRef = useRef<THREE.Points>(null)
-  const morphProgress = useRef(isEnabled ? 1 : 0)
-  const targetMorph = useRef(0)
-
-  // Configuration
-  const PARTICLE_COUNT = 120000
-  const SOUL_NODE_COUNT = 200
-  const WAVE_LAYERS = 4
-  const CUBE_SIZE = 1.2
-
-  // Generate wave positions
-  const { wavePositions, cubePositions, colors, sizes } = useMemo(() => {
-    const wavePos = new Float32Array(PARTICLE_COUNT * 3)
-    const cubePos = new Float32Array(PARTICLE_COUNT * 3)
-    const cols = new Float32Array(PARTICLE_COUNT * 3)
-    const szs = new Float32Array(PARTICLE_COUNT)
-
-    const palette = COLOR_PALETTES[aiState] || COLOR_PALETTES.neutral
-
-    const particlesPerLayer = Math.floor(PARTICLE_COUNT / WAVE_LAYERS)
-
-    for (let layer = 0; layer < WAVE_LAYERS; layer++) {
-      const layerOffset = layer * particlesPerLayer
-      const layerDepth = (layer - WAVE_LAYERS / 2) * 0.4
-      const layerDensity = layer === 1 ? 1.2 : (layer === 2 ? 1.1 : 1.0)
-
-      // Ribbon structure
-      const ribbonCount = 20 + layer * 5
-      const particlesPerRibbon = Math.floor(particlesPerLayer / ribbonCount)
-
-      for (let ribbon = 0; ribbon < ribbonCount; ribbon++) {
-        const ribbonY = (ribbon / ribbonCount - 0.5) * 3.0
-
-        for (let p = 0; p < particlesPerRibbon; p++) {
-          const idx = layerOffset + ribbon * particlesPerRibbon + p
-          if (idx >= PARTICLE_COUNT) break
-
-          const i3 = idx * 3
-
-          // Wave position - flowing ribbon
-          const t = p / particlesPerRibbon
-          const x = (t - 0.5) * 6.0
-          const waveFreq = 2.0 + ribbon * 0.1
-          const y = ribbonY + Math.sin(t * Math.PI * waveFreq) * 0.3
-          const z = layerDepth + Math.sin(t * Math.PI * 3 + ribbon) * 0.2
-
-          wavePos[i3] = x
-          wavePos[i3 + 1] = y
-          wavePos[i3 + 2] = z
-
-          // Cube position - distribute on cube surface and interior
-          const cubeT = idx / PARTICLE_COUNT
-          const face = Math.floor(Math.random() * 6)
-          const u = (Math.random() - 0.5) * CUBE_SIZE
-          const v = (Math.random() - 0.5) * CUBE_SIZE
-          const half = CUBE_SIZE / 2
-
-          // Mix surface and interior particles
-          const isInterior = Math.random() < 0.3
-          if (isInterior) {
-            cubePos[i3] = (Math.random() - 0.5) * CUBE_SIZE
-            cubePos[i3 + 1] = (Math.random() - 0.5) * CUBE_SIZE
-            cubePos[i3 + 2] = (Math.random() - 0.5) * CUBE_SIZE
-          } else {
-            switch (face) {
-              case 0: cubePos[i3] = half; cubePos[i3 + 1] = u; cubePos[i3 + 2] = v; break
-              case 1: cubePos[i3] = -half; cubePos[i3 + 1] = u; cubePos[i3 + 2] = v; break
-              case 2: cubePos[i3] = u; cubePos[i3 + 1] = half; cubePos[i3 + 2] = v; break
-              case 3: cubePos[i3] = u; cubePos[i3 + 1] = -half; cubePos[i3 + 2] = v; break
-              case 4: cubePos[i3] = u; cubePos[i3 + 1] = v; cubePos[i3 + 2] = half; break
-              case 5: cubePos[i3] = u; cubePos[i3 + 1] = v; cubePos[i3 + 2] = -half; break
-            }
-          }
-
-          // Color based on position in wave
-          const colorIdx = Math.floor(t * (palette.length - 1))
-          const nextColorIdx = Math.min(colorIdx + 1, palette.length - 1)
-          const colorT = (t * (palette.length - 1)) % 1
-
-          const color = new THREE.Color().lerpColors(
-            palette[colorIdx],
-            palette[nextColorIdx],
-            colorT
-          )
-
-          cols[i3] = color.r
-          cols[i3 + 1] = color.g
-          cols[i3 + 2] = color.b
-
-          // Size varies by layer
-          szs[idx] = 0.015 + Math.random() * 0.01 + (layer === 1 ? 0.005 : 0)
-        }
-      }
-    }
-
-    return {
-      wavePositions: wavePos,
-      cubePositions: cubePos,
-      colors: cols,
-      sizes: szs
-    }
-  }, [aiState])
-
-  // Soul nodes (orange floating particles)
-  const soulNodeData = useMemo(() => {
-    const positions = new Float32Array(SOUL_NODE_COUNT * 3)
-    const velocities = new Float32Array(SOUL_NODE_COUNT * 3)
-
-    for (let i = 0; i < SOUL_NODE_COUNT; i++) {
-      const i3 = i * 3
-      // Start within a sphere
-      const theta = Math.random() * Math.PI * 2
-      const phi = Math.acos(2 * Math.random() - 1)
-      const r = Math.random() * 1.5
-
-      positions[i3] = r * Math.sin(phi) * Math.cos(theta)
-      positions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta)
-      positions[i3 + 2] = r * Math.cos(phi)
-
-      velocities[i3] = (Math.random() - 0.5) * 0.02
-      velocities[i3 + 1] = (Math.random() - 0.5) * 0.02
-      velocities[i3 + 2] = (Math.random() - 0.5) * 0.02
-    }
-
-    return { positions, velocities }
-  }, [])
-
-  // Update morph target
+  const containerRef = useRef<HTMLDivElement>(null)
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
+  const sceneRef = useRef<THREE.Scene | null>(null)
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
+  const particlesRef = useRef<THREE.Points | null>(null)
+  const animationRef = useRef<number | null>(null)
+  const timeRef = useRef(0)
+  const morphProgressRef = useRef(0)
+  const mouseRef = useRef({ x: 0, y: 0 })
+  const audioLevelRef = useRef(0)
+  
+  // Store state refs for animation access
+  const isEnabledRef = useRef(isEnabled)
+  const aiStateRef = useRef(aiState)
+  
+  useEffect(() => { isEnabledRef.current = isEnabled }, [isEnabled])
+  useEffect(() => { aiStateRef.current = aiState }, [aiState])
+  
   useEffect(() => {
-    targetMorph.current = isEnabled ? 1 : 0
-  }, [isEnabled])
-
-  // Animation loop
-  useFrame((state) => {
-    const time = state.clock.elapsedTime
-
-    // Smooth morph transition
-    // Smooth morph transition (or force snap if enabled to avoid waves)
-    if (isEnabled) {
-      morphProgress.current = 1
-    } else {
-      // Only animate cleanly if we are NOT in the forced enabled state
-      if (morphProgress.current > 0) {
-        morphProgress.current = Math.max(morphProgress.current - 0.03, 0)
+    if (!containerRef.current) return
+    
+    const container = containerRef.current
+    const w = width || container.clientWidth
+    const h = height || container.clientHeight
+    
+    // Color palettes
+    const colorPalettes = {
+      neutral: ['#00ffff', '#00d4ff', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'],
+      thinking: ['#00ffff', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#f59e0b', '#f97316'],
+      speaking: ['#10b981', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#fbbf24'],
+      listening: ['#22d3ee', '#06b6d4', '#3b82f6', '#8b5cf6', '#c026d3', '#ec4899', '#f97316'],
+      error: ['#f43f5e', '#ef4444', '#dc2626', '#b91c1c', '#ec4899']
+    }
+    
+    const orangeSoulColor = new THREE.Color('#ff6b35')
+    
+    // Scene
+    const scene = new THREE.Scene()
+    sceneRef.current = scene
+    
+    // Camera
+    const camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 1000)
+    camera.position.set(0, 5, 14)
+    camera.lookAt(0, 0, 0)
+    cameraRef.current = camera
+    
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true, 
+      alpha: true,
+      premultipliedAlpha: false
+    })
+    renderer.setSize(w, h)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.setClearColor(0x000000, 0)
+    container.appendChild(renderer.domElement)
+    rendererRef.current = renderer
+    
+    // Create unified particle system for both wave and cube states
+    // (Ported exactly from CubiQoVisual.jsx emergent design)
+    const particleCount = PARTICLE_COUNT
+    const geometry = new THREE.BufferGeometry()
+    
+    const positions = new Float32Array(particleCount * 3)
+    const colors = new Float32Array(particleCount * 3)
+    const sizes = new Float32Array(particleCount)
+    
+    // Store both wave and cube target positions
+    const wavePositions = new Float32Array(particleCount * 3)
+    const cubePositions = new Float32Array(particleCount * 3)
+    const phases = new Float32Array(particleCount)
+    const ribbonIndex = new Float32Array(particleCount)
+    const isSoulNode = new Float32Array(particleCount)
+    
+    const palette = colorPalettes.neutral
+    const cubeSize = CUBE_SIZE
+    const half = cubeSize / 2
+    
+    // Cube vertices and edges for target positions
+    const cubeVertices = [
+      [-half, -half, -half], [half, -half, -half], [half, half, -half], [-half, half, -half],
+      [-half, -half, half], [half, -half, half], [half, half, half], [-half, half, half]
+    ]
+    const cubeEdges = [[0,1], [1,2], [2,3], [3,0], [4,5], [5,6], [6,7], [7,4], [0,4], [1,5], [2,6], [3,7]]
+    const cubeFaces = [[0,1,2,3], [4,5,6,7], [0,1,5,4], [2,3,7,6], [0,3,7,4], [1,2,6,5]]
+    
+    // Create particles
+    const ribbonCount = 15
+    const perRibbon = Math.floor(particleCount * 0.85 / ribbonCount)
+    const soulNodeCount = Math.floor(particleCount * 0.1)
+    
+    let idx = 0
+    
+    // Wave ribbons (main particles)
+    for (let r = 0; r < ribbonCount && idx < particleCount - soulNodeCount; r++) {
+      const ribbonY = (r / (ribbonCount - 1) - 0.5) * 8
+      
+      for (let p = 0; p < perRibbon && idx < particleCount - soulNodeCount; p++) {
+        const i3 = idx * 3
+        
+        const xNorm = p / perRibbon
+        const x = (xNorm - 0.5) * 25
+        const thickness = 0.3 + Math.random() * 0.3
+        const yVar = (Math.random() - 0.5) * thickness
+        const zVar = (Math.random() - 0.5) * thickness * 2
+        
+        // Wave position
+        wavePositions[i3] = x
+        wavePositions[i3 + 1] = ribbonY + yVar
+        wavePositions[i3 + 2] = zVar
+        
+        // Cube target position (on surface or inside)
+        const isEdge = Math.random() < 0.2
+        if (isEdge) {
+          // Edge particle
+          const edgeIdx = Math.floor(Math.random() * cubeEdges.length)
+          const edge = cubeEdges[edgeIdx]
+          const t = Math.random()
+          const v1 = cubeVertices[edge[0]]
+          const v2 = cubeVertices[edge[1]]
+          cubePositions[i3] = v1[0] + (v2[0] - v1[0]) * t + (Math.random() - 0.5) * 0.1
+          cubePositions[i3 + 1] = v1[1] + (v2[1] - v1[1]) * t + (Math.random() - 0.5) * 0.1
+          cubePositions[i3 + 2] = v1[2] + (v2[2] - v1[2]) * t + (Math.random() - 0.5) * 0.1
+        } else {
+          // Face particle
+          const faceIdx = Math.floor(Math.random() * cubeFaces.length)
+          const face = cubeFaces[faceIdx]
+          const u = Math.random(), v = Math.random()
+          const v0 = cubeVertices[face[0]], v1 = cubeVertices[face[1]]
+          const v2 = cubeVertices[face[2]], v3 = cubeVertices[face[3]]
+          const inset = 0.9 + Math.random() * 0.2
+          cubePositions[i3] = ((1-u)*(1-v)*v0[0] + u*(1-v)*v1[0] + u*v*v2[0] + (1-u)*v*v3[0]) * inset
+          cubePositions[i3 + 1] = ((1-u)*(1-v)*v0[1] + u*(1-v)*v1[1] + u*v*v2[1] + (1-u)*v*v3[1]) * inset
+          cubePositions[i3 + 2] = ((1-u)*(1-v)*v0[2] + u*(1-v)*v1[2] + u*v*v2[2] + (1-u)*v*v3[2]) * inset
+        }
+        
+        // Initial position = wave
+        positions[i3] = wavePositions[i3]
+        positions[i3 + 1] = wavePositions[i3 + 1]
+        positions[i3 + 2] = wavePositions[i3 + 2]
+        
+        // Color based on x position
+        const cIdx = Math.min(Math.floor(xNorm * (palette.length - 1)), palette.length - 2)
+        const cBlend = (xNorm * (palette.length - 1)) % 1
+        const c1 = new THREE.Color(palette[cIdx])
+        const c2 = new THREE.Color(palette[cIdx + 1])
+        colors[i3] = THREE.MathUtils.lerp(c1.r, c2.r, cBlend)
+        colors[i3 + 1] = THREE.MathUtils.lerp(c1.g, c2.g, cBlend)
+        colors[i3 + 2] = THREE.MathUtils.lerp(c1.b, c2.b, cBlend)
+        
+        sizes[idx] = 0.06 + Math.random() * 0.04
+        phases[idx] = xNorm * Math.PI * 4 + r * 0.5 + Math.random() * 0.5
+        ribbonIndex[idx] = r
+        isSoulNode[idx] = 0
+        
+        idx++
       }
     }
-
-    const morph = morphProgress.current
-
-    // Update main particles
-    if (pointsRef.current) {
-      const positions = pointsRef.current.geometry.attributes.position.array as Float32Array
-
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
-        const i3 = i * 3
-
-        // Wave animation
-        const waveX = wavePositions[i3]
-        const waveY = wavePositions[i3 + 1]
-        const waveZ = wavePositions[i3 + 2]
-
-        // Animate wave position
-        const waveOffset = Math.sin(time * 0.5 + waveX * 0.5) * 0.1
-        const animatedWaveY = waveY + waveOffset
-        const animatedWaveZ = waveZ + Math.sin(time * 0.3 + waveY) * 0.05
-
-        // Cube position with rotation
-        const cubeX = cubePositions[i3]
-        const cubeY = cubePositions[i3 + 1]
-        const cubeZ = cubePositions[i3 + 2]
-
-        // Rotate cube
-        const rotY = time * 0.3
-        const rotatedX = cubeX * Math.cos(rotY) - cubeZ * Math.sin(rotY)
-        const rotatedZ = cubeX * Math.sin(rotY) + cubeZ * Math.cos(rotY)
-
-        // Add pulse effect when active
-        const pulse = isEnabled ? Math.sin(time * 2) * 0.05 : 0
-
-        // Lerp between wave and cube
-        positions[i3] = THREE.MathUtils.lerp(waveX, rotatedX * (1 + pulse), morph)
-        positions[i3 + 1] = THREE.MathUtils.lerp(animatedWaveY, cubeY * (1 + pulse), morph)
-        positions[i3 + 2] = THREE.MathUtils.lerp(animatedWaveZ, rotatedZ * (1 + pulse), morph)
-      }
-
-      pointsRef.current.geometry.attributes.position.needsUpdate = true
+    
+    // Orange soul nodes (scattered in both states)
+    for (let i = 0; i < soulNodeCount && idx < particleCount; i++) {
+      const i3 = idx * 3
+      
+      // Wave position - scattered among waves
+      wavePositions[i3] = (Math.random() - 0.5) * 20
+      wavePositions[i3 + 1] = (Math.random() - 0.5) * 6
+      wavePositions[i3 + 2] = (Math.random() - 0.5) * 4
+      
+      // Cube position - inside the cube
+      cubePositions[i3] = (Math.random() - 0.5) * cubeSize * 0.7
+      cubePositions[i3 + 1] = (Math.random() - 0.5) * cubeSize * 0.7
+      cubePositions[i3 + 2] = (Math.random() - 0.5) * cubeSize * 0.7
+      
+      // Initial position
+      positions[i3] = wavePositions[i3]
+      positions[i3 + 1] = wavePositions[i3 + 1]
+      positions[i3 + 2] = wavePositions[i3 + 2]
+      
+      // Orange color
+      colors[i3] = orangeSoulColor.r
+      colors[i3 + 1] = orangeSoulColor.g
+      colors[i3 + 2] = orangeSoulColor.b
+      
+      sizes[idx] = 0.08 + Math.random() * 0.06
+      phases[idx] = Math.random() * Math.PI * 2
+      ribbonIndex[idx] = -1
+      isSoulNode[idx] = 1
+      
+      idx++
     }
-
-    // Update soul nodes
-    if (soulNodesRef.current) {
-      const positions = soulNodesRef.current.geometry.attributes.position.array as Float32Array
-      const velocities = soulNodeData.velocities
-
-      for (let i = 0; i < SOUL_NODE_COUNT; i++) {
-        const i3 = i * 3
-
-        // Update position with velocity
-        positions[i3] += velocities[i3]
-        positions[i3 + 1] += velocities[i3 + 1]
-        positions[i3 + 2] += velocities[i3 + 2]
-
-        // Contain within bounds (tighter when cube mode)
-        const bounds = isEnabled ? CUBE_SIZE * 0.4 : 1.8
-
-        for (let j = 0; j < 3; j++) {
-          if (Math.abs(positions[i3 + j]) > bounds) {
-            velocities[i3 + j] *= -0.8
-            positions[i3 + j] = Math.sign(positions[i3 + j]) * bounds
+    
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1))
+    geometry.userData = { wavePositions, cubePositions, phases, ribbonIndex, isSoulNode }
+    
+    // Shader material with custom GLSL
+    // Uses additive blending for glowing plasma effect
+    // Point size scales with depth for perspective
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uMorph: { value: 0 }
+      },
+      vertexShader: `
+        attribute float size;
+        uniform float uMorph;
+        varying vec3 vColor;
+        varying float vMorph;
+        
+        void main() {
+          vColor = color;
+          vMorph = uMorph;
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = size * (350.0 / -mvPosition.z);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vColor;
+        varying float vMorph;
+        
+        void main() {
+          vec2 uv = gl_PointCoord - vec2(0.5);
+          float dist = length(uv);
+          if (dist > 0.5) discard;
+          
+          // Soft glow with bright center
+          float core = 1.0 - smoothstep(0.0, 0.12, dist);
+          float innerGlow = exp(-dist * 5.0);
+          float outerGlow = exp(-dist * 2.5) * 0.5;
+          
+          float intensity = core * 0.5 + innerGlow + outerGlow;
+          vec3 finalColor = vColor * intensity * 1.4;
+          finalColor += vec3(1.0) * core * 0.3;
+          
+          gl_FragColor = vec4(finalColor, intensity * 0.9);
+        }
+      `,
+      transparent: true,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    })
+    
+    const particles = new THREE.Points(geometry, material)
+    scene.add(particles)
+    particlesRef.current = particles
+    
+    // Animation loop
+    const animate = () => {
+      timeRef.current += 0.012
+      const time = timeRef.current
+      
+      // Smooth morph transition
+      const targetMorph = isEnabledRef.current ? 1 : 0
+      morphProgressRef.current += (targetMorph - morphProgressRef.current) * MORPH_BLEND_RATE
+      const morph = morphProgressRef.current
+      
+      const currentPalette = colorPalettes[aiStateRef.current] || colorPalettes.neutral
+      const audioMult = 1 + audioLevelRef.current * 2
+      
+      if (particlesRef.current) {
+        const geom = particlesRef.current.geometry
+        const posAttr = geom.attributes.position
+        const colorAttr = geom.attributes.color
+        const { wavePositions, cubePositions, phases, ribbonIndex, isSoulNode } = geom.userData
+        
+        // Update material uniform
+        const shaderMaterial = particlesRef.current.material as THREE.ShaderMaterial
+        shaderMaterial.uniforms.uMorph.value = morph
+        
+        for (let i = 0; i < posAttr.count; i++) {
+          const i3 = i * 3
+          const phase = phases[i]
+          const ribbon = ribbonIndex[i]
+          const isSoul = isSoulNode[i]
+          
+          // Wave animation
+          let waveX = wavePositions[i3]
+          let waveY = wavePositions[i3 + 1]
+          let waveZ = wavePositions[i3 + 2]
+          
+          if (ribbon >= 0) {
+            // Ribbon wave motion
+            const xNorm = (waveX / 25) + 0.5
+            const wave1 = Math.sin(phase + time * 0.8) * 2.5
+            const wave2 = Math.sin(phase * 0.5 + time * 0.6) * 1.5
+            const wave3 = Math.cos(phase * 0.3 + time * 1.0) * 1.0
+            
+            // Mouse influence on waves
+            const dx = waveX - mouseRef.current.x * 12
+            const dz = waveZ - mouseRef.current.y * 8
+            const mDist = Math.sqrt(dx * dx + dz * dz)
+            const mouseWave = Math.max(0, 1 - mDist / 8) * 2 * Math.sin(time * 4 + mDist * 0.3)
+            
+            waveY = wavePositions[i3 + 1] + (wave1 + wave2 + wave3) * audioMult * 0.4 + mouseWave
+          } else if (isSoul > 0) {
+            // Soul node floating
+            waveX = wavePositions[i3] + Math.sin(time * 0.5 + phase) * 0.5
+            waveY = wavePositions[i3 + 1] + Math.cos(time * 0.3 + phase) * 0.4
+            waveZ = wavePositions[i3 + 2] + Math.sin(time * 0.4 + phase) * 0.3
+          }
+          
+          // Cube animation
+          let cubeX = cubePositions[i3]
+          let cubeY = cubePositions[i3 + 1]
+          let cubeZ = cubePositions[i3 + 2]
+          
+          if (isSoul > 0) {
+            // Soul nodes swirl inside cube
+            cubeX = cubePositions[i3] + Math.sin(time + phase) * 0.3
+            cubeY = cubePositions[i3 + 1] + Math.cos(time * 0.8 + phase) * 0.25
+            cubeZ = cubePositions[i3 + 2] + Math.sin(time * 0.6 + phase) * 0.3
+          } else {
+            // Cube surface pulsing
+            const pulse = Math.sin(time * 2 + phase) * 0.05
+            cubeX *= (1 + pulse)
+            cubeY *= (1 + pulse)
+            cubeZ *= (1 + pulse)
+          }
+          
+          // Interpolate between wave and cube positions
+          posAttr.array[i3] = THREE.MathUtils.lerp(waveX, cubeX, morph)
+          posAttr.array[i3 + 1] = THREE.MathUtils.lerp(waveY, cubeY, morph)
+          posAttr.array[i3 + 2] = THREE.MathUtils.lerp(waveZ, cubeZ, morph)
+          
+          // Update colors (except soul nodes)
+          if (isSoul === 0 && ribbon >= 0) {
+            const xNorm = Math.max(0, Math.min(1, (wavePositions[i3] / 25) + 0.5))
+            const cIdx = Math.min(Math.floor(xNorm * (currentPalette.length - 1)), currentPalette.length - 2)
+            const cBlend = (xNorm * (currentPalette.length - 1)) % 1
+            const c1 = new THREE.Color(currentPalette[cIdx])
+            const c2 = new THREE.Color(currentPalette[cIdx + 1])
+            
+            colorAttr.array[i3] = THREE.MathUtils.lerp(c1.r, c2.r, cBlend)
+            colorAttr.array[i3 + 1] = THREE.MathUtils.lerp(c1.g, c2.g, cBlend)
+            colorAttr.array[i3 + 2] = THREE.MathUtils.lerp(c1.b, c2.b, cBlend)
           }
         }
-
-        // Add slight attraction to center
-        velocities[i3] += -positions[i3] * 0.001
-        velocities[i3 + 1] += -positions[i3 + 1] * 0.001
-        velocities[i3 + 2] += -positions[i3 + 2] * 0.001
-
-        // Add orbital motion when in cube mode
-        if (isEnabled) {
-          const orbitSpeed = 0.01
-          velocities[i3] += -positions[i3 + 2] * orbitSpeed
-          velocities[i3 + 2] += positions[i3] * orbitSpeed
-        }
+        
+        posAttr.needsUpdate = true
+        colorAttr.needsUpdate = true
+        
+        // Rotate when in cube mode
+        particles.rotation.y = morph * time * 0.2
+        particles.rotation.x = morph * Math.sin(time * 0.1) * 0.15
       }
-
-      soulNodesRef.current.geometry.attributes.position.needsUpdate = true
+      
+      // Camera adjusts based on morph
+      camera.position.z = THREE.MathUtils.lerp(14, 10, morph)
+      camera.position.y = THREE.MathUtils.lerp(5, 4, morph)
+      camera.position.x = Math.sin(time * 0.1) * (1 - morph * 0.5)
+      camera.lookAt(0, 0, 0)
+      
+      renderer.render(scene, camera)
+      animationRef.current = requestAnimationFrame(animate)
     }
-  })
-
+    
+    animate()
+    
+    // Mouse tracking
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = container.getBoundingClientRect()
+      mouseRef.current = {
+        x: ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        y: -((e.clientY - rect.top) / rect.height) * 2 + 1
+      }
+    }
+    
+    container.addEventListener('mousemove', handleMouseMove)
+    
+    // Resize
+    const handleResize = () => {
+      const newW = width || container.clientWidth
+      const newH = height || container.clientHeight
+      camera.aspect = newW / newH
+      camera.updateProjectionMatrix()
+      renderer.setSize(newW, newH)
+    }
+    
+    window.addEventListener('resize', handleResize)
+    
+    return () => {
+      container.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('resize', handleResize)
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+      }
+      renderer.dispose()
+      geometry.dispose()
+      material.dispose()
+      if (container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement)
+      }
+    }
+  }, [width, height])
+  
   return (
-    <group>
-      {/* Main plasma particles */}
-      <points ref={pointsRef}>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            args={[wavePositions.slice(), 3]}
-          />
-          <bufferAttribute
-            attach="attributes-color"
-            args={[colors, 3]}
-          />
-          <bufferAttribute
-            attach="attributes-size"
-            args={[sizes, 1]}
-          />
-        </bufferGeometry>
-        <pointsMaterial
-          size={0.02}
-          vertexColors
-          transparent
-          opacity={0.85}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          sizeAttenuation
-        />
-      </points>
-
-      {/* Soul nodes (orange floating particles) */}
-      <points ref={soulNodesRef}>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            args={[soulNodeData.positions.slice(), 3]}
-          />
-        </bufferGeometry>
-        <pointsMaterial
-          size={0.06}
-          color="#ff8844"
-          transparent
-          opacity={0.9}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          sizeAttenuation
-        />
-      </points>
-
-      {/* Glow core */}
-      <mesh scale={isEnabled ? 0.3 : 0.15}>
-        <sphereGeometry args={[1, 16, 16]} />
-        <meshBasicMaterial
-          color="#ff6633"
-          transparent
-          opacity={0.4}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
-    </group>
+    <div 
+      ref={containerRef} 
+      data-testid="plasma-wave-field"
+      style={{ 
+        width: '100%', 
+        height: '100%',
+        background: 'transparent'
+      }} 
+    />
   )
 }
 

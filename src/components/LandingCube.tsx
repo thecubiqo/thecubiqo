@@ -7,7 +7,6 @@
  * User taps anywhere to enter the main app.
  */
 
-import { Canvas } from '@react-three/fiber'
 import { PlasmaWaveField } from './cube/PlasmaWaveField'
 
 interface LandingCubeProps {
@@ -26,19 +25,9 @@ export function LandingCube({ onComplete }: LandingCubeProps) {
       <div className="absolute inset-0 bg-gradient-to-b from-purple-950/20 via-black to-black" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(100,50,180,0.1)_0%,_transparent_70%)]" />
 
-      {/* 3D Canvas with Plasma Waves */}
+      {/* 3D Plasma Waves (standalone with own renderer) */}
       <div className="w-full h-[70vh] max-w-5xl relative z-10">
-        <Canvas
-          camera={{ position: [0, 0, 5], fov: 50 }}
-          gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-          dpr={[1, 2]}
-        >
-          <ambientLight intensity={0.2} />
-          <pointLight position={[5, 5, 5]} intensity={0.3} color="#00ffff" />
-          <pointLight position={[-5, -5, -5]} intensity={0.2} color="#ff00ff" />
-
-          <PlasmaWaveField isEnabled={true} aiState="neutral" />
-        </Canvas>
+        <PlasmaWaveField isEnabled={true} aiState="neutral" />
       </div>
 
       {/* Welcome text - Ported from LandingOverlay */}
