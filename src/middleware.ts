@@ -1,10 +1,3 @@
-/**
- * Edge Proxy for Auth & Geo-Routing
- *
- * Handles Supabase session refresh and routes users to regional versions.
- * Runs at the edge for minimal latency.
- */
-
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -18,7 +11,7 @@ const COUNTRY_TO_REGION: Record<string, string> = {
 // Countries that should stay on main by default
 const MAIN_COUNTRIES = new Set(['US'])
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
     // Get user's country from Vercel geo headers (Next.js 16+ uses headers only)
@@ -56,7 +49,11 @@ export async function proxy(request: NextRequest) {
     await supabase.auth.getUser()
 
     // PROTECT FOUNDERS PASS & ADMIN ROUTES
-    if (pathname.startsWith('/founders-pass') || pathname.startsWith('/api/founders-pass')) {
+    // Matches /founders-pass (new admin), /api/founders-pass, and /founderspass/* (dashboard/experiments)
+    // Excludes /founderspass (exact match) to allow login
+    if (
+        (pathname.startsWith('/founders-pass') || pathname.startsWith('/api/founders-pass') || pathname.startsWith('/founderspass/'))
+    ) {
         const hasPinCookie = request.cookies.get('founders-pass-auth')?.value === 'true'
 
         // Allow access if PIN cookie is present
