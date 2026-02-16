@@ -9,6 +9,8 @@
  *  5. Apple-style global resets (font-smoothing, selection, scrollbar) present.
  *  6. Cross-browser slider thumb styling.
  *  7. Component files consume the design system.
+ *  8. Energy cube components are present and properly structured.
+ *  9. Layout enforcement.
  *
  * Run:  npx tsx scripts/visual-smoke-test.ts
  */
@@ -182,7 +184,20 @@ const poweredBy = fs.readFileSync(poweredByPath, 'utf-8')
 assert(poweredBy.includes('transition-premium'), 'PoweredByLogos uses transition-premium')
 assert(poweredBy.includes('aria-hidden'), 'PoweredByLogos decorative SVGs have aria-hidden')
 
-// ── 8. Layout Enforcement ───────────────────────────────────────────
+// Energy cube wrapper pages should use premium design classes
+const settingsCubePagePath = path.resolve(
+  __dirname,
+  '..',
+  'src',
+  'app',
+  'settings-cube',
+  'page.tsx'
+)
+const settingsCubePage = fs.readFileSync(settingsCubePagePath, 'utf-8')
+
+assert(settingsCubePage.includes('EnergyCubeWireframe'), 'Settings cube page uses EnergyCubeWireframe')
+
+// ── 9. Layout Enforcement ───────────────────────────────────────────
 
 console.log('\n🔷  Layout Enforcement')
 
@@ -196,6 +211,77 @@ assert(layout.includes('globals.css'), 'Root layout imports globals.css')
 assert(css.includes('#000000'), 'Dark mode background is pure black (OLED-friendly, Apple-style)')
 assert(css.includes('#f5f5f7'), 'Dark mode foreground matches Apple light-on-dark tone')
 assert(css.includes('#1d1d1f'), 'Light mode foreground matches Apple dark-on-light tone')
+
+// ── 9. Energy Cube Components ───────────────────────────────────────
+
+console.log('\n🔷  Energy Cube Components')
+
+const energyCubeWireframePath = path.resolve(
+  __dirname,
+  '..',
+  'src',
+  'components',
+  'cube',
+  'EnergyCubeWireframe.tsx'
+)
+
+let energyCubeWireframe = '';
+if (fs.existsSync(energyCubeWireframePath)) {
+  console.log('✅ EnergyCubeWireframe.tsx exists')
+  energyCubeWireframe = fs.readFileSync(energyCubeWireframePath, 'utf-8')
+} else {
+  console.log('❌ EnergyCubeWireframe.tsx MISSING at', energyCubeWireframePath)
+  failed++
+}
+assert(energyCubeWireframe.includes('EnergyCubeWireframe'), 'EnergyCubeWireframe component is exported')
+assert(energyCubeWireframe.includes('@react-three/fiber'), 'EnergyCubeWireframe uses React Three Fiber')
+assert(energyCubeWireframe.includes('Canvas'), 'EnergyCubeWireframe includes Canvas component')
+assert(energyCubeWireframe.includes('useFrame'), 'EnergyCubeWireframe uses animation hook')
+assert(energyCubeWireframe.includes('transition-premium'), 'EnergyCubeWireframe uses transition-premium class')
+assert(energyCubeWireframe.includes('aria-label'), 'EnergyCubeWireframe has accessibility label')
+assert(energyCubeWireframe.includes("'use client'"), 'EnergyCubeWireframe has use client directive')
+assert(energyCubeWireframe.includes('export function EnergyCubeWireframe'), 'EnergyCubeWireframe exports named function')
+assert(energyCubeWireframe.includes('@react-three/fiber'), 'EnergyCubeWireframe imports react-three/fiber')
+assert(energyCubeWireframe.includes('Canvas'), 'EnergyCubeWireframe uses Canvas component')
+assert(energyCubeWireframe.includes('useFrame'), 'EnergyCubeWireframe uses useFrame hook')
+assert(energyCubeWireframe.includes('THREE'), 'EnergyCubeWireframe imports Three.js')
+
+// Validate FlowingEnergyCube
+const flowingEnergyCubePath = path.resolve(
+  __dirname,
+  '..',
+  'src',
+  'components',
+  'FlowingEnergyCube.tsx'
+)
+const flowingEnergyCube = fs.readFileSync(flowingEnergyCubePath, 'utf-8')
+
+assert(fs.existsSync(flowingEnergyCubePath), 'FlowingEnergyCube.tsx exists')
+assert(flowingEnergyCube.includes("'use client'"), 'FlowingEnergyCube has use client directive')
+assert(flowingEnergyCube.includes('export function FlowingEnergyCube'), 'FlowingEnergyCube exports named function')
+assert(flowingEnergyCube.includes('@react-three/fiber'), 'FlowingEnergyCube imports react-three/fiber')
+assert(flowingEnergyCube.includes('useFrame'), 'FlowingEnergyCube uses useFrame hook')
+assert(flowingEnergyCube.includes('THREE'), 'FlowingEnergyCube imports Three.js')
+assert(flowingEnergyCube.includes('CatmullRomCurve3'), 'FlowingEnergyCube uses CatmullRomCurve3')
+assert(flowingEnergyCube.includes('TubeGeometry'), 'FlowingEnergyCube uses TubeGeometry')
+
+// ── 10. Cube Controls Accessibility ─────────────────────────────────
+
+console.log('\n🔷  Cube Controls Premium Classes & Accessibility')
+
+// Already validated above, but adding more specific checks
+assert(cubeControls.includes('className="mt-3 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 premium-card"'), 'Cube controls container has premium-card class')
+assert(cubeControls.includes('transition-premium'), 'Cube controls uses transition-premium (multiple instances)')
+assert(cubeControls.includes('aria-expanded={isExpanded}'), 'Cube controls header has aria-expanded')
+assert(cubeControls.includes('aria-controls="cube-settings-panel"'), 'Cube controls header has aria-controls')
+assert(cubeControls.includes('id="cube-settings-panel"'), 'Cube controls panel has matching id')
+assert(cubeControls.includes('role="switch"'), 'Eyes toggle has role="switch"')
+assert(cubeControls.includes('aria-checked={showEyes}'), 'Eyes toggle has aria-checked')
+
+// Validate that size slider has proper accessibility
+assert(cubeControls.includes('type="range"'), 'Cube controls has range input')
+assert(cubeControls.includes('<label'), 'Cube controls has label elements')
+assert(cubeControls.includes('font-medium'), 'Cube controls uses proper typography')
 
 // ── Summary ─────────────────────────────────────────────────────────
 

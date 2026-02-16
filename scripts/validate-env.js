@@ -135,6 +135,34 @@ function validateAIKeys(env) {
   }
 }
 
+function validateExperimentalProviders(env) {
+  header('Experimental AI Providers (Optional)');
+  
+  // OpenClaw / Clawdbot Integration
+  const openclawKey = env.OPENCLAW_API_KEY || env.OPENROUTER_KEY_CUBIKEY;
+  const openclawUrl = env.OPENCLAW_BASE_URL || 'http://localhost:18789';
+  
+  if (openclawKey && openclawKey !== '' && !openclawKey.includes('placeholder')) {
+    log('✓ OpenClaw API Key - SET', 'green');
+    log(`  Base URL: ${openclawUrl}`, 'cyan');
+    
+    // Validate URL format
+    if (!openclawUrl.startsWith('http://') && !openclawUrl.startsWith('https://')) {
+      log('  ⚠ Warning: OPENCLAW_BASE_URL should start with http:// or https://', 'yellow');
+    }
+    
+    log('', 'reset');
+    log('  ⚠ OpenClaw is EXPERIMENTAL', 'yellow');
+    log('  • Requires Clawdbot running at the configured URL', 'yellow');
+    log('  • Not recommended for production deployments', 'yellow');
+    log('  • See docs/SPARK_AI_COMPARISON.md for details', 'yellow');
+  } else {
+    log('○ OpenClaw - NOT ENABLED (experimental feature)', 'yellow');
+    log('  To enable: Set OPENCLAW_API_KEY or OPENROUTER_KEY_CUBIKEY', 'cyan');
+    log('  See docs/SPARK_AI_COMPARISON.md for configuration guide', 'cyan');
+  }
+}
+
 function validateDeployment(env) {
   header('Deployment Configuration');
   
@@ -175,6 +203,7 @@ function main() {
   // Run validations
   const supabaseValid = validateSupabase(env);
   validateAIKeys(env);
+  validateExperimentalProviders(env);
   validateDeployment(env);
   
   // Summary

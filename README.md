@@ -232,6 +232,7 @@ Set environment variables in Vercel dashboard: Supabase credentials, OAuth clien
 - **[AUTH_TROUBLESHOOTING.md](./AUTH_TROUBLESHOOTING.md)** - Authentication troubleshooting
 - **[VALIDATION_REPORT.md](./VALIDATION_REPORT.md)** - Environment validation report
 - **[AUTH_FIX_SUMMARY.md](./AUTH_FIX_SUMMARY.md)** - Auth bug fix documentation
+- **[SELF_HEAL.md](./docs/SELF_HEAL.md)** - Self-heal job documentation
 
 ## 📧 Contact
 

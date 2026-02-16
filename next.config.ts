@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '2mb',
     },
   },
+  turbopack: {
+    // Specify the root directory to avoid multiple lockfiles warning
+    root: __dirname,
+  },
 };
 
 export default nextConfig;

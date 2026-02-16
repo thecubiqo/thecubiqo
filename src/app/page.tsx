@@ -5,10 +5,16 @@ import { FullscreenApp } from '@/components/FullscreenApp'
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  // Check feature flag
-  const { enabled: showTopRightCTA } = await checkFeatureFlag({
-    flag_name: 'ui.topRightCTA.v1'
-  });
+  // Check feature flags
+  const [ctaFlag, particleFlag] = await Promise.all([
+    checkFeatureFlag({ flag_name: 'ui.topRightCTA.v1' }),
+    checkFeatureFlag({ flag_name: 'ui.landing.particles.v1' })
+  ]);
 
-  return <FullscreenApp showTopRightCTA={showTopRightCTA} />
+  return (
+    <FullscreenApp
+      showTopRightCTA={ctaFlag.enabled}
+      showParticleLanding={particleFlag.enabled}
+    />
+  )
 }

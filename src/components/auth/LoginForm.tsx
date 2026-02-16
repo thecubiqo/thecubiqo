@@ -2,23 +2,74 @@
 
 /**
  * Magic Link Login Form - Premium Style
- * Fixed: Added proper data-testid, improved error handling
+ * Fixed: Added proper data-testid, improved error handling, rate limiting
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { BiometricLogin } from '@/components/auth/BiometricLogin'
+
+const RATE_LIMIT_WINDOW = 60000 // 60 seconds
+const MAX_ATTEMPTS = 3
+const SUPABASE_RATE_LIMIT_COOLDOWN = 120 // 2 minutes in seconds
+const SUCCESS_MESSAGE_DURATION_MS = 10000 // 10 seconds
 
 export function LoginForm() {
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
+  const [attemptCount, setAttemptCount] = useState(0)
 
   const { signInWithEmail } = useAuth()
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (cooldownSeconds > 0) {
+      const timer = setInterval(() => {
+        setCooldownSeconds(prev => {
+          const newValue = prev - 1
+          if (newValue <= 0) {
+            setAttemptCount(0)
+            return 0
+          }
+          return newValue
+        })
+      }, 1000)
+
+      return () => clearInterval(timer)
+    }
+  }, [cooldownSeconds])
+
+  // Cleanup success message timeout on unmount
+  useEffect(() => {
+    let successTimeout: NodeJS.Timeout | null = null
+
+    if (message?.type === 'success') {
+      successTimeout = setTimeout(() => {
+        setMessage(null)
+      }, SUCCESS_MESSAGE_DURATION_MS)
+    }
+
+    return () => {
+      if (successTimeout) {
+        clearTimeout(successTimeout)
+      }
+    }
+  }, [message])
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     e.stopPropagation()
+
+    // Check rate limit
+    if (attemptCount >= MAX_ATTEMPTS) {
+      setMessage({
+        type: 'error',
+        text: `Too many attempts. Please wait ${cooldownSeconds}s before trying again.`,
+      })
+      return
+    }
 
     if (!email || isLoading) return
 
@@ -29,21 +80,46 @@ export function LoginForm() {
       console.log('[LoginForm] Attempting sign in for:', email)
       await signInWithEmail(email)
       console.log('[LoginForm] Magic link sent successfully')
+
+      // Success - increment attempt counter and set cooldown
+      const newAttemptCount = attemptCount + 1
+      setAttemptCount(newAttemptCount)
+
       setMessage({
         type: 'success',
         text: 'Check your email for the magic link!',
       })
       setEmail('')
+
+      // Start cooldown timer if this was the last allowed attempt
+      if (newAttemptCount >= MAX_ATTEMPTS) {
+        setCooldownSeconds(RATE_LIMIT_WINDOW / 1000)
+      }
     } catch (error) {
       console.error('[LoginForm] Sign in error:', error)
-      setMessage({
-        type: 'error',
-        text: error instanceof Error ? error.message : 'Failed to send magic link',
-      })
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send magic link'
+
+      // Check if it's a rate limit error from Supabase
+      if (errorMessage.toLowerCase().includes('rate limit') || errorMessage.toLowerCase().includes('too many')) {
+        setMessage({
+          type: 'error',
+          text: 'Too many sign-in attempts. Please wait a few minutes before trying again.',
+        })
+        // Set a longer cooldown for Supabase rate limits
+        setCooldownSeconds(SUPABASE_RATE_LIMIT_COOLDOWN)
+        setAttemptCount(MAX_ATTEMPTS)
+      } else {
+        setMessage({
+          type: 'error',
+          text: errorMessage,
+        })
+      }
     } finally {
       setIsLoading(false)
     }
-  }, [email, isLoading, signInWithEmail])
+  }, [email, isLoading, signInWithEmail, attemptCount, cooldownSeconds])
+
+  const isRateLimited = attemptCount >= MAX_ATTEMPTS || cooldownSeconds > 0
 
   return (
     <div className="w-full" data-testid="login-form-container">
@@ -54,7 +130,7 @@ export function LoginForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Email address"
           required
-          disabled={isLoading}
+          disabled={isLoading || isRateLimited}
           autoComplete="email"
           autoFocus
           data-testid="login-email-input"
@@ -63,16 +139,16 @@ export function LoginForm() {
 
         <button
           type="submit"
-          disabled={isLoading || !email}
+          disabled={isLoading || !email || isRateLimited}
           data-testid="login-submit-button"
           className="w-full py-3.5 rounded-[12px] bg-white text-gray-900 text-[15px] font-medium transition-opacity hover:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? 'Sending...' : 'Continue'}
+          {isLoading ? 'Sending...' : cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : 'Continue'}
         </button>
       </form>
 
       <p className="text-center text-[12px] text-white/35 mt-4">
-        We'll email you a secure sign-in link.
+        We&apos;ll email you a secure sign-in link.
       </p>
 
       <div className="mt-6 border-t border-white/10 pt-6">
@@ -121,6 +197,25 @@ export function LoginForm() {
               </div>
             </div>
           )}
+
+          {message.type === 'success' && cooldownSeconds > 0 && (
+            <p className="text-xs mt-2 text-green-300/80">
+              You can request another link in {cooldownSeconds} seconds.
+            </p>
+          )}
+          {message.type === 'error' && message.text.toLowerCase().includes('rate limit') && (
+            <p className="text-xs mt-2 text-red-300/80">
+              This is a security measure to prevent abuse. Please wait before trying again.
+            </p>
+          )}
+        </div>
+      )}
+
+      {attemptCount > 0 && attemptCount < MAX_ATTEMPTS && !message && (
+        <div className="mt-4 p-3 rounded-[12px] text-[13px] bg-yellow-500/10 text-yellow-400">
+          <p className="text-xs">
+            Attempts used: {attemptCount}/{MAX_ATTEMPTS}
+          </p>
         </div>
       )}
     </div>

@@ -6,13 +6,15 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { CubeScene, EnergyCubeScene } from './cube'
 import { LoginForm, AuthNudgeModal } from './auth'
+import { AuthButton } from './AuthButton.client'
 import { BYOSettings } from './byo'
 import { KeywordPanel } from './KeywordPanel'
 import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
 import { GettingStartedPanel } from './GettingStartedPanel'
-import { LandingPage } from './landing/LandingPage'
+import { LandingCubeRouter } from './LandingCubeRouter'
 import { PoweredByLogosCompact } from './PoweredByLogos'
 import { JourneyMemoryPrompt } from './journey'
 import { AdminControls } from './admin'
@@ -33,9 +35,13 @@ type AppState = 'idle' | 'listening' | 'thinking' | 'speaking'
 
 interface FullscreenAppProps {
   showTopRightCTA?: boolean
+  showParticleLanding?: boolean
 }
 
-export function FullscreenApp({ showTopRightCTA = false }: FullscreenAppProps) {
+export function FullscreenApp({
+  showTopRightCTA = false,
+  showParticleLanding = false
+}: FullscreenAppProps) {
   const { session, isGuest, isLoading: sessionLoading } = useSession()
   const { user, isAuthenticated, signOut } = useAuth()
   const { unreadCount } = useDirectMessages()
@@ -97,8 +103,20 @@ export function FullscreenApp({ showTopRightCTA = false }: FullscreenAppProps) {
     localStorage.setItem('cubiqo_cube_size', size.toString())
   }
 
-  // Check if we should show landing cube (once per day or after 4+ hours)
+  // Check if we should show landing cube (respecting feature flag and local storage)
+  const searchParams = useSearchParams()
+  const forceLanding = searchParams.get('landing') === 'true'
+
   useEffect(() => {
+    // If explicitly forced via URL, show it
+    if (forceLanding) {
+      setShowLandingCube(true)
+      return
+    }
+
+    // If feature flag is disabled (and not forced), don't show
+    if (!showParticleLanding) return;
+
     const LANDING_STORAGE_KEY = 'cubiqo_last_landing'
     const HOURS_THRESHOLD = 4
 
@@ -116,7 +134,7 @@ export function FullscreenApp({ showTopRightCTA = false }: FullscreenAppProps) {
         localStorage.setItem(LANDING_STORAGE_KEY, now.toString())
       }
     }
-  }, [])
+  }, [showParticleLanding, forceLanding])
 
   const handleLandingComplete = useCallback(() => {
     setShowLandingCube(false)
@@ -415,29 +433,10 @@ export function FullscreenApp({ showTopRightCTA = false }: FullscreenAppProps) {
         </button>
 
         {/* Sign In with profile icon */}
-        {isAuthenticated ? (
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="flex items-center gap-2 text-[13px] text-white/40 hover:text-white/60 transition-colors"
-            data-testid="user-profile-button"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-            </svg>
-            <span className="truncate max-w-[100px]">{user?.email?.split('@')[0]}</span>
-          </button>
-        ) : (
-          <button
-            onClick={() => setShowAuthForm(true)}
-            className="flex items-center gap-2 text-[13px] text-white/40 hover:text-white/60 transition-colors"
-            data-testid="sign-in-button"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-            </svg>
-            <span className="font-medium">Sign In</span>
-          </button>
-        )}
+        <AuthButton
+          onSignInClick={() => setShowAuthForm(true)}
+          onUserClick={() => setMenuOpen(true)}
+        />
       </div>
 
       {/* Right side - CQ Connect + RGY Signal + Keywords underneath */}
@@ -843,12 +842,22 @@ export function FullscreenApp({ showTopRightCTA = false }: FullscreenAppProps) {
         isDark={isDark}
       />
 
-      {/* Landing Cube - Shown once per day or after 4+ hours */}
+      {/* Landing Cube - Shown once per day or after 4+ hours 
+          Two designs available:
+          1. LandingCube (current) - Plasma wave field
+          2. TechLandingCube - Wireframe energy cube
+          See LANDING_UI_GUIDE.md for switching instructions
+      */}
+      {/* Landing Cube - Shown once per day or after 4+ hours 
+          Two designs available:
+          1. LandingCube (current) - Plasma wave field
+          2. TechLandingCube - Wireframe energy cube
+          See LANDING_UI_GUIDE.md for switching instructions
+      */}
       {showLandingCube && (
         <div className="fixed inset-0 z-[100]">
-          <LandingPage
+          <LandingCubeRouter
             onComplete={handleLandingComplete}
-            showTopRightCTA={showTopRightCTA}
           />
         </div>
       )}

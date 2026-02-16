@@ -35,7 +35,6 @@ import {
 const minimaxRateLimitMap = new Map<string, { count: number; resetTime: number }>()
 const MINIMAX_RATE_LIMIT = 100 // requests per hour
 const MINIMAX_RATE_WINDOW = 60 * 60 * 1000 // 1 hour in ms
-const MAX_RATE_LIMIT_ENTRIES = 10000 // Prevent memory leaks
 
 // Sensitive content patterns for classification layer
 // These patterns route messages directly to Claude Haiku for better handling
@@ -47,16 +46,6 @@ const SENSITIVE_CONTENT_PATTERNS = [
 
 function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining: number } {
   const now = Date.now()
-  
-  // Cleanup expired entries to prevent memory leak
-  if (minimaxRateLimitMap.size > MAX_RATE_LIMIT_ENTRIES) {
-    for (const [key, value] of minimaxRateLimitMap.entries()) {
-      if (now > value.resetTime) {
-        minimaxRateLimitMap.delete(key)
-      }
-    }
-  }
-  
   const record = minimaxRateLimitMap.get(sessionId)
   
   if (!record || now > record.resetTime) {
@@ -73,27 +62,18 @@ function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining
 }
 
 // Server-side Supabase client for loading memories
-// Support both old and new env var names (fallback pattern)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
-
-// Check which API keys are configured
-function getConfiguredProviders(): { minimax: boolean; mixtral: boolean; llama: boolean; claude: boolean } {
-  return {
-    minimax: !!process.env.MINIMAX_API_KEY,
-    mixtral: !!process.env.MISTRAL_API_KEY,
-    llama: !!process.env.TOGETHER_API_KEY,
-    claude: !!process.env.ANTHROPIC_API_KEY
-  }
-}
+// Support both old and new env var names with fallback
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+)
 
 // MiniMax API call (primary)
 async function callMiniMax(
   systemPrompt: string,
   messages: { role: string; content: string }[]
 ): Promise<string> {
-  // Support both old and new env var names (fallback pattern)
+  // Support both old and new env var names with fallback
   const apiKey = process.env.MINIMAX_KEY || process.env.MINIMAX_API_KEY
 
   if (!apiKey) {
@@ -416,27 +396,11 @@ export async function POST(request: NextRequest) {
     const authNudge = buildAuthNudgePrompt(isGuest, messageCount)
     const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + regionalContext + authNudge
 
-    // Check which providers are available
-    const configured = getConfiguredProviders()
-    const hasAnyProvider = configured.minimax || configured.mixtral || configured.llama || configured.claude || !!byoClaudeKey
-
-    if (!hasAnyProvider) {
-      console.error('[AI Router] No AI provider API keys configured')
-      return NextResponse.json(
-        {
-          error: 'No AI providers are configured. Please set up at least one API key (MINIMAX_API_KEY, MISTRAL_API_KEY, TOGETHER_API_KEY, or ANTHROPIC_API_KEY) or enable BYO mode with your own API key.',
-          code: 'NO_PROVIDERS_CONFIGURED'
-        },
-        { status: 503 }
-      )
-    }
-
     // Classify message to determine if we should skip directly to Claude
     const isSensitiveContent = classifyMessage(message)
 
-    let content: string | undefined
+    let content: string
     let provider: 'minimax' | 'mixtral' | 'llama' | 'claude' = 'minimax'
-    const errors: string[] = []
     
     // If sensitive content detected, skip directly to Claude Haiku
     if (isSensitiveContent) {
@@ -445,81 +409,61 @@ export async function POST(request: NextRequest) {
         content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
         provider = 'claude'
       } catch (error) {
-        const msg = error instanceof Error ? error.message : 'Unknown error'
-        errors.push(`claude: ${msg}`)
-        throw new Error(`Claude failed for sensitive content: ${msg}`)
+        throw new Error('Claude failed for sensitive content')
       }
     } else {
       // Check MiniMax rate limit
       const { allowed: minimaxAllowed } = checkMiniMaxRateLimit(sessionId || 'anonymous')
 
-      // Try MiniMax first (primary) - only if configured
-      if (configured.minimax && minimaxAllowed) {
+      // Try MiniMax first (primary)
+      if (minimaxAllowed) {
         try {
           content = await callMiniMax(fullSystemPrompt, messages)
         } catch (minimaxError) {
-          const msg = minimaxError instanceof Error ? minimaxError.message : 'Unknown error'
-          errors.push(`minimax: ${msg}`)
-          console.warn('MiniMax failed, falling back:', msg)
+          console.warn('MiniMax failed, falling back to Mixtral:', minimaxError)
+          // Fallback to Mixtral
+          try {
+            content = await callMixtral(fullSystemPrompt, messages)
+            provider = 'mixtral'
+          } catch (mixtralError) {
+            console.warn('Mixtral failed, falling back to Llama:', mixtralError)
+            // Fallback to Llama
+            try {
+              content = await callLlama(fullSystemPrompt, messages)
+              provider = 'llama'
+            } catch (llamaError) {
+              console.warn('Llama failed, falling back to Claude:', llamaError)
+              // Final fallback to Claude Haiku
+              try {
+                content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
+                provider = 'claude'
+              } catch {
+                throw new Error('All AI providers failed')
+              }
+            }
+          }
         }
-      } else if (!configured.minimax) {
-        errors.push('minimax: not configured')
       } else {
-        errors.push('minimax: rate limited')
-      }
-
-      // Try Mixtral if MiniMax didn't succeed
-      if (!content && configured.mixtral) {
+        // MiniMax rate limited, skip to Mixtral
+        console.warn('MiniMax rate limited, using Mixtral')
         try {
           content = await callMixtral(fullSystemPrompt, messages)
           provider = 'mixtral'
         } catch (mixtralError) {
-          const msg = mixtralError instanceof Error ? mixtralError.message : 'Unknown error'
-          errors.push(`mixtral: ${msg}`)
-          console.warn('Mixtral failed, falling back:', msg)
+          console.warn('Mixtral failed, falling back to Llama:', mixtralError)
+          try {
+            content = await callLlama(fullSystemPrompt, messages)
+            provider = 'llama'
+          } catch (llamaError) {
+            console.warn('Llama failed, falling back to Claude:', llamaError)
+            try {
+              content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
+              provider = 'claude'
+            } catch {
+              throw new Error('All AI providers failed')
+            }
+          }
         }
-      } else if (!content && !configured.mixtral) {
-        errors.push('mixtral: not configured')
-      }
-
-      // Try Llama if previous providers didn't succeed
-      if (!content && configured.llama) {
-        try {
-          content = await callLlama(fullSystemPrompt, messages)
-          provider = 'llama'
-        } catch (llamaError) {
-          const msg = llamaError instanceof Error ? llamaError.message : 'Unknown error'
-          errors.push(`llama: ${msg}`)
-          console.warn('Llama failed, falling back:', msg)
-        }
-      } else if (!content && !configured.llama) {
-        errors.push('llama: not configured')
-      }
-
-      // Try Claude as final fallback
-      if (!content && (configured.claude || byoClaudeKey)) {
-        try {
-          content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
-          provider = 'claude'
-        } catch (claudeError) {
-          const msg = claudeError instanceof Error ? claudeError.message : 'Unknown error'
-          errors.push(`claude: ${msg}`)
-          console.warn('Claude failed:', msg)
-        }
-      } else if (!content && !configured.claude && !byoClaudeKey) {
-        errors.push('claude: not configured')
-      }
-
-      // If no provider succeeded
-      if (!content) {
-        console.error('[AI Router] All providers failed:', errors.join('; '))
-        return NextResponse.json(
-          {
-            error: 'All AI providers are temporarily unavailable. Please try again in a moment.',
-            code: 'ALL_PROVIDERS_FAILED'
-          },
-          { status: 503 }
-        )
       }
     }
 

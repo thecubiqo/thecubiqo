@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { ClientProviders } from "@/components/ClientProviders";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
@@ -186,7 +187,9 @@ export default function RootLayout({
       <body
         className="antialiased"
       >
-        {children}
+        <ClientProviders>
+          {children}
+        </ClientProviders>
         <ServiceWorkerRegistration />
         <Analytics />
         <SpeedInsights />

@@ -97,18 +97,18 @@ export function EnergyCubeWireframe({ onComplete, isVoiceActive = false }: Energ
       </Canvas>
       
       {/* Labels for cube faces */}
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center" aria-label="Energy cube settings visualization">
         <div className="text-white/60 text-sm font-mono">
-          <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+          <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-premium">
             Mode
           </div>
-          <div className="absolute top-1/2 right-1/4 transform translate-x-1/2 -translate-y-1/2">
+          <div className="absolute top-1/2 right-1/4 transform translate-x-1/2 -translate-y-1/2 transition-premium">
             Experience
           </div>
-          <div className="absolute top-1/2 left-1/4 transform -translate-x-1/2 -translate-y-1/2">
+          <div className="absolute top-1/2 left-1/4 transform -translate-x-1/2 -translate-y-1/2 transition-premium">
             Privacy
           </div>
-          <div className="absolute bottom-1/4 left-1/2 transform -translate-x-1/2 translate-y-1/2">
+          <div className="absolute bottom-1/4 left-1/2 transform -translate-x-1/2 translate-y-1/2 transition-premium">
             Integrations
           </div>
         </div>

@@ -10,6 +10,9 @@ export interface Agent {
   currentTasks: Task[];
   createdAt: Date;
   updatedAt: Date;
+  skillTags?: string[];
+  contactEmail?: string;
+  contactPhone?: string;
 }
 
 export interface ModelConfig {
@@ -43,4 +46,17 @@ export interface AgentConfig {
   soulPath?: string;
   tools?: string[];
   maxConcurrent?: number;
+  skillTags?: string[];
+  contactEmail?: string;
+  contactPhone?: string;
+}
+
+export interface AgentReport {
+  id: string;
+  agentId: string;
+  agentName: string;
+  timestamp: Date;
+  reportType: 'activity' | 'task_completion' | 'error' | 'status';
+  data: Record<string, any>;
+  message?: string;
 }
