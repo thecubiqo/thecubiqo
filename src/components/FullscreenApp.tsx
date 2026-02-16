@@ -6,6 +6,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { CubeScene, EnergyCubeScene } from './cube'
 import { LoginForm, AuthNudgeModal } from './auth'
 import { AuthButton } from './AuthButton.client'
@@ -14,7 +15,6 @@ import { KeywordPanel } from './KeywordPanel'
 import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
 import { GettingStartedPanel } from './GettingStartedPanel'
 import { LandingCubeRouter } from './LandingCubeRouter'
-import { landingConfig } from '@/config/landing'
 import { PoweredByLogosCompact } from './PoweredByLogos'
 import { JourneyMemoryPrompt } from './journey'
 import { AdminControls } from './admin'
@@ -103,14 +103,19 @@ export function FullscreenApp({
     localStorage.setItem('cubiqo_cube_size', size.toString())
   }
 
-  // Check if we should show landing cube (respecting feature flag, config, and local storage)
+  // Check if we should show landing cube (respecting feature flag and local storage)
+  const searchParams = useSearchParams()
+  const forceLanding = searchParams.get('landing') === 'true'
+
   useEffect(() => {
-    // Landing can be enabled by either:
-    // 1. Feature flag (ui.landing.particles.v1) for backward compatibility
-    // 2. Landing config (landingConfig.enableLanding) for env-based control
-    const shouldEnableLanding = showParticleLanding || landingConfig.enableLanding
-    
-    if (!shouldEnableLanding) return;
+    // If explicitly forced via URL, show it
+    if (forceLanding) {
+      setShowLandingCube(true)
+      return
+    }
+
+    // If feature flag is disabled (and not forced), don't show
+    if (!showParticleLanding) return;
 
     const LANDING_STORAGE_KEY = 'cubiqo_last_landing'
     const HOURS_THRESHOLD = 4
@@ -129,7 +134,7 @@ export function FullscreenApp({
         localStorage.setItem(LANDING_STORAGE_KEY, now.toString())
       }
     }
-  }, [showParticleLanding])
+  }, [showParticleLanding, forceLanding])
 
   const handleLandingComplete = useCallback(() => {
     setShowLandingCube(false)
@@ -837,12 +842,17 @@ export function FullscreenApp({
         isDark={isDark}
       />
 
-      {/* Landing Cube Router - Shown on first visit and after 4+ hours 
-          Routes to the appropriate landing cube design based on configuration:
-          - plasma-wave (default): 120K particle Plasma Wave Field
-          - tech-wireframe: Wireframe energy cube
-          Configure via NEXT_PUBLIC_LANDING_DEFAULT env var or URL param (?landing=plasma-wave)
-          See LANDING_UI_GUIDE.md and docs/LANDING_UI_DEPLOYMENT.md
+      {/* Landing Cube - Shown once per day or after 4+ hours 
+          Two designs available:
+          1. LandingCube (current) - Plasma wave field
+          2. TechLandingCube - Wireframe energy cube
+          See LANDING_UI_GUIDE.md for switching instructions
+      */}
+      {/* Landing Cube - Shown once per day or after 4+ hours 
+          Two designs available:
+          1. LandingCube (current) - Plasma wave field
+          2. TechLandingCube - Wireframe energy cube
+          See LANDING_UI_GUIDE.md for switching instructions
       */}
       {showLandingCube && (
         <div className="fixed inset-0 z-[100]">

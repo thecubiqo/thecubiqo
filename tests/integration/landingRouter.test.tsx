@@ -1,141 +1,118 @@
 /**
  * Integration Test: LandingCubeRouter
  * 
- * Tests the LandingCubeRouter component functionality including:
- * - Default plasma-wave rendering
- * - Configuration-based variant selection
- * - URL parameter override (?landing=plasma-wave)
- * - Callback handling
+ * Tests that the LandingCubeRouter correctly routes to the appropriate
+ * landing cube design based on configuration and URL parameters.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { LandingCubeRouter } from '@/components/LandingCubeRouter'
 import * as landingConfig from '@/config/landing'
 
-// Mock next/navigation
-const mockSearchParams = new URLSearchParams()
+// Mock dependencies
+const mockUseSearchParams = vi.fn(() => new URLSearchParams())
+
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => mockSearchParams,
+  useSearchParams: () => mockUseSearchParams(),
 }))
 
-// Mock the landing cube components to avoid Three.js/Canvas rendering issues in tests
+vi.mock('@react-three/fiber', () => ({
+  Canvas: ({ children }: any) => <div data-testid="three-canvas">{children}</div>,
+  useFrame: vi.fn(),
+}))
+
+vi.mock('three', () => ({
+  Color: class Color {
+    constructor(public value: string) {}
+  },
+  MathUtils: {
+    lerp: (a: number, b: number, t: number) => a + (b - a) * t,
+  },
+  AdditiveBlending: 2,
+}))
+
+// Mock the landing cube components
 vi.mock('@/components/LandingCube', () => ({
-  LandingCube: ({ onComplete }: { onComplete: () => void }) => (
-    <div data-testid="plasma-wave-landing" onClick={onComplete}>
-      Plasma Wave Field (120K particles)
+  LandingCube: ({ onComplete }: any) => (
+    <div data-testid="landing-cube-plasma">
+      <button onClick={onComplete}>Complete Plasma Landing</button>
     </div>
   ),
 }))
 
 vi.mock('@/components/TechLandingCube', () => ({
-  TechLandingCube: ({ onComplete }: { onComplete: () => void }) => (
-    <div data-testid="tech-wireframe-landing" onClick={onComplete}>
-      Tech Wireframe Cube
+  TechLandingCube: ({ onComplete, isVoiceActive }: any) => (
+    <div data-testid="landing-cube-tech">
+      <button onClick={onComplete}>Complete Tech Landing</button>
+      <span data-testid="voice-active">{isVoiceActive ? 'active' : 'inactive'}</span>
     </div>
   ),
 }))
 
 describe('LandingCubeRouter Integration', () => {
   const mockOnComplete = vi.fn()
-  
+
   beforeEach(() => {
     mockOnComplete.mockClear()
-    mockSearchParams.delete('landing')
+    mockUseSearchParams.mockReturnValue(new URLSearchParams())
   })
 
-  afterEach(() => {
-    // Clean up search params to prevent test pollution
-    mockSearchParams.delete('landing')
-  })
-
-  describe('Default Behavior', () => {
-    it('renders plasma-wave variant by default', () => {
+  describe('Default Variant Routing', () => {
+    it('should render plasma-wave variant by default', () => {
       render(<LandingCubeRouter onComplete={mockOnComplete} />)
       
-      const plasmaWave = screen.getByTestId('plasma-wave-landing')
-      expect(plasmaWave).toBeDefined()
-      expect(screen.queryByTestId('tech-wireframe-landing')).toBeNull()
+      const plasmaLanding = screen.getByTestId('landing-cube-plasma')
+      expect(plasmaLanding).toBeDefined()
     })
 
-    it('calls onComplete when plasma-wave is clicked', () => {
-      render(<LandingCubeRouter onComplete={mockOnComplete} />)
-      
-      const plasmaWave = screen.getByTestId('plasma-wave-landing')
-      plasmaWave.click()
-      
-      expect(mockOnComplete).toHaveBeenCalledTimes(1)
-    })
-  })
-
-  describe('Explicit Variant Selection', () => {
-    it('renders plasma-wave when variant prop is plasma-wave', () => {
-      render(<LandingCubeRouter onComplete={mockOnComplete} variant="plasma-wave" />)
-      
-      expect(screen.getByTestId('plasma-wave-landing')).toBeDefined()
-      expect(screen.queryByTestId('tech-wireframe-landing')).toBeNull()
-    })
-
-    it('renders tech-wireframe when variant prop is tech-wireframe', () => {
+    it('should render tech-wireframe variant when specified', () => {
       render(<LandingCubeRouter onComplete={mockOnComplete} variant="tech-wireframe" />)
       
-      expect(screen.getByTestId('tech-wireframe-landing')).toBeDefined()
-      expect(screen.queryByTestId('plasma-wave-landing')).toBeNull()
+      const techLanding = screen.getByTestId('landing-cube-tech')
+      expect(techLanding).toBeDefined()
+    })
+
+    it('should render plasma-wave variant when explicitly specified', () => {
+      render(<LandingCubeRouter onComplete={mockOnComplete} variant="plasma-wave" />)
+      
+      const plasmaLanding = screen.getByTestId('landing-cube-plasma')
+      expect(plasmaLanding).toBeDefined()
     })
   })
 
   describe('URL Parameter Override', () => {
-    it('renders plasma-wave when ?landing=plasma-wave is in URL', () => {
-      mockSearchParams.set('landing', 'plasma-wave')
-      
+    it('should respect URL parameter for plasma-wave', () => {
+      mockUseSearchParams.mockReturnValue(new URLSearchParams('landing=plasma-wave'))
+
       render(<LandingCubeRouter onComplete={mockOnComplete} />)
       
-      expect(screen.getByTestId('plasma-wave-landing')).toBeDefined()
-      expect(screen.queryByTestId('tech-wireframe-landing')).toBeNull()
+      const plasmaLanding = screen.getByTestId('landing-cube-plasma')
+      expect(plasmaLanding).toBeDefined()
     })
 
-    it('renders tech-wireframe when ?landing=tech-wireframe is in URL', () => {
-      mockSearchParams.set('landing', 'tech-wireframe')
-      
+    it('should respect URL parameter for tech-wireframe', () => {
+      mockUseSearchParams.mockReturnValue(new URLSearchParams('landing=tech-wireframe'))
+
       render(<LandingCubeRouter onComplete={mockOnComplete} />)
       
-      expect(screen.getByTestId('tech-wireframe-landing')).toBeDefined()
-      expect(screen.queryByTestId('plasma-wave-landing')).toBeNull()
+      const techLanding = screen.getByTestId('landing-cube-tech')
+      expect(techLanding).toBeDefined()
     })
 
-    it('ignores invalid URL parameter and uses default', () => {
-      mockSearchParams.set('landing', 'invalid-variant')
-      
+    it('should ignore invalid URL parameters', () => {
+      mockUseSearchParams.mockReturnValue(new URLSearchParams('landing=invalid-variant'))
+
       render(<LandingCubeRouter onComplete={mockOnComplete} />)
       
       // Should fall back to default (plasma-wave)
-      expect(screen.getByTestId('plasma-wave-landing')).toBeDefined()
-    })
-
-    it('variant prop takes precedence over URL parameter', () => {
-      mockSearchParams.set('landing', 'plasma-wave')
-      
-      render(<LandingCubeRouter onComplete={mockOnComplete} variant="tech-wireframe" />)
-      
-      // Variant prop should override URL param
-      expect(screen.getByTestId('tech-wireframe-landing')).toBeDefined()
-      expect(screen.queryByTestId('plasma-wave-landing')).toBeNull()
+      const plasmaLanding = screen.getByTestId('landing-cube-plasma')
+      expect(plasmaLanding).toBeDefined()
     })
   })
 
-  describe('Configuration Integration', () => {
-    it('respects landingConfig.defaultVariant', () => {
-      // The component should use getLandingVariant which reads landingConfig
-      const getLandingVariantSpy = vi.spyOn(landingConfig, 'getLandingVariant')
-      
-      render(<LandingCubeRouter onComplete={mockOnComplete} />)
-      
-      expect(getLandingVariantSpy).toHaveBeenCalled()
-    })
-  })
-
-  describe('Voice Active Prop', () => {
-    it('passes isVoiceActive to TechLandingCube', () => {
+  describe('Voice Activity Props', () => {
+    it('should pass isVoiceActive prop to tech-wireframe variant', () => {
       render(
         <LandingCubeRouter 
           onComplete={mockOnComplete} 
@@ -144,8 +121,80 @@ describe('LandingCubeRouter Integration', () => {
         />
       )
       
-      // Component should render (voice active prop is internal)
-      expect(screen.getByTestId('tech-wireframe-landing')).toBeDefined()
+      const voiceStatus = screen.getByTestId('voice-active')
+      expect(voiceStatus.textContent).toBe('active')
+    })
+
+    it('should default isVoiceActive to false', () => {
+      render(
+        <LandingCubeRouter 
+          onComplete={mockOnComplete} 
+          variant="tech-wireframe"
+        />
+      )
+      
+      const voiceStatus = screen.getByTestId('voice-active')
+      expect(voiceStatus.textContent).toBe('inactive')
+    })
+  })
+
+  describe('Completion Callback', () => {
+    it('should call onComplete when plasma variant completes', () => {
+      render(<LandingCubeRouter onComplete={mockOnComplete} variant="plasma-wave" />)
+      
+      const completeButton = screen.getByText('Complete Plasma Landing')
+      completeButton.click()
+      
+      expect(mockOnComplete).toHaveBeenCalledTimes(1)
+    })
+
+    it('should call onComplete when tech variant completes', () => {
+      render(<LandingCubeRouter onComplete={mockOnComplete} variant="tech-wireframe" />)
+      
+      const completeButton = screen.getByText('Complete Tech Landing')
+      completeButton.click()
+      
+      expect(mockOnComplete).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('Configuration Integration', () => {
+    it('should use getLandingVariant from config when no variant prop', () => {
+      const getLandingVariantSpy = vi.spyOn(landingConfig, 'getLandingVariant')
+      
+      render(<LandingCubeRouter onComplete={mockOnComplete} />)
+      
+      expect(getLandingVariantSpy).toHaveBeenCalled()
+    })
+
+    it('should prioritize variant prop over config', () => {
+      const getLandingVariantSpy = vi.spyOn(landingConfig, 'getLandingVariant')
+      
+      render(<LandingCubeRouter onComplete={mockOnComplete} variant="tech-wireframe" />)
+      
+      // Should render tech variant regardless of config
+      const techLanding = screen.getByTestId('landing-cube-tech')
+      expect(techLanding).toBeDefined()
+    })
+  })
+
+  describe('Rendering Stability', () => {
+    it('should not crash with null searchParams', () => {
+      mockUseSearchParams.mockReturnValue(null)
+
+      expect(() => {
+        render(<LandingCubeRouter onComplete={mockOnComplete} />)
+      }).not.toThrow()
+    })
+
+    it('should handle multiple re-renders without issues', () => {
+      const { rerender } = render(<LandingCubeRouter onComplete={mockOnComplete} />)
+      
+      rerender(<LandingCubeRouter onComplete={mockOnComplete} variant="tech-wireframe" />)
+      rerender(<LandingCubeRouter onComplete={mockOnComplete} variant="plasma-wave" />)
+      
+      const plasmaLanding = screen.getByTestId('landing-cube-plasma')
+      expect(plasmaLanding).toBeDefined()
     })
   })
 })

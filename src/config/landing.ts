@@ -31,40 +31,29 @@ export interface LandingConfig {
 }
 
 /**
- * Get landing configuration from environment variables with safe fallbacks
- */
-function getLandingConfigFromEnv(): LandingConfig {
-  // Read environment variables
-  const envDefault = process.env.NEXT_PUBLIC_LANDING_DEFAULT as LandingCubeVariant | undefined
-  const envEnable = process.env.NEXT_PUBLIC_LANDING_ENABLE
-  
-  // Validate and apply defaults
-  const defaultVariant: LandingCubeVariant = 
-    (envDefault === 'plasma-wave' || envDefault === 'tech-wireframe') 
-      ? envDefault 
-      : 'plasma-wave' // Default to plasma-wave for production
-  
-  const enableLanding = envEnable !== 'false' // Enabled by default unless explicitly 'false'
-  
-  return {
-    defaultVariant,
-    allowUrlOverride: true, // Always allow URL override for testing
-    enableLanding,
-  }
-}
-
-/**
  * Current landing configuration
  * 
- * Configuration priority:
- * 1. Environment variables (NEXT_PUBLIC_LANDING_DEFAULT, NEXT_PUBLIC_LANDING_ENABLE)
- * 2. Default fallbacks (plasma-wave, enabled)
+ * To switch designs, simply change defaultVariant:
+ * - 'plasma-wave' (current) - Flowing plasma waves
+ * - 'tech-wireframe' - Wireframe energy cube
  * 
- * Environment variables:
- * - NEXT_PUBLIC_LANDING_DEFAULT: 'plasma-wave' | 'tech-wireframe' (default: 'plasma-wave')
- * - NEXT_PUBLIC_LANDING_ENABLE: 'true' | 'false' (default: 'true')
+ * Environment Variables:
+ * - NEXT_PUBLIC_LANDING_DEFAULT: Set default variant ('plasma-wave' | 'tech-wireframe')
+ * - NEXT_PUBLIC_LANDING_ENABLE: Enable/disable landing animation ('true' | 'false')
  */
-export const landingConfig: LandingConfig = getLandingConfigFromEnv()
+export const landingConfig: LandingConfig = {
+  defaultVariant: (() => {
+    const envVariant = process.env.NEXT_PUBLIC_LANDING_DEFAULT
+    // Validate environment variable value
+    if (envVariant === 'plasma-wave' || envVariant === 'tech-wireframe') {
+      return envVariant
+    }
+    // Default to plasma-wave if not set or invalid
+    return 'plasma-wave'
+  })(),
+  allowUrlOverride: true,
+  enableLanding: process.env.NEXT_PUBLIC_LANDING_ENABLE === 'false' ? false : true,
+}
 
 /**
  * Get the landing variant to use based on config and URL params
