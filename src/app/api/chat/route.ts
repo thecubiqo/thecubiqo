@@ -47,7 +47,7 @@ const SENSITIVE_CONTENT_PATTERNS = [
 
 function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining: number } {
   const now = Date.now()
-  
+
   // Cleanup expired entries to prevent memory leak
   if (minimaxRateLimitMap.size > MAX_RATE_LIMIT_ENTRIES) {
     for (const [key, value] of minimaxRateLimitMap.entries()) {
@@ -56,18 +56,18 @@ function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining
       }
     }
   }
-  
+
   const record = minimaxRateLimitMap.get(sessionId)
-  
+
   if (!record || now > record.resetTime) {
     minimaxRateLimitMap.set(sessionId, { count: 1, resetTime: now + MINIMAX_RATE_WINDOW })
     return { allowed: true, remaining: MINIMAX_RATE_LIMIT - 1 }
   }
-  
+
   if (record.count >= MINIMAX_RATE_LIMIT) {
     return { allowed: false, remaining: 0 }
   }
-  
+
   record.count++
   return { allowed: true, remaining: MINIMAX_RATE_LIMIT - record.count }
 }
@@ -130,12 +130,12 @@ async function callMiniMax(
   }
 
   const data = await response.json()
-  
+
   // MiniMax returns choices similar to OpenAI
   if (data.choices && data.choices[0]?.message?.content) {
     return data.choices[0].message.content
   }
-  
+
   throw new Error('Invalid MiniMax response format')
 }
 
@@ -180,11 +180,11 @@ async function callMixtral(
   }
 
   const data = await response.json()
-  
+
   if (data.choices && data.choices[0]?.message?.content) {
     return data.choices[0].message.content
   }
-  
+
   throw new Error('Invalid Mixtral response format')
 }
 
@@ -223,11 +223,11 @@ async function callLlama(
   }
 
   const data = await response.json()
-  
+
   if (data.choices && data.choices[0]?.message?.content) {
     return data.choices[0].message.content
   }
-  
+
   throw new Error('Invalid Llama response format')
 }
 
@@ -309,7 +309,7 @@ async function callClaude(
 
   const data = await response.json()
   const outputText = data.content[0].text
-  
+
   // Record spending (skip if using BYO key)
   if (!byoApiKey) {
     const estimatedOutputTokens = estimateTokens(outputText)
@@ -334,8 +334,8 @@ function buildAuthNudgePrompt(isGuest: boolean, messageCount: number): string {
 SPECIAL CONTEXT (use wisely):
 The person you're talking to is a guest - they haven't signed in yet. You've had ${messageCount} exchanges with them.
 ${isMandatory
-    ? 'This is your LAST chance to suggest signing in. You MUST include the sign-in suggestion in this response - find a natural way to weave it in.'
-    : 'When you feel the moment is RIGHT - perhaps when they share something personal, meaningful, or show real interest - you MAY naturally and warmly suggest they sign in so you can remember them forever.'}
+      ? 'This is your LAST chance to suggest signing in. You MUST include the sign-in suggestion in this response - find a natural way to weave it in.'
+      : 'When you feel the moment is RIGHT - perhaps when they share something personal, meaningful, or show real interest - you MAY naturally and warmly suggest they sign in so you can remember them forever.'}
 
 Rules for this suggestion:
 - ${isMandatory ? 'You MUST suggest signing in this time' : 'Do it ONLY ONCE, and only when it feels genuinely caring, not pushy'}
@@ -437,7 +437,7 @@ export async function POST(request: NextRequest) {
     let content: string | undefined
     let provider: 'minimax' | 'mixtral' | 'llama' | 'claude' = 'minimax'
     const errors: string[] = []
-    
+
     // If sensitive content detected, skip directly to Claude Haiku
     if (isSensitiveContent) {
       console.log('[AI Router] Sensitive content detected, routing to Claude Haiku')
@@ -450,39 +450,22 @@ export async function POST(request: NextRequest) {
         throw new Error(`Claude failed for sensitive content: ${msg}`)
       }
     } else {
-      // Check MiniMax rate limit
-      const { allowed: minimaxAllowed } = checkMiniMaxRateLimit(sessionId || 'anonymous')
-
-      // Try MiniMax first (primary) - only if configured
-      if (configured.minimax && minimaxAllowed) {
+      // 1. Try Claude (Anthropic) - PRIMARY
+      // Most reliable quality and likely to have a valid key
+      if (configured.claude && (!content || provider === 'minimax')) {
         try {
-          content = await callMiniMax(fullSystemPrompt, messages)
-        } catch (minimaxError) {
-          const msg = minimaxError instanceof Error ? minimaxError.message : 'Unknown error'
-          errors.push(`minimax: ${msg}`)
-          console.warn('MiniMax failed, falling back:', msg)
+          content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
+          provider = 'claude'
+        } catch (claudeError) {
+          const msg = claudeError instanceof Error ? claudeError.message : 'Unknown error'
+          errors.push(`claude: ${msg}`)
+          console.warn('Claude failed, falling back:', msg)
         }
-      } else if (!configured.minimax) {
-        errors.push('minimax: not configured')
-      } else {
-        errors.push('minimax: rate limited')
+      } else if (!configured.claude) {
+        errors.push('claude: not configured')
       }
 
-      // Try Mixtral if MiniMax didn't succeed
-      if (!content && configured.mixtral) {
-        try {
-          content = await callMixtral(fullSystemPrompt, messages)
-          provider = 'mixtral'
-        } catch (mixtralError) {
-          const msg = mixtralError instanceof Error ? mixtralError.message : 'Unknown error'
-          errors.push(`mixtral: ${msg}`)
-          console.warn('Mixtral failed, falling back:', msg)
-        }
-      } else if (!content && !configured.mixtral) {
-        errors.push('mixtral: not configured')
-      }
-
-      // Try Llama if previous providers didn't succeed
+      // 2. Try Llama (Together AI)
       if (!content && configured.llama) {
         try {
           content = await callLlama(fullSystemPrompt, messages)
@@ -496,18 +479,33 @@ export async function POST(request: NextRequest) {
         errors.push('llama: not configured')
       }
 
-      // Try Claude as final fallback
-      if (!content && (configured.claude || byoClaudeKey)) {
+      // 3. Try MiniMax (Previous Primary)
+      const { allowed: minimaxAllowed } = checkMiniMaxRateLimit(sessionId || 'anonymous')
+      if (!content && configured.minimax && minimaxAllowed) {
         try {
-          content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
-          provider = 'claude'
-        } catch (claudeError) {
-          const msg = claudeError instanceof Error ? claudeError.message : 'Unknown error'
-          errors.push(`claude: ${msg}`)
-          console.warn('Claude failed:', msg)
+          content = await callMiniMax(fullSystemPrompt, messages)
+          provider = 'minimax'
+        } catch (minimaxError) {
+          const msg = minimaxError instanceof Error ? minimaxError.message : 'Unknown error'
+          errors.push(`minimax: ${msg}`)
+          console.warn('MiniMax failed, falling back:', msg)
         }
-      } else if (!content && !configured.claude && !byoClaudeKey) {
-        errors.push('claude: not configured')
+      } else if (!content && !configured.minimax) {
+        errors.push('minimax: not configured')
+      }
+
+      // 4. Try Mixtral (Mistral AI)
+      if (!content && configured.mixtral) {
+        try {
+          content = await callMixtral(fullSystemPrompt, messages)
+          provider = 'mixtral'
+        } catch (mixtralError) {
+          const msg = mixtralError instanceof Error ? mixtralError.message : 'Unknown error'
+          errors.push(`mixtral: ${msg}`)
+          console.warn('Mixtral failed, falling back:', msg)
+        }
+      } else if (!content && !configured.mixtral) {
+        errors.push('mixtral: not configured')
       }
 
       // If no provider succeeded
@@ -515,7 +513,7 @@ export async function POST(request: NextRequest) {
         console.error('[AI Router] All providers failed:', errors.join('; '))
         return NextResponse.json(
           {
-            error: 'All AI providers are temporarily unavailable. Please try again in a moment.',
+            error: `All AI providers failed. Details: ${errors.join('; ')}`,
             code: 'ALL_PROVIDERS_FAILED'
           },
           { status: 503 }
