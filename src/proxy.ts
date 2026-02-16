@@ -56,8 +56,11 @@ export async function proxy(request: NextRequest) {
     await supabase.auth.getUser()
 
     // PROTECT FOUNDERS PASS & ADMIN ROUTES
-    // Matches /founders-pass (new admin), /api/founders-pass, and /founderspass/* (dashboard/experiments)
-    // Excludes /founderspass (exact match) to allow login
+    // Matches:
+    // - /founders-pass (new admin area)
+    // - /api/founders-pass (admin API routes)
+    // - /founderspass/* (dashboard/experiments with trailing slash)
+    // Allows: /founderspass (exact match for PIN entry page)
     if (
         (pathname.startsWith('/founders-pass') || pathname.startsWith('/api/founders-pass') || pathname.startsWith('/founderspass/'))
     ) {

@@ -30,7 +30,7 @@ The following items were already implemented or addressed:
 
 The following files already handle the concerns from PR #45:
 
-- `src/middleware.ts` - Session refresh on each request
+- `src/proxy.ts` - Session refresh on each request (migrated from middleware.ts)
 - `src/contexts/AuthContext.tsx` - Centralized auth state management
 - `src/hooks/useAuth.ts` - Re-exports from AuthContext for backwards compatibility
 

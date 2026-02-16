@@ -6,10 +6,10 @@ CubiQo implements a comprehensive authentication system using Supabase for authe
 
 ## Architecture Components
 
-### 1. Middleware (`src/middleware.ts`)
+### 1. Proxy Middleware (`src/proxy.ts`)
 **Related PRs: #12, #44**
 
-The middleware handles:
+The proxy middleware handles:
 - Session refresh on every request via `supabase.auth.getUser()`
 - Founders Pass route protection (PIN-based auth)
 - Regional routing based on geolocation
@@ -105,7 +105,7 @@ export async function GET(request: Request) {
 ```
 Request arrives
    ↓
-Middleware runs → supabase.auth.getUser()
+Proxy Middleware runs → supabase.auth.getUser()
    ↓
 Session refreshed (if expired)
    ↓
@@ -211,8 +211,8 @@ export default async function ServerPage() {
 ## Troubleshooting
 
 ### Session Not Persisting
-1. Check that middleware is running (`/middleware.ts`)
-2. Verify `getUser()` is called in middleware
+1. Check that proxy middleware is running (`src/proxy.ts`)
+2. Verify `getUser()` is called in proxy middleware
 3. Ensure cookies are being set correctly
 4. Check browser doesn't block cookies
 
@@ -243,7 +243,7 @@ export default async function ServerPage() {
 - Secure cookie flags in production
 
 ### Route Protection
-- Middleware protects sensitive routes
+- Proxy middleware protects sensitive routes
 - PIN-based additional security for Founders Pass
 - API routes validate session on every request
 - Client-side guards are UX only (not security)
@@ -251,7 +251,7 @@ export default async function ServerPage() {
 ### Best Practices
 1. Always validate auth on the server side
 2. Never trust client-side auth state for security
-3. Use middleware for broad route protection
+3. Use proxy middleware for broad route protection
 4. Use API route guards for data access
 5. Keep sensitive operations server-side
 
@@ -276,7 +276,7 @@ See `tests/auth-context.test.ts` for unit tests covering:
 ## Related Documentation
 
 - [Supabase Auth Documentation](https://supabase.com/docs/guides/auth)
-- [Next.js Middleware](https://nextjs.org/docs/app/building-your-application/routing/middleware)
+- [Next.js Proxy Middleware](https://nextjs.org/docs/app/building-your-application/routing/middleware)
 - [React Context](https://react.dev/reference/react/useContext)
 
 ---
