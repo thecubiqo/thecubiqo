@@ -116,59 +116,36 @@ export function useChat(options: UseChatOptions) {
         let conversationId: string | null = null
         let colorState: string = 'ORANGE'
 
-        if (isGuest) {
-          // Guest users: direct Supabase (RLS allows anonymous)
-          const { data: existingConv, error: findError } = await supabaseRef.current
-            .from('conversations')
-            .select('id, color_state')
-            .eq('session_id', currentSessionId)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
+        // Always use server API for creating/managing conversations
+        // This ensures consistent behavior and bypasses client-side RLS/env var issues
+        const res = await fetch('/api/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'ensure_conversation', sessionId: currentSessionId })
+        })
 
-          if (existingConv) {
-            conversationId = existingConv.id
-            colorState = existingConv.color_state || 'ORANGE'
-          } else {
-            const { data: newConv, error: createError } = await supabaseRef.current
-              .from('conversations')
-              .insert({ session_id: currentSessionId, color_state: 'ORANGE' })
-              .select('id')
-              .single()
-
-            if (createError) throw new Error(createError.message)
-            conversationId = newConv.id
-          }
-        } else {
-          // Authenticated users: use server API
-          const res = await fetch('/api/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'ensure_conversation', sessionId: currentSessionId })
-          })
-
-          if (!res.ok) {
-            const error = await res.json()
-            throw new Error(error.error || 'Failed to create conversation')
-          }
-
-          const { conversation } = await res.json()
-          conversationId = conversation.id
-          colorState = conversation.color_state || 'ORANGE'
+        if (!res.ok) {
+          const error = await res.json()
+          throw new Error(error.error || 'Failed to create conversation')
         }
+
+        const { conversation } = await res.json()
+        conversationId = conversation.id
+        colorState = conversation.color_state || 'ORANGE'
 
         if (!conversationId) throw new Error('Failed to get conversation ID')
 
-        // Load existing messages
+        // Load existing messages via API
         let history: ConversationEntry[] = []
 
-        if (isGuest) {
-          const { data: messages } = await supabaseRef.current
-            .from('messages')
-            .select('role, content, color, created_at')
-            .eq('conversation_id', conversationId)
-            .order('created_at', { ascending: true })
+        const msgRes = await fetch('/api/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_messages', conversationId })
+        })
 
+        if (msgRes.ok) {
+          const { messages } = await msgRes.json()
           if (messages) {
             const pairs: ConversationEntry[] = []
             for (let i = 0; i < messages.length; i += 2) {
@@ -184,33 +161,6 @@ export function useChat(options: UseChatOptions) {
               }
             }
             history = pairs
-          }
-        } else {
-          // Get messages via API
-          const msgRes = await fetch('/api/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'get_messages', conversationId })
-          })
-
-          if (msgRes.ok) {
-            const { messages } = await msgRes.json()
-            if (messages) {
-              const pairs: ConversationEntry[] = []
-              for (let i = 0; i < messages.length; i += 2) {
-                const userMsg = messages[i]
-                const aiMsg = messages[i + 1]
-                if (userMsg?.role === 'user' && aiMsg?.role === 'assistant') {
-                  pairs.push({
-                    userMessage: userMsg.content,
-                    aiResponse: aiMsg.content,
-                    color: (aiMsg.color as ColorName) || 'ORANGE',
-                    timestamp: userMsg.created_at || new Date().toISOString()
-                  })
-                }
-              }
-              history = pairs
-            }
           }
         }
 
@@ -245,7 +195,7 @@ export function useChat(options: UseChatOptions) {
 
     initPromiseRef.current = init()
     return initPromiseRef.current
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- supabaseRef is stable, onColorChange used via ref pattern
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabaseRef is stable, onColorChange used via ref pattern
   }, [isGuest])
 
 
@@ -369,7 +319,7 @@ export function useChat(options: UseChatOptions) {
       setState(prev => ({ ...prev, isLoading: false, error: errorMessage }))
       return null
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- refs used for conversationId, conversationHistory, onColorChange
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs used for conversationId, conversationHistory, onColorChange
   }, [sessionId, isGuest, ensureConversation, regionId])
 
   const clearHistory = useCallback(async () => {
