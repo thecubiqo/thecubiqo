@@ -42,7 +42,15 @@ export interface LandingConfig {
  * - NEXT_PUBLIC_LANDING_ENABLE: Enable/disable landing animation ('true' | 'false')
  */
 export const landingConfig: LandingConfig = {
-  defaultVariant: (process.env.NEXT_PUBLIC_LANDING_DEFAULT as LandingCubeVariant) || 'plasma-wave',
+  defaultVariant: (() => {
+    const envVariant = process.env.NEXT_PUBLIC_LANDING_DEFAULT
+    // Validate environment variable value
+    if (envVariant === 'plasma-wave' || envVariant === 'tech-wireframe') {
+      return envVariant
+    }
+    // Default to plasma-wave if not set or invalid
+    return 'plasma-wave'
+  })(),
   allowUrlOverride: true,
   enableLanding: process.env.NEXT_PUBLIC_LANDING_ENABLE === 'false' ? false : true,
 }
