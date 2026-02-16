@@ -14,7 +14,7 @@ import { BYOSettings } from './byo'
 import { KeywordPanel } from './KeywordPanel'
 import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
 import { GettingStartedPanel } from './GettingStartedPanel'
-import { LandingCube } from './LandingCube'
+import { LandingCubeRouter } from './LandingCubeRouter'
 import { PoweredByLogosCompact } from './PoweredByLogos'
 import { JourneyMemoryPrompt } from './journey'
 import { AdminControls } from './admin'
@@ -856,7 +856,7 @@ export function FullscreenApp({
       */}
       {showLandingCube && (
         <div className="fixed inset-0 z-[100]">
-          <LandingCube
+          <LandingCubeRouter
             onComplete={handleLandingComplete}
           />
         </div>

@@ -37,7 +37,7 @@ export function LandingCube({ onComplete }: LandingCubeProps) {
           <pointLight position={[5, 5, 5]} intensity={0.3} color="#00ffff" />
           <pointLight position={[-5, -5, -5]} intensity={0.2} color="#ff00ff" />
 
-          <PlasmaWaveField isEnabled={false} aiState="neutral" />
+          <PlasmaWaveField isEnabled={true} aiState="neutral" />
         </Canvas>
       </div>
 

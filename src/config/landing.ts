@@ -36,11 +36,15 @@ export interface LandingConfig {
  * To switch designs, simply change defaultVariant:
  * - 'plasma-wave' (current) - Flowing plasma waves
  * - 'tech-wireframe' - Wireframe energy cube
+ * 
+ * Environment Variables:
+ * - NEXT_PUBLIC_LANDING_DEFAULT: Set default variant ('plasma-wave' | 'tech-wireframe')
+ * - NEXT_PUBLIC_LANDING_ENABLE: Enable/disable landing animation ('true' | 'false')
  */
 export const landingConfig: LandingConfig = {
-  defaultVariant: 'plasma-wave',
+  defaultVariant: (process.env.NEXT_PUBLIC_LANDING_DEFAULT as LandingCubeVariant) || 'plasma-wave',
   allowUrlOverride: true,
-  enableLanding: true,
+  enableLanding: process.env.NEXT_PUBLIC_LANDING_ENABLE === 'false' ? false : true,
 }
 
 /**
