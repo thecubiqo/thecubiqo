@@ -20,8 +20,10 @@ import {
 } from '../index'
 
 describe('Provider Abstraction', () => {
-  // Store original env vars
-  const originalEnv = { ...process.env }
+  // Store original env var values
+  const originalOpenClawKey = process.env.OPENCLAW_API_KEY
+  const originalOpenRouterKey = process.env.OPENROUTER_KEY_CUBIKEY
+  const originalBaseUrl = process.env.OPENCLAW_BASE_URL
 
   beforeEach(() => {
     // Clear OpenClaw env vars before each test
@@ -32,7 +34,21 @@ describe('Provider Abstraction', () => {
 
   afterEach(() => {
     // Restore original env vars
-    process.env = { ...originalEnv }
+    if (originalOpenClawKey !== undefined) {
+      process.env.OPENCLAW_API_KEY = originalOpenClawKey
+    } else {
+      delete process.env.OPENCLAW_API_KEY
+    }
+    if (originalOpenRouterKey !== undefined) {
+      process.env.OPENROUTER_KEY_CUBIKEY = originalOpenRouterKey
+    } else {
+      delete process.env.OPENROUTER_KEY_CUBIKEY
+    }
+    if (originalBaseUrl !== undefined) {
+      process.env.OPENCLAW_BASE_URL = originalBaseUrl
+    } else {
+      delete process.env.OPENCLAW_BASE_URL
+    }
   })
 
   describe('OpenClaw Provider Configuration', () => {
