@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFile, writeFile, unlink, readdir, stat, mkdir } from 'fs/promises';
 import { join, resolve, relative } from 'path';
+import { validatePath, ensureWorkspace, getWorkspaceDir } from '@/lib/code-execution/sandbox';
 
 interface FileOpsRequest {
   operation: 'read' | 'write' | 'delete' | 'list' | 'create-dir';
   path: string;
   content?: string;
+  sessionId?: string;
 }
 
 interface FileOpsResponse {
@@ -14,25 +16,26 @@ interface FileOpsResponse {
   error?: string;
 }
 
-// Security: Only allow operations in workspace
-const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || '/tmp/cubiqo-workspace';
+// Security: Use session-specific workspace
+function getSessionWorkspace(sessionId: string): string {
+  return getWorkspaceDir(sessionId);
+}
 
-function sanitizePath(userPath: string): string {
-  const resolvedPath = resolve(WORKSPACE_ROOT, userPath);
-  const relativePath = relative(WORKSPACE_ROOT, resolvedPath);
+function sanitizePath(userPath: string, sessionId: string): string {
+  const workspaceRoot = getSessionWorkspace(sessionId);
   
-  // Prevent directory traversal
-  if (relativePath.startsWith('..') || resolve(relativePath) !== resolvedPath) {
-    throw new Error('Invalid path: directory traversal detected');
+  const validation = validatePath(userPath, workspaceRoot);
+  if (!validation.allowed) {
+    throw new Error(validation.reason || 'Invalid path');
   }
   
-  return resolvedPath;
+  return validation.sanitizedCommand || resolve(workspaceRoot, userPath);
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const body: FileOpsRequest = await req.json();
-    const { operation, path, content } = body;
+    const { operation, path, content, sessionId = 'default' } = body;
 
     if (!operation || !path) {
       return NextResponse.json(
@@ -41,7 +44,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const safePath = sanitizePath(path);
+    // Ensure workspace exists
+    await ensureWorkspace(sessionId);
+
+    const safePath = sanitizePath(path, sessionId);
     let result: FileOpsResponse;
 
     switch (operation) {
