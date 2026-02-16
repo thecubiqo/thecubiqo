@@ -1,7 +1,6 @@
 import { generateAuthenticationOptions } from '@simplewebauthn/server'
 import { NextRequest, NextResponse } from 'next/server'
-
-const RP_ID = process.env.NEXT_PUBLIC_RP_ID || 'localhost'
+import { getRPID } from '@/lib/webauthn/config'
 
 export async function GET(request: NextRequest) {
     // We utilize "Discoverable Credentials" (Usernameless flow).
@@ -9,8 +8,11 @@ export async function GET(request: NextRequest) {
     // If the user entered an email, we could look up their credentials, but the "Sign in with Passkey"
     // button usually implies checking the device first.
 
+    // Get RP ID dynamically based on request origin
+    const rpID = getRPID(request)
+
     const options = await generateAuthenticationOptions({
-        rpID: RP_ID,
+        rpID: rpID,
         userVerification: 'preferred',
     })
 
