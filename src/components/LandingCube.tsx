@@ -15,7 +15,7 @@ import { PlasmaWaveField } from './cube/PlasmaWaveField'
 
 interface LandingCubeProps {
   onComplete: () => void
-  detectedColor?: 'RED' | 'YELLOW' | 'GREEN_BLUE' | 'ORANGE'
+  // detectedColor prop removed as it was unused and could cause lint errors
 }
 
 export function LandingCube({ onComplete }: LandingCubeProps) {

@@ -51,8 +51,6 @@ export function PlasmaWaveField({
   useEffect(() => { isEnabledRef.current = isEnabled }, [isEnabled])
   useEffect(() => { aiStateRef.current = aiState }, [aiState])
 
-  const orangeSoulColor = new THREE.Color('#ff6b35')
-
   useEffect(() => {
     if (!containerRef.current) return
 
@@ -97,6 +95,7 @@ export function PlasmaWaveField({
     const ribbonIndex = new Float32Array(particleCount)
     const isSoulNode = new Float32Array(particleCount)
 
+    const orangeSoulColor = new THREE.Color('#ff6b35')
     const palette = colorPalettes.neutral
     const cubeSize = 3
 
@@ -116,7 +115,7 @@ export function PlasmaWaveField({
 
     let idx = 0
 
-    // Wave ribbons (main particles)
+    // Wave ribbons
     for (let r = 0; r < ribbonCount && idx < particleCount - soulNodeCount; r++) {
       const ribbonY = (r / (ribbonCount - 1) - 0.5) * 8
 
@@ -134,7 +133,7 @@ export function PlasmaWaveField({
         wavePositions[i3 + 1] = ribbonY + yVar
         wavePositions[i3 + 2] = zVar
 
-        // Cube target position (on surface or inside)
+        // Cube target position
         const isEdge = Math.random() < 0.2
         if (isEdge) {
           const edgeIdx = Math.floor(Math.random() * cubeEdges.length)
@@ -157,12 +156,12 @@ export function PlasmaWaveField({
           cubePositions[i3 + 2] = ((1 - u) * (1 - v) * v0[2] + u * (1 - v) * v1[2] + u * v * v2[2] + (1 - u) * v * v3[2]) * inset
         }
 
-        // Initial position = wave
+        // Initial position
         positions[i3] = wavePositions[i3]
         positions[i3 + 1] = wavePositions[i3 + 1]
         positions[i3 + 2] = wavePositions[i3 + 2]
 
-        // Color based on x position
+        // Color
         const cIdx = Math.min(Math.floor(xNorm * (palette.length - 1)), palette.length - 2)
         const cBlend = (xNorm * (palette.length - 1)) % 1
         const c1 = new THREE.Color(palette[cIdx])
@@ -180,7 +179,7 @@ export function PlasmaWaveField({
       }
     }
 
-    // Orange soul nodes (scattered in both states)
+    // Soul nodes
     for (let i = 0; i < soulNodeCount && idx < particleCount; i++) {
       const i3 = idx * 3
 
@@ -213,7 +212,6 @@ export function PlasmaWaveField({
     geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1))
     geometry.userData = { wavePositions, cubePositions, phases, ribbonIndex, isSoulNode }
 
-    // Shader material
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uMorph: { value: 0 }
@@ -262,7 +260,7 @@ export function PlasmaWaveField({
     scene.add(particles)
     particlesRef.current = particles
 
-    // Animation loop
+    // Animation
     const animate = () => {
       timeRef.current += 0.012
       const time = timeRef.current
@@ -271,10 +269,8 @@ export function PlasmaWaveField({
       morphProgressRef.current += (targetMorph - morphProgressRef.current) * 0.08
       const morph = morphProgressRef.current
 
-      // Safe palette access
       const stateKey = aiStateRef.current as keyof typeof colorPalettes
       const currentPalette = colorPalettes[stateKey] || colorPalettes.neutral
-
       const audioMult = 1 + audioLevelRef.current * 2
 
       if (particlesRef.current) {
@@ -285,7 +281,6 @@ export function PlasmaWaveField({
 
         particlesRef.current.material.uniforms.uMorph.value = morph
 
-        // This loop is efficient enough for 50k particles on most devices
         for (let i = 0; i < posAttr.count; i++) {
           const i3 = i * 3
           const phase = phases[i]
@@ -394,6 +389,7 @@ export function PlasmaWaveField({
         container.removeChild(renderer.domElement)
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [width, height])
 
   return (
