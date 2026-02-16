@@ -79,6 +79,7 @@ yarn-error.log*
 next-env.d.ts
 node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
 node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
+<<<<<<< HEAD
 =======
 # Data and databases
 agenthub/agents/youtube/db
@@ -153,3 +154,8 @@ frontend/node_modules/.cache/default-development/0.pack
 *.env
 *.env.*
 >>>>>>> origin/copilot/update-cubiqo-ui-design
+=======
+
+# self-heal artifacts
+self-heal-artifacts/
+>>>>>>> origin/copilot/add-daily-self-heal-job
