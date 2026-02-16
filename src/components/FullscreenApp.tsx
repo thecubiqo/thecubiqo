@@ -13,7 +13,7 @@ import { BYOSettings } from './byo'
 import { KeywordPanel } from './KeywordPanel'
 import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
 import { GettingStartedPanel } from './GettingStartedPanel'
-import { LandingPage } from './landing/LandingPage'
+import { LandingCube } from './LandingCube'
 import { PoweredByLogosCompact } from './PoweredByLogos'
 import { JourneyMemoryPrompt } from './journey'
 import { AdminControls } from './admin'
@@ -825,12 +825,22 @@ export function FullscreenApp({ showTopRightCTA = false }: FullscreenAppProps) {
         isDark={isDark}
       />
 
-      {/* Landing Cube - Shown once per day or after 4+ hours */}
+      {/* Landing Cube - Shown once per day or after 4+ hours 
+          Two designs available:
+          1. LandingCube (current) - Plasma wave field
+          2. TechLandingCube - Wireframe energy cube
+          See LANDING_UI_GUIDE.md for switching instructions
+      */}
+      {/* Landing Cube - Shown once per day or after 4+ hours 
+          Two designs available:
+          1. LandingCube (current) - Plasma wave field
+          2. TechLandingCube - Wireframe energy cube
+          See LANDING_UI_GUIDE.md for switching instructions
+      */}
       {showLandingCube && (
         <div className="fixed inset-0 z-[100]">
-          <LandingPage
+          <LandingCube
             onComplete={handleLandingComplete}
-            showTopRightCTA={showTopRightCTA}
           />
         </div>
       )}
