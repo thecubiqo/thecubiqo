@@ -11,12 +11,18 @@
  * - Validate environment configuration before provider usage
  */
 
-import type { ProviderConfig } from '../types'
+import type { ProviderConfig, ExperimentalProvider, AllProviders } from '../types'
 
 /**
  * Extended Provider Configuration with feature flag support
+ * Accepts both core and experimental provider names
  */
-export interface ExtendedProviderConfig extends ProviderConfig {
+export interface ExtendedProviderConfig extends Omit<ProviderConfig, 'name'> {
+  /**
+   * Provider name (can be core or experimental)
+   */
+  name: AllProviders
+  
   /**
    * Display name for UI and logs
    */
@@ -79,9 +85,7 @@ export function isOpenClawEnabled(): boolean {
  * To enable, set OPENCLAW_API_KEY or OPENROUTER_KEY_CUBIKEY in your environment
  */
 export const OPENCLAW_PROVIDER: ExtendedProviderConfig = {
-  // Note: 'openclaw' is not part of the core AIProvider type as it's experimental
-  // This allows the provider to be registered without modifying the base type system
-  name: 'openclaw' as any,
+  name: 'openclaw' satisfies ExperimentalProvider,
   displayName: 'OpenClaw (via Clawdbot)',
   model: 'emergent-claude/claude-sonnet-4-5',
   maxTokens: 4000,

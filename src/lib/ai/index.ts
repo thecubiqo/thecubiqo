@@ -23,6 +23,8 @@ export type {
   ChatRequest,
   ChatAPIRequest,
   AIProvider,
+  ExperimentalProvider,
+  AllProviders,
   ProviderConfig
 } from './types'
 export type {
