@@ -9,7 +9,7 @@
  * magic-link callback.
  */
 
-import { useAuthContext } from '@/contexts/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 
 interface AuthButtonProps {
   /** Optional callback when sign-in button is clicked (e.g. to open a modal) */
@@ -21,7 +21,7 @@ interface AuthButtonProps {
 }
 
 export function AuthButton({ onSignInClick, onUserClick, isDark = true }: AuthButtonProps) {
-  const { user, isAuthenticated, isLoading } = useAuthContext()
+  const { user, isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
     return (
@@ -60,11 +60,10 @@ export function AuthButton({ onSignInClick, onUserClick, isDark = true }: AuthBu
   return (
     <button
       onClick={onSignInClick}
-      className={`flex items-center gap-2 text-[13px] transition-colors ${
-        isDark
+      className={`flex items-center gap-2 text-[13px] transition-colors ${isDark
           ? 'text-white/40 hover:text-white/60'
           : 'text-zinc-500 hover:text-zinc-700'
-      }`}
+        }`}
       data-testid="sign-in-button"
     >
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>

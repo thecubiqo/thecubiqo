@@ -2,83 +2,72 @@
 
 /**
  * CubeScene - Canvas wrapper for the 3D Cube
- * Supports multiple cube shapes, sizes, and customization options
+ *
+ * Staging UI swap: replace legacy cuboid-with-eyes with the shader-based EnergyCube.
  */
 
-import { Suspense } from 'react'
-import { Canvas } from '@react-three/fiber'
-import * as THREE from 'three'
-import { FlowingEnergyCube } from '../FlowingEnergyCube'
-import { FlowingEnergyCubeWithEyes } from '../FlowingEnergyCubeWithEyes'
-import { IsometricCube } from './IsometricCube'
+import { useMemo } from 'react'
+import { EnergyCubeScene } from '@/components/energy-cube'
+import type { EnergyCubeColor, EnergyCubeMode } from '@/components/energy-cube'
 import type { AnimationState } from './Cube'
 import type { ColorName } from '@/config/colors'
-import type { CubeShape } from '../CubeControls'
 
 interface CubeSceneProps {
   colorName?: ColorName
   animationState?: AnimationState
   className?: string
-  cubeSize?: number
-  shapeType?: CubeShape
-  showEyes?: boolean
 }
 
-function mapIntensity(animationState: AnimationState): number {
-  switch (animationState) {
-    case 'speaking':
-      return 1.0
-    case 'thinking':
-      return 0.7
-    case 'listening':
-      return 0.5
-    case 'idle':
+function mapColor(colorName: ColorName): EnergyCubeColor {
+  // Default in Cubiqo is ORANGE; user explicitly asked for an orange placeholder.
+  switch (colorName) {
+    case 'RED':
+      return 'red'
+    case 'YELLOW':
+      return 'yellow'
+    case 'ORANGE':
+      return 'orange'
+    // Map any other colors to green until we design a fuller palette.
     default:
-      return 0.3
+      return 'green'
   }
 }
 
-export function CubeScene({ 
-  colorName = 'ORANGE', 
+function mapMode(animationState: AnimationState): EnergyCubeMode {
+  switch (animationState) {
+    case 'speaking':
+      return 'speaking'
+    case 'thinking':
+      return 'processing'
+    case 'listening':
+      return 'listening'
+    case 'idle':
+    default:
+      return 'listening'
+  }
+}
+
+export function CubeScene({
+  colorName = 'ORANGE',
   animationState = 'idle',
-  className = '',
-  cubeSize = 1.0,
-  shapeType = 'energy',
-  showEyes = false
+  className = ''
 }: CubeSceneProps) {
-  const intensity = mapIntensity(animationState)
-  
+  const reducedMotion = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    } catch {
+      return false
+    }
+  }, [])
+
   return (
     <div className={`w-full h-full ${className}`}>
-      <Canvas
-        camera={{ position: [0, 0, 3.5], fov: 50 }}
-        gl={{
-          antialias: true,
-          alpha: true,
-          powerPreference: 'high-performance',
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.5,
-        }}
-        dpr={[1, 2]}
-        style={{ background: 'transparent' }}
-      >
-        <Suspense fallback={null}>
-          <group scale={cubeSize}>
-            {shapeType === 'energy' ? (
-              showEyes ? (
-                <FlowingEnergyCubeWithEyes intensity={intensity} showEyes={showEyes} />
-              ) : (
-                <FlowingEnergyCube intensity={intensity} />
-              )
-            ) : (
-              <IsometricCube 
-                animationState={animationState}
-                reducedMotion={false}
-              />
-            )}
-          </group>
-        </Suspense>
-      </Canvas>
+      <EnergyCubeScene
+        color={mapColor(colorName)}
+        mode={mapMode(animationState)}
+        reducedMotion={reducedMotion}
+      />
     </div>
   )
 }

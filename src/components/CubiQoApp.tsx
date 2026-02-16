@@ -135,9 +135,6 @@ export function CubiQoApp() {
               <CubeScene
                 colorName={colorName}
                 animationState={animationState}
-                cubeSize={cubeSize}
-                shapeType={shapeType}
-                showEyes={showEyes}
               />
             </div>
 
@@ -164,6 +161,7 @@ export function CubiQoApp() {
             </div>
 
             {/* Cube Controls */}
+            {/* Cube Controls - Disabled for Energy Cube
             <CubeControls
               cubeSize={cubeSize}
               onSizeChange={handleSizeChange}
@@ -172,6 +170,7 @@ export function CubiQoApp() {
               showEyes={showEyes}
               onEyesToggle={handleEyesToggle}
             />
+            */}
           </div>
 
           {/* Chat Section */}
