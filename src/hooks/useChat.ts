@@ -233,7 +233,14 @@ export function useChat(options: UseChatOptions) {
 
   // Trigger initialization when sessionId changes
   useEffect(() => {
-    if (!sessionId || lastSessionIdRef.current === sessionId) return
+    if (!sessionId) {
+      // For guests without session yet, mark as initialized anyway
+      // Conversation will be created lazily on first message
+      setState(prev => ({ ...prev, isInitialized: true }))
+      return
+    }
+
+    if (lastSessionIdRef.current === sessionId) return
     lastSessionIdRef.current = sessionId
     ensureConversation(sessionId)
   }, [sessionId, ensureConversation])

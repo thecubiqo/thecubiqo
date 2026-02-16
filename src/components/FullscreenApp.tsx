@@ -294,9 +294,8 @@ export function FullscreenApp({
       setVoiceEnabled(true)
       setAppState('listening')
       setAnimationState('listening')
-      if (chatInitialized) {
-        startListening()
-      }
+      // Start listening immediately - chat will initialize on first message
+      startListening()
     } else {
       // Turn OFF - Stop everything and go to idle
       setVoiceEnabled(false)
