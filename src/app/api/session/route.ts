@@ -50,7 +50,11 @@ export async function POST(req: NextRequest) {
 
       if (convError) {
         console.error('[API/session] Conversation creation error:', convError)
-        return NextResponse.json({ error: convError.message }, { status: 500 })
+        // DEBUG: Help user identify the bad key
+        const keyHint = supabaseServiceKey ? `${supabaseServiceKey.substring(0, 5)}...${supabaseServiceKey.substring(supabaseServiceKey.length - 5)}` : 'missing'
+        return NextResponse.json({
+          error: `Supabase Error: ${convError.message}. (Key used: ${keyHint})`
+        }, { status: 500 })
       }
 
       return NextResponse.json({ conversation: newConv })
