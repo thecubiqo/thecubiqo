@@ -553,7 +553,7 @@ export function FullscreenApp({
             <span className="mx-1">—</span>
             <span className="text-white/25">Your data · Your storage · Your API key</span>
             <span className="mx-2">·</span>
-            <span className="text-white/20">© 2025 Cubiqo United Inc.</span>
+            <span className="text-white/20">© 2026 Cubiqo United Inc.</span>
           </p>
 
           {/* Powered By Logos */}
