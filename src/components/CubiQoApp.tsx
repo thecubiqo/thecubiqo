@@ -28,7 +28,7 @@ export function CubiQoApp() {
   const [colorName, setColorName] = useState<ColorName>('ORANGE')
   const [animationState, setAnimationState] = useState<AnimationState>('idle')
   const [showAuth, setShowAuth] = useState(false)
-  
+
   // Cube customization state
   const [cubeSize, setCubeSize] = useState<number>(1.0)
   const [shapeType, setShapeType] = useState<CubeShape>('energy')
@@ -40,7 +40,7 @@ export function CubiQoApp() {
       const savedSize = localStorage.getItem(STORAGE_KEYS.CUBE_SIZE)
       const savedShape = localStorage.getItem(STORAGE_KEYS.SHAPE_TYPE)
       const savedEyes = localStorage.getItem(STORAGE_KEYS.SHOW_EYES)
-      
+
       if (savedSize) setCubeSize(parseFloat(savedSize))
       if (savedShape) setShapeType(savedShape as CubeShape)
       if (savedEyes) setShowEyes(savedEyes === 'true')
@@ -125,12 +125,9 @@ export function CubiQoApp() {
           {/* Cube Section */}
           <div>
             <div className="w-full h-[300px] lg:h-[400px] rounded-lg overflow-hidden bg-black">
-              <CubeScene 
-                colorName={colorName} 
+              <CubeScene
+                colorName={colorName}
                 animationState={animationState}
-                cubeSize={cubeSize}
-                shapeType={shapeType}
-                showEyes={showEyes}
               />
             </div>
 
@@ -142,14 +139,14 @@ export function CubiQoApp() {
                 style={{
                   backgroundColor:
                     colorName === 'RED' ? '#C2185B' :
-                    colorName === 'YELLOW' ? '#FFA000' :
-                    colorName === 'GREEN_BLUE' ? '#00897B' :
-                    '#FF6F00'
+                      colorName === 'YELLOW' ? '#FFA000' :
+                        colorName === 'GREEN_BLUE' ? '#00897B' :
+                          '#FF6F00'
                 }}
               >
                 {colorName === 'GREEN_BLUE' ? 'Sattva' :
-                 colorName === 'ORANGE' ? 'Fourth Way' :
-                 colorName === 'RED' ? 'Tamas' : 'Rajas'}
+                  colorName === 'ORANGE' ? 'Fourth Way' :
+                    colorName === 'RED' ? 'Tamas' : 'Rajas'}
               </span>
               {isGuest && (
                 <span className="text-xs text-zinc-400">(Guest)</span>
@@ -157,6 +154,7 @@ export function CubiQoApp() {
             </div>
 
             {/* Cube Controls */}
+            {/* Cube Controls - Disabled for Energy Cube
             <CubeControls
               cubeSize={cubeSize}
               onSizeChange={handleSizeChange}
@@ -165,6 +163,7 @@ export function CubiQoApp() {
               showEyes={showEyes}
               onEyesToggle={handleEyesToggle}
             />
+            */}
           </div>
 
           {/* Chat Section */}

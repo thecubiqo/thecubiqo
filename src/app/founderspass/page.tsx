@@ -26,6 +26,8 @@ export default function FoundersPassPage() {
     if (pin === '2026') {
       setIsAuthenticated(true);
       setError('');
+      // Set auth cookie
+      document.cookie = "founders-pass-auth=true; path=/; max-age=86400; SameSite=Lax; Secure";
     } else {
       setError('Invalid PIN. Please try 2026.');
     }
@@ -152,6 +154,12 @@ export default function FoundersPassPage() {
                 <span>Open Advanced Dashboard</span>
                 <span>→</span>
               </a>
+
+              <div className="mt-4 pt-4 border-t border-gray-700 w-full flex justify-center">
+                <a href="/founders-pass" className="text-sm text-gray-400 hover:text-white underline">
+                  Go to Admin Portal (Flags & Sites)
+                </a>
+              </div>
             </div>
 
             {/* Feature Flags Info */}
@@ -161,8 +169,8 @@ export default function FoundersPassPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300">Founders Pass</span>
                   <span className={`px-3 py-1 rounded-full text-sm font-semibold ${flags.founders_pass_enabled
-                      ? 'bg-green-500/20 text-green-400'
-                      : 'bg-gray-700 text-gray-400'
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-gray-700 text-gray-400'
                     }`}>
                     {flags.founders_pass_enabled ? 'Enabled' : 'Disabled'}
                   </span>
@@ -170,8 +178,8 @@ export default function FoundersPassPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300">Gmail Read Access</span>
                   <span className={`px-3 py-1 rounded-full text-sm font-semibold ${flags.gmail_read_access
-                      ? 'bg-green-500/20 text-green-400'
-                      : 'bg-gray-700 text-gray-400'
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-gray-700 text-gray-400'
                     }`}>
                     {flags.gmail_read_access ? 'Enabled' : 'Disabled'}
                   </span>
@@ -179,8 +187,8 @@ export default function FoundersPassPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300">Gmail Write Access</span>
                   <span className={`px-3 py-1 rounded-full text-sm font-semibold ${flags.gmail_write_access
-                      ? 'bg-green-500/20 text-green-400'
-                      : 'bg-gray-700 text-gray-400'
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-gray-700 text-gray-400'
                     }`}>
                     {flags.gmail_write_access ? 'Enabled' : 'Disabled'}
                   </span>
@@ -198,6 +206,7 @@ export default function FoundersPassPage() {
                   setIsAuthenticated(false);
                   setPin('');
                   setGmailPermissions({ read: false, write: false });
+                  document.cookie = "founders-pass-auth=; path=/; max-age=0;";
                 }}
                 className="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded-lg font-semibold transition-colors"
               >

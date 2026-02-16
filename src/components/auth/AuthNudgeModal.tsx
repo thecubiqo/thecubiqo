@@ -148,7 +148,6 @@ export function AuthNudgeModal({ isOpen, onClose, cta }: AuthNudgeModalProps) {
               <p className="text-zinc-400 text-sm mb-6">
                 We sent a magic link to <span className="text-white">{email}</span>
               </p>
-              
               {/* Quick Jump Buttons in Success State */}
               <div className="mb-6">
                 <p className="text-zinc-500 text-xs mb-3">
@@ -156,10 +155,41 @@ export function AuthNudgeModal({ isOpen, onClose, cta }: AuthNudgeModalProps) {
                 </p>
                 <MagicLinkButtons source="auth_modal" email={email} className="justify-center" />
               </div>
-              
+
               <p className="text-zinc-500 text-xs">
                 Click the link to connect. I'll be waiting.
               </p>
+
+              {/* Quick access buttons for email providers */}
+              <div className="space-y-2">
+                <p className="text-zinc-600 text-xs mb-3">Quick access:</p>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={() => {
+                      console.log('[AuthNudgeModal] Gmail button clicked')
+                      window.open('https://mail.google.com', '_blank')
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm transition-colors flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" />
+                    </svg>
+                    Gmail
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log('[AuthNudgeModal] Outlook button clicked')
+                      window.open('https://outlook.live.com', '_blank')
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm transition-colors flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M24 7.387v9.226a.614.614 0 0 1-.614.614h-8.745a.614.614 0 0 1-.614-.614v-2.826h-2.641v2.826a.614.614 0 0 1-.614.614H2.027a.614.614 0 0 1-.614-.614V7.387c0-.339.275-.614.614-.614h8.745c.339 0 .614.275.614.614v2.826h2.641V7.387c0-.339.275-.614.614-.614h8.745c.339 0 .614.275.614.614z" />
+                    </svg>
+                    Outlook
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

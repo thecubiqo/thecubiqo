@@ -7,6 +7,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
+import { BiometricLogin } from '@/components/auth/BiometricLogin'
 
 const RATE_LIMIT_WINDOW = 60000 // 60 seconds
 const MAX_ATTEMPTS = 3
@@ -79,17 +80,17 @@ export function LoginForm() {
       console.log('[LoginForm] Attempting sign in for:', email)
       await signInWithEmail(email)
       console.log('[LoginForm] Magic link sent successfully')
-      
+
       // Success - increment attempt counter and set cooldown
       const newAttemptCount = attemptCount + 1
       setAttemptCount(newAttemptCount)
-      
+
       setMessage({
         type: 'success',
         text: 'Check your email for the magic link!',
       })
       setEmail('')
-      
+
       // Start cooldown timer if this was the last allowed attempt
       if (newAttemptCount >= MAX_ATTEMPTS) {
         setCooldownSeconds(RATE_LIMIT_WINDOW / 1000)
@@ -97,7 +98,7 @@ export function LoginForm() {
     } catch (error) {
       console.error('[LoginForm] Sign in error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to send magic link'
-      
+
       // Check if it's a rate limit error from Supabase
       if (errorMessage.toLowerCase().includes('rate limit') || errorMessage.toLowerCase().includes('too many')) {
         setMessage({
@@ -150,16 +151,53 @@ export function LoginForm() {
         We&apos;ll email you a secure sign-in link.
       </p>
 
+      <div className="mt-6 border-t border-white/10 pt-6">
+        <BiometricLogin />
+      </div>
+
       {message && (
         <div
           data-testid={`login-message-${message.type}`}
-          className={`mt-4 p-3 rounded-[12px] text-[13px] ${
-            message.type === 'success'
-              ? 'bg-green-500/10 text-green-400'
-              : 'bg-red-500/10 text-red-400'
-          }`}
+          className={`mt-4 p-3 rounded-[12px] text-[13px] ${message.type === 'success'
+            ? 'bg-green-500/10 text-green-400'
+            : 'bg-red-500/10 text-red-400'
+            }`}
         >
           {message.text}
+
+          {/* Show provider buttons on success */}
+          {message.type === 'success' && (
+            <div className="mt-4 space-y-2">
+              <p className="text-white/50 text-[11px]">Quick access:</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    console.log('[LoginForm] Gmail button clicked')
+                    window.open('https://mail.google.com', '_blank')
+                  }}
+                  className="flex-1 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-[8px] text-white text-[12px] transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" />
+                  </svg>
+                  Gmail
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('[LoginForm] Outlook button clicked')
+                    window.open('https://outlook.live.com', '_blank')
+                  }}
+                  className="flex-1 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-[8px] text-white text-[12px] transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M24 7.387v9.226a.614.614 0 0 1-.614.614h-8.745a.614.614 0 0 1-.614-.614v-2.826h-2.641v2.826a.614.614 0 0 1-.614.614H2.027a.614.614 0 0 1-.614-.614V7.387c0-.339.275-.614.614-.614h8.745c.339 0 .614.275.614.614v2.826h2.641V7.387c0-.339.275-.614.614-.614h8.745c.339 0 .614.275.614.614z" />
+                  </svg>
+                  Outlook
+                </button>
+              </div>
+            </div>
+          )}
+
           {message.type === 'success' && cooldownSeconds > 0 && (
             <p className="text-xs mt-2 text-green-300/80">
               You can request another link in {cooldownSeconds} seconds.

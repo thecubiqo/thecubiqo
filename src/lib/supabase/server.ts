@@ -2,6 +2,23 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/database.types'
 
+/**
+ * Check if Supabase is configured with real credentials
+ * Returns false when running in preview mode with placeholder values
+ */
+export function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  return !!(
+    url &&
+    key &&
+    url !== 'https://placeholder.supabase.co' &&
+    key !== 'placeholder-anon-key' &&
+    url.includes('supabase.co')
+  )
+}
+
 export async function createClient() {
   const cookieStore = await cookies()
 
@@ -11,8 +28,8 @@ export async function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
   return createServerClient<Database>(
-    supabaseUrl,
-    supabaseAnonKey,
+    supabaseUrl || 'https://placeholder.supabase.co',
+    supabaseAnonKey || 'placeholder-anon-key',
     {
       cookies: {
         getAll() {

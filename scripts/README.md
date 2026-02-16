@@ -6,6 +6,43 @@ This directory contains utility scripts for repository maintenance and analysis.
 
 ### PR Management
 
+#### `audit-pr-merges.ts`
+Programmatically verifies that all closed PRs (#1-#80) are fully merged into main branch.
+
+**Usage:**
+```bash
+GITHUB_TOKEN=<your-token> npm run audit-pr-merges
+```
+
+**Features:**
+- Checks PR merge status for PRs #1-#80
+- Verifies merge commits exist in main branch history
+- Detects closed-without-merge and partial merges
+- Generates detailed report in `REPORTS/PR_MERGE_AUDIT.md`
+- Provides actionable follow-up steps
+
+**Environment Variables:**
+- `GITHUB_TOKEN` (required): GitHub personal access token
+- `AUDIT_OWNER` (optional): Repository owner, defaults to "thecubiqo"
+- `AUDIT_REPO` (optional): Repository name, defaults to "thecubiqo"
+
+**Output:**
+- Console summary with pass/fail status
+- Detailed markdown report in `REPORTS/PR_MERGE_AUDIT.md`
+- Exit code 1 if discrepancies found
+
+---
+
+#### `pr-triage-agent.ts`
+Automatically triages draft PRs and converts them to "Ready for Review" when all checks pass.
+
+**Usage:**
+```bash
+GITHUB_TOKEN=<your-token> npm run pr-triage
+```
+
+---
+
 #### `analyze-prs.js`
 Analyzes git history to identify merged PRs and generate cleanup reports.
 

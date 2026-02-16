@@ -1,6 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+
+// Timeout constants
+const FETCH_TIMEOUT_MS = 5000;  // 5 seconds for individual fetch
+const OVERALL_TIMEOUT_MS = 10000;  // 10 seconds for overall loading
 
 interface AdminStats {
   stats: {
@@ -62,19 +67,50 @@ export default function AdminDashboard() {
   const [events, setEvents] = useState<EventsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null);
 
   const fetchStats = async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
     try {
-      const response = await fetch('/api/admin/stats');
-      if (!response.ok) throw new Error('Failed to fetch stats');
+      const response = await fetch('/api/admin/stats', {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch stats: ${response.status} ${response.statusText}`);
+      }
+
       const data = await response.json();
       setStats(data);
       setError(null);
+      setRetryCount(0);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          setError(`Request timed out after ${FETCH_TIMEOUT_MS / 1000} seconds. The admin API may be overloaded.`);
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('Unknown error occurred');
+      }
     } finally {
       setLoading(false);
+      clearTimeout(timeoutId);
     }
+  };
+
+  const handleRetry = () => {
+    setLoading(true);
+    setError(null);
+    setRetryCount(prev => prev + 1);
+    setLoadingStartTime(Date.now());
+    fetchStats();
   };
 
   const fetchEvents = async () => {
@@ -88,7 +124,9 @@ export default function AdminDashboard() {
     }
   };
 
+
   useEffect(() => {
+    setLoadingStartTime(Date.now());
     fetchStats();
     fetchEvents();
     const interval = setInterval(() => {
@@ -97,6 +135,40 @@ export default function AdminDashboard() {
     }, 3000); // Refresh every 3 seconds
     return () => clearInterval(interval);
   }, []);
+
+  // Check if loading has been going on for too long
+  useEffect(() => {
+    if (!loading || !loadingStartTime) return;
+
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+        setError(`Loading timed out after ${OVERALL_TIMEOUT_MS / 1000} seconds. Please check if the admin API is running.`);
+      }
+    }, OVERALL_TIMEOUT_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [loading, loadingStartTime]);
+
+  if (loading && !stats) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative mb-6">
+            <div className="absolute -inset-4 bg-orange-500/20 rounded-full blur-2xl animate-pulse" />
+            <div className="relative w-16 h-16 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto" />
+          </div>
+          <div className="text-2xl font-semibold mb-2">Loading dashboard...</div>
+          <div className="text-sm text-gray-400">Fetching stats from admin API</div>
+          {loadingStartTime && Date.now() - loadingStartTime > 5000 && (
+            <div className="mt-4 text-yellow-400 text-sm">
+              This is taking longer than usual...
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const formatUptime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -125,33 +197,58 @@ export default function AdminDashboard() {
     }
   };
 
-  if (loading && !stats) {
-    return (
-      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
-        <div className="text-2xl">Loading...</div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-950 text-white p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-gray-400">
-            Real-time monitoring of agents, sessions, and system health
-          </p>
-          {stats && (
-            <p className="text-sm text-gray-500 mt-2">
-              Last updated: {formatDate(stats.timestamp)}
-            </p>
-          )}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
+              <p className="text-gray-400">
+                Real-time monitoring of agents, sessions, and system health
+              </p>
+              {stats && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Last updated: {formatDate(stats.timestamp)}
+                </p>
+              )}
+            </div>
+            <Link
+              href="/admin/email-preview"
+              className="bg-gradient-to-r from-orange-600 to-yellow-600 hover:from-orange-700 hover:to-yellow-700 
+                         text-white font-semibold py-2 px-4 rounded-lg transition-all"
+            >
+              📧 Email Preview
+            </Link>
+          </div>
         </div>
 
         {error && (
-          <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 mb-6">
-            <p className="text-red-400">Error: {error}</p>
+          <div className="bg-red-900/20 border border-red-500 rounded-lg p-6 mb-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="text-red-400 font-semibold mb-2">Error Loading Dashboard</h3>
+                <p className="text-red-300 mb-4">{error}</p>
+
+                {/* Troubleshooting Tips */}
+                <div className="bg-red-950/50 rounded-lg p-4 mb-4">
+                  <h4 className="text-sm font-semibold text-red-300 mb-2">Troubleshooting:</h4>
+                  <ul className="text-xs text-red-200 space-y-1 list-disc list-inside">
+                    <li>Check if the admin API endpoint is running</li>
+                    <li>Verify your authentication credentials</li>
+                    <li>Ensure the engine bootstrap has completed</li>
+                    <li>Check the server logs for errors</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleRetry}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+            >
+              Retry {retryCount > 0 && `(Attempt ${retryCount + 1})`}
+            </button>
           </div>
         )}
 
@@ -316,7 +413,7 @@ export default function AdminDashboard() {
                     </span>
                   )}
                 </div>
-                
+
                 {/* Event Type Stats */}
                 {Object.keys(events.stats.typeCounts).length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-4">
@@ -356,11 +453,10 @@ export default function AdminDashboard() {
                             className="border-b border-gray-800 hover:bg-gray-800/50"
                           >
                             <td className="py-3 px-4">
-                              <span className={`font-semibold ${
-                                event.type === 'magic_link_button_click' 
-                                  ? 'text-orange-400' 
-                                  : 'text-blue-400'
-                              }`}>
+                              <span className={`font-semibold ${event.type === 'magic_link_button_click'
+                                ? 'text-orange-400'
+                                : 'text-blue-400'
+                                }`}>
                                 {event.type}
                               </span>
                             </td>

@@ -31,17 +31,40 @@ export interface LandingConfig {
 }
 
 /**
+ * Get landing configuration from environment variables with safe fallbacks
+ */
+function getLandingConfigFromEnv(): LandingConfig {
+  // Read environment variables
+  const envDefault = process.env.NEXT_PUBLIC_LANDING_DEFAULT as LandingCubeVariant | undefined
+  const envEnable = process.env.NEXT_PUBLIC_LANDING_ENABLE
+  
+  // Validate and apply defaults
+  const defaultVariant: LandingCubeVariant = 
+    (envDefault === 'plasma-wave' || envDefault === 'tech-wireframe') 
+      ? envDefault 
+      : 'plasma-wave' // Default to plasma-wave for production
+  
+  const enableLanding = envEnable !== 'false' // Enabled by default unless explicitly 'false'
+  
+  return {
+    defaultVariant,
+    allowUrlOverride: true, // Always allow URL override for testing
+    enableLanding,
+  }
+}
+
+/**
  * Current landing configuration
  * 
- * To switch designs, simply change defaultVariant:
- * - 'plasma-wave' (current) - Flowing plasma waves
- * - 'tech-wireframe' - Wireframe energy cube
+ * Configuration priority:
+ * 1. Environment variables (NEXT_PUBLIC_LANDING_DEFAULT, NEXT_PUBLIC_LANDING_ENABLE)
+ * 2. Default fallbacks (plasma-wave, enabled)
+ * 
+ * Environment variables:
+ * - NEXT_PUBLIC_LANDING_DEFAULT: 'plasma-wave' | 'tech-wireframe' (default: 'plasma-wave')
+ * - NEXT_PUBLIC_LANDING_ENABLE: 'true' | 'false' (default: 'true')
  */
-export const landingConfig: LandingConfig = {
-  defaultVariant: 'plasma-wave',
-  allowUrlOverride: true,
-  enableLanding: true,
-}
+export const landingConfig: LandingConfig = getLandingConfigFromEnv()
 
 /**
  * Get the landing variant to use based on config and URL params

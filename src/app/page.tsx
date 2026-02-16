@@ -1,31 +1,20 @@
-'use client';
+import { checkFeatureFlag } from '@/lib/feature-flags/server'
+import { FullscreenApp } from '@/components/FullscreenApp'
 
-import { FullscreenApp } from "@/components/FullscreenApp";
-import { useDesignToggles } from "@/hooks/useDesignToggles";
-
-// Force dynamic rendering to ensure auth state updates are reflected immediately
+// Force dynamic rendering to ensure auth/flag state updates are reflected immediately
 export const dynamic = 'force-dynamic';
 
-export default function Home() {
-  const { isEnabled, loading } = useDesignToggles();
+export default async function Home() {
+  // Check feature flags
+  const [ctaFlag, particleFlag] = await Promise.all([
+    checkFeatureFlag({ flag_name: 'ui.topRightCTA.v1' }),
+    checkFeatureFlag({ flag_name: 'ui.landing.particles.v1' })
+  ]);
 
-  // While loading toggles, show the default (FullscreenApp)
-  if (loading) {
-    return <FullscreenApp />;
-  }
-
-  // Check if particle landing is enabled, otherwise use fullscreen app
-  // Note: Since we don't have a separate ParticleLanding page component yet,
-  // we're using FullscreenApp for both for now. This can be easily swapped later.
-  const particleLandingEnabled = isEnabled('particle_landing');
-  const fullscreenAppEnabled = isEnabled('fullscreen_app_landing');
-
-  // If fullscreen_app_landing is explicitly enabled, use it
-  // Otherwise use particle_landing if enabled (default)
-  if (fullscreenAppEnabled) {
-    return <FullscreenApp />;
-  }
-
-  // Default to FullscreenApp (can be changed to ParticleLanding when implemented)
-  return <FullscreenApp />;
+  return (
+    <FullscreenApp
+      showTopRightCTA={ctaFlag.enabled}
+      showParticleLanding={particleFlag.enabled}
+    />
+  )
 }
