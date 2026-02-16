@@ -34,9 +34,13 @@ type AppState = 'idle' | 'listening' | 'thinking' | 'speaking'
 
 interface FullscreenAppProps {
   showTopRightCTA?: boolean
+  showParticleLanding?: boolean
 }
 
-export function FullscreenApp({ showTopRightCTA = false }: FullscreenAppProps) {
+export function FullscreenApp({
+  showTopRightCTA = false,
+  showParticleLanding = false
+}: FullscreenAppProps) {
   const { session, isGuest, isLoading: sessionLoading } = useSession()
   const { user, isAuthenticated, signOut } = useAuth()
   const { unreadCount } = useDirectMessages()
@@ -98,8 +102,12 @@ export function FullscreenApp({ showTopRightCTA = false }: FullscreenAppProps) {
     localStorage.setItem('cubiqo_cube_size', size.toString())
   }
 
-  // Check if we should show landing cube (once per day or after 4+ hours)
+  // Check if we should show landing cube (respecting feature flag and local storage)
   useEffect(() => {
+    // If feature flag is explicitly enabled, we might want to prioritize it
+    // But we still respect the "once per day" logic to valid annoyance
+    if (!showParticleLanding) return;
+
     const LANDING_STORAGE_KEY = 'cubiqo_last_landing'
     const HOURS_THRESHOLD = 4
 
@@ -117,7 +125,7 @@ export function FullscreenApp({ showTopRightCTA = false }: FullscreenAppProps) {
         localStorage.setItem(LANDING_STORAGE_KEY, now.toString())
       }
     }
-  }, [])
+  }, [showParticleLanding])
 
   const handleLandingComplete = useCallback(() => {
     setShowLandingCube(false)

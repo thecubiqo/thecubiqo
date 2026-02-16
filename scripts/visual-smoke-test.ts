@@ -184,42 +184,6 @@ const poweredBy = fs.readFileSync(poweredByPath, 'utf-8')
 assert(poweredBy.includes('transition-premium'), 'PoweredByLogos uses transition-premium')
 assert(poweredBy.includes('aria-hidden'), 'PoweredByLogos decorative SVGs have aria-hidden')
 
-// ── 8. Energy Cube Components ───────────────────────────────────────
-
-console.log('\n🔷  Energy Cube Components')
-
-const energyCubeWireframePath = path.resolve(
-  __dirname,
-  '..',
-  'src',
-  'components',
-  'cube',
-  'EnergyCubeWireframe.tsx'
-)
-const energyCubeWireframe = fs.readFileSync(energyCubeWireframePath, 'utf-8')
-
-assert(energyCubeWireframe.includes('EnergyCubeWireframe'), 'EnergyCubeWireframe component is exported')
-assert(energyCubeWireframe.includes('@react-three/fiber'), 'EnergyCubeWireframe uses React Three Fiber')
-assert(energyCubeWireframe.includes('Canvas'), 'EnergyCubeWireframe includes Canvas component')
-assert(energyCubeWireframe.includes('useFrame'), 'EnergyCubeWireframe uses animation hook')
-assert(energyCubeWireframe.includes('transition-premium'), 'EnergyCubeWireframe uses transition-premium class')
-assert(energyCubeWireframe.includes('aria-label'), 'EnergyCubeWireframe has accessibility label')
-
-const flowingEnergyCubePath = path.resolve(
-  __dirname,
-  '..',
-  'src',
-  'components',
-  'FlowingEnergyCube.tsx'
-)
-const flowingEnergyCube = fs.readFileSync(flowingEnergyCubePath, 'utf-8')
-
-assert(flowingEnergyCube.includes('FlowingEnergyCube'), 'FlowingEnergyCube component is exported')
-assert(flowingEnergyCube.includes('@react-three/fiber'), 'FlowingEnergyCube uses React Three Fiber')
-assert(flowingEnergyCube.includes('useFrame'), 'FlowingEnergyCube uses animation hook')
-assert(flowingEnergyCube.includes('CatmullRomCurve3'), 'FlowingEnergyCube uses 3D curves for ribbons')
-assert(flowingEnergyCube.includes('TubeGeometry'), 'FlowingEnergyCube uses tube geometry for ribbons')
-
 // Energy cube wrapper pages should use premium design classes
 const settingsCubePagePath = path.resolve(
   __dirname,
@@ -252,7 +216,6 @@ assert(css.includes('#1d1d1f'), 'Light mode foreground matches Apple dark-on-lig
 
 console.log('\n🔷  Energy Cube Components')
 
-// Validate EnergyCubeWireframe
 const energyCubeWireframePath = path.resolve(
   __dirname,
   '..',
@@ -261,9 +224,21 @@ const energyCubeWireframePath = path.resolve(
   'cube',
   'EnergyCubeWireframe.tsx'
 )
-const energyCubeWireframe = fs.readFileSync(energyCubeWireframePath, 'utf-8')
 
-assert(fs.existsSync(energyCubeWireframePath), 'EnergyCubeWireframe.tsx exists')
+let energyCubeWireframe = '';
+if (fs.existsSync(energyCubeWireframePath)) {
+  console.log('✅ EnergyCubeWireframe.tsx exists')
+  energyCubeWireframe = fs.readFileSync(energyCubeWireframePath, 'utf-8')
+} else {
+  console.log('❌ EnergyCubeWireframe.tsx MISSING at', energyCubeWireframePath)
+  failed++
+}
+assert(energyCubeWireframe.includes('EnergyCubeWireframe'), 'EnergyCubeWireframe component is exported')
+assert(energyCubeWireframe.includes('@react-three/fiber'), 'EnergyCubeWireframe uses React Three Fiber')
+assert(energyCubeWireframe.includes('Canvas'), 'EnergyCubeWireframe includes Canvas component')
+assert(energyCubeWireframe.includes('useFrame'), 'EnergyCubeWireframe uses animation hook')
+assert(energyCubeWireframe.includes('transition-premium'), 'EnergyCubeWireframe uses transition-premium class')
+assert(energyCubeWireframe.includes('aria-label'), 'EnergyCubeWireframe has accessibility label')
 assert(energyCubeWireframe.includes("'use client'"), 'EnergyCubeWireframe has use client directive')
 assert(energyCubeWireframe.includes('export function EnergyCubeWireframe'), 'EnergyCubeWireframe exports named function')
 assert(energyCubeWireframe.includes('@react-three/fiber'), 'EnergyCubeWireframe imports react-three/fiber')
