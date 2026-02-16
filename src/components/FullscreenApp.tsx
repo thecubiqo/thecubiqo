@@ -91,8 +91,8 @@ export function FullscreenApp({
     setTimeout(() => setRgyPulseColor(null), 500)
   }
 
-  // Load cube size fr xnmrom localStorage
-  useEffect(() => {v 
+  // Load cube size from localStorage
+  useEffect(() => {
     const stored = localStorage.getItem('cubiqo_cube_size')
     if (stored) setCubeSize(parseInt(stored))
   }, [])
