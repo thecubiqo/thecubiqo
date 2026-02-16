@@ -17,7 +17,7 @@ import {
   getProvider,
   validateProvider,
   validateOpenClawConfig
-} from '@/lib/ai'
+} from '../index'
 
 describe('Provider Abstraction', () => {
   // Store original env vars

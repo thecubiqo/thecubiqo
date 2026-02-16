@@ -85,7 +85,7 @@ export function isOpenClawEnabled(): boolean {
  * To enable, set OPENCLAW_API_KEY or OPENROUTER_KEY_CUBIKEY in your environment
  */
 export const OPENCLAW_PROVIDER: ExtendedProviderConfig = {
-  name: 'openclaw' satisfies ExperimentalProvider,
+  name: 'openclaw',
   displayName: 'OpenClaw (via Clawdbot)',
   model: 'emergent-claude/claude-sonnet-4-5',
   maxTokens: 4000,
