@@ -8,7 +8,6 @@ import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { ChatContainer } from '@/components/chat'
 import { CubeScene } from '@/components/cube'
-import { PoweredByLogosCompact } from '@/components/PoweredByLogos'
 import { AdminControls } from '@/components/admin'
 import { JourneyMemoryPrompt } from '@/components/journey'
 import { useSession } from '@/hooks/useSession'
@@ -25,12 +24,12 @@ export default function ChatPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
       {/* Admin Controls */}
       <AdminControls />
       
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 px-4 py-3 bg-zinc-950/90 backdrop-blur-sm border-b border-white/10">
+      <header className="fixed top-0 left-0 right-0 z-50 px-4 py-3 bg-[rgba(10,10,15,0.75)] backdrop-blur-[16px] border-b border-white/[0.06]">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
@@ -41,7 +40,7 @@ export default function ChatPage() {
 
           <Link
             href="/"
-            className="text-xs px-3 py-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/15 transition-colors"
+            className="text-xs px-3 py-2 rounded-lg bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] transition-colors"
           >
             Voice Mode
           </Link>
@@ -78,11 +77,6 @@ export default function ChatPage() {
           </div>
         </div>
         
-        {/* Powered By Logos - Bottom Center */}
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-          <PoweredByLogosCompact isDark={true} />
-        </div>
-
         {/* Journey Memory Prompt */}
         <JourneyMemoryPrompt position="bottom-left" />
       </main>
