@@ -22,4 +22,16 @@ export {
   deleteAccount,
 } from './actions'
 
+export {
+  isFounder,
+  getFeatureAccess,
+  hasFeature,
+  updateUserAccess,
+  getUserAccessState,
+  FOUNDER_ACCESS,
+  type FeatureAccess,
+  type FeatureMetadata,
+  FEATURE_METADATA,
+} from './feature-gate-simple'
+
 export type { AuthResult } from './actions'
