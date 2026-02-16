@@ -8,6 +8,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { CubeScene } from './cube'
 import { ChatContainer } from './chat'
 import { LoginForm, AuthStatus } from './auth'
+import { AuthButton } from './AuthButton.client'
 import { CubeControls, type CubeShape } from './CubeControls'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
@@ -32,13 +33,6 @@ export function CubiQoApp() {
   const [cubeSize, setCubeSize] = useState<number>(1.0)
   const [shapeType, setShapeType] = useState<CubeShape>('energy')
   const [showEyes, setShowEyes] = useState<boolean>(false)
-
-  // Log auth state changes for debugging
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[CubiQoApp] Auth state updated - isAuthenticated:', isAuthenticated, 'userId:', user?.id)
-    }
-  }, [isAuthenticated, user])
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -98,32 +92,17 @@ export function CubiQoApp() {
 
           {/* User Status */}
           <div className="flex items-center gap-3">
-            {isAuthenticated ? (
-              <>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                  {user?.email}
-                </span>
-                <button
-                  onClick={() => signOut()}
-                  className="text-xs px-3 py-1 rounded-md bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-premium"
-                >
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => setShowAuth(!showAuth)}
-                className="text-xs px-3 py-1 rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-premium"
-              >
-                {showAuth ? 'Close' : 'Sign In'}
-              </button>
-            )}
+            <AuthButton
+              onSignInClick={() => setShowAuth(!showAuth)}
+              onUserClick={() => signOut()}
+              isDark={false}
+            />
           </div>
         </div>
 
         {/* Auth Panel (collapsible) */}
         {showAuth && !isAuthenticated && (
-          <div className="mb-4 p-4 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 premium-card">
+          <div className="mb-4 p-4 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <h3 className="text-sm font-medium text-zinc-900 dark:text-white mb-2">
