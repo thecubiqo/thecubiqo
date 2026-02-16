@@ -73,6 +73,7 @@ export function useChat(options: UseChatOptions) {
 
   // Use a promise ref to dedup initialization calls
   const initPromiseRef = useRef<Promise<string | null> | null>(null)
+  const conversationIdRef = useRef<string | null>(null)
 
   const [state, setState] = useState<ChatState>({
     isLoading: false,
@@ -83,10 +84,15 @@ export function useChat(options: UseChatOptions) {
     isInitialized: false
   })
 
+  // Keep ref in sync with state
+  useEffect(() => {
+    conversationIdRef.current = state.conversationId
+  }, [state.conversationId])
+
   const ensureConversation = useCallback(async (currentSessionId: string): Promise<string | null> => {
     // If we already have a conversation for this session, return it
-    if (state.conversationId && lastSessionIdRef.current === currentSessionId) {
-      return state.conversationId
+    if (conversationIdRef.current && lastSessionIdRef.current === currentSessionId) {
+      return conversationIdRef.current
     }
 
     // If verification/creation is in progress, return the existing promise
@@ -228,7 +234,7 @@ export function useChat(options: UseChatOptions) {
 
     initPromiseRef.current = init()
     return initPromiseRef.current
-  }, [state.conversationId, isGuest, supabase, onColorChange])
+  }, [isGuest, supabase, onColorChange])
 
 
   // Trigger initialization when sessionId changes
