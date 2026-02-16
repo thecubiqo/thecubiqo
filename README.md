@@ -95,6 +95,61 @@ ELEVENLABS_API_KEY=your_key_here
 - **Styling:** Tailwind CSS
 - **Deployment:** Vercel
 
+<<<<<<< HEAD
+=======
+## 🎨 Visual Regression Testing with Chromatic
+
+CubiQo uses [Chromatic](https://www.chromatic.com) for automated visual regression testing. This ensures that UI changes are intentional and don't introduce visual bugs.
+
+### Running Storybook Locally
+
+```bash
+# Start Storybook development server
+npm run storybook
+
+# Build Storybook for production
+npm run build-storybook
+
+# Run Chromatic tests
+npm run chromatic
+```
+
+Storybook will be available at [http://localhost:6006](http://localhost:6006).
+
+### How Chromatic Works
+
+1. **On every PR**, Chromatic automatically:
+   - Captures screenshots of all UI components
+   - Compares them with the baseline (main branch)
+   - Posts visual diff results to the PR
+
+2. **Review visual changes** directly in the PR:
+   - Click on the Chromatic check in the PR
+   - Review any visual differences
+   - Accept or reject changes
+
+3. **On merge to main**, accepted changes become the new baseline
+
+### Setting Up Chromatic (for maintainers)
+
+If you're setting up a new Chromatic project:
+
+1. Go to [chromatic.com](https://www.chromatic.com) and sign in with GitHub
+2. Create a new project and link it to this repository
+3. Copy your project token
+4. Add it to GitHub repository secrets:
+   - Go to Settings → Secrets and variables → Actions
+   - Click "New repository secret"
+   - Name: `CHROMATIC_PROJECT_TOKEN`
+   - Value: (paste your token)
+
+The GitHub Actions workflow will automatically run on all PRs.
+
+### Component Stories
+
+Stories are located in `src/components/stories/`. Each key UI component has a story that showcases its different states and variations.
+
+>>>>>>> c8de4e6
 ## 🤝 Contributing
 
 We welcome contributions! Please:

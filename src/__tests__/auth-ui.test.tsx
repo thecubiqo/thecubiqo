@@ -5,6 +5,11 @@
  * 1. The Sign In button is shown for unauthenticated users
  * 2. After auth state change, the user avatar replaces the Sign In button
  *    without a full page refresh (reactive via onAuthStateChange)
+<<<<<<< HEAD
+=======
+ * 3. Non-standard auth events without session still resolve loading state
+ * 4. Safety timeout resolves loading if onAuthStateChange never fires
+>>>>>>> c8de4e6
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -20,18 +25,31 @@ type AuthCallback = (event: string, session: AuthSession) => void
 /** Simulated current session — new subscribers receive it immediately */
 let currentSession: AuthSession = null
 let listeners: AuthCallback[] = []
+<<<<<<< HEAD
+=======
+/** Controls whether onAuthStateChange fires the initial event */
+let suppressInitialEvent = false
+>>>>>>> c8de4e6
 
 function simulateSignIn(user: { id: string; email: string }) {
   currentSession = { user }
   listeners.forEach(cb => cb('SIGNED_IN', currentSession))
 }
 
+<<<<<<< HEAD
+=======
+function simulateAuthEvent(event: string, session: AuthSession) {
+  listeners.forEach(cb => cb(event, session))
+}
+
+>>>>>>> c8de4e6
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
     auth: {
       onAuthStateChange: (cb: AuthCallback) => {
         listeners.push(cb)
         // Deliver current state to new subscriber asynchronously
+<<<<<<< HEAD
         const session = currentSession
         Promise.resolve().then(() => {
           if (session) {
@@ -40,6 +58,18 @@ vi.mock('@/lib/supabase/client', () => ({
             cb('INITIAL_SESSION', null)
           }
         })
+=======
+        if (!suppressInitialEvent) {
+          const session = currentSession
+          Promise.resolve().then(() => {
+            if (session) {
+              cb('INITIAL_SESSION', session)
+            } else {
+              cb('INITIAL_SESSION', null)
+            }
+          })
+        }
+>>>>>>> c8de4e6
         return {
           data: {
             subscription: {
@@ -79,6 +109,10 @@ describe('AuthButton smoke test', () => {
   beforeEach(() => {
     currentSession = null
     listeners = []
+<<<<<<< HEAD
+=======
+    suppressInitialEvent = false
+>>>>>>> c8de4e6
   })
 
   it('shows Sign In button when user is not authenticated', async () => {
@@ -120,4 +154,43 @@ describe('AuthButton smoke test', () => {
     // Username portion should be visible
     expect(screen.getByText('alice')).toBeInTheDocument()
   })
+<<<<<<< HEAD
+=======
+
+  it('shows Sign In when non-standard auth event fires without session', async () => {
+    render(<TestApp />)
+
+    // Fire a TOKEN_REFRESHED event with no session (instead of INITIAL_SESSION)
+    // Previously this would leave isLoading stuck at true forever
+    await act(async () => {
+      simulateAuthEvent('TOKEN_REFRESHED', null)
+      await new Promise(r => setTimeout(r, 10))
+    })
+
+    // Should show Sign In button (not stuck on loading)
+    await waitFor(() => {
+      expect(screen.getByTestId('sign-in-button')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByTestId('auth-button-loading')).not.toBeInTheDocument()
+  })
+
+  it('falls back to Sign In after timeout if onAuthStateChange never fires', async () => {
+    // Suppress the initial event to simulate Supabase being unreachable
+    suppressInitialEvent = true
+
+    render(<TestApp />)
+
+    // Initially should show loading state
+    expect(screen.getByTestId('auth-button-loading')).toBeInTheDocument()
+    expect(screen.queryByTestId('sign-in-button')).not.toBeInTheDocument()
+
+    // Wait for the 4-second safety timeout to resolve loading
+    await waitFor(() => {
+      expect(screen.getByTestId('sign-in-button')).toBeInTheDocument()
+    }, { timeout: 6000 })
+
+    expect(screen.queryByTestId('auth-button-loading')).not.toBeInTheDocument()
+  }, 10000) // Increase test timeout to 10s for this test
+>>>>>>> c8de4e6
 })

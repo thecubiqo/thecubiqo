@@ -15,7 +15,14 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:self-heal": "tsx test-self-heal.ts",
+<<<<<<< HEAD
     "test:visual-smoke": "tsx scripts/visual-smoke-test.ts"
+=======
+    "test:visual-smoke": "tsx scripts/visual-smoke-test.ts",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "chromatic": "chromatic --exit-zero-on-changes"
+>>>>>>> c8de4e6
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.70.1",
@@ -50,24 +57,50 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+<<<<<<< HEAD
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/jest-dom": "^6.9.1",
+=======
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/addon-interactions": "^8.6.14",
+    "@storybook/react": "^8.6.15",
+    "@storybook/react-vite": "^8.6.15",
+    "@storybook/test": "^8.6.15",
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+>>>>>>> c8de4e6
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.181.0",
+<<<<<<< HEAD
     "@vitest/ui": "^4.0.18",
     "@vitejs/plugin-react": "^5.1.4",
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
     "jsdom": "^28.0.0",
+=======
+    "@vitejs/plugin-react": "^5.1.4",
+    "@vitest/ui": "^4.0.18",
+    "chromatic": "^15.1.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.3",
+    "jsdom": "^28.0.0",
+    "storybook": "^8.6.15",
+>>>>>>> c8de4e6
     "tailwindcss": "^4",
     "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.0.18"
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> c8de4e6

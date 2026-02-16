@@ -1,15 +1,36 @@
 # Dependencies
 node_modules/
+<<<<<<< HEAD
+=======
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+>>>>>>> c8de4e6
 
 # Environment variables
 .env
 .env.local
 .env.production
+<<<<<<< HEAD
+=======
+.env*.local
+>>>>>>> c8de4e6
 !.env.example
 
 # Build output
 dist/
 build/
+<<<<<<< HEAD
+=======
+/build
+/.next/
+/out/
+>>>>>>> c8de4e6
 
 # Editor
 .vscode/
@@ -25,6 +46,12 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+<<<<<<< HEAD
+=======
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+>>>>>>> c8de4e6
 
 # Vercel
 .vercel
@@ -33,6 +60,7 @@ npm-debug.log*
 idea.md
 *.confidential.md
 DEVELOPMENT-LOG.md
+<<<<<<< HEAD
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -44,10 +72,13 @@ DEVELOPMENT-LOG.md
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+=======
+>>>>>>> c8de4e6
 
 # testing
 /coverage
 
+<<<<<<< HEAD
 # next.js
 /.next/
 /out/
@@ -159,3 +190,17 @@ frontend/node_modules/.cache/default-development/0.pack
 # self-heal artifacts
 self-heal-artifacts/
 >>>>>>> origin/copilot/add-daily-self-heal-job
+=======
+# misc
+*.pem
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# self-heal artifacts
+self-heal-artifacts/
+
+# Storybook
+storybook-static/
+>>>>>>> c8de4e6
