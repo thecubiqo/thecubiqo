@@ -116,6 +116,107 @@ Open source under MIT License. See `LICENSE` file for details.
 - **Journal entries** encrypted and owned by user
 - **Open source** - audit the code yourself
 
+## 🚀 Founders Pass — Admin Portal & Feature Flags
+
+Founders Pass is a built-in admin portal for managing feature flags, sites, OAuth integrations, and action templates across CubiQo-powered storefronts.
+
+### Architecture
+
+- **Admin Portal** — `/founders-pass` — Dashboard, flag management, site generator, integrations panel, action templates builder, audit log
+- **Feature Flags** — Per-organization, per-site, and per-user toggles stored in Supabase with 5-second cache TTL
+- **OAuth Integrations** — Gmail, Shopify, Printify, Printful, Stripe, Uber with AES-256-GCM token encryption
+- **Actions Cards** — AI-generated action cards requiring explicit user confirmation before any side-effect
+- **Preview Mode** — Query param (`?fp_preview=flag:1`) or cookie-based preview with shareable URLs
+- **Site Generator** — "Launch Site" button that creates a new site record and preview URL
+- **User Feature Panel** — Side panel on storefront sites showing enabled integrations and OAuth connect buttons
+
+### Quick Start
+
+```bash
+git clone https://github.com/thecubiqo/thecubiqo.git
+cd thecubiqo
+npm install        # or: pnpm install
+npm run dev        # Start dev server at http://localhost:3000
+npm test           # Run unit tests (Jest)
+npm run build && npm start  # Production build
+```
+
+### Founders Pass Routes
+
+| Route | Description |
+|-------|-------------|
+| `/founders-pass` | Admin dashboard |
+| `/founders-pass/flags` | Feature flags CRUD |
+| `/founders-pass/sites` | Sites management + Launch Site generator |
+| `/founders-pass/integrations` | OAuth provider configuration |
+| `/founders-pass/actions` | Action templates builder |
+| `/founders-pass/audit` | Audit log viewer |
+| `/sites/[slug]` | User-facing site with feature panel |
+| `/sites/vollebak-replica` | Demo site |
+
+### API Endpoints
+
+| Endpoint | Methods | Description |
+|----------|---------|-------------|
+| `/api/founders-pass/flags` | GET, POST, PUT, DELETE | Feature flags CRUD |
+| `/api/founders-pass/flags/overrides` | GET, POST | Per-site/per-user flag overrides |
+| `/api/founders-pass/sites` | GET, POST, PUT, DELETE | Sites CRUD |
+| `/api/founders-pass/actions` | GET, POST, PUT | Action templates CRUD |
+| `/api/founders-pass/integrations` | GET, POST | Integration configs per site |
+| `/api/founders-pass/audit` | GET | Audit log |
+| `/api/founders-pass/events` | GET, POST | Analytics events |
+| `/api/founders-pass/preview` | GET, POST, DELETE | Preview mode management |
+| `/api/founders-pass/oauth/callback` | GET | OAuth callback handler |
+| `/api/founders-pass/generator` | POST | Site generator |
+| `/api/founders-pass/health` | GET | Health check endpoint |
+
+### Database Migration
+
+Run the Founders Pass migration after the initial schema:
+
+```bash
+supabase db push
+# Or manually run: supabase/migrations/20260215000001_founders_pass_schema.sql
+```
+
+Tables created: `sites`, `feature_flags`, `flag_overrides`, `oauth_tokens`, `action_templates`, `audit_log`, `feature_events`, `integration_configs`
+
+### Configuring OAuth Clients
+
+Set these environment variables in `.env.local` (dev) or Vercel (production):
+
+```env
+OAUTH_ENCRYPTION_KEY=<32-byte-hex-key>
+GMAIL_CLIENT_ID=<google-oauth-client-id>
+GMAIL_CLIENT_SECRET=<google-oauth-client-secret>
+# ... same pattern for SHOPIFY, PRINTIFY, PRINTFUL, STRIPE, UBER
+```
+
+Generate an encryption key:
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+### Acceptance Test
+
+1. Navigate to `/founders-pass`, create a flag `gmail_read` and enable it
+2. Go to `/founders-pass/sites`, click "Launch Site" to create `vollebak-replica`
+3. Visit `/sites/vollebak-replica` — see Gmail integration in the side panel
+4. Click "Connect Gmail" to initiate the OAuth flow
+5. View audit log at `/founders-pass/audit` to verify all actions are logged
+
+### Deploy to Vercel
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel --prod
+```
+
+Set environment variables in Vercel dashboard: Supabase credentials, OAuth client IDs/secrets, and `OAUTH_ENCRYPTION_KEY`.
+
 ## 🌟 Roadmap
 
 - [ ] Rozana confession room experience
