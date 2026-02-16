@@ -82,7 +82,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     let resolved = false
 
     // Safety timeout: if onAuthStateChange never fires (e.g. Supabase unreachable),
-    // stop showing the loading state and fall back to guest after 4 seconds
+    // stop showing the loading state and fall back to guest after a short delay
+    const AUTH_TIMEOUT_MS = 4000
     const timeout = setTimeout(() => {
       if (!resolved) {
         if (process.env.NODE_ENV === 'development') {
@@ -101,7 +102,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           return prev
         })
       }
-    }, 4000)
+    }, AUTH_TIMEOUT_MS)
 
     // Set up auth state listener - this handles all auth events including initial load
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
