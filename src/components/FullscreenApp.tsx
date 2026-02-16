@@ -91,8 +91,8 @@ export function FullscreenApp({
     setTimeout(() => setRgyPulseColor(null), 500)
   }
 
-  // Load cube size from localStorage
-  useEffect(() => {
+  // Load cube size fr xnmrom localStorage
+  useEffect(() => {v 
     const stored = localStorage.getItem('cubiqo_cube_size')
     if (stored) setCubeSize(parseInt(stored))
   }, [])
@@ -115,7 +115,7 @@ export function FullscreenApp({
     }
 
     // If feature flag is disabled (and not forced), don't show
-    if (!showParticleLanding) return;
+   if (!showParticleLanding && !forceLanding) return;
 
     const LANDING_STORAGE_KEY = 'cubiqo_last_landing'
     const HOURS_THRESHOLD = 4
