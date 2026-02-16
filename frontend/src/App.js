@@ -67,10 +67,17 @@ const LandingPage = () => {
   );
 };
 
-// Demo App Page - Shows CubiQoVisual component integration
+// Main App Page - CubiQoVisual in center, original CubiQo layout around it
 const DemoPage = () => {
   const [speakerEnabled, setSpeakerEnabled] = useState(false);
-  const [aiState, setAiState] = useState('neutral');
+  
+  // AI state is driven by speaker toggle:
+  // Speaker off → neutral (waves), Speaker on → listening (cuboid morph)
+  const aiState = speakerEnabled ? 'listening' : 'neutral';
+
+  const handleSpeakerToggle = () => {
+    setSpeakerEnabled(prev => !prev);
+  };
   
   return (
     <div 
@@ -124,15 +131,19 @@ const DemoPage = () => {
       
       {/* Main Content */}
       <div style={{ flex: 1, display: 'flex', position: 'relative' }}>
-        {/* Left - Sample prompts */}
+        {/* Left - Scrolling AI prompts */}
         <div style={{
           width: '280px',
           padding: '40px 30px',
           display: 'flex',
           flexDirection: 'column',
           gap: 25,
+          overflow: 'hidden',
         }}>
           {[
+            '"What\'s a good book for understanding psychology?"',
+            '"Help me plan a weekend trip to Paris"',
+            '"I need motivation to start working out"',
             '"Explain quantum computing like I\'m five"',
             '"Best restaurants in Brooklyn?"',
             '"How do I learn Spanish fast?"',
@@ -153,7 +164,7 @@ const DemoPage = () => {
           ))}
         </div>
         
-        {/* Center - CubiQoVisual Component */}
+        {/* Center - CubiQoVisual Component (the central design) */}
         <div style={{ 
           flex: 1, 
           display: 'flex', 
@@ -162,7 +173,6 @@ const DemoPage = () => {
           justifyContent: 'center',
           position: 'relative'
         }}>
-          {/* The standalone visual component */}
           <div style={{ 
             width: '600px', 
             height: '450px',
@@ -173,52 +183,9 @@ const DemoPage = () => {
               aiState={aiState}
             />
           </div>
-          
-          {/* Speaker button */}
-          <div style={{
-            marginTop: 30,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 12,
-          }}>
-            <button
-              data-testid="speaker-toggle-btn"
-              onClick={() => setSpeakerEnabled(!speakerEnabled)}
-              style={{
-                width: 60,
-                height: 60,
-                borderRadius: '50%',
-                border: speakerEnabled ? '2px solid #ff6b35' : '2px solid rgba(255,255,255,0.2)',
-                background: speakerEnabled ? 'rgba(255, 107, 53, 0.2)' : 'rgba(255,255,255,0.05)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.3s ease',
-              }}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" 
-                stroke={speakerEnabled ? '#ff6b35' : 'rgba(255,255,255,0.5)'} strokeWidth="1.5">
-                <path d="M11 5L6 9H2v6h4l5 4V5z"/>
-                {speakerEnabled && (
-                  <>
-                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-                  </>
-                )}
-              </svg>
-            </button>
-            <span style={{
-              color: speakerEnabled ? '#ff6b35' : 'rgba(255,255,255,0.4)',
-              fontSize: '0.85rem',
-            }}>
-              {speakerEnabled ? 'Listening...' : 'Enable'}
-            </span>
-          </div>
         </div>
         
-        {/* Right - AI State Controls & Indicators */}
+        {/* Right - RGY signal dots & Keywords */}
         <div style={{
           width: '200px',
           padding: '40px 30px',
@@ -226,54 +193,77 @@ const DemoPage = () => {
           flexDirection: 'column',
           gap: 20,
         }}>
-          {/* AI State buttons */}
-          <div style={{ marginBottom: 20 }}>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginBottom: 10, letterSpacing: 1 }}>
-              AI STATE
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {['neutral', 'thinking', 'speaking', 'listening', 'error'].map((state) => (
-                <button
-                  key={state}
-                  data-testid={`state-btn-${state}`}
-                  onClick={() => setAiState(state)}
-                  style={{
-                    padding: '8px 12px',
-                    background: aiState === state ? 'rgba(0, 212, 255, 0.2)' : 'rgba(255,255,255,0.05)',
-                    border: aiState === state ? '1px solid #00d4ff' : '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 6,
-                    color: aiState === state ? '#00d4ff' : 'rgba(255,255,255,0.5)',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem',
-                    textTransform: 'capitalize',
-                    textAlign: 'left',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  {state}
-                </button>
-              ))}
-            </div>
+          {/* RGY Signal Dots */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            {['#ef4444', '#22c55e', '#eab308'].map((color, i) => (
+              <div key={i} style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: color,
+                boxShadow: `0 0 8px ${color}60`,
+              }} />
+            ))}
           </div>
           
-          {/* Color indicators */}
-          <div>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginBottom: 10, letterSpacing: 1 }}>
-              KEYWORDS
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
-              {['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4'].map((color, i) => (
-                <div key={i} style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: '50%',
-                  background: color,
-                  boxShadow: `0 0 10px ${color}40`,
-                }} />
-              ))}
-            </div>
-          </div>
+          {/* Keywords button */}
+          <button style={{
+            padding: '8px 16px',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 6,
+            color: 'rgba(255,255,255,0.5)',
+            cursor: 'pointer',
+            fontSize: '0.8rem',
+            textAlign: 'left',
+            transition: 'all 0.2s ease',
+          }}>
+            Keywords
+          </button>
         </div>
+      </div>
+      
+      {/* Speaker button - centered at bottom of main content */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 10,
+        padding: '15px 0',
+      }}>
+        <button
+          data-testid="speaker-toggle-btn"
+          onClick={handleSpeakerToggle}
+          style={{
+            width: 60,
+            height: 60,
+            borderRadius: '50%',
+            border: speakerEnabled ? '2px solid #ff6b35' : '2px solid rgba(255,255,255,0.2)',
+            background: speakerEnabled ? 'rgba(255, 107, 53, 0.2)' : 'rgba(255,255,255,0.05)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.3s ease',
+          }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" 
+            stroke={speakerEnabled ? '#ff6b35' : 'rgba(255,255,255,0.5)'} strokeWidth="1.5">
+            <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+            {speakerEnabled && (
+              <>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              </>
+            )}
+          </svg>
+        </button>
+        <span style={{
+          color: speakerEnabled ? '#ff6b35' : 'rgba(255,255,255,0.4)',
+          fontSize: '0.85rem',
+        }}>
+          {speakerEnabled ? 'Listening...' : 'Enable'}
+        </span>
       </div>
       
       {/* Footer */}
@@ -288,12 +278,13 @@ const DemoPage = () => {
       }}>
         <div style={{ display: 'flex', gap: 20 }}>
           <span style={{ cursor: 'pointer' }}>⚙️ Settings</span>
-          <span style={{ cursor: 'pointer' }}>💻 Dev Panel</span>
           <span style={{ cursor: 'pointer' }}>👤 Sign In</span>
         </div>
         <div>
           All conversations are confidential. CubiQo never retains user voice by policy.
           <span style={{ marginLeft: 10, color: '#06b6d4', cursor: 'pointer' }}>Try BYO Mode</span>
+          <span style={{ marginLeft: 5 }}>— Your data · Your storage · Your API key</span>
+          <span style={{ marginLeft: 5 }}>· © 2025 Cubiqo United Inc.</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
           <span>Powered by <strong style={{ color: '#fff' }}>Claude</strong></span>
