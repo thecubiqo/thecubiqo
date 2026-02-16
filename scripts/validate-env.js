@@ -135,6 +135,42 @@ function validateAIKeys(env) {
   }
 }
 
+function validateOpenClaw(env) {
+  header('OpenClaw Integration (Optional - Advanced)');
+  
+  const openClawKey = env.OPENCLAW_API_KEY || env.OPENROUTER_KEY_CUBIKEY;
+  const openClawUrl = env.OPENCLAW_BASE_URL;
+  
+  if (openClawKey && openClawKey !== '' && !openClawKey.includes('placeholder')) {
+    log('✓ OpenClaw API Key - SET', 'green');
+    
+    if (openClawUrl && openClawUrl !== '') {
+      if (openClawUrl.startsWith('http://') || openClawUrl.startsWith('https://')) {
+        log(`✓ OpenClaw Base URL - SET (${openClawUrl})`, 'green');
+      } else {
+        log(`✗ OpenClaw Base URL - INVALID (must start with http:// or https://)`, 'red');
+      }
+    } else {
+      log('○ OpenClaw Base URL - NOT SET (will default to http://localhost:18789)', 'yellow');
+      
+      if (env.NODE_ENV === 'production') {
+        log('⚠ Warning: Production mode requires explicit OPENCLAW_BASE_URL', 'yellow');
+      }
+    }
+    
+    log('', 'reset');
+    log('ℹ OpenClaw enables enhanced AI capabilities via Clawdbot', 'blue');
+    log('  See docs/SPARK_AI_COMPARISON.md for details', 'blue');
+  } else {
+    log('○ OpenClaw - NOT CONFIGURED (disabled by default)', 'yellow');
+    log('', 'reset');
+    log('To enable OpenClaw:', 'cyan');
+    log('  1. Set OPENCLAW_API_KEY or OPENROUTER_KEY_CUBIKEY in .env.local', 'cyan');
+    log('  2. Set OPENCLAW_BASE_URL to your Clawdbot instance', 'cyan');
+    log('  3. See docs/SPARK_AI_COMPARISON.md for setup guide', 'cyan');
+  }
+}
+
 function validateDeployment(env) {
   header('Deployment Configuration');
   
@@ -175,6 +211,7 @@ function main() {
   // Run validations
   const supabaseValid = validateSupabase(env);
   validateAIKeys(env);
+  validateOpenClaw(env);
   validateDeployment(env);
   
   // Summary
