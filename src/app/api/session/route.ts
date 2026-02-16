@@ -2,12 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 // Server-side Supabase client with service role (bypasses RLS)
-// Support both old and new env var names (fallback pattern)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+
+// DEBUG: Check for valid config
+const isConfigured = supabaseUrl !== 'https://placeholder.supabase.co' && supabaseServiceKey !== 'placeholder-key' && supabaseServiceKey.length > 20
+
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
 export async function POST(req: NextRequest) {
+  if (!isConfigured) {
+    console.error('[API/session] Critical Error: SUPABASE_SERVICE_ROLE_KEY is missing or invalid in Environment Variables.')
+    return NextResponse.json({
+      error: 'Server Configuration Error: Missing SUPABASE_SERVICE_ROLE_KEY. Please verify Vercel Environment Variables.'
+    }, { status: 500 })
+  }
+
   try {
     const body = await req.json()
     const { action, userId, email, sessionId, deviceInfo, conversationId } = body
