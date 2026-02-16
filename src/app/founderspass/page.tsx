@@ -66,7 +66,7 @@ export default function FoundersPassPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950 text-white">
       <PreviewModeBanner />
-      
+
       <div className="max-w-4xl mx-auto p-8 pt-16">
         {/* Header */}
         <div className="text-center mb-12">
@@ -139,37 +139,49 @@ export default function FoundersPassPage() {
             {/* User Panel */}
             <UserPanel permissions={gmailPermissions} />
 
+            {/* Dashboard Link */}
+            <div className="bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 rounded-2xl p-6 flex flex-col items-center text-center">
+              <h3 className="text-xl font-bold mb-2">🚀 Global Control Center</h3>
+              <p className="text-gray-400 mb-4 text-sm">
+                Manage feature gates, view live activity, and monitor system stats.
+              </p>
+              <a
+                href="/founderspass/dashboard"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold transition-all transform hover:scale-105"
+              >
+                <span>Open Advanced Dashboard</span>
+                <span>→</span>
+              </a>
+            </div>
+
             {/* Feature Flags Info */}
             <div className="bg-gray-900/50 border border-gray-700 rounded-2xl p-6">
               <h3 className="text-xl font-bold mb-4">🎯 Feature Flags Status</h3>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300">Founders Pass</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    flags.founders_pass_enabled
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${flags.founders_pass_enabled
                       ? 'bg-green-500/20 text-green-400'
                       : 'bg-gray-700 text-gray-400'
-                  }`}>
+                    }`}>
                     {flags.founders_pass_enabled ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300">Gmail Read Access</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    flags.gmail_read_access
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${flags.gmail_read_access
                       ? 'bg-green-500/20 text-green-400'
                       : 'bg-gray-700 text-gray-400'
-                  }`}>
+                    }`}>
                     {flags.gmail_read_access ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300">Gmail Write Access</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    flags.gmail_write_access
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${flags.gmail_write_access
                       ? 'bg-green-500/20 text-green-400'
                       : 'bg-gray-700 text-gray-400'
-                  }`}>
+                    }`}>
                     {flags.gmail_write_access ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>

@@ -13,7 +13,7 @@ export interface Agent {
 }
 
 export interface ModelConfig {
-  provider: 'anthropic' | 'openai' | 'meta' | 'mistral' | 'google' | 'emergent';
+  provider: 'anthropic' | 'openai' | 'groq' | 'google' | 'openrouter' | 'emergent' | 'mistral' | 'meta';
   model: string;
   apiKey?: string;
   baseUrl?: string;

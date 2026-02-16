@@ -164,11 +164,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <link rel="canonical" href="https://www.cubiqo.ai" />
-        
+
         {/* JSON-LD Structured Data */}
         <script
           type="application/ld+json"

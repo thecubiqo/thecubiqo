@@ -189,30 +189,55 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}) {
 
     window.speechSynthesis.cancel()
 
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'en-US'
-    utterance.rate = 0.92
-    utterance.pitch = 1.05
-    utterance.volume = 1
+    const speakText = () => {
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = 'en-US'
+      utterance.rate = 0.92
+      utterance.pitch = 1.05
+      utterance.volume = 1
 
-    utterance.onstart = () => {
-      setState(prev => ({ ...prev, isSpeaking: true, isLoading: false, usingFallback: true }))
-      onStart?.()
+      utterance.onstart = () => {
+        setState(prev => ({ ...prev, isSpeaking: true, isLoading: false, usingFallback: true }))
+        onStart?.()
+      }
+
+      utterance.onend = () => {
+        setState(prev => ({ ...prev, isSpeaking: false }))
+        onEnd?.()
+      }
+
+      utterance.onerror = () => {
+        const error = 'Browser speech error'
+        setState(prev => ({ ...prev, isSpeaking: false, isLoading: false, error }))
+        onError?.(error)
+      }
+
+      utteranceRef.current = utterance
+      window.speechSynthesis.speak(utterance)
     }
 
-    utterance.onend = () => {
-      setState(prev => ({ ...prev, isSpeaking: false }))
-      onEnd?.()
-    }
+    // Check if voices are loaded
+    const voices = window.speechSynthesis.getVoices()
+    if (voices.length === 0) {
+      // Wait for voices to load with timeout
+      let voicesLoaded = false
+      const timeout = setTimeout(() => {
+        if (!voicesLoaded) {
+          console.warn('[TTS] Voice loading timeout, proceeding anyway')
+          speakText()
+        }
+      }, 2000)
 
-    utterance.onerror = () => {
-      const error = 'Browser speech error'
-      setState(prev => ({ ...prev, isSpeaking: false, isLoading: false, error }))
-      onError?.(error)
+      window.speechSynthesis.addEventListener('voiceschanged', () => {
+        if (!voicesLoaded) {
+          voicesLoaded = true
+          clearTimeout(timeout)
+          speakText()
+        }
+      }, { once: true })
+    } else {
+      speakText()
     }
-
-    utteranceRef.current = utterance
-    window.speechSynthesis.speak(utterance)
   }, [onStart, onEnd, onError])
 
   const speak = useCallback(async (text: string) => {

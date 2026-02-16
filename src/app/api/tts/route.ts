@@ -19,8 +19,8 @@ import { getVoiceSettings, type VoiceMood } from '@/lib/voice-modulation'
 // ElevenLabs API configuration - using STREAMING endpoint for faster playback
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech'
 
-// Default voice - "Daniel" (British, husky, butler-like)
-const DEFAULT_VOICE_ID = 'onwK4e9ZLuTAKqWW03F9'
+// Default voice - "Adam" (warm, smooth, versatile) - matches frontend
+const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'
 
 // Rate limiting: Track requests per session
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()

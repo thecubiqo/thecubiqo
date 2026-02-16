@@ -34,8 +34,7 @@ CubiQo is a production-ready, multi-modal AI companion featuring:
 
 - **Next.js 16 App Router** - React framework with server components
 - **Supabase** - PostgreSQL database with Row Level Security (RLS)
-- **Multi-Provider AI** - MiniMax (primary), Claude, OpenAI with intelligent fallback
-- **Emergent Universal API** - Unified AI routing for admin deployments
+- **Multi-Provider AI** - MiniMax (primary), Mixtral, Llama, Claude Haiku with intelligent routing
 - **Voice Modulation** - Madhyama marg philosophy for natural voice synthesis
 - **BYO Keys Mode** - Public users bring their own API keys
 - **Dual Deployment** - Prod-A (admin) and Prod-B (public) configurations
@@ -79,7 +78,7 @@ CubiQo deploys to two separate environments from a single codebase:
 │ ✅ Analytics       │  │ ❌ No Analytics    │
 │ ✅ User Mgmt       │  │ ❌ No User Mgmt    │
 │ ✅ Unlimited       │  │ ✅ Rate Limited    │
-│ ✅ Emergent API    │  │ ❌ Direct Providers│
+│ ✅ Multi AI Providers│  │ ❌ Direct Providers│
 └────────────────────┘  └────────────────────┘
          │                       │
          └───────────┬───────────┘
@@ -101,9 +100,9 @@ CubiQo deploys to two separate environments from a single codebase:
 **Domain:** `admin.cubiqo.com` (or `a.cubiqo.com`)
 
 **Key Features:**
-- **Emergent Universal API Integration**: All AI requests route through unified endpoint
+- **Multi-Provider AI Integration**: All AI requests route through provider chain
 - **Admin Dashboard**: User management, analytics, spending monitoring
-- **API Key Management**: Configure Anthropic, OpenAI, ElevenLabs, MiniMax
+- **API Key Management**: Configure MiniMax, Mistral, Together, Anthropic, ElevenLabs
 - **Browser Automation**: Headless Chrome controls (if implemented)
 - **Supabase Admin**: Full database access
 - **No Limits**: Unlimited API usage, no rate limiting
@@ -111,7 +110,6 @@ CubiQo deploys to two separate environments from a single codebase:
 **Environment Flags:**
 ```env
 NEXT_PUBLIC_ADMIN_MODE=true
-NEXT_PUBLIC_USE_EMERGENT=true
 NEXT_PUBLIC_SHOW_API_MANAGEMENT=true
 NEXT_PUBLIC_SHOW_ANALYTICS=true
 NEXT_PUBLIC_SHOW_USER_MANAGEMENT=true
@@ -121,9 +119,9 @@ NEXT_PUBLIC_SHOW_USER_MANAGEMENT=true
 ```
 User Request
      ↓
-Emergent Universal API
+Multi-Provider AI Routing
      ↓
-Provider Selection (MiniMax → Claude → OpenAI)
+Provider Selection (MiniMax → Mixtral → Llama → Claude)
      ↓
 Response + Spending Tracking
 ```
@@ -144,7 +142,6 @@ Response + Spending Tracking
 **Environment Flags:**
 ```env
 NEXT_PUBLIC_ADMIN_MODE=false
-NEXT_PUBLIC_USE_EMERGENT=false
 NEXT_PUBLIC_BYO_KEYS_MODE=true
 NEXT_PUBLIC_RATE_LIMIT_ENABLED=true
 NEXT_PUBLIC_MAX_REQUESTS_PER_HOUR=100
@@ -155,7 +152,7 @@ NEXT_PUBLIC_MAX_SPENDING_PER_DAY=10
 ```
 User Request + BYO API Keys (from localStorage)
      ↓
-Headers: x-byo-claude-key, x-byo-openai-key
+Headers: x-byo-minimax-key, x-byo-mistral-key, x-byo-together-key, x-byo-claude-key
      ↓
 Direct Provider API Calls
      ↓
@@ -166,7 +163,7 @@ Response (user's cost, not ours)
 
 | Feature | Prod-A (Admin) | Prod-B (Public) |
 |---------|----------------|-----------------|
-| **AI Chat** | ✅ Unified keys via Emergent | ✅ BYO keys required |
+| **AI Chat** | ✅ Unified keys | ✅ BYO keys required |
 | **Voice TTS** | ✅ Unlimited (our key) | ✅ Rate limited (BYO or shared) |
 | **Admin Dashboard** | ✅ Full access | ❌ Hidden |
 | **API Management** | ✅ Configure all providers | ❌ Not available |
@@ -234,9 +231,9 @@ Backend:
 
 AI Providers:
   - MiniMax M2 (primary, fastest)
-  - Claude Haiku 4.5 (fallback, high quality)
-  - OpenAI GPT-5.1 (tertiary fallback)
-  - Emergent Universal API (admin unified routing)
+  - Mixtral (Mistral API fallback)
+  - Llama (Together API secondary fallback)
+  - Claude Haiku (final fallback)
 
 Voice:
   - ElevenLabs TTS (Daniel voice - British, husky)
@@ -292,11 +289,13 @@ Deployment:
 │     SUPABASE        │  │              AI PROVIDERS                    │
 │                     │  │                                               │
 │  ┌───────────────┐  │  │  ┌─────────────────┐  ┌─────────────────┐   │
-│  │   PostgreSQL  │  │  │  │  Anthropic API  │  │   OpenAI API    │   │
-│  │  - profiles   │  │  │  │  Claude Haiku   │  │    GPT-5.1      │   │
-│  │  - sessions   │  │  │  │   (primary)     │  │   (red zone)    │   │
+│  │   PostgreSQL  │  │  │  │  MiniMax API    │  │   Mistral API   │   │
+│  │  - profiles   │  │  │  │  (M2 primary)   │  │   (Mixtral)     │   │
+│  │  - sessions   │  │  │  │                 │  │                 │   │
 │  │  - messages   │  │  │  └─────────────────┘  └─────────────────┘   │
-│  │  - memory     │  │  │                                               │
+│  │  - memory     │  │  │  ┌─────────────────┐  ┌─────────────────┐   │
+│  └───────────────┘  │  │  │  Together API   │  │  Anthropic API  │   │
+│                     │  │  │  (Llama)        │  │  Claude Haiku   │   │
 │  └───────────────┘  │  └───────────────────────────────────────────────┘
 │                     │
 │  ┌───────────────┐  │
@@ -359,8 +358,8 @@ useChat.sendMessage(transcript)
         ├─ Cube enters "thinking" state
         ├─ POST /api/chat
         │       │
-        │       ├─ Try Claude API (primary)
-        │       ├─ Route to OpenAI for red zone topics
+        │       ├─ Try MiniMax (primary)
+        │       ├─ Fallback: Mixtral → Llama → Claude
         │       │
         │       ▼
         │   AI response + color
@@ -631,9 +630,11 @@ AI chat endpoint with dual routing and memory personalization.
 ```
 
 **Provider Logic**:
-1. Claude (Anthropic) - primary provider for most conversations
-2. OpenAI (GPT-5.1) - routed for red zone (intimate/sensual topics)
-3. Return provider name for debugging
+1. MiniMax M2 - primary provider for most conversations
+2. Mixtral (Mistral API) - first fallback
+3. Llama (Together API) - secondary fallback
+4. Claude Haiku - final fallback
+5. Return provider name for debugging
 
 ### `/api/extract-memories` (POST)
 
@@ -710,8 +711,10 @@ IDLE ──────► LISTENING ──────► THINKING ────
 
 ### API Key Protection
 
+- `MINIMAX_API_KEY` - Vercel env var, never exposed
+- `MISTRAL_API_KEY` - Vercel env var, never exposed
+- `TOGETHER_API_KEY` - Vercel env var, never exposed
 - `ANTHROPIC_API_KEY` - Vercel env var, never exposed
-- `OPENAI_API_KEY` - Vercel env var, never exposed
 - `SUPABASE_SERVICE_ROLE_KEY` - Server-side only, bypasses RLS
 
 ### Row Level Security
@@ -737,8 +740,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...  # Server only!
 
 # AI Providers
-ANTHROPIC_API_KEY=sk-ant-...
-OPENAI_API_KEY=sk-...
+MINIMAX_API_KEY=***
+MISTRAL_API_KEY=***
+TOGETHER_API_KEY=***
+ANTHROPIC_API_KEY=sk-ant-***
+ELEVENLABS_API_KEY=***
 
 # Optional
 NEXT_PUBLIC_SITE_URL=https://cubiqo.ai
@@ -899,13 +905,16 @@ Users can use their own API keys for complete cost isolation.
 │  useBYO.ts → localStorage: cubiqo_byo_config                   │
 │  {                                                              │
 │    enabled: boolean,                                            │
-│    claudeApiKey: string | null,                                │
-│    openaiApiKey: string | null                                 │
+│    minimaxApiKey: string | null,                               │
+│    mistralApiKey: string | null,                               │
+│    togetherApiKey: string | null,                              │
+│    claudeApiKey: string | null                                 │
 │  }                                                              │
 │      ↓                                                          │
 │  useChat.ts → getBYOHeaders()                                  │
 │      ↓                                                          │
-│  HTTP Headers: x-byo-claude-key, x-byo-openai-key              │
+│  HTTP Headers: x-byo-minimax-key, x-byo-mistral-key,          │
+│                x-byo-together-key, x-byo-claude-key           │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
@@ -914,7 +923,8 @@ Users can use their own API keys for complete cost isolation.
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  /api/chat/route.ts                                            │
-│      ├─ Read: x-byo-claude-key, x-byo-openai-key               │
+│      ├─ Read: x-byo-minimax-key, x-byo-mistral-key,           │
+│      │        x-byo-together-key, x-byo-claude-key            │
 │      └─ Use BYO key || process.env fallback                    │
 │                                                                 │
 │  /api/extract-memories/route.ts                                │
@@ -946,7 +956,7 @@ Users can use their own API keys for complete cost isolation.
 
 1. Open menu → Settings → BYO Mode
 2. Toggle ON
-3. Enter Claude API key (and/or OpenAI)
+3. Enter API keys (MiniMax, Mistral, Together, Claude)
 4. Click "Save Keys"
 5. All subsequent API calls use user's key
 

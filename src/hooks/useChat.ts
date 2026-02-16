@@ -17,29 +17,35 @@ function getBYOHeaders(): Record<string, string> {
 
   try {
     const stored = localStorage.getItem(BYO_STORAGE_KEY)
-    console.log('[BYO Debug] localStorage raw:', stored)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[BYO Debug] localStorage raw:', stored)
+    }
     if (!stored) return {}
 
     const config: BYOConfig = JSON.parse(stored)
-    console.log('[BYO Debug] parsed config:', { enabled: config.enabled, hasClaudeKey: !!config.claudeApiKey, hasOpenaiKey: !!config.openaiApiKey })
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[BYO Debug] parsed config:', { enabled: config.enabled, hasClaudeKey: !!config.claudeApiKey })
+    }
     if (!config.enabled) {
-      console.log('[BYO Debug] BYO not enabled, returning empty headers')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[BYO Debug] BYO not enabled, returning empty headers')
+      }
       return {}
     }
 
     const headers: Record<string, string> = {}
     if (config.claudeApiKey) {
       headers['x-byo-claude-key'] = config.claudeApiKey
-      console.log('[BYO Debug] Adding Claude key header')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[BYO Debug] Adding Claude key header')
+      }
     }
-    if (config.openaiApiKey) {
-      headers['x-byo-openai-key'] = config.openaiApiKey
-      console.log('[BYO Debug] Adding OpenAI key header')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[BYO Debug] Final headers count:', Object.keys(headers).length)
     }
-    console.log('[BYO Debug] Final headers count:', Object.keys(headers).length)
     return headers
   } catch (e) {
-    console.error('[BYO Debug] Error parsing config:', e)
+    console.error('[BYO] Error parsing config:', e)
     return {}
   }
 }
@@ -56,7 +62,7 @@ interface ChatState {
   error: string | null
   conversationHistory: ConversationEntry[]
   conversationId: string | null
-  lastProvider: 'claude' | 'openai' | null
+  lastProvider: 'claude' | 'minimax' | 'mixtral' | 'llama' | null
   isInitialized: boolean
 }
 
@@ -64,6 +70,9 @@ export function useChat(options: UseChatOptions) {
   const { sessionId, isGuest = false, onColorChange, regionId } = options
   const supabase = createClient()
   const lastSessionIdRef = useRef<string | null>(null)
+
+  // Use a promise ref to dedup initialization calls
+  const initPromiseRef = useRef<Promise<string | null> | null>(null)
 
   const [state, setState] = useState<ChatState>({
     isLoading: false,
@@ -74,12 +83,18 @@ export function useChat(options: UseChatOptions) {
     isInitialized: false
   })
 
-  // Load or create conversation when sessionId changes
-  useEffect(() => {
-    if (!sessionId || lastSessionIdRef.current === sessionId) return
-    lastSessionIdRef.current = sessionId
+  const ensureConversation = useCallback(async (currentSessionId: string): Promise<string | null> => {
+    // If we already have a conversation for this session, return it
+    if (state.conversationId && lastSessionIdRef.current === currentSessionId) {
+      return state.conversationId
+    }
 
-    const initConversation = async () => {
+    // If verification/creation is in progress, return the existing promise
+    if (initPromiseRef.current) {
+      return initPromiseRef.current
+    }
+
+    const init = async () => {
       try {
         let conversationId: string | null = null
         let colorState: string = 'ORANGE'
@@ -89,7 +104,7 @@ export function useChat(options: UseChatOptions) {
           const { data: existingConv, error: findError } = await supabase
             .from('conversations')
             .select('id, color_state')
-            .eq('session_id', sessionId)
+            .eq('session_id', currentSessionId)
             .order('updated_at', { ascending: false })
             .limit(1)
             .maybeSingle()
@@ -100,18 +115,11 @@ export function useChat(options: UseChatOptions) {
           } else {
             const { data: newConv, error: createError } = await supabase
               .from('conversations')
-              .insert({ session_id: sessionId, color_state: 'ORANGE' })
+              .insert({ session_id: currentSessionId, color_state: 'ORANGE' })
               .select('id')
               .single()
 
-            if (createError) {
-              setState(prev => ({
-                ...prev,
-                isInitialized: true,
-                error: `Failed to create conversation: ${createError.message}`
-              }))
-              return
-            }
+            if (createError) throw new Error(createError.message)
             conversationId = newConv.id
           }
         } else {
@@ -119,17 +127,12 @@ export function useChat(options: UseChatOptions) {
           const res = await fetch('/api/session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'ensure_conversation', sessionId })
+            body: JSON.stringify({ action: 'ensure_conversation', sessionId: currentSessionId })
           })
 
           if (!res.ok) {
             const error = await res.json()
-            setState(prev => ({
-              ...prev,
-              isInitialized: true,
-              error: error.error || 'Failed to create conversation'
-            }))
-            return
+            throw new Error(error.error || 'Failed to create conversation')
           }
 
           const { conversation } = await res.json()
@@ -137,14 +140,7 @@ export function useChat(options: UseChatOptions) {
           colorState = conversation.color_state || 'ORANGE'
         }
 
-        if (!conversationId) {
-          setState(prev => ({
-            ...prev,
-            isInitialized: true,
-            error: 'Failed to get conversation ID'
-          }))
-          return
-        }
+        if (!conversationId) throw new Error('Failed to get conversation ID')
 
         // Load existing messages
         let history: ConversationEntry[] = []
@@ -153,15 +149,16 @@ export function useChat(options: UseChatOptions) {
           const { data: messages } = await supabase
             .from('messages')
             .select('role, content, color, created_at')
-            .eq('conversation_id', conversationId!)
+            .eq('conversation_id', conversationId)
             .order('created_at', { ascending: true })
 
           if (messages) {
+            const pairs: ConversationEntry[] = []
             for (let i = 0; i < messages.length; i += 2) {
               const userMsg = messages[i]
               const aiMsg = messages[i + 1]
-              if (userMsg && aiMsg && userMsg.role === 'user' && aiMsg.role === 'assistant') {
-                history.push({
+              if (userMsg?.role === 'user' && aiMsg?.role === 'assistant') {
+                pairs.push({
                   userMessage: userMsg.content,
                   aiResponse: aiMsg.content,
                   color: (aiMsg.color as ColorName) || 'ORANGE',
@@ -169,6 +166,7 @@ export function useChat(options: UseChatOptions) {
                 })
               }
             }
+            history = pairs
           }
         } else {
           // Get messages via API
@@ -181,11 +179,12 @@ export function useChat(options: UseChatOptions) {
           if (msgRes.ok) {
             const { messages } = await msgRes.json()
             if (messages) {
+              const pairs: ConversationEntry[] = []
               for (let i = 0; i < messages.length; i += 2) {
                 const userMsg = messages[i]
                 const aiMsg = messages[i + 1]
-                if (userMsg && aiMsg && userMsg.role === 'user' && aiMsg.role === 'assistant') {
-                  history.push({
+                if (userMsg?.role === 'user' && aiMsg?.role === 'assistant') {
+                  pairs.push({
                     userMessage: userMsg.content,
                     aiResponse: aiMsg.content,
                     color: (aiMsg.color as ColorName) || 'ORANGE',
@@ -193,6 +192,7 @@ export function useChat(options: UseChatOptions) {
                   })
                 }
               }
+              history = pairs
             }
           }
         }
@@ -213,35 +213,63 @@ export function useChat(options: UseChatOptions) {
           error: null
         }))
 
+        return conversationId
       } catch (error) {
         setState(prev => ({
           ...prev,
           isInitialized: true,
           error: error instanceof Error ? error.message : 'Unknown error'
         }))
+        return null
+      } finally {
+        initPromiseRef.current = null
       }
     }
 
-    initConversation()
-  }, [sessionId, isGuest, supabase, onColorChange])
+    initPromiseRef.current = init()
+    return initPromiseRef.current
+  }, [state.conversationId, isGuest, supabase, onColorChange])
+
+
+  // Trigger initialization when sessionId changes
+  useEffect(() => {
+    if (!sessionId || lastSessionIdRef.current === sessionId) return
+    lastSessionIdRef.current = sessionId
+    ensureConversation(sessionId)
+  }, [sessionId, ensureConversation])
+
 
   const sendMessage = useCallback(async (
     message: string,
     currentColor: ColorName = 'ORANGE'
   ): Promise<AIResponse | null> => {
-    if (!state.conversationId) {
-      setState(prev => ({ ...prev, error: 'No conversation initialized. Please refresh the page.' }))
+
+    // 1. Ensure we have a valid session to attach to
+    if (!sessionId) {
+      setState(prev => ({ ...prev, error: 'Session not ready. Please wait a moment.' }))
       return null
     }
 
     setState(prev => ({ ...prev, isLoading: true, error: null }))
+
+    // 2. Ensure conversation is initialized (awaits if pending, retries if missing)
+    let activeConversationId = state.conversationId
+    if (!activeConversationId) {
+      try {
+        activeConversationId = await ensureConversation(sessionId)
+        if (!activeConversationId) throw new Error('Could not initialize conversation.')
+      } catch (e) {
+        setState(prev => ({ ...prev, isLoading: false, error: 'Failed to start conversation. Please refresh.' }))
+        return null
+      }
+    }
 
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getBYOHeaders() // Add BYO API keys if enabled
+          ...getBYOHeaders()
         },
         body: JSON.stringify({
           message,
@@ -249,7 +277,7 @@ export function useChat(options: UseChatOptions) {
           currentColor,
           isGuest,
           messageCount: state.conversationHistory.length + 1,
-          sessionId,
+          sessionId, // Use sessionId from prop/closure
           region: regionId || undefined
         })
       })
@@ -262,46 +290,33 @@ export function useChat(options: UseChatOptions) {
       const data = await response.json()
       const timestamp = new Date().toISOString()
 
-      // Save messages via API (bypasses RLS)
+      // Save messages (fire and forget or await if critical)
       await fetch('/api/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'save_message',
-          conversationId: state.conversationId,
-          role: 'user',
-          content: message,
-          color: currentColor
+          action: 'save_messages_batch',
+          conversationId: activeConversationId,
+          messages: [
+            { role: 'user', content: message, color: currentColor },
+            { role: 'assistant', content: data.response, color: data.color }
+          ]
         })
       })
 
-      await fetch('/api/session', {
+      // Background memory extraction
+      fetch('/api/extract-memories', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getBYOHeaders()
+        },
         body: JSON.stringify({
-          action: 'save_message',
-          conversationId: state.conversationId,
-          role: 'assistant',
-          content: data.response,
-          color: data.color
+          sessionId,
+          userMessage: message,
+          aiResponse: data.response
         })
-      })
-
-      // Trigger memory extraction in background (fire-and-forget)
-      if (sessionId) {
-        fetch('/api/extract-memories', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...getBYOHeaders() // Add BYO API keys if enabled
-          },
-          body: JSON.stringify({
-            sessionId,
-            userMessage: message,
-            aiResponse: data.response
-          })
-        }).catch(() => {}) // Silently ignore extraction errors
-      }
+      }).catch(console.warn)
 
       const newEntry: ConversationEntry = {
         userMessage: message,
@@ -328,19 +343,11 @@ export function useChat(options: UseChatOptions) {
       setState(prev => ({ ...prev, isLoading: false, error: errorMessage }))
       return null
     }
-  }, [state.conversationId, state.conversationHistory, isGuest, onColorChange])
+  }, [state.conversationId, state.conversationHistory, sessionId, isGuest, ensureConversation, onColorChange, regionId])
 
   const clearHistory = useCallback(async () => {
-    if (!state.conversationId) return
-
-    // For now, just clear local state
-    // Could add API endpoint to delete messages if needed
-    setState(prev => ({
-      ...prev,
-      conversationHistory: [],
-      error: null
-    }))
-  }, [state.conversationId])
+    setState(prev => ({ ...prev, conversationHistory: [], error: null }))
+  }, [])
 
   const clearError = useCallback(() => {
     setState(prev => ({ ...prev, error: null }))
