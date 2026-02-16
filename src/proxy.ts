@@ -55,6 +55,27 @@ export async function proxy(request: NextRequest) {
     // Refresh session if expired (this is important for auth)
     await supabase.auth.getUser()
 
+    // PROTECT FOUNDERS PASS & ADMIN ROUTES
+    // Matches /founders-pass (new admin), /api/founders-pass, and /founderspass/* (dashboard/experiments)
+    // Excludes /founderspass (exact match) to allow login
+    if (
+        (pathname.startsWith('/founders-pass') || pathname.startsWith('/api/founders-pass') || pathname.startsWith('/founderspass/'))
+    ) {
+        const hasPinCookie = request.cookies.get('founders-pass-auth')?.value === 'true'
+
+        // Allow access if PIN cookie is present
+        if (!hasPinCookie) {
+            // For API, return 401
+            if (pathname.startsWith('/api/')) {
+                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+            }
+            // For pages, redirect to PIN entry
+            const url = request.nextUrl.clone()
+            url.pathname = '/founderspass'
+            return NextResponse.redirect(url)
+        }
+    }
+
     // Skip routing for regional paths (already routed)
     if (pathname.match(/^\/(uk|in|jp|us)/)) {
         const region = pathname.split('/')[1]
