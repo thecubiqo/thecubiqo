@@ -45,7 +45,7 @@ export function TopRightCTA({
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 className="group relative flex items-center gap-3 px-5 py-3 bg-gray-900/40 backdrop-blur-md border border-white/10 rounded-full shadow-lg transition-all duration-300 hover:scale-105 hover:border-orange-500/50 hover:shadow-orange-500/20 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-black"
-                aria-label={ariaLabel || `Open ${label} page, SIGNAL`}
+                aria-label={ariaLabel || `Open ${label} page`}
             >
                 {/* Cuboid Icon with Flip Animation */}
                 <motion.div
@@ -61,17 +61,8 @@ export function TopRightCTA({
                     </svg>
                 </motion.div>
 
-                {/* SIGNAL Motif */}
-                <div className="flex items-center gap-0.5 select-none font-bold tracking-wider">
-                    {/* Inline SIGNAL specific colors */}
-                    <span className="text-red-500">S</span>
-                    <span className="text-green-500">I</span>
-                    <span className="text-yellow-500">G</span>
-                    <span className="text-white/90">NAL</span>
-                </div>
-
                 {/* Label */}
-                <span className="text-white/80 font-medium tracking-wide text-sm hidden md:inline-block ml-2">
+                <span className="text-white/80 font-medium tracking-wide text-sm hidden md:inline-block">
                     {label}
                 </span>
 
