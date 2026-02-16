@@ -8,6 +8,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { CubeScene } from './cube'
 import { ChatContainer } from './chat'
 import { LoginForm, AuthStatus } from './auth'
+import { AuthButton } from './AuthButton.client'
 import { CubeControls, type CubeShape } from './CubeControls'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
@@ -27,7 +28,7 @@ export function CubiQoApp() {
   const [colorName, setColorName] = useState<ColorName>('ORANGE')
   const [animationState, setAnimationState] = useState<AnimationState>('idle')
   const [showAuth, setShowAuth] = useState(false)
-  
+
   // Cube customization state
   const [cubeSize, setCubeSize] = useState<number>(1.0)
   const [shapeType, setShapeType] = useState<CubeShape>('energy')
@@ -46,7 +47,7 @@ export function CubiQoApp() {
       const savedSize = localStorage.getItem(STORAGE_KEYS.CUBE_SIZE)
       const savedShape = localStorage.getItem(STORAGE_KEYS.SHAPE_TYPE)
       const savedEyes = localStorage.getItem(STORAGE_KEYS.SHOW_EYES)
-      
+
       if (savedSize) setCubeSize(parseFloat(savedSize))
       if (savedShape) setShapeType(savedShape as CubeShape)
       if (savedEyes) setShowEyes(savedEyes === 'true')
@@ -98,26 +99,11 @@ export function CubiQoApp() {
 
           {/* User Status */}
           <div className="flex items-center gap-3">
-            {isAuthenticated ? (
-              <>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                  {user?.email}
-                </span>
-                <button
-                  onClick={() => signOut()}
-                  className="text-xs px-3 py-1 rounded-md bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-premium"
-                >
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => setShowAuth(!showAuth)}
-                className="text-xs px-3 py-1 rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-premium"
-              >
-                {showAuth ? 'Close' : 'Sign In'}
-              </button>
-            )}
+            <AuthButton
+              onSignInClick={() => setShowAuth(!showAuth)}
+              onUserClick={() => signOut()}
+              isDark={false}
+            />
           </div>
         </div>
 
@@ -146,8 +132,8 @@ export function CubiQoApp() {
           {/* Cube Section */}
           <div>
             <div className="w-full h-[300px] lg:h-[400px] rounded-lg overflow-hidden bg-black">
-              <CubeScene 
-                colorName={colorName} 
+              <CubeScene
+                colorName={colorName}
                 animationState={animationState}
                 cubeSize={cubeSize}
                 shapeType={shapeType}
@@ -163,14 +149,14 @@ export function CubiQoApp() {
                 style={{
                   backgroundColor:
                     colorName === 'RED' ? '#C2185B' :
-                    colorName === 'YELLOW' ? '#FFA000' :
-                    colorName === 'GREEN_BLUE' ? '#00897B' :
-                    '#FF6F00'
+                      colorName === 'YELLOW' ? '#FFA000' :
+                        colorName === 'GREEN_BLUE' ? '#00897B' :
+                          '#FF6F00'
                 }}
               >
                 {colorName === 'GREEN_BLUE' ? 'Sattva' :
-                 colorName === 'ORANGE' ? 'Fourth Way' :
-                 colorName === 'RED' ? 'Tamas' : 'Rajas'}
+                  colorName === 'ORANGE' ? 'Fourth Way' :
+                    colorName === 'RED' ? 'Tamas' : 'Rajas'}
               </span>
               {isGuest && (
                 <span className="text-xs text-zinc-400">(Guest)</span>
