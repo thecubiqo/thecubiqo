@@ -202,6 +202,8 @@ assert(energyCubeWireframe.includes('EnergyCubeWireframe'), 'EnergyCubeWireframe
 assert(energyCubeWireframe.includes('@react-three/fiber'), 'EnergyCubeWireframe uses React Three Fiber')
 assert(energyCubeWireframe.includes('Canvas'), 'EnergyCubeWireframe includes Canvas component')
 assert(energyCubeWireframe.includes('useFrame'), 'EnergyCubeWireframe uses animation hook')
+assert(energyCubeWireframe.includes('transition-premium'), 'EnergyCubeWireframe uses transition-premium class')
+assert(energyCubeWireframe.includes('aria-label'), 'EnergyCubeWireframe has accessibility label')
 
 const flowingEnergyCubePath = path.resolve(
   __dirname,
