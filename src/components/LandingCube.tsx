@@ -5,10 +5,13 @@
  * 
  * Shows beautiful flowing plasma waves on the landing page.
  * User taps anywhere to enter the main app.
+ * 
+ * UPDATED: Uses standalone PlasmaWaveField (creates its own Canvas/Renderer).
+ * Do NOT wrap in <Canvas>.
  */
 
-import { Canvas } from '@react-three/fiber'
 import { PlasmaWaveField } from './cube/PlasmaWaveField'
+// Removed import { Canvas } from '@react-three/fiber' (not needed for standalone component)
 
 interface LandingCubeProps {
   onComplete: () => void
@@ -26,22 +29,12 @@ export function LandingCube({ onComplete }: LandingCubeProps) {
       <div className="absolute inset-0 bg-gradient-to-b from-purple-950/20 via-black to-black" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(100,50,180,0.1)_0%,_transparent_70%)]" />
 
-      {/* 3D Canvas with Plasma Waves */}
+      {/* 3D Visual - Standalone Renderer (Matched to Emergent Design) */}
       <div className="w-full h-[70vh] max-w-5xl relative z-10">
-        <Canvas
-          camera={{ position: [0, 0, 5], fov: 50 }}
-          gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-          dpr={[1, 2]}
-        >
-          <ambientLight intensity={0.2} />
-          <pointLight position={[5, 5, 5]} intensity={0.3} color="#00ffff" />
-          <pointLight position={[-5, -5, -5]} intensity={0.2} color="#ff00ff" />
-
-          <PlasmaWaveField isEnabled={true} aiState="neutral" />
-        </Canvas>
+        <PlasmaWaveField isEnabled={true} aiState="neutral" />
       </div>
 
-      {/* Welcome text - Ported from LandingOverlay */}
+      {/* Welcome text */}
       <div className="text-center mt-2 relative z-10 pointer-events-none">
         <h1 className="text-8xl md:text-[10rem] font-thin tracking-[0.4em] mb-8 drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] text-white/90">
           CUBIQO
