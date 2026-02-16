@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react'
 import { useBYO } from '@/hooks/useBYO'
+import { BiometricRegistration } from '@/components/auth/BiometricRegistration'
 
 interface BYOSettingsProps {
   onClose?: () => void
@@ -59,14 +60,12 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
         <h2 className="text-base font-semibold">BYO Mode</h2>
         <button
           onClick={toggleBYO}
-          className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
-            isBYOEnabled ? 'bg-green-500' : 'bg-gray-600'
-          }`}
+          className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${isBYOEnabled ? 'bg-green-500' : 'bg-gray-600'
+            }`}
         >
           <span
-            className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 ${
-              isBYOEnabled ? 'translate-x-5' : 'translate-x-0'
-            }`}
+            className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 ${isBYOEnabled ? 'translate-x-5' : 'translate-x-0'
+              }`}
           />
         </button>
       </div>
@@ -148,6 +147,11 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
           <div className="text-xs text-gray-500 space-y-1">
             <p>Claude: {config.claudeApiKey ? maskKey(config.claudeApiKey) : 'Not set'}</p>
             <p>OpenAI: {config.openaiApiKey ? maskKey(config.openaiApiKey) : 'Not set'}</p>
+          </div>
+
+          {/* Biometric Registration */}
+          <div className="pt-4 border-t border-gray-700">
+            <BiometricRegistration />
           </div>
         </div>
       )}
