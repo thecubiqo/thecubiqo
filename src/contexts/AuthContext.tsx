@@ -45,6 +45,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   })
 
   // Create a single memoized Supabase client instance for the entire app
+  // Empty dependency array is intentional - we want one client for the app lifetime
+  // Environment variables are set at build time and don't change during runtime
   const supabase = useMemo(() => createClient(), [])
 
   // Fetch user profile
@@ -171,7 +173,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshProfile = useCallback(async () => {
     if (state.user) {
       const profile = await fetchProfile(state.user.id)
-      setState(prev => ({ ...prev, profile }))
+      // Only update state if profile was successfully fetched
+      if (profile) {
+        setState(prev => ({ ...prev, profile }))
+      }
     }
   }, [state.user, fetchProfile])
 
