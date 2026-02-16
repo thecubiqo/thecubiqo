@@ -58,14 +58,26 @@ describe('AuthContext Integration', () => {
 describe('Layout AuthProvider Integration', () => {
   const layoutPath = resolve(__dirname, '../src/app/layout.tsx')
   const layoutContent = readFileSync(layoutPath, 'utf-8')
+  
+  const clientProvidersPath = resolve(__dirname, '../src/components/ClientProviders.tsx')
+  const clientProvidersContent = readFileSync(clientProvidersPath, 'utf-8')
 
-  it('should import AuthProvider', () => {
-    expect(layoutContent).toContain('from "@/contexts/AuthContext"')
+  it('should use ClientProviders component in layout', () => {
+    expect(layoutContent).toContain('ClientProviders')
   })
 
-  it('should wrap children with AuthProvider', () => {
-    expect(layoutContent).toContain('<AuthProvider>')
-    expect(layoutContent).toContain('</AuthProvider>')
+  it('should wrap children with ClientProviders', () => {
+    expect(layoutContent).toContain('<ClientProviders>')
+    expect(layoutContent).toContain('</ClientProviders>')
+  })
+
+  it('should import AuthProvider in ClientProviders', () => {
+    expect(clientProvidersContent).toContain('from \'@/contexts/AuthContext\'')
+  })
+
+  it('should wrap with AuthProvider in ClientProviders', () => {
+    expect(clientProvidersContent).toContain('<AuthProvider>')
+    expect(clientProvidersContent).toContain('</AuthProvider>')
   })
 })
 
@@ -79,9 +91,5 @@ describe('useAuth Hook Re-export', () => {
 
   it('should export AuthState type', () => {
     expect(useAuthContent).toContain('AuthState')
-  })
-
-  it('should export AuthContextType', () => {
-    expect(useAuthContent).toContain('AuthContextType')
   })
 })

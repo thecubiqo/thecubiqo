@@ -3,11 +3,14 @@
 /**
  * AuthContext - Centralized Authentication State Management
  * 
+ * Related PRs: #12 (Magic-link auth state fix), #28 (Centralized auth)
+ * 
  * Provides a single Supabase client instance and auth state to the entire app.
  * This ensures:
  * - Only one Supabase client instance is created
  * - Auth state is subscribed to once at the app level
  * - All components can access auth state via useAuth() hook
+ * - Auth state reflects immediately after magic-link redirect
  */
 
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react'
