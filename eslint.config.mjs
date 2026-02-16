@@ -12,16 +12,17 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "**/*"
   ]),
   // React Three Fiber props - not standard HTML attributes
   {
     rules: {
-      "react/no-unknown-property": ["error", { 
+      "react/no-unknown-property": ["error", {
         ignore: [
-          "attach", 
-          "args", 
-          "position", 
-          "rotation", 
+          "attach",
+          "args",
+          "position",
+          "rotation",
           "scale",
           "intensity",
           "castShadow",
@@ -42,7 +43,7 @@ const eslintConfig = defineConfig([
           "luminanceThreshold",
           "luminanceSmoothing",
           "mipmapBlur"
-        ] 
+        ]
       }]
     }
   }
