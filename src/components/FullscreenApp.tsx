@@ -19,6 +19,7 @@ import { PoweredByLogosCompact } from './PoweredByLogos'
 import { JourneyMemoryPrompt } from './journey'
 import { AdminControls } from './admin'
 import { SidePanel } from './cq'
+import { LandingCubeRouter } from './LandingCubeRouter'
 import { TopRightCTA } from '@/components/TopRightCTA.client'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
@@ -856,8 +857,9 @@ export function FullscreenApp({
       */}
       {showLandingCube && (
         <div className="fixed inset-0 z-[100]">
-          <LandingCube
+          <LandingCubeRouter
             onComplete={handleLandingComplete}
+            isVoiceActive={voiceEnabled}
           />
         </div>
       )}
