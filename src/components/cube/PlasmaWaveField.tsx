@@ -2,15 +2,15 @@
 
 /**
  * PlasmaWaveField - HD Plasma Wave Animation with Morph to Cube
- * Restored Ribbon Design (120k Particles)
+ * Optimized for Stability/Performance (40k particles)
  */
 
-import { useRef, useMemo, useEffect, useState, useCallback } from 'react'
+import { useRef, useMemo, useEffect, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
 // Color palettes
-const COLOR_PALETTES = {
+const COLOR_PALETTES: Record<string, string[]> = {
   neutral: ['#00ffff', '#00d4ff', '#0099ff', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#ef4444'],
   thinking: ['#00ffff', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#f59e0b', '#f97316', '#ef4444'],
   speaking: ['#10b981', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#f43f5e', '#fbbf24'],
@@ -20,7 +20,7 @@ const COLOR_PALETTES = {
 
 interface PlasmaWaveFieldProps {
   isEnabled?: boolean
-  aiState?: 'neutral' | 'thinking' | 'speaking' | 'listening' | 'error'
+  aiState?: string // Loosen type for safety
 }
 
 export function PlasmaWaveField({
@@ -28,19 +28,18 @@ export function PlasmaWaveField({
   aiState = 'neutral'
 }: PlasmaWaveFieldProps) {
   const pointsRef = useRef<THREE.Points>(null)
-  const soulNodesRef = useRef<THREE.Points>(null)
   const morphProgress = useRef(isEnabled ? 1 : 0)
 
-  // Configuration
-  const PARTICLE_COUNT = 120000
+  // Configuration - Reduced for stability
+  const PARTICLE_COUNT = 40000
   const WAVE_LAYERS = 4
   const CUBE_SIZE = 1.2
 
   // Audio handling hook (simplified for internal use)
-  const [audioLevel, setAudioLevel] = useState(0)
+  const [audioLevel] = useState(0)
 
   // Generate particle data
-  const { wavePositions, cubePositions, colors, sizes, wavePhase, ribbonId, xNorm, localY } = useMemo(() => {
+  const { wavePositions, cubePositions, colors, sizes, wavePhase, xNorm, localY } = useMemo(() => {
     const wavePos = new Float32Array(PARTICLE_COUNT * 3)
     const cubePos = new Float32Array(PARTICLE_COUNT * 3)
     const cols = new Float32Array(PARTICLE_COUNT * 3)
@@ -48,13 +47,15 @@ export function PlasmaWaveField({
 
     // Wave specific data
     const wPhase = new Float32Array(PARTICLE_COUNT)
-    const rId = new Float32Array(PARTICLE_COUNT)
     const xN = new Float32Array(PARTICLE_COUNT)
     const lY = new Float32Array(PARTICLE_COUNT)
 
-    const palette = COLOR_PALETTES[aiState] || COLOR_PALETTES.neutral
-    const particlesPerLayer = Math.floor(PARTICLE_COUNT / WAVE_LAYERS)
+    // Safety check for palette
+    const paletteStrings = (aiState && COLOR_PALETTES[aiState]) ? COLOR_PALETTES[aiState] : COLOR_PALETTES.neutral
+    // Pre-parse colors to avoid thousands of new THREE.Color() in loops (optimization)
+    const paletteColors = paletteStrings.map(hex => new THREE.Color(hex))
 
+    const particlesPerLayer = Math.floor(PARTICLE_COUNT / WAVE_LAYERS)
     let idx = 0
 
     for (let layer = 0; layer < WAVE_LAYERS; layer++) {
@@ -85,12 +86,10 @@ export function PlasmaWaveField({
 
           // Wave Metadata
           wPhase[idx] = t * Math.PI * 4 + ribbon * 0.6 + Math.random() * 0.5
-          rId[idx] = ribbon
           xN[idx] = t
           lY[idx] = ribbonY + yVar
 
           // Cube position (Target)
-          const cubeT = idx / PARTICLE_COUNT
           const face = Math.floor(Math.random() * 6)
           const u = (Math.random() - 0.5) * CUBE_SIZE
           const v = (Math.random() - 0.5) * CUBE_SIZE
@@ -112,15 +111,19 @@ export function PlasmaWaveField({
             }
           }
 
-          // Initial Color (Ribbon Gradient)
+          // Initial Color (Ribbon Gradient) - Optimized
           const cBlend = t
-          const cIdx = Math.floor(cBlend * (palette.length - 1))
-          const c1 = new THREE.Color(palette[cIdx])
-          const c2 = new THREE.Color(palette[Math.min(cIdx + 1, palette.length - 1)])
+          const cIdx = Math.floor(cBlend * (paletteColors.length - 1))
+          const nextCIdx = Math.min(cIdx + 1, paletteColors.length - 1)
 
-          colors[i3] = THREE.MathUtils.lerp(c1.r, c2.r, cBlend % 1)
-          colors[i3 + 1] = THREE.MathUtils.lerp(c1.g, c2.g, cBlend % 1)
-          colors[i3 + 2] = THREE.MathUtils.lerp(c1.b, c2.b, cBlend % 1)
+          const col1 = paletteColors[cIdx]
+          const col2 = paletteColors[nextCIdx]
+          const mix = cBlend % 1
+
+          // Lerp manually (faster than creating new objects?) - just use THREE lerp
+          colors[i3] = THREE.MathUtils.lerp(col1.r, col2.r, mix)
+          colors[i3 + 1] = THREE.MathUtils.lerp(col1.g, col2.g, mix)
+          colors[i3 + 2] = THREE.MathUtils.lerp(col1.b, col2.b, mix)
 
           szs[idx] = 0.015 + Math.random() * 0.01
           idx++
@@ -128,8 +131,8 @@ export function PlasmaWaveField({
       }
     }
 
-    return { wavePositions: wavePos, cubePositions: cubePos, colors: cols, sizes: szs, wavePhase: wPhase, ribbonId: rId, xNorm: xN, localY: lY }
-  }, [aiState])
+    return { wavePositions: wavePos, cubePositions: cubePos, colors: cols, sizes: szs, wavePhase: wPhase, xNorm: xN, localY: lY }
+  }, [aiState]) // Depend only on aiState string
 
   // Animation Loop
   useFrame((state) => {
@@ -140,10 +143,8 @@ export function PlasmaWaveField({
     morphProgress.current += (target - morphProgress.current) * 0.05
     const morph = morphProgress.current
 
-    if (pointsRef.current) {
+    if (pointsRef.current && pointsRef.current.geometry && pointsRef.current.geometry.attributes.position) {
       const positions = pointsRef.current.geometry.attributes.position.array as Float32Array
-      // Note: We don't update colors/sizes every frame in this optimized version unless necessary
-      // But we DO update positions for waves
 
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         const i3 = i * 3
@@ -151,17 +152,16 @@ export function PlasmaWaveField({
         // 1. Calculate Wave Position
         const wP = wavePhase[i]
         const xN_val = xNorm[i]
-        const layerDepth = (Math.floor(i / (PARTICLE_COUNT / WAVE_LAYERS)) - WAVE_LAYERS / 2) * 0.4
 
+        // Optimize sin/cos calls?
         const w1 = Math.sin(wP + time) * 0.5
         const w2 = Math.cos(wP * 0.5 + time * 0.7) * 0.2
 
         const waveX = (xN_val - 0.5) * 6.0
         const waveY = localY[i] + (w1 + w2) * (1 + audioLevel) * 0.5
-        const waveZ = layerDepth + Math.sin(time + xN_val * 10) * 0.1
+        const waveZ = (Math.floor(i / (PARTICLE_COUNT / WAVE_LAYERS)) - WAVE_LAYERS / 2) * 0.4 + Math.sin(time + xN_val * 10) * 0.1
 
         // 2. Calculate Cube Position
-        // Rotate cube logic
         const cX = cubePositions[i3]
         const cY = cubePositions[i3 + 1]
         const cZ = cubePositions[i3 + 2]
@@ -173,11 +173,12 @@ export function PlasmaWaveField({
         const rX = cX * cos - cZ * sin
         const rZ = cX * sin + cZ * cos
 
-        // Pulse
         const pulse = isEnabled ? Math.sin(time * 2) * 0.05 : 0
-        const fX = rX * (1 + pulse)
-        const fY = cY * (1 + pulse)
-        const fZ = rZ * (1 + pulse)
+        const factor = 1 + pulse
+
+        const fX = rX * factor
+        const fY = cY * factor
+        const fZ = rZ * factor
 
         // 3. Lerp
         positions[i3] = THREE.MathUtils.lerp(waveX, fX, morph)
@@ -207,7 +208,6 @@ export function PlasmaWaveField({
           sizeAttenuation
         />
       </points>
-      {/* Soul Nodes/Glow simplified for stability */}
     </group>
   )
 }
