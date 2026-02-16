@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     
     // Fetch catalog
-    const { data: catalog, error: catalogError } = await supabase
+    const { data: catalog, error: catalogError } = await (supabase as any)
       .from('features_catalog')
       .select('*')
       .order('category', { ascending: true })
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     // Fetch user toggles if authenticated
     let userToggles: any[] = []
     if (user) {
-      const { data: toggles } = await supabase
+      const { data: toggles } = await (supabase as any)
         .from('user_feature_toggles')
         .select('*')
         .eq('user_id', user.id)

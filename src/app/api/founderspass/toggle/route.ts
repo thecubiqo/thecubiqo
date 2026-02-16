@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Verify feature exists in catalog
-    const { data: catalogEntry, error: catalogError } = await supabase
+    const { data: catalogEntry, error: catalogError } = await (supabase as any)
       .from('features_catalog')
       .select('*')
       .eq('feature_key', feature_key)
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     // If this is a design variant, disable other design variants first
     if (is_design_variant && enabled) {
       // Get all design variants
-      const { data: designVariants } = await supabase
+      const { data: designVariants } = await (supabase as any)
         .from('features_catalog')
         .select('feature_key')
         .eq('feature_type', 'design_variant')
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         // Disable all other design variants for this user
         for (const variant of designVariants) {
           if (variant.feature_key !== feature_key) {
-            await supabase
+            await (supabase as any)
               .from('user_feature_toggles')
               .upsert({
                 user_id: user.id,
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Upsert user toggle
-    const { data: toggle, error: toggleError } = await supabase
+    const { data: toggle, error: toggleError } = await (supabase as any)
       .from('user_feature_toggles')
       .upsert({
         user_id: user.id,

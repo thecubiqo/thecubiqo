@@ -12,7 +12,7 @@ interface AuditEntry {
   id: string
   flag_name: string
   action: string
-  changed_by: string
+  changed_by: string | null
   changes: any
   created_at: string
 }
