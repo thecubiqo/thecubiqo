@@ -36,6 +36,8 @@ export async function GET(request: NextRequest) {
     // Get current user
     const { data: { user } } = await supabase.auth.getUser()
     
+    // TODO: Remove type casting once Supabase types are regenerated with new tables
+    // Run: supabase gen types typescript --local > src/types/supabase.ts
     // Fetch catalog
     const { data: catalog, error: catalogError } = await (supabase as any)
       .from('features_catalog')
@@ -54,6 +56,7 @@ export async function GET(request: NextRequest) {
     // Fetch user toggles if authenticated
     let userToggles: any[] = []
     if (user) {
+      // TODO: Remove type casting once Supabase types are regenerated
       const { data: toggles } = await (supabase as any)
         .from('user_feature_toggles')
         .select('*')

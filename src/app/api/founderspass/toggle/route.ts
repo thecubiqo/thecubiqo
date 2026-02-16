@@ -38,6 +38,8 @@ export async function POST(request: NextRequest) {
       )
     }
     
+    // TODO: Remove type casting once Supabase types are regenerated with new tables
+    // Run: supabase gen types typescript --local > src/types/supabase.ts
     // Verify feature exists in catalog
     const { data: catalogEntry, error: catalogError } = await (supabase as any)
       .from('features_catalog')
