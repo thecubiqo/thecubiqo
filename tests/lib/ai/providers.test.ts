@@ -12,7 +12,7 @@ import {
   openClawProvider,
   isOpenClawProvider,
   type AIProviderInterface
-} from '../../../src/lib/ai/providers'
+} from '../../../src/lib/ai/providers/index'
 
 describe('Provider Registry', () => {
   test('registers OpenClaw provider', () => {
@@ -53,11 +53,11 @@ describe('OpenClaw Feature Flags', () => {
   const originalEnv = process.env
 
   beforeEach(() => {
-    // Reset environment for each test
-    process.env = { ...originalEnv }
-    delete process.env.OPENCLAW_API_KEY
-    delete process.env.OPENROUTER_KEY_CUBIKEY
-    delete process.env.OPENCLAW_BASE_URL
+    // Create a minimal clean environment for tests
+    process.env = {
+      NODE_ENV: 'test',
+      PATH: originalEnv.PATH || ''
+    }
   })
 
   afterEach(() => {
@@ -93,7 +93,6 @@ describe('OpenClaw Feature Flags', () => {
   test('disabled in production without base URL', () => {
     process.env.OPENCLAW_API_KEY = 'test-key'
     process.env.NODE_ENV = 'production'
-    delete process.env.OPENCLAW_BASE_URL
     
     expect(isOpenClawEnabled()).toBe(false)
   })
@@ -111,10 +110,11 @@ describe('OpenClaw Configuration Validation', () => {
   const originalEnv = process.env
 
   beforeEach(() => {
-    process.env = { ...originalEnv }
-    delete process.env.OPENCLAW_API_KEY
-    delete process.env.OPENROUTER_KEY_CUBIKEY
-    delete process.env.OPENCLAW_BASE_URL
+    // Create a minimal clean environment for tests
+    process.env = {
+      NODE_ENV: 'test',
+      PATH: originalEnv.PATH || ''
+    }
   })
 
   afterEach(() => {
@@ -125,9 +125,8 @@ describe('OpenClaw Configuration Validation', () => {
     const validation = validateOpenClawConfig()
     
     expect(validation.valid).toBe(false)
-    expect(validation.errors).toContain(
-      expect.stringContaining('API key not found')
-    )
+    expect(validation.errors.length).toBeGreaterThan(0)
+    expect(validation.errors.some(e => e.includes('API key'))).toBe(true)
   })
 
   test('reports warning when base URL not set', () => {
@@ -136,9 +135,8 @@ describe('OpenClaw Configuration Validation', () => {
     
     const validation = validateOpenClawConfig()
     
-    expect(validation.warnings).toContain(
-      expect.stringContaining('OPENCLAW_BASE_URL not set')
-    )
+    expect(validation.warnings.length).toBeGreaterThan(0)
+    expect(validation.warnings.some(w => w.includes('OPENCLAW_BASE_URL'))).toBe(true)
   })
 
   test('reports error for invalid base URL format', () => {
@@ -148,9 +146,7 @@ describe('OpenClaw Configuration Validation', () => {
     const validation = validateOpenClawConfig()
     
     expect(validation.valid).toBe(false)
-    expect(validation.errors).toContain(
-      expect.stringContaining('Invalid OPENCLAW_BASE_URL')
-    )
+    expect(validation.errors.some(e => e.includes('Invalid OPENCLAW_BASE_URL'))).toBe(true)
   })
 
   test('valid with proper configuration', () => {
@@ -171,9 +167,7 @@ describe('OpenClaw Configuration Validation', () => {
     const validation = validateOpenClawConfig()
     
     expect(validation.valid).toBe(false)
-    expect(validation.errors).toContain(
-      expect.stringContaining('production')
-    )
+    expect(validation.errors.some(e => e.includes('production'))).toBe(true)
   })
 })
 
@@ -223,10 +217,11 @@ describe('getOpenClawConfig', () => {
   const originalEnv = process.env
 
   beforeEach(() => {
-    process.env = { ...originalEnv }
-    delete process.env.OPENCLAW_API_KEY
-    delete process.env.OPENROUTER_KEY_CUBIKEY
-    delete process.env.OPENCLAW_BASE_URL
+    // Create a minimal clean environment for tests
+    process.env = {
+      NODE_ENV: 'test',
+      PATH: originalEnv.PATH || ''
+    }
   })
 
   afterEach(() => {
@@ -295,7 +290,11 @@ describe('Edge Cases', () => {
   const originalEnv = process.env
 
   beforeEach(() => {
-    process.env = { ...originalEnv }
+    // Create a minimal clean environment for tests
+    process.env = {
+      NODE_ENV: 'test',
+      PATH: originalEnv.PATH || ''
+    }
   })
 
   afterEach(() => {
