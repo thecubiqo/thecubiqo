@@ -1,209 +1,234 @@
-# How to Preview CubiQo Locally
-
-This guide explains how to preview CubiQo on your local machine before deploying to production.
+# How to Preview CubiQo
 
 ## Quick Start
 
-### Prerequisites
-- Node.js 18.x or later
-- npm 9.x or later
-- Git
+### Local Development
 
-### Basic Setup
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/thecubiqo/thecubiqo.git
+   cd thecubiqo
+   ```
 
-1. **Install dependencies**
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-2. **Configure environment variables**
-   - Copy `.env.example` to `.env.local`
-   - Fill in your Supabase credentials (see Configuration section below)
+3. **Set up environment variables**
+   
+   Copy the example environment file:
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   Add your keys:
+   ```bash
+   # Required for auth
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   
+   # Required for AI features
+   ANTHROPIC_API_KEY=your_anthropic_key
+   OPENAI_API_KEY=your_openai_key
+   ```
 
-3. **Start the development server**
+4. **Run the development server**
    ```bash
    npm run dev
    ```
 
-4. **Open your browser**
-   - Navigate to `http://localhost:3000`
-   - The app will hot-reload as you make changes
+5. **Open your browser**
+   
+   Navigate to `http://localhost:3000`
 
-## Configuration
-
-### Supabase Setup (Required)
-
-CubiQo requires Supabase for authentication and data storage:
-
-1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Get your credentials from Project Settings → API
-3. Add them to `.env.local`:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-```
-
-### Optional Configuration
-
-- **AI Provider Keys**: Add API keys for Anthropic, OpenAI, Groq, etc. (see `.env.example`)
-- **Voice Synthesis**: Add ElevenLabs API key for text-to-speech
-- **Feature Flags**: Enable/disable features via environment variables
+---
 
 ## Preview Modes
 
-### Development Mode (Default)
+### Standard Preview
+Default experience with full functionality enabled.
 
 ```bash
 npm run dev
 ```
 
-- Fast refresh and hot reloading
-- Detailed error messages
-- Development-only debugging tools
-- Runs on `http://localhost:3000`
-
-### Production Build (Local)
-
-Test the production build locally before deploying:
+### Experimental Features
+Enable experimental UI features:
 
 ```bash
-# Build for production
-npm run build
-
-# Start production server
-npm start
+# .env.local
+NEXT_PUBLIC_SHOW_LANDING_MODEL_FOOTER=true
+NEXT_PUBLIC_USE_PARTICLE_LANDING_HOME=true
 ```
 
-- Optimized build with tree-shaking
-- Runs on `http://localhost:3000`
-- Mimics production environment
+### Admin Mode
+Enable admin controls (auto-enabled in development):
 
-### Network Access
+```bash
+# .env.local
+NEXT_PUBLIC_ENABLE_ADMIN_CONTROLS=true
+```
 
-To preview on other devices (phone, tablet) on your local network:
+### OpenClaw Provider (Optional)
+Enable optional AI provider:
 
-1. Find your local IP address:
-   - **macOS/Linux**: `ifconfig | grep "inet "`
-   - **Windows**: `ipconfig`
+```bash
+# .env.local
+OPENCLAW_API_KEY=your_openclaw_key
+NEXT_PUBLIC_ENABLE_OPENCLAW=true
+```
 
-2. Start the dev server:
-   ```bash
-   npm run dev
-   ```
+See [OPENCLAW_INTEGRATION.md](./docs/OPENCLAW_INTEGRATION.md) for details.
 
-3. Access from other devices:
-   - Use your IP address: `http://192.168.1.x:3000`
-   - Ensure devices are on the same network
+---
+
+## Vercel Deployment Preview
+
+### Deploy to Vercel
+
+1. **Connect your repository to Vercel**
+   - Go to [vercel.com](https://vercel.com)
+   - Import your GitHub repository
+   - Vercel will auto-detect Next.js
+
+2. **Configure environment variables**
+   - Go to Project Settings → Environment Variables
+   - Add all variables from `.env.local`
+   - Separate variables for Development, Preview, and Production
+
+3. **Deploy**
+   - Push to your branch
+   - Vercel automatically creates a preview deployment
+   - Preview URL: `https://your-project-git-branch.vercel.app`
+
+### Preview Deployment Features
+
+- **Automatic**: Created on every push to a branch
+- **Unique URLs**: Each branch gets its own preview URL
+- **Environment Isolation**: Use preview-specific environment variables
+- **Live Collaboration**: Share preview links with team members
+
+### Preview Best Practices
+
+1. **Use Preview Environment Variables**: Set different values for preview vs. production
+2. **Test Each PR**: Preview deployments make it easy to test changes
+3. **Share Links**: Use preview URLs for stakeholder reviews
+4. **Check Analytics**: Vercel Analytics work in preview mode
+
+---
 
 ## Troubleshooting
 
-### Port 3000 Already in Use
-
-If port 3000 is occupied:
-
+### Port Already in Use
 ```bash
-# Use a different port
-PORT=3001 npm run dev
+# Kill process on port 3000
+lsof -ti:3000 | xargs kill -9
+
+# Or use a different port
+npm run dev -- -p 3001
 ```
 
-Or kill the process using port 3000:
-- **macOS/Linux**: `lsof -ti:3000 | xargs kill`
-- **Windows**: `netstat -ano | findstr :3000` then `taskkill /PID <PID> /F`
+### Environment Variables Not Loading
+1. Restart your dev server after changing `.env.local`
+2. Ensure variables start with `NEXT_PUBLIC_` for client-side access
+3. Check for typos in variable names
 
-### Missing Dependencies
+### Supabase Connection Issues
+1. Verify `NEXT_PUBLIC_SUPABASE_URL` is correct
+2. Check `NEXT_PUBLIC_SUPABASE_ANON_KEY` is the anon key (not service role)
+3. Ensure Supabase project is not paused
 
-If you encounter module errors:
-
-```bash
-# Clear node_modules and reinstall
-rm -rf node_modules package-lock.json
-npm install
-```
-
-### Build Cache Issues
-
-If the build behaves unexpectedly:
-
+### Build Errors
 ```bash
 # Clear Next.js cache
 rm -rf .next
 
-# Rebuild
+# Reinstall dependencies
+rm -rf node_modules package-lock.json
+npm install
+
+# Try building
 npm run build
 ```
 
-### Supabase Connection Issues
-
-If authentication fails:
-
-1. Verify your `.env.local` has correct Supabase credentials
-2. Check Supabase Dashboard → Logs → Auth Logs for errors
-3. Ensure your Supabase project is active and not paused
-
 ### TypeScript Errors
-
-If you see TypeScript errors:
-
 ```bash
-# Generate fresh types from Supabase
-npm run generate-types
+# Check for type errors
+npx tsc --noEmit
 
-# Or manually check types
-npm run type-check
+# Generate fresh types
+npm run build
 ```
 
-## Alternative Preview Methods
-
-### Vercel Deployment Preview
-
-Deploy preview branches to Vercel:
-
-1. Push your branch to GitHub
-2. Vercel automatically creates a preview deployment
-3. Access via the preview URL in the GitHub PR
-
-### Docker (Coming Soon)
-
-Docker support for containerized previews is planned for a future release.
-
-### Local Network Access with ngrok
-
-Expose your local server to the internet temporarily:
-
-```bash
-# Install ngrok
-npm install -g ngrok
-
-# Start dev server
-npm run dev
-
-# In another terminal, expose port 3000
-ngrok http 3000
-```
-
-Use the provided `https://` URL to access your local instance from anywhere.
-
-## Performance Tips
-
-- **Turbopack**: Next.js 16 uses Turbopack by default for faster builds
-- **Incremental Type Checking**: TypeScript checks incrementally during development
-- **Build Cache**: Keep `.next` folder for faster subsequent builds
-
-## Security Notes
-
-- Never commit `.env.local` to version control
-- Keep service role keys secret (server-side only)
-- Use environment variables in Vercel for production secrets
-- Test auth flows in production build mode before deploying
-
-## Getting Help
-
-- **Documentation**: Check `README.md` for general project info
-- **Troubleshooting**: See `AUTH_TROUBLESHOOTING.md` for auth-specific issues
-- **Community**: Open an issue on GitHub for bugs or feature requests
+### Missing Features
+- Ensure all required feature flags are set
+- Check that environment variables are properly configured
+- Verify API keys are valid and have correct permissions
 
 ---
 
-**Ready to deploy?** See `DEPLOYMENT_CHECKLIST.md` for production deployment steps.
+## Preview Checklist
+
+Before sharing a preview, verify:
+
+- [ ] All environment variables are set
+- [ ] Auth flow works (magic link login)
+- [ ] AI features are functional
+- [ ] No console errors
+- [ ] Responsive design works on mobile
+- [ ] Analytics are tracking (if enabled)
+- [ ] Feature flags are configured correctly
+
+---
+
+## Getting Help
+
+### Documentation
+- [Architecture](./ARCHITECTURE.md)
+- [Style Guide](./docs/STYLE_GUIDE.md)
+- [Feature Flags](./FEATURE_FLAGS.md)
+
+### Community
+- GitHub Issues: Report bugs or request features
+- GitHub Discussions: Ask questions or share ideas
+
+### Development
+- Run tests: `npm test`
+- Lint code: `npm run lint`
+- Visual tests: `npx tsx scripts/visual-smoke-test.ts`
+
+---
+
+## Preview Access Levels
+
+### Public Preview
+- Accessible via preview URL
+- No authentication required for landing page
+- Auth required for app features
+
+### Founders Pass Preview
+- Access via `/founderspass` with PIN
+- Full admin capabilities
+- Experimental features enabled
+
+### Regional Previews
+- UK: `/uk`
+- US: `/us` (default)
+- More regions coming soon
+
+---
+
+## Next Steps
+
+After previewing:
+
+1. **Test Core Features**: Auth, AI, voice interaction
+2. **Check Responsiveness**: Test on different screen sizes
+3. **Verify Analytics**: Confirm tracking is working
+4. **Review Performance**: Check Lighthouse scores
+5. **Share Feedback**: Open issues or discussions
+
+---
+
+*Happy Previewing! 🚀*
