@@ -226,7 +226,7 @@ location.reload()
 
 ## Performance Considerations
 
-### Plasma Wave (120K particles)
+### Plasma Wave (120K+ particles)
 
 - **GPU Intensive**: Requires modern GPU
 - **Mobile**: May throttle on low-end devices

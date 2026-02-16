@@ -837,7 +837,7 @@ export function FullscreenApp({
         isDark={isDark}
       />
 
-      {/* Landing Cube Router - Shown once per day or after 4+ hours 
+      {/* Landing Cube Router - Shown on first visit and after 4+ hours 
           Routes to the appropriate landing cube design based on configuration:
           - plasma-wave (default): 120K particle Plasma Wave Field
           - tech-wireframe: Wireframe energy cube
