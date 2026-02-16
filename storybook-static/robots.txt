@@ -1,0 +1,30 @@
+# CubiQo Robots.txt
+# Allow all crawlers for SEO
+
+User-agent: *
+Allow: /
+
+# AI Crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+# Sitemap
+Sitemap: https://www.cubiqo.ai/sitemap.xml
+
+# LLMs.txt for AI crawlers
+# See: https://www.cubiqo.ai/llms.txt

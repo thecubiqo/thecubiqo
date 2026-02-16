@@ -1,0 +1,7 @@
+import{j as r}from"./jsx-runtime-C5WNSv3b.js";import{L as s}from"./LoginForm-DhpV57QL.js";import"./index-ukwzBNUP.js";import"./AuthContext-fAsePHUy.js";import"./base64url-YC0aElVo.js";import"./toAuthenticatorAttachment-BAxCDoik.js";const l={title:"Auth/LoginForm",component:s,parameters:{layout:"centered",backgrounds:{default:"dark",values:[{name:"dark",value:"#000000"}]}},tags:["autodocs"],decorators:[a=>r.jsx("div",{className:"w-96 p-8 bg-zinc-900 rounded-lg",children:r.jsx(a,{})})]},e={},o={decorators:[a=>r.jsx("div",{className:"fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm",children:r.jsx("div",{className:"w-full max-w-md bg-gradient-to-b from-zinc-900 to-zinc-950 rounded-2xl shadow-2xl border border-zinc-800 p-8",children:r.jsx(a,{})})})]};e.parameters={...e.parameters,docs:{...e.parameters?.docs,source:{originalSource:"{}",...e.parameters?.docs?.source}}};o.parameters={...o.parameters,docs:{...o.parameters?.docs,source:{originalSource:`{
+  decorators: [Story => <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="w-full max-w-md bg-gradient-to-b from-zinc-900 to-zinc-950 rounded-2xl shadow-2xl border border-zinc-800 p-8">
+          <Story />
+        </div>
+      </div>]
+}`,...o.parameters?.docs?.source}}};const u=["Default","InModal"];export{e as Default,o as InModal,u as __namedExportsOrder,l as default};
