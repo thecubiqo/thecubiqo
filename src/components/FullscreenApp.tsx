@@ -115,7 +115,7 @@ export function FullscreenApp({
     }
 
     // If feature flag is disabled (and not forced), don't show
-   if (!showParticleLanding && !forceLanding) return;
+    if (!showParticleLanding && !forceLanding) return;
 
     const LANDING_STORAGE_KEY = 'cubiqo_last_landing'
     const HOURS_THRESHOLD = 4
@@ -220,12 +220,15 @@ export function FullscreenApp({
     // Transition: listening → thinking
     setAppState('thinking')
     setAnimationState('thinking')
+    console.log('[Voice] Transcript received:', text)
 
     try {
+      console.log('[Voice] Sending to Chat API...')
       const response = await sendMessageRef.current(text, colorNameRef.current)
 
       if (response?.response) {
         let responseText = response.response
+        console.log('[Voice] API Response:', responseText.substring(0, 50) + '...')
 
         // Check for auth nudge marker [AUTH_NUDGE:CTA]
         const nudgeMatch = responseText.match(/\[AUTH_NUDGE:([^\]]+)\]/)
@@ -242,6 +245,7 @@ export function FullscreenApp({
         speakRef.current(responseText)
       } else {
         // No response (API error) - speak an error message so user knows
+        console.warn('[Voice] No response from API')
         speakRef.current("I'm having trouble connecting right now. Please try again in a moment.")
       }
     } catch (error) {
@@ -300,6 +304,7 @@ export function FullscreenApp({
 
   // Voice button click handler - Toggle ON/OFF for seamless conversation
   const handleVoiceClick = useCallback(async () => {
+    console.log('[Voice] Toggle clicked. Current state:', voiceEnabled)
     // CRITICAL: Unlock audio on user gesture (browser requires this)
     // Call synchronously (not awaited) to ensure it happens in the same event loop tick
     // as the user's click event. Browsers require AudioContext to be initialized
@@ -349,38 +354,38 @@ export function FullscreenApp({
 
       {/* Floating Questions - Slow Scroll */}
       {showFloatingQuestions && (
-      <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[400px] h-[300px] overflow-hidden">
-        <button
-          onClick={() => setShowFloatingQuestions(false)}
-          className="absolute top-0 right-0 z-10 p-1.5 rounded-full text-white/30 hover:text-white/60 hover:bg-white/10 transition-all duration-200"
-          aria-label="Dismiss questions"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-        <div className="animate-float-questions space-y-8 pointer-events-none">
-          {[
-            "What's a good book for understanding psychology?",
-            "Help me plan a weekend trip to Paris",
-            "I need motivation to start working out",
-            "Explain quantum computing like I'm five",
-            "Best restaurants in Brooklyn?",
-            "How do I learn Spanish fast?",
-            "What's the meaning of life?",
-            "Recommend a morning routine",
-            "What's a good book for understanding psychology?",
-            "Help me plan a weekend trip to Paris",
-          ].map((question, i) => (
-            <div
-              key={i}
-              className="text-white/30 text-sm leading-relaxed"
-            >
-              {"\u201C"}{question}{"\u201D"}
-            </div>
-          ))}
+        <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[400px] h-[300px] overflow-hidden">
+          <button
+            onClick={() => setShowFloatingQuestions(false)}
+            className="absolute top-0 right-0 z-10 p-1.5 rounded-full text-white/30 hover:text-white/60 hover:bg-white/10 transition-all duration-200"
+            aria-label="Dismiss questions"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="animate-float-questions space-y-8 pointer-events-none">
+            {[
+              "What's a good book for understanding psychology?",
+              "Help me plan a weekend trip to Paris",
+              "I need motivation to start working out",
+              "Explain quantum computing like I'm five",
+              "Best restaurants in Brooklyn?",
+              "How do I learn Spanish fast?",
+              "What's the meaning of life?",
+              "Recommend a morning routine",
+              "What's a good book for understanding psychology?",
+              "Help me plan a weekend trip to Paris",
+            ].map((question, i) => (
+              <div
+                key={i}
+                className="text-white/30 text-sm leading-relaxed"
+              >
+                {"\u201C"}{question}{"\u201D"}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
       )}
 
       <style dangerouslySetInnerHTML={{
