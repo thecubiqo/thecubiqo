@@ -1,82 +1,68 @@
--- Self-Heal Reports Table
+-- Self-Heal Reports System
 -- Created: 2026-02-15
--- Purpose: Store audit entries for daily self-heal job runs
+-- Tracks daily self-heal job execution and results
+
+-- Enable UUID extension (should already be enabled)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================================================
 -- SELF_HEAL_REPORTS TABLE
--- Tracks self-heal job executions with diagnostics, fixes, and reports
+-- Stores the results of each self-heal job execution
 -- ============================================================================
 
 CREATE TABLE self_heal_reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  executed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
-  -- Diagnostics results
-  diagnostics JSONB NOT NULL DEFAULT '{}'::jsonb,
-  
-  -- Auto-fixes performed
-  fixes_applied JSONB NOT NULL DEFAULT '[]'::jsonb,
-  
-  -- Issues found (if any)
-  issues_found JSONB NOT NULL DEFAULT '[]'::jsonb,
-  
-  -- Status of the run
-  status TEXT NOT NULL CHECK (status IN ('success', 'partial', 'failed')),
-  
-  -- Rollback patch file path
-  rollback_patch_path TEXT,
-  
-  -- Report file path
-  report_path TEXT,
-  
-  -- Email sent confirmation
+  run_date TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  status TEXT NOT NULL,                     -- success/partial/failed
+  diagnostics JSONB DEFAULT '{}'::jsonb,    -- Diagnostic results
+  repairs JSONB DEFAULT '[]'::jsonb,        -- Array of repairs attempted
+  rollback_patch TEXT,                      -- SQL or commands to rollback changes
+  fixed_issues JSONB DEFAULT '[]'::jsonb,   -- Issues that were fixed
+  critical_issues JSONB DEFAULT '[]'::jsonb, -- Critical issues found
+  recommendations JSONB DEFAULT '[]'::jsonb, -- Recommendations for manual review
   email_sent BOOLEAN DEFAULT false,
   email_sent_at TIMESTAMPTZ,
-  
-  -- Signature for verification
-  report_signature TEXT,
-  
-  -- Duration in milliseconds
-  duration_ms INT,
-  
+  email_from TEXT DEFAULT 'noreply@cubiqo.ai',
+  email_to TEXT DEFAULT 'aditya@cubiqo.ai',
+  execution_time_ms INTEGER,                -- Time taken to complete
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Index for querying recent reports
-CREATE INDEX idx_self_heal_reports_executed_at ON self_heal_reports(executed_at DESC);
+-- Status validation
+ALTER TABLE self_heal_reports ADD CONSTRAINT status_valid
+  CHECK (status IN ('success', 'partial', 'failed'));
+
+-- Index for date lookups
+CREATE INDEX idx_self_heal_reports_run_date ON self_heal_reports(run_date DESC);
 CREATE INDEX idx_self_heal_reports_status ON self_heal_reports(status);
 
 -- ============================================================================
--- RLS POLICIES
+-- SELF_HEAL_AUDIT_LOGS TABLE
+-- Detailed audit trail for each repair action taken
 -- ============================================================================
 
--- Enable RLS
-ALTER TABLE self_heal_reports ENABLE ROW LEVEL SECURITY;
+CREATE TABLE self_heal_audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_id UUID REFERENCES self_heal_reports(id) ON DELETE CASCADE NOT NULL,
+  action_type TEXT NOT NULL,                -- cache_clear/service_restart/migration_reapply/etc
+  action_details JSONB DEFAULT '{}'::jsonb, -- Specific details about the action
+  status TEXT NOT NULL,                     -- success/failed/skipped
+  error_message TEXT,
+  rollback_command TEXT,                    -- Command to undo this specific action
+  executed_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- Only service role can insert
-CREATE POLICY "Service role can insert self heal reports"
-  ON self_heal_reports FOR INSERT
-  WITH CHECK (true);
+-- Status validation
+ALTER TABLE self_heal_audit_logs ADD CONSTRAINT audit_status_valid
+  CHECK (status IN ('success', 'failed', 'skipped'));
 
--- Only service role can view
-CREATE POLICY "Service role can view self heal reports"
-  ON self_heal_reports FOR SELECT
-  USING (true);
-
--- ============================================================================
--- GRANTS
--- ============================================================================
-
--- Grant access to authenticated users (admin UI needs to read)
-GRANT SELECT ON self_heal_reports TO authenticated;
+-- Index for report lookups
+CREATE INDEX idx_self_heal_audit_logs_report_id ON self_heal_audit_logs(report_id);
+CREATE INDEX idx_self_heal_audit_logs_executed_at ON self_heal_audit_logs(executed_at DESC);
 
 -- ============================================================================
 -- COMMENTS
 -- ============================================================================
 
-COMMENT ON TABLE self_heal_reports IS 'Audit log for daily self-heal job executions';
-COMMENT ON COLUMN self_heal_reports.diagnostics IS 'JSON object containing diagnostic results (cache size, service health, etc.)';
-COMMENT ON COLUMN self_heal_reports.fixes_applied IS 'Array of fixes that were applied during this run';
-COMMENT ON COLUMN self_heal_reports.issues_found IS 'Array of issues detected during diagnostics';
-COMMENT ON COLUMN self_heal_reports.rollback_patch_path IS 'File path to rollback patch if fixes were applied';
-COMMENT ON COLUMN self_heal_reports.report_signature IS 'Cryptographic signature of the report for verification';
+COMMENT ON TABLE self_heal_reports IS 'Stores results of daily self-heal job executions';
+COMMENT ON TABLE self_heal_audit_logs IS 'Detailed audit trail for each repair action taken during self-heal jobs';
