@@ -6,6 +6,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { CubeScene, EnergyCubeScene } from './cube'
 import { LoginForm, AuthNudgeModal } from './auth'
 import { AuthButton } from './AuthButton.client'
@@ -103,9 +104,17 @@ export function FullscreenApp({
   }
 
   // Check if we should show landing cube (respecting feature flag and local storage)
+  const searchParams = useSearchParams()
+  const forceLanding = searchParams.get('landing') === 'true'
+
   useEffect(() => {
-    // If feature flag is explicitly enabled, we might want to prioritize it
-    // But we still respect the "once per day" logic to valid annoyance
+    // If explicitly forced via URL, show it
+    if (forceLanding) {
+      setShowLandingCube(true)
+      return
+    }
+
+    // If feature flag is disabled (and not forced), don't show
     if (!showParticleLanding) return;
 
     const LANDING_STORAGE_KEY = 'cubiqo_last_landing'
@@ -125,7 +134,7 @@ export function FullscreenApp({
         localStorage.setItem(LANDING_STORAGE_KEY, now.toString())
       }
     }
-  }, [showParticleLanding])
+  }, [showParticleLanding, forceLanding])
 
   const handleLandingComplete = useCallback(() => {
     setShowLandingCube(false)
