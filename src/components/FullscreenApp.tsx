@@ -358,7 +358,7 @@ export function FullscreenApp({
               key={i}
               className="text-white/30 text-sm leading-relaxed"
             >
-              &ldquo;{question}&rdquo;
+              {"\u201C"}{question}{"\u201D"}
             </div>
           ))}
         </div>
