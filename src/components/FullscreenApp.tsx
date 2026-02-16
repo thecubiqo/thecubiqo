@@ -16,6 +16,7 @@ import { LandingPage } from './landing/LandingPage'
 import { PoweredByLogosCompact } from './PoweredByLogos'
 import { AdminControls } from './admin'
 import { SidePanel } from './cq'
+import { TopRightCTA } from '@/components/TopRightCTA.client'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
@@ -445,8 +446,8 @@ export function FullscreenApp({ showTopRightCTA = false }: FullscreenAppProps) {
           <button
             onClick={() => setShowCQPanel(true)}
             className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 ${isDark
-                ? 'bg-zinc-800/80 hover:bg-zinc-700/80 text-white/60 hover:text-white/80'
-                : 'bg-white/80 hover:bg-white text-gray-600 hover:text-gray-800'
+              ? 'bg-zinc-800/80 hover:bg-zinc-700/80 text-white/60 hover:text-white/80'
+              : 'bg-white/80 hover:bg-white text-gray-600 hover:text-gray-800'
               } backdrop-blur-md shadow-lg`}
             title="CQ Connect"
           >
@@ -850,6 +851,9 @@ export function FullscreenApp({ showTopRightCTA = false }: FullscreenAppProps) {
 
       {/* CQ Connect Side Panel */}
       <SidePanel isOpen={showCQPanel} onClose={() => setShowCQPanel(false)} />
+
+      {/* Top Right CTA - Biometric Auth / Register */}
+      {showTopRightCTA && <TopRightCTA />}
     </div>
   )
 }
