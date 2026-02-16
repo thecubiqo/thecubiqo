@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { checkFeatureFlag } from '@/lib/feature-flags/server'
 import { FullscreenApp } from '@/components/FullscreenApp'
 
@@ -12,9 +13,11 @@ export default async function Home() {
   ]);
 
   return (
-    <FullscreenApp
-      showTopRightCTA={ctaFlag.enabled}
-      showParticleLanding={particleFlag.enabled}
-    />
+    <Suspense fallback={null}>
+      <FullscreenApp
+        showTopRightCTA={ctaFlag.enabled}
+        showParticleLanding={particleFlag.enabled}
+      />
+    </Suspense>
   )
 }
