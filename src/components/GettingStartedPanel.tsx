@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { MagicLinkButtons } from '@/components/auth/MagicLinkButtons'
 
 interface GettingStartedPanelProps {
   isOpen: boolean
@@ -111,6 +112,20 @@ export function GettingStartedPanel({
 
         {/* Content - Scrollable */}
         <div className="flex-1 px-8 pb-8 overflow-y-auto space-y-8">
+          
+          {/* Quick Email Access */}
+          <section>
+            <h3 className="text-lg font-medium text-white/90 mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+              </svg>
+              Check for Magic Link
+            </h3>
+            <p className="text-sm text-white/40 mb-4">
+              Waiting for your magic link email? Quick access to your inbox:
+            </p>
+            <MagicLinkButtons source="side_panel" variant="full" />
+          </section>
           
           {/* Example Interactions */}
           <section>
