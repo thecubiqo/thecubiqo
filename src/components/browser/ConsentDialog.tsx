@@ -95,13 +95,15 @@ export function ConsentDialog({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        handleDeny()
+        if (!request) return
+        onDeny(request.requestId, reason || 'User denied')
+        onClose()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, request, reason])
+  }, [isOpen, request, reason, onDeny, onClose])
 
   // Focus trap
   const handleTabKey = useCallback((e: KeyboardEvent) => {
@@ -217,7 +219,7 @@ export function ConsentDialog({
           {/* Progress bar */}
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
             <div
-              className="h-full bg-white transition-all duration-1000 linear"
+              className="h-full bg-white transition-all duration-1000 ease-linear"
               style={{ width: `${progressPercent}%` }}
               role="progressbar"
               aria-valuenow={timeRemaining}
@@ -301,7 +303,7 @@ export function ConsentDialog({
                 Remember my choice for this domain
               </span>
               <p id="remember-description" className="text-xs text-gray-400 mt-1">
-                Future actions on {request.domain} will be automatically {rememberChoice ? 'approved' : 'handled'}
+                Future actions on {request.domain} will be automatically {rememberChoice ? 'approved' : 'reviewed'}
               </p>
             </div>
           </label>

@@ -173,7 +173,8 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
   }
 
   const handleClear = () => {
-    if (confirm('Are you sure you want to clear all API keys? This action cannot be undone.')) {
+    // TODO: Replace with custom confirmation dialog for better accessibility
+    if (window.confirm('Are you sure you want to clear all API keys? This action cannot be undone.')) {
       clearKeys()
       setClaudeKey('')
       setOpenaiKey('')
@@ -267,8 +268,16 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
               </p>
             ) : (
               <p id="claude-help" className="text-xs text-gray-500">
-                Get your key at <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" 
-                   className="text-blue-400 hover:text-blue-300 underline">console.anthropic.com</a>
+                Get your key at <a 
+                  href="https://console.anthropic.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-blue-400 hover:text-blue-300 underline"
+                  aria-label="Get Claude API key (opens in new tab)"
+                >
+                  console.anthropic.com
+                  <span className="sr-only"> (opens in new tab)</span>
+                </a>
               </p>
             )}
           </div>
@@ -304,8 +313,16 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
               </p>
             ) : (
               <p id="openai-help" className="text-xs text-gray-500">
-                Get your key at <a href="https://platform.openai.com" target="_blank" rel="noopener noreferrer"
-                   className="text-blue-400 hover:text-blue-300 underline">platform.openai.com</a>
+                Get your key at <a 
+                  href="https://platform.openai.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 underline"
+                  aria-label="Get OpenAI API key (opens in new tab)"
+                >
+                  platform.openai.com
+                  <span className="sr-only"> (opens in new tab)</span>
+                </a>
               </p>
             )}
           </div>

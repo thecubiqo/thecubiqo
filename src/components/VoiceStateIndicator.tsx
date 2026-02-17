@@ -117,14 +117,14 @@ export function VoiceStateIndicator({
             {/* Outer Ring - Slower pulse */}
             <div
               className={`absolute inset-0 ${config.borderColor} border-2 rounded-full 
-                         animate-ping opacity-75`}
+                         motion-safe:animate-ping opacity-75`}
               style={{ animationDuration: '2s' }}
               aria-hidden="true"
             />
             {/* Inner Ring - Faster pulse */}
             <div
               className={`absolute inset-[-4px] ${config.borderColor} border rounded-full 
-                         animate-pulse opacity-50`}
+                         motion-safe:animate-pulse opacity-50`}
               style={{ animationDuration: '1s' }}
               aria-hidden="true"
             />
@@ -187,14 +187,14 @@ export function VoiceStateBar({ currentState, className = '' }: VoiceStateBarPro
               className={`relative w-3 h-3 rounded-full transition-all duration-300
                          ${isActive ? 'scale-125' : 'scale-100'}
                          ${isPast ? 'bg-gray-600' : ''}
-                         ${isActive && currentState === 'listening' ? 'bg-red-400 animate-pulse' : ''}
-                         ${isActive && currentState === 'thinking' ? 'bg-yellow-400 animate-pulse' : ''}
-                         ${isActive && currentState === 'speaking' ? 'bg-green-400 animate-pulse' : ''}
+                         ${isActive && currentState === 'listening' ? 'bg-red-400 motion-safe:animate-pulse' : ''}
+                         ${isActive && currentState === 'thinking' ? 'bg-yellow-400 motion-safe:animate-pulse' : ''}
+                         ${isActive && currentState === 'speaking' ? 'bg-green-400 motion-safe:animate-pulse' : ''}
                          ${isFuture ? 'bg-gray-800 border border-gray-700' : ''}`}
               aria-current={isActive ? 'step' : undefined}
             >
               {isActive && (
-                <div className="absolute inset-0 rounded-full animate-ping opacity-75" />
+                <div className="absolute inset-0 rounded-full motion-safe:animate-ping opacity-75" />
               )}
             </div>
 
