@@ -21,14 +21,14 @@ export async function callMiniMax(
         }))
     ]
 
-    const response = await fetch('https://api.minimaxi.chat/v1/text/chatcompletion_v2', {
+    const response = await fetch('https://api.minimax.chat/v1/chat/completions', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-            model: MINIMAX_CONFIG.model,
+            model: 'abab6.5s-chat', // Use a standard, high-speed model
             messages: minimaxMessages,
             max_tokens: MINIMAX_CONFIG.maxTokens,
             temperature: 0.7
