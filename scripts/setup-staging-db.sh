@@ -376,43 +376,6 @@ restore_database() {
     echo "  2. Run: psql \$DATABASE_URL < $BACKUP_PATH"
 }
 
-# Function: Show help
-show_help() {
-    cat << EOF
-
-${BLUE}CubiQo Staging Database Setup Script${NC}
-
-${YELLOW}Usage:${NC}
-  ./scripts/setup-staging-db.sh [command]
-
-${YELLOW}Commands:${NC}
-  ${GREEN}init${NC}       Initialize staging environment and verify credentials
-  ${GREEN}migrate${NC}    Run all migrations on staging database
-  ${GREEN}seed${NC}       Seed staging database with test data
-  ${GREEN}verify${NC}     Verify staging database health and schema
-  ${GREEN}reset${NC}      Reset staging database (WARNING: Deletes all data)
-  ${GREEN}backup${NC}     Create backup of staging database
-  ${GREEN}restore${NC}    Restore staging database from backup
-  ${GREEN}help${NC}       Show this help message
-
-${YELLOW}Examples:${NC}
-  # Set up new staging database
-  ./scripts/setup-staging-db.sh init
-  ./scripts/setup-staging-db.sh migrate
-  ./scripts/setup-staging-db.sh seed
-
-  # Verify existing staging database
-  ./scripts/setup-staging-db.sh verify
-
-  # Backup before major changes
-  ./scripts/setup-staging-db.sh backup
-
-${YELLOW}Documentation:${NC}
-  See STAGING_DATABASE_SETUP.md for detailed instructions
-
-EOF
-}
-
 # Main script logic
 case "${1:-help}" in
     init)
