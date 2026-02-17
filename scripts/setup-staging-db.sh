@@ -32,6 +32,49 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
+# Function: Show help
+show_help() {
+    cat << EOF
+
+${BLUE}CubiQo Staging Database Setup Script${NC}
+
+${YELLOW}Usage:${NC}
+  ./scripts/setup-staging-db.sh [command]
+
+${YELLOW}Commands:${NC}
+  ${GREEN}init${NC}       Initialize staging environment and verify credentials
+  ${GREEN}migrate${NC}    Run all migrations on staging database
+  ${GREEN}seed${NC}       Seed staging database with test data
+  ${GREEN}verify${NC}     Verify staging database health and schema
+  ${GREEN}reset${NC}      Reset staging database (WARNING: Deletes all data)
+  ${GREEN}backup${NC}     Create backup of staging database
+  ${GREEN}restore${NC}    Restore staging database from backup
+  ${GREEN}help${NC}       Show this help message
+
+${YELLOW}Examples:${NC}
+  # Set up new staging database
+  ./scripts/setup-staging-db.sh init
+  ./scripts/setup-staging-db.sh migrate
+  ./scripts/setup-staging-db.sh seed
+
+  # Verify existing staging database
+  ./scripts/setup-staging-db.sh verify
+
+  # Backup before major changes
+  ./scripts/setup-staging-db.sh backup
+
+${YELLOW}Documentation:${NC}
+  See STAGING_DATABASE_SETUP.md for detailed instructions
+
+EOF
+}
+
+# Show help and exit if help command is requested
+if [ "${1:-}" = "help" ] || [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+    show_help
+    exit 0
+fi
+
 # Load environment variables
 if [ -f "$PROJECT_ROOT/.env.staging" ]; then
     source "$PROJECT_ROOT/.env.staging"
@@ -393,7 +436,7 @@ case "${1:-help}" in
     restore)
         restore_database
         ;;
-    help|--help|-h)
+    help|--help|-h|"")
         show_help
         ;;
     *)
