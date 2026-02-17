@@ -76,6 +76,21 @@ export function useSession() {
     if (authUser === undefined) return
 
     const initSession = async () => {
+      // Failsafe: Don't let it hang forever
+      const timeout = setTimeout(() => {
+        setState(prev => {
+          if (prev.isLoading) {
+            return {
+              ...prev,
+              isLoading: false,
+              isGuest: true, // Fallback to guest
+              error: 'Session initialization timeout - defaulting to guest'
+            }
+          }
+          return prev
+        })
+      }, 5000)
+
       try {
         if (authUser) {
           await handleAuthenticatedUser(authUser)
@@ -89,6 +104,8 @@ export function useSession() {
           isLoading: false,
           error: 'Session initialization failed',
         }))
+      } finally {
+        clearTimeout(timeout)
       }
     }
 
