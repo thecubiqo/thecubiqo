@@ -43,10 +43,17 @@ export async function callMiniMax(
 
     const data = await response.json()
 
+    // Check for API-level errors in the response body
+    if (data.base_resp && data.base_resp.status_code !== 0) {
+        console.error('MiniMax API returned error:', data.base_resp)
+        throw new Error(`MiniMax API Error: ${data.base_resp.status_msg} (Code: ${data.base_resp.status_code})`)
+    }
+
     // MiniMax returns choices similar to OpenAI
     if (data.choices && data.choices[0]?.message?.content) {
         return data.choices[0].message.content
     }
 
-    throw new Error('Invalid MiniMax response format')
+    console.error('Invalid MiniMax response:', JSON.stringify(data, null, 2))
+    throw new Error(`Invalid MiniMax response format. Response: ${JSON.stringify(data)}`)
 }
