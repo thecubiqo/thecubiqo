@@ -18,7 +18,13 @@
     "test:visual-smoke": "tsx scripts/visual-smoke-test.ts",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "chromatic": "chromatic --exit-zero-on-changes"
+    "chromatic": "chromatic --exit-zero-on-changes",
+    "staging:init": "./scripts/setup-staging-db.sh init",
+    "staging:migrate": "./scripts/setup-staging-db.sh migrate",
+    "staging:seed": "./scripts/setup-staging-db.sh seed",
+    "staging:verify": "./scripts/setup-staging-db.sh verify",
+    "staging:backup": "./scripts/setup-staging-db.sh backup",
+    "staging:reset": "./scripts/setup-staging-db.sh reset"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.70.1",

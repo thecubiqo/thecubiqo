@@ -84,6 +84,19 @@ OPENAI_API_KEY=your_key_here
 ELEVENLABS_API_KEY=your_key_here
 ```
 
+### Staging Environment (For Testing)
+
+Set up a separate staging database for testing before production:
+
+```bash
+# Quick setup
+npm run staging:init      # Initialize staging
+npm run staging:migrate   # Run migrations
+npm run staging:verify    # Check health
+```
+
+See [STAGING_DATABASE_SETUP.md](./STAGING_DATABASE_SETUP.md) for complete instructions.
+
 ## 🏗️ Tech Stack
 
 - **Framework:** Next.js 14 (App Router)
@@ -285,6 +298,9 @@ Set environment variables in Vercel dashboard: Supabase credentials, OAuth clien
 - **[VALIDATION_REPORT.md](./VALIDATION_REPORT.md)** - Environment validation report
 - **[AUTH_FIX_SUMMARY.md](./AUTH_FIX_SUMMARY.md)** - Auth bug fix documentation
 - **[SELF_HEAL.md](./docs/SELF_HEAL.md)** - Self-heal job documentation
+- **[STAGING_DATABASE_SETUP.md](./STAGING_DATABASE_SETUP.md)** - Staging database setup guide
+- **[STAGING_QUICK_REF.md](./STAGING_QUICK_REF.md)** - Quick reference for staging
+- **[STAGING_TESTING_HANDOFF.md](./STAGING_TESTING_HANDOFF.md)** - Testing and handoff guide
 
 ## 📧 Contact
 

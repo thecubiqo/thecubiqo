@@ -8,34 +8,64 @@ import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function GET() {
+export async function GET(request: Request) {
   const startTime = Date.now()
+  
+  // Check if staging environment is requested via query param
+  const { searchParams } = new URL(request.url)
+  const envParam = searchParams.get('env')
+  const isStaging = envParam === 'staging' || process.env.NODE_ENV === 'staging'
   
   const health = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'unknown',
+    environment: isStaging ? 'staging' : (process.env.NODE_ENV || 'unknown'),
+    staging_mode: isStaging,
     checks: {
       server: 'ok',
       supabase: 'unknown',
       ai_apis: 'unknown',
+      migrations: 'unknown',
     }
   }
   
-  // Check Supabase connectivity
+  // Check Supabase connectivity (with staging support)
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseUrl = isStaging 
+      ? (process.env.NEXT_PUBLIC_SUPABASE_URL_STAGING || process.env.NEXT_PUBLIC_SUPABASE_URL)
+      : process.env.NEXT_PUBLIC_SUPABASE_URL
+    
+    const supabaseKey = isStaging
+      ? (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_STAGING || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+      : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
     if (supabaseUrl) {
       const response = await fetch(`${supabaseUrl}/rest/v1/`, {
         method: 'HEAD',
         headers: {
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          'apikey': supabaseKey || '',
         },
         signal: AbortSignal.timeout(3000),
       })
       health.checks.supabase = response.ok ? 'ok' : 'degraded'
+      
+      // Check if critical tables exist (migration validation)
+      if (response.ok) {
+        try {
+          const tablesResponse = await fetch(`${supabaseUrl}/rest/v1/profiles?select=count&limit=1`, {
+            method: 'HEAD',
+            headers: {
+              'apikey': supabaseKey || '',
+            },
+            signal: AbortSignal.timeout(2000),
+          })
+          health.checks.migrations = tablesResponse.ok ? 'ok' : 'missing_tables'
+        } catch {
+          health.checks.migrations = 'unable_to_verify'
+        }
+      }
     } else {
       health.checks.supabase = 'not_configured'
     }
