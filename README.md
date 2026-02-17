@@ -86,15 +86,20 @@ ELEVENLABS_API_KEY=your_key_here
 
 ### Staging Environment (For Testing)
 
+**Where is the staging database?** It doesn't exist yet - you need to create it!
+
 Set up a separate staging database for testing before production:
 
 ```bash
-# Quick setup
+# 1. Create Supabase project at https://supabase.com (name: cubiqo-staging)
+# 2. Copy credentials to .env.staging
+# 3. Run setup:
 npm run staging:init      # Initialize staging
 npm run staging:migrate   # Run migrations
 npm run staging:verify    # Check health
 ```
 
+See [WHERE_IS_STAGING_DB.md](./WHERE_IS_STAGING_DB.md) for the answer to "where is staging?"  
 See [STAGING_DATABASE_SETUP.md](./STAGING_DATABASE_SETUP.md) for complete instructions.
 
 ## 🏗️ Tech Stack
