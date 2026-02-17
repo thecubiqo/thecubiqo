@@ -81,12 +81,13 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 // Check which API keys are configured
 function getConfiguredProviders(): { minimax: boolean; mixtral: boolean; llama: boolean; claude: boolean } {
   return {
-    minimax: !!process.env.MINIMAX_API_KEY,
+    minimax: !!(process.env.MINIMAX_API_KEY || process.env.MINIMAX_KEY),
     mixtral: !!process.env.MISTRAL_API_KEY,
     llama: !!process.env.TOGETHER_API_KEY,
     claude: !!process.env.ANTHROPIC_API_KEY
   }
 }
+
 
 // MiniMax API call (primary)
 async function callMiniMax(

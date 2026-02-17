@@ -182,12 +182,20 @@ export function useChat(options: UseChatOptions) {
 
         return conversationId
       } catch (error) {
+        console.warn('[useChat] Failed to initialize conversation (likely invalid keys). Falling back to temporary local session.', error)
+
+        // Validation Fallback: Allow chat to work without persistence if Supabase fails
+        const tempId = `temp-${Date.now()}`
+
         setState(prev => ({
           ...prev,
+          conversationId: tempId,
+          conversationHistory: [],
           isInitialized: true,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: null // Clear error to allow UI to render
         }))
-        return null
+
+        return tempId
       } finally {
         initPromiseRef.current = null
       }
@@ -266,19 +274,23 @@ export function useChat(options: UseChatOptions) {
       const data = await response.json()
       const timestamp = new Date().toISOString()
 
-      // Save messages (fire and forget or await if critical)
-      await fetch('/api/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'save_messages_batch',
-          conversationId: activeConversationId,
-          messages: [
-            { role: 'user', content: message, color: currentColor },
-            { role: 'assistant', content: data.response, color: data.color }
-          ]
-        })
-      })
+      // Save messages (only if we have a real conversation)
+      if (!activeConversationId.startsWith('temp-')) {
+        await fetch('/api/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save_messages_batch',
+            conversationId: activeConversationId,
+            messages: [
+              { role: 'user', content: message, color: currentColor },
+              { role: 'assistant', content: data.response, color: data.color }
+            ]
+          })
+        }).catch(e => console.warn('Failed to save messages:', e))
+      } else {
+        console.log('[useChat] Skipping persistence for temporary session')
+      }
 
       // Background memory extraction
       fetch('/api/extract-memories', {
