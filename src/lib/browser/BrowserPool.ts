@@ -109,7 +109,7 @@ export class BrowserPool {
    */
   private async createInstance(): Promise<BrowserInstance> {
     const instance: BrowserInstance = {
-      id: `browser-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `browser-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       createdAt: Date.now(),
       lastUsedAt: Date.now(),
       inUse: true,

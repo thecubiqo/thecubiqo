@@ -173,9 +173,20 @@ export async function validateEncryption(
  * This ensures keys are tied to specific users and environments
  */
 export function generatePassphrase(userId: string): string {
-  // Use user ID + app secret for passphrase
-  // In production, use process.env.BYO_ENCRYPTION_SECRET
-  const secret = process.env.BYO_ENCRYPTION_SECRET || 'default-secret-change-in-production';
+  // CRITICAL: BYO_ENCRYPTION_SECRET must be set in production
+  const secret = process.env.BYO_ENCRYPTION_SECRET;
+  
+  if (!secret) {
+    // In production, this is a critical error
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('BYO_ENCRYPTION_SECRET environment variable is required in production');
+    }
+    
+    // In development, use a default (but warn)
+    console.warn('[BYO Encryption] WARNING: BYO_ENCRYPTION_SECRET not set, using development default');
+    return `${userId}-dev-secret-not-for-production`;
+  }
+  
   return `${userId}-${secret}`;
 }
 

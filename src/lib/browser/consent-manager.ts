@@ -77,7 +77,7 @@ export class ConsentManager {
     }
 
     // Store pending consent request
-    const requestId = `consent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const requestId = `consent-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     this.pendingConsents.set(requestId, request);
 
     // TODO: Send notification to frontend
@@ -387,11 +387,14 @@ export class ConsentManager {
   cleanup(): void {
     const now = Date.now();
 
-    for (const [requestId, request] of this.pendingConsents.entries()) {
-      // Remove requests older than timeout
-      if (now - Date.now() > this.consentTimeout) {
+    for (const [requestId] of this.pendingConsents.entries()) {
+      // Note: Requests are tracked in memory only, no creation timestamp stored
+      // Actual timeout is handled in waitForResponse()
+      // This cleanup is for edge cases where waitForResponse doesn't clean up
+      // Check if consent response exists (already processed)
+      if (this.consentResponses.has(requestId)) {
         this.pendingConsents.delete(requestId);
-        console.log('[ConsentManager] Cleaned up expired consent:', requestId);
+        console.log('[ConsentManager] Cleaned up processed consent:', requestId);
       }
     }
   }
