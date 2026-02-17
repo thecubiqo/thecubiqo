@@ -276,7 +276,6 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
                   aria-label="Get Claude API key (opens in new tab)"
                 >
                   console.anthropic.com
-                  <span className="sr-only"> (opens in new tab)</span>
                 </a>
               </p>
             )}
@@ -321,7 +320,6 @@ export function BYOSettings({ onClose }: BYOSettingsProps) {
                   aria-label="Get OpenAI API key (opens in new tab)"
                 >
                   platform.openai.com
-                  <span className="sr-only"> (opens in new tab)</span>
                 </a>
               </p>
             )}
