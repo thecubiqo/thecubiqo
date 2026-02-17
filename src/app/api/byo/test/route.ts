@@ -26,7 +26,7 @@ const testBYOKeysSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
-    const supabase = createClient();
+    const supabase = await createClient();
     const {
       data: { user },
       error: authError,
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: 'Validation failed',
-          details: validation.error.errors,
+          details: validation.error.issues,
         },
         { status: 400 }
       );

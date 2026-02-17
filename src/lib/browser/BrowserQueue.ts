@@ -258,7 +258,7 @@ export class BrowserQueue {
    */
   private async saveSessionToDatabase(session: QueuedSession): Promise<void> {
     try {
-      const supabase = createClient();
+      const supabase = await createClient();
 
       await supabase.from('browser_sessions').insert({
         id: session.id,
@@ -281,7 +281,7 @@ export class BrowserQueue {
    */
   private async updateSessionInDatabase(session: QueuedSession): Promise<void> {
     try {
-      const supabase = createClient();
+      const supabase = await createClient();
 
       await supabase
         .from('browser_sessions')

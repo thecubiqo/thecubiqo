@@ -176,7 +176,7 @@ export class ConsentManager {
     domain: string
   ): Promise<boolean | null> {
     try {
-      const supabase = createClient();
+      const supabase = await createClient();
 
       // Use Guy's helper function
       const { data, error } = await supabase.rpc('get_user_domain_consent', {
@@ -205,7 +205,7 @@ export class ConsentManager {
     approved: boolean
   ): Promise<void> {
     try {
-      const supabase = createClient();
+      const supabase = await createClient();
 
       // Note: We'll use a special session_id to indicate this is a remembered preference
       const preferenceSessionId = '00000000-0000-0000-0000-000000000000';
@@ -238,7 +238,7 @@ export class ConsentManager {
     reason?: string
   ): Promise<void> {
     try {
-      const supabase = createClient();
+      const supabase = await createClient();
 
       await supabase.from('browser_consent_records').insert({
         user_id: request.userId,
@@ -313,7 +313,7 @@ export class ConsentManager {
     }>
   > {
     try {
-      const supabase = createClient();
+      const supabase = await createClient();
 
       let query = supabase
         .from('browser_consent_records')
@@ -332,7 +332,12 @@ export class ConsentManager {
         throw error;
       }
 
-      return (data || []).map((record) => ({
+      return (data || []).map((record: {
+        domain: string;
+        action_description: string;
+        approved: boolean;
+        created_at: string;
+      }) => ({
         domain: record.domain,
         actionDescription: record.action_description,
         approved: record.approved,
@@ -352,7 +357,7 @@ export class ConsentManager {
     domain: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const supabase = createClient();
+      const supabase = await createClient();
 
       // Delete all remembered consents for this domain
       const { error } = await supabase

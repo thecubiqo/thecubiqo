@@ -18,7 +18,7 @@ import { getBrowserPool } from '@/lib/browser/BrowserPool';
 export async function GET(request: NextRequest) {
   try {
     // Authenticate user
-    const supabase = createClient();
+    const supabase = await createClient();
     const {
       data: { user },
       error: authError,
