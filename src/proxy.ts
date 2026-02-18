@@ -1,9 +1,9 @@
 /**
- * Middleware - Session Refresh and Route Protection
+ * Proxy - Session Refresh and Route Protection
  * 
  * Related PRs: #12 (Magic-link auth state), #28 (Centralized auth)
  * 
- * This middleware ensures:
+ * This proxy ensures:
  * 1. Session is refreshed on every request (critical for magic-link redirects)
  * 2. Auth cookies stay up-to-date
  * 3. UI never shows stale auth state
@@ -12,7 +12,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -43,7 +43,7 @@ export async function middleware(request: NextRequest) {
   // Optional: Add debug logging in development
   if (process.env.NODE_ENV === 'development') {
     const pathname = request.nextUrl.pathname
-    console.log(`[Middleware] ${pathname} - User: ${user ? user.id : 'guest'}`)
+    console.log(`[Proxy] ${pathname} - User: ${user ? user.id : 'guest'}`)
   }
 
   return supabaseResponse
