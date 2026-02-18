@@ -11,10 +11,10 @@ let client: ReturnType<typeof createBrowserClient<Database>> | null = null
 export function isSupabaseConfigured(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  
+
   return !!(
-    url && 
-    key && 
+    url &&
+    key &&
     url !== 'https://placeholder.supabase.co' &&
     key !== 'placeholder-anon-key' &&
     url.includes('supabase.co')
@@ -27,9 +27,9 @@ export function createClient() {
     // Note: The "1" suffix is per legacy naming convention for backward compatibility
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
-    
+
     client = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
   }
 
-  return createBrowserClient<Database>(supabaseUrl, supabaseKey)
+  return client
 }
