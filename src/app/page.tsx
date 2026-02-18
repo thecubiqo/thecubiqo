@@ -7,10 +7,19 @@ export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   // Check feature flags
-  const [ctaFlag, particleFlag] = await Promise.all([
-    checkFeatureFlag({ flag_name: 'ui.topRightCTA.v1' }),
-    checkFeatureFlag({ flag_name: 'ui.landing.particles.v1' })
-  ]);
+  // Check feature flags with fail-safe
+  let ctaFlag = { enabled: false };
+  let particleFlag = { enabled: false };
+
+  try {
+    [ctaFlag, particleFlag] = await Promise.all([
+      checkFeatureFlag({ flag_name: 'ui.topRightCTA.v1' }),
+      checkFeatureFlag({ flag_name: 'ui.landing.particles.v1' })
+    ]);
+  } catch (error) {
+    console.error('Feature flag check failed:', error);
+    // Proceed with safe defaults
+  }
 
   return (
     <Suspense fallback={null}>
