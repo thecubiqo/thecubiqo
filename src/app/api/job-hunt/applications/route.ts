@@ -206,6 +206,14 @@ export async function PATCH(request: NextRequest) {
       )
     }
     
+    // Get current application data before update
+    const { data: currentApp } = await supabase
+      .from('job_applications')
+      .select('status, company_name')
+      .eq('id', body.application_id)
+      .eq('profile_id', profile.id)
+      .single()
+    
     // Build update data
     const updateData: any = {
       last_updated_at: new Date().toISOString(),
@@ -240,9 +248,9 @@ export async function PATCH(request: NextRequest) {
       activity_type: 'status_updated',
       description: `Application status updated to ${body.status}`,
       details: { 
-        previous_status: application.status,
+        previous_status: currentApp?.status || 'unknown',
         new_status: body.status,
-        company: application.company_name 
+        company: currentApp?.company_name || application.company_name 
       },
     })
     
