@@ -575,6 +575,6 @@ completeIntegrationWorkflow().catch(console.error);
 
 ## Resources
 
-- [Shopify Integration Guide](../docs/integrations/shopify.md)
-- [Printify Integration Guide](../docs/integrations/printify.md)
-- [API Documentation](../API_DOCUMENTATION.md)
+- [Shopify Integration Guide](./shopify.md)
+- [Printify Integration Guide](./printify.md)
+- [API Documentation](../../API_DOCUMENTATION.md)

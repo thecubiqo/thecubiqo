@@ -87,6 +87,13 @@ export async function createPrintifyOrderFromShopify(
   printifyShopId: number,
   productMapping: Record<string, { productId: string; variantId: number }>,
 ): Promise<PrintifyOrder> {
+  // Extract shipping address from Shopify order
+  const shippingAddress = (shopifyOrder as any).shipping_address;
+  
+  if (!shippingAddress) {
+    throw new Error('Shopify order missing shipping address');
+  }
+
   // Transform Shopify order to Printify format
   const printifyOrder = {
     external_id: shopifyOrder.id,
@@ -109,15 +116,16 @@ export async function createPrintifyOrderFromShopify(
     shipping_method: 1, // Standard shipping
     send_shipping_notification: true,
     address_to: {
-      first_name: shopifyOrder.email.split('@')[0] || 'Customer',
-      last_name: '',
+      first_name: shippingAddress.first_name || shippingAddress.name?.split(' ')[0] || 'Customer',
+      last_name: shippingAddress.last_name || shippingAddress.name?.split(' ').slice(1).join(' ') || '',
       email: shopifyOrder.email,
-      phone: shopifyOrder.phone || '',
-      country: 'US', // Extract from shipping address
-      region: '',
-      address1: '',
-      city: '',
-      zip: '',
+      phone: shippingAddress.phone || shopifyOrder.phone || '',
+      country: shippingAddress.country_code || shippingAddress.country || 'US',
+      region: shippingAddress.province_code || shippingAddress.province || '',
+      address1: shippingAddress.address1 || '',
+      address2: shippingAddress.address2,
+      city: shippingAddress.city || '',
+      zip: shippingAddress.zip || '',
     },
   };
 

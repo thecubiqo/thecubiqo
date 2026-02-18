@@ -67,10 +67,10 @@ export async function getShopifyStatus(siteId: string): Promise<{
   }
 
   try {
-    const [shopInfo, products] = await Promise.all([
-      client.getShopInfo(),
-      client.getProducts({ limit: 1 }),
-    ]);
+    const shopInfo = await client.getShopInfo();
+    
+    // Get a small sample to check if products exist
+    const products = await client.getProducts({ limit: 250 });
 
     return {
       connected: true,
