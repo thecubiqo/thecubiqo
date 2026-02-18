@@ -3,10 +3,14 @@
  * Handles all headless browser operations with security and consent
  */
 
-import puppeteer, { Browser, Page } from 'puppeteer';
-import type { 
-  BrowserAction, 
-  BrowserResult, 
+// Dynamic import to prevent webpack bundling issues
+// puppeteer is only available at runtime on a server with Chrome installed
+let puppeteer: any;
+type Browser = any;
+type Page = any;
+import type {
+  BrowserAction,
+  BrowserResult,
   BrowserSession,
   NavigateAction,
   ClickAction,
@@ -35,6 +39,13 @@ export class BrowserService {
   async initialize(): Promise<void> {
     if (this.browser) return;
 
+    // Use eval to bypass webpack static analysis
+    // puppeteer is server-only and cannot be bundled
+    if (!puppeteer) {
+      // eslint-disable-next-line no-eval
+      puppeteer = eval("require")('puppeteer');
+    }
+
     this.browser = await puppeteer.launch({
       headless: true,
       args: [
@@ -47,7 +58,7 @@ export class BrowserService {
     });
 
     this.page = await this.browser.newPage();
-    
+
     // Set reasonable defaults
     await this.page.setViewport({ width: 1920, height: 1080 });
     await this.page.setUserAgent(
@@ -67,7 +78,7 @@ export class BrowserService {
         const currentUrl = this.page?.url() || 'unknown';
         const domain = new URL(currentUrl).hostname;
         const allowed = await this.consentCallback(domain, action.type);
-        
+
         if (!allowed) {
           return {
             success: false,
@@ -79,7 +90,7 @@ export class BrowserService {
 
       // Execute action based on type
       let result: BrowserResult;
-      
+
       switch (action.type) {
         case 'navigate':
           result = await this.navigate(action);
@@ -156,7 +167,7 @@ export class BrowserService {
     if (!this.page) throw new Error('Browser not initialized');
 
     await this.page.waitForSelector(action.selector, { timeout: 10000 });
-    
+
     if (action.waitForNavigation) {
       await Promise.all([
         this.page.waitForNavigation({ timeout: 30000 }),
@@ -180,8 +191,8 @@ export class BrowserService {
     if (!this.page) throw new Error('Browser not initialized');
 
     await this.page.waitForSelector(action.selector, { timeout: 10000 });
-    await this.page.type(action.selector, action.text, { 
-      delay: action.delay || 50 
+    await this.page.type(action.selector, action.text, {
+      delay: action.delay || 50
     });
 
     return {
@@ -205,8 +216,8 @@ export class BrowserService {
       }
       screenshot = await element.screenshot();
     } else {
-      screenshot = await this.page.screenshot({ 
-        fullPage: action.fullPage || false 
+      screenshot = await this.page.screenshot({
+        fullPage: action.fullPage || false
       });
     }
 
@@ -370,7 +381,7 @@ export class BrowserService {
         data = await this.page.evaluate((sel) => {
           const table = sel ? document.querySelector(sel) : document.querySelector('table');
           if (!table) return null;
-          
+
           const rows = Array.from(table.querySelectorAll('tr'));
           return rows.map(row => {
             const cells = Array.from(row.querySelectorAll('td, th'));
@@ -431,7 +442,7 @@ export class BrowserService {
       await this.page.close();
       this.page = null;
     }
-    
+
     if (this.browser) {
       await this.browser.close();
       this.browser = null;

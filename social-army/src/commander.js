@@ -55,8 +55,15 @@ async function startDaemon() {
 
   // Schedule Loop (10 minutes = 600,000 ms)
   setInterval(async () => {
-    console.log('\n⏰ Scheduled Cycle Triggered...');
-    await runCampaign();
+    // Check if system is enabled in DB (Mock for now, would be supabase query)
+    const isSystemOn = process.env.SOCIAL_ARMY_STATUS === 'ON';
+
+    if (isSystemOn) {
+      console.log('\n⏰ Scheduled Cycle Triggered...');
+      await runCampaign();
+    } else {
+      console.log('\nzzz System Paused. Waiting for Start signal...');
+    }
   }, 10 * 60 * 1000);
 }
 
