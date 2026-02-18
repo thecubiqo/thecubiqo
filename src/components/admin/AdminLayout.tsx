@@ -12,7 +12,8 @@ import {
     Terminal,
     LogOut,
     Mail,
-    Shield
+    Shield,
+    Globe
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
     { name: 'Feature Flags', href: '/admin/feature-flags', icon: Flag },
     { name: 'Analytics', href: '/admin/analytics', icon: LineChart },
     { name: 'Security', href: '/admin/security', icon: Shield },
+    { name: 'Social Army', href: '/admin/social-army', icon: Globe },
     { name: 'Emails', href: '/admin/email-preview', icon: Mail },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
