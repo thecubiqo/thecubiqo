@@ -12,6 +12,46 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { action, userId, email, sessionId, deviceInfo, conversationId } = body
 
+    // Create a guest session (bypasses RLS)
+    if (action === 'create_guest_session') {
+      const { data: newSession, error: sessionError } = await supabaseAdmin
+        .from('sessions')
+        .insert({
+          is_guest: true,
+          geo_location: body.geoLocation || 'US',
+          device_info: deviceInfo || {},
+        })
+        .select()
+        .single()
+
+      if (sessionError) {
+        console.error('[API/session] Guest session creation error:', sessionError)
+        return NextResponse.json({ error: sessionError.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ session: newSession })
+    }
+
+    // Get an existing session by ID (bypasses RLS)
+    if (action === 'get_session') {
+      if (!sessionId) {
+        return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
+      }
+
+      const { data: session, error: sessionError } = await supabaseAdmin
+        .from('sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .maybeSingle()
+
+      if (sessionError) {
+        console.error('[API/session] Session fetch error:', sessionError)
+        return NextResponse.json({ error: sessionError.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ session })
+    }
+
     // Get or create conversation for a session
     if (action === 'ensure_conversation') {
       if (!sessionId) {
