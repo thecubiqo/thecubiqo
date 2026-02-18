@@ -9,7 +9,7 @@
 
 ### 1. `main` (Connected to Production)
 
-**Tip SHA:** `82e073b6` | **Latest Activity:** 2026-02-18  
+**Tip SHA:** `fd97113` | **Latest Activity:** 2026-02-18  
 **Root Items:** 158 (20 directories, 138 files)
 
 **App Routes (Features):**
@@ -51,12 +51,12 @@
 
 ### 2. `staging0217`
 
-**Tip SHA:** `82e073b6` (⚠️ **IDENTICAL to `main`**)  
+**Tip SHA:** `fd97113` (⚠️ **IDENTICAL to `main`**)  
 **Latest Activity:** 2026-02-18
 
-**Features:** Identical to `main` — they point to the exact same commit (SHA `82e073b6`).
+**Features:** Identical to `main` — they point to the exact same commit (SHA `fd97113`).
 
-staging0217 was used as a staging/integration branch that was eventually merged into main. They are now fully synchronized.
+staging0217 was used as a staging/integration branch. Both branches now include the auth fix (commit `3da5392`) that moved guest session management from direct Supabase RLS calls to server-side API routes.
 
 ---
 
