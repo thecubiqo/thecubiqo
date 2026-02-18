@@ -333,38 +333,38 @@ export function FullscreenApp({
 
       {/* Floating Questions - Slow Scroll */}
       {showFloatingQuestions && (
-      <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[400px] h-[300px] overflow-hidden">
-        <button
-          onClick={() => setShowFloatingQuestions(false)}
-          className="absolute top-0 right-0 z-10 p-1.5 rounded-full text-white/30 hover:text-white/60 hover:bg-white/10 transition-all duration-200"
-          aria-label="Dismiss questions"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-        <div className="animate-float-questions space-y-8 pointer-events-none">
-          {[
-            "What's a good book for understanding psychology?",
-            "Help me plan a weekend trip to Paris",
-            "I need motivation to start working out",
-            "Explain quantum computing like I'm five",
-            "Best restaurants in Brooklyn?",
-            "How do I learn Spanish fast?",
-            "What's the meaning of life?",
-            "Recommend a morning routine",
-            "What's a good book for understanding psychology?",
-            "Help me plan a weekend trip to Paris",
-          ].map((question, i) => (
-            <div
-              key={i}
-              className="text-white/30 text-sm leading-relaxed"
-            >
-              {"\u201C"}{question}{"\u201D"}
-            </div>
-          ))}
+        <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[400px] h-[300px] overflow-hidden">
+          <button
+            onClick={() => setShowFloatingQuestions(false)}
+            className="absolute top-0 right-0 z-10 p-1.5 rounded-full text-white/30 hover:text-white/60 hover:bg-white/10 transition-all duration-200"
+            aria-label="Dismiss questions"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="animate-float-questions space-y-8 pointer-events-none">
+            {[
+              "What's a good book for understanding psychology?",
+              "Help me plan a weekend trip to Paris",
+              "I need motivation to start working out",
+              "Explain quantum computing like I'm five",
+              "Best restaurants in Brooklyn?",
+              "How do I learn Spanish fast?",
+              "What's the meaning of life?",
+              "Recommend a morning routine",
+              "What's a good book for understanding psychology?",
+              "Help me plan a weekend trip to Paris",
+            ].map((question, i) => (
+              <div
+                key={i}
+                className="text-white/30 text-sm leading-relaxed"
+              >
+                {"\u201C"}{question}{"\u201D"}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
       )}
 
       <style dangerouslySetInnerHTML={{
@@ -774,8 +774,29 @@ export function FullscreenApp({
                   </>
                 )
               }
-            </div >
-          </div >
+              {/* 5. Admin (only for admins) */}
+              {isAuthenticated && (user?.email === 'aditya@cubiqo.ai' || user?.email === 'admin@cubiqo.ai' || process.env.NODE_ENV === 'development') && (
+                <>
+                  <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
+                  <div>
+                    <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Admin</h3>
+                    <a
+                      href="/admin"
+                      className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${isDark
+                        ? 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20'
+                        : 'bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200'
+                        }`}
+                    >
+                      <span className="text-[14px] font-medium">Control Room</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                      </svg>
+                    </a>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
 
           <style jsx global>{`
             @keyframes slideInLeft {
