@@ -44,7 +44,14 @@ export async function runOpportunityDiscoveryForUser(userId: string): Promise<Di
 
     for (const intent of intents) {
       const discoveries = await findOpportunitiesForIntent(userId, intent, subscription);
-      allDiscoveries.push(...discoveries);
+      
+      // Tag each discovery with the correct intent_id
+      const taggedDiscoveries = discoveries.map(d => ({
+        ...d,
+        intent_id: intent.id
+      }));
+      
+      allDiscoveries.push(...taggedDiscoveries);
     }
 
     // Remove duplicates and sort by similarity score
@@ -64,7 +71,7 @@ export async function runOpportunityDiscoveryForUser(userId: string): Promise<Di
 
     // Save discovered matches to database
     for (const discovery of topDiscoveries) {
-      await saveDiscoveryAsMatch(userId, discovery, intent.id);
+      await saveDiscoveryAsMatch(userId, discovery, (discovery as any).intent_id);
     }
 
     console.log(`Discovered ${topDiscoveries.length} opportunities for user ${userId}`);
