@@ -1,10 +1,13 @@
 /**
  * Admin Journal Analytics API
  * Provides engagement metrics for journal feature
+ * 
+ * SECURITY: Protected with admin authentication
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/auth/admin'
 
 // Support both old and new env var names (fallback pattern)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -25,10 +28,16 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/journal
  * Get journal engagement analytics
  * 
- * NOTE: This endpoint currently has no authentication.
- * TODO: Add admin authentication middleware before production deployment.
+ * SECURITY: Requires admin authentication
+ * Returns 401 if not authenticated, 403 if not admin
  */
 export async function GET(request: NextRequest) {
+  // CRITICAL: Verify admin authentication first
+  const authResult = await requireAdmin(request)
+  if (!authResult.authorized) {
+    return authResult.response
+  }
+
   try {
     // Check for required environment variables at runtime
     if (!supabaseUrl || !supabaseServiceKey) {
