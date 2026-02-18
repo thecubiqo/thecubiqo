@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { checkFeatureFlag } from '@/lib/feature-flags/server'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { FullscreenApp } from '@/components/FullscreenApp'
 
 // Force dynamic rendering to ensure auth/flag state updates are reflected immediately
@@ -23,10 +24,12 @@ export default async function Home() {
 
   return (
     <Suspense fallback={null}>
-      <FullscreenApp
-        showTopRightCTA={ctaFlag.enabled}
-        showParticleLanding={particleFlag.enabled}
-      />
+      <ErrorBoundary>
+        <FullscreenApp
+          showTopRightCTA={ctaFlag.enabled}
+          showParticleLanding={particleFlag.enabled}
+        />
+      </ErrorBoundary>
     </Suspense>
   )
 }
