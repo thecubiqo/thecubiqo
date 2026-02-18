@@ -92,6 +92,12 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
     setEmail('')
   }
 
+  const handleZoneSelect = async (zoneId: string) => {
+    setSelectedZone(zoneId)
+    // TODO: Navigate to intent setup for this zone
+    // This will open KeywordPanel or a new IntentSetup component
+  }
+
   if (!isOpen) return null
 
   return (
@@ -175,7 +181,7 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
             {ZONES.map(zone => (
               <button
                 key={zone.id}
-                onClick={() => setSelectedZone(zone.id)}
+                onClick={() => handleZoneSelect(zone.id)}
                 className={`relative p-6 rounded-2xl text-left transition-all duration-200 ${
                   selectedZone === zone.id ? 'scale-[1.02]' : 'hover:scale-[1.01]'
                 }`}
