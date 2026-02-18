@@ -167,7 +167,10 @@ export function useSession() {
 
       if (!res.ok) {
         const error = await res.json()
-        setState(prev => ({ ...prev, isLoading: false, error: error.error || 'Failed to create guest session' }))
+        const errorMsg = res.status === 503
+          ? `Database setup required: ${error.details || error.error}`
+          : (error.error || 'Failed to create guest session')
+        setState(prev => ({ ...prev, isLoading: false, error: errorMsg }))
         return
       }
 

@@ -5,9 +5,26 @@ import { createClient } from '@supabase/supabase-js'
 // Support both old and new env var names (fallback pattern)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+
+// Detect placeholder/missing configuration
+const isConfigured = supabaseUrl !== 'https://placeholder.supabase.co' && supabaseServiceKey !== 'placeholder-key'
+
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
 export async function POST(req: NextRequest) {
+  // Early check: is Supabase properly configured?
+  if (!isConfigured) {
+    console.error('[API/session] Supabase not configured — missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL env vars')
+    return NextResponse.json({
+      error: 'Database not configured',
+      details: 'Missing required Supabase environment variables. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel.',
+      missing: {
+        url: supabaseUrl === 'https://placeholder.supabase.co',
+        serviceKey: supabaseServiceKey === 'placeholder-key',
+      }
+    }, { status: 503 })
+  }
+
   try {
     const body = await req.json()
     const { action, userId, email, sessionId, deviceInfo, conversationId } = body
@@ -310,8 +327,30 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('[API/session] Error:', error)
+
+    // Detect database schema issues
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const isSchemaError = errorMessage.includes('relation') && errorMessage.includes('does not exist')
+    const isConnectionError = errorMessage.includes('fetch failed') || errorMessage.includes('ECONNREFUSED')
+
+    if (isSchemaError) {
+      return NextResponse.json({
+        error: 'Database schema not initialized',
+        details: 'Required tables are missing. Run the migration SQL files from supabase/migrations/ in your Supabase SQL Editor.',
+        originalError: errorMessage,
+      }, { status: 503 })
+    }
+
+    if (isConnectionError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        details: 'Cannot connect to Supabase. Check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.',
+        originalError: errorMessage,
+      }, { status: 503 })
+    }
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: errorMessage },
       { status: 500 }
     )
   }
