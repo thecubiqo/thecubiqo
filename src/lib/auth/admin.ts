@@ -103,6 +103,7 @@ export async function requireAdmin(request: NextRequest): Promise<{
     }
 
     // Create Supabase client to verify token
+    // Note: URL1/KEY1 suffix is for legacy/migration support (existing codebase pattern)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
