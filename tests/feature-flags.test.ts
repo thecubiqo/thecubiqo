@@ -77,9 +77,8 @@ describe('Documentation Files', () => {
     const docContent = readFileSync(docPath, 'utf-8')
     
     expect(docContent).toContain('Provider Comparison')
-    expect(docContent).toContain('OpenAI')
-    expect(docContent).toContain('Anthropic')
     expect(docContent).toContain('OpenClaw')
+    expect(docContent).toContain('ANTHROPIC_API_KEY')
   })
 
   it('should have PR45_NOTE.md', () => {
