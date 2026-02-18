@@ -89,7 +89,7 @@ export async function GET() {
         const tableResults: Record<string, string> = {}
 
         for (const table of REQUIRED_TABLES) {
-          const { error } = await supabase.from(table).select('id').limit(0)
+          const { error } = await supabase.from(table).select('*').limit(0)
           tableResults[table] = error ? `missing (${error.message})` : 'ok'
         }
 
@@ -140,6 +140,8 @@ export async function GET() {
     ...health,
     responseTime: `${responseTime}ms`,
   }, {
+    // 200 for degraded: monitoring tools expect 200 for partial availability
+    // 503 only for critical (missing tables = app cannot function at all)
     status: health.status === 'healthy' ? 200 : health.status === 'critical' ? 503 : 200,
     headers: {
       'Cache-Control': 'no-cache, no-store, must-revalidate',
