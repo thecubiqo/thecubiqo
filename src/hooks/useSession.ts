@@ -58,59 +58,7 @@ export function useSession() {
   const [authUser, setAuthUser] = useState<User | null | undefined>(undefined)
   const supabase = createClient()
 
-  // Step 1: Get initial auth state and listen for changes
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setAuthUser(user)
-    })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setAuthUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [supabase])
-
-  // Step 2: Once we know auth state, handle session
-  useEffect(() => {
-    if (authUser === undefined) return
-
-    const initSession = async () => {
-      // Failsafe: Don't let it hang forever
-      const timeout = setTimeout(() => {
-        setState(prev => {
-          if (prev.isLoading) {
-            return {
-              ...prev,
-              isLoading: false,
-              isGuest: true, // Fallback to guest
-              error: 'Session initialization timeout - defaulting to guest'
-            }
-          }
-          return prev
-        })
-      }, 5000)
-
-      try {
-        if (authUser) {
-          await handleAuthenticatedUser(authUser)
-        } else {
-          await handleGuestUser()
-        }
-      } catch (error) {
-        console.error('[useSession] Init error:', error)
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: 'Session initialization failed',
-        }))
-      } finally {
-        clearTimeout(timeout)
-      }
-    }
-
-    initSession()
-  }, [authUser])
 
   // Handle authenticated user session via API
   const handleAuthenticatedUser = useCallback(async (user: User) => {
@@ -236,7 +184,7 @@ export function useSession() {
         setAuthUser(null)
       }
     }
-    
+
     initAuth()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -251,6 +199,21 @@ export function useSession() {
     if (authUser === undefined) return
 
     const initSession = async () => {
+      // Failsafe: Don't let it hang forever
+      const timeout = setTimeout(() => {
+        setState(prev => {
+          if (prev.isLoading) {
+            return {
+              ...prev,
+              isLoading: false,
+              isGuest: true, // Fallback to guest
+              error: 'Session initialization timeout - defaulting to guest'
+            }
+          }
+          return prev
+        })
+      }, 5000)
+
       try {
         if (authUser) {
           await handleAuthenticatedUser(authUser)
@@ -264,6 +227,8 @@ export function useSession() {
           isLoading: false,
           error: 'Session initialization failed',
         }))
+      } finally {
+        clearTimeout(timeout)
       }
     }
 
