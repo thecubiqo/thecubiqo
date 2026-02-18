@@ -15,7 +15,6 @@ import {
     Pause,
     RefreshCw
 } from 'lucide-react';
-import { format } from 'date-fns';
 
 interface PersonaGroup {
     id: string;
@@ -212,7 +211,7 @@ export default function SocialArmyConsole() {
                         ) : (
                             queueItems.map((item) => (
                                 <div key={item.id} className="flex gap-3 hover:bg-white/5 p-1 rounded">
-                                    <span className="text-gray-600">[{format(new Date(item.created_at), 'HH:mm:ss')}]</span>
+                                    <span className="text-gray-600">[{new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span>
                                     <span className={`
                                         ${item.content_type === 'video' ? 'text-blue-400' :
                                             item.content_type === 'image' ? 'text-purple-400' : 'text-green-400'}
