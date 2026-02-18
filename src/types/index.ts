@@ -9,6 +9,9 @@ export type { Tables, Enums } from './database.types'
 // CQ-to-CQ Communication Types
 export * from './cq'
 
+// Job Hunt Mode Types
+export * from './job-hunt'
+
 import type { Database } from './database.types'
 
 // ============================================================================
