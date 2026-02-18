@@ -19,6 +19,7 @@ import { AdminControls } from './admin'
 import { SidePanel } from './cq'
 import { LandingCubeRouter } from './LandingCubeRouter'
 import { TopRightCTA } from '@/components/TopRightCTA.client'
+import { NotificationCenter } from './notifications/NotificationCenter'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
@@ -467,8 +468,15 @@ export function FullscreenApp({
         />
       </div>
 
-      {/* Right side - CQ Connect + RGY Signal + Keywords underneath */}
+      {/* Right side - Notifications + CQ Connect + RGY Signal + Keywords underneath */}
       <div className="fixed right-[4.5rem] top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
+        {/* Notification Center - Only shown when authenticated */}
+        {isAuthenticated && (
+          <div className="relative">
+            <NotificationCenter />
+          </div>
+        )}
+
         {/* CQ Connect Button - Only shown when authenticated */}
         {isAuthenticated && (
           <button
