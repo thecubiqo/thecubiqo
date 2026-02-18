@@ -9,12 +9,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { executeSelfHeal } from '@/lib/self-heal/core';
 import { sendSelfHealReport } from '@/lib/self-heal/email';
+import { requireAdmin } from '@/lib/auth/admin';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes max execution time
 
 export async function POST(req: NextRequest) {
   try {
+    // Require admin authentication
+    const authResult = await requireAdmin(req)
+    if (!authResult.authorized) {
+        return authResult.response
+    }
+
     console.log('[Self-Heal] Starting job execution...');
 
     // Execute self-heal
@@ -132,5 +139,12 @@ export async function GET(req: NextRequest) {
       { status: 405 }
     );
   }
+  
+  // Require admin authentication even in dev mode
+  const authResult = await requireAdmin(req)
+  if (!authResult.authorized) {
+      return authResult.response
+  }
+  
   return POST(req);
 }

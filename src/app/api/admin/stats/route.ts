@@ -1,20 +1,16 @@
 import { NextResponse } from 'next/server';
 import { listAgents } from '@/lib/engine/agent';
-import { getCurrentUser } from '@/lib/auth/actions';
+import { requireAdmin } from '@/lib/auth/admin';
 import '@/lib/engine/init';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: any) {
   try {
-    // Check authentication
-    const user = await getCurrentUser();
-    
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
-        { status: 401 }
-      );
+    // Require admin authentication
+    const authResult = await requireAdmin(request)
+    if (!authResult.authorized) {
+        return authResult.response
     }
     
     const agents = listAgents();
