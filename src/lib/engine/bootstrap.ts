@@ -4,7 +4,7 @@ import { ModelConfig } from '@/types/agent';
 function getDefaultModel(): ModelConfig {
   // Try providers in priority order based on which keys are available
   console.log('[Bootstrap] Detecting available LLM provider...');
-  
+
   if (process.env.ANTHROPIC_API_KEY) {
     console.log('[Bootstrap] Using Anthropic Claude');
     return {
@@ -15,7 +15,7 @@ function getDefaultModel(): ModelConfig {
       temperature: 0.7,
     };
   }
-  
+
   if (process.env.OPENAI_API_KEY) {
     console.log('[Bootstrap] Using OpenAI GPT-4o');
     return {
@@ -26,7 +26,7 @@ function getDefaultModel(): ModelConfig {
       temperature: 0.7,
     };
   }
-  
+
   if (process.env.GROQ_API_KEY) {
     console.log('[Bootstrap] Using Groq Llama');
     return {
@@ -38,7 +38,7 @@ function getDefaultModel(): ModelConfig {
       temperature: 0.7,
     };
   }
-  
+
   if (process.env.OPENROUTER_API_KEY) {
     console.log('[Bootstrap] Using OpenRouter');
     return {
@@ -50,7 +50,7 @@ function getDefaultModel(): ModelConfig {
       temperature: 0.7,
     };
   }
-  
+
   if (process.env.GOOGLE_AI_API_KEY) {
     console.log('[Bootstrap] Using Google Gemini');
     return {
@@ -61,7 +61,7 @@ function getDefaultModel(): ModelConfig {
       temperature: 0.7,
     };
   }
-  
+
   if (process.env.EMERGENT_API_KEY) {
     console.log('[Bootstrap] Using Emergent proxy');
     return {
@@ -73,7 +73,7 @@ function getDefaultModel(): ModelConfig {
       temperature: 0.7,
     };
   }
-  
+
   // Fallback — will error at runtime if no key
   console.warn('[Bootstrap] No LLM API key found! Using Anthropic as fallback (will fail without key)');
   return {
@@ -87,7 +87,7 @@ function getDefaultModel(): ModelConfig {
 export async function bootstrapAgents() {
   try {
     const defaultModel = getDefaultModel();
-    
+
     // Create Henry (coordinator)
     await createAgent({
       id: 'henry',
@@ -142,7 +142,19 @@ export async function bootstrapAgents() {
       maxConcurrent: 1,
     });
 
-    console.log('✅ Agents bootstrapped: henry, dev, writer, tester, marketing, pr-triage');
+    // Create Marketing Agent (Specific)
+    await createAgent({
+      id: 'marketing-agent',
+      name: 'Marketing Agent',
+      model: defaultModel,
+      tools: ['file_read', 'file_write', 'file_list', 'web_search', 'web_fetch'],
+      maxConcurrent: 2,
+      skillTags: ['email-marketing', 'copywriting', 'outreach', 'lead-generation', 'content-creation'],
+      contactEmail: 'marketing-agent@cubiqo.ai',
+      contactPhone: '+1-555-MARKETING',
+    });
+
+    console.log('✅ Agents bootstrapped: henry, dev, writer, tester, marketing, pr-triage, marketing-agent');
   } catch (error) {
     console.error('Failed to bootstrap agents:', error);
   }
