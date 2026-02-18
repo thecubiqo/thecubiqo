@@ -42,5 +42,11 @@ alter table social_campaigns enable row level security;
 alter table content_queue enable row level security;
 
 -- Policies (Admin only for now)
-create policy "Admins can view social accounts" on social_accounts for select using (auth.role() = 'authenticated'); -- Expand logic later
+create policy "Admins can view social accounts" on social_accounts for select using (auth.role() = 'authenticated');
 create policy "Admins can manage social accounts" on social_accounts for all using (auth.role() = 'authenticated');
+
+create policy "Admins can view campaigns" on social_campaigns for select using (auth.role() = 'authenticated');
+create policy "Admins can manage campaigns" on social_campaigns for all using (auth.role() = 'authenticated');
+
+create policy "Admins can view content queue" on content_queue for select using (auth.role() = 'authenticated');
+create policy "Admins can manage content queue" on content_queue for all using (auth.role() = 'authenticated');
