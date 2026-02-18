@@ -122,55 +122,67 @@ export function useSession() {
     })
   }, [])
 
-  // Handle guest user session (direct Supabase - RLS allows anonymous)
+  // Handle guest user session via API (bypasses RLS issues)
   const handleGuestUser = useCallback(async () => {
     const storedSessionId = getStoredSessionId()
 
     if (storedSessionId) {
-      const { data: existingSession } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('id', storedSessionId)
-        .maybeSingle()
-
-      if (existingSession) {
-        if (!existingSession.expires_at || new Date(existingSession.expires_at) > new Date()) {
-          setState({
-            session: existingSession,
-            isLoading: false,
-            isGuest: existingSession.is_guest ?? true,
-            error: null,
+      // Try to fetch existing session via API first
+      try {
+        const checkRes = await fetch('/api/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'get_session',
+            sessionId: storedSessionId
           })
-          return
+        })
+
+        if (checkRes.ok) {
+          const { session } = await checkRes.json()
+          if (session && (!session.expires_at || new Date(session.expires_at) > new Date())) {
+            setState({
+              session,
+              isLoading: false,
+              isGuest: session.is_guest ?? true,
+              error: null,
+            })
+            return
+          }
         }
+      } catch (error) {
+        console.error('[useSession] Error checking existing session:', error)
+        // Continue to create new session
       }
 
       clearStoredSessionId()
     }
 
-    const { data: newSession, error: sessionError } = await supabase
-      .from('sessions')
-      .insert({
-        is_guest: true,
-        geo_location: 'US',
-        device_info: getDeviceInfo(),
+    // Create new guest session via API
+    const res = await fetch('/api/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'create_guest_session',
+        deviceInfo: getDeviceInfo()
       })
-      .select()
-      .single()
+    })
 
-    if (sessionError) {
-      setState(prev => ({ ...prev, isLoading: false, error: sessionError.message }))
+    if (!res.ok) {
+      const error = await res.json()
+      setState(prev => ({ ...prev, isLoading: false, error: error.error || 'Failed to create guest session' }))
       return
     }
 
-    storeSessionId(newSession.id)
+    const { session } = await res.json()
+    storeSessionId(session.id)
     setState({
-      session: newSession,
+      session,
       isLoading: false,
       isGuest: true,
       error: null,
     })
-  }, [supabase])
+  }, [])
 
   // Step 1: Get initial auth state and listen for changes
   useEffect(() => {
@@ -261,16 +273,22 @@ export function useSession() {
   const refreshSession = useCallback(async () => {
     if (!state.session) return
 
-    const { data } = await supabase
-      .from('sessions')
-      .select('*')
-      .eq('id', state.session.id)
-      .single()
+    const res = await fetch('/api/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'get_session',
+        sessionId: state.session.id
+      })
+    })
 
-    if (data) {
-      setState(prev => ({ ...prev, session: data, isGuest: data.is_guest ?? true }))
+    if (!res.ok) return
+
+    const { session } = await res.json()
+    if (session) {
+      setState(prev => ({ ...prev, session, isGuest: session.is_guest ?? true }))
     }
-  }, [supabase, state.session])
+  }, [state.session])
 
   const clearSession = useCallback(() => {
     clearStoredSessionId()
@@ -278,21 +296,23 @@ export function useSession() {
   }, [])
 
   const createGuestSession = useCallback(async (): Promise<Session | null> => {
-    const { data, error } = await supabase
-      .from('sessions')
-      .insert({
-        is_guest: true,
-        geo_location: 'US',
-        device_info: getDeviceInfo(),
+    const res = await fetch('/api/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'create_guest_session',
+        deviceInfo: getDeviceInfo()
       })
-      .select()
-      .single()
+    })
 
-    if (error || !data) return null
+    if (!res.ok) return null
 
-    storeSessionId(data.id)
-    return data
-  }, [supabase])
+    const { session } = await res.json()
+    if (!session) return null
+
+    storeSessionId(session.id)
+    return session
+  }, [])
 
   return {
     ...state,

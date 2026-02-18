@@ -266,6 +266,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ session: converted })
     }
 
+    // Create guest session (for non-authenticated users)
+    if (action === 'create_guest_session') {
+      const { data: newSession, error: sessionError } = await supabaseAdmin
+        .from('sessions')
+        .insert({
+          is_guest: true,
+          geo_location: 'US',
+          device_info: deviceInfo || {},
+          expires_at: null
+        })
+        .select()
+        .single()
+
+      if (sessionError) {
+        console.error('[API/session] Guest session creation error:', sessionError)
+        return NextResponse.json({ error: sessionError.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ session: newSession })
+    }
+
+    // Get session by ID
+    if (action === 'get_session') {
+      if (!sessionId) {
+        return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
+      }
+
+      const { data: session, error } = await supabaseAdmin
+        .from('sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .maybeSingle()
+
+      if (error) {
+        console.error('[API/session] Get session error:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      if (!session) {
+        return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      }
+
+      return NextResponse.json({ session })
+    }
+
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
 
   } catch (error) {
