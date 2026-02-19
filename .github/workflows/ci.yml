@@ -103,6 +103,8 @@ jobs:
   staging-api-db-checks:
     name: Staging API & Database Checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: >
       github.base_ref == 'staging' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/staging')
