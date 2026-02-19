@@ -172,9 +172,9 @@ export async function GET(request: NextRequest) {
       .gte('created_at', last24h)
     
     const pr_status = {
-      open_prs: prEvents?.filter((e: any) => e.event_data?.action === 'opened').length || 0,
-      merged_today: prEvents?.filter((e: any) => e.event_data?.merged === true).length || 0,
-      closed_today: prEvents?.filter((e: any) => e.event_data?.action === 'closed' && !e.event_data?.merged).length || 0,
+      open_prs: prEvents?.filter((e: { event_data: MonitoringEventData }) => e.event_data?.action === 'opened').length || 0,
+      merged_today: prEvents?.filter((e: { event_data: MonitoringEventData }) => e.event_data?.merged === true).length || 0,
+      closed_today: prEvents?.filter((e: { event_data: MonitoringEventData }) => e.event_data?.action === 'closed' && !e.event_data?.merged).length || 0,
     }
     
     const dashboardData: DashboardData = {

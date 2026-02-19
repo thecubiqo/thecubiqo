@@ -40,30 +40,41 @@ export async function getActiveUsers(
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
     const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
 
-    // Get daily active users
-    const { count: dailyActive, error: dailyError } = await supabase
+    // Get daily active users (distinct users only)
+    const { data: dailyUsers, error: dailyError } = await supabase
       .from('user_activity_log')
-      .select('user_id', { count: 'exact', head: true })
+      .select('user_id', { count: 'exact' })
       .gte('created_at', oneDayAgo.toISOString())
       .in('activity_type', ['login', 'action', 'session_start'])
 
     if (dailyError) throw dailyError
+    
+    // Count unique users
+    const dailyActive = dailyUsers ? new Set(dailyUsers.map(u => u.user_id)).size : 0
 
-    // Get weekly active users
-    const { count: weeklyActive, error: weeklyError } = await supabase
+    // Get weekly active users (distinct users only)
+    const { data: weeklyUsers, error: weeklyError } = await supabase
       .from('user_activity_log')
-      .select('user_id', { count: 'exact', head: true })
+      .select('user_id', { count: 'exact' })
       .gte('created_at', oneWeekAgo.toISOString())
       .in('activity_type', ['login', 'action', 'session_start'])
 
     if (weeklyError) throw weeklyError
+    
+    // Count unique users
+    const weeklyActive = weeklyUsers ? new Set(weeklyUsers.map(u => u.user_id)).size : 0
 
-    // Get monthly active users
-    const { count: monthlyActive, error: monthlyError } = await supabase
+    // Get monthly active users (distinct users only)
+    const { data: monthlyUsers, error: monthlyError } = await supabase
       .from('user_activity_log')
-      .select('user_id', { count: 'exact', head: true })
+      .select('user_id', { count: 'exact' })
       .gte('created_at', oneMonthAgo.toISOString())
       .in('activity_type', ['login', 'action', 'session_start'])
+
+    if (monthlyError) throw monthlyError
+    
+    // Count unique users
+    const monthlyActive = monthlyUsers ? new Set(monthlyUsers.map(u => u.user_id)).size : 0
 
     if (monthlyError) throw monthlyError
 
@@ -110,14 +121,17 @@ export async function getUserEngagement(
 
     if (usersError) throw usersError
 
-    // Get engaged users (users with activity in time range)
-    const { count: engagedUsers, error: engagedError } = await supabase
+    // Get engaged users (distinct users with activity in time range)
+    const { data: engagedUserRecords, error: engagedError } = await supabase
       .from('user_activity_log')
-      .select('user_id', { count: 'exact', head: true })
+      .select('user_id')
       .gte('created_at', startDate)
       .lte('created_at', endDate)
 
     if (engagedError) throw engagedError
+    
+    // Count unique engaged users
+    const engagedUsers = engagedUserRecords ? new Set(engagedUserRecords.map(u => u.user_id)).size : 0
 
     // Get total sessions
     const { count: totalSessions, error: sessionsError } = await supabase

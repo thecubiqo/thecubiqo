@@ -11,9 +11,7 @@ import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+    request,
   })
 
   const supabase = createServerClient(
@@ -39,7 +37,7 @@ export async function middleware(request: NextRequest) {
   
   // Admin route protection
   if (request.nextUrl.pathname.startsWith('/api/admin/')) {
-    // Get authenticated user
+    // Get authenticated user (this also refreshes the session)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
@@ -63,17 +61,12 @@ export async function middleware(request: NextRequest) {
       )
     }
     
-    // Add admin status to request headers for downstream routes
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-user-id', user.id)
-    requestHeaders.set('x-user-email', user.email || '')
-    requestHeaders.set('x-is-admin', 'true')
+    // Add admin status to response headers for downstream routes
+    response.headers.set('x-user-id', user.id)
+    response.headers.set('x-user-email', user.email || '')
+    response.headers.set('x-is-admin', 'true')
     
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    })
+    return response
   }
   
   return response
@@ -81,7 +74,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/api/admin/:path*',
+    '/api/admin/**',
     // Add other protected routes here as needed
   ],
 }
