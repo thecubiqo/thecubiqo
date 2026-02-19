@@ -461,7 +461,7 @@ function UsageBar({ label, spent, cap, percentUsed }: UsageBarProps) {
           style={{ width: `${Math.min(percentUsed, 100)}%` }}
         />
       </div>
-      <p className="text-xs text-gray-500 mt-1">{percentUsed}% used</p>
+      <p className="text-xs text-gray-500 mt-1">{percentUsed.toFixed(1)}% used</p>
     </div>
   );
 }

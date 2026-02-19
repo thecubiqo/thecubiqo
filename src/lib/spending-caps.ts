@@ -171,6 +171,8 @@ interface UsageLocks {
   database: boolean
 }
 
+// In-memory usage lock state (resets on server restart, like spending records above)
+// For production, persist to Supabase or Redis
 let usageLocks: UsageLocks = {
   ai: false,
   database: false
