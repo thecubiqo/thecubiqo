@@ -8,13 +8,13 @@ CREATE TABLE IF NOT EXISTS monitoring_events (
   event_type TEXT NOT NULL CHECK (event_type IN ('branch_push', 'pr_activity', 'deployment', 'health_check')),
   event_data JSONB NOT NULL DEFAULT '{}'::jsonb,
   repository TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  
-  -- Indexes for common queries
-  INDEX idx_monitoring_events_type ON monitoring_events(event_type),
-  INDEX idx_monitoring_events_created_at ON monitoring_events(created_at DESC),
-  INDEX idx_monitoring_events_repository ON monitoring_events(repository)
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Create indexes for common queries
+CREATE INDEX IF NOT EXISTS idx_monitoring_events_type ON monitoring_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_monitoring_events_created_at ON monitoring_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_monitoring_events_repository ON monitoring_events(repository);
 
 -- Add RLS (Row Level Security) policies
 ALTER TABLE monitoring_events ENABLE ROW LEVEL SECURITY;

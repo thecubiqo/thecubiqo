@@ -45,7 +45,7 @@ export async function getActiveUsers(
       .from('user_activity_log')
       .select('user_id', { count: 'exact', head: true })
       .gte('created_at', oneDayAgo.toISOString())
-      .or('activity_type.eq.login,activity_type.eq.action,activity_type.eq.session_start')
+      .in('activity_type', ['login', 'action', 'session_start'])
 
     if (dailyError) throw dailyError
 
@@ -54,7 +54,7 @@ export async function getActiveUsers(
       .from('user_activity_log')
       .select('user_id', { count: 'exact', head: true })
       .gte('created_at', oneWeekAgo.toISOString())
-      .or('activity_type.eq.login,activity_type.eq.action,activity_type.eq.session_start')
+      .in('activity_type', ['login', 'action', 'session_start'])
 
     if (weeklyError) throw weeklyError
 
@@ -63,7 +63,7 @@ export async function getActiveUsers(
       .from('user_activity_log')
       .select('user_id', { count: 'exact', head: true })
       .gte('created_at', oneMonthAgo.toISOString())
-      .or('activity_type.eq.login,activity_type.eq.action,activity_type.eq.session_start')
+      .in('activity_type', ['login', 'action', 'session_start'])
 
     if (monthlyError) throw monthlyError
 

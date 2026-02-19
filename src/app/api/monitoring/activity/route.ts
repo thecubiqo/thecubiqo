@@ -195,16 +195,23 @@ export async function GET(request: NextRequest) {
  */
 function logEventToConsole(event: ActivityEvent): void {
   const timestamp = new Date(event.timestamp).toISOString()
+  const branch = 'branch' in event ? event.branch : undefined
+  const actor = 'actor' in event ? event.actor : undefined
+  const prNumber = 'pr_number' in event ? event.pr_number : undefined
+  const author = 'author' in event ? event.author : undefined
+  const action = 'action' in event ? event.action : undefined
+  const environment = 'environment' in event ? event.environment : undefined
+  const state = 'state' in event ? event.state : undefined
   
   switch (event.type) {
     case 'branch_push':
-      console.log(`[MONITORING] Branch push to ${event.branch} by ${event.actor} at ${timestamp}`)
+      console.log(`[MONITORING] Branch push to ${branch || 'unknown'} by ${actor || 'unknown'} at ${timestamp}`)
       break
     case 'pr_activity':
-      console.log(`[MONITORING] PR #${event.pr_number} ${event.action} by ${event.author} at ${timestamp}`)
+      console.log(`[MONITORING] PR #${prNumber || '?'} ${action || 'updated'} by ${author || 'unknown'} at ${timestamp}`)
       break
     case 'deployment':
-      console.log(`[MONITORING] Deployment to ${event.environment}: ${event.state} at ${timestamp}`)
+      console.log(`[MONITORING] Deployment to ${environment || 'unknown'}: ${state || 'unknown'} at ${timestamp}`)
       break
     case 'health_check':
       console.log(`[MONITORING] Health check completed at ${timestamp}`)

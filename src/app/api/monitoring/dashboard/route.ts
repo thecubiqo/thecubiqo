@@ -200,19 +200,36 @@ export async function GET(request: NextRequest) {
   }
 }
 
+interface MonitoringEventData {
+  branch?: string
+  actor?: string
+  pr_number?: number
+  author?: string
+  action?: string
+  environment?: string
+  state?: string
+  [key: string]: unknown
+}
+
+interface MonitoringEvent {
+  event_type: string
+  event_data: MonitoringEventData
+  created_at: string
+}
+
 /**
  * Format event data into human-readable description
  */
-function formatEventDescription(event: any): string {
-  const data = event.event_data || {}
+function formatEventDescription(event: MonitoringEvent): string {
+  const data = event.event_data
   
   switch (event.event_type) {
     case 'branch_push':
-      return `Push to ${data.branch} by ${data.actor}`
+      return `Push to ${data.branch || 'unknown'} by ${data.actor || 'unknown'}`
     case 'pr_activity':
-      return `PR #${data.pr_number} ${data.action} by ${data.author}`
+      return `PR #${data.pr_number || '?'} ${data.action || 'updated'} by ${data.author || 'unknown'}`
     case 'deployment':
-      return `Deployment to ${data.environment}: ${data.state}`
+      return `Deployment to ${data.environment || 'unknown'}: ${data.state || 'unknown'}`
     case 'health_check':
       return 'Periodic health check completed'
     default:

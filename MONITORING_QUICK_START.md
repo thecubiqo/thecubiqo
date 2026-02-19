@@ -47,14 +47,18 @@ Option B - Manual SQL:
 
 ### Test Activity Endpoint
 ```bash
+# Generate current timestamp
+TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+# Send test event
 curl -X POST https://your-app.vercel.app/api/monitoring/activity \
   -H "Authorization: Bearer YOUR_MONITORING_SECRET" \
   -H "Content-Type: application/json" \
-  -d '{
-    "type": "health_check",
-    "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'",
-    "repository": "thecubiqo/thecubiqo"
-  }'
+  -d "{
+    \"type\": \"health_check\",
+    \"timestamp\": \"$TIMESTAMP\",
+    \"repository\": \"thecubiqo/thecubiqo\"
+  }"
 ```
 
 Expected response:
