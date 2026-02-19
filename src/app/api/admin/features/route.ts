@@ -1,15 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { withAdminAuth } from '@/lib/auth/admin-guard'
 
-export async function GET() {
-    const supabase = await createClient()
-
-    // Verify founder status
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user || user.email !== 'aditya@cubiqo.ai') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+export const GET = withAdminAuth(async (_request, { supabase }) => {
     const { data: features, error } = await (supabase as any)
         .from('feature_flags')
         .select('*')
@@ -21,17 +13,9 @@ export async function GET() {
     }
 
     return NextResponse.json({ features, timestamp: new Date().toISOString() })
-}
+})
 
-export async function POST(req: NextRequest) {
-    const supabase = await createClient()
-
-    // Verify founder status
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user || user.email !== 'aditya@cubiqo.ai') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+export const POST = withAdminAuth(async (req, { supabase }) => {
     const { featureName, isReleased } = await req.json()
 
     const { error } = await (supabase as any)
@@ -47,4 +31,4 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
-}
+})

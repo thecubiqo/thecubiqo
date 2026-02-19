@@ -13,7 +13,19 @@ export type AuditActionType =
   | 'impersonation_started'
   | 'impersonation_ended'
   | 'admin_dashboard_accessed'
-  | 'sensitive_data_viewed';
+  | 'sensitive_data_viewed'
+  | 'feature_flag_toggled'
+  | 'design_toggle_updated'
+  | 'user_updated'
+  | 'user_deleted'
+  | 'session_terminated'
+  | 'security_alert_created'
+  | 'report_generated'
+  | 'view_integration_health'
+  | 'update_integration_health'
+  | 'view_integrations'
+  | 'generate_report'
+  | 'view_reports';
 
 export interface AuditLogData {
   userId: string;
