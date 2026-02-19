@@ -80,9 +80,7 @@ These PRs add new test files without modifying any application source code. They
 
 ### TIER 5 — HIGH RISK (Source changes, new features, dependencies)
 
-| PR | Title | Key Risk |
-|----|-------|----------|
-| **#131** through **#160** (remaining) | Various features | Modify core source code, add new API routes, change layouts, add dependencies, modify engine internals |
+All remaining PRs not listed above (approximately 20 PRs) modify core source code, add new API routes, change layouts, add dependencies, or modify engine internals. They require thorough code review, QA testing, and DBA sign-off before merging.
 
 #### Specific concerns per PR:
 
