@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+  const [loading, setLoading] = useState(false);
 import { createClient } from '@/lib/supabase/client';
 import {
     Globe,
@@ -47,6 +48,7 @@ export default function SocialArmyConsole() {
     const supabase = createClient();
 
     useEffect(() => {
+    setLoading(true);
         const fetchData = async () => {
             // Fetch active campaigns
             const { data: campaignsData } = await supabase
@@ -82,7 +84,7 @@ export default function SocialArmyConsole() {
         const channel = supabase
             .channel('social-army')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'content_queue' }, (payload) => {
-                console.log('Realtime update:', payload);
+                
                 fetchData(); // Refresh on change
             })
             .subscribe();
@@ -103,7 +105,7 @@ export default function SocialArmyConsole() {
         });
 
         if (error) {
-            console.error('Failed to launch campaign:', error);
+            
         } else {
             // Refresh
             const { data } = await supabase.from('social_campaigns').select('*').order('created_at', { ascending: false }).limit(5);

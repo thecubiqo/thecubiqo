@@ -148,12 +148,12 @@ export async function synthesizeMessageToSpeech(
   try {
     return await synthesizeWithElevenLabs(options);
   } catch (error) {
-    console.warn('ElevenLabs synthesis failed, falling back to OpenAI:', error);
+    
     
     try {
       return await synthesizeWithOpenAI(options);
     } catch (openaiError) {
-      console.error('OpenAI synthesis also failed:', openaiError);
+      
       throw new Error('Voice synthesis failed for all providers');
     }
   }
@@ -194,7 +194,7 @@ export async function processIncomingMessage(
 
     return null;
   } catch (error) {
-    console.error('Error processing incoming message for voice synthesis:', error);
+    
     return null;
   }
 }

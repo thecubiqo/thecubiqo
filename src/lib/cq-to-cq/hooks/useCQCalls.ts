@@ -67,7 +67,7 @@ export function useCQCalls(userId: string) {
 
         return callId;
       } catch (error) {
-        console.error('Error starting call:', error);
+        
         throw error;
       }
     },
@@ -89,7 +89,7 @@ export function useCQCalls(userId: string) {
       setCallType(type);
       setLocalStream(callManagerRef.current.getLocalStream());
     } catch (error) {
-      console.error('Error answering call:', error);
+      
       throw error;
     }
   }, []);
@@ -111,7 +111,7 @@ export function useCQCalls(userId: string) {
       setIsCameraOff(false);
       setIsScreenSharing(false);
     } catch (error) {
-      console.error('Error ending call:', error);
+      
     }
   }, []);
 
@@ -149,7 +149,7 @@ export function useCQCalls(userId: string) {
       await callManagerRef.current.startScreenShare();
       setIsScreenSharing(true);
     } catch (error) {
-      console.error('Error starting screen share:', error);
+      
       throw error;
     }
   }, []);
@@ -164,7 +164,7 @@ export function useCQCalls(userId: string) {
       await callManagerRef.current.stopScreenShare();
       setIsScreenSharing(false);
     } catch (error) {
-      console.error('Error stopping screen share:', error);
+      
     }
   }, []);
 

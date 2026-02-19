@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+  const [loading, setLoading] = useState(false);
 import { Terminal, Shield, Cpu, Activity } from 'lucide-react';
 
 interface Agent {
@@ -24,6 +25,7 @@ export default function NOCDashboard() {
     const [logs, setLogs] = useState<string[]>([]);
 
     useEffect(() => {
+    setLoading(true);
         // Simulate log stream
         const interval = setInterval(() => {
             const newLog = `[${new Date().toISOString()}] INFO: Heartbeat received from agt-01`;

@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Email preview error:', error);
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to generate preview' },
       { status: 500 }

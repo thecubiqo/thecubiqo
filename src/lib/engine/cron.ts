@@ -29,7 +29,7 @@ let intervalId: NodeJS.Timeout | null = null;
 export function startCron() {
     if (intervalId) return;
 
-    console.log('⏰ Starting Cron Scheduler...');
+    
 
     // Simple poller every minute
     intervalId = setInterval(async () => {
@@ -37,7 +37,7 @@ export function startCron() {
 
         for (const job of jobs) {
             if (shouldRun(job, now)) {
-                console.log(`[Cron] Running job: ${job.id}`);
+                
                 try {
                     const agent = getAgent(job.agentId);
                     if (agent) {
@@ -47,10 +47,10 @@ export function startCron() {
                         await agent.spawn(`[CRON JOB: ${job.id}] ${job.task}`, 'system-cron');
                         job.lastRun = now;
                     } else {
-                        console.warn(`[Cron] Agent not found: ${job.agentId}`);
+                        
                     }
                 } catch (error) {
-                    console.error(`[Cron] Job failed: ${job.id}`, error);
+                    
                 }
             }
         }

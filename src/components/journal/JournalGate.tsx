@@ -116,19 +116,27 @@ export function JournalGate({ todayEntry, nextAvailable }: JournalGateProps) {
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 pt-4">
+            <div className="space-y-3 pt-4">
               <a
-                href="/"
-                className="flex-1 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 transition-all text-center"
+                href="/journal/history"
+                className="block w-full px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all text-center font-medium"
               >
-                Back to Home
+                View Past Entries
               </a>
-              <a
-                href="/chat"
-                className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all text-center font-medium"
-              >
-                Continue Chatting
-              </a>
+              <div className="flex gap-3">
+                <a
+                  href="/"
+                  className="flex-1 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 transition-all text-center"
+                >
+                  Back to Home
+                </a>
+                <a
+                  href="/chat"
+                  className="flex-1 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 transition-all text-center"
+                >
+                  Continue Chatting
+                </a>
+              </div>
             </div>
           </div>
         </div>

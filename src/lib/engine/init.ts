@@ -8,19 +8,19 @@ export async function initializeEngine() {
   
   // Skip initialization during build time
   if (process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_SUPABASE_URL1) {
-    console.log('⏭️ Skipping Agent Engine init (build time)');
+
     return;
   }
 
-  console.log('🤖 Initializing CubiQo Agent Engine...');
+  
 
   try {
     await bootstrapAgents();
     startCron();
     initialized = true;
-    console.log('✅ Agent Engine ready');
+    
   } catch (error) {
-    console.error('❌ Failed to initialize Agent Engine:', error);
+    
   }
 }
 

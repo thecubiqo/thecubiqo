@@ -30,7 +30,7 @@ export default function ActionsCard({
       await onConfirm(content);
       setConfirmed(true);
     } catch (err) {
-      console.error('Action failed:', err);
+      
       alert('Action failed. Please try again.');
     } finally {
       setConfirming(false);

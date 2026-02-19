@@ -44,7 +44,7 @@ export default function CodePanel() {
       setCurrentResult(execution);
       setHistory(prev => [execution, ...prev].slice(0, 10)); // Keep last 10
     } catch (error) {
-      console.error('Execution error:', error);
+      
     } finally {
       setExecuting(false);
     }

@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ extraction });
 
   } catch (error) {
-    console.error('Memory extraction error:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -24,7 +24,7 @@ interface LLMResponse {
 export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   const { model, messages, tools, maxTokens = 4096, temperature = 0.7 } = request;
 
-  console.log(`[LLM Router] Using provider: ${model.provider}, model: ${model.model}`);
+  
 
   switch (model.provider) {
     case 'anthropic':

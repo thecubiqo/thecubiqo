@@ -42,7 +42,7 @@ export default function JourneyPrivacyControls({
       onMemoryDeleted(memoryId);
       setDeletingMemoryId(null);
     } catch (error) {
-      console.error('Delete memory error:', error);
+      
       alert('Failed to delete memory');
     } finally {
       setLoading(false);
@@ -63,7 +63,7 @@ export default function JourneyPrivacyControls({
       onAllDeleted();
       setShowConfirmDelete(false);
     } catch (error) {
-      console.error('Delete all error:', error);
+      
       alert('Failed to delete all memories');
     } finally {
       setLoading(false);
