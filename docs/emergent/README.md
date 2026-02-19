@@ -2,7 +2,7 @@
 
 Extracted from the CubiQo codebase and `CUBIQO_SELF_CODING_ENGINE.md` specification.
 
-## Overall Status: ~70% Complete
+## Overall Status: ~63% Complete
 
 ## Documents
 

@@ -170,7 +170,7 @@ tests/integration/
 | LLM Providers | ~10% | 60% |
 | Integration | ~15% | 50% |
 | Components | ~30% | 60% |
-| Overall | ~25% | 60% |
+| Overall | ~15% | 60% |
 
 ## References
 - Source: `vitest.config.ts`
