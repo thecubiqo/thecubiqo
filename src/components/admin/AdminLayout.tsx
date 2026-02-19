@@ -13,12 +13,15 @@ import {
     LogOut,
     Mail,
     Shield,
-    Globe
+    Globe,
+    BarChart3,
+    Eye
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 const NAV_ITEMS = [
     { name: 'Overview', href: '/admin', icon: LayoutDashboard },
+    { name: 'Monitoring', href: '/admin/monitoring', icon: Eye },
     { name: 'Network Ops', href: '/admin/noc', icon: Activity },
     { name: 'Users', href: '/admin/users', icon: Users },
     { name: 'Feature Flags', href: '/admin/feature-flags', icon: Flag },
