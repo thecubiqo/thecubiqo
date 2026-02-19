@@ -3,6 +3,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { SkeletonMetricCard } from '@/components/ui/LoadingSkeleton';
 
 interface SecurityMetrics {
   rateLimit: {
@@ -80,33 +84,49 @@ export default function SecurityDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="animate-pulse text-lg">Loading Security Dashboard…</div>
+      <div className="min-h-screen bg-black text-white p-8">
+        <header className="mb-8 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+                🛡️ Security Dashboard
+              </h1>
+              <p className="text-zinc-400 mt-1">Loading security metrics…</p>
+            </div>
+          </div>
+        </header>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <SkeletonMetricCard />
+          <SkeletonMetricCard />
+          <SkeletonMetricCard />
+          <SkeletonMetricCard />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
+    <div className="min-h-screen bg-black text-white p-8 animate-fade-in">
       {/* Header */}
       <header className="mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-              🛡️ Security Dashboard
+            <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3">
+              <span className="text-5xl">🛡️</span>
+              Security Dashboard
               {healthStatus?.security && (
-                <span className="px-3 py-1 bg-emerald-900 text-emerald-300 text-sm font-medium rounded-full">
+                <Badge variant="success" pulse>
                   All Systems Secure
-                </span>
+                </Badge>
               )}
             </h1>
-            <p className="text-zinc-400 mt-1">
+            <p className="text-zinc-400 mt-2 text-lg">
               Real-time security monitoring and threat detection
             </p>
           </div>
           <Link
             href="/founders-pass"
-            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm font-medium transition-colors"
+            className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-sm font-medium transition-all hover:scale-105 active:scale-95 shadow-lg"
           >
             ← Back to Dashboard
           </Link>
@@ -295,34 +315,27 @@ export default function SecurityDashboard() {
 
       {/* Quick Actions */}
       <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+        <h2 className="text-2xl font-semibold mb-4">Quick Actions</h2>
         <div className="flex flex-wrap gap-3">
-          <Link
-            href="/founders-pass/audit"
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition-colors"
-          >
-            View Audit Log
+          <Link href="/founders-pass/audit">
+            <Button variant="primary" icon="📋">
+              View Audit Log
+            </Button>
           </Link>
-          <Link
-            href="/api/founders-pass/health"
-            target="_blank"
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium transition-colors"
-          >
-            Health Check API
+          <Link href="/api/founders-pass/health" target="_blank">
+            <Button variant="success" icon="✓">
+              Health Check API
+            </Button>
           </Link>
-          <a
-            href="/SECURITY.md"
-            target="_blank"
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg text-sm font-medium transition-colors"
-          >
-            Security Documentation
+          <a href="/SECURITY.md" target="_blank">
+            <Button variant="warning" icon="📖">
+              Security Documentation
+            </Button>
           </a>
-          <a
-            href="/MONITORING_GUIDE.md"
-            target="_blank"
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium transition-colors"
-          >
-            Monitoring Guide
+          <a href="/MONITORING_GUIDE.md" target="_blank">
+            <Button variant="secondary" icon="📊">
+              Monitoring Guide
+            </Button>
           </a>
         </div>
       </section>
@@ -375,7 +388,7 @@ export default function SecurityDashboard() {
 
 function StatusItem({ label, value, icon }: { label: string; value: string; icon: string }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-900/20 hover:bg-emerald-900/30 transition-colors">
       <span className="text-2xl">{icon}</span>
       <div>
         <p className="text-emerald-200 text-sm font-medium">{label}</p>
@@ -397,10 +410,10 @@ function MetricCard({
   sublabel?: string;
 }) {
   const trendColors = {
-    good: 'border-emerald-800 bg-emerald-950/50',
-    warning: 'border-amber-800 bg-amber-950/50',
-    critical: 'border-red-800 bg-red-950/50',
-    neutral: 'border-zinc-800 bg-zinc-900',
+    good: 'border-emerald-800 bg-gradient-to-br from-emerald-950 to-emerald-900/50 hover:shadow-lg hover:shadow-emerald-900/20',
+    warning: 'border-amber-800 bg-gradient-to-br from-amber-950 to-amber-900/50 hover:shadow-lg hover:shadow-amber-900/20',
+    critical: 'border-red-800 bg-gradient-to-br from-red-950 to-red-900/50 hover:shadow-lg hover:shadow-red-900/20',
+    neutral: 'border-zinc-800 bg-gradient-to-br from-zinc-900 to-zinc-800/50 hover:shadow-lg hover:shadow-zinc-900/20',
   };
 
   const trendIndicators = {
@@ -410,17 +423,21 @@ function MetricCard({
     neutral: '•',
   };
 
+  const isNumber = typeof value === 'number';
+
   return (
     <div
-      className={`border rounded-lg p-4 ${trendColors[trend || 'neutral']}`}
+      className={`border rounded-xl p-4 transition-all duration-300 hover:scale-105 animate-slide-in-up ${trendColors[trend || 'neutral']}`}
     >
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-zinc-400 text-sm">{label}</p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-zinc-400 text-sm font-medium">{label}</p>
         {trend && trend !== 'neutral' && (
           <span className="text-lg">{trendIndicators[trend]}</span>
         )}
       </div>
-      <p className="text-3xl font-bold mb-1">{value}</p>
+      <p className="text-3xl font-bold mb-1">
+        {isNumber ? <AnimatedNumber value={value} /> : value}
+      </p>
       {sublabel && <p className="text-xs text-zinc-500">{sublabel}</p>}
     </div>
   );
@@ -438,15 +455,13 @@ function FeatureCard({
   status: string;
 }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 hover:shadow-xl hover:shadow-zinc-900/50 transition-all duration-300 hover:scale-105 animate-slide-in-up group">
       <div className="flex items-start justify-between mb-3">
-        <span className="text-3xl">{icon}</span>
-        <span className="px-2 py-1 bg-emerald-900 text-emerald-300 text-xs font-medium rounded">
-          {status}
-        </span>
+        <span className="text-3xl group-hover:scale-110 transition-transform">{icon}</span>
+        <Badge variant="success">{status}</Badge>
       </div>
-      <h3 className="font-semibold mb-1">{title}</h3>
-      <p className="text-sm text-zinc-400">{description}</p>
+      <h3 className="font-semibold mb-2 text-lg">{title}</h3>
+      <p className="text-sm text-zinc-400 leading-relaxed">{description}</p>
     </div>
   );
 }
