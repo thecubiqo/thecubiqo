@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   X, 
   ChevronDown, 
@@ -26,6 +26,11 @@ interface Message {
   timestamp: Date;
 }
 
+let messageCounter = 0;
+function generateMessageId(): string {
+  return `msg-${Date.now()}-${++messageCounter}`;
+}
+
 export default function AgentUsePanel({ agentId, onClose, initialPrompt }: AgentUsePanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -36,6 +41,7 @@ export default function AgentUsePanel({ agentId, onClose, initialPrompt }: Agent
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const initialPromptSentRef = useRef(false);
 
   // Get agent catalog entry
   const catalogEntry = AGENT_CATALOG[agentId];
@@ -44,13 +50,6 @@ export default function AgentUsePanel({ agentId, onClose, initialPrompt }: Agent
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
-
-  // Auto-send initial prompt
-  useEffect(() => {
-    if (initialPrompt && messages.length === 0) {
-      sendMessage(initialPrompt);
-    }
-  }, [initialPrompt]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -69,13 +68,13 @@ export default function AgentUsePanel({ agentId, onClose, initialPrompt }: Agent
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
-  const sendMessage = async (messageText: string) => {
+  const sendMessage = useCallback(async (messageText: string) => {
     const trimmedMessage = messageText.trim();
     if (!trimmedMessage || isLoading) return;
 
     // Add user message
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: generateMessageId(),
       role: 'user',
       content: trimmedMessage,
       timestamp: new Date()
@@ -102,7 +101,7 @@ export default function AgentUsePanel({ agentId, onClose, initialPrompt }: Agent
 
       // Add agent response
       const agentMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: generateMessageId(),
         role: 'agent',
         content: data.response || 'No response received',
         timestamp: new Date()
@@ -112,7 +111,7 @@ export default function AgentUsePanel({ agentId, onClose, initialPrompt }: Agent
     } catch (error) {
       // Add error message
       const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: generateMessageId(),
         role: 'error',
         content: error instanceof Error ? error.message : 'Failed to send message',
         timestamp: new Date()
@@ -122,7 +121,15 @@ export default function AgentUsePanel({ agentId, onClose, initialPrompt }: Agent
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [agentId, isLoading]);
+
+  // Auto-send initial prompt (only once)
+  useEffect(() => {
+    if (initialPrompt && !initialPromptSentRef.current) {
+      initialPromptSentRef.current = true;
+      sendMessage(initialPrompt);
+    }
+  }, [initialPrompt, sendMessage]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,7 +185,7 @@ export default function AgentUsePanel({ agentId, onClose, initialPrompt }: Agent
       {/* Panel */}
       <div
         ref={panelRef}
-        className="relative h-full w-full md:w-[60%] lg:w-[50%] bg-gray-900 border-l border-gray-700 shadow-2xl flex flex-col animate-slide-in-right"
+        className="relative h-full w-full md:w-[60%] lg:w-[50%] bg-gray-900 border-l border-gray-700 shadow-2xl flex flex-col transition-transform duration-300 ease-out"
       >
         {/* Header */}
         <div className="flex-shrink-0 p-6 border-b border-gray-800">
@@ -231,7 +238,7 @@ export default function AgentUsePanel({ agentId, onClose, initialPrompt }: Agent
           </button>
           
           {isDetailsExpanded && (
-            <div className="px-6 pb-4 space-y-4 animate-fade-in">
+            <div className="px-6 pb-4 space-y-4 transition-all duration-200 ease-out">
               <p className="text-sm text-gray-400">{catalogEntry.description}</p>
               
               {/* Capabilities */}
@@ -354,37 +361,6 @@ export default function AgentUsePanel({ agentId, onClose, initialPrompt }: Agent
         </div>
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes slide-in-right {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .animate-slide-in-right {
-          animation: slide-in-right 0.3s ease-out;
-        }
-
-        .animate-fade-in {
-          animation: fade-in 0.2s ease-out;
-        }
-      ` }} />
     </div>
   );
 }

@@ -121,7 +121,7 @@ const defaultEntry: AgentCatalogEntry = {
 };
 
 interface AgentHubProps {
-  onSelectAgent: (agentId: string) => void;
+  onSelectAgent: (agentId: string, initialPrompt?: string) => void;
   onCreateAgent: () => void;
   selectedAgentId?: string | null;
 }
@@ -153,9 +153,11 @@ const AgentHub: React.FC<AgentHubProps> = ({ onSelectAgent, onCreateAgent, selec
   useEffect(() => {
     fetchAgents();
 
-    // Poll every 5 seconds for status updates
+    // Poll every 5 seconds for status updates, only when tab is visible
     const interval = setInterval(() => {
-      fetchAgents();
+      if (typeof document === 'undefined' || !document.hidden) {
+        fetchAgents();
+      }
     }, 5000);
 
     return () => clearInterval(interval);
@@ -364,8 +366,7 @@ const AgentHub: React.FC<AgentHubProps> = ({ onSelectAgent, onCreateAgent, selec
                           key={index}
                           onClick={(e) => {
                             e.stopPropagation();
-                            onSelectAgent(agent.id);
-                            // In a real implementation, this would also send the prompt
+                            onSelectAgent(agent.id, action.prompt);
                           }}
                           className="px-3 py-2 text-xs bg-gray-700/50 hover:bg-gray-600/50 text-gray-200 rounded-lg transition-colors border border-gray-600/30 hover:border-gray-500"
                         >

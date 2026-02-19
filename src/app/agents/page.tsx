@@ -13,9 +13,9 @@ export default function AgentsPage() {
   const [initialPrompt, setInitialPrompt] = useState<string | undefined>(undefined)
   const [showCreateModal, setShowCreateModal] = useState(false)
 
-  const handleSelectAgent = (agentId: string) => {
+  const handleSelectAgent = (agentId: string, prompt?: string) => {
     setSelectedAgentId(agentId)
-    setInitialPrompt(undefined)
+    setInitialPrompt(prompt)
   }
 
   const handleClosePanel = () => {
