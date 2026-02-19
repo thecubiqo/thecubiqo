@@ -16,6 +16,8 @@ import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
 import { IntentSetup } from './IntentSetup'
 import { OpportunityFeed } from './OpportunityFeed'
 import { ProMatchSettings } from './ProMatchSettings'
+import { RGYColorSelector } from './RGYColorSelector'
+import { RGYIntentKeywordList } from './RGYIntentKeywordList'
 import { GettingStartedPanel } from './GettingStartedPanel'
 import { JourneyMemoryPrompt } from './journey'
 import { AdminControls } from './admin'
@@ -74,6 +76,43 @@ export function FullscreenApp({
   const [showOpportunityFeed, setShowOpportunityFeed] = useState(false)
   const [showProMatchSettings, setShowProMatchSettings] = useState(false)
   const [selectedRGYContext, setSelectedRGYContext] = useState<RGYContext | null>(null)
+  
+  // RGY Chat Room flow state (rgynext design)
+  const [showColorSelector, setShowColorSelector] = useState(false)
+  const [showRoomList, setShowRoomList] = useState(false)
+  const [showRoomChat, setShowRoomChat] = useState(false)
+  const [selectedChatColor, setSelectedChatColor] = useState<'green' | 'yellow' | 'red' | null>(null)
+  const [selectedRoom, setSelectedRoom] = useState<any>(null)
+  
+  // ProMatch state
+  const [proMatchEnabled, setProMatchEnabled] = useState(false)
+  const [proMatchCount, setProMatchCount] = useState(0)
+  
+  // Simulate ProMatch working in background (for demo)
+  useEffect(() => {
+    // Check if ProMatch is enabled
+    const checkProMatch = async () => {
+      try {
+        if (isAuthenticated && user) {
+          const response = await fetch('/api/rgy/subscription')
+          const data = await response.json()
+          if (data.subscription?.is_active) {
+            setProMatchEnabled(true)
+            // Simulate finding matches (in real app, this comes from discovery service)
+            const mockCount = Math.floor(Math.random() * 8) + 3 // 3-10 matches
+            setProMatchCount(mockCount)
+          }
+        }
+      } catch (error) {
+        console.error('Error checking ProMatch:', error)
+      }
+    }
+    
+    checkProMatch()
+    // Check periodically (every 5 minutes)
+    const interval = setInterval(checkProMatch, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [isAuthenticated, user])
 
   // Early access signup
   const [earlyAccessEmail, setEarlyAccessEmail] = useState('')
@@ -94,7 +133,55 @@ export function FullscreenApp({
     }, 2000)
   }
 
-  // Handle RGY zone selection from RGYChatsModal
+  // Handle RGY SIGNAL click - Show color selector for chat rooms
+  const handleSignalClick = () => {
+    setShowRGYChats(false)
+    setShowColorSelector(true)
+  }
+  
+  // Handle color selection from color selector (rgynext)
+  const handleColorSelect = (color: 'green' | 'yellow' | 'red') => {
+    setSelectedChatColor(color)
+    setShowColorSelector(false)
+    setShowRoomList(true)
+  }
+  
+  // Handle room selection
+  const handleRoomSelect = (room: any) => {
+    setSelectedRoom(room)
+    setShowRoomList(false)
+    setShowRoomChat(true)
+  }
+  
+  // Handle back from room list
+  const handleBackFromRoomList = () => {
+    setShowRoomList(false)
+    setShowColorSelector(true)
+  }
+  
+  // Handle back from room chat
+  const handleBackFromRoomChat = () => {
+    setShowRoomChat(false)
+    setShowRoomList(true)
+  }
+  
+  // Handle viewing ProMatch shortlist
+  const handleViewProMatchShortlist = () => {
+    setShowRoomList(false)
+    setShowOpportunityFeed(true)
+  }
+  
+  // Handle back from ProMatch shortlist
+  const handleBackFromShortlist = () => {
+    setShowOpportunityFeed(false)
+    if (selectedChatColor) {
+      setShowRoomList(true)
+    } else {
+      setShowColorSelector(true)
+    }
+  }
+  
+  // Legacy handlers (kept for backwards compatibility)
   const handleZoneSelection = (context: RGYContext) => {
     setSelectedRGYContext(context)
     setShowRGYChats(false)
@@ -449,7 +536,7 @@ export function FullscreenApp({
 
           {/* Right side - SIGNAL Logo - Clickable */}
           <button
-            onClick={() => setShowRGYChats(true)}
+            onClick={handleSignalClick}
             className="flex items-center gap-3 hover:opacity-80 transition-opacity"
           >
             <img
@@ -943,7 +1030,7 @@ export function FullscreenApp({
       {/* Opportunity Feed Modal */}
       <OpportunityFeed
         isOpen={showOpportunityFeed}
-        onClose={() => setShowOpportunityFeed(false)}
+        onClose={handleBackFromShortlist}
         isDark={isDark}
         rgyContext={selectedRGYContext || undefined}
       />
@@ -954,6 +1041,69 @@ export function FullscreenApp({
         onClose={() => setShowProMatchSettings(false)}
         isDark={isDark}
       />
+
+      {/* RGY Color Selector Modal (rgynext) */}
+      {showColorSelector && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <div className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowColorSelector(false)}
+                  className="h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <h1 className="font-display text-lg font-semibold tracking-tight">
+                  RGY Chats
+                </h1>
+              </div>
+            </div>
+          </div>
+          <RGYColorSelector 
+            onColorSelect={handleColorSelect}
+            showProMatchBadge={proMatchEnabled}
+            proMatchCount={proMatchCount}
+          />
+        </div>
+      )}
+
+      {/* RGY Room List Modal (rgynext) */}
+      {showRoomList && selectedChatColor && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <div className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleBackFromRoomList}
+                  className="h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <div className="flex items-center gap-2">
+                  <h1 className="font-display text-lg font-semibold tracking-tight">
+                    RGY Chats
+                  </h1>
+                  <span className="text-muted-foreground font-mono text-sm">/</span>
+                  <span className={`text-sm font-medium text-rgy-${selectedChatColor}`}>
+                    {selectedChatColor === 'green' ? 'Work' : selectedChatColor === 'yellow' ? 'Social' : 'Dating'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <RGYIntentKeywordList 
+            color={selectedChatColor}
+            onRoomSelect={handleRoomSelect}
+            onViewProMatchShortlist={proMatchCount > 0 ? handleViewProMatchShortlist : undefined}
+            proMatchCount={proMatchCount}
+          />
+        </div>
+      )}
 
       {/* Landing Cube - Shown once per day or after 4+ hours 
           Two designs available:
