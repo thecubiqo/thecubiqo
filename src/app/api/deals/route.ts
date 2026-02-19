@@ -8,17 +8,29 @@ import { NextRequest, NextResponse } from 'next/server'
 import { fetchDeals, getContextualDeals } from '@/lib/deals'
 import type { DealCategory, DealsQuery } from '@/lib/deals'
 
+const VALID_CATEGORIES: DealCategory[] = [
+  'food', 'travel', 'shopping', 'entertainment', 'health',
+  'beauty', 'services', 'electronics', 'fitness', 'education',
+]
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
 
+    const rawCategory = searchParams.get('category')
+    const category = rawCategory && VALID_CATEGORIES.includes(rawCategory as DealCategory)
+      ? (rawCategory as DealCategory)
+      : undefined
+
+    const rawMax = searchParams.get('maxResults')
+    const parsedMax = rawMax ? parseInt(rawMax, 10) : NaN
+    const maxResults = Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : 5
+
     const query: DealsQuery = {
-      category: (searchParams.get('category') as DealCategory) || undefined,
+      category,
       query: searchParams.get('query') || undefined,
       location: searchParams.get('location') || undefined,
-      maxResults: searchParams.get('maxResults')
-        ? parseInt(searchParams.get('maxResults')!, 10)
-        : 5,
+      maxResults,
     }
 
     const result = await fetchDeals(query)
@@ -36,7 +48,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { message, maxResults = 3 } = body
+    const { message } = body
+    const rawMax = typeof body.maxResults === 'number' ? body.maxResults : 3
+    const maxResults = Number.isFinite(rawMax) && rawMax > 0 ? rawMax : 3
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
