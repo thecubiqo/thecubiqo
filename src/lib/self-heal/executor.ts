@@ -28,7 +28,7 @@ function buildDailySummary(report: SelfHealReport): DailySummary {
   const repairsFailed = repairs.filter(r => r.status === 'failed').length;
 
   const uptimePercentage = totalChecks > 0
-    ? Math.round((healthyChecks / totalChecks) * 100 * 10) / 10
+    ? Math.round(((healthyChecks / totalChecks) * 100) * 10) / 10
     : 0;
 
   const durations = diagnostics

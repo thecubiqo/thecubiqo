@@ -11,6 +11,11 @@ import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
+/** Round a number to one decimal place */
+function roundOne(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -82,14 +87,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       period: { days, since: since.toISOString() },
       totalRuns,
-      successRate: Math.round((statusBreakdown.success / totalRuns) * 100 * 10) / 10,
+      successRate: roundOne((statusBreakdown.success / totalRuns) * 100),
       avgExecutionMs: Math.round(totalExecutionMs / totalRuns),
       statusBreakdown,
-      avgHealthScore: Math.round((healthScoreSum / totalRuns) * 10) / 10,
+      avgHealthScore: roundOne(healthScoreSum / totalRuns),
       totalRepairsAttempted: totalRepairs,
       totalRepairsSucceeded: totalRepairsOk,
       repairSuccessRate: totalRepairs > 0
-        ? Math.round((totalRepairsOk / totalRepairs) * 100 * 10) / 10
+        ? roundOne((totalRepairsOk / totalRepairs) * 100)
         : 100,
       totalFixedIssues: totalFixed,
       totalCriticalIssues: totalCritical,
