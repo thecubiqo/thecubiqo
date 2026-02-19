@@ -12,6 +12,7 @@ import { slackSendTool } from './tools/slack-tool';
 import { discordSendTool } from './tools/discord-tool';
 import { emailSendTool } from './tools/email-tool';
 import { patchTool } from './tools/patch-tool';
+import { agentMessageTool } from './tools/agent-message';
 
 const execAsync = promisify(exec);
 
@@ -39,6 +40,7 @@ export class ToolRegistry {
     this.register(discordSendTool); // Import from tools/discord-tool.ts
     this.register(emailSendTool); // Import from tools/email-tool.ts
     this.register(patchTool); // Import from tools/patch-tool.ts
+    this.register(agentMessageTool); // Import from tools/agent-message.ts
   }
 
   register(tool: Tool) {

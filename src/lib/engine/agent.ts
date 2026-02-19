@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import { SessionStore } from './session';
 import { ToolRegistry } from './tools';
 import { callLLM } from '../ai/llm-router';
+import { WorkspaceManager } from './workspace';
 
 export class AgentInstance implements Agent {
   id: string;
@@ -22,6 +23,7 @@ export class AgentInstance implements Agent {
 
   private sessionStore: SessionStore;
   private toolRegistry: ToolRegistry;
+  workspaceManager: WorkspaceManager;
 
   constructor(config: AgentConfig) {
     this.id = config.id;
@@ -38,6 +40,7 @@ export class AgentInstance implements Agent {
 
     this.sessionStore = new SessionStore(this.id);
     this.toolRegistry = new ToolRegistry();
+    this.workspaceManager = new WorkspaceManager(this.workspace);
   }
 
   async initialize(): Promise<void> {
@@ -148,8 +151,14 @@ export class AgentInstance implements Agent {
 
     this.currentTasks.push(taskObj);
 
-    // Execute task asynchronously
+    // Create isolated workspace for this task
+    const wsInfo = await this.workspaceManager.createTaskWorkspace(taskId);
+
+    // Execute task asynchronously with isolated workspace
     setImmediate(async () => {
+      // Temporarily swap workspace to the isolated task directory
+      const originalWorkspace = this.workspace;
+      this.workspace = wsInfo.taskDir;
       try {
         taskObj.status = 'running';
         taskObj.startedAt = new Date();
@@ -163,6 +172,11 @@ export class AgentInstance implements Agent {
         taskObj.status = 'failed';
         taskObj.result = error instanceof Error ? error.message : 'Unknown error';
         taskObj.completedAt = new Date();
+      } finally {
+        // Restore original workspace
+        this.workspace = originalWorkspace;
+        // Clean up task workspace
+        await this.workspaceManager.cleanupTaskWorkspace(taskId);
       }
     });
 

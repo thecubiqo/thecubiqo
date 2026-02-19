@@ -17,7 +17,7 @@ export async function bootstrapAgents() {
       id: 'a1',
       name: 'A1 (Henry)',
       model: defaultModel,
-      tools: ['file_read', 'file_list', 'sessions_spawn', 'sessions_send', 'web_search', 'web_fetch', 'telegram_send', 'vision_analyze', 'slack_send', 'discord_send', 'email_send'],
+      tools: ['file_read', 'file_list', 'sessions_spawn', 'sessions_send', 'agent_message', 'web_search', 'web_fetch', 'telegram_send', 'vision_analyze', 'slack_send', 'discord_send', 'email_send'],
       maxConcurrent: 5,
     });
 
@@ -26,7 +26,7 @@ export async function bootstrapAgents() {
       id: 'a2',
       name: 'A2 (Dev)',
       model: defaultModel,
-      tools: ['exec', 'file_read', 'file_write', 'file_patch', 'file_list', 'sessions_spawn', 'sessions_send', 'git', 'web_fetch'],
+      tools: ['exec', 'file_read', 'file_write', 'file_patch', 'file_list', 'sessions_spawn', 'sessions_send', 'agent_message', 'git', 'web_fetch'],
       maxConcurrent: 3,
     });
 
@@ -35,7 +35,7 @@ export async function bootstrapAgents() {
       id: 'a3',
       name: 'A3 (Writer)',
       model: defaultModel,
-      tools: ['file_read', 'file_write', 'file_list', 'sessions_send', 'web_fetch', 'git', 'web_search'],
+      tools: ['file_read', 'file_write', 'file_list', 'sessions_send', 'agent_message', 'web_fetch', 'git', 'web_search'],
       maxConcurrent: 3,
     });
 
@@ -44,7 +44,7 @@ export async function bootstrapAgents() {
       id: 'a4',
       name: 'A4 (Tester)',
       model: defaultModel,
-      tools: ['exec', 'file_read', 'file_write', 'file_list', 'sessions_send', 'web_fetch'],
+      tools: ['exec', 'file_read', 'file_write', 'file_list', 'sessions_send', 'agent_message', 'web_fetch'],
       maxConcurrent: 2,
     });
 
@@ -53,7 +53,7 @@ export async function bootstrapAgents() {
       id: 'a5',
       name: 'A5 (Marketing)',
       model: defaultModel,
-      tools: ['file_read', 'file_write', 'file_list', 'sessions_send', 'web_search', 'web_fetch', 'vision_analyze', 'slack_send', 'discord_send', 'telegram_send', 'email_send'],
+      tools: ['file_read', 'file_write', 'file_list', 'sessions_send', 'agent_message', 'web_search', 'web_fetch', 'vision_analyze', 'slack_send', 'discord_send', 'telegram_send', 'email_send'],
       maxConcurrent: 3,
     });
 
@@ -62,7 +62,7 @@ export async function bootstrapAgents() {
       id: 'a6',
       name: 'A6 (Animator)',
       model: defaultModel,
-      tools: ['file_read', 'file_write', 'file_list', 'sessions_send', 'vision_analyze'],
+      tools: ['file_read', 'file_write', 'file_list', 'sessions_send', 'agent_message', 'vision_analyze'],
       maxConcurrent: 2,
     });
 
@@ -71,7 +71,7 @@ export async function bootstrapAgents() {
       id: 'a7',
       name: 'A7 (Business)',
       model: defaultModel,
-      tools: ['file_read', 'file_write', 'file_list', 'sessions_send', 'web_search', 'web_fetch', 'telegram_send', 'slack_send', 'discord_send', 'email_send'],
+      tools: ['file_read', 'file_write', 'file_list', 'sessions_send', 'agent_message', 'web_search', 'web_fetch', 'telegram_send', 'slack_send', 'discord_send', 'email_send'],
       maxConcurrent: 3,
     });
 
