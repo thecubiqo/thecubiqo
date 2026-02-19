@@ -126,6 +126,12 @@ export async function POST(req: NextRequest) {
         recommendations: report.recommendations.length,
         repairsPerformed: report.repairs.filter(r => r.status === 'success').length,
         emailSent,
+        ...(report.summary ? {
+          healthScore: report.summary.uptimePercentage,
+          totalChecks: report.summary.totalChecks,
+          healthyChecks: report.summary.healthyChecks,
+          avgCheckTimeMs: report.summary.avgDiagnosticDurationMs,
+        } : {}),
       },
       executionTimeMs: totalTime,
     });
