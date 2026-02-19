@@ -16,7 +16,8 @@ async function captureSession(promptText, outputFilename) {
 
     const browser = await puppeteer.launch({
         headless: "new",
-        args: ['--no-sandbox', '--disable-setuid-sandbox'] // Required for server environments where this will run
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] // Required for server/Docker environments
     });
 
     const page = await browser.newPage();

@@ -39,10 +39,12 @@ class GFXToolz {
         console.log('[GFXToolz] 🌐 Launching browser...');
         this.browser = await puppeteer.launch({
             headless: 'new',
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-gpu',
+                '--disable-dev-shm-usage',
                 '--window-size=1920,1080'
             ]
         });
