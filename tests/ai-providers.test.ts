@@ -13,32 +13,32 @@ describe('OpenClaw Provider Integration', () => {
   const providersPath = resolve(__dirname, '../src/lib/ai/providers/index.ts')
   const providersContent = readFileSync(providersPath, 'utf-8')
 
-  it('should define OPENCLAW_CONFIG', () => {
-    expect(providersContent).toContain('OPENCLAW_CONFIG')
+  it('should define OPENCLAW_PROVIDER', () => {
+    expect(providersContent).toContain('OPENCLAW_PROVIDER')
   })
 
-  it('should export AIProviderFeatureFlags interface', () => {
-    expect(providersContent).toContain('export interface AIProviderFeatureFlags')
+  it('should export ExtendedProviderConfig interface', () => {
+    expect(providersContent).toContain('export interface ExtendedProviderConfig')
   })
 
-  it('should export getAIProviderFlags function', () => {
-    expect(providersContent).toContain('export function getAIProviderFlags')
+  it('should export isOpenClawEnabled function', () => {
+    expect(providersContent).toContain('export function isOpenClawEnabled')
   })
 
   it('should export getEnabledProviders function', () => {
     expect(providersContent).toContain('export function getEnabledProviders')
   })
 
-  it('should export isProviderEnabled function', () => {
-    expect(providersContent).toContain('export function isProviderEnabled')
+  it('should export getProvider function', () => {
+    expect(providersContent).toContain('export function getProvider')
   })
 
-  it('should export validateProviderEnvironment function', () => {
-    expect(providersContent).toContain('export function validateProviderEnvironment')
+  it('should export validateProvider function', () => {
+    expect(providersContent).toContain('export function validateProvider')
   })
 
-  it('should require explicit opt-in for OpenClaw', () => {
-    expect(providersContent).toContain('NEXT_PUBLIC_ENABLE_OPENCLAW')
+  it('should check for OpenClaw API key', () => {
+    expect(providersContent).toContain('OPENCLAW_API_KEY')
   })
 
   it('should require API key for OpenClaw', () => {
@@ -58,15 +58,14 @@ describe('OpenClaw Provider Feature Flags', () => {
   })
 
   it('should disable OpenClaw by default', () => {
-    delete process.env.NEXT_PUBLIC_ENABLE_OPENCLAW
     delete process.env.OPENCLAW_API_KEY
+    delete process.env.OPENROUTER_KEY_CUBIKEY
 
-    // Test would need to dynamically import to test runtime behavior
-    // For now, we verify the code structure is correct
+    // Verify the code structure checks for API key presence
     const providersPath = resolve(__dirname, '../src/lib/ai/providers/index.ts')
     const providersContent = readFileSync(providersPath, 'utf-8')
     
-    expect(providersContent).toContain('openClawExplicitlyEnabled && !!hasOpenClawKey')
+    expect(providersContent).toContain('process.env.OPENCLAW_API_KEY')
   })
 })
 
@@ -76,16 +75,15 @@ describe('OpenClaw Documentation', () => {
 
   it('should document how to enable OpenClaw', () => {
     expect(docContent).toContain('OPENCLAW_API_KEY')
-    expect(docContent).toContain('NEXT_PUBLIC_ENABLE_OPENCLAW')
   })
 
   it('should document environment variable setup', () => {
     expect(docContent).toContain('.env.local')
   })
 
-  it('should document validation functions', () => {
-    expect(docContent).toContain('getAIProviderFlags')
-    expect(docContent).toContain('validateProviderEnvironment')
+  it('should document provider functions', () => {
+    expect(docContent).toContain('getEnabledProviders')
+    expect(docContent).toContain('isProviderEnabled')
   })
 
   it('should document security practices', () => {

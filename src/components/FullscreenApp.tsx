@@ -14,10 +14,11 @@ import { BYOSettings } from './byo'
 import { KeywordPanel } from './KeywordPanel'
 import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
 import { GettingStartedPanel } from './GettingStartedPanel'
+import { LandingCubeRouter } from './LandingCubeRouter'
+import { PoweredByLogosCompact } from './PoweredByLogos'
 import { JourneyMemoryPrompt } from './journey'
 import { AdminControls } from './admin'
 import { SidePanel } from './cq'
-import { LandingCubeRouter } from './LandingCubeRouter'
 import { TopRightCTA } from '@/components/TopRightCTA.client'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
@@ -115,7 +116,7 @@ export function FullscreenApp({
     }
 
     // If feature flag is disabled (and not forced), don't show
-   if (!showParticleLanding && !forceLanding) return;
+    if (!showParticleLanding) return;
 
     const LANDING_STORAGE_KEY = 'cubiqo_last_landing'
     const HOURS_THRESHOLD = 4
@@ -170,103 +171,37 @@ export function FullscreenApp({
   // Track if we should show auth nudge modal after speaking
   const nudgeCtaRef = useRef<string | null>(null)
 
-  // Stable TTS callbacks to prevent unnecessary re-creation of speak function
-  const handleTTSStart = useCallback(() => {
-    setAppState('speaking')
-    setAnimationState('speaking')
-  }, [])
-
-  const handleTTSEnd = useCallback(() => {
-    // Show auth nudge modal if AI suggested sign-in
-    if (nudgeCtaRef.current) {
-      setNudgeCta(nudgeCtaRef.current)
-      setShowNudgeModal(true)
-      nudgeCtaRef.current = null
-    }
-
-    // If voice is still enabled, go back to listening for seamless conversation
-    if (voiceEnabledRef.current && startListeningRef.current) {
-      setAppState('listening')
-      setAnimationState('listening')
-      startListeningRef.current()
-    } else {
-      setAppState('idle')
-      setAnimationState('idle')
-    }
-  }, [])
-
   // TTS for AI responses - Using ElevenLabs for natural voice
   const { speak, stop: stopSpeaking, isSpeaking, error: ttsError, unlockAudio } = useElevenLabsTTS({
     colorName,
-    onStart: handleTTSStart,
-    onEnd: handleTTSEnd
+    onStart: () => {
+      setAppState('speaking')
+      setAnimationState('speaking')
+    },
+    onEnd: () => {
+      // Show auth nudge modal if AI suggested sign-in
+      if (nudgeCtaRef.current) {
+        setNudgeCta(nudgeCtaRef.current)
+        setShowNudgeModal(true)
+        nudgeCtaRef.current = null
+      }
+
+      // If voice is still enabled, go back to listening for seamless conversation
+      if (voiceEnabledRef.current && startListeningRef.current) {
+        setAppState('listening')
+        setAnimationState('listening')
+        startListeningRef.current()
+      } else {
+        setAppState('idle')
+        setAnimationState('idle')
+      }
+    }
   })
 
   // Log TTS errors
   useEffect(() => {
     if (ttsError) console.error('[TTS] Error:', ttsError)
   }, [ttsError])
-
-  // Use refs for values used in speech recognition callbacks to avoid recreating startListening
-  const sendMessageRef = useRef(sendMessage)
-  const speakRef = useRef(speak)
-  const colorNameRef = useRef(colorName)
-
-  useEffect(() => { sendMessageRef.current = sendMessage }, [sendMessage])
-  useEffect(() => { speakRef.current = speak }, [speak])
-  useEffect(() => { colorNameRef.current = colorName }, [colorName])
-
-  const handleVoiceResult = useCallback(async (text: string) => {
-    // Transition: listening → thinking
-    setAppState('thinking')
-    setAnimationState('thinking')
-
-    try {
-      const response = await sendMessageRef.current(text, colorNameRef.current)
-
-      if (response?.response) {
-        let responseText = response.response
-
-        // Check for auth nudge marker [AUTH_NUDGE:CTA]
-        const nudgeMatch = responseText.match(/\[AUTH_NUDGE:([^\]]+)\]/)
-        if (nudgeMatch) {
-          nudgeCtaRef.current = nudgeMatch[1].trim()
-          responseText = responseText.replace(nudgeMatch[0], '').trim()
-        } else if (responseText.includes('[AUTH_NUDGE]')) {
-          // Fallback for old format
-          nudgeCtaRef.current = "Let's stay connected"
-          responseText = responseText.replace('[AUTH_NUDGE]', '').trim()
-        }
-
-        // Transition: thinking → speaking (handled by TTS onStart)
-        speakRef.current(responseText)
-      } else {
-        // No response (API error) - speak an error message so user knows
-        speakRef.current("I'm having trouble connecting right now. Please try again in a moment.")
-      }
-    } catch (error) {
-      console.error('AI Error:', error)
-      // On error - speak error message and return to appropriate state
-      speakRef.current("Sorry, I couldn't process that. Please try again.")
-    }
-  }, [])
-
-  const handleVoiceEnd = useCallback(() => {
-    // Speech recognition ended (timeout or no result)
-    // If voice is still enabled, restart listening for continuous conversation
-    if (voiceEnabledRef.current && startListeningRef.current && appStateRef.current === 'listening') {
-      // Small delay to avoid rapid restarts
-      setTimeout(() => {
-        if (voiceEnabledRef.current && startListeningRef.current) {
-          startListeningRef.current()
-        }
-      }, 100)
-    } else if (appStateRef.current === 'listening') {
-      // Voice was turned off, go to idle
-      setAppState('idle')
-      setAnimationState('idle')
-    }
-  }, [])
 
   const {
     startListening,
@@ -275,8 +210,56 @@ export function FullscreenApp({
     transcript
   } = useSpeechRecognition({
     lang: 'en-US',
-    onResult: handleVoiceResult,
-    onEnd: handleVoiceEnd
+    onResult: async (text) => {
+      // Transition: listening → thinking
+      setAppState('thinking')
+      setAnimationState('thinking')
+
+      try {
+        const response = await sendMessage(text, colorName)
+
+        if (response?.response) {
+          let responseText = response.response
+
+          // Check for auth nudge marker [AUTH_NUDGE:CTA]
+          const nudgeMatch = responseText.match(/\[AUTH_NUDGE:([^\]]+)\]/)
+          if (nudgeMatch) {
+            nudgeCtaRef.current = nudgeMatch[1].trim()
+            responseText = responseText.replace(nudgeMatch[0], '').trim()
+          } else if (responseText.includes('[AUTH_NUDGE]')) {
+            // Fallback for old format
+            nudgeCtaRef.current = "Let's stay connected"
+            responseText = responseText.replace('[AUTH_NUDGE]', '').trim()
+          }
+
+          // Transition: thinking → speaking (handled by TTS onStart)
+          speak(responseText)
+        } else {
+          // No response (API error) - speak an error message so user knows
+          speak("I'm having trouble connecting right now. Please try again in a moment.")
+        }
+      } catch (error) {
+        console.error('AI Error:', error)
+        // On error - speak error message and return to appropriate state
+        speak("Sorry, I couldn't process that. Please try again.")
+      }
+    },
+    onEnd: () => {
+      // Speech recognition ended (timeout or no result)
+      // If voice is still enabled, restart listening for continuous conversation
+      if (voiceEnabledRef.current && startListeningRef.current && appStateRef.current === 'listening') {
+        // Small delay to avoid rapid restarts
+        setTimeout(() => {
+          if (voiceEnabledRef.current && startListeningRef.current) {
+            startListeningRef.current()
+          }
+        }, 100)
+      } else if (appStateRef.current === 'listening') {
+        // Voice was turned off, go to idle
+        setAppState('idle')
+        setAnimationState('idle')
+      }
+    }
   })
 
   // Store startListening in ref for use in TTS callback
@@ -311,8 +294,9 @@ export function FullscreenApp({
       setVoiceEnabled(true)
       setAppState('listening')
       setAnimationState('listening')
-      // Start listening immediately - chat will initialize on first message
-      startListening()
+      if (chatInitialized) {
+        startListening()
+      }
     } else {
       // Turn OFF - Stop everything and go to idle
       setVoiceEnabled(false)
@@ -349,38 +333,38 @@ export function FullscreenApp({
 
       {/* Floating Questions - Slow Scroll */}
       {showFloatingQuestions && (
-      <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[400px] h-[300px] overflow-hidden">
-        <button
-          onClick={() => setShowFloatingQuestions(false)}
-          className="absolute top-0 right-0 z-10 p-1.5 rounded-full text-white/30 hover:text-white/60 hover:bg-white/10 transition-all duration-200"
-          aria-label="Dismiss questions"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-        <div className="animate-float-questions space-y-8 pointer-events-none">
-          {[
-            "What's a good book for understanding psychology?",
-            "Help me plan a weekend trip to Paris",
-            "I need motivation to start working out",
-            "Explain quantum computing like I'm five",
-            "Best restaurants in Brooklyn?",
-            "How do I learn Spanish fast?",
-            "What's the meaning of life?",
-            "Recommend a morning routine",
-            "What's a good book for understanding psychology?",
-            "Help me plan a weekend trip to Paris",
-          ].map((question, i) => (
-            <div
-              key={i}
-              className="text-white/30 text-sm leading-relaxed"
-            >
-              {"\u201C"}{question}{"\u201D"}
-            </div>
-          ))}
+        <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[400px] h-[300px] overflow-hidden">
+          <button
+            onClick={() => setShowFloatingQuestions(false)}
+            className="absolute top-0 right-0 z-10 p-1.5 rounded-full text-white/30 hover:text-white/60 hover:bg-white/10 transition-all duration-200"
+            aria-label="Dismiss questions"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="animate-float-questions space-y-8 pointer-events-none">
+            {[
+              "What's a good book for understanding psychology?",
+              "Help me plan a weekend trip to Paris",
+              "I need motivation to start working out",
+              "Explain quantum computing like I'm five",
+              "Best restaurants in Brooklyn?",
+              "How do I learn Spanish fast?",
+              "What's the meaning of life?",
+              "Recommend a morning routine",
+              "What's a good book for understanding psychology?",
+              "Help me plan a weekend trip to Paris",
+            ].map((question, i) => (
+              <div
+                key={i}
+                className="text-white/30 text-sm leading-relaxed"
+              >
+                {"\u201C"}{question}{"\u201D"}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
       )}
 
       <style dangerouslySetInnerHTML={{
@@ -790,8 +774,29 @@ export function FullscreenApp({
                   </>
                 )
               }
-            </div >
-          </div >
+              {/* 5. Admin (only for admins) */}
+              {isAuthenticated && (user?.email === 'aditya@cubiqo.ai' || user?.email === 'admin@cubiqo.ai' || process.env.NODE_ENV === 'development') && (
+                <>
+                  <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
+                  <div>
+                    <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Admin</h3>
+                    <a
+                      href="/admin"
+                      className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${isDark
+                        ? 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20'
+                        : 'bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200'
+                        }`}
+                    >
+                      <span className="text-[14px] font-medium">Control Room</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                      </svg>
+                    </a>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
 
           <style jsx global>{`
             @keyframes slideInLeft {
@@ -877,7 +882,6 @@ export function FullscreenApp({
         <div className="fixed inset-0 z-[100]">
           <LandingCubeRouter
             onComplete={handleLandingComplete}
-            isVoiceActive={voiceEnabled}
           />
         </div>
       )}

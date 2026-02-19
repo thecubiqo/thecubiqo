@@ -17,13 +17,13 @@ export interface LandingConfig {
    * - 'tech-wireframe': High-tech wireframe energy cube with voice-reactive animations
    */
   defaultVariant: LandingCubeVariant
-
+  
   /**
    * Allow URL parameter override for testing/preview
    * Example: ?landing=tech-wireframe
    */
   allowUrlOverride: boolean
-
+  
   /**
    * Enable landing cube animation on app launch
    */
@@ -36,11 +36,23 @@ export interface LandingConfig {
  * To switch designs, simply change defaultVariant:
  * - 'plasma-wave' (current) - Flowing plasma waves
  * - 'tech-wireframe' - Wireframe energy cube
+ * 
+ * Environment Variables:
+ * - NEXT_PUBLIC_LANDING_DEFAULT: Set default variant ('plasma-wave' | 'tech-wireframe')
+ * - NEXT_PUBLIC_LANDING_ENABLE: Enable/disable landing animation ('true' | 'false')
  */
 export const landingConfig: LandingConfig = {
-  defaultVariant: (process.env.NEXT_PUBLIC_LANDING_DEFAULT as LandingCubeVariant) || 'plasma-wave',
+  defaultVariant: (() => {
+    const envVariant = process.env.NEXT_PUBLIC_LANDING_DEFAULT
+    // Validate environment variable value
+    if (envVariant === 'plasma-wave' || envVariant === 'tech-wireframe') {
+      return envVariant
+    }
+    // Default to plasma-wave if not set or invalid
+    return 'plasma-wave'
+  })(),
   allowUrlOverride: true,
-  enableLanding: process.env.NEXT_PUBLIC_LANDING_ENABLE === 'true' || true,
+  enableLanding: process.env.NEXT_PUBLIC_LANDING_ENABLE === 'false' ? false : true,
 }
 
 /**
@@ -54,6 +66,6 @@ export function getLandingVariant(searchParams?: URLSearchParams): LandingCubeVa
       return urlVariant
     }
   }
-
+  
   return landingConfig.defaultVariant
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
+import type { Database } from '@/types/database.types'
 
 export async function updateExperimentMetadata(experimentId: string, metadata: any) {
     const supabase = createClient()

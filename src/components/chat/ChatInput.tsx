@@ -38,7 +38,10 @@ export function ChatInput({
   // Update message when transcript changes (interim results)
   useEffect(() => {
     if (isListening && transcript) {
-      setMessage(transcript)
+      // Use requestAnimationFrame to avoid synchronous state updates in effects
+      requestAnimationFrame(() => {
+        setMessage(transcript)
+      })
     }
   }, [transcript, isListening])
 

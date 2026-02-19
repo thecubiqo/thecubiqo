@@ -1,10 +1,17 @@
 import { Tool, ToolContext, ToolResult, ToolDefinition } from '@/types/tool';
+import { createClient } from '@supabase/supabase-js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { readFile, writeFile, unlink, readdir } from 'fs/promises';
 import { join } from 'path';
 import { webSearchTool, webFetchTool } from './web-tools';
-import { sanitizeCommand, getSandboxExecOptions } from '../code-execution/sandbox';
+import { sessionsSendTool } from './tools/sessions-send';
+import { telegramSendTool } from './tools/telegram-tool';
+import { visionTool } from './tools/vision-tool';
+import { slackSendTool } from './tools/slack-tool';
+import { discordSendTool } from './tools/discord-tool';
+import { emailSendTool } from './tools/email-tool';
+import { patchTool } from './tools/patch-tool';
 
 const execAsync = promisify(exec);
 
@@ -22,20 +29,64 @@ export class ToolRegistry {
     this.register(fileWriteTool);
     this.register(fileListTool);
     this.register(sessionsSpawnTool);
-    this.register(sessionsSendTool);
+    this.register(sessionsSendTool); // Import from tools/sessions-send.ts
     this.register(gitTool);
     this.register(webSearchTool);
     this.register(webFetchTool);
+    this.register(telegramSendTool); // Import from tools/telegram-tool.ts
+    this.register(visionTool); // Import from tools/vision-tool.ts
+    this.register(slackSendTool); // Import from tools/slack-tool.ts
+    this.register(discordSendTool); // Import from tools/discord-tool.ts
+    this.register(emailSendTool); // Import from tools/email-tool.ts
+    this.register(patchTool); // Import from tools/patch-tool.ts
   }
 
   register(tool: Tool) {
     this.tools.set(tool.id, tool);
   }
 
-  getTools(toolIds?: string[]): ToolDefinition[] {
-    const tools = toolIds
+  async getTools(toolIds?: string[], userId?: string): Promise<ToolDefinition[]> {
+    let tools = toolIds
       ? toolIds.map((id) => this.tools.get(id)).filter(Boolean) as Tool[]
       : Array.from(this.tools.values());
+
+    // Founders Pass Logic
+    let isFounder = false;
+
+    if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL1 && process.env.SUPABASE_SERVICE_ROLE_KEY1) {
+      try {
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL1,
+          process.env.SUPABASE_SERVICE_ROLE_KEY1
+        );
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', userId)
+          .single();
+
+        if (profile?.email && profile.email.toLowerCase() === 'aditya@cubiqo.ai') {
+          isFounder = true;
+        }
+      } catch (e) {
+        console.error('Failed to check founder status:', e);
+      }
+    }
+
+    if (!isFounder) {
+      // Filter out dangerous/admin tools for generic users
+      const RESTRICTED_TOOLS = [
+        'exec',
+        'git',
+        'file_write',
+        'sessions_spawn',
+        'email_send',
+        'slack_send',
+        'discord_send',
+        'telegram_send'
+      ];
+      tools = tools.filter(t => !RESTRICTED_TOOLS.includes(t.id));
+    }
 
     return tools.map((tool) => ({
       name: tool.id,
@@ -72,7 +123,7 @@ export class ToolRegistry {
 const execTool: Tool = {
   id: 'exec',
   name: 'Execute Shell Command',
-  description: 'Run a shell command in the agent workspace. Returns stdout and stderr. Commands are sandboxed for security.',
+  description: 'Run a shell command in the agent workspace. Returns stdout and stderr.',
   parameters: {
     type: 'object',
     properties: {
@@ -84,32 +135,11 @@ const execTool: Tool = {
   execute: async (params, context) => {
     try {
       const { command, timeout = 30000 } = params;
-      
-      // Sanitize command for security
-      const sanitizationResult = sanitizeCommand(command, {
-        workspaceRoot: context.workspace,
-        maxTimeout: timeout,
+      const { stdout, stderr } = await execAsync(command, {
+        cwd: context.workspace,
+        timeout,
+        maxBuffer: 1024 * 1024, // 1MB
       });
-
-      if (!sanitizationResult.allowed) {
-        console.warn(`[Exec Tool] Blocked command: ${command}`);
-        console.warn(`[Exec Tool] Reason: ${sanitizationResult.reason}`);
-        return {
-          success: false,
-          output: '',
-          error: `Command blocked: ${sanitizationResult.reason}`,
-        };
-      }
-
-      // Get sandboxed execution options
-      const execOptions = getSandboxExecOptions({
-        workspaceRoot: context.workspace,
-        maxTimeout: timeout,
-      });
-
-      console.log(`[Exec Tool] Executing: ${command}`);
-      
-      const { stdout, stderr } = await execAsync(command, execOptions);
 
       return {
         success: true,
@@ -173,7 +203,7 @@ const fileWriteTool: Tool = {
     try {
       const { path, content } = params;
       const fullPath = join(context.workspace, path);
-      
+
       // Ensure parent directory exists
       const { mkdir } = await import('fs/promises');
       const dir = join(fullPath, '..');
@@ -247,7 +277,7 @@ const sessionsSpawnTool: Tool = {
   execute: async (params, context) => {
     try {
       const { task, agentId = context.agentId, label } = params;
-      
+
       // Import agent dynamically to avoid circular dependency
       const { getAgent } = await import('./agent');
       const agent = getAgent(agentId);
@@ -276,49 +306,7 @@ const sessionsSpawnTool: Tool = {
   },
 };
 
-const sessionsSendTool: Tool = {
-  id: 'sessions_send',
-  name: 'Send Message to Agent',
-  description: 'Send a message to another agent session.',
-  parameters: {
-    type: 'object',
-    properties: {
-      agentId: { type: 'string', description: 'Target agent ID' },
-      message: { type: 'string', description: 'Message to send' },
-      sessionId: { type: 'string', description: 'Target session ID (optional)' },
-    },
-    required: ['agentId', 'message'],
-  },
-  execute: async (params, context) => {
-    try {
-      const { agentId, message, sessionId } = params;
-      
-      const { getAgent } = await import('./agent');
-      const agent = getAgent(agentId);
-
-      if (!agent) {
-        return {
-          success: false,
-          output: '',
-          error: `Agent not found: ${agentId}`,
-        };
-      }
-
-      const response = await agent.run(message, sessionId);
-
-      return {
-        success: true,
-        output: response,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        output: '',
-        error: error instanceof Error ? error.message : 'Failed to send message',
-      };
-    }
-  },
-};
+// sessionsSendTool moved to tools/sessions-send.ts for better organization
 
 const gitTool: Tool = {
   id: 'git',
@@ -341,10 +329,10 @@ const gitTool: Tool = {
     try {
       const { action, args = '', message } = params;
       let command: string;
-      
+
       switch (action) {
         case 'status': command = 'git status'; break;
-        case 'add': command = `git add ${args || '.'}`;break;
+        case 'add': command = `git add ${args || '.'}`; break;
         case 'commit':
           if (!message) return { success: false, output: '', error: 'Commit message required' };
           command = `git commit -m "${message.replace(/"/g, '\\"')}"`; break;

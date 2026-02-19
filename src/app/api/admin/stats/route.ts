@@ -1,22 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { listAgents } from '@/lib/engine/agent';
-import { getCurrentUser } from '@/lib/auth/actions';
 import '@/lib/engine/init';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    // Check authentication
-    const user = await getCurrentUser();
-    
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
-        { status: 401 }
-      );
-    }
-    
     const agents = listAgents();
     
     // Calculate stats

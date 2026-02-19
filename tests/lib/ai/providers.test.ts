@@ -5,47 +5,39 @@
 
 import { describe, test, expect, beforeEach, afterEach } from 'vitest'
 import {
-  providerRegistry,
+  PROVIDER_REGISTRY,
+  OPENCLAW_PROVIDER,
   isOpenClawEnabled,
   validateOpenClawConfig,
-  getOpenClawConfig,
-  openClawProvider,
-  isOpenClawProvider,
-  type AIProviderInterface
+  getEnabledProviders,
+  getProvider,
+  validateProvider,
+  hasExperimentalProviders,
+  type ExtendedProviderConfig
 } from '../../../src/lib/ai/providers/index'
 
 describe('Provider Registry', () => {
   test('registers OpenClaw provider', () => {
-    const provider = providerRegistry.get('openclaw')
-    expect(provider).toBeDefined()
-    expect(provider?.name).toBe('openclaw')
+    const entry = PROVIDER_REGISTRY['openclaw']
+    expect(entry).toBeDefined()
+    expect(entry.config.name).toBe('openclaw')
   })
 
-  test('getAll returns array of providers', () => {
-    const providers = providerRegistry.getAll()
+  test('getEnabledProviders returns array', () => {
+    const providers = getEnabledProviders()
     expect(Array.isArray(providers)).toBe(true)
-    expect(providers.length).toBeGreaterThan(0)
   })
 
-  test('can register custom provider', () => {
-    const customProvider: AIProviderInterface = {
-      name: 'test-provider',
-      displayName: 'Test Provider',
-      model: 'test-model',
-      maxTokens: 100,
-      apiKeyEnv: 'TEST_API_KEY',
-      isEnabled: () => false
-    }
-
-    providerRegistry.register(customProvider)
-    const retrieved = providerRegistry.get('test-provider')
-    expect(retrieved).toEqual(customProvider)
+  test('validateProvider checks provider status', () => {
+    const result = validateProvider('openclaw')
+    expect(result).toHaveProperty('valid')
+    expect(typeof result.valid).toBe('boolean')
   })
 
-  test('isEnabled checks provider status', () => {
-    // OpenClaw should be disabled by default (no env vars)
-    const enabled = providerRegistry.isEnabled('openclaw')
-    expect(typeof enabled).toBe('boolean')
+  test('validateProvider returns error for unknown provider', () => {
+    const result = validateProvider('nonexistent')
+    expect(result.valid).toBe(false)
+    expect(result.message).toContain('not found')
   })
 })
 
@@ -68,16 +60,14 @@ describe('OpenClaw Feature Flags', () => {
     expect(isOpenClawEnabled()).toBe(false)
   })
 
-  test('enabled with OPENCLAW_API_KEY in development', () => {
+  test('enabled with OPENCLAW_API_KEY', () => {
     process.env.OPENCLAW_API_KEY = 'test-key-123'
-    process.env.NODE_ENV = 'development'
     
     expect(isOpenClawEnabled()).toBe(true)
   })
 
-  test('enabled with OPENROUTER_KEY_CUBIKEY in development', () => {
+  test('enabled with OPENROUTER_KEY_CUBIKEY', () => {
     process.env.OPENROUTER_KEY_CUBIKEY = 'test-key-456'
-    process.env.NODE_ENV = 'development'
     
     expect(isOpenClawEnabled()).toBe(true)
   })
@@ -85,19 +75,17 @@ describe('OpenClaw Feature Flags', () => {
   test('enabled with API key and base URL', () => {
     process.env.OPENCLAW_API_KEY = 'test-key'
     process.env.OPENCLAW_BASE_URL = 'https://clawdbot.example.com'
-    process.env.NODE_ENV = 'production'
     
     expect(isOpenClawEnabled()).toBe(true)
   })
 
-  test('disabled in production without base URL', () => {
-    process.env.OPENCLAW_API_KEY = 'test-key'
+  test('disabled without API key regardless of environment', () => {
     process.env.NODE_ENV = 'production'
     
     expect(isOpenClawEnabled()).toBe(false)
   })
 
-  test('respects explicit base URL in any environment', () => {
+  test('enabled with API key in any environment', () => {
     process.env.OPENCLAW_API_KEY = 'test-key'
     process.env.OPENCLAW_BASE_URL = 'https://api.example.com'
     process.env.NODE_ENV = 'test'
@@ -121,22 +109,20 @@ describe('OpenClaw Configuration Validation', () => {
     process.env = originalEnv
   })
 
-  test('reports error when API key missing', () => {
+  test('reports not enabled when API key missing', () => {
     const validation = validateOpenClawConfig()
     
     expect(validation.valid).toBe(false)
-    expect(validation.errors.length).toBeGreaterThan(0)
-    expect(validation.errors.some(e => e.includes('API key'))).toBe(true)
+    expect(validation.message).toBeDefined()
+    expect(validation.message).toContain('not enabled')
   })
 
-  test('reports warning when base URL not set', () => {
+  test('valid with API key set', () => {
     process.env.OPENCLAW_API_KEY = 'test-key'
-    process.env.NODE_ENV = 'development'
     
     const validation = validateOpenClawConfig()
     
-    expect(validation.warnings.length).toBeGreaterThan(0)
-    expect(validation.warnings.some(w => w.includes('OPENCLAW_BASE_URL'))).toBe(true)
+    expect(validation.valid).toBe(true)
   })
 
   test('reports error for invalid base URL format', () => {
@@ -146,7 +132,7 @@ describe('OpenClaw Configuration Validation', () => {
     const validation = validateOpenClawConfig()
     
     expect(validation.valid).toBe(false)
-    expect(validation.errors.some(e => e.includes('Invalid OPENCLAW_BASE_URL'))).toBe(true)
+    expect(validation.message).toContain('Invalid OPENCLAW_BASE_URL')
   })
 
   test('valid with proper configuration', () => {
@@ -156,64 +142,41 @@ describe('OpenClaw Configuration Validation', () => {
     const validation = validateOpenClawConfig()
     
     expect(validation.valid).toBe(true)
-    expect(validation.errors).toHaveLength(0)
   })
 
-  test('requires base URL in production', () => {
+  test('valid with default base URL', () => {
     process.env.OPENCLAW_API_KEY = 'test-key'
-    process.env.NODE_ENV = 'production'
     delete process.env.OPENCLAW_BASE_URL
     
     const validation = validateOpenClawConfig()
     
-    expect(validation.valid).toBe(false)
-    expect(validation.errors.some(e => e.includes('production'))).toBe(true)
+    // Default base URL is http://localhost:18789 which is valid
+    expect(validation.valid).toBe(true)
   })
 })
 
 describe('OpenClaw Provider Configuration', () => {
-  const originalEnv = process.env
-
-  beforeEach(() => {
-    process.env = { ...originalEnv }
-  })
-
-  afterEach(() => {
-    process.env = originalEnv
-  })
-
   test('has correct default values', () => {
-    expect(openClawProvider.name).toBe('openclaw')
-    expect(openClawProvider.displayName).toBe('OpenClaw')
-    expect(openClawProvider.apiKeyEnv).toBe('OPENCLAW_API_KEY')
+    expect(OPENCLAW_PROVIDER.name).toBe('openclaw')
+    expect(OPENCLAW_PROVIDER.displayName).toBe('OpenClaw (via Clawdbot)')
+    expect(OPENCLAW_PROVIDER.apiKeyEnv).toBe('OPENCLAW_API_KEY')
   })
 
-  test('uses environment variable for model override', () => {
-    process.env.OPENCLAW_MODEL = 'custom-model-v2'
-    
-    // Note: Need to re-import to get updated env
-    // For this test, we'll just verify the default
-    expect(openClawProvider.model).toBeTruthy()
+  test('has a model configured', () => {
+    expect(OPENCLAW_PROVIDER.model).toBeTruthy()
   })
 
-  test('uses environment variable for max tokens override', () => {
-    process.env.OPENCLAW_MAX_TOKENS = '8000'
-    
-    // Note: Need to re-import to get updated env
-    // For this test, we'll verify it's a number
-    expect(typeof openClawProvider.maxTokens).toBe('number')
-    expect(openClawProvider.maxTokens).toBeGreaterThan(0)
+  test('has maxTokens configured', () => {
+    expect(typeof OPENCLAW_PROVIDER.maxTokens).toBe('number')
+    expect(OPENCLAW_PROVIDER.maxTokens).toBeGreaterThan(0)
   })
 
-  test('includes metadata configuration', () => {
-    expect(openClawProvider.metadata).toBeDefined()
-    expect(typeof openClawProvider.metadata?.enableTools).toBe('boolean')
-    expect(typeof openClawProvider.metadata?.enableMemory).toBe('boolean')
-    expect(typeof openClawProvider.metadata?.timeout).toBe('number')
+  test('is marked as experimental', () => {
+    expect(OPENCLAW_PROVIDER.experimental).toBe(true)
   })
 })
 
-describe('getOpenClawConfig', () => {
+describe('getProvider', () => {
   const originalEnv = process.env
 
   beforeEach(() => {
@@ -228,61 +191,44 @@ describe('getOpenClawConfig', () => {
     process.env = originalEnv
   })
 
-  test('returns null when OpenClaw not enabled', () => {
-    const config = getOpenClawConfig()
-    expect(config).toBeNull()
+  test('returns undefined when OpenClaw not enabled', () => {
+    const provider = getProvider('openclaw')
+    expect(provider).toBeUndefined()
   })
 
-  test('returns null when configuration invalid', () => {
-    process.env.OPENCLAW_API_KEY = 'test-key'
-    process.env.OPENCLAW_BASE_URL = 'invalid-url'
-    
-    const config = getOpenClawConfig()
-    expect(config).toBeNull()
+  test('returns undefined for unknown provider', () => {
+    const provider = getProvider('nonexistent')
+    expect(provider).toBeUndefined()
   })
 
   test('returns config when properly configured', () => {
     process.env.OPENCLAW_API_KEY = 'test-key'
     process.env.OPENCLAW_BASE_URL = 'https://api.example.com'
     
-    const config = getOpenClawConfig()
-    expect(config).not.toBeNull()
-    expect(config?.name).toBe('openclaw')
+    const provider = getProvider('openclaw')
+    expect(provider).toBeDefined()
+    expect(provider?.name).toBe('openclaw')
   })
 })
 
-describe('Type Guards', () => {
-  test('isOpenClawProvider identifies OpenClaw provider', () => {
-    expect(isOpenClawProvider(openClawProvider)).toBe(true)
-  })
-
-  test('isOpenClawProvider rejects non-OpenClaw provider', () => {
-    const otherProvider: AIProviderInterface = {
-      name: 'other',
-      displayName: 'Other Provider',
-      model: 'other-model',
-      maxTokens: 100,
-      apiKeyEnv: 'OTHER_KEY',
-      isEnabled: () => false
-    }
-    
-    expect(isOpenClawProvider(otherProvider)).toBe(false)
+describe('hasExperimentalProviders', () => {
+  test('returns boolean', () => {
+    const result = hasExperimentalProviders()
+    expect(typeof result).toBe('boolean')
   })
 })
 
 describe('Provider Integration', () => {
   test('OpenClaw provider isEnabled matches isOpenClawEnabled', () => {
-    const providerEnabled = openClawProvider.isEnabled()
+    const providerEnabled = OPENCLAW_PROVIDER.isEnabled()
     const functionEnabled = isOpenClawEnabled()
     
     expect(providerEnabled).toBe(functionEnabled)
   })
 
-  test('provider registry reflects correct enabled state', () => {
-    const registryEnabled = providerRegistry.isEnabled('openclaw')
-    const directEnabled = isOpenClawEnabled()
-    
-    expect(registryEnabled).toBe(directEnabled)
+  test('PROVIDER_REGISTRY contains openclaw', () => {
+    expect(PROVIDER_REGISTRY).toHaveProperty('openclaw')
+    expect(PROVIDER_REGISTRY.openclaw.config).toBe(OPENCLAW_PROVIDER)
   })
 })
 

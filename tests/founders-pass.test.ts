@@ -136,7 +136,6 @@ describe('OAuth provider configs', () => {
 
 describe('Type exports', () => {
   test('OAUTH_PROVIDERS are exported', () => {
-    const types = require('../src/lib/founders-pass/types');
-    expect(types.OAUTH_PROVIDERS).toBeDefined();
+    expect(OAUTH_PROVIDERS).toBeDefined();
   });
 });
