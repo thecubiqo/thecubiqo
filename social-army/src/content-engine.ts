@@ -1,11 +1,13 @@
 /**
- * Content Engine
- * Generates text, image prompts, and video scripts for social media posts.
+ * Content Engine v2 — GFXToolz-Powered
  * 
- * Uses:
- * - Gemini / OpenAI for text generation
- * - DALL-E / Stability AI for image generation
- * - Brand Context for persona-aware content
+ * Generation priority:
+ *   1. GFXToolz.ai (Primary — uses your subscription to 100+ premium tools)
+ *   2. Direct API fallback (Gemini/OpenAI if GFXToolz is unavailable)
+ *   3. Template engine (Always works, no API needed)
+ * 
+ * GFXToolz handles: Image generation, video generation, caption writing.
+ * The Brand Context file provides persona voice and CubiQo knowledge.
  */
 
 import fs from 'fs';
@@ -16,14 +18,33 @@ const brandContext = JSON.parse(
     fs.readFileSync(path.resolve(__dirname, '../config/brand-context.json'), 'utf-8')
 );
 
+// Import GFXToolz (CommonJS module)
+const GFXToolz = require('./gfxtoolz');
+
+// Singleton GFXToolz instance
+let gfxInstance: any = null;
+
+function getGFX(): any {
+    if (!gfxInstance) {
+        const user = process.env.GFX_TOOLZ_USER;
+        const pass = process.env.GFX_TOOLZ_PASS;
+        if (user && pass) {
+            gfxInstance = new GFXToolz(user, pass);
+        }
+    }
+    return gfxInstance;
+}
+
 // ─── Types ───────────────────────────────────────────────
 interface GeneratedContent {
     caption: string;
     imagePrompt?: string;
     imageUrl?: string;
+    videoUrl?: string;
     contentType: 'text' | 'image' | 'video';
     persona: string;
     platform: string;
+    source: 'gfxtoolz' | 'gemini' | 'openai' | 'template';
 }
 
 interface ContentRequest {
@@ -33,12 +54,98 @@ interface ContentRequest {
     contentType: 'text' | 'image' | 'video';
 }
 
-// ─── Text Generation ─────────────────────────────────────
-async function generateText(request: ContentRequest): Promise<string> {
+// ─── Main Generation Pipeline ────────────────────────────
+export async function generateContent(request: ContentRequest): Promise<GeneratedContent> {
+    console.log(`   🧠 Generating ${request.contentType} content as "${request.personaType}" for ${request.platform}...`);
+
     const persona = brandContext.personas[request.personaType] || brandContext.personas.builder;
+
+    // Build the full context prompt for any generator
+    const contextPrompt = buildContextPrompt(request, persona);
+
+    // ─── Try GFXToolz First (Primary) ──────────────────
+    const gfx = getGFX();
+    if (gfx) {
+        console.log(`   🔧 Using GFXToolz.ai (Primary)`);
+        try {
+            const result = await generateWithGFXToolz(gfx, request, contextPrompt);
+            if (result) return result;
+        } catch (err: any) {
+            console.log(`   ⚠️  GFXToolz error: ${err.message}. Falling back...`);
+        }
+    }
+
+    // ─── Fallback: Direct API (Gemini/OpenAI) ──────────
+    console.log(`   🔄 Falling back to direct API...`);
+    const caption = await generateTextFallback(contextPrompt);
+    let imageUrl: string | undefined;
+
+    if (request.contentType === 'image') {
+        const imagePrompt = buildImagePrompt(request);
+        imageUrl = await generateImageFallback(imagePrompt) || undefined;
+    }
+
+    const source = process.env.GEMINI_API_KEY ? 'gemini' : process.env.OPENAI_API_KEY ? 'openai' : 'template';
+
+    return {
+        caption,
+        imageUrl,
+        contentType: request.contentType,
+        persona: request.personaType,
+        platform: request.platform,
+        source
+    };
+}
+
+// ─── GFXToolz Generation ─────────────────────────────────
+async function generateWithGFXToolz(
+    gfx: any,
+    request: ContentRequest,
+    contextPrompt: string
+): Promise<GeneratedContent | null> {
+
+    // Ensure we're logged in
+    const loggedIn = await gfx.login();
+    if (!loggedIn) return null;
+
+    // 1. Generate caption using GFXToolz content writer
+    const caption = await gfx.generateCaption(request.campaignTopic, request.platform);
+
+    // 2. Generate visual assets based on content type
+    let imageUrl: string | undefined;
+    let videoUrl: string | undefined;
+
+    if (request.contentType === 'image') {
+        const imagePrompt = buildImagePrompt(request);
+        const imagePath = await gfx.generateImage(imagePrompt);
+        if (imagePath) imageUrl = imagePath; // Local file path
+    }
+
+    if (request.contentType === 'video') {
+        // Two paths for video:
+        // A) AI-generated video from prompt
+        // B) Screen-recorded CubiQo interaction + post-processing (commander pipeline)
+        const videoPrompt = `${request.campaignTopic} - ${brandContext.brand.name} AI assistant demo, premium dark UI, futuristic`;
+        const videoPath = await gfx.generateVideo(videoPrompt);
+        if (videoPath) videoUrl = videoPath;
+    }
+
+    return {
+        caption,
+        imageUrl,
+        videoUrl,
+        contentType: request.contentType,
+        persona: request.personaType,
+        platform: request.platform,
+        source: 'gfxtoolz'
+    };
+}
+
+// ─── Context Prompt Builder ──────────────────────────────
+function buildContextPrompt(request: ContentRequest, persona: any): string {
     const tone = brandContext.tone_guide;
 
-    const systemPrompt = `You are a social media content creator for ${brandContext.brand.name} — ${brandContext.brand.tagline}.
+    return `You are a social media content creator for ${brandContext.brand.name} — ${brandContext.brand.tagline}.
 
 BRAND CONTEXT:
 ${brandContext.brand.description}
@@ -66,100 +173,10 @@ EXAMPLE POST IN YOUR VOICE:
 
 Generate a single ${request.platform} post about: "${request.campaignTopic}"
 Return ONLY the post text, nothing else.`;
-
-    // ─── API Call ───
-    // Try Gemini first, fall back to OpenAI
-    const geminiKey = process.env.GEMINI_API_KEY;
-    const openaiKey = process.env.OPENAI_API_KEY;
-
-    if (geminiKey) {
-        return await callGemini(systemPrompt, geminiKey);
-    } else if (openaiKey) {
-        return await callOpenAI(systemPrompt, openaiKey);
-    } else {
-        // Fallback: Use template-based generation (no API key needed)
-        return generateFromTemplate(request, persona);
-    }
 }
 
-// ─── Gemini API ──────────────────────────────────────────
-async function callGemini(prompt: string, apiKey: string): Promise<string> {
-    try {
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.8, maxOutputTokens: 500 }
-                })
-            }
-        );
-        const data = await response.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Content generation failed.';
-    } catch (err) {
-        console.error('Gemini API error:', err);
-        return 'Content generation failed.';
-    }
-}
-
-// ─── OpenAI API ──────────────────────────────────────────
-async function callOpenAI(prompt: string, apiKey: string): Promise<string> {
-    try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.8,
-                max_tokens: 500
-            })
-        });
-        const data = await response.json();
-        return data.choices?.[0]?.message?.content || 'Content generation failed.';
-    } catch (err) {
-        console.error('OpenAI API error:', err);
-        return 'Content generation failed.';
-    }
-}
-
-// ─── Template Fallback (No API Key) ─────────────────────
-function generateFromTemplate(request: ContentRequest, persona: any): string {
-    const templates: Record<string, string[]> = {
-        builder: [
-            `🔧 Working on ${request.campaignTopic} at ${brandContext.brand.name}. The architecture behind this is fascinating. ${brandContext.brand.hashtags[0]}`,
-            `Just shipped a new update to ${brandContext.brand.name}'s ${request.campaignTopic}. Clean code, solid performance. ${brandContext.brand.hashtags[0]} #BuildInPublic`,
-            `Deep dive into how we built ${request.campaignTopic}. Spoiler: it involved a lot of coffee and TypeScript. ☕ ${brandContext.brand.hashtags[0]}`
-        ],
-        guru: [
-            `The future of AI isn't about replacing humans — it's about augmenting human potential. That's why ${request.campaignTopic} matters. ${brandContext.brand.hashtags[0]}`,
-            `${request.campaignTopic} is just the beginning. The real question is: how do we build AI that truly understands us? ${brandContext.brand.hashtags[0]} ${brandContext.brand.hashtags[3]}`,
-        ],
-        philosopher: [
-            `What does it mean when AI can remember your conversations better than you can? Exploring ${request.campaignTopic}. ${brandContext.brand.hashtags[0]}`,
-            `In a world of disposable technology, we're building something that grows with you. ${request.campaignTopic}. 🤔 ${brandContext.brand.hashtags[0]}`,
-        ],
-        artist: [
-            `✨ New visual update for ${brandContext.brand.name}. ${request.campaignTopic} — every pixel matters. ${brandContext.brand.hashtags[0]}`,
-            `The intersection of art and AI. ${request.campaignTopic} pushed our design language to new heights. ${brandContext.brand.hashtags[0]}`,
-        ],
-        memer: [
-            `POV: You asked CubiQo about ${request.campaignTopic} and now you're 2 hours deep into a conversation 😅 ${brandContext.brand.hashtags[0]}`,
-            `Nobody:\\nAbsolutely nobody:\\nMe at 3am: "Hey CubiQo, tell me about ${request.campaignTopic}" 🤖 ${brandContext.brand.hashtags[0]}`,
-        ]
-    };
-
-    const personaTemplates = templates[request.personaType] || templates.builder;
-    return personaTemplates[Math.floor(Math.random() * personaTemplates.length)];
-}
-
-// ─── Image Generation ────────────────────────────────────
-async function generateImagePrompt(request: ContentRequest): Promise<string> {
+// ─── Image Prompt Builder ────────────────────────────────
+function buildImagePrompt(request: ContentRequest): string {
     const basePrompts = brandContext.image_prompts;
     const promptTypes = Object.keys(basePrompts);
     const selectedType = promptTypes[Math.floor(Math.random() * promptTypes.length)];
@@ -170,13 +187,56 @@ async function generateImagePrompt(request: ContentRequest): Promise<string> {
     return `${prompt}, related to ${request.campaignTopic}`;
 }
 
-async function generateImage(prompt: string): Promise<string | null> {
+// ─── Fallback: Direct API Text Generation ────────────────
+async function generateTextFallback(prompt: string): Promise<string> {
+    const geminiKey = process.env.GEMINI_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
 
-    if (!openaiKey) {
-        console.log('   ⚠️  No OPENAI_API_KEY set. Skipping image generation.');
-        return null;
+    if (geminiKey) {
+        try {
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.8, maxOutputTokens: 500 }
+                    })
+                }
+            );
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || generateTemplate(prompt);
+        } catch { return generateTemplate(prompt); }
     }
+
+    if (openaiKey) {
+        try {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openaiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: 0.8,
+                    max_tokens: 500
+                })
+            });
+            const data = await response.json();
+            return data.choices?.[0]?.message?.content || generateTemplate(prompt);
+        } catch { return generateTemplate(prompt); }
+    }
+
+    return generateTemplate(prompt);
+}
+
+// ─── Fallback: Direct API Image Generation ───────────────
+async function generateImageFallback(prompt: string): Promise<string | null> {
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (!openaiKey) return null;
 
     try {
         const response = await fetch('https://api.openai.com/v1/images/generations', {
@@ -187,45 +247,23 @@ async function generateImage(prompt: string): Promise<string | null> {
             },
             body: JSON.stringify({
                 model: 'dall-e-3',
-                prompt: prompt,
-                n: 1,
-                size: '1024x1024',
-                quality: 'hd'
+                prompt, n: 1, size: '1024x1024', quality: 'hd'
             })
         });
         const data = await response.json();
         return data.data?.[0]?.url || null;
-    } catch (err) {
-        console.error('Image generation error:', err);
-        return null;
-    }
+    } catch { return null; }
 }
 
-// ─── Main Export ─────────────────────────────────────────
-export async function generateContent(request: ContentRequest): Promise<GeneratedContent> {
-    console.log(`   🧠 Generating ${request.contentType} content as "${request.personaType}" for ${request.platform}...`);
-
-    // 1. Generate text caption
-    const caption = await generateText(request);
-
-    // 2. Generate image if needed
-    let imagePrompt: string | undefined;
-    let imageUrl: string | undefined;
-
-    if (request.contentType === 'image' || request.contentType === 'video') {
-        imagePrompt = await generateImagePrompt(request);
-        const url = await generateImage(imagePrompt);
-        if (url) imageUrl = url;
-    }
-
-    return {
-        caption,
-        imagePrompt,
-        imageUrl,
-        contentType: request.contentType,
-        persona: request.personaType,
-        platform: request.platform
-    };
+// ─── Template Engine (Always works) ──────────────────────
+function generateTemplate(prompt: string): string {
+    const templates = [
+        `Building something incredible with ${brandContext.brand.name}. The future of AI is personal. ${brandContext.brand.hashtags[0]}`,
+        `${brandContext.brand.name}: ${brandContext.brand.tagline}. Every interaction makes it smarter. ${brandContext.brand.hashtags[0]}`,
+        `What if your AI actually understood you? That's what we're building. ${brandContext.brand.hashtags[0]} ${brandContext.brand.hashtags[3]}`,
+        `Privacy-first AI that grows with you. No data harvesting, just pure intelligence. ${brandContext.brand.hashtags[0]} ${brandContext.brand.hashtags[4]}`,
+    ];
+    return templates[Math.floor(Math.random() * templates.length)];
 }
 
 export { brandContext };
