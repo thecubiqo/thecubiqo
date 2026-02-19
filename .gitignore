@@ -64,3 +64,4 @@ self-heal-artifacts/
 
 # Storybook
 storybook-static/
+node_modules/
