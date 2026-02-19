@@ -1,4 +1,4 @@
-import { Agent, AgentConfig, Task, ModelConfig, AgentReport } from '@/types/agent';
+import { Agent, AgentConfig, Task, ModelConfig } from '@/types/agent';
 import { Session, Message } from '@/types/session';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
@@ -19,9 +19,6 @@ export class AgentInstance implements Agent {
   currentTasks: Task[] = [];
   createdAt: Date;
   updatedAt: Date;
-  skillTags?: string[];
-  contactEmail?: string;
-  contactPhone?: string;
 
   private sessionStore: SessionStore;
   private toolRegistry: ToolRegistry;
@@ -32,12 +29,12 @@ export class AgentInstance implements Agent {
     this.model = config.model;
     this.tools = config.tools || [];
     this.maxConcurrent = config.maxConcurrent || 2;
-    this.workspace = join(process.cwd(), 'data', 'workspaces', this.id);
+    // Use /tmp for workspace in production environment (Vercel)
+    const os = require('os');
+    const baseDir = process.env.NODE_ENV === 'production' ? os.tmpdir() : process.cwd();
+    this.workspace = join(baseDir, 'data', 'workspaces', this.id);
     this.createdAt = new Date();
     this.updatedAt = new Date();
-    this.skillTags = config.skillTags;
-    this.contactEmail = config.contactEmail;
-    this.contactPhone = config.contactPhone;
 
     this.sessionStore = new SessionStore(this.id);
     this.toolRegistry = new ToolRegistry();
@@ -57,7 +54,7 @@ export class AgentInstance implements Agent {
     await mkdir(this.workspace, { recursive: true });
   }
 
-  async run(prompt: string, sessionId?: string): Promise<string> {
+  async run(prompt: string, sessionId?: string, userId?: string): Promise<string> {
     this.status = 'running';
     this.updatedAt = new Date();
 
@@ -67,11 +64,22 @@ export class AgentInstance implements Agent {
         ? await this.sessionStore.get(sessionId)
         : await this.sessionStore.create(this.id);
 
+      // Check if session needs compaction (before adding new message)
+      if (await this.sessionStore.needsCompaction(session.id, this.model.model)) {
+        console.log(`[Agent] Auto-compacting session ${session.id}`);
+        try {
+          const result = await this.sessionStore.compactSession(session.id, this.model);
+          console.log(`[Agent] Compaction saved ~${result.tokensSaved} tokens`);
+        } catch (error) {
+          console.error(`[Agent] Compaction failed, continuing anyway:`, error);
+        }
+      }
+
       // Get conversation history
       const history = await this.sessionStore.getHistory(session.id);
 
       // Build context
-      const systemPrompt = this.buildSystemPrompt();
+      const systemPrompt = await this.buildSystemPrompt();
       const messages = [
         { role: 'system' as const, content: systemPrompt },
         ...history.map((msg) => ({
@@ -81,8 +89,8 @@ export class AgentInstance implements Agent {
         { role: 'user' as const, content: prompt },
       ];
 
-      // Get tools for LLM
-      const availableTools = this.toolRegistry.getTools(this.tools);
+      // Get tools for LLM (filtered by user integrations)
+      const availableTools = await this.toolRegistry.getTools(this.tools, userId);
 
       // Call LLM
       const response = await callLLM({
@@ -108,7 +116,7 @@ export class AgentInstance implements Agent {
       // Handle tool calls
       if (response.toolCalls && response.toolCalls.length > 0) {
         const toolResults = await this.executeTools(response.toolCalls, session.id);
-        
+
         // If tools were executed, make another LLM call with results
         if (toolResults.length > 0) {
           return await this.run(
@@ -178,11 +186,11 @@ export class AgentInstance implements Agent {
     return await this.sessionStore.list();
   }
 
-  private buildSystemPrompt(): string {
+  private async buildSystemPrompt(): Promise<string> {
     let prompt = this.soul + '\n\n';
-    
+
     prompt += '# Available Tools\n';
-    const tools = this.toolRegistry.getTools(this.tools);
+    const tools = await this.toolRegistry.getTools(this.tools);
     tools.forEach((tool) => {
       prompt += `- ${tool.name}: ${tool.description}\n`;
     });
@@ -221,28 +229,10 @@ export class AgentInstance implements Agent {
 
     return results;
   }
-
-  async createReport(reportType: AgentReport['reportType'], data: Record<string, any>, message?: string): Promise<AgentReport> {
-    const report: AgentReport = {
-      id: randomUUID(),
-      agentId: this.id,
-      agentName: this.name,
-      timestamp: new Date(),
-      reportType,
-      data,
-      message,
-    };
-
-    // Store report in agent reports registry
-    agentReports.push(report);
-
-    return report;
-  }
 }
 
 // Agent registry
 const agents = new Map<string, AgentInstance>();
-const agentReports: AgentReport[] = [];
 
 export async function createAgent(config: AgentConfig): Promise<AgentInstance> {
   const agent = new AgentInstance(config);
@@ -262,25 +252,8 @@ export function listAgents(): AgentInstance[] {
 export async function deleteAgent(id: string): Promise<boolean> {
   const agent = agents.get(id);
   if (!agent) return false;
-  
+
   await agent.stop();
   agents.delete(id);
   return true;
-}
-
-export function getAgentReports(agentId?: string, limit?: number): AgentReport[] {
-  let reports = agentReports;
-  
-  if (agentId) {
-    reports = reports.filter(r => r.agentId === agentId);
-  }
-  
-  // Sort by timestamp descending
-  reports = reports.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  
-  if (limit) {
-    reports = reports.slice(0, limit);
-  }
-  
-  return reports;
 }

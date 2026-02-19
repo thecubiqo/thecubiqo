@@ -9,8 +9,6 @@ import Link from 'next/link'
 import { ChatContainer } from '@/components/chat'
 import { CubeScene } from '@/components/cube'
 import { RegionBadge } from '@/components/RegionBadge'
-import { JourneyMemoryPrompt } from '@/components/journey'
-import { AdminControls } from '@/components/admin'
 import { useSession } from '@/hooks/useSession'
 import { useRegion } from '@/contexts/RegionContext'
 import type { ColorName } from '@/config/colors'
@@ -33,9 +31,6 @@ export default function RegionalChatPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      {/* Admin Controls */}
-      <AdminControls />
-      
       {/* Region Badge (dev only) */}
       <RegionBadge />
 
@@ -82,9 +77,6 @@ export default function RegionalChatPage() {
             />
           </div>
         </div>
-
-        {/* Journey Memory Prompt */}
-        <JourneyMemoryPrompt position="bottom-left" />
       </main>
     </div>
   )

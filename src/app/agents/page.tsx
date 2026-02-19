@@ -1,5 +1,12 @@
-import AgentDashboard from '@/components/AgentDashboard';
+'use client'
+
+import { AppLayout } from '@/components/AppLayout'
+import AgentDashboard from '@/components/AgentDashboard'
 
 export default function AgentsPage() {
-  return <AgentDashboard />;
+  return (
+    <AppLayout>
+      <AgentDashboard />
+    </AppLayout>
+  )
 }

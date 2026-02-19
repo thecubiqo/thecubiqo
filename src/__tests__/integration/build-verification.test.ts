@@ -79,9 +79,10 @@ describe('Build and Deployment Verification', () => {
 
   describe('Next.js Configuration', () => {
     it('should be able to load next.config', () => {
-      // Verify next.config.ts exists and is valid
-      const configPath = path.resolve(process.cwd(), 'next.config.ts');
-      expect(fs.existsSync(configPath)).toBe(true);
+      // Verify next.config.js exists and is valid
+      const configPathJs = path.resolve(process.cwd(), 'next.config.js');
+      const configPathTs = path.resolve(process.cwd(), 'next.config.ts');
+      expect(fs.existsSync(configPathJs) || fs.existsSync(configPathTs)).toBe(true);
     });
   });
 });
