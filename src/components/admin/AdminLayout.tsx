@@ -3,35 +3,41 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
-    CreditCard,
     LayoutDashboard,
     Activity,
     Users,
     Flag,
+    LineChart,
     Settings,
     Terminal,
     LogOut,
     Mail,
     Shield,
-    Globe
+    Globe,
+    CalendarClock,
+    BookOpen,
+    HeartPulse,
+    Wrench,
+    Compass
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 const NAV_ITEMS = [
     { name: 'Overview', href: '/admin', icon: LayoutDashboard },
     { name: 'Network Ops', href: '/admin/noc', icon: Activity },
+    { name: 'System Health', href: '/admin/health', icon: HeartPulse },
+    { name: 'Events', href: '/admin/events', icon: CalendarClock },
     { name: 'Users', href: '/admin/users', icon: Users },
     { name: 'Feature Flags', href: '/admin/feature-flags', icon: Flag },
+    { name: 'Journey', href: '/admin/journey', icon: Compass },
+    { name: 'Journal', href: '/admin/journal', icon: BookOpen },
+    { name: 'Self-Heal', href: '/admin/self-heal', icon: Wrench },
     { name: 'Analytics', href: '/admin/analytics', icon: LineChart },
     { name: 'Security', href: '/admin/security', icon: Shield },
     { name: 'Social Army', href: '/admin/social-army', icon: Globe },
     { name: 'Emails', href: '/admin/email-preview', icon: Mail },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
-
-// Helper for LineChart since it's not exported by lucide-react directly sometimes?
-// Actually it is, but let's use Activity if LineChart fails or simple custom SVG.
-import { LineChart } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
