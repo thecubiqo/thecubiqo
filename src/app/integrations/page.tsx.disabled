@@ -1,12 +1,9 @@
-'use client'
-
 /**
  * Integrations Page
  * Shows available third-party integrations
  */
 
 import { AppLayout } from '@/components/AppLayout'
-import { useAuth } from '@/hooks/useAuth'
 import { getFeatureAccess } from '@/lib/auth'
 
 interface Integration {

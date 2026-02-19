@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { DatabaseWithAbTesting } from '@/types/database.types'
+import type { Database } from '@/types/database.types'
 import { SupabaseClient } from '@supabase/supabase-js'
 
 export async function POST(req: NextRequest) {
     try {
         const { command, experimentId } = await req.json()
         const supabase = await createClient()
-        const db = supabase as unknown as SupabaseClient<DatabaseWithAbTesting>
+        const db = supabase as unknown as SupabaseClient<Database>
 
         // 1. Get current experiment
         const { data: experiment, error: fetchError } = await (db as any)

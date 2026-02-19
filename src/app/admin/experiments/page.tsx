@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { DatabaseWithAbTesting } from '@/types/database.types'
+import type { Database } from '@/types/database.types'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { AppLayout } from '@/components/AppLayout'
 import { AssetManager } from '@/components/experiments/AssetManager'
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 async function getExperiments() {
     const supabase = await createClient()
-    const db = supabase as unknown as SupabaseClient<DatabaseWithAbTesting>
+    const db = supabase as unknown as SupabaseClient<Database>
 
     const { data: experiments } = await (db as any)
         .from('experiments')
