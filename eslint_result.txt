@@ -1,0 +1,22 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+
+C:\Users\avloy\.gemini\antigravity\playground\thecubiqo\src\components\byo\BYOSettings.tsx
+  25:30  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\avloy\.gemini\antigravity\playground\thecubiqo\src\components\byo\BYOSettings.tsx:25:30
+  23 |   // Load existing keys and user access when opening
+  24 |   useEffect(() => {
+> 25 |     if (config.claudeApiKey) setClaudeKey(config.claudeApiKey)
+     |                              ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  26 |     if (config.openaiApiKey) setOpenaiKey(config.openaiApiKey)
+  27 |
+  28 |     // Load user access from localStorage (synced from Founder Dashboard)  react-hooks/set-state-in-effect
+
+Γ£û 1 problem (1 error, 0 warnings)
+

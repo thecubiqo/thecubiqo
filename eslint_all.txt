@@ -1,0 +1,99 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+
+C:\Users\avloy\.gemini\antigravity\playground\thecubiqo\src\components\CodePanel.tsx
+  25:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  93:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  93:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\avloy\.gemini\antigravity\playground\thecubiqo\src\components\FullscreenApp.tsx
+   60:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\avloy\.gemini\antigravity\playground\thecubiqo\src\components\FullscreenApp.tsx:60:5
+  58 |
+  59 |   useEffect(() => {
+> 60 |     setHideQuestions(localStorage.getItem('cubiqo_hide_questions') === 'true')
+     |     ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  61 |     setIsSimulatingUser(localStorage.getItem('cubiqo_simulate_user') === 'true')
+  62 |   }, [])
+  63 |                                                         react-hooks/set-state-in-effect
+  138:17  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\avloy\.gemini\antigravity\playground\thecubiqo\src\components\FullscreenApp.tsx:138:17
+  136 |   useEffect(() => {
+  137 |     const stored = localStorage.getItem('cubiqo_cube_size')
+> 138 |     if (stored) setCubeSize(parseInt(stored))
+      |                 ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  139 |   }, [])
+  140 |
+  141 |   // Save cube size to localStorage                                                           react-hooks/set-state-in-effect
+  157:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\avloy\.gemini\antigravity\playground\thecubiqo\src\components\FullscreenApp.tsx:157:7
+  155 |     if (!lastLanding) {
+  156 |       // First visit ever
+> 157 |       setShowLandingCube(true)
+      |       ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  158 |       localStorage.setItem(LANDING_STORAGE_KEY, now.toString())
+  159 |     } else {
+  160 |       const hoursSince = (now - parseInt(lastLanding)) / (1000 * 60 * 60)  react-hooks/set-state-in-effect
+  333:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\avloy\.gemini\antigravity\playground\thecubiqo\src\components\FullscreenApp.tsx:333:5
+  331 |   useEffect(() => {
+  332 |     const stored = localStorage.getItem('theme')
+> 333 |     setIsDark(stored !== 'light') // Dark by default unless explicitly set to light
+      |     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  334 |   }, [])
+  335 |
+  336 |   const toggleTheme = useCallback(() => {                                         react-hooks/set-state-in-effect
+  420:17  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react/no-unescaped-entities
+  420:28  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react/no-unescaped-entities
+  527:37  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+  769:21  error  Do not use an `<a>` element to navigate to `/chat/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @next/next/no-html-link-for-pages
+  853:20  error  Unknown property 'jsx' found                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react/no-unknown-property
+  853:24  error  Unknown property 'global' found                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react/no-unknown-property
+
+C:\Users\avloy\.gemini\antigravity\playground\thecubiqo\src\components\RGYChatsModal.tsx
+  213:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\avloy\.gemini\antigravity\playground\thecubiqo\src\components\RGYChatsModal.tsx:213:7
+  211 |   useEffect(() => {
+  212 |     if (pulseColor) {
+> 213 |       setActivePulse(pulseColor)
+      |       ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  214 |       // Clear pulse after 400ms
+  215 |       const timer = setTimeout(() => {
+  216 |         setActivePulse(null)  react-hooks/set-state-in-effect
+
+Γ£û 14 problems (14 errors, 0 warnings)
+
