@@ -5,10 +5,12 @@ on:
   push:
     branches:
       - main
+      - staging0217
   pull_request:
     branches:
       - main
       - develop
+      - staging0217
 
 jobs:
   chromatic:

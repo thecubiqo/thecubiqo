@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, staging0217]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, staging0217]
   workflow_dispatch:
 
 jobs:
