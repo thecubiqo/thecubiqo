@@ -6,11 +6,93 @@ import CodeEditor from './CodeEditor';
 import TerminalPanel from './TerminalPanel';
 import PreviewPanel from './PreviewPanel';
 import FileExplorer from './FileExplorer';
+import EditorTabs, { EditorTab } from './EditorTabs';
 
 export default function StudioLayout() {
-  const [currentFile, setCurrentFile] = useState<string>('app/page.tsx');
-  const [fileContent, setFileContent] = useState<string>('// Welcome to CubiQo Studio\n// Start building with AI\n\nexport default function Home() {\n  return (\n    <div>\n      <h1>Hello from Studio!</h1>\n    </div>\n  );\n}');
+  // Multi-file tab management
+  const [openTabs, setOpenTabs] = useState<EditorTab[]>([
+    {
+      id: '1',
+      path: 'app/page.tsx',
+      name: 'page.tsx',
+      isDirty: false,
+      language: 'tsx',
+    },
+  ]);
+  const [activeTabId, setActiveTabId] = useState<string>('1');
+  
+  const [fileContents, setFileContents] = useState<Map<string, string>>(
+    new Map([
+      ['1', '// Welcome to CubiQo Studio\n// Start building with AI\n\nexport default function Home() {\n  return (\n    <div>\n      <h1>Hello from Studio!</h1>\n    </div>\n  );\n}'],
+    ])
+  );
+  
   const [isDeploying, setIsDeploying] = useState(false);
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTabId(tabId);
+  };
+
+  const handleTabClose = (tabId: string) => {
+    const tab = openTabs.find(t => t.id === tabId);
+    if (tab?.isDirty) {
+      if (!confirm(`${tab.name} has unsaved changes. Close anyway?`)) {
+        return;
+      }
+    }
+    
+    const newTabs = openTabs.filter(t => t.id !== tabId);
+    setOpenTabs(newTabs);
+    
+    // Remove file content
+    const newContents = new Map(fileContents);
+    newContents.delete(tabId);
+    setFileContents(newContents);
+    
+    // Switch to another tab if this was active
+    if (activeTabId === tabId && newTabs.length > 0) {
+      setActiveTabId(newTabs[0].id);
+    }
+  };
+
+  const handleFileOpen = (path: string) => {
+    // Check if file is already open
+    const existingTab = openTabs.find(t => t.path === path);
+    if (existingTab) {
+      setActiveTabId(existingTab.id);
+      return;
+    }
+    
+    // Create new tab
+    const newTab: EditorTab = {
+      id: Date.now().toString(),
+      path,
+      name: path.split('/').pop() || path,
+      isDirty: false,
+    };
+    
+    setOpenTabs([...openTabs, newTab]);
+    setActiveTabId(newTab.id);
+    
+    // Load file content (mock for now)
+    const newContents = new Map(fileContents);
+    newContents.set(newTab.id, `// File: ${path}\n// Content loaded...`);
+    setFileContents(newContents);
+  };
+
+  const handleCodeChange = (newCode: string) => {
+    const newContents = new Map(fileContents);
+    newContents.set(activeTabId, newCode);
+    setFileContents(newContents);
+    
+    // Mark tab as dirty
+    setOpenTabs(openTabs.map(tab => 
+      tab.id === activeTabId ? { ...tab, isDirty: true } : tab
+    ));
+  };
+
+  const activeTab = openTabs.find(t => t.id === activeTabId);
+  const currentCode = fileContents.get(activeTabId) || '';
 
   const handleDeploy = async () => {
     if (isDeploying) return;
@@ -48,7 +130,7 @@ export default function StudioLayout() {
       <header className="bg-gray-800 border-b border-gray-700 p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-bold text-teal-400">CubiQo Studio</h1>
-          <span className="text-sm text-gray-400">{currentFile}</span>
+          <span className="text-sm text-gray-400">{activeTab?.name || 'No file open'}</span>
         </div>
         <button 
           onClick={handleDeploy}
@@ -73,19 +155,29 @@ export default function StudioLayout() {
             {/* File Explorer */}
             <div className="w-64 border-r border-gray-700">
               <FileExplorer 
-                onFileSelect={(file) => setCurrentFile(file)}
-                currentFile={currentFile}
+                onFileSelect={handleFileOpen}
               />
             </div>
 
-            {/* Code Editor */}
-            <div className="flex-1">
-              <CodeEditor 
-                value={fileContent}
-                onChange={setFileContent}
-                language="typescript"
-                theme="vs-dark"
+            {/* Code Editor with Tabs */}
+            <div className="flex-1 flex flex-col">
+              {/* Editor Tabs */}
+              <EditorTabs
+                tabs={openTabs}
+                activeTabId={activeTabId}
+                onTabChange={handleTabChange}
+                onTabClose={handleTabClose}
               />
+              
+              {/* Code Editor */}
+              <div className="flex-1">
+                <CodeEditor 
+                  value={currentCode}
+                  onChange={handleCodeChange}
+                  language={activeTab?.language || 'typescript'}
+                  theme="vs-dark"
+                />
+              </div>
             </div>
           </div>
 
