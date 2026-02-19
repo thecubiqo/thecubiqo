@@ -36,8 +36,13 @@ ALTER TABLE features_catalog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_feature_toggles ENABLE ROW LEVEL SECURITY;
 
 -- Policies (Simplified for setup)
+DROP POLICY IF EXISTS "Anyone can view features catalog" ON features_catalog;
 CREATE POLICY "Anyone can view features catalog" ON features_catalog FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can view own toggles" ON user_feature_toggles;
 CREATE POLICY "Users can view own toggles" ON user_feature_toggles FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can manage own toggles" ON user_feature_toggles;
 CREATE POLICY "Users can manage own toggles" ON user_feature_toggles FOR ALL USING (auth.uid() = user_id);
 
 -- Seed Core Features (Required Config)
@@ -189,12 +194,25 @@ ALTER TABLE cq_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cq_calls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cq_notifications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS cq_numbers_policy ON cq_numbers;
 CREATE POLICY cq_numbers_policy ON cq_numbers FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS friend_requests_policy ON cq_friend_requests;
 CREATE POLICY friend_requests_policy ON cq_friend_requests FOR ALL USING (auth.uid() IN (from_user_id, to_user_id));
+
+DROP POLICY IF EXISTS contacts_policy ON cq_contacts;
 CREATE POLICY contacts_policy ON cq_contacts FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS conversations_policy ON cq_conversations;
 CREATE POLICY conversations_policy ON cq_conversations FOR ALL USING (auth.uid() IN (participant_1_id, participant_2_id));
+
+DROP POLICY IF EXISTS messages_policy ON cq_messages;
 CREATE POLICY messages_policy ON cq_messages FOR ALL USING (auth.uid() IN (from_user_id, to_user_id));
+
+DROP POLICY IF EXISTS calls_policy ON cq_calls;
 CREATE POLICY calls_policy ON cq_calls FOR ALL USING (auth.uid() IN (initiator_id, recipient_id));
+
+DROP POLICY IF EXISTS notifications_policy ON cq_notifications;
 CREATE POLICY notifications_policy ON cq_notifications FOR ALL USING (auth.uid() = user_id);
 
 
@@ -239,11 +257,22 @@ alter table social_accounts enable row level security;
 alter table social_campaigns enable row level security;
 alter table content_queue enable row level security;
 
+DROP POLICY IF EXISTS "Admins can view social accounts" on social_accounts;
 create policy "Admins can view social accounts" on social_accounts for select using (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Admins can manage social accounts" on social_accounts;
 create policy "Admins can manage social accounts" on social_accounts for all using (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Admins can view campaigns" on social_campaigns;
 create policy "Admins can view campaigns" on social_campaigns for select using (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Admins can manage campaigns" on social_campaigns;
 create policy "Admins can manage campaigns" on social_campaigns for all using (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Admins can view content queue" on content_queue;
 create policy "Admins can view content queue" on content_queue for select using (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Admins can manage content queue" on content_queue;
 create policy "Admins can manage content queue" on content_queue for all using (auth.role() = 'authenticated');
 
 
@@ -276,4 +305,5 @@ create table if not exists user_subscriptions (
 );
 
 alter table user_subscriptions enable row level security;
+DROP POLICY IF EXISTS "Users can view own subscription" on user_subscriptions;
 create policy "Users can view own subscription" on user_subscriptions for select using (auth.uid() = user_id);
