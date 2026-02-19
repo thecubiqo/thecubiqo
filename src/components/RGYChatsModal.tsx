@@ -11,6 +11,7 @@ interface RGYChatsModalProps {
   isOpen: boolean
   onClose: () => void
   isDark?: boolean
+  onZoneSelect?: (context: 'red' | 'yellow' | 'green') => void
 }
 
 const ZONES = [
@@ -73,7 +74,7 @@ const ZONES = [
   },
 ]
 
-export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalProps) {
+export function RGYChatsModal({ isOpen, onClose, isDark = true, onZoneSelect }: RGYChatsModalProps) {
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -94,8 +95,10 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
 
   const handleZoneSelect = async (zoneId: string) => {
     setSelectedZone(zoneId)
-    // TODO: Navigate to intent setup for this zone
-    // This will open KeywordPanel or a new IntentSetup component
+    // Call parent handler if provided
+    if (onZoneSelect) {
+      onZoneSelect(zoneId as 'red' | 'yellow' | 'green')
+    }
   }
 
   if (!isOpen) return null

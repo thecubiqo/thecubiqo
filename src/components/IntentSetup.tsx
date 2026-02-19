@@ -13,6 +13,7 @@ interface IntentSetupProps {
   onClose: () => void
   isDark?: boolean
   rgyContext: RGYContext
+  onComplete?: () => void
 }
 
 const CONTEXT_CONFIG = {
@@ -50,6 +51,7 @@ export function IntentSetup({
   onClose,
   isDark = true,
   rgyContext,
+  onComplete,
 }: IntentSetupProps) {
   const [keywords, setKeywords] = useState<string[]>([])
   const [intentDescription, setIntentDescription] = useState('')
@@ -118,8 +120,13 @@ export function IntentSetup({
         throw new Error('Failed to save intent')
       }
 
-      alert('Intent saved successfully! Pro Match will now discover opportunities for you.')
-      onClose()
+      // Call onComplete if provided, otherwise just close
+      if (onComplete) {
+        onComplete()
+      } else {
+        alert('Intent saved successfully! Pro Match will now discover opportunities for you.')
+        onClose()
+      }
     } catch (err) {
       console.error('Error saving intent:', err)
       alert('Failed to save intent. Please try again.')
