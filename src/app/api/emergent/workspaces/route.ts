@@ -5,6 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getDockerManager } from '@/lib/emergent/runner/docker-manager';
+import path from 'path';
+import fs from 'fs/promises';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { projectId, name, template } = body;
+    const { projectId, name, runtime = 'nodejs', template } = body;
 
     if (!projectId) {
       return NextResponse.json(
@@ -60,32 +63,106 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Create Docker container and initialize workspace
-    // This would:
-    // 1. Create Docker container with Node.js/Python/etc
-    // 2. Initialize project structure
-    // 3. Install dependencies
-    // 4. Start dev server
-    // 5. Generate preview URL
+    // Create workspace directory
+    const workspaceDir = path.join('/tmp/workspaces', projectId);
+    await fs.mkdir(workspaceDir, { recursive: true });
 
-    const workspaceId = `ws-${Date.now()}`;
+    // Initialize basic project structure
+    await initializeProject(workspaceDir, template);
+
+    // Get Docker manager
+    const dockerManager = getDockerManager();
+
+    // Check if Docker is accessible
+    const dockerAvailable = await dockerManager.ping();
+    
+    if (!dockerAvailable) {
+      return NextResponse.json({
+        success: false,
+        error: 'Docker daemon not accessible',
+        message: 'Please ensure Docker is running and accessible',
+      }, { status: 503 });
+    }
+
+    // Create Docker container
+    const containerInfo = await dockerManager.createContainer({
+      projectId,
+      runtime: runtime as any,
+      workspaceDir,
+      resources: {
+        cpus: 2,
+        memory: 4096,
+        storage: 10240,
+      },
+    });
+
+    if (containerInfo.status === 'error') {
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to create container',
+      }, { status: 500 });
+    }
+
+    // Start the container
+    const startedInfo = await dockerManager.startContainer(containerInfo.containerId);
+
+    // TODO: Store workspace in database
+    // For now, return the workspace info
     
     return NextResponse.json({
       success: true,
       workspace: {
-        id: workspaceId,
+        id: containerInfo.containerId,
         projectId,
         name: name || 'New Workspace',
-        status: 'creating',
-        previewUrl: null,
-        message: 'Workspace creation queued (Docker implementation pending)'
+        status: startedInfo.status,
+        previewUrl: startedInfo.previewUrl,
+        ipAddress: startedInfo.ipAddress,
+        port: startedInfo.port,
+        runtime,
       }
     }, { status: 201 });
   } catch (error) {
     console.error('Failed to create workspace:', error);
     return NextResponse.json(
-      { error: 'Failed to create workspace' },
+      { error: 'Failed to create workspace', details: String(error) },
       { status: 500 }
     );
   }
+}
+
+/**
+ * Initialize project structure in workspace
+ */
+async function initializeProject(workspaceDir: string, template?: string) {
+  // Create basic package.json for Node.js projects
+  const packageJson = {
+    name: 'emergent-workspace',
+    version: '1.0.0',
+    scripts: {
+      dev: 'next dev',
+      build: 'next build',
+      start: 'next start',
+    },
+  };
+
+  await fs.writeFile(
+    path.join(workspaceDir, 'package.json'),
+    JSON.stringify(packageJson, null, 2)
+  );
+
+  // Create basic app structure
+  await fs.mkdir(path.join(workspaceDir, 'app'), { recursive: true });
+  await fs.writeFile(
+    path.join(workspaceDir, 'app', 'page.tsx'),
+    `export default function Home() {
+  return (
+    <div>
+      <h1>Welcome to your Emergent app!</h1>
+      <p>Start building with AI assistance.</p>
+    </div>
+  );
+}
+`
+  );
 }
