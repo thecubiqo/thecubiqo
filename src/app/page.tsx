@@ -18,7 +18,7 @@ export default async function Home() {
       checkFeatureFlag({ flag_name: 'ui.landing.particles.v1' })
     ]);
   } catch (error) {
-    console.error('Feature flag check failed:', error);
+    
     // Proceed with safe defaults
   }
 

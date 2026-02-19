@@ -230,7 +230,7 @@ export class SessionStore {
       };
 
     } catch (err) {
-      console.error('Compaction failed:', err);
+      
       return { success: false, originalTokens, compactedTokens: originalTokens, tokensSaved: 0, messagesBefore: messages.length, messagesAfter: messages.length };
     }
   }

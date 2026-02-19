@@ -45,7 +45,7 @@ export default function LiveCodeStream() {
           setEvents((prev) => [...newEvents, ...prev].slice(0, 100)); // Keep last 100 events
         }
       } catch (error) {
-        console.error('Failed to fetch activity:', error);
+        
       }
     }, 2000);
 

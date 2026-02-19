@@ -81,7 +81,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('File operation error:', error);
+    
     return NextResponse.json(
       {
         success: false,

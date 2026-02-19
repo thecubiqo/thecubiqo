@@ -497,7 +497,7 @@ function AuditLogModal({ flagId, onClose }: AuditLogModalProps) {
         const data = await response.json();
         setAuditLogs(data.auditLogs || []);
       } catch (err) {
-        console.error('Error fetching audit logs:', err);
+        
       } finally {
         setLoading(false);
       }

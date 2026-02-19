@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (insertError) {
-        console.error('Failed to store intent:', insertError);
+        
         return NextResponse.json(
           { error: 'Failed to process command' },
           { status: 500 }
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Verbal command error:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

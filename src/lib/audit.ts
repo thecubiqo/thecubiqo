@@ -42,13 +42,13 @@ export async function logAdminAction(data: AuditLogData): Promise<{ success: boo
     });
 
     if (error) {
-      console.error('Failed to log admin action:', error);
+      
       return { success: false, error: error.message };
     }
 
     return { success: true };
   } catch (error) {
-    console.error('Exception while logging admin action:', error);
+    
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 
@@ -92,13 +92,13 @@ export async function getAuditLogs(options?: {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Failed to fetch audit logs:', error);
+      
       return { logs: [], error: error.message };
     }
 
     return { logs: data || [] };
   } catch (error) {
-    console.error('Exception while fetching audit logs:', error);
+    
     return { 
       logs: [], 
       error: error instanceof Error ? error.message : 'Unknown error' 

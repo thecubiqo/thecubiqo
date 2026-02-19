@@ -27,7 +27,7 @@ export async function triggerWebhooks(
       .eq('enabled', true);
 
     if (error || !webhooks || webhooks.length === 0) {
-      console.log('No webhooks configured for flag:', flag.name);
+      
       return;
     }
 
@@ -37,7 +37,7 @@ export async function triggerWebhooks(
     );
 
     if (relevantWebhooks.length === 0) {
-      console.log('No webhooks listening to event:', event);
+      
       return;
     }
 
@@ -57,7 +57,7 @@ export async function triggerWebhooks(
       )
     );
   } catch (error) {
-    console.error('Error triggering webhooks:', error);
+    
   }
 }
 
@@ -188,7 +188,7 @@ export async function verifyWebhookSignature(
     );
     return await crypto.subtle.verify('HMAC', key, signatureBytes, data);
   } catch (error) {
-    console.error('Error verifying webhook signature:', error);
+    
     return false;
   }
 }

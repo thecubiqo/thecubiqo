@@ -33,7 +33,7 @@ export default function FeaturePanel({ siteId, siteSlug, userId }: FeaturePanelP
       const data = await res.json();
       setFlags(data.flags ?? {});
     } catch (err) {
-      console.error('Failed to load flags:', err);
+      
     } finally {
       setLoading(false);
     }

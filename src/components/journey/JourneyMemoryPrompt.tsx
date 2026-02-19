@@ -61,7 +61,7 @@ export default function JourneyMemoryPrompt({
           );
         }
       } catch (error) {
-        console.error('[JourneyPrompt] Error checking status:', error);
+        
       } finally {
         setLoading(false);
       }
@@ -95,7 +95,7 @@ export default function JourneyMemoryPrompt({
         setShowConsentModal(false);
       }
     } catch (error) {
-      console.error('[JourneyPrompt] Error saving consent:', error);
+      
     }
   };
 

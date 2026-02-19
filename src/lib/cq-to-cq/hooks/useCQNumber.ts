@@ -42,7 +42,7 @@ export function useCQNumber(userId: string) {
         setCQNumber(cqNum);
         setPrivacySettings(privacy);
       } catch (error) {
-        console.error('Error loading CQ number:', error);
+        
       } finally {
         setLoading(false);
       }
@@ -98,7 +98,7 @@ export function useCQNumber(userId: string) {
       const updatedCQNumber = await getActiveCQNumber(userId);
       setCQNumber(updatedCQNumber);
     } catch (error) {
-      console.error('Error rotating CQ number:', error);
+      
       throw error;
     }
   }, [userId, privacySettings]);
@@ -139,7 +139,7 @@ export function useCQNumber(userId: string) {
       await navigator.clipboard.writeText(cqNumber.cqNumber);
       return true;
     } catch (error) {
-      console.error('Error copying CQ number:', error);
+      
       return false;
     }
   }, [cqNumber]);

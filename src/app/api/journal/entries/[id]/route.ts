@@ -42,7 +42,7 @@ export async function GET(
     return NextResponse.json({ entry });
 
   } catch (error) {
-    console.error('Get entry error:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -130,7 +130,7 @@ export async function PATCH(
     return NextResponse.json({ entry });
 
   } catch (error) {
-    console.error('Update entry error:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -172,7 +172,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
 
   } catch (error) {
-    console.error('Delete entry error:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

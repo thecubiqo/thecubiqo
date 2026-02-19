@@ -43,7 +43,7 @@ export default function JourneySettingsPage() {
         }
       }
     } catch (error) {
-      console.error('Failed to fetch consent status:', error);
+      
     } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ export default function JourneySettingsPage() {
         setUserId(data.userId);
       }
     } catch (error) {
-      console.error('Failed to fetch memories:', error);
+      
     }
   };
 

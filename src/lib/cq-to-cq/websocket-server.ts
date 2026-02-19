@@ -39,7 +39,7 @@ class CQWebSocketServer {
     // Update presence status
     this.updatePresence(userId, 'online');
 
-    console.log(`[CQ-WS] User ${userId} connected (${connectionId})`);
+
 
     // Notify contacts of online status
     await this.broadcastPresenceUpdate(userId, 'online');
@@ -64,7 +64,7 @@ class CQWebSocketServer {
       this.connections.set(userId, filteredConnections);
     }
 
-    console.log(`[CQ-WS] User ${userId} disconnected (${connectionId})`);
+
   }
 
   /**
@@ -73,7 +73,7 @@ class CQWebSocketServer {
   async sendToUser(userId: string, message: WSMessage) {
     const userConnections = this.connections.get(userId);
     if (!userConnections || userConnections.length === 0) {
-      console.log(`[CQ-WS] User ${userId} not connected, message queued`);
+      
       return false;
     }
 
@@ -84,7 +84,7 @@ class CQWebSocketServer {
         connection.socket.send(payload);
         connection.lastActivity = new Date();
       } catch (error) {
-        console.error(`[CQ-WS] Error sending to ${userId}:`, error);
+        
       }
     });
 
@@ -124,10 +124,10 @@ class CQWebSocketServer {
           break;
 
         default:
-          console.warn(`[CQ-WS] Unknown message type: ${message.type}`);
+          
       }
     } catch (error) {
-      console.error('[CQ-WS] Error handling message:', error);
+      
     }
   }
 
@@ -377,7 +377,7 @@ import { cqWebSocketServer } from '@/lib/cq-to-cq/websocket-server';
 
 export default function handler(req: any, res: any) {
   if (req.socket.server.ws) {
-    console.log('WebSocket server already running');
+    
   } else {
     const WebSocketServer = require('ws').Server;
     const wss = new WebSocketServer({ server: req.socket.server });
@@ -433,7 +433,7 @@ setInterval(() => {
   cqWebSocketServer.cleanupStaleConnections(5);
 }, 60000); // Every minute
 
-console.log('CQ WebSocket server running on port 8080');
+
 */
 
 // ==================== Supabase Realtime Alternative ====================
