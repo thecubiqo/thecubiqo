@@ -4,7 +4,7 @@
     "description": "Autonomous social media orchestration for CubiQo",
     "main": "src/commander.js",
     "scripts": {
-        "start": "node src/commander.js",
+        "start": "npx tsx src/worker.ts",
         "interact": "node src/interactor.js"
     },
     "dependencies": {
@@ -12,6 +12,7 @@
         "puppeteer-screen-recorder": "^3.0.0",
         "dotenv": "^16.0.0",
         "axios": "^1.6.0",
-        "@supabase/supabase-js": "^2.39.0"
+        "@supabase/supabase-js": "^2.39.0",
+        "tsx": "^4.7.0"
     }
 }
