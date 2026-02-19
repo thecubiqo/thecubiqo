@@ -191,7 +191,28 @@ git commit -m "Resolve merge conflict: regenerate package-lock.json from main"
 git push
 ```
 
-> **Note:** I verified both resolutions locally — they resolve cleanly with zero remaining conflict markers. However, I cannot push to those branches directly (only the PR owner or a repo admin can). **Please run the commands above** or use GitHub's web UI "Resolve conflicts" button.
+### 🚀 One-Command Resolution (Recommended)
+
+An automated script is provided at `scripts/resolve-pr-conflicts.sh`. Run from a local clone with push access:
+
+```bash
+# Clone the repo (if not already)
+git clone https://github.com/thecubiqo/thecubiqo.git && cd thecubiqo
+
+# Pull the script from this PR branch
+git fetch origin copilot/check-pr-readiness
+git checkout origin/copilot/check-pr-readiness -- scripts/resolve-pr-conflicts.sh
+
+# Run it (resolves both PRs)
+chmod +x scripts/resolve-pr-conflicts.sh
+./scripts/resolve-pr-conflicts.sh --both
+
+# Or resolve individually:
+# ./scripts/resolve-pr-conflicts.sh --pr116
+# ./scripts/resolve-pr-conflicts.sh --pr113
+```
+
+> **Note:** Both resolutions were verified locally — they resolve cleanly with zero remaining conflict markers. The script requires push access to the repository (repo collaborator or admin).
 
 ---
 
