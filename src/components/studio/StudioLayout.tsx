@@ -7,6 +7,9 @@ import TerminalPanel from './TerminalPanel';
 import PreviewPanel from './PreviewPanel';
 import FileExplorer from './FileExplorer';
 import EditorTabs, { EditorTab } from './EditorTabs';
+import StatusBar from './StatusBar';
+import EmptyState from './EmptyState';
+import Toast, { ToastType } from './Toast';
 
 export default function StudioLayout() {
   // Multi-file tab management
@@ -28,6 +31,7 @@ export default function StudioLayout() {
   );
   
   const [isDeploying, setIsDeploying] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
   const handleTabChange = (tabId: string) => {
     setActiveTabId(tabId);
@@ -112,13 +116,22 @@ export default function StudioLayout() {
       const data = await response.json();
       
       if (data.success) {
-        alert(`Deployment started! ID: ${data.deployment.id}\n${data.deployment.message}`);
+        setToast({
+          message: `Deployment started! ID: ${data.deployment.id}`,
+          type: 'success',
+        });
       } else {
-        alert('Deployment failed: ' + (data.error || 'Unknown error'));
+        setToast({
+          message: 'Deployment failed: ' + (data.error || 'Unknown error'),
+          type: 'error',
+        });
       }
     } catch (error) {
       console.error('Deploy error:', error);
-      alert('Failed to trigger deployment');
+      setToast({
+        message: 'Failed to trigger deployment',
+        type: 'error',
+      });
     } finally {
       setIsDeploying(false);
     }
@@ -126,18 +139,47 @@ export default function StudioLayout() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-900 text-white">
+      {/* Toast Notifications */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700 p-4 flex items-center justify-between">
+      <header className="bg-gray-800 border-b border-gray-700 p-4 flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-teal-400">CubiQo Studio</h1>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-teal-400 to-cyan-500 rounded-lg flex items-center justify-center font-bold text-sm">
+              C
+            </div>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent">
+              CubiQo Studio
+            </h1>
+          </div>
+          <div className="h-6 w-px bg-gray-700"></div>
           <span className="text-sm text-gray-400">{activeTab?.name || 'No file open'}</span>
         </div>
         <button 
           onClick={handleDeploy}
           disabled={isDeploying}
-          className="px-4 py-2 bg-teal-500 hover:bg-teal-600 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-teal-500/50"
         >
-          {isDeploying ? 'Deploying...' : 'Deploy Now'}
+          {isDeploying ? (
+            <span className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Deploying...
+            </span>
+          ) : (
+            <span className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Deploy Now
+            </span>
+          )}
         </button>
       </header>
 
@@ -171,12 +213,27 @@ export default function StudioLayout() {
               
               {/* Code Editor */}
               <div className="flex-1">
-                <CodeEditor 
-                  value={currentCode}
-                  onChange={handleCodeChange}
-                  language={activeTab?.language || 'typescript'}
-                  theme="vs-dark"
-                />
+                {openTabs.length === 0 ? (
+                  <EmptyState
+                    icon="📝"
+                    title="No files open"
+                    description="Select a file from the explorer or start a conversation with AI to generate code"
+                    action={{
+                      label: "Start Conversation",
+                      onClick: () => {
+                        // Focus on conversation panel
+                        document.querySelector<HTMLTextAreaElement>('textarea')?.focus();
+                      }
+                    }}
+                  />
+                ) : (
+                  <CodeEditor 
+                    value={currentCode}
+                    onChange={handleCodeChange}
+                    language={activeTab?.language || 'typescript'}
+                    theme="vs-dark"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -192,6 +249,9 @@ export default function StudioLayout() {
           <PreviewPanel />
         </div>
       </div>
+
+      {/* Status Bar */}
+      <StatusBar />
     </div>
   );
 }
