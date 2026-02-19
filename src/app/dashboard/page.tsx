@@ -14,7 +14,12 @@ import { createClient } from '@/lib/supabase/client'
 interface UserStats {
   conversationCount: number
   messageCount: number
+  journalEntriesCount: number
 }
+
+// System constants
+const ACTIVE_AGENTS_COUNT = 7
+const LAST_THREAT_SCAN = '2 hours ago' // TODO: Make this dynamic with timestamp
 
 export default function DashboardPage() {
   const { user, profile, isAuthenticated, isLoading: authLoading, signOut } = useAuth()
@@ -46,6 +51,7 @@ export default function DashboardPage() {
         setStats({
           conversationCount: conversationCount || 0,
           messageCount: messageCount || 0,
+          journalEntriesCount: 0, // TODO: Fetch from journal_entries table
         })
       } catch (error) {
         console.error('Error fetching stats:', error)
@@ -252,7 +258,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="text-3xl font-bold mb-1">
-                {isLoadingStats ? '...' : 0}
+                {isLoadingStats ? '...' : stats?.journalEntriesCount || 0}
               </div>
               <div className="text-xs text-white/40">Reflection entries</div>
             </div>
@@ -266,7 +272,7 @@ export default function DashboardPage() {
                   </svg>
                 </div>
               </div>
-              <div className="text-3xl font-bold mb-1">7</div>
+              <div className="text-3xl font-bold mb-1">{ACTIVE_AGENTS_COUNT}</div>
               <div className="text-xs text-white/40">AI agents available</div>
             </div>
           </div>
@@ -304,7 +310,7 @@ export default function DashboardPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   </div>
-                  <div className="text-2xl font-bold text-cyan-400">7</div>
+                  <div className="text-2xl font-bold text-cyan-400">{ACTIVE_AGENTS_COUNT}</div>
                 </div>
                 <h3 className="font-semibold mb-1 text-cyan-100">Active Agents</h3>
                 <p className="text-xs text-white/60">Specialized AI workers</p>
@@ -380,7 +386,7 @@ export default function DashboardPage() {
                   <div className="text-2xl font-bold text-green-400">0</div>
                 </div>
                 <h3 className="font-semibold mb-1 text-green-100">Threat Scan</h3>
-                <p className="text-xs text-white/60">Last scan: 2 hours ago</p>
+                <p className="text-xs text-white/60">Last scan: {LAST_THREAT_SCAN}</p>
               </div>
 
               {/* Data Encryption */}
