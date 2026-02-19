@@ -21,6 +21,7 @@ export class TaskRouter {
       return null;
     }
 
+    // Route in priority order: specialized agents first, then fallback to A1
     // A2 (Dev) - Developer keywords
     if (/\b(code|dev|develop|build|fix|bug|deploy|implement|refactor|debug|program|engineer)\b/i.test(task)) {
       return getAgent('a2') ?? null;

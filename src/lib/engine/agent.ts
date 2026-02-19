@@ -24,7 +24,7 @@ export class AgentInstance implements Agent {
 
   private sessionStore: SessionStore;
   private toolRegistry: ToolRegistry;
-  private contextAssembler!: ContextAssembler;
+  private contextAssembler?: ContextAssembler;
   private taskQueue: TaskQueue;
 
   constructor(config: AgentConfig) {
@@ -95,6 +95,9 @@ export class AgentInstance implements Agent {
       const availableTools = await this.toolRegistry.getTools(this.tools, userId);
 
       // Build context using ContextAssembler
+      if (!this.contextAssembler) {
+        throw new Error('Agent not initialized. Call initialize() first.');
+      }
       const context = await this.contextAssembler.assemble({
         history,
         tools: availableTools,

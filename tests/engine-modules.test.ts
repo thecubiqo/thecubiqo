@@ -445,9 +445,9 @@ describe('TaskRouter', () => {
     expect(agent3?.id).toBe('a4');
   });
 
-  it('should prioritize the most specific match', () => {
+  it('should match first matching pattern in precedence order', () => {
     const agent = router.route('Test the backend API endpoint');
-    // Should match either test or backend keywords
+    // A2 (dev) pattern is checked before A4 (test) pattern
     expect(agent).toBeDefined();
     expect(['a2', 'a4'].includes(agent?.id || '')).toBe(true);
   });
