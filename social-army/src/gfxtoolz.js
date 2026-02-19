@@ -2,8 +2,7 @@
  * GFXToolz.ai Integration Wrapper
  * 
  * Handles authentication and asset generation requests to the GFXToolz API.
- * Note: axios is listed as a dependency and should be imported here once
- * real API calls replace the placeholder stubs below.
+ * TODO: import axios once real API calls replace the placeholder stubs below.
  */
 
 class GFXToolz {

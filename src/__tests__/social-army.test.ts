@@ -6,22 +6,21 @@
  * needing network or Supabase access.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import path from 'path';
 
 // ── Platforms config ──────────────────────────────────────────────
 
 describe('platforms.json', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const platforms = require('../../social-army/config/platforms.json');
+
   it('loads as valid JSON and has 10 entries', () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const platforms = require('../../social-army/config/platforms.json');
     expect(Array.isArray(platforms)).toBe(true);
     expect(platforms.length).toBe(10);
   });
 
   it('every entry has required fields', () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const platforms = require('../../social-army/config/platforms.json');
     for (const p of platforms) {
       expect(p).toHaveProperty('id');
       expect(p).toHaveProperty('platform');
@@ -31,8 +30,6 @@ describe('platforms.json', () => {
   });
 
   it('contains all expected platforms', () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const platforms = require('../../social-army/config/platforms.json');
     const names = platforms.map((p: { platform: string }) => p.platform);
     const expected = ['twitter', 'linkedin', 'instagram', 'tiktok', 'youtube', 'reddit', 'pinterest', 'threads', 'facebook', 'discord'];
     for (const name of expected) {
