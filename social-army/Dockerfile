@@ -34,7 +34,7 @@ WORKDIR /app
 
 # Copy package files first (for layer caching)
 COPY package.json package-lock.json* ./
-RUN npm install --production
+RUN npm install --production --legacy-peer-deps
 
 # Copy source code
 COPY . .
