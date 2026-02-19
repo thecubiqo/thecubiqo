@@ -165,6 +165,8 @@ const organizationJsonLd = {
   "description": "Voice-first, privacy-controlled AI assistant and digital private secretary."
 };
 
+import CodexoPanel from "@/components/codexo/CodexoPanel";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -196,6 +198,7 @@ export default function RootLayout({
         <ClientProviders>
           {children}
         </ClientProviders>
+        <CodexoPanel />
         <ServiceWorkerRegistration />
         <Analytics />
         <SpeedInsights />

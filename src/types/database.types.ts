@@ -14,6 +14,433 @@ export type Database = {
   }
   public: {
     Tables: {
+      emergent_orgs: {
+        Row: {
+          id: string
+          name: string
+          slug: string
+          plan: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          slug: string
+          plan?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          slug?: string
+          plan?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      emergent_org_members: {
+        Row: {
+          id: string
+          org_id: string
+          user_id: string
+          role: string
+          joined_at: string | null
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          user_id: string
+          role?: string
+          joined_at?: string | null
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          user_id?: string
+          role?: string
+          joined_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergent_org_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "emergent_orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergent_org_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      emergent_projects: {
+        Row: {
+          id: string
+          org_id: string
+          name: string
+          slug: string
+          description: string | null
+          stack: string | null
+          framework: string | null
+          language: string | null
+          status: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          name: string
+          slug: string
+          description?: string | null
+          stack?: string | null
+          framework?: string | null
+          language?: string | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          name?: string
+          slug?: string
+          description?: string | null
+          stack?: string | null
+          framework?: string | null
+          language?: string | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergent_projects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "emergent_orgs"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      emergent_project_secrets: {
+        Row: {
+          id: string
+          project_id: string
+          key: string
+          encrypted_value: string
+          iv: string
+          auth_tag: string
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          key: string
+          encrypted_value: string
+          iv: string
+          auth_tag: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          key?: string
+          encrypted_value?: string
+          iv?: string
+          auth_tag?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergent_project_secrets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "emergent_projects"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      emergent_workspaces: {
+        Row: {
+          id: string
+          project_id: string
+          workspace_id: string
+          subdomain: string
+          status: string
+          error_message: string | null
+          container_id: string | null
+          container_image: string | null
+          port: number | null
+          cpu_limit_cores: number | null
+          memory_limit_mb: number | null
+          storage_limit_mb: number | null
+          cpu_usage_percent: number | null
+          memory_usage_mb: number | null
+          storage_used_mb: number | null
+          started_at: string | null
+          stopped_at: string | null
+          last_activity_at: string | null
+          auto_shutdown_minutes: number | null
+          shutdown_scheduled_at: string | null
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          workspace_id: string
+          subdomain: string
+          status?: string
+          error_message?: string | null
+          container_id?: string | null
+          container_image?: string | null
+          port?: number | null
+          cpu_limit_cores?: number | null
+          memory_limit_mb?: number | null
+          storage_limit_mb?: number | null
+          cpu_usage_percent?: number | null
+          memory_usage_mb?: number | null
+          storage_used_mb?: number | null
+          started_at?: string | null
+          stopped_at?: string | null
+          last_activity_at?: string | null
+          auto_shutdown_minutes?: number | null
+          shutdown_scheduled_at?: string | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          workspace_id?: string
+          subdomain?: string
+          status?: string
+          error_message?: string | null
+          container_id?: string | null
+          container_image?: string | null
+          port?: number | null
+          cpu_limit_cores?: number | null
+          memory_limit_mb?: number | null
+          storage_limit_mb?: number | null
+          cpu_usage_percent?: number | null
+          memory_usage_mb?: number | null
+          storage_used_mb?: number | null
+          started_at?: string | null
+          stopped_at?: string | null
+          last_activity_at?: string | null
+          auto_shutdown_minutes?: number | null
+          shutdown_scheduled_at?: string | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergent_workspaces_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "emergent_projects"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      emergent_deployments: {
+        Row: {
+          id: string
+          project_id: string
+          deployment_number: number | null
+          version: string | null
+          environment: string
+          status: string
+          error_message: string | null
+          build_started_at: string | null
+          build_completed_at: string | null
+          build_duration_seconds: number | null
+          build_logs_url: string | null
+          deploy_started_at: string | null
+          deploy_completed_at: string | null
+          deploy_duration_seconds: number | null
+          deploy_logs_url: string | null
+          preview_url: string | null
+          production_url: string | null
+          git_commit_sha: string | null
+          git_branch: string | null
+          git_commit_message: string | null
+          git_author: string | null
+          platform: string | null
+          platform_deployment_id: string | null
+          platform_url: string | null
+          health_check_url: string | null
+          health_check_status: string | null
+          health_check_last_checked_at: string | null
+          triggered_by: string | null
+          metadata: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          deployment_number?: number | null
+          version?: string | null
+          environment?: string
+          status?: string
+          error_message?: string | null
+          build_started_at?: string | null
+          build_completed_at?: string | null
+          build_duration_seconds?: number | null
+          build_logs_url?: string | null
+          deploy_started_at?: string | null
+          deploy_completed_at?: string | null
+          deploy_duration_seconds?: number | null
+          deploy_logs_url?: string | null
+          preview_url?: string | null
+          production_url?: string | null
+          git_commit_sha?: string | null
+          git_branch?: string | null
+          git_commit_message?: string | null
+          git_author?: string | null
+          platform?: string | null
+          platform_deployment_id?: string | null
+          platform_url?: string | null
+          health_check_url?: string | null
+          health_check_status?: string | null
+          health_check_last_checked_at?: string | null
+          triggered_by?: string | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          deployment_number?: number | null
+          version?: string | null
+          environment?: string
+          status?: string
+          error_message?: string | null
+          build_started_at?: string | null
+          build_completed_at?: string | null
+          build_duration_seconds?: number | null
+          build_logs_url?: string | null
+          deploy_started_at?: string | null
+          deploy_completed_at?: string | null
+          deploy_duration_seconds?: number | null
+          deploy_logs_url?: string | null
+          preview_url?: string | null
+          production_url?: string | null
+          git_commit_sha?: string | null
+          git_branch?: string | null
+          git_commit_message?: string | null
+          git_author?: string | null
+          platform?: string | null
+          platform_deployment_id?: string | null
+          platform_url?: string | null
+          health_check_url?: string | null
+          health_check_status?: string | null
+          health_check_last_checked_at?: string | null
+          triggered_by?: string | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergent_deployments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "emergent_projects"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      emergent_integrations: {
+        Row: {
+          id: string
+          project_id: string
+          service: string
+          config: Json | null
+          status: string | null
+          last_sync_at: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          service: string
+          config?: Json | null
+          status?: string | null
+          last_sync_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          service?: string
+          config?: Json | null
+          status?: string | null
+          last_sync_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergent_integrations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "emergent_projects"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      emergent_playbooks: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          service: string
+          code_templates: Json
+          is_verified: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          service: string
+          code_templates: Json
+          is_verified?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          service?: string
+          code_templates?: Json
+          is_verified?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           ai_model: string | null
