@@ -113,9 +113,16 @@ export default function EventsPage() {
 
   const getLatestEventTime = () => {
     if (!data?.events || data.events.length === 0) return 'N/A';
-    const latestEvent = data.events.reduce((latest, event) => {
-      return new Date(event.created_at) > new Date(latest.created_at) ? event : latest;
-    });
+    // Create Date objects once for all events
+    const eventsWithDates = data.events.map(event => ({
+      event,
+      date: new Date(event.created_at)
+    }));
+    
+    const latestEvent = eventsWithDates.reduce((latest, current) => {
+      return current.date > latest.date ? current : latest;
+    }).event;
+    
     return formatRelativeTime(latestEvent.created_at);
   };
 

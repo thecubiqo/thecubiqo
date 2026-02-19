@@ -215,31 +215,33 @@ export default function JournalAnalyticsPage() {
             </div>
 
             {/* Daily Entries Chart */}
-            {data.charts.dailyEntries.length > 0 && (
-              <div className="bg-gray-900 rounded-lg p-6 mb-8">
-                <h2 className="text-2xl font-bold mb-4">Daily Entries</h2>
-                <div className="overflow-x-auto">
-                  <div className="flex gap-2 items-end min-w-max" style={{ height: '200px' }}>
-                    {data.charts.dailyEntries.map((entry) => {
-                      const maxCount = Math.max(...data.charts.dailyEntries.map(e => e.count));
-                      const heightPercent = maxCount > 0 ? (entry.count / maxCount) * 100 : 0;
-                      return (
-                        <div key={entry.date} className="flex flex-col items-center gap-2">
-                          <div className="text-xs text-gray-500">{entry.count}</div>
-                          <div
-                            className="w-12 bg-blue-500 rounded-t"
-                            style={{ height: `${heightPercent}%` }}
-                          />
-                          <div className="text-xs text-gray-400 whitespace-nowrap transform -rotate-45 origin-top-left mt-2">
-                            {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            {data.charts.dailyEntries.length > 0 && (() => {
+              const maxCount = Math.max(...data.charts.dailyEntries.map(e => e.count));
+              return (
+                <div className="bg-gray-900 rounded-lg p-6 mb-8">
+                  <h2 className="text-2xl font-bold mb-4">Daily Entries</h2>
+                  <div className="overflow-x-auto">
+                    <div className="flex gap-2 items-end min-w-max" style={{ height: '200px' }}>
+                      {data.charts.dailyEntries.map((entry) => {
+                        const heightPercent = maxCount > 0 ? (entry.count / maxCount) * 100 : 0;
+                        return (
+                          <div key={entry.date} className="flex flex-col items-center gap-2">
+                            <div className="text-xs text-gray-500">{entry.count}</div>
+                            <div
+                              className="w-12 bg-blue-500 rounded-t"
+                              style={{ height: `${heightPercent}%` }}
+                            />
+                            <div className="text-xs text-gray-400 whitespace-nowrap transform -rotate-45 origin-top-left mt-2">
+                              {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Recent Entries Table */}
             <div className="bg-gray-900 rounded-lg p-6">
