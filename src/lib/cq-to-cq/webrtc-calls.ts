@@ -5,7 +5,7 @@
 
 import { cqWebSocketServer } from './websocket-server';
 import { initiateCall, updateCallStatus } from './supabase-client';
-import type { CQCall } from './types';
+import type { CQCall, CameraFacingMode } from './types';
 
 // WebRTC configuration
 const ICE_SERVERS: RTCConfiguration = {
@@ -29,6 +29,7 @@ export class CQCallManager {
   private callId: string | null = null;
   private userId: string;
   private remoteUserId: string | null = null;
+  private facingMode: CameraFacingMode = 'user';
 
   constructor(userId: string) {
     this.userId = userId;
@@ -308,6 +309,62 @@ export class CQCallManager {
   }
 
   /**
+   * Switch between front and back camera
+   */
+  async switchCamera(): Promise<CameraFacingMode> {
+    this.facingMode = this.facingMode === 'user' ? 'environment' : 'user';
+
+    if (!this.localStream) return this.facingMode;
+
+    // Stop existing video tracks
+    this.localStream.getVideoTracks().forEach((track) => track.stop());
+
+    try {
+      // Get new video stream with the switched facing mode
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30 },
+          facingMode: { ideal: this.facingMode },
+        },
+      });
+
+      const newVideoTrack = newStream.getVideoTracks()[0];
+
+      // Remove old video tracks and add new one to local stream
+      this.localStream.getVideoTracks().forEach((track) => {
+        this.localStream!.removeTrack(track);
+      });
+      this.localStream.addTrack(newVideoTrack);
+
+      // Replace the video track in the peer connection
+      if (this.peerConnection) {
+        const sender = this.peerConnection.getSenders().find(
+          (s) => s.track?.kind === 'video'
+        );
+        if (sender) {
+          await sender.replaceTrack(newVideoTrack);
+        }
+      }
+    } catch (error) {
+      console.error('Error switching camera:', error);
+      // Revert facing mode on failure
+      this.facingMode = this.facingMode === 'user' ? 'environment' : 'user';
+      throw new Error('Failed to switch camera');
+    }
+
+    return this.facingMode;
+  }
+
+  /**
+   * Get current camera facing mode
+   */
+  getFacingMode(): CameraFacingMode {
+    return this.facingMode;
+  }
+
+  /**
    * Get local media stream
    */
   private async initLocalStream(includeVideo: boolean) {
@@ -323,6 +380,7 @@ export class CQCallManager {
               width: { ideal: 1280 },
               height: { ideal: 720 },
               frameRate: { ideal: 30 },
+              facingMode: { ideal: this.facingMode },
             }
           : false,
       });
