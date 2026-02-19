@@ -8,7 +8,6 @@
 import { describe, it, expect } from 'vitest'
 import { existsSync, readFileSync } from 'fs'
 import { resolve } from 'path'
-import { globSync } from 'fs'
 
 const API_DIR = resolve(__dirname, '../src/app/api')
 

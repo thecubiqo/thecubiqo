@@ -94,11 +94,11 @@ describe('Database Schema Validation', () => {
 
     REQUIRED_TABLES.forEach((table) => {
       it(`should define the "${table}" table`, () => {
-        const hasCreate = allSQL.includes(`create table ${table}`) ||
-          allSQL.includes(`create table if not exists ${table}`) ||
-          allSQL.includes(`create table public.${table}`) ||
-          allSQL.includes(`create table if not exists public.${table}`)
-        expect(hasCreate).toBe(true)
+        const pattern = new RegExp(
+          `create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?(?:public\\.)?${table}`,
+          'i'
+        )
+        expect(pattern.test(allSQL)).toBe(true)
       })
     })
   })
