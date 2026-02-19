@@ -3,6 +3,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { ToastContainer, ToastMessage } from '@/components/ui/Toast';
 
 interface UserConsent {
   analytics: boolean;
@@ -16,7 +19,17 @@ export default function PrivacySettings() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const router = useRouter();
+
+  const addToast = (type: ToastMessage['type'], title: string, message?: string) => {
+    const id = Date.now().toString();
+    setToasts((prev) => [...prev, { id, type, title, message }]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
 
   useEffect(() => {
     // Fetch user consent settings
@@ -41,7 +54,7 @@ export default function PrivacySettings() {
 
   const handleConsentChange = async (key: keyof UserConsent, value: boolean) => {
     if (key === 'dataProcessing' && !value) {
-      alert('Data processing is required to use the service');
+      addToast('warning', 'Cannot Disable', 'Data processing is required to use the service');
       return;
     }
 
@@ -54,9 +67,12 @@ export default function PrivacySettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newConsent),
       });
+      addToast('success', 'Preferences Updated', 'Your consent preferences have been saved');
     } catch (error) {
       console.error('Failed to update consent:', error);
-      alert('Failed to update consent preferences');
+      addToast('error', 'Update Failed', 'Failed to update consent preferences');
+      // Revert on error
+      setConsent(consent);
     }
   };
 
@@ -66,7 +82,7 @@ export default function PrivacySettings() {
       const response = await fetch(`/api/privacy/export-data?format=${format}`);
       
       if (response.status === 429) {
-        alert('Rate limit exceeded. You can export data 5 times per hour.');
+        addToast('warning', 'Rate Limit Exceeded', 'You can export data 5 times per hour');
         return;
       }
 
@@ -82,10 +98,10 @@ export default function PrivacySettings() {
       a.click();
       URL.revokeObjectURL(url);
 
-      alert(`Data exported successfully as ${format.toUpperCase()}`);
+      addToast('success', 'Export Complete', `Data exported successfully as ${format.toUpperCase()}`);
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Failed to export data');
+      addToast('error', 'Export Failed', 'Failed to export data. Please try again.');
     } finally {
       setExporting(false);
     }
@@ -106,14 +122,14 @@ export default function PrivacySettings() {
 
       if (response.ok) {
         const data = await response.json();
-        alert(data.message);
-        router.push('/');
+        addToast('success', 'Account Deletion Scheduled', data.message || 'Your account will be deleted in 30 days');
+        setTimeout(() => router.push('/'), 2000);
       } else {
         throw new Error('Deletion failed');
       }
     } catch (error) {
       console.error('Delete failed:', error);
-      alert('Failed to schedule account deletion');
+      addToast('error', 'Deletion Failed', 'Failed to schedule account deletion');
     }
   };
 
@@ -126,48 +142,51 @@ export default function PrivacySettings() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            🔒 Privacy Settings
-            <span className="px-3 py-1 bg-emerald-900 text-emerald-300 text-sm font-medium rounded-full">
-              GDPR/CCPA Compliant
-            </span>
-          </h1>
-          <p className="text-zinc-400 mt-1">
-            Manage your data, privacy preferences, and compliance rights
-          </p>
-        </header>
+    <>
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+      <div className="min-h-screen bg-black text-white p-8 animate-fade-in">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <header className="mb-8">
+            <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3 flex-wrap">
+              <span className="text-5xl">🔒</span>
+              Privacy Settings
+              <Badge variant="success" icon="✓">
+                GDPR/CCPA Compliant
+              </Badge>
+            </h1>
+            <p className="text-zinc-400 mt-2 text-lg">
+              Manage your data, privacy preferences, and compliance rights
+            </p>
+          </header>
 
         {/* Privacy Rights Banner */}
-        <div className="bg-gradient-to-r from-indigo-950 to-purple-950 border border-indigo-800 rounded-xl p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-3">Your Privacy Rights</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-green-400">✓</span>
-              <span>Right to Access (GDPR Article 15)</span>
+        <div className="bg-gradient-to-r from-indigo-950 to-purple-950 border border-indigo-800 rounded-xl p-6 mb-8 hover:shadow-xl hover:shadow-indigo-900/20 transition-all animate-slide-in-up">
+          <h2 className="text-2xl font-semibold mb-4">Your Privacy Rights</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-indigo-900/20 hover:bg-indigo-900/30 transition-colors">
+              <span className="text-green-400 text-xl">✓</span>
+              <span className="font-medium">Right to Access (GDPR Article 15)</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-green-400">✓</span>
-              <span>Right to Erasure (GDPR Article 17)</span>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-indigo-900/20 hover:bg-indigo-900/30 transition-colors">
+              <span className="text-green-400 text-xl">✓</span>
+              <span className="font-medium">Right to Erasure (GDPR Article 17)</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-green-400">✓</span>
-              <span>Right to Data Portability (GDPR Article 20)</span>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-indigo-900/20 hover:bg-indigo-900/30 transition-colors">
+              <span className="text-green-400 text-xl">✓</span>
+              <span className="font-medium">Right to Data Portability (GDPR Article 20)</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-green-400">✓</span>
-              <span>CCPA Consumer Rights</span>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-indigo-900/20 hover:bg-indigo-900/30 transition-colors">
+              <span className="text-green-400 text-xl">✓</span>
+              <span className="font-medium">CCPA Consumer Rights</span>
             </div>
           </div>
         </div>
 
         {/* Consent Management */}
-        <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Consent Management</h2>
-          <p className="text-sm text-zinc-400 mb-6">
+        <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-8 hover:shadow-xl hover:shadow-zinc-900/50 transition-all animate-slide-in-up">
+          <h2 className="text-2xl font-semibold mb-4">Consent Management</h2>
+          <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
             Control how we use your data. You can update these preferences at any time.
           </p>
 
@@ -202,60 +221,70 @@ export default function PrivacySettings() {
         </section>
 
         {/* Data Export */}
-        <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Export Your Data</h2>
-          <p className="text-sm text-zinc-400 mb-6">
+        <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-8 hover:shadow-xl hover:shadow-zinc-900/50 transition-all animate-slide-in-up">
+          <h2 className="text-2xl font-semibold mb-4">Export Your Data</h2>
+          <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
             Download a copy of all your data in your preferred format. Limited to 5 exports per hour.
           </p>
 
           <div className="flex flex-wrap gap-3">
-            <button
+            <Button
+              variant="primary"
+              icon="📄"
               onClick={() => handleExportData('json')}
+              loading={exporting}
               disabled={exporting}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
             >
-              {exporting ? 'Exporting...' : 'Export as JSON'}
-            </button>
-            <button
+              Export as JSON
+            </Button>
+            <Button
+              variant="success"
+              icon="📊"
               onClick={() => handleExportData('csv')}
+              loading={exporting}
               disabled={exporting}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
             >
-              {exporting ? 'Exporting...' : 'Export as CSV'}
-            </button>
-            <button
+              Export as CSV
+            </Button>
+            <Button
+              variant="warning"
+              icon="📋"
               onClick={() => handleExportData('xml')}
+              loading={exporting}
               disabled={exporting}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
             >
-              {exporting ? 'Exporting...' : 'Export as XML'}
-            </button>
+              Export as XML
+            </Button>
           </div>
 
-          <p className="text-xs text-zinc-500 mt-4">
+          <p className="text-xs text-zinc-500 mt-4 leading-relaxed">
             Your export will include: profile data, journal entries, OAuth connections (not tokens),
             audit log, and analytics events.
           </p>
         </section>
 
         {/* Account Deletion */}
-        <section className="bg-red-950/30 border border-red-800 rounded-xl p-6">
-          <h2 className="text-xl font-semibold mb-4 text-red-300">Danger Zone</h2>
-          <p className="text-sm text-zinc-400 mb-6">
+        <section className="bg-gradient-to-br from-red-950/40 to-red-900/20 border border-red-800 rounded-xl p-6 animate-slide-in-up">
+          <h2 className="text-2xl font-semibold mb-4 text-red-300 flex items-center gap-2">
+            <span className="text-3xl">⚠️</span>
+            Danger Zone
+          </h2>
+          <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
             Once you delete your account, there is no going back. We offer a 30-day grace period.
           </p>
 
           {!showDeleteConfirm ? (
-            <button
+            <Button
+              variant="danger"
+              icon="🗑️"
               onClick={handleDeleteAccount}
-              className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-sm font-medium transition-colors"
             >
               Delete My Account
-            </button>
+            </Button>
           ) : (
             <div className="space-y-4">
-              <div className="bg-red-900/50 border border-red-700 rounded-lg p-4">
-                <p className="font-semibold mb-2">⚠️ Are you absolutely sure?</p>
+              <div className="bg-red-900/50 border border-red-700 rounded-xl p-4">
+                <p className="font-semibold mb-2 text-lg">⚠️ Are you absolutely sure?</p>
                 <p className="text-sm text-zinc-300 mb-3">
                   This will schedule your account for deletion in 30 days. You can cancel during this period.
                 </p>
@@ -271,18 +300,20 @@ export default function PrivacySettings() {
               </div>
 
               <div className="flex gap-3">
-                <button
+                <Button
+                  variant="danger"
+                  icon="✓"
                   onClick={handleDeleteAccount}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-sm font-medium transition-colors"
                 >
                   Yes, Delete My Account
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
+                  icon="✕"
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm font-medium transition-colors"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -293,7 +324,7 @@ export default function PrivacySettings() {
           <a
             href="/PRIVACY_POLICY.md"
             target="_blank"
-            className="text-indigo-400 hover:underline text-sm"
+            className="text-indigo-400 hover:text-indigo-300 hover:underline text-sm font-medium transition-colors"
           >
             View Privacy Policy
           </a>
@@ -301,13 +332,14 @@ export default function PrivacySettings() {
           <a
             href="/SECURITY.md"
             target="_blank"
-            className="text-indigo-400 hover:underline text-sm"
+            className="text-indigo-400 hover:text-indigo-300 hover:underline text-sm font-medium transition-colors"
           >
             View Security Policy
           </a>
         </div>
       </div>
     </div>
+    </>
   );
 }
 
@@ -325,21 +357,22 @@ function ConsentToggle({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between p-4 bg-zinc-800/50 rounded-lg">
+    <div className="flex items-center justify-between p-4 bg-zinc-800/50 rounded-xl hover:bg-zinc-800 transition-all">
       <div className="flex-1">
-        <p className="font-medium mb-1">{label}</p>
-        <p className="text-sm text-zinc-400">{description}</p>
+        <p className="font-semibold mb-1 text-lg">{label}</p>
+        <p className="text-sm text-zinc-400 leading-relaxed">{description}</p>
       </div>
       <button
         onClick={() => !disabled && onChange(!value)}
         disabled={disabled}
-        className={`relative w-14 h-7 rounded-full transition-colors ${
-          value ? 'bg-emerald-600' : 'bg-zinc-700'
-        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+        className={`relative w-16 h-8 rounded-full transition-all duration-300 ${
+          value ? 'bg-emerald-600 shadow-lg shadow-emerald-900/50' : 'bg-zinc-700'
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+        aria-label={`Toggle ${label}`}
       >
         <span
-          className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform ${
-            value ? 'translate-x-7' : ''
+          className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform duration-300 shadow-md ${
+            value ? 'translate-x-8' : ''
           }`}
         />
       </button>
