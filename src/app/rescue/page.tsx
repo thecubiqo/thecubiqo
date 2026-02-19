@@ -7,7 +7,8 @@ export default function RescuePage() {
     const [status, setStatus] = useState('')
 
     const handleRescue = () => {
-        if (pin === '2026') {
+        const rescuePin = process.env.NEXT_PUBLIC_RESCUE_PIN || '2026'
+        if (pin === rescuePin) {
             setStatus('Success! Redirecting...')
             // Set the session storage flag directly
             if (typeof window !== 'undefined') {
