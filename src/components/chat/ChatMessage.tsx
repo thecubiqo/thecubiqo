@@ -23,8 +23,9 @@ function renderContentWithImages(content: string) {
   let lastIndex = 0
   let match
 
-  const regex = new RegExp(IMAGE_URL_PATTERN)
-  while ((match = regex.exec(content)) !== null) {
+  // Reset lastIndex for global regex reuse
+  IMAGE_URL_PATTERN.lastIndex = 0
+  while ((match = IMAGE_URL_PATTERN.exec(content)) !== null) {
     if (match.index > lastIndex) {
       parts.push(content.slice(lastIndex, match.index))
     }
@@ -42,12 +43,12 @@ function renderContentWithImages(content: string) {
 
   return parts.map((part, i) => {
     if (typeof part === 'string') {
-      return <span key={i}>{part}</span>
+      return <span key={`text-${i}`}>{part}</span>
     }
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        key={i}
+        key={`img-${part.url}`}
         src={part.url}
         alt={part.alt}
         className="max-w-full rounded-lg mt-2 mb-1"

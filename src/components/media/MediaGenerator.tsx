@@ -164,9 +164,12 @@ export function MediaGenerator() {
             </div>
           </div>
         )}
-        {results.map((result, index) => (
-          <MediaPreview key={index} type={result.type} data={result.data} />
-        ))}
+        {results.map((result) => {
+          const key = result.type === 'image'
+            ? (result.data as import('@/types/media').ImageGenerationResponse).url
+            : `${result.data.createdAt}-${result.data.prompt}`
+          return <MediaPreview key={key} type={result.type} data={result.data} />
+        })}
       </div>
 
       {/* Error Display */}
