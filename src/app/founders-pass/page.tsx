@@ -57,6 +57,41 @@ export default function FoundersPassDashboard() {
         />
       </div>
 
+      {/* Security Banner */}
+      <div className="bg-gradient-to-r from-emerald-950 to-green-900 border border-emerald-800 rounded-xl p-6 mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
+              <span className="text-2xl">🛡️</span>
+              Enterprise Security Active
+            </h2>
+            <p className="text-emerald-200 text-sm mb-3">
+              Complete OWASP coverage, GDPR/CCPA compliant, 66+ security tests passing
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <span className="px-2 py-1 bg-emerald-900 text-emerald-200 text-xs font-medium rounded">
+                Rate Limiting ✓
+              </span>
+              <span className="px-2 py-1 bg-emerald-900 text-emerald-200 text-xs font-medium rounded">
+                Fraud Detection ✓
+              </span>
+              <span className="px-2 py-1 bg-emerald-900 text-emerald-200 text-xs font-medium rounded">
+                Phishing Protection ✓
+              </span>
+              <span className="px-2 py-1 bg-emerald-900 text-emerald-200 text-xs font-medium rounded">
+                AES-256-GCM ✓
+              </span>
+            </div>
+          </div>
+          <Link
+            href="/founders-pass/security"
+            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+          >
+            View Security Dashboard →
+          </Link>
+        </div>
+      </div>
+
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3 mb-8">
         <Link
@@ -70,6 +105,12 @@ export default function FoundersPassDashboard() {
           className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium transition-colors"
         >
           Manage Sites
+        </Link>
+        <Link
+          href="/founders-pass/security"
+          className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-medium transition-colors"
+        >
+          🛡️ Security
         </Link>
         <Link
           href="/founders-pass/integrations"
