@@ -10,11 +10,29 @@ export default function CodexoPanel() {
     const [activeWorkspaces, setActiveWorkspaces] = useState<any[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
     const [viewMode, setViewMode] = useState<'system' | 'business'>('business');
+    const [bootSequence, setBootSequence] = useState(0);
     const supabase = createClient();
+
+    // Boot Sequence Animation
+    useEffect(() => {
+        if (isOpen) {
+            setBootSequence(0);
+            const interval = setInterval(() => {
+                setBootSequence(prev => {
+                    if (prev >= 100) {
+                        clearInterval(interval);
+                        return 100;
+                    }
+                    return prev + 5;
+                });
+            }, 30);
+            return () => clearInterval(interval);
+        }
+    }, [isOpen]);
 
     // Simulated live log stream
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen || bootSequence < 100) return;
 
         const interval = setInterval(() => {
             const phrases = viewMode === 'system' ? [
@@ -41,17 +59,18 @@ export default function CodexoPanel() {
         }, 2000);
 
         return () => clearInterval(interval);
-    }, [isOpen, viewMode]);
+    }, [isOpen, viewMode, bootSequence]);
 
     if (!isOpen) {
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-4 right-4 p-4 rounded-xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-[0_0_15px_rgba(0,255,255,0.3)] hover:shadow-[0_0_25px_rgba(0,255,255,0.5)] transition-all duration-300 group z-50"
+                className="fixed bottom-4 right-4 p-4 rounded-xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-[0_0_15px_rgba(0,255,255,0.3)] hover:shadow-[0_0_25px_rgba(0,255,255,0.5)] hover:scale-105 transition-all duration-300 group z-50 overflow-hidden"
             >
+                <div className="absolute inset-0 bg-cyan-500/10 animate-pulse" />
                 <div className="relative">
                     <Zap className="w-6 h-6 text-cyan-400 group-hover:rotate-12 transition-transform" />
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_lime]" />
                 </div>
             </button>
         );
@@ -61,17 +80,43 @@ export default function CodexoPanel() {
         <div
             className={`fixed right-4 transition-all duration-500 ease-out z-50 overflow-hidden
         ${isMaximized ? 'top-4 bottom-4 w-[600px]' : 'bottom-4 top-auto h-[600px] w-96'}
-        rounded-2xl border border-white/10 bg-black/80 backdrop-blur-2xl shadow-2xl flex flex-col
+        rounded-2xl border border-white/10 bg-black/90 backdrop-blur-3xl shadow-2xl flex flex-col font-mono text-white selection:bg-cyan-500/30
       `}
             style={{
-                boxShadow: '0 0 40px rgba(0, 229, 255, 0.15), inset 0 0 20px rgba(0, 229, 255, 0.05)'
+                boxShadow: '0 0 50px rgba(0, 229, 255, 0.15), inset 0 0 30px rgba(0, 229, 255, 0.05)',
+                backgroundImage: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))',
+                backgroundSize: '100% 2px, 3px 100%'
             }}
         >
+            {/* Boot Screen Overlay */}
+            {bootSequence < 100 && (
+                <div className="absolute inset-0 z-[60] bg-black flex items-center justify-center p-8">
+                    <div className="w-full max-w-xs space-y-4">
+                        <div className="flex justify-between text-xs text-cyan-500 uppercase tracking-widest">
+                            <span>Initializing Codexo...</span>
+                            <span>{bootSequence}%</span>
+                        </div>
+                        <div className="h-1 bg-white/10 w-full rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-cyan-500 shadow-[0_0_10px_cyan]"
+                                style={{ width: `${bootSequence}%` }}
+                            />
+                        </div>
+                        <div className="text-[10px] text-white/30 h-10 overflow-hidden">
+                            {bootSequence > 20 && <div>> Loading Kernel... OK</div>}
+                            {bootSequence > 40 && <div>> Decrypting Vault... OK</div>}
+                            {bootSequence > 60 && <div>> Connecting Hostinger Node... OK</div>}
+                            {bootSequence > 80 && <div>> Mounting Business Vitals...</div>}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-white/5 bg-white/5 shrink-0">
                 <div className="flex items-center gap-2">
                     <Zap className="w-5 h-5 text-cyan-400 fill-cyan-400/20" />
-                    <span className="font-mono text-sm font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
+                    <span className="font-mono text-sm font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">
                         CODEXO COMMAND
                     </span>
                 </div>
@@ -146,7 +191,7 @@ export default function CodexoPanel() {
                         <div className="space-y-2">
                             <div className="text-[10px] uppercase text-white/40 tracking-wider font-semibold flex items-center justify-between">
                                 <span>Active Integrations</span>
-                                <span className="text-green-500">10/10 Online</span>
+                                <span className="text-green-500 animate-pulse">10/10 Online</span>
                             </div>
                             <div className="grid grid-cols-5 gap-2">
                                 {[
