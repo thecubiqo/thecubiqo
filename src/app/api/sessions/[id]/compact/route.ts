@@ -73,7 +73,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error('Compaction error:', error);
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to compact session' },
       { status: 500 }
@@ -128,7 +128,7 @@ export async function GET(
       model: agent.model.model,
     });
   } catch (error) {
-    console.error('Failed to get compaction stats:', error);
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to get stats' },
       { status: 500 }

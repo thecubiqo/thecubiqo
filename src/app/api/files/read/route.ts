@@ -54,7 +54,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       },
     });
   } catch (error) {
-    console.error('File read error:', error);
+    
     return NextResponse.json(
       {
         success: false,

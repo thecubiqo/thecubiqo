@@ -75,8 +75,8 @@ export async function bootstrapAgents() {
       maxConcurrent: 3,
     });
 
-    console.log('✅ Agents bootstrapped: A1, A2, A3, A4, A5, A6, A7');
+    
   } catch (error) {
-    console.error('Failed to bootstrap agents:', error);
+    
   }
 }

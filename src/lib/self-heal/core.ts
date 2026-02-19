@@ -191,7 +191,7 @@ export function generateReport(
   // Generate HMAC signature for verification
   const secret = process.env.SELF_HEAL_SECRET;
   if (!secret) {
-    console.warn('SELF_HEAL_SECRET not set. Using insecure default for development only.');
+    
     // In production, this should fail
     if (process.env.NODE_ENV === 'production') {
       throw new Error('SELF_HEAL_SECRET must be set in production');

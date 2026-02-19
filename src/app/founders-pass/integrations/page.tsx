@@ -9,6 +9,7 @@ const providers = Object.values(OAUTH_PROVIDERS);
 export default function IntegrationsPage() {
   const [selectedSite, setSelectedSite] = useState('');
   const [saving, setSaving] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleConfigure = async (provider: OAuthProvider) => {
     if (!selectedSite) {
@@ -29,7 +30,7 @@ export default function IntegrationsPage() {
       });
       alert(`${provider} integration enabled for site`);
     } catch (err) {
-      console.error(err);
+      
     } finally {
       setSaving(null);
     }

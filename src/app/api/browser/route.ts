@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         );
     }
   } catch (error) {
-    console.error('Browser API error:', error);
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -53,7 +53,7 @@ async function handleStartSession(body: any) {
   
   const browserService = new BrowserService(async (domain, actionType) => {
     // In production, this would prompt the user via WebSocket or similar
-    console.log(`Consent requested for ${actionType} on ${domain}`);
+    
     return consentGiven || false;
   });
 
@@ -189,7 +189,7 @@ async function handleCloseSession(sessionId: string) {
 // Cleanup on server shutdown
 if (typeof process !== 'undefined') {
   process.on('SIGTERM', async () => {
-    console.log('Closing all browser sessions...');
+    
     for (const [sessionId, service] of activeSessions.entries()) {
       await service.close();
       activeSessions.delete(sessionId);

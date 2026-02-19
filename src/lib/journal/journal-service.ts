@@ -43,7 +43,7 @@ Respond with only: RED, YELLOW, or GREEN_BLUE`;
       // Default to YELLOW if unclear
       return 'YELLOW';
     } catch (error) {
-      console.error('Failed to detect color:', error);
+      
       return 'YELLOW'; // Safe default
     }
   }
@@ -91,7 +91,7 @@ Respond with only a number between -1 and 1.`;
       
       return 0; // Neutral default
     } catch (error) {
-      console.error('Failed to analyze sentiment:', error);
+      
       return 0;
     }
   }

@@ -33,14 +33,14 @@ export const sessionsSendTool: Tool = {
     const { targetAgentId, message, sessionId } = params;
 
     try {
-      console.log(`[sessions_send] ${context.agentId} → ${targetAgentId}: ${message.substring(0, 50)}...`);
+
 
       // Dynamically import to avoid circular dependencies
       const { getAgent } = await import('../agent');
       const targetAgent = getAgent(targetAgentId);
 
       if (!targetAgent) {
-        console.error(`[sessions_send] Agent not found: ${targetAgentId}`);
+        
         return {
           success: false,
           output: '',
@@ -67,7 +67,7 @@ export const sessionsSendTool: Tool = {
       // Send message to target agent
       const response = await targetAgent.run(formattedMessage, targetSessionId);
 
-      console.log(`[sessions_send] Message delivered. Response: ${response.substring(0, 100)}...`);
+
 
       return {
         success: true,
@@ -80,7 +80,7 @@ export const sessionsSendTool: Tool = {
         }, null, 2),
       };
     } catch (error) {
-      console.error(`[sessions_send] Error:`, error);
+      
       return {
         success: false,
         output: '',

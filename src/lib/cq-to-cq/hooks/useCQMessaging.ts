@@ -34,7 +34,7 @@ export function useCQMessaging(userId: string) {
       );
 
       ws.onopen = () => {
-        console.log('[CQ] WebSocket connected');
+        
         setIsConnected(true);
       };
 
@@ -44,12 +44,12 @@ export function useCQMessaging(userId: string) {
       };
 
       ws.onerror = (error) => {
-        console.error('[CQ] WebSocket error:', error);
+        
         setIsConnected(false);
       };
 
       ws.onclose = () => {
-        console.log('[CQ] WebSocket disconnected');
+        
         setIsConnected(false);
 
         // Attempt reconnection after 3 seconds
@@ -84,7 +84,7 @@ export function useCQMessaging(userId: string) {
         setConversations(conversationsData);
         setNotifications(notificationsData);
       } catch (error) {
-        console.error('Error loading initial data:', error);
+        
       } finally {
         setLoading(false);
       }
@@ -109,7 +109,7 @@ export function useCQMessaging(userId: string) {
           filter: `to_user_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('[CQ] New message:', payload);
+          
           // Update conversations list
           loadConversations();
         }
@@ -128,7 +128,7 @@ export function useCQMessaging(userId: string) {
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('[CQ] Contact updated:', payload);
+          
           loadContacts();
         }
       )
@@ -146,7 +146,7 @@ export function useCQMessaging(userId: string) {
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('[CQ] New notification:', payload);
+          
           setNotifications((prev) => [payload.new as CQNotification, ...prev]);
         }
       )
@@ -188,7 +188,7 @@ export function useCQMessaging(userId: string) {
         break;
 
       default:
-        console.warn('[CQ] Unknown WebSocket message type:', message.type);
+        
     }
   }, []);
 
@@ -198,7 +198,7 @@ export function useCQMessaging(userId: string) {
       const data = await db.getContacts(userId);
       setContacts(data);
     } catch (error) {
-      console.error('Error loading contacts:', error);
+      
     }
   }, [userId]);
 
@@ -207,7 +207,7 @@ export function useCQMessaging(userId: string) {
       const data = await db.getConversations(userId);
       setConversations(data);
     } catch (error) {
-      console.error('Error loading conversations:', error);
+      
     }
   }, [userId]);
 
@@ -216,7 +216,7 @@ export function useCQMessaging(userId: string) {
       const data = await db.getNotifications(userId);
       setNotifications(data);
     } catch (error) {
-      console.error('Error loading notifications:', error);
+      
     }
   }, [userId]);
 
@@ -273,7 +273,7 @@ export function useCQMessaging(userId: string) {
 
         return message;
       } catch (error) {
-        console.error('Error sending message:', error);
+        
         throw error;
       }
     },
@@ -286,7 +286,7 @@ export function useCQMessaging(userId: string) {
       try {
         return await db.sendFriendRequest(userId, cqNumber, message);
       } catch (error) {
-        console.error('Error sending friend request:', error);
+        
         throw error;
       }
     },
@@ -301,7 +301,7 @@ export function useCQMessaging(userId: string) {
         await loadContacts();
         await loadNotifications();
       } catch (error) {
-        console.error('Error responding to friend request:', error);
+        
         throw error;
       }
     },

@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     const { data: entries, error: queryError, count } = await query;
 
     if (queryError) {
-      console.error('[Journal/History] Query error:', queryError);
+      
       return NextResponse.json(
         { 
           success: false,
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Journal/History] Error:', error);
+    
     return NextResponse.json(
       { 
         success: false,
