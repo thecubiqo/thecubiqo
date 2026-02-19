@@ -7,7 +7,7 @@
 
 import { AppLayout } from '@/components/AppLayout'
 import { useAuth } from '@/hooks/useAuth'
-import { getFeatureAccess } from '@/lib/auth'
+import { getFeatureAccess } from '@/lib/auth/feature-gate-simple'
 
 interface Integration {
   id: string

@@ -64,3 +64,16 @@ self-heal-artifacts/
 
 # Storybook
 storybook-static/
+
+# Backup files
+*.bak
+*.our-backup
+
+# Build/lint artifacts
+build_*.txt
+eslint_*.txt
+eslint_*.json
+lint_results.txt
+
+# Lock files (use package-lock.json)
+yarn.lock
