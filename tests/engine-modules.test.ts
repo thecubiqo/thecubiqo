@@ -25,49 +25,49 @@ const mockAgents = [
     name: 'General Agent',
     soul: 'You are a general-purpose agent',
     keywords: ['general', 'help'],
-    model: { provider: 'anthropic', name: 'claude-3-5-sonnet-20241022' },
+    model: { provider: 'emergent', model: 'claude-sonnet-4-5', maxTokens: 4096, temperature: 0.7 },
   },
   {
     id: 'a2',
     name: 'Dev Agent',
     soul: 'You are a backend developer',
     keywords: ['dev', 'backend', 'api', 'database'],
-    model: { provider: 'anthropic', name: 'claude-3-5-sonnet-20241022' },
+    model: { provider: 'emergent', model: 'claude-sonnet-4-5', maxTokens: 4096, temperature: 0.7 },
   },
   {
     id: 'a3',
     name: 'Content Agent',
     soul: 'You are a content writer',
     keywords: ['content', 'write', 'blog', 'article'],
-    model: { provider: 'anthropic', name: 'claude-3-5-sonnet-20241022' },
+    model: { provider: 'emergent', model: 'claude-sonnet-4-5', maxTokens: 4096, temperature: 0.7 },
   },
   {
     id: 'a4',
     name: 'Test Agent',
     soul: 'You are a QA engineer',
     keywords: ['test', 'qa', 'quality', 'bug'],
-    model: { provider: 'anthropic', name: 'claude-3-5-sonnet-20241022' },
+    model: { provider: 'emergent', model: 'claude-sonnet-4-5', maxTokens: 4096, temperature: 0.7 },
   },
   {
     id: 'a5',
     name: 'Marketing Agent',
     soul: 'You are a marketing specialist',
     keywords: ['marketing', 'campaign', 'seo', 'ads'],
-    model: { provider: 'anthropic', name: 'claude-3-5-sonnet-20241022' },
+    model: { provider: 'emergent', model: 'claude-sonnet-4-5', maxTokens: 4096, temperature: 0.7 },
   },
   {
     id: 'a6',
     name: 'Animation Agent',
     soul: 'You are a 3D animation specialist',
     keywords: ['animation', '3d', 'threejs', 'webgl'],
-    model: { provider: 'anthropic', name: 'claude-3-5-sonnet-20241022' },
+    model: { provider: 'emergent', model: 'claude-sonnet-4-5', maxTokens: 4096, temperature: 0.7 },
   },
   {
     id: 'a7',
     name: 'Business Agent',
     soul: 'You are a business analyst',
     keywords: ['business', 'strategy', 'analysis', 'revenue'],
-    model: { provider: 'anthropic', name: 'claude-3-5-sonnet-20241022' },
+    model: { provider: 'emergent', model: 'claude-sonnet-4-5', maxTokens: 4096, temperature: 0.7 },
   },
 ];
 
@@ -272,7 +272,9 @@ describe('ContextAssembler', () => {
       workspace: '/test/workspace',
       model: {
         provider: 'anthropic',
-        name: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-5',
+        maxTokens: 4096,
+        temperature: 0.7,
       },
     });
   });
@@ -300,12 +302,12 @@ describe('ContextAssembler', () => {
       {
         name: 'calculator',
         description: 'Performs math calculations',
-        parameters: { type: 'object', properties: {} },
+        input_schema: { type: 'object', properties: {} },
       },
       {
         name: 'search',
         description: 'Searches the web',
-        parameters: { type: 'object', properties: {} },
+        input_schema: { type: 'object', properties: {} },
       },
     ];
 
