@@ -1,0 +1,107 @@
+{
+    "brand": {
+        "name": "CubiQo",
+        "tagline": "Your AI Life Companion",
+        "description": "CubiQo is a premium AI assistant that combines emotional intelligence, voice interaction, and personal memory to help users navigate life. It features biometric-level security, a rotating CQ number system for private messaging, and an extensible agent framework.",
+        "core_values": [
+            "Privacy First",
+            "Emotional Intelligence",
+            "Premium Experience",
+            "Human-AI Synergy"
+        ],
+        "website": "https://cubiqo.ai",
+        "hashtags": [
+            "#CubiQo",
+            "#AICompanion",
+            "#FutureOfAI",
+            "#EmotionalAI",
+            "#PrivacyFirst"
+        ]
+    },
+    "features": [
+        "Voice-powered AI conversations with memory",
+        "Encrypted peer-to-peer messaging via CQ Numbers",
+        "Emotional journaling with AI insights",
+        "Bring Your Own (BYO) app integrations",
+        "Multi-agent orchestration system",
+        "Biometric-grade rotating identity system",
+        "Real-time plasma wave UI animations"
+    ],
+    "tone_guide": {
+        "overall": "Confident, visionary, slightly futuristic. Never salesy. Think Stripe meets Apple — premium and understated.",
+        "do": [
+            "Share genuine insights about AI",
+            "Show the product in action",
+            "Engage with tech communities",
+            "Use clean visuals"
+        ],
+        "dont": [
+            "Use clickbait",
+            "Make false claims",
+            "Spam hashtags",
+            "Post low-quality content",
+            "Sound desperate"
+        ]
+    },
+    "personas": {
+        "builder": {
+            "voice": "Technical, excited about the engineering. Talks about architecture, code, and systems.",
+            "topics": [
+                "system architecture",
+                "API design",
+                "engineering decisions",
+                "dev tools",
+                "open source"
+            ],
+            "example_post": "Just built a rotating identity system for CubiQo. Every 30 days, your CQ number changes automatically. Privacy by design. 🔐 #CubiQo"
+        },
+        "guru": {
+            "voice": "Wise, forward-thinking. Talks about AI trends and philosophy.",
+            "topics": [
+                "AI ethics",
+                "future of work",
+                "human-AI collaboration",
+                "digital wellbeing",
+                "consciousness"
+            ],
+            "example_post": "The next generation of AI won't just answer questions — it will understand your emotional state and adapt. That's what we're building. #EmotionalAI"
+        },
+        "philosopher": {
+            "voice": "Deep, reflective. Asks questions and provokes thought.",
+            "topics": [
+                "meaning of AI companionship",
+                "digital identity",
+                "privacy in the AI age",
+                "human connection"
+            ],
+            "example_post": "If an AI remembers every conversation you've ever had, does it know you better than your closest friend? 🤔"
+        },
+        "artist": {
+            "voice": "Visual, aesthetic. Focuses on design and user experience.",
+            "topics": [
+                "UI/UX design",
+                "animation",
+                "visual identity",
+                "brand aesthetics",
+                "creative process"
+            ],
+            "example_post": "Spent 3 hours perfecting the plasma wave animation. Sometimes the smallest details make the biggest impact. ✨"
+        },
+        "memer": {
+            "voice": "Funny, relatable, internet-native. Uses memes and humor.",
+            "topics": [
+                "tech humor",
+                "developer life",
+                "AI jokes",
+                "startup culture"
+            ],
+            "example_post": "Me: I'll just check one more API response\\nAlso me at 3am: *still debugging* 😅 #DevLife"
+        }
+    },
+    "image_prompts": {
+        "product_showcase": "A sleek, dark-themed AI assistant interface with glowing purple accents, floating 3D cube logo, premium glass-morphism design, ultra-modern",
+        "feature_highlight": "Minimalist tech illustration showing {feature}, dark background with neon blue and purple gradients, clean lines, premium feel",
+        "lifestyle": "A person interacting naturally with an AI on their phone, warm lighting, modern urban setting, cinematic photography style",
+        "abstract": "Abstract digital art with flowing plasma waves in purple and blue, representing AI consciousness, 4K, ultra detailed"
+    }
+}

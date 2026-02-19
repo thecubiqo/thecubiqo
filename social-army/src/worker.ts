@@ -1,10 +1,16 @@
+/**
+ * Social Army Worker v2
+ * 
+ * Polls the content_queue, generates REAL content using the Content Engine,
+ * and updates the database with results.
+ */
 
 import { createClient } from '@supabase/supabase-js';
+import { generateContent } from './content-engine';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load environment variables from .env.local (in root or current dir)
-// We try both locations to be flexible
+// Load environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '../.env.local') });
 
@@ -13,17 +19,17 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
     console.error('❌ Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-    console.error('   Please ensure .env or ../.env.local exists with these keys.');
+    console.error('   Create a .env file with these keys.');
     process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+// ─── Process Queue ───────────────────────────────────────
 async function processQueue() {
-    // 1. Fetch pending items
     const { data: items, error } = await supabase
         .from('content_queue')
-        .select('*, social_campaigns(name), social_accounts(username, platform)')
+        .select('*, social_campaigns(name, seed_topic), social_accounts(username, platform, persona_type)')
         .eq('generation_status', 'pending')
         .limit(5);
 
@@ -32,51 +38,96 @@ async function processQueue() {
         return;
     }
 
-    if (!items || items.length === 0) {
-        return;
-    }
+    if (!items || items.length === 0) return;
 
-    console.log(`Found ${items.length} pending items.`);
+    console.log(`\n📦 Found ${items.length} pending items.`);
 
-    // 2. Process each item
     for (const item of items) {
-        console.log(`\n🤖 Processing Item ${item.id}`);
-        console.log(`   Campaign: ${item.social_campaigns?.name}`);
-        console.log(`   Target: @${item.social_accounts?.username} on ${item.social_accounts?.platform}`);
-        console.log(`   Task: Generate ${item.content_type}`);
+        const account = item.social_accounts;
+        const campaign = item.social_campaigns;
 
-        // Update to 'processing'
-        // Using "any" cast to bypass strict TS check if types aren't perfectly aligned in this standalone script
-        await supabase.from('content_queue').update({ generation_status: 'processing' } as any).eq('id', item.id);
+        console.log(`\n🤖 Processing Item ${item.id.slice(0, 8)}...`);
+        console.log(`   Campaign: "${campaign?.name}" (Topic: ${campaign?.seed_topic})`);
+        console.log(`   Target: @${account?.username} on ${account?.platform}`);
+        console.log(`   Persona: ${account?.persona_type}`);
 
-        // MOCK GENERATION DELAY (Simulate AI Work)
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // MOCK POSTING
-        const mockUrl = `https://${item.social_accounts?.platform}.com/${item.social_accounts?.username}/status/${Date.now()}`;
-
-        // Update to 'posted'
-        const { error: updateError } = await supabase
+        // Mark as processing
+        await supabase
             .from('content_queue')
-            .update({
-                generation_status: 'posted',
-                posted_at: new Date().toISOString(),
-                asset_url: mockUrl,
-                caption: item.caption || 'Auto-generated content #CubiQo'
-            } as any)
+            .update({ generation_status: 'processing' } as any)
             .eq('id', item.id);
 
-        if (updateError) {
-            console.error(`❌ Failed to update item ${item.id}:`, updateError);
-        } else {
-            console.log(`✅ Success! Posted to ${mockUrl}`);
+        try {
+            // ─── REAL CONTENT GENERATION ───
+            const content = await generateContent({
+                campaignTopic: campaign?.seed_topic || 'CubiQo AI',
+                personaType: account?.persona_type || 'builder',
+                platform: account?.platform || 'twitter',
+                contentType: item.content_type || 'text'
+            });
+
+            console.log(`   📝 Caption: "${content.caption.substring(0, 80)}..."`);
+            if (content.imageUrl) {
+                console.log(`   🖼️  Image: ${content.imageUrl.substring(0, 60)}...`);
+            }
+
+            // Update to 'ready' (content generated, awaiting posting)
+            await supabase
+                .from('content_queue')
+                .update({
+                    generation_status: 'ready',
+                    caption: content.caption,
+                    asset_url: content.imageUrl || null
+                } as any)
+                .eq('id', item.id);
+
+            console.log(`   ✅ Content generated and saved.`);
+
+        } catch (err: any) {
+            console.error(`   ❌ Generation failed: ${err.message}`);
+            await supabase
+                .from('content_queue')
+                .update({
+                    generation_status: 'failed'
+                } as any)
+                .eq('id', item.id);
         }
     }
 }
 
-// 3. Campaign Manager (Auto-generate tasks)
+// ─── Auto-Post Ready Content ─────────────────────────────
+async function postReadyContent() {
+    const { data: readyItems } = await supabase
+        .from('content_queue')
+        .select('*, social_accounts(username, platform)')
+        .eq('generation_status', 'ready')
+        .limit(3);
+
+    if (!readyItems || readyItems.length === 0) return;
+
+    for (const item of readyItems) {
+        // In production, this is where Puppeteer would log in and post.
+        // For now, we simulate posting.
+        const postUrl = `https://${item.social_accounts?.platform}.com/${item.social_accounts?.username}/post/${Date.now()}`;
+
+        console.log(`\n🚀 POSTING to ${item.social_accounts?.platform.toUpperCase()}`);
+        console.log(`   @${item.social_accounts?.username}: "${(item.caption || '').substring(0, 60)}..."`);
+
+        await supabase
+            .from('content_queue')
+            .update({
+                generation_status: 'posted',
+                posted_at: new Date().toISOString(),
+                asset_url: item.asset_url || postUrl
+            } as any)
+            .eq('id', item.id);
+
+        console.log(`   ✅ Posted! ${postUrl}`);
+    }
+}
+
+// ─── Campaign Manager ────────────────────────────────────
 async function manageCampaigns() {
-    // Determine if we need to generate new tasks for running campaigns
     const { data: campaigns } = await supabase
         .from('social_campaigns')
         .select('*')
@@ -85,57 +136,58 @@ async function manageCampaigns() {
     if (!campaigns || campaigns.length === 0) return;
 
     for (const campaign of campaigns) {
-        // Check if campaign has waiting tasks (pending or processing)
         const { count } = await supabase
             .from('content_queue')
             .select('*', { count: 'exact', head: true })
             .eq('campaign_id', campaign.id)
-            .in('generation_status', ['pending', 'processing']);
+            .in('generation_status', ['pending', 'processing', 'ready']);
 
-        // Only generate new tasks if queue is empty for this campaign
         if (count === 0) {
-            console.log(`\n📢 Generating tasks for campaign: ${campaign.name}`);
+            console.log(`\n📢 Auto-generating task for campaign: "${campaign.name}"`);
 
-            // Get a random active account
-            const { data: accounts } = await supabase.from('social_accounts').select('id, username').eq('status', 'active');
+            const { data: accounts } = await supabase
+                .from('social_accounts')
+                .select('id, username, persona_type')
+                .eq('status', 'active');
 
             if (!accounts || accounts.length === 0) {
-                console.log('   ⚠️ No active accounts available to assign task.');
+                console.log('   ⚠️ No active accounts available.');
                 continue;
             }
 
             const randomAccount = accounts[Math.floor(Math.random() * accounts.length)];
+            const contentType = Math.random() > 0.3 ? 'text' : 'image'; // 70% text, 30% image
 
-            // Insert a new task
-            const { error } = await supabase.from('content_queue').insert({
+            await supabase.from('content_queue').insert({
                 campaign_id: campaign.id,
                 target_account_id: randomAccount.id,
-                content_type: Math.random() > 0.5 ? 'text' : 'image', // Random type
-                caption: `Auto-generated post for campaign: ${campaign.seed_topic} [${new Date().toLocaleTimeString()}]`,
-                generation_status: 'pending' // Ready for processing
+                content_type: contentType,
+                caption: null, // Will be generated by content engine
+                generation_status: 'pending'
             } as any);
 
-            if (error) console.error('   ❌ Failed to generate task:', error);
-            else console.log(`   ✅ Added new task for @${randomAccount.username}`);
+            console.log(`   ✅ Queued ${contentType} task for @${randomAccount.username} (${randomAccount.persona_type})`);
         }
     }
 }
 
-// Main Loop
+// ─── Main Loop ───────────────────────────────────────────
 async function main() {
-    console.log('🚀 Social Army Worker Started');
-    console.log('   Press Ctrl+C to stop');
-    console.log('   (Polling every 5 seconds...)');
+    console.log('⚔️  Social Army Worker v2 Started');
+    console.log('   Content Engine: ACTIVE');
+    console.log(`   Supabase: ${supabaseUrl}`);
+    console.log(`   API Keys: Gemini=${process.env.GEMINI_API_KEY ? '✅' : '❌'} | OpenAI=${process.env.OPENAI_API_KEY ? '✅' : '❌'}`);
+    console.log('   Press Ctrl+C to stop\n');
 
-    // Run immediately once
-    await manageCampaigns();
-    await processQueue();
-
-    // Then loop
     while (true) {
+        try {
+            await manageCampaigns();
+            await processQueue();
+            await postReadyContent();
+        } catch (err) {
+            console.error('Loop error:', err);
+        }
         await new Promise(resolve => setTimeout(resolve, 5000));
-        await manageCampaigns();
-        await processQueue();
     }
 }
 
