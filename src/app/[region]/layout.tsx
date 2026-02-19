@@ -2,10 +2,6 @@ import { notFound } from 'next/navigation'
 import { getRegionConfig } from '@/lib/config/regions'
 import { RegionProvider } from '@/contexts/RegionContext'
 
-// Force dynamic rendering to prevent auth state caching
-// This is necessary for proper magic-link authentication flow
-export const dynamic = 'force-dynamic'
-
 // Valid region IDs - static list for build time
 const VALID_REGIONS = ['uk']
 
@@ -22,6 +18,8 @@ export default async function RegionalLayout({
   const { region } = await params
 
   // Validate region
+  if (region.startsWith('found') || region === 'rescue') return children; // Pass through to middleware or static routes
+
   if (!VALID_REGIONS.includes(region)) {
     notFound()
   }
