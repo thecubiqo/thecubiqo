@@ -10,6 +10,37 @@ import FileExplorer from './FileExplorer';
 export default function StudioLayout() {
   const [currentFile, setCurrentFile] = useState<string>('app/page.tsx');
   const [fileContent, setFileContent] = useState<string>('// Welcome to CubiQo Studio\n// Start building with AI\n\nexport default function Home() {\n  return (\n    <div>\n      <h1>Hello from Studio!</h1>\n    </div>\n  );\n}');
+  const [isDeploying, setIsDeploying] = useState(false);
+
+  const handleDeploy = async () => {
+    if (isDeploying) return;
+    
+    setIsDeploying(true);
+    try {
+      const response = await fetch('/api/emergent/deploy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: 'demo-project',
+          environment: 'production',
+          platform: 'vercel',
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`Deployment started! ID: ${data.deployment.id}\n${data.deployment.message}`);
+      } else {
+        alert('Deployment failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Deploy error:', error);
+      alert('Failed to trigger deployment');
+    } finally {
+      setIsDeploying(false);
+    }
+  };
 
   return (
     <div className="h-screen flex flex-col bg-gray-900 text-white">
@@ -19,8 +50,12 @@ export default function StudioLayout() {
           <h1 className="text-xl font-bold text-teal-400">CubiQo Studio</h1>
           <span className="text-sm text-gray-400">{currentFile}</span>
         </div>
-        <button className="px-4 py-2 bg-teal-500 hover:bg-teal-600 rounded-md font-medium transition-colors">
-          Deploy Now
+        <button 
+          onClick={handleDeploy}
+          disabled={isDeploying}
+          className="px-4 py-2 bg-teal-500 hover:bg-teal-600 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isDeploying ? 'Deploying...' : 'Deploy Now'}
         </button>
       </header>
 
