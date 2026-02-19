@@ -295,6 +295,15 @@ export type MultimodalErrorCode =
   | 'NETWORK_ERROR';
 
 // ============================================================================
+// ADDITIONAL TYPE ALIASES FOR COMPATIBILITY
+// ============================================================================
+
+export type CameraType = 'front' | 'back';
+export type VisionDetection = ObjectDetection;
+export type CameraPermissionState = { granted: boolean; denied: boolean; prompt: boolean };
+export type MicrophonePermissionState = { granted: boolean; denied: boolean; prompt: boolean };
+
+// ============================================================================
 // HOOK RETURN TYPES
 // ============================================================================
 
@@ -387,48 +396,4 @@ export interface MultimodalAnalytics {
   };
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export type {
-  // Vision
-  ObjectDetection,
-  FaceDetection,
-  BoundingBox,
-  Landmark,
-  FaceAttributes,
-  ProcessedFrame,
-  VisionResult,
-  
-  // Audio
-  AudioFeatures,
-  EmotionType,
-  EmotionState,
-  
-  // Multimodal
-  MultimodalContext,
-  UserState,
-  EnhancedPrompt,
-  MultimodalConfig,
-  
-  // Permissions
-  PermissionState,
-  MediaPermissions,
-  
-  // Hooks
-  UseCameraReturn,
-  UseVisionReturn,
-  UseEmotionDetectionReturn,
-  UseMultimodalAIReturn,
-  
-  // Events
-  MultimodalEvent,
-  MultimodalEventHandler,
-  
-  // Analytics
-  MultimodalAnalytics,
-};
-
-export { MultimodalError };
-export type { MultimodalErrorCode };
+// All types are already exported above via their declarations
