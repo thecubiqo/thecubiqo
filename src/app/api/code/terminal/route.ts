@@ -3,8 +3,10 @@
  * Execute shell commands with output streaming
  * 
  * Security Features:
- * - Command whitelist (optional)
- * - Workspace isolation
+ * - Auth guard (Supabase session required)
+ * - Command sanitization (blocked patterns, allowed commands)
+ * - Workspace isolation (keyed by user ID)
+ * - Rate limiting (20 req/min per user)
  * - Timeout protection
  * - Background process management
  */
@@ -12,13 +14,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { spawn, ChildProcess } from 'child_process'
 import { join } from 'path'
+import { createClient } from '@/lib/supabase/server'
 
 interface TerminalRequest {
   command: string
   sessionId?: string
   timeout?: number // in seconds
   background?: boolean
-  env?: Record<string, string>
 }
 
 interface TerminalResponse {
@@ -36,9 +38,92 @@ const WORKSPACE_BASE = process.env.CODE_WORKSPACE_BASE || '/tmp/cubiqo-workspace
 // Store background processes
 const backgroundProcesses = new Map<string, { process: ChildProcess; startTime: number }>()
 
-// Get user workspace
-function getUserWorkspace(sessionId: string): string {
-  return join(WORKSPACE_BASE, sessionId)
+// Simple in-memory rate limiter (20 req/min per user)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+const RATE_LIMIT_MAX = 20
+const RATE_LIMIT_WINDOW_MS = 60_000
+
+function checkRateLimit(userId: string): { allowed: boolean; remaining: number; resetAt: number } {
+  const now = Date.now()
+  const entry = rateLimitMap.get(userId)
+
+  if (!entry || now >= entry.resetAt) {
+    const resetAt = now + RATE_LIMIT_WINDOW_MS
+    rateLimitMap.set(userId, { count: 1, resetAt })
+    return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetAt }
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return { allowed: false, remaining: 0, resetAt: entry.resetAt }
+  }
+
+  entry.count++
+  return { allowed: true, remaining: RATE_LIMIT_MAX - entry.count, resetAt: entry.resetAt }
+}
+
+// Blocked command patterns (security)
+const BLOCKED_PATTERNS = [
+  /\brm\s+(-rf?|--recursive)\s+\//i,  // rm -rf /
+  /\b(sudo|su)\b/i,                    // privilege escalation
+  /\bcurl\b.*\|\s*(ba)?sh/i,           // pipe to shell
+  /\bwget\b.*\|\s*(ba)?sh/i,           // pipe to shell
+  /\b(mkfs|fdisk|dd)\b/i,             // disk operations
+  /\b(shutdown|reboot|halt|poweroff)\b/i, // system control
+  /\bchmod\s+[0-7]*777\b/i,           // dangerous permissions
+  />\s*\/etc\//,                        // write to /etc
+  />\s*\/proc\//,                       // write to /proc
+  /\beval\b/,                           // eval injection
+  /\$\(.*\)/,                           // command substitution
+  /`[^`]+`/,                            // backtick command substitution
+]
+
+// Allowed command prefixes
+const ALLOWED_COMMANDS = [
+  'ls', 'cat', 'echo', 'pwd', 'whoami', 'date', 'head', 'tail',
+  'grep', 'find', 'wc', 'sort', 'uniq', 'diff', 'tree',
+  'node', 'npm', 'npx', 'tsx', 'tsc',
+  'python', 'python3', 'pip',
+  'git', 'cd', 'mkdir', 'touch', 'cp', 'mv',
+]
+
+function sanitizeCommand(command: string): { safe: boolean; reason?: string } {
+  const trimmed = command.trim()
+
+  if (!trimmed) {
+    return { safe: false, reason: 'Empty command' }
+  }
+
+  // Check blocked patterns
+  for (const pattern of BLOCKED_PATTERNS) {
+    if (pattern.test(trimmed)) {
+      return { safe: false, reason: 'Command contains blocked pattern' }
+    }
+  }
+
+  // Check command starts with allowed prefix
+  const baseCommand = trimmed.split(/\s+/)[0].replace(/^\.\//, '')
+  if (!ALLOWED_COMMANDS.includes(baseCommand)) {
+    return { safe: false, reason: `Command '${baseCommand}' is not in the allowed list` }
+  }
+
+  return { safe: true }
+}
+
+// Authenticate request and return user
+async function authenticateRequest() {
+  const supabase = await createClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+
+  if (error || !user) {
+    return null
+  }
+
+  return user
+}
+
+// Get user workspace (keyed by user ID for isolation)
+function getUserWorkspace(userId: string): string {
+  return join(WORKSPACE_BASE, userId)
 }
 
 // Execute command
@@ -46,8 +131,7 @@ async function executeCommand(
   command: string,
   workspaceDir: string,
   timeout: number,
-  background: boolean,
-  env: Record<string, string> = {}
+  background: boolean
 ): Promise<TerminalResponse> {
   const startTime = Date.now()
 
@@ -55,7 +139,11 @@ async function executeCommand(
     const child = spawn(command, {
       cwd: workspaceDir,
       shell: '/bin/bash',
-      env: { ...process.env, ...env }
+      env: {
+        PATH: process.env.PATH,
+        HOME: workspaceDir,
+        TERM: 'xterm-256color',
+      }
     })
 
     let stdout = ''
@@ -82,15 +170,6 @@ async function executeCommand(
         exitCode: null,
         pid,
         background: true
-      })
-      
-      // Keep process alive and log output
-      child.stdout.on('data', (data) => {
-        console.log(`[Background PID ${pid}] stdout:`, data.toString())
-      })
-      
-      child.stderr.on('data', (data) => {
-        console.log(`[Background PID ${pid}] stderr:`, data.toString())
       })
       
       child.on('exit', () => {
@@ -131,13 +210,32 @@ async function executeCommand(
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check
+    const user = await authenticateRequest()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Rate limit check
+    const rateLimit = checkRateLimit(user.id)
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+            'X-RateLimit-Remaining': '0',
+          }
+        }
+      )
+    }
+
     const body: TerminalRequest = await request.json()
     const {
       command,
-      sessionId = 'default',
       timeout = 30,
       background = false,
-      env = {}
     } = body
 
     if (!command) {
@@ -147,17 +245,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const workspaceDir = getUserWorkspace(sessionId)
+    // Sanitize command
+    const sanitized = sanitizeCommand(command)
+    if (!sanitized.safe) {
+      return NextResponse.json(
+        { error: `Command rejected: ${sanitized.reason}` },
+        { status: 403 }
+      )
+    }
+
+    const workspaceDir = getUserWorkspace(user.id)
 
     const result = await executeCommand(
       command,
       workspaceDir,
-      timeout,
-      background,
-      env
+      Math.min(timeout, 60), // Cap timeout at 60s
+      background
     )
 
-    return NextResponse.json(result)
+    return NextResponse.json(result, {
+      headers: {
+        'X-RateLimit-Remaining': String(rateLimit.remaining),
+      }
+    })
 
   } catch (error) {
     console.error('Terminal execution error:', error)
@@ -175,6 +285,12 @@ export async function POST(request: NextRequest) {
 
 // GET endpoint to check background process status
 export async function GET(request: NextRequest) {
+  // Auth check
+  const user = await authenticateRequest()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { searchParams } = new URL(request.url)
   const pid = searchParams.get('pid')
 
@@ -208,6 +324,12 @@ export async function GET(request: NextRequest) {
 
 // DELETE endpoint to kill background process
 export async function DELETE(request: NextRequest) {
+  // Auth check
+  const user = await authenticateRequest()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { searchParams } = new URL(request.url)
   const pid = searchParams.get('pid')
 
@@ -254,7 +376,7 @@ export async function OPTIONS() {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     }
   })
 }

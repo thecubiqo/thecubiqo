@@ -50,21 +50,33 @@ async function startDaemon() {
   // Login once at startup
   await gfx.login();
 
+  // Recursive campaign loop with error handling
+  async function scheduleNext() {
+    setTimeout(async () => {
+      try {
+        const isSystemOn = process.env.SOCIAL_ARMY_STATUS === 'ON';
+
+        if (isSystemOn) {
+          console.log('\n⏰ Scheduled Cycle Triggered...');
+          await runCampaign();
+        } else {
+          console.log('\nzzz System Paused. Waiting for Start signal...');
+        }
+      } catch (err) {
+        console.error('❌ Campaign cycle error:', err.message);
+      }
+      scheduleNext();
+    }, 10 * 60 * 1000);
+  }
+
   // Initial Run
-  await runCampaign();
+  try {
+    await runCampaign();
+  } catch (err) {
+    console.error('❌ Initial campaign error:', err.message);
+  }
 
-  // Schedule Loop (10 minutes = 600,000 ms)
-  setInterval(async () => {
-    // Check if system is enabled in DB (Mock for now, would be supabase query)
-    const isSystemOn = process.env.SOCIAL_ARMY_STATUS === 'ON';
-
-    if (isSystemOn) {
-      console.log('\n⏰ Scheduled Cycle Triggered...');
-      await runCampaign();
-    } else {
-      console.log('\nzzz System Paused. Waiting for Start signal...');
-    }
-  }, 10 * 60 * 1000);
+  scheduleNext();
 }
 
 startDaemon();

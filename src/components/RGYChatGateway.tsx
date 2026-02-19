@@ -41,18 +41,8 @@ export function RGYChatGatewayButton({ onOpen, isDark = true }: RGYChatGatewayPr
       <div 
         className="w-4 h-4 rounded-full transition-transform"
         style={{ 
-          backgroundColor: '#ef4444',
-          boxShadow: isHovered ? '0 0 8px #ef4444' : undefined,
-          transform: isHovered ? 'scale(1.2)' : undefined
-        }}
-      />
-      
-      {/* Green dot */}
-      <div 
-        className="w-4 h-4 rounded-full transition-transform"
-        style={{ 
-          backgroundColor: '#22c55e',
-          boxShadow: isHovered ? '0 0 8px #22c55e' : undefined,
+          backgroundColor: '#c2185b',
+          boxShadow: isHovered ? '0 0 8px #c2185b' : undefined,
           transform: isHovered ? 'scale(1.2)' : undefined
         }}
       />
@@ -61,8 +51,18 @@ export function RGYChatGatewayButton({ onOpen, isDark = true }: RGYChatGatewayPr
       <div 
         className="w-4 h-4 rounded-full transition-transform"
         style={{ 
-          backgroundColor: '#eab308',
-          boxShadow: isHovered ? '0 0 8px #eab308' : undefined,
+          backgroundColor: '#ffa000',
+          boxShadow: isHovered ? '0 0 8px #ffa000' : undefined,
+          transform: isHovered ? 'scale(1.2)' : undefined
+        }}
+      />
+      
+      {/* Green dot */}
+      <div 
+        className="w-4 h-4 rounded-full transition-transform"
+        style={{ 
+          backgroundColor: '#00897b',
+          boxShadow: isHovered ? '0 0 8px #00897b' : undefined,
           transform: isHovered ? 'scale(1.2)' : undefined
         }}
       />
@@ -82,9 +82,9 @@ export function RGYChatGatewayModal({ isOpen, onClose, isDark = true }: RGYChatG
   if (!isOpen) return null
 
   const tabs = [
-    { id: 'red' as const, label: 'Intimate', color: '#ef4444', description: 'Deep, personal conversations' },
-    { id: 'green' as const, label: 'Office', color: '#22c55e', description: 'Professional, focused discussions' },
-    { id: 'yellow' as const, label: 'Cafe', color: '#eab308', description: 'Casual, friendly chats' },
+    { id: 'red' as const, label: 'Intimate', color: '#c2185b', description: 'Deep, personal conversations' },
+    { id: 'green' as const, label: 'Office', color: '#00897b', description: 'Professional, focused discussions' },
+    { id: 'yellow' as const, label: 'Cafe', color: '#ffa000', description: 'Casual, friendly chats' },
   ]
 
   return (

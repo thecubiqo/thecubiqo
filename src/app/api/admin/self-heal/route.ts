@@ -12,11 +12,17 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(req: NextRequest) {
   try {
+    const supabase = await createClient();
+
+    // Auth check - admin endpoint requires authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get('limit') || '30', 10);
     const statusFilter = searchParams.get('status');
-
-    const supabase = await createClient();
 
     // Build query
     let query = (supabase as any)
