@@ -1,14 +1,22 @@
 import { bootstrapAgents } from './bootstrap';
+import { startCron } from './cron';
 
 let initialized = false;
 
 export async function initializeEngine() {
   if (initialized) return;
   
+  // Skip initialization during build time
+  if (process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_SUPABASE_URL1) {
+    console.log('⏭️ Skipping Agent Engine init (build time)');
+    return;
+  }
+
   console.log('🤖 Initializing CubiQo Agent Engine...');
-  
+
   try {
     await bootstrapAgents();
+    startCron();
     initialized = true;
     console.log('✅ Agent Engine ready');
   } catch (error) {
@@ -16,7 +24,7 @@ export async function initializeEngine() {
   }
 }
 
-// Auto-initialize on import (server-side only)
-if (typeof window === 'undefined') {
+// Auto-initialize on import (server-side only, not during build)
+if (typeof window === 'undefined' && process.env.NEXT_PHASE !== 'phase-production-build') {
   initializeEngine();
 }

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Emergency Rescue</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+    input { background: #111; color: #fff; border: 1px solid #333; padding: 12px; border-radius: 8px; font-size: 24px; text-align: center; margin-bottom: 20px; letter-spacing: 4px; width: 200px; }
+    button { background: #f59e0b; color: #000; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
+    .hidden { display: none; }
+    .success { color: #10b981; margin-top: 20px; }
+    .error { color: #ef4444; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Emergency Access</h1>
+  <p style="color: #888; margin-bottom: 30px;">Static Override Bypass</p>
+  
+  <input type="password" id="pin" placeholder="PIN" maxlength="4" />
+  <button onclick="attempt rescue()">Force Entry</button>
+  <p id="status"></p>
+
+  <script>
+    function rescue() {
+      const pin = document.getElementById('pin').value;
+      const status = document.getElementById('status');
+      
+      if (pin === '2026') {
+        status.innerText = 'Success! Redirecting...';
+        status.className = 'success';
+        
+        // Set the session storage flag directly
+        sessionStorage.setItem('founders_pass_auth', 'true');
+        
+        // Force redirect to dashboard
+        setTimeout(() => {
+          window.location.href = '/founderspass/dashboard';
+        }, 1000);
+      } else {
+        status.innerText = 'Invalid PIN';
+        status.className = 'error';
+      }
+    }
+    
+    document.querySelector('button').addEventListener('click', rescue);
+    document.getElementById('pin').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') rescue();
+    });
+  </script>
+</body>
+</html>
