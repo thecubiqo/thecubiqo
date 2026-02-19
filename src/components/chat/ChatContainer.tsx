@@ -7,6 +7,7 @@
 import { useRef, useEffect, useCallback } from 'react'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
+import { AutopilotStatus } from './AutopilotStatus'
 import { useChat } from '@/hooks/useChat'
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
 import type { ColorName } from '@/config/colors'
@@ -151,6 +152,9 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
           </div>
         </div>
       )}
+
+      {/* Autopilot Status - shows background agent work */}
+      <AutopilotStatus sessionId={sessionId} />
 
       {/* Input Area */}
       <ChatInput onSend={handleSend} disabled={isLoading || !isInitialized} />

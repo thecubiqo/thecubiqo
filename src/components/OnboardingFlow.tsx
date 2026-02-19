@@ -9,6 +9,7 @@ export interface OnboardingConfig {
     codeExecution: boolean;
     fileManagement: boolean;
     memory: boolean;
+    cubiqoAutopilot: boolean;
   };
   oauthConnections: {
     github: boolean;
@@ -31,6 +32,7 @@ export default function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowPro
       codeExecution: false,
       fileManagement: true,
       memory: true,
+      cubiqoAutopilot: true,
     },
     oauthConnections: {
       github: false,
@@ -116,6 +118,13 @@ export default function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowPro
                 description="Remember conversations and learn from interactions"
                 enabled={config.featureToggles.memory}
                 onChange={() => handleToggleFeature('memory')}
+              />
+
+              <FeatureToggle
+                label="CubiQo Autopilot"
+                description="CubiQo does real work while chatting — auto-fills your profile, researches topics, and organizes info in the background"
+                enabled={config.featureToggles.cubiqoAutopilot}
+                onChange={() => handleToggleFeature('cubiqoAutopilot')}
               />
             </div>
           </div>

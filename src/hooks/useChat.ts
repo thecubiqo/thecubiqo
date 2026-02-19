@@ -344,6 +344,21 @@ export function useChat(options: UseChatOptions) {
         })
       }).catch(console.warn)
 
+      // Background autopilot profile fill - CubiQo autonomously
+      // fills the user's profile from conversation data while chatting
+      fetch('/api/autopilot/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getBYOHeaders()
+        },
+        body: JSON.stringify({
+          sessionId,
+          userMessage: message,
+          aiResponse: data.response
+        })
+      }).catch(console.warn)
+
       const newEntry: ConversationEntry = {
         userMessage: message,
         aiResponse: data.response,
