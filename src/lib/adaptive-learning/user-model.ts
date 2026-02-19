@@ -57,7 +57,7 @@ export function createUserModel(userId: string): UserAdaptiveModel {
 export function classifyEngagement(
   messageLength: number,
   hasQuestions: boolean,
-  sharedsPersonalInfo: boolean
+  sharedPersonalInfo: boolean
 ): EngagementLevel {
   let score = 0
 
@@ -67,7 +67,7 @@ export function classifyEngagement(
   else if (messageLength > 30) score += 1
 
   if (hasQuestions) score += 1
-  if (sharedsPersonalInfo) score += 2
+  if (sharedPersonalInfo) score += 2
 
   if (score >= 5) return 'deep'
   if (score >= 3) return 'high'

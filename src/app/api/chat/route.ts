@@ -51,7 +51,7 @@ const MINIMAX_RATE_LIMIT = 100 // requests per hour
 const MINIMAX_RATE_WINDOW = 60 * 60 * 1000 // 1 hour in ms
 
 // In-memory adaptive user model store (keyed by sessionId)
-// In production, this would be persisted to Supabase
+// TODO: Persist to Supabase for cross-instance and restart durability
 const userModelStore = new Map<string, UserAdaptiveModel>()
 
 // Sensitive content patterns for classification layer
