@@ -7,12 +7,16 @@ export { BrowserService } from './browser-service';
 export { BrowserCommandParser } from './command-parser';
 export type { 
   BrowserAction, 
-  BrowserResult, 
+  BrowserResult,
+  BrowserSession,
   NavigateAction,
   ClickAction,
   TypeAction,
   ScreenshotAction,
   ScrapeAction,
   FillFormAction,
-  WaitAction
+  WaitAction,
+  ScrollAction,
+  ExtractAction,
+  ConsentRequest,
 } from './types';

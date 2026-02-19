@@ -41,14 +41,23 @@
             text-overflow: ellipsis;
             max-width: 200px;
         }
+
+        #connection-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            margin-left: 8px;
+        }
     </style>
 </head>
 
 <body>
     <div id="status-bar">
         <span>👁️ Watching: <span id="current-url">...</span></span>
+        <span id="connection-status" title="Connected"></span>
     </div>
-    <!-- Pointing to localhost for development testing -->
+    <!-- App URL: Uses localhost for development. For production, update to https://www.cubiqo.ai -->
     <iframe src="http://localhost:3000/side-panel?mode=extension" id="app-frame" allow="microphone; camera"></iframe>
     <script src="sidepanel.js"></script>
 </body>
