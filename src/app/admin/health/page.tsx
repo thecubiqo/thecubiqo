@@ -215,20 +215,21 @@ export default function HealthPage() {
               <div className="w-full bg-gray-800 rounded-full h-3">
                 <div
                   className="bg-blue-500 h-3 rounded-full transition-all"
-                  style={{ width: '100%' }}
+                  style={{ width: `${Math.min((data.memory.rss / (data.memory.rss * 1.5)) * 100, 100)}%` }}
                 ></div>
               </div>
+              <p className="text-xs text-gray-500 mt-1">Total process memory</p>
             </div>
             
             <div>
               <div className="flex justify-between mb-2">
                 <span className="text-gray-400">Heap Total</span>
-                <span className="font-mono">{data.memory.heapTotal} MB</span>
+                <span className="font-mono">{data.memory.heapTotal} MB ({((data.memory.heapTotal / data.memory.rss) * 100).toFixed(1)}% of RSS)</span>
               </div>
               <div className="w-full bg-gray-800 rounded-full h-3">
                 <div
                   className="bg-purple-500 h-3 rounded-full transition-all"
-                  style={{ width: '100%' }}
+                  style={{ width: `${Math.min((data.memory.heapTotal / data.memory.rss) * 100, 100)}%` }}
                 ></div>
               </div>
             </div>
