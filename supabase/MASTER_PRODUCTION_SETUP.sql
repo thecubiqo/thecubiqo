@@ -217,7 +217,7 @@ CREATE POLICY notifications_policy ON cq_notifications FOR ALL USING (auth.uid()
 
 create table if not exists social_accounts (
   id uuid default gen_random_uuid() primary key,
-  platform text not null check (platform in ('twitter', 'tiktok', 'linkedin', 'instagram', 'youtube')),
+  platform text not null check (platform in ('twitter', 'tiktok', 'linkedin', 'instagram', 'youtube', 'reddit', 'pinterest', 'threads', 'facebook', 'discord')),
   username text not null,
   password_encrypted text,
   persona_type text check (persona_type in ('builder', 'guru', 'philosopher', 'artist', 'memer')),
