@@ -1,5 +1,16 @@
 name: Staging Preview Validation
 
+# Deployment Flow:
+#   1. Feature PR → staging0217  (this workflow validates: lint, build, test)
+#   2. Vercel auto-deploys preview → STAGING_PREVIEW_URL (staging Supabase DB)
+#   3. Verify staging preview manually
+#   4. Open PR: staging0217 → main  (CI workflow validates again)
+#   5. Approve + merge → Vercel deploys to cubiqo.ai (production Supabase DB)
+#
+# Deployment Targets:
+#   staging0217 branch → cubiqo-repo-git-staging0217-cubiqo-projects.vercel.app (staging)
+#   main branch        → cubiqo.ai / www.cubiqo.ai (production)
+
 on:
   pull_request:
     branches: [staging0217]
@@ -13,6 +24,7 @@ permissions:
 
 env:
   STAGING_PREVIEW_URL: https://cubiqo-repo-git-staging0217-cubiqo-projects.vercel.app
+  PRODUCTION_URL: https://cubiqo.ai
 
 jobs:
   validate:
@@ -53,9 +65,17 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ Build and tests passed for staging0217 preview" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Preview URL:** ${{ env.STAGING_PREVIEW_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Targets" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Branch | URL | Database |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|-----|----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Staging (current)** | \`staging0217\` | [${{ env.STAGING_PREVIEW_URL }}](${{ env.STAGING_PREVIEW_URL }}) | cubiqo-staging |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Production (next)** | \`main\` | [${{ env.PRODUCTION_URL }}](${{ env.PRODUCTION_URL }}) | cubiqo-production |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Once verified on staging, approve and merge to \`main\` for production." >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Merge this PR into \`staging0217\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Verify at the staging URL above" >> $GITHUB_STEP_SUMMARY
+          echo "3. Open PR: \`staging0217\` → \`main\` to promote to production" >> $GITHUB_STEP_SUMMARY
+          echo "4. Approve + merge → deploys to ${{ env.PRODUCTION_URL }}" >> $GITHUB_STEP_SUMMARY
 
   staging-ready:
     name: Staging Ready Check
@@ -66,13 +86,17 @@ jobs:
     steps:
       - name: Report staging deployment status
         run: |
-          echo "## Staging Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "## Staging Deployment Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ Changes validated and deployed to staging0217" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Preview URL:** ${{ env.STAGING_PREVIEW_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Targets" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Branch | URL | Database |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|-----|----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Staging (deployed)** | \`staging0217\` | [${{ env.STAGING_PREVIEW_URL }}](${{ env.STAGING_PREVIEW_URL }}) | cubiqo-staging |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Production (pending)** | \`main\` | [${{ env.PRODUCTION_URL }}](${{ env.PRODUCTION_URL }}) | cubiqo-production |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "1. Verify the preview deployment at the URL above" >> $GITHUB_STEP_SUMMARY
-          echo "2. Open a PR from \`staging0217\` → \`main\` to promote to production" >> $GITHUB_STEP_SUMMARY
-          echo "3. Upon approval and merge, changes will deploy to cubiqo.ai" >> $GITHUB_STEP_SUMMARY
+          echo "### To Promote to Production" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Verify the staging preview at the URL above" >> $GITHUB_STEP_SUMMARY
+          echo "2. Open a PR from \`staging0217\` → \`main\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Approve and merge → deploys to ${{ env.PRODUCTION_URL }}" >> $GITHUB_STEP_SUMMARY
