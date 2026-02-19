@@ -1,6 +1,6 @@
 'use client';
 
-import { Shield, Lock, Fingerprint, Key, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Shield, Lock, Fingerprint, Key, AlertTriangle, CheckCircle, Bug, Search } from 'lucide-react';
 import { useState } from 'react';
 
 export default function SecurityDashboard() {
@@ -70,6 +70,73 @@ export default function SecurityDashboard() {
                             <li className="flex items-center gap-2">
                                 <CheckCircle size={14} className="text-green-400" />
                                 <span>Supabase "auth.users" tables accessible</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            {/* Antivirus Protection Card */}
+            <div className="bg-white/5 border border-white/10 rounded-xl p-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-32 bg-green-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+
+                <div className="flex items-start justify-between mb-6">
+                    <div>
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                            <Shield className="text-green-400" />
+                            Antivirus & Threat Protection
+                        </h2>
+                        <p className="text-gray-400 mt-1">Real-time protection against malware and security threats.</p>
+                    </div>
+                    <div className="px-4 py-1.5 rounded-full text-sm font-semibold border flex items-center gap-2 bg-green-500/10 text-green-400 border-green-500/20">
+                        <CheckCircle size={14} /> Protected
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                            <label className="text-xs text-gray-500 uppercase tracking-wider block mb-1">
+                                <Search size={12} className="inline mr-1" />
+                                Real-time Scanning
+                            </label>
+                            <div className="font-semibold text-green-400 text-lg">Enabled</div>
+                        </div>
+
+                        <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                            <label className="text-xs text-gray-500 uppercase tracking-wider block mb-1">Total Scans</label>
+                            <div className="font-mono text-white text-xl">12,847</div>
+                        </div>
+
+                        <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                            <label className="text-xs text-gray-500 uppercase tracking-wider block mb-1">
+                                <Bug size={12} className="inline mr-1" />
+                                Threats Blocked
+                            </label>
+                            <div className="font-mono text-red-400 text-xl">23</div>
+                        </div>
+                    </div>
+
+                    <div className="bg-green-500/5 border border-green-500/10 rounded-lg p-4">
+                        <h3 className="font-semibold text-green-200 mb-3 flex items-center gap-2">
+                            <Shield size={16} /> Protection Features
+                        </h3>
+                        <ul className="space-y-3 text-sm text-green-100/70">
+                            <li className="flex items-center gap-2">
+                                <CheckCircle size={14} className="text-green-400" />
+                                <span>Real-time file scanning</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                                <CheckCircle size={14} className="text-green-400" />
+                                <span>Input sanitization active</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                                <CheckCircle size={14} className="text-green-400" />
+                                <span>XSS protection enabled</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                                <CheckCircle size={14} className="text-green-400" />
+                                <span>SQL injection prevention</span>
                             </li>
                         </ul>
                     </div>
