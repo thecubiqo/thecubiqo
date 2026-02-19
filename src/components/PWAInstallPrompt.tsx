@@ -55,23 +55,26 @@ export function PWAInstallPrompt() {
       if (!isDismissed()) setShowBanner(true)
     }
 
+    const onInstalled = () => {
+      setIsInstalled(true)
+      setShowBanner(false)
+    }
+
     window.addEventListener('beforeinstallprompt', handler)
+    window.addEventListener('appinstalled', onInstalled)
+
+    let timer: ReturnType<typeof setTimeout> | undefined
 
     // iOS: show manual instructions after a short delay
     if (isIOS() && !isDismissed()) {
-      const timer = setTimeout(() => setShowIOSInstructions(true), 3000)
-      return () => {
-        window.removeEventListener('beforeinstallprompt', handler)
-        clearTimeout(timer)
-      }
+      timer = setTimeout(() => setShowIOSInstructions(true), 3000)
     }
 
-    window.addEventListener('appinstalled', () => {
-      setIsInstalled(true)
-      setShowBanner(false)
-    })
-
-    return () => window.removeEventListener('beforeinstallprompt', handler)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler)
+      window.removeEventListener('appinstalled', onInstalled)
+      if (timer) clearTimeout(timer)
+    }
   }, [])
 
   // ---- actions ----
