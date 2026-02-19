@@ -8,9 +8,8 @@ import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 
 // Initialize clients
-// Support both old and new env var names (fallback pattern)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1;
 
 if (!supabaseUrl || !supabaseKey) {
   console.warn('[Memory] Supabase credentials not configured');
@@ -77,7 +76,7 @@ export async function storeMemory(
   options: StoreMemoryOptions = {}
 ): Promise<Memory> {
   if (!supabase) {
-    throw new Error('Supabase client not initialized. Configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.');
+    throw new Error('Supabase client not initialized. Configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY1.');
   }
 
   const { metadata, skipEmbedding } = options;
@@ -121,7 +120,7 @@ export async function searchMemory(
   options: SearchMemoryOptions = {}
 ): Promise<MemorySearchResult[]> {
   if (!supabase) {
-    throw new Error('Supabase client not initialized. Configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.');
+    throw new Error('Supabase client not initialized. Configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY1.');
   }
 
   const { limit = 10, threshold = 0.7, metadata } = options;

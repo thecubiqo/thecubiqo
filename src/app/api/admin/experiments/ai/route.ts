@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { DatabaseWithAbTesting } from '@/types/database.types'
 import { SupabaseClient } from '@supabase/supabase-js'
+
 export async function POST(req: NextRequest) {
     try {
         const { command, experimentId } = await req.json()
         const supabase = await createClient()
-        // Use supabase directly
+        const db = supabase as unknown as SupabaseClient<DatabaseWithAbTesting>
 
         // 1. Get current experiment
-        const { data: experiment, error: fetchError } = await (supabase as any)
+        const { data: experiment, error: fetchError } = await (db as any)
             .from('experiments')
             .select('*')
             .eq('id', experimentId)
@@ -49,7 +51,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 3. Update metadata
-        const { error: updateError } = await (supabase as any)
+        const { error: updateError } = await (db as any)
             .from('experiments')
             .update({ metadata })
             .eq('id', experimentId)
