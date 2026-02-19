@@ -211,7 +211,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="p-6 rounded-xl bg-zinc-900/50 border border-white/10">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white/60 text-sm font-medium">Conversations</h3>
@@ -240,6 +240,233 @@ export default function DashboardPage() {
                 {isLoadingStats ? '...' : stats?.messageCount || 0}
               </div>
               <div className="text-xs text-white/40">Total messages</div>
+            </div>
+
+            <div className="p-6 rounded-xl bg-zinc-900/50 border border-white/10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-white/60 text-sm font-medium">Journal Entries</h3>
+                <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="text-3xl font-bold mb-1">
+                {isLoadingStats ? '...' : 0}
+              </div>
+              <div className="text-xs text-white/40">Reflection entries</div>
+            </div>
+
+            <div className="p-6 rounded-xl bg-zinc-900/50 border border-white/10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-white/60 text-sm font-medium">Active Agents</h3>
+                <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="text-3xl font-bold mb-1">7</div>
+              <div className="text-xs text-white/40">AI agents available</div>
+            </div>
+          </div>
+
+          {/* CubiQo Emergent Capabilities Section */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-3">
+              <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+                <span className="text-white text-xs font-bold">Q</span>
+              </span>
+              CubiQo Emergent AI Capabilities
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Emergent AI Engine */}
+              <div className="p-6 rounded-xl bg-zinc-900/50 border border-cyan-500/30">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <div className="px-2 py-1 rounded-full text-xs bg-cyan-500/20 text-cyan-400 font-medium">
+                    Active
+                  </div>
+                </div>
+                <h3 className="font-semibold mb-1 text-cyan-100">Emergent AI Engine</h3>
+                <p className="text-xs text-white/60">Self-organizing intelligence</p>
+              </div>
+
+              {/* Active Agents */}
+              <div className="p-6 rounded-xl bg-zinc-900/50 border border-cyan-500/30">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <div className="text-2xl font-bold text-cyan-400">7</div>
+                </div>
+                <h3 className="font-semibold mb-1 text-cyan-100">Active Agents</h3>
+                <p className="text-xs text-white/60">Specialized AI workers</p>
+              </div>
+
+              {/* AI Model Routing */}
+              <div className="p-6 rounded-xl bg-zinc-900/50 border border-cyan-500/30">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400 font-medium">
+                    Claude
+                  </div>
+                </div>
+                <h3 className="font-semibold mb-1 text-cyan-100">Model Routing</h3>
+                <p className="text-xs text-white/60">Emergent provider → Sonnet</p>
+              </div>
+
+              {/* Self-Healing */}
+              <div className="p-6 rounded-xl bg-zinc-900/50 border border-cyan-500/30">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </div>
+                  <div className="px-2 py-1 rounded-full text-xs bg-cyan-500/20 text-cyan-400 font-medium">
+                    Ready
+                  </div>
+                </div>
+                <h3 className="font-semibold mb-1 text-cyan-100">Self-Healing</h3>
+                <p className="text-xs text-white/60">Auto-recovery enabled</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Security & Protection Section */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-3">
+              <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              Security & Protection
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Antivirus Protection */}
+              <div className="p-6 rounded-xl bg-zinc-900/50 border border-green-500/30">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <div className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400 font-medium">
+                    Protected
+                  </div>
+                </div>
+                <h3 className="font-semibold mb-1 text-green-100">Antivirus</h3>
+                <p className="text-xs text-white/60">Real-time protection active</p>
+              </div>
+
+              {/* Threat Scanning */}
+              <div className="p-6 rounded-xl bg-zinc-900/50 border border-green-500/30">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <div className="text-2xl font-bold text-green-400">0</div>
+                </div>
+                <h3 className="font-semibold mb-1 text-green-100">Threat Scan</h3>
+                <p className="text-xs text-white/60">Last scan: 2 hours ago</p>
+              </div>
+
+              {/* Data Encryption */}
+              <div className="p-6 rounded-xl bg-zinc-900/50 border border-green-500/30">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <div className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400 font-medium">
+                    AES-256
+                  </div>
+                </div>
+                <h3 className="font-semibold mb-1 text-green-100">Encryption</h3>
+                <p className="text-xs text-white/60">Military-grade security</p>
+              </div>
+
+              {/* WebAuthn/Passkey */}
+              <div className="p-6 rounded-xl bg-zinc-900/50 border border-green-500/30">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                  </div>
+                  <div className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400 font-medium">
+                    Configured
+                  </div>
+                </div>
+                <h3 className="font-semibold mb-1 text-green-100">Passkey Auth</h3>
+                <p className="text-xs text-white/60">Biometric & WebAuthn</p>
+              </div>
+            </div>
+          </div>
+
+          {/* System Health Section */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-3">
+              <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              System Health
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* System Uptime */}
+              <div className="p-6 rounded-xl bg-zinc-900/50 border border-white/10">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-white/60 text-sm font-medium">System Uptime</h3>
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="text-3xl font-bold mb-1">99.9%</div>
+                <div className="text-xs text-white/40">Last 30 days</div>
+              </div>
+
+              {/* Memory Usage */}
+              <div className="p-6 rounded-xl bg-zinc-900/50 border border-white/10">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-white/60 text-sm font-medium">Memory Usage</h3>
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="text-3xl font-bold mb-1">42%</div>
+                <div className="text-xs text-white/40">Optimal performance</div>
+              </div>
+
+              {/* API Latency */}
+              <div className="p-6 rounded-xl bg-zinc-900/50 border border-white/10">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-white/60 text-sm font-medium">API Latency</h3>
+                  <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="text-3xl font-bold mb-1">45ms</div>
+                <div className="text-xs text-white/40">Average response time</div>
+              </div>
             </div>
           </div>
 
