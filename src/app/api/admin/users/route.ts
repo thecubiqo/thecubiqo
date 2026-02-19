@@ -21,12 +21,11 @@ export async function GET(req: NextRequest) {
     const users = (profiles || []).map(profile => ({
       id: profile.id,
       email: profile.email,
-      full_name: profile.full_name,
+      display_name: profile.display_name,
       avatar_url: profile.avatar_url,
       is_admin: profile.is_admin || false,
       created_at: profile.created_at,
       updated_at: profile.updated_at,
-      last_seen: profile.last_seen,
     }));
     
     return NextResponse.json({

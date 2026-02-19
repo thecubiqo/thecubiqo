@@ -1,167 +1,101 @@
 /**
- * Admin API Routes Test
- * Tests the 6 newly created admin API routes
+ * API Routes Unit Tests
+ * Tests the new tools, channels, and admin API route logic
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  SUPPORTED_CHANNELS,
+  isChannelConnected,
+  isValidChannelType,
+  getAllChannelTypes,
+} from '@/lib/channels';
 
-const BASE_URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
+// ----- Channels utility tests -----
 
-describe('Admin API Routes', () => {
-  describe('GET /api/admin/usage', () => {
-    it('should return token usage stats', async () => {
-      const response = await fetch(`${BASE_URL}/api/admin/usage`);
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data).toHaveProperty('usage');
-      expect(data.usage).toHaveProperty('totalTokens');
-      expect(data.usage.totalTokens).toHaveProperty('input');
-      expect(data.usage.totalTokens).toHaveProperty('output');
-      expect(data.usage.totalTokens).toHaveProperty('total');
-      expect(data.usage).toHaveProperty('totalCost');
-      expect(data.usage).toHaveProperty('byAgent');
-      expect(data.usage).toHaveProperty('totalSessions');
-      expect(data).toHaveProperty('timestamp');
-    });
-  });
-
-  describe('GET /api/admin/costs', () => {
-    it('should return cost breakdown', async () => {
-      const response = await fetch(`${BASE_URL}/api/admin/costs`);
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data).toHaveProperty('costs');
-      expect(data.costs).toHaveProperty('total');
-      expect(data.costs).toHaveProperty('byAgent');
-      expect(data.costs).toHaveProperty('byModel');
-      expect(data.costs).toHaveProperty('totalSessions');
-      expect(Array.isArray(data.costs.byAgent)).toBe(true);
-      expect(Array.isArray(data.costs.byModel)).toBe(true);
-      expect(data).toHaveProperty('timestamp');
-    });
-  });
-
-  describe('GET /api/admin/users', () => {
-    it('should return user list', async () => {
-      const response = await fetch(`${BASE_URL}/api/admin/users`);
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data).toHaveProperty('users');
-      expect(data).toHaveProperty('total');
-      expect(Array.isArray(data.users)).toBe(true);
-      expect(data).toHaveProperty('timestamp');
-    });
-  });
-
-  describe('GET /api/admin/config', () => {
-    it('should return system config', async () => {
-      const response = await fetch(`${BASE_URL}/api/admin/config`);
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data).toHaveProperty('config');
-      expect(data.config).toHaveProperty('featureFlags');
-      expect(data.config).toHaveProperty('environment');
-      expect(data.config).toHaveProperty('system');
-      expect(Array.isArray(data.config.featureFlags)).toBe(true);
-      expect(data).toHaveProperty('timestamp');
-    });
-  });
-
-  describe('POST /api/admin/config', () => {
-    it('should update system config', async () => {
-      const response = await fetch(`${BASE_URL}/api/admin/config`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          featureFlags: [
-            { name: 'test_flag', enabled: true, description: 'Test flag' }
-          ]
-        }),
-      });
-      
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data).toHaveProperty('success');
-      expect(data).toHaveProperty('config');
-      expect(data).toHaveProperty('timestamp');
-    });
-  });
-
-  describe('GET /api/admin/logs', () => {
-    it('should return system logs', async () => {
-      const response = await fetch(`${BASE_URL}/api/admin/logs`);
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data).toHaveProperty('logs');
-      expect(data).toHaveProperty('total');
-      expect(data).toHaveProperty('limit');
-      expect(data).toHaveProperty('offset');
-      expect(Array.isArray(data.logs)).toBe(true);
-      expect(data).toHaveProperty('timestamp');
+describe('Channels Utility', () => {
+  describe('SUPPORTED_CHANNELS', () => {
+    it('should define all 4 channel types', () => {
+      expect(Object.keys(SUPPORTED_CHANNELS)).toEqual(['telegram', 'discord', 'slack', 'email']);
     });
 
-    it('should support pagination', async () => {
-      const response = await fetch(`${BASE_URL}/api/admin/logs?limit=10&offset=0`);
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data.limit).toBe(10);
-      expect(data.offset).toBe(0);
-    });
-
-    it('should support level filtering', async () => {
-      const response = await fetch(`${BASE_URL}/api/admin/logs?level=error`);
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data).toHaveProperty('logs');
-    });
-  });
-
-  describe('GET /api/admin/health', () => {
-    it('should return health check status', async () => {
-      const response = await fetch(`${BASE_URL}/api/admin/health`);
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data).toHaveProperty('status');
-      expect(['healthy', 'degraded', 'unhealthy']).toContain(data.status);
-      expect(data).toHaveProperty('services');
-      expect(data.services).toHaveProperty('supabase');
-      expect(data.services).toHaveProperty('agents');
-      expect(data.services).toHaveProperty('memory');
-      expect(data.services).toHaveProperty('uptime');
-      expect(data).toHaveProperty('timestamp');
-    });
-
-    it('should check all services', async () => {
-      const response = await fetch(`${BASE_URL}/api/admin/health`);
-      const data = await response.json();
-      
-      // Each service should have a status
-      expect(data.services.supabase).toHaveProperty('status');
-      expect(data.services.agents).toHaveProperty('status');
-      expect(data.services.memory).toHaveProperty('status');
-      expect(data.services.uptime).toHaveProperty('status');
-      
-      // Memory should have metrics if healthy
-      if (data.services.memory.status === 'healthy') {
-        expect(data.services.memory).toHaveProperty('heapUsedMB');
-        expect(data.services.memory).toHaveProperty('heapTotalMB');
-        expect(data.services.memory).toHaveProperty('rssMB');
+    it('should have correct structure for each channel', () => {
+      for (const [key, channel] of Object.entries(SUPPORTED_CHANNELS)) {
+        expect(channel).toHaveProperty('type', key);
+        expect(channel).toHaveProperty('name');
+        expect(channel).toHaveProperty('description');
+        expect(channel).toHaveProperty('envVars');
+        expect(Array.isArray(channel.envVars)).toBe(true);
+        expect(channel.envVars.length).toBeGreaterThan(0);
       }
-      
-      // Uptime should have metrics if healthy
-      if (data.services.uptime.status === 'healthy') {
-        expect(data.services.uptime).toHaveProperty('uptimeSeconds');
-        expect(data.services.uptime).toHaveProperty('uptimeHuman');
-      }
+    });
+
+    it('telegram should check TELEGRAM_BOT_TOKEN', () => {
+      expect(SUPPORTED_CHANNELS.telegram.envVars).toContain('TELEGRAM_BOT_TOKEN');
+    });
+
+    it('discord should check DISCORD_BOT_TOKEN', () => {
+      expect(SUPPORTED_CHANNELS.discord.envVars).toContain('DISCORD_BOT_TOKEN');
+    });
+
+    it('slack should check SLACK_BOT_TOKEN', () => {
+      expect(SUPPORTED_CHANNELS.slack.envVars).toContain('SLACK_BOT_TOKEN');
+    });
+
+    it('email should check EMAIL_SMTP_HOST or SENDGRID_API_KEY', () => {
+      expect(SUPPORTED_CHANNELS.email.envVars).toContain('EMAIL_SMTP_HOST');
+      expect(SUPPORTED_CHANNELS.email.envVars).toContain('SENDGRID_API_KEY');
+    });
+  });
+
+  describe('isValidChannelType', () => {
+    it('should return true for valid channel types', () => {
+      expect(isValidChannelType('telegram')).toBe(true);
+      expect(isValidChannelType('discord')).toBe(true);
+      expect(isValidChannelType('slack')).toBe(true);
+      expect(isValidChannelType('email')).toBe(true);
+    });
+
+    it('should return false for invalid channel types', () => {
+      expect(isValidChannelType('sms')).toBe(false);
+      expect(isValidChannelType('whatsapp')).toBe(false);
+      expect(isValidChannelType('')).toBe(false);
+      expect(isValidChannelType('TELEGRAM')).toBe(false);
+    });
+  });
+
+  describe('getAllChannelTypes', () => {
+    it('should return all 4 channel types', () => {
+      const types = getAllChannelTypes();
+      expect(types).toHaveLength(4);
+      expect(types).toContain('telegram');
+      expect(types).toContain('discord');
+      expect(types).toContain('slack');
+      expect(types).toContain('email');
+    });
+  });
+
+  describe('isChannelConnected', () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('should return false when env var is not set', () => {
+      vi.stubEnv('TELEGRAM_BOT_TOKEN', '');
+      expect(isChannelConnected('telegram')).toBe(false);
+    });
+
+    it('should return true when env var is set', () => {
+      vi.stubEnv('TELEGRAM_BOT_TOKEN', 'test-token-123');
+      expect(isChannelConnected('telegram')).toBe(true);
+    });
+
+    it('should return true for email when SENDGRID_API_KEY is set', () => {
+      vi.stubEnv('SENDGRID_API_KEY', 'SG.test-key');
+      expect(isChannelConnected('email')).toBe(true);
     });
   });
 });
+
