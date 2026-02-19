@@ -18,9 +18,9 @@ const ZONES = [
     id: 'green',
     name: 'Progressive',
     tagline: 'Growth & Achievement',
-    color: '#22c55e',
-    borderColor: 'rgba(34, 197, 94, 0.5)',
-    bgGradient: 'linear-gradient(180deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.02) 100%)',
+    color: '#00897b',
+    borderColor: 'rgba(0, 137, 123, 0.5)',
+    bgGradient: 'linear-gradient(180deg, rgba(0, 137, 123, 0.1) 0%, rgba(0, 137, 123, 0.02) 100%)',
     icon1: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
@@ -37,9 +37,9 @@ const ZONES = [
     id: 'yellow',
     name: 'Sit back',
     tagline: 'Relax & Connect',
-    color: '#eab308',
-    borderColor: 'rgba(234, 179, 8, 0.5)',
-    bgGradient: 'linear-gradient(180deg, rgba(234, 179, 8, 0.1) 0%, rgba(234, 179, 8, 0.02) 100%)',
+    color: '#ffa000',
+    borderColor: 'rgba(255, 160, 0, 0.5)',
+    bgGradient: 'linear-gradient(180deg, rgba(255, 160, 0, 0.1) 0%, rgba(255, 160, 0, 0.02) 100%)',
     icon1: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
@@ -56,9 +56,9 @@ const ZONES = [
     id: 'red',
     name: 'Indulge',
     tagline: 'Desire & Exploration',
-    color: '#ef4444',
-    borderColor: 'rgba(239, 68, 68, 0.5)',
-    bgGradient: 'linear-gradient(180deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.02) 100%)',
+    color: '#c2185b',
+    borderColor: 'rgba(194, 24, 91, 0.5)',
+    bgGradient: 'linear-gradient(180deg, rgba(194, 24, 91, 0.1) 0%, rgba(194, 24, 91, 0.02) 100%)',
     icon1: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
@@ -104,9 +104,9 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
         <header className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
           <div className="flex items-center gap-2.5">
             <div className="flex flex-col gap-0.5">
-              <div className="w-8 h-1.5 rounded-full bg-[#ef4444]"></div>
-              <div className="w-8 h-1.5 rounded-full bg-[#eab308]"></div>
-              <div className="w-8 h-1.5 rounded-full bg-[#22c55e]"></div>
+              <div className="w-8 h-1.5 rounded-full bg-[#c2185b]"></div>
+              <div className="w-8 h-1.5 rounded-full bg-[#ffa000]"></div>
+              <div className="w-8 h-1.5 rounded-full bg-[#00897b]"></div>
             </div>
             <div>
               <div className="font-semibold text-white text-lg tracking-tight">SIGNAL</div>
@@ -277,8 +277,8 @@ export function RGYSignalButton({ onClick, isDark = true, pulseColor = null }: R
       <div 
         className="w-2.5 h-2.5 rounded-full transition-all duration-300"
         style={{ 
-          backgroundColor: isRedActive ? '#ef4444' : 'rgba(239, 68, 68, 0.25)',
-          boxShadow: isRedActive ? '0 0 12px rgba(239, 68, 68, 0.8)' : 'none',
+          backgroundColor: isRedActive ? '#c2185b' : 'rgba(194, 24, 91, 0.25)',
+          boxShadow: isRedActive ? '0 0 12px rgba(194, 24, 91, 0.8)' : 'none',
           transform: isRedActive ? 'scale(1.3)' : 'scale(1)',
         }}
       />
@@ -287,8 +287,8 @@ export function RGYSignalButton({ onClick, isDark = true, pulseColor = null }: R
       <div 
         className="w-2.5 h-2.5 rounded-full transition-all duration-300"
         style={{ 
-          backgroundColor: isYellowActive ? '#eab308' : 'rgba(234, 179, 8, 0.25)',
-          boxShadow: isYellowActive ? '0 0 12px rgba(234, 179, 8, 0.8)' : 'none',
+          backgroundColor: isYellowActive ? '#ffa000' : 'rgba(255, 160, 0, 0.25)',
+          boxShadow: isYellowActive ? '0 0 12px rgba(255, 160, 0, 0.8)' : 'none',
           transform: isYellowActive ? 'scale(1.3)' : 'scale(1)',
         }}
       />
@@ -297,8 +297,8 @@ export function RGYSignalButton({ onClick, isDark = true, pulseColor = null }: R
       <div 
         className="w-2.5 h-2.5 rounded-full transition-all duration-300"
         style={{ 
-          backgroundColor: isGreenActive ? '#22c55e' : 'rgba(34, 197, 94, 0.25)',
-          boxShadow: isGreenActive ? '0 0 12px rgba(34, 197, 94, 0.8)' : 'none',
+          backgroundColor: isGreenActive ? '#00897b' : 'rgba(0, 137, 123, 0.25)',
+          boxShadow: isGreenActive ? '0 0 12px rgba(0, 137, 123, 0.8)' : 'none',
           transform: isGreenActive ? 'scale(1.3)' : 'scale(1)',
         }}
       />
