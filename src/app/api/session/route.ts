@@ -5,12 +5,69 @@ import { createClient } from '@supabase/supabase-js'
 // Support both old and new env var names (fallback pattern)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+
+// Detect placeholder/missing configuration
+const isConfigured = supabaseUrl !== 'https://placeholder.supabase.co' && supabaseServiceKey !== 'placeholder-key'
+
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
 export async function POST(req: NextRequest) {
+  // Early check: is Supabase properly configured?
+  if (!isConfigured) {
+    console.error('[API/session] Supabase not configured — missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL env vars')
+    return NextResponse.json({
+      error: 'Database not configured',
+      details: 'Missing required Supabase environment variables. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel.',
+      missing: {
+        url: supabaseUrl === 'https://placeholder.supabase.co',
+        serviceKey: supabaseServiceKey === 'placeholder-key',
+      }
+    }, { status: 503 })
+  }
+
   try {
     const body = await req.json()
     const { action, userId, email, sessionId, deviceInfo, conversationId } = body
+
+    // Create a guest session (bypasses RLS)
+    if (action === 'create_guest_session') {
+      const { data: newSession, error: sessionError } = await supabaseAdmin
+        .from('sessions')
+        .insert({
+          is_guest: true,
+          geo_location: body.geoLocation || 'US',
+          device_info: deviceInfo || {},
+        })
+        .select()
+        .single()
+
+      if (sessionError) {
+        console.error('[API/session] Guest session creation error:', sessionError)
+        return NextResponse.json({ error: sessionError.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ session: newSession })
+    }
+
+    // Get an existing session by ID (bypasses RLS)
+    if (action === 'get_session') {
+      if (!sessionId) {
+        return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
+      }
+
+      const { data: session, error: sessionError } = await supabaseAdmin
+        .from('sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .maybeSingle()
+
+      if (sessionError) {
+        console.error('[API/session] Session fetch error:', sessionError)
+        return NextResponse.json({ error: sessionError.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ session })
+    }
 
     // Get or create conversation for a session
     if (action === 'ensure_conversation') {
@@ -315,8 +372,30 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('[API/session] Error:', error)
+
+    // Detect database schema issues
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const isSchemaError = errorMessage.includes('relation') && errorMessage.includes('does not exist')
+    const isConnectionError = errorMessage.includes('fetch failed') || errorMessage.includes('ECONNREFUSED')
+
+    if (isSchemaError) {
+      return NextResponse.json({
+        error: 'Database schema not initialized',
+        details: 'Required tables are missing. Run the migration SQL files from supabase/migrations/ in your Supabase SQL Editor.',
+        originalError: errorMessage,
+      }, { status: 503 })
+    }
+
+    if (isConnectionError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        details: 'Cannot connect to Supabase. Check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.',
+        originalError: errorMessage,
+      }, { status: 503 })
+    }
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: errorMessage },
       { status: 500 }
     )
   }

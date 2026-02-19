@@ -120,25 +120,6 @@ export default function AgentDashboard() {
               {agent.currentTasks.length} tasks
             </div>
 
-            {/* Skill Tags */}
-            {agent.skillTags && agent.skillTags.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {agent.skillTags.slice(0, 3).map((tag, idx) => (
-                  <span key={idx} className="text-xs bg-blue-900 text-blue-200 px-2 py-0.5 rounded">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Contact Info */}
-            {(agent.contactEmail || agent.contactPhone) && (
-              <div className="mt-2 text-xs text-gray-500 space-y-1">
-                {agent.contactEmail && <div>📧 {agent.contactEmail}</div>}
-                {agent.contactPhone && <div>📞 {agent.contactPhone}</div>}
-              </div>
-            )}
-
             {agent.currentTasks.length > 0 && (
               <div className="mt-2 space-y-1">
                 {agent.currentTasks.map((task) => (

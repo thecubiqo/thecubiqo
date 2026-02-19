@@ -1,221 +1,140 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useFeatureFlags } from '@/hooks/useFeatureFlag';
-import { PreviewModeBanner } from '@/components/feature-flags/FeatureFlagDemo';
-import { GmailToggles } from '@/components/founderspass/GmailToggles';
-import { UserPanel } from '@/components/founderspass/UserPanel';
+/**
+ * Founders Login Page
+ * Dedicated entry point for founder access with PIN verification
+ */
 
-export default function FoundersPassPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [pin, setPin] = useState('');
-  const [error, setError] = useState('');
-  const [gmailPermissions, setGmailPermissions] = useState({
-    read: false,
-    write: false,
-  });
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
-  // Check feature flags
-  const { flags, loading: flagsLoading } = useFeatureFlags(
-    ['founders_pass_enabled', 'gmail_read_access', 'gmail_write_access'],
-    { enablePreview: true }
-  );
+// Simple PIN for founder access (in production, store this securely)
+const FOUNDER_PIN = '2026'
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pin === '2026') {
-      setIsAuthenticated(true);
-      setError('');
-      // Set auth cookie
-      document.cookie = "founders-pass-auth=true; path=/; max-age=86400; SameSite=Lax; Secure";
-    } else {
-      setError('Invalid PIN. Please try 2026.');
+export default function FoundersLoginPage() {
+    const router = useRouter()
+    const [pin, setPin] = useState('')
+    const [isLoading, setIsLoading] = useState(true)
+    const [isAuthenticated, setIsAuthenticated] = useState(false)
+    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+    const supabase = createClient()
+
+    // Check if already authenticated via session storage
+    useEffect(() => {
+        const checkAuth = () => {
+            const founderAuth = sessionStorage.getItem('founders_pass_auth')
+            if (founderAuth === 'true') {
+                setIsAuthenticated(true)
+                router.push('/founderspass/dashboard')
+            }
+            setIsLoading(false)
+        }
+        checkAuth()
+    }, [router])
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+
+        if (!pin.trim()) return
+
+        setIsLoading(true)
+        setMessage(null)
+
+        // Simple PIN verification
+        if (pin === FOUNDER_PIN) {
+            // Store auth in session
+            sessionStorage.setItem('founders_pass_auth', 'true')
+            setMessage({ type: 'success', text: '✅ Access granted! Redirecting...' })
+
+            // Redirect to dashboard
+            setTimeout(() => {
+                router.push('/founderspass/dashboard')
+            }, 500)
+        } else {
+            setMessage({ type: 'error', text: 'Invalid PIN. Access denied.' })
+            setIsLoading(false)
+        }
     }
-  };
 
-  const handleToggleGmail = (permission: 'read' | 'write', enabled: boolean) => {
-    setGmailPermissions((prev) => ({
-      ...prev,
-      [permission]: enabled,
-    }));
-  };
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-black flex items-center justify-center">
+                <div className="text-gray-400">Loading...</div>
+            </div>
+        )
+    }
 
-  // Check if Founders Pass is enabled via feature flag
-  if (flagsLoading) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
-        <div className="text-2xl">Loading...</div>
-      </div>
-    );
-  }
+        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+            {/* Background gradient */}
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-900/20 via-black to-purple-900/20" />
 
-  if (!flags.founders_pass_enabled) {
-    return (
-      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">🔒 Access Restricted</h1>
-          <p className="text-gray-400">
-            Founders Pass is currently not available. Please check back later.
-          </p>
-          <p className="text-sm text-gray-500 mt-4">
-            Tip: Enable the "founders_pass_enabled" feature flag to access this page.
-          </p>
+            {/* Content */}
+            <div className="relative z-10 w-full max-w-md">
+                {/* Logo */}
+                <div className="text-center mb-8">
+                    <div className="inline-flex items-center gap-3 mb-4">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                            <span className="text-3xl font-bold text-black">F</span>
+                        </div>
+                    </div>
+                    <h1 className="text-3xl font-bold text-white mb-2">Founders Pass</h1>
+                    <p className="text-gray-400">Exclusive access for CubiQo founders</p>
+                </div>
+
+                {/* Login Card */}
+                <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-800 rounded-2xl p-8 shadow-2xl">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Founder PIN
+                            </label>
+                            <input
+                                type="password"
+                                value={pin}
+                                onChange={(e) => setPin(e.target.value)}
+                                placeholder="Enter 4-digit PIN"
+                                required
+                                disabled={isLoading}
+                                maxLength={4}
+                                className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-xl text-white text-center text-2xl tracking-[0.5em] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={isLoading || pin.length !== 4}
+                            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-semibold hover:from-amber-400 hover:to-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30"
+                        >
+                            {isLoading ? 'Verifying...' : 'Access Dashboard'}
+                        </button>
+                    </form>
+
+                    {message && (
+                        <div className={`mt-6 p-4 rounded-xl text-sm ${message.type === 'success'
+                            ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                            }`}>
+                            {message.text}
+                        </div>
+                    )}
+
+                    <div className="mt-6 pt-6 border-t border-gray-800">
+                        <p className="text-center text-xs text-gray-500">
+                            Founders Pass gives you access to staging features, tool configuration, and the ability to control what generic users see on cubiqo.ai
+                        </p>
+                    </div>
+                </div>
+
+                {/* Back link */}
+                <div className="text-center mt-6">
+                    <a href="/" className="text-gray-400 hover:text-white text-sm transition-colors">
+                        ← Back to CubiQo
+                    </a>
+                </div>
+            </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950 text-white">
-      <PreviewModeBanner />
-
-      <div className="max-w-4xl mx-auto p-8 pt-16">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <span className="text-6xl">👑</span>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Founders Pass
-            </h1>
-          </div>
-          <p className="text-gray-300 text-lg">
-            Exclusive access to advanced features and integrations
-          </p>
-        </div>
-
-        {!isAuthenticated ? (
-          /* Login Form */
-          <div className="max-w-md mx-auto">
-            <div className="bg-gray-900/50 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-8 shadow-2xl">
-              <h2 className="text-2xl font-bold mb-6 text-center">Enter Your PIN</h2>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Founders PIN
-                  </label>
-                  <input
-                    type="password"
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 text-center text-2xl tracking-widest"
-                    placeholder="••••"
-                    maxLength={4}
-                  />
-                </div>
-                {error && (
-                  <div className="bg-red-900/20 border border-red-500 rounded-lg p-3 text-sm text-red-400">
-                    {error}
-                  </div>
-                )}
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-6 py-3 rounded-lg font-semibold transition-all transform hover:scale-105"
-                >
-                  Access Founders Pass
-                </button>
-                <p className="text-xs text-gray-500 text-center">
-                  Hint: Try PIN 2026
-                </p>
-              </form>
-            </div>
-          </div>
-        ) : (
-          /* Dashboard */
-          <div className="space-y-8">
-            {/* Welcome Message */}
-            <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 border border-purple-500/20 rounded-2xl p-6">
-              <h2 className="text-2xl font-bold mb-2">Welcome, Founder! 🎉</h2>
-              <p className="text-gray-300">
-                You now have access to exclusive integrations and features.
-              </p>
-            </div>
-
-            {/* Gmail Integration Toggles */}
-            <GmailToggles
-              permissions={gmailPermissions}
-              onToggle={handleToggleGmail}
-              readEnabled={flags.gmail_read_access}
-              writeEnabled={flags.gmail_write_access}
-            />
-
-            {/* User Panel */}
-            <UserPanel permissions={gmailPermissions} />
-
-            {/* Dashboard Link */}
-            <div className="bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 rounded-2xl p-6 flex flex-col items-center text-center">
-              <h3 className="text-xl font-bold mb-2">🚀 Global Control Center</h3>
-              <p className="text-gray-400 mb-4 text-sm">
-                Manage feature gates, view live activity, and monitor system stats.
-              </p>
-              <a
-                href="/founderspass/dashboard"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold transition-all transform hover:scale-105"
-              >
-                <span>Open Advanced Dashboard</span>
-                <span>→</span>
-              </a>
-
-              <div className="mt-4 pt-4 border-t border-gray-700 w-full flex justify-center">
-                <a href="/founders-pass" className="text-sm text-gray-400 hover:text-white underline">
-                  Go to Admin Portal (Flags & Sites)
-                </a>
-              </div>
-            </div>
-
-            {/* Feature Flags Info */}
-            <div className="bg-gray-900/50 border border-gray-700 rounded-2xl p-6">
-              <h3 className="text-xl font-bold mb-4">🎯 Feature Flags Status</h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Founders Pass</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${flags.founders_pass_enabled
-                    ? 'bg-green-500/20 text-green-400'
-                    : 'bg-gray-700 text-gray-400'
-                    }`}>
-                    {flags.founders_pass_enabled ? 'Enabled' : 'Disabled'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Gmail Read Access</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${flags.gmail_read_access
-                    ? 'bg-green-500/20 text-green-400'
-                    : 'bg-gray-700 text-gray-400'
-                    }`}>
-                    {flags.gmail_read_access ? 'Enabled' : 'Disabled'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Gmail Write Access</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${flags.gmail_write_access
-                    ? 'bg-green-500/20 text-green-400'
-                    : 'bg-gray-700 text-gray-400'
-                    }`}>
-                    {flags.gmail_write_access ? 'Enabled' : 'Disabled'}
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-4">
-                💡 Tip: Visit <a href="/admin/feature-flags" className="text-purple-400 hover:underline">/admin/feature-flags</a> to manage these flags
-              </p>
-            </div>
-
-            {/* Logout Button */}
-            <div className="text-center">
-              <button
-                onClick={() => {
-                  setIsAuthenticated(false);
-                  setPin('');
-                  setGmailPermissions({ read: false, write: false });
-                  document.cookie = "founders-pass-auth=; path=/; max-age=0;";
-                }}
-                className="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded-lg font-semibold transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+    )
 }
