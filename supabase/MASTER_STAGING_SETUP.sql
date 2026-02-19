@@ -302,7 +302,102 @@ DROP POLICY IF EXISTS "Users can view own subscription" on user_subscriptions;
 create policy "Users can view own subscription" on user_subscriptions for select using (auth.uid() = user_id);
 
 -- ==========================================
--- PART 4: SEED DATA (Dummy Data)
+-- PART 4: AGENT INFRASTRUCTURE
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS agents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  type TEXT DEFAULT 'assistant', -- 'assistant', 'worker', 'manager'
+  status TEXT DEFAULT 'active', -- 'active', 'inactive', 'training'
+  config JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id UUID REFERENCES agents(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  status TEXT DEFAULT 'pending', -- 'pending', 'processing', 'completed', 'failed'
+  priority INTEGER DEFAULT 0,
+  payload JSONB DEFAULT '{}'::jsonb,
+  result JSONB,
+  error TEXT,
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS channels (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id UUID REFERENCES agents(id) ON DELETE CASCADE,
+  type TEXT NOT NULL, -- 'slack', 'discord', 'telegram', 'email'
+  config JSONB NOT NULL,
+  status TEXT DEFAULT 'active',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS cron_jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id UUID REFERENCES agents(id) ON DELETE CASCADE,
+  task_type TEXT NOT NULL,
+  schedule TEXT NOT NULL, -- cron syntax
+  last_run TIMESTAMPTZ,
+  next_run TIMESTAMPTZ,
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS skills (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL UNIQUE,
+  description TEXT,
+  input_schema JSONB DEFAULT '{}'::jsonb,
+  code_ref TEXT, -- Reference to function name or API endpoint
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS usage_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  agent_id UUID REFERENCES agents(id),
+  tokens_input INTEGER DEFAULT 0,
+  tokens_output INTEGER DEFAULT 0,
+  cost_estimate NUMERIC(10, 5) DEFAULT 0,
+  model TEXT,
+  timestamp TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS
+ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE channels ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cron_jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE skills ENABLE ROW LEVEL SECURITY;
+ALTER TABLE usage_log ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage own agents" ON agents;
+CREATE POLICY "Users can manage own agents" ON agents FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can manage own tasks" ON tasks;
+CREATE POLICY "Users can manage own tasks" ON tasks FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can manage own channels" ON channels;
+CREATE POLICY "Users can manage own channels" ON channels FOR ALL USING (auth.uid() = (SELECT user_id FROM agents WHERE id = agent_id));
+
+DROP POLICY IF EXISTS "Users can view skills" ON skills;
+CREATE POLICY "Users can view skills" ON skills FOR SELECT USING (true); -- Public skills catalog
+
+DROP POLICY IF EXISTS "Admins can view logs" ON usage_log;
+CREATE POLICY "Admins can view logs" ON usage_log FOR SELECT USING (auth.role() = 'service_role' OR auth.uid() = user_id);
+
+
+-- ==========================================
+-- PART 5: SEED DATA (Dummy Data)
 -- ==========================================
 
 -- Seed Features
