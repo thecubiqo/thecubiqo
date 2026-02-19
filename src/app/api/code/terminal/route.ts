@@ -3,8 +3,10 @@
  * Execute shell commands with output streaming
  * 
  * Security Features:
- * - Command whitelist (optional)
- * - Workspace isolation
+ * - Authentication required (Supabase session)
+ * - Command sanitization via sandbox module
+ * - Per-user workspace isolation
+ * - Rate limiting (20 req/min per user)
  * - Timeout protection
  * - Background process management
  */
@@ -12,6 +14,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { spawn, ChildProcess } from 'child_process'
 import { join } from 'path'
+import { createClient } from '@/lib/supabase/server'
+import { sanitizeCommand } from '@/lib/code-execution/sandbox'
+import { terminalRateLimiter } from '@/lib/rate-limit'
 
 interface TerminalRequest {
   command: string
@@ -131,10 +136,35 @@ async function executeCommand(
 
 export async function POST(request: NextRequest) {
   try {
+    // --- Auth guard ---
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized — authentication required' },
+        { status: 401 }
+      )
+    }
+
+    // --- Rate limiting (keyed by user id) ---
+    const { allowed, remaining, resetAt } = terminalRateLimiter.check(user.id)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests — rate limit exceeded' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.ceil((resetAt - Date.now()) / 1000)),
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      )
+    }
+
     const body: TerminalRequest = await request.json()
     const {
       command,
-      sessionId = 'default',
       timeout = 30,
       background = false,
       env = {}
@@ -147,7 +177,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const workspaceDir = getUserWorkspace(sessionId)
+    // --- Sandbox: command sanitization ---
+    const check = sanitizeCommand(command)
+    if (!check.allowed) {
+      return NextResponse.json(
+        {
+          stdout: '',
+          stderr: `Blocked: ${check.reason}`,
+          exitCode: 1,
+        } as TerminalResponse,
+        { status: 403 }
+      )
+    }
+
+    // Use authenticated user's ID for workspace isolation
+    const workspaceDir = getUserWorkspace(user.id)
 
     const result = await executeCommand(
       command,
@@ -157,7 +201,11 @@ export async function POST(request: NextRequest) {
       env
     )
 
-    return NextResponse.json(result)
+    return NextResponse.json(result, {
+      headers: {
+        'X-RateLimit-Remaining': String(remaining),
+      },
+    })
 
   } catch (error) {
     console.error('Terminal execution error:', error)
@@ -175,6 +223,13 @@ export async function POST(request: NextRequest) {
 
 // GET endpoint to check background process status
 export async function GET(request: NextRequest) {
+  // --- Auth guard ---
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { searchParams } = new URL(request.url)
   const pid = searchParams.get('pid')
 
@@ -208,6 +263,13 @@ export async function GET(request: NextRequest) {
 
 // DELETE endpoint to kill background process
 export async function DELETE(request: NextRequest) {
+  // --- Auth guard ---
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { searchParams } = new URL(request.url)
   const pid = searchParams.get('pid')
 
