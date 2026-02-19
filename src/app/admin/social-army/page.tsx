@@ -56,12 +56,25 @@ export default function SocialArmyConsole() {
                 .limit(5);
 
             if (campaignsData) {
-                setCampaigns(campaignsData.map(c => ({
-                    id: c.id,
-                    name: c.name,
-                    status: c.status || 'draft',
-                    progress: Math.floor(Math.random() * 100) // Mock progress for now as it requires complex join
-                })));
+                // Calculate real progress: count posted items vs total_posts_target per campaign
+                const progressResults = await Promise.all(
+                    campaignsData.map(async (c) => {
+                        const { count } = await supabase
+                            .from('content_queue')
+                            .select('id', { count: 'exact', head: true })
+                            .eq('campaign_id', c.id)
+                            .eq('generation_status', 'posted');
+                        const posted = count ?? 0;
+                        const target = c.total_posts_target ?? 0;
+                        return {
+                            id: c.id,
+                            name: c.name,
+                            status: c.status || 'draft',
+                            progress: target > 0 ? Math.min(Math.round((posted / target) * 100), 100) : 0,
+                        };
+                    })
+                );
+                setCampaigns(progressResults);
             }
 
             // Fetch content queue
