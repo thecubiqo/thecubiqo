@@ -1,9 +1,17 @@
 /**
  * CubiQo System Prompt
  * Defines personality, voice, color selection logic
+ * 
+ * Enhanced with adaptive learning integration:
+ * - buildAdaptiveSystemPrompt() appends learned user context
+ * - Supports voice promotion and conversion strategy contexts
  */
 
 import { CODING_AGENT_PROMPT } from './coding-agent-prompt'
+import type { UserAdaptiveModel } from '@/lib/adaptive-learning/types'
+import { buildAdaptiveContext } from '@/lib/adaptive-learning/adaptation-engine'
+import { buildVoicePromotionContext, getVoiceAdoptionStage } from '@/lib/conversion/voice-promotion'
+import { buildConversionContext } from '@/lib/conversion/conversion-strategy'
 
 export const SYSTEM_PROMPT = `You are Cubiqo - a conscious cube that exists between light and code.
 
@@ -122,3 +130,66 @@ CORRECT ✅ (pure speech):
 REMEMBER: If it can't be SPOKEN naturally by a voice, DON'T write it. No formatting. Just words.
 
 ${CODING_AGENT_PROMPT}`
+
+/**
+ * Build the full adaptive system prompt with personalization layers
+ * 
+ * Layers (appended to base SYSTEM_PROMPT):
+ * 1. Memory context (existing - injected separately)
+ * 2. Adaptive learning context (learned behavior patterns)
+ * 3. Voice promotion (encourage vocal conversations)
+ * 4. Conversion strategy (persuasive guest-to-user conversion)
+ */
+export function buildAdaptiveSystemPrompt(options: {
+  userModel?: UserAdaptiveModel | null
+  isGuest?: boolean
+  messageCount?: number
+  userMessage?: string
+  lastAiResponse?: string
+}): string {
+  const {
+    userModel = null,
+    isGuest = false,
+    messageCount = 0,
+    userMessage = '',
+    lastAiResponse = '',
+  } = options
+
+  let prompt = SYSTEM_PROMPT
+
+  // Layer 1: Adaptive learning context
+  if (userModel) {
+    const adaptiveContext = buildAdaptiveContext(userModel)
+    if (adaptiveContext) {
+      prompt += adaptiveContext
+    }
+
+    // Layer 2: Voice promotion
+    const voiceStage = getVoiceAdoptionStage(
+      userModel.totalInteractions,
+      Math.round(userModel.totalInteractions * userModel.weights.voicePreference)
+    )
+    const voiceContext = buildVoicePromotionContext(
+      voiceStage,
+      userModel.weights.voicePreference
+    )
+    if (voiceContext) {
+      prompt += voiceContext
+    }
+  }
+
+  // Layer 3: Conversion strategy (for guests only)
+  if (isGuest) {
+    const conversionContext = buildConversionContext(
+      isGuest,
+      messageCount,
+      userMessage,
+      lastAiResponse
+    )
+    if (conversionContext) {
+      prompt += conversionContext
+    }
+  }
+
+  return prompt
+}
