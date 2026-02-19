@@ -93,6 +93,11 @@ function sanitizeCommand(command: string): { safe: boolean; reason?: string } {
     return { safe: false, reason: 'Empty command' }
   }
 
+  // Reject command chains (;, &&, ||, |)
+  if (/[;|&]/.test(trimmed)) {
+    return { safe: false, reason: 'Command chaining operators are not allowed' }
+  }
+
   // Check blocked patterns
   for (const pattern of BLOCKED_PATTERNS) {
     if (pattern.test(trimmed)) {
@@ -140,7 +145,7 @@ async function executeCommand(
       cwd: workspaceDir,
       shell: '/bin/bash',
       env: {
-        PATH: process.env.PATH,
+        PATH: '/usr/local/bin:/usr/bin:/bin',
         HOME: workspaceDir,
         TERM: 'xterm-256color',
       }
