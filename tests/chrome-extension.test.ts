@@ -84,10 +84,10 @@ describe('Chrome Extension Files', () => {
 
   test('sidepanel.js uses secure postMessage', () => {
     const content = readFileSync(resolve(extensionDir, 'sidepanel.js'), 'utf-8')
-    // Should NOT use wildcard origin for postMessage
-    expect(content).not.toContain("postMessage({" + "\n" + "                type: 'EXTENSION_CONTEXT_UPDATE'" + "\n" + "            }, '*')")
-    // Should derive target origin from iframe src
+    // Should derive target origin from iframe src rather than using wildcard
     expect(content).toContain('TARGET_ORIGIN')
+    // Verify postMessage calls use TARGET_ORIGIN variable
+    expect(content).toMatch(/postMessage\([^)]+,\s*TARGET_ORIGIN\)/)
   })
 
   test('sidepanel.html has connection status indicator', () => {

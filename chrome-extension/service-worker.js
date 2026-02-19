@@ -11,6 +11,10 @@ chrome.runtime.onInstalled.addListener(() => {
  * Handle messages from content scripts and side panel.
  * - PAGE_CONTEXT: Content script reports current page URL/title
  * - BROWSER_CONTROL: Side panel requests a browser action on the active tab
+ *
+ * Security: BROWSER_CONTROL messages originate from the side panel context
+ * (sidepanel.js), which is an extension page and therefore trusted.
+ * Content scripts only send PAGE_CONTEXT messages.
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'PAGE_CONTEXT') {

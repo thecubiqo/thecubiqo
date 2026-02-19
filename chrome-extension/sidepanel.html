@@ -57,7 +57,8 @@
         <span>👁️ Watching: <span id="current-url">...</span></span>
         <span id="connection-status" title="Connected"></span>
     </div>
-    <!-- App URL: Uses localhost for development. For production, update to https://www.cubiqo.ai -->
+    <!-- App URL: localhost for development. Set CUBIQO_APP_URL env var or update to
+         https://www.cubiqo.ai for production builds. See chrome-extension/README.md -->
     <iframe src="http://localhost:3000/side-panel?mode=extension" id="app-frame" allow="microphone; camera"></iframe>
     <script src="sidepanel.js"></script>
 </body>

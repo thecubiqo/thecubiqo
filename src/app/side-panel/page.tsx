@@ -44,7 +44,10 @@ export default function SidePanelPage() {
 
             window.addEventListener('message', handleResult)
 
-            // Send to parent (extension sidepanel.js)
+            // Send to parent (extension sidepanel.js).
+            // Uses '*' because the chrome-extension:// origin ID is dynamic
+            // and not known at build time. The extension sidepanel.js validates
+            // incoming messages by checking event.origin against TARGET_ORIGIN.
             window.parent.postMessage({
                 type: 'BROWSER_CONTROL',
                 action,
