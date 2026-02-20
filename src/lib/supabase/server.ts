@@ -7,8 +7,8 @@ import type { Database } from '@/types/database.types'
  * Returns false when running in preview mode with placeholder values
  */
 export function isSupabaseConfigured(): boolean {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   return !!(
     url &&
@@ -48,3 +48,4 @@ export async function createClient() {
     }
   )
 }
+
