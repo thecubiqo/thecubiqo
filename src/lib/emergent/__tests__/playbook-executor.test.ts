@@ -7,10 +7,22 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { executePlaybook } from '../integrations/playbook-executor'
 import { mockProjects, mockPlaybooks, mockSecrets } from '../../../../tests/utils/mock-data'
+import { createClient } from '@/lib/supabase/server'
 
 // Mock Supabase
 vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(() => Promise.resolve({
+  createClient: vi.fn()
+}))
+
+// Mock secrets manager
+vi.mock('../security/secrets-manager', () => ({
+  decryptSecret: vi.fn(({ encryptedValue }: any) => 
+    `decrypted_${encryptedValue}`
+  )
+}))
+
+function setupDefaultSupabaseMock() {
+  vi.mocked(createClient).mockImplementation(() => Promise.resolve({
     from: (table: string) => ({
       select: () => ({
         eq: () => ({
@@ -26,19 +38,13 @@ vi.mock('@/lib/supabase/server', () => ({
         })
       })
     })
-  }))
-}))
-
-// Mock secrets manager
-vi.mock('../security/secrets-manager', () => ({
-  decryptSecret: vi.fn(({ encryptedValue }: any) => 
-    `decrypted_${encryptedValue}`
-  )
-}))
+  }) as any)
+}
 
 describe('Playbook Executor', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    setupDefaultSupabaseMock()
   })
 
   describe('executePlaybook', () => {
@@ -59,7 +65,7 @@ describe('Playbook Executor', () => {
     })
 
     it('should throw error if playbook not found', async () => {
-      vi.mocked(await import('@/lib/supabase/server')).createClient = vi.fn(() => Promise.resolve({
+      vi.mocked(createClient).mockImplementation(() => Promise.resolve({
         from: () => ({
           select: () => ({
             eq: () => ({
@@ -111,7 +117,7 @@ describe('Playbook Executor', () => {
 
     it('should handle execution errors gracefully', async () => {
       // Mock playbook with invalid steps
-      vi.mocked(await import('@/lib/supabase/server')).createClient = vi.fn(() => Promise.resolve({
+      vi.mocked(createClient).mockImplementation(() => Promise.resolve({
         from: () => ({
           select: () => ({
             eq: () => ({

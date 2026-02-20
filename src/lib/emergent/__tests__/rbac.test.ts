@@ -73,17 +73,17 @@ vi.mock('@/lib/supabase/server', () => ({
                   data: project || null,
                   error: project ? null : { message: 'Not found' }
                 })
-              },
-              in: (field2: string, values: unknown[]) => {
-                const projects = Object.values(mockProjects).filter(
-                  p => values.includes(p.org_id)
-                )
-                return Promise.resolve({
-                  data: projects,
-                  error: null
-                })
               }
-            })
+            }),
+            in: (field: string, values: unknown[]) => {
+              const projects = Object.values(mockProjects).filter(
+                p => values.includes(p.org_id)
+              )
+              return Promise.resolve({
+                data: projects,
+                error: null
+              })
+            }
           }
         }
         return {

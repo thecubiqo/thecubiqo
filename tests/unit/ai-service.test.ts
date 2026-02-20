@@ -185,7 +185,7 @@ describe('AI Service', () => {
     });
 
     it('should handle all valid color names', () => {
-      const validColors: ColorName[] = ['ORANGE', 'RED', 'YELLOW', 'GREEN_BLUE'];
+      const validColors: ColorName[] = ['ORANGE', 'RED', 'YELLOW', 'TEAL'];
 
       validColors.forEach(color => {
         const content = JSON.stringify({ color, response: 'Test' });
@@ -196,13 +196,13 @@ describe('AI Service', () => {
 
     it('should parse JSON with nested objects in response', () => {
       const content = JSON.stringify({
-        color: 'GREEN_BLUE',
+        color: 'TEAL',
         response: 'Here is some data: {"key": "value"}',
       });
 
       const result = parseResponse(content);
 
-      expect(result.color).toBe('GREEN_BLUE');
+      expect(result.color).toBe('TEAL');
       expect(result.response).toBe('Here is some data: {"key": "value"}');
     });
   });

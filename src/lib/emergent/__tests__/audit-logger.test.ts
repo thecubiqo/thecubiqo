@@ -229,6 +229,7 @@ describe('Audit Logger', () => {
       const headers = createMockHeaders({
         'x-real-ip': '9.10.11.12'
       })
+      headers.delete('x-forwarded-for')
       
       expect(getIpAddress(headers)).toBe('9.10.11.12')
     })
