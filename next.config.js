@@ -1,14 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false, // Disable for now
-  // Disable ALL checking during build
+  reactStrictMode: false,
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
+  // Set turbopack root to fix workspace detection
+  turbopack: {
+    root: __dirname,
   },
-  // Minimal config - no experimental features
 };
 
 module.exports = nextConfig;
