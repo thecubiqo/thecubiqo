@@ -65,4 +65,3 @@ self-heal-artifacts/
 # Storybook
 storybook-static/
 .env.local
-node_modules/
