@@ -6,6 +6,7 @@ export default function TerminalPanel() {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<any>(null);
   const fitAddonRef = useRef<any>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!terminalRef.current || xtermRef.current) return;
@@ -77,8 +78,7 @@ export default function TerminalPanel() {
       };
       window.addEventListener('resize', handleResize);
 
-      // Store cleanup handler
-      (terminalRef.current as any).__cleanup = () => {
+      cleanupRef.current = () => {
         window.removeEventListener('resize', handleResize);
         terminal.dispose();
       };
@@ -92,9 +92,7 @@ export default function TerminalPanel() {
     // Cleanup
     return () => {
       disposed = true;
-      if ((terminalRef.current as any)?.__cleanup) {
-        (terminalRef.current as any).__cleanup();
-      }
+      cleanupRef.current?.();
     };
   }, []);
 

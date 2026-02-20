@@ -26,12 +26,17 @@ export interface ContainerInfo {
 }
 
 function loadDocker(): DockerInstance {
-  // Dynamic import to avoid build failure when dockerode is not installed
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Docker = require('dockerode');
-  return new Docker({
-    socketPath: '/var/run/docker.sock',
-  });
+  try {
+    // Dynamic import to avoid build failure when dockerode is not installed
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Docker = require('dockerode');
+    return new Docker({
+      socketPath: '/var/run/docker.sock',
+    });
+  } catch (error) {
+    console.error('dockerode is not installed. Docker functionality is unavailable.');
+    return null;
+  }
 }
 
 export class DockerManager {
