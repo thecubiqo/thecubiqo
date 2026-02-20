@@ -48,43 +48,43 @@ interface DashboardData {
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
+    const supabase = (await createClient()) as any
+
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-    
+
     // Check if user is admin
     const { data: profile } = await supabase
       .from('profiles')
       .select('is_admin')
       .eq('id', user.id)
       .single()
-    
+
     if (!profile?.is_admin) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
       )
     }
-    
+
     // Get time range for queries
     const now = new Date()
     const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
     const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
-    
+
     // Check if monitoring_events table exists
     const { error: tableCheckError } = await supabase
       .from('monitoring_events')
       .select('id')
       .limit(1)
-    
+
     if (tableCheckError && tableCheckError.code === '42P01') {
       // Table doesn't exist, return placeholder data
       return NextResponse.json({
@@ -92,34 +92,34 @@ export async function GET(request: NextRequest) {
         dashboard: getPlaceholderDashboard(),
       })
     }
-    
+
     // Fetch event counts by type
     const { data: eventCounts } = await supabase
       .from('monitoring_events')
       .select('event_type')
       .gte('created_at', last7d)
-    
+
     const summary = {
       total_events: eventCounts?.length || 0,
-      branch_pushes: eventCounts?.filter(e => e.event_type === 'branch_push').length || 0,
-      pr_activities: eventCounts?.filter(e => e.event_type === 'pr_activity').length || 0,
-      deployments: eventCounts?.filter(e => e.event_type === 'deployment').length || 0,
-      health_checks: eventCounts?.filter(e => e.event_type === 'health_check').length || 0,
+      branch_pushes: eventCounts?.filter((e: any) => e.event_type === 'branch_push').length || 0,
+      pr_activities: eventCounts?.filter((e: any) => e.event_type === 'pr_activity').length || 0,
+      deployments: eventCounts?.filter((e: any) => e.event_type === 'deployment').length || 0,
+      health_checks: eventCounts?.filter((e: any) => e.event_type === 'health_check').length || 0,
     }
-    
+
     // Fetch recent activity
     const { data: recentEvents } = await supabase
       .from('monitoring_events')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(20)
-    
-    const recent_activity = (recentEvents || []).map(event => ({
+
+    const recent_activity = (recentEvents || []).map((event: any) => ({
       type: event.event_type,
       timestamp: event.created_at,
       description: formatEventDescription(event),
     }))
-    
+
     // Fetch branch status
     const { data: mainPushes } = await supabase
       .from('monitoring_events')
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
       .contains('event_data', { branch: 'main' })
       .order('created_at', { ascending: false })
       .limit(1)
-    
+
     const { data: stagingPushes } = await supabase
       .from('monitoring_events')
       .select('created_at, event_data')
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
       .contains('event_data', { branch: 'staging' })
       .order('created_at', { ascending: false })
       .limit(1)
-    
+
     const { data: mainDeployments } = await supabase
       .from('monitoring_events')
       .select('created_at, event_data')
@@ -144,7 +144,7 @@ export async function GET(request: NextRequest) {
       .contains('event_data', { environment: 'production' })
       .order('created_at', { ascending: false })
       .limit(1)
-    
+
     const { data: stagingDeployments } = await supabase
       .from('monitoring_events')
       .select('created_at, event_data')
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
       .contains('event_data', { environment: 'preview' })
       .order('created_at', { ascending: false })
       .limit(1)
-    
+
     const branch_status = {
       main: {
         last_push: mainPushes?.[0]?.created_at || null,
@@ -163,27 +163,27 @@ export async function GET(request: NextRequest) {
         last_deployment: stagingDeployments?.[0]?.created_at || null,
       },
     }
-    
+
     // Fetch PR status
     const { data: prEvents } = await supabase
       .from('monitoring_events')
       .select('event_data')
       .eq('event_type', 'pr_activity')
       .gte('created_at', last24h)
-    
+
     const pr_status = {
       open_prs: prEvents?.filter((e: { event_data: MonitoringEventData }) => e.event_data?.action === 'opened').length || 0,
       merged_today: prEvents?.filter((e: { event_data: MonitoringEventData }) => e.event_data?.merged === true).length || 0,
       closed_today: prEvents?.filter((e: { event_data: MonitoringEventData }) => e.event_data?.action === 'closed' && !e.event_data?.merged).length || 0,
     }
-    
+
     const dashboardData: DashboardData = {
       summary,
       recent_activity,
       branch_status,
       pr_status,
     }
-    
+
     return NextResponse.json({
       dashboard: dashboardData,
       generated_at: now.toISOString(),
@@ -222,7 +222,7 @@ interface MonitoringEvent {
  */
 function formatEventDescription(event: MonitoringEvent): string {
   const data = event.event_data
-  
+
   switch (event.event_type) {
     case 'branch_push':
       return `Push to ${data.branch || 'unknown'} by ${data.actor || 'unknown'}`

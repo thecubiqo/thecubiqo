@@ -21,7 +21,7 @@ export function TopRightCTA({
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 1 }}
-            className="fixed top-8 right-8 z-50"
+            className="relative"
         >
             <Link
                 href={href}

@@ -18,19 +18,19 @@ export async function getUserRole(
   userId: string,
   orgId: string
 ): Promise<Role | null> {
-  const supabase = createClient();
-  
+  const supabase = (await createClient()) as any;
+
   const { data, error } = await supabase
     .from('org_members')
     .select('role')
     .eq('user_id', userId)
     .eq('org_id', orgId)
     .single();
-  
+
   if (error || !data) {
     return null;
   }
-  
+
   return data.role as Role;
 }
 
@@ -43,11 +43,11 @@ export async function checkPermission(
   permission: Permission
 ): Promise<boolean> {
   const role = await getUserRole(userId, orgId);
-  
+
   if (!role) {
     return false;
   }
-  
+
   return hasPermission(role, permission);
 }
 
@@ -55,17 +55,17 @@ export async function checkPermission(
  * Require authentication (throws if not authenticated)
  */
 export async function requireAuth(): Promise<string> {
-  const supabase = createClient();
-  
+  const supabase = (await createClient()) as any;
+
   const {
     data: { session },
     error,
   } = await supabase.auth.getSession();
-  
+
   if (error || !session) {
     throw new Error('Unauthorized: No active session');
   }
-  
+
   return session.user.id;
 }
 
@@ -78,17 +78,17 @@ export async function requirePermission(
   permission: Permission
 ): Promise<AuthContext> {
   const role = await getUserRole(userId, orgId);
-  
+
   if (!role) {
     throw new Error(`Forbidden: User is not a member of organization ${orgId}`);
   }
-  
+
   if (!hasPermission(role, permission)) {
     throw new Error(
       `Forbidden: User lacks permission ${permission} (role: ${role})`
     );
   }
-  
+
   return {
     userId,
     orgId,
@@ -102,18 +102,18 @@ export async function requirePermission(
 export async function getOrgIdFromProject(
   projectId: string
 ): Promise<string | null> {
-  const supabase = createClient();
-  
+  const supabase = (await createClient()) as any;
+
   const { data, error } = await supabase
     .from('projects')
     .select('org_id')
     .eq('id', projectId)
     .single();
-  
+
   if (error || !data) {
     return null;
   }
-  
+
   return data.org_id;
 }
 
@@ -123,18 +123,18 @@ export async function getOrgIdFromProject(
 export async function getOrgIdFromEnvironment(
   environmentId: string
 ): Promise<string | null> {
-  const supabase = createClient();
-  
+  const supabase = (await createClient()) as any;
+
   const { data, error } = await supabase
     .from('environments')
     .select('project_id, projects(org_id)')
     .eq('id', environmentId)
     .single();
-  
+
   if (error || !data) {
     return null;
   }
-  
+
   // @ts-expect-error - Supabase typing issue with nested selects
   return data.projects?.org_id || null;
 }
@@ -148,11 +148,11 @@ export async function checkProjectAccess(
   permission: Permission
 ): Promise<boolean> {
   const orgId = await getOrgIdFromProject(projectId);
-  
+
   if (!orgId) {
     return false;
   }
-  
+
   return checkPermission(userId, orgId, permission);
 }
 
@@ -165,11 +165,11 @@ export async function requireProjectAccess(
   permission: Permission
 ): Promise<AuthContext> {
   const orgId = await getOrgIdFromProject(projectId);
-  
+
   if (!orgId) {
     throw new Error(`Not Found: Project ${projectId} not found`);
   }
-  
+
   return requirePermission(userId, orgId, permission);
 }
 

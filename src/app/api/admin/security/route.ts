@@ -19,7 +19,7 @@ export async function GET() {
     const biometricStatus = process.env.NEXT_PUBLIC_RP_ID ? 'configured' : 'missing_env';
 
     // Connect to Supabase
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
 
     // Query passkey count from user_authenticators table
     try {
@@ -49,7 +49,7 @@ export async function GET() {
         console.error('Error querying audit_logs:', error);
         recentEvents = [];
       } else {
-        recentEvents = data || [];
+        recentEvents = data as any[] || [];
       }
     } catch (error) {
       console.error('Exception querying audit_logs:', error);

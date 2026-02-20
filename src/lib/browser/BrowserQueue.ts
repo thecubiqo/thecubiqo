@@ -172,7 +172,7 @@ export class BrowserQueue {
       .finally(async () => {
         this.activeSessionsCount--;
         await this.updateSessionInDatabase(nextSession);
-        
+
         // Process next session in queue
         this.processQueue();
       });
@@ -258,7 +258,7 @@ export class BrowserQueue {
    */
   private async saveSessionToDatabase(session: QueuedSession): Promise<void> {
     try {
-      const supabase = await createClient();
+      const supabase = (await createClient()) as any;
 
       await supabase.from('browser_sessions').insert({
         id: session.id,
@@ -281,7 +281,7 @@ export class BrowserQueue {
    */
   private async updateSessionInDatabase(session: QueuedSession): Promise<void> {
     try {
-      const supabase = await createClient();
+      const supabase = (await createClient()) as any;
 
       await supabase
         .from('browser_sessions')

@@ -16,14 +16,14 @@ export async function GET(req: NextRequest) {
     // Require admin authentication
     const authResult = await requireAdmin(req)
     if (!authResult.authorized) {
-        return authResult.response
+      return authResult.response
     }
 
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get('limit') || '30', 10);
     const statusFilter = searchParams.get('status');
 
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
 
     // Build query
     let query = (supabase as any)
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     const { data: reports, error } = await query;
 
     if (error) {
-      
+
       return NextResponse.json(
         { error: 'Failed to fetch reports', details: error.message },
         { status: 500 }
@@ -49,16 +49,16 @@ export async function GET(req: NextRequest) {
 
     // Get audit logs for each report (optional, can be loaded on demand)
     // For now, we'll just return the reports
-    
+
     return NextResponse.json({
       reports: reports || [],
       count: reports?.length || 0,
     });
 
   } catch (error) {
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',
       },

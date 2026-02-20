@@ -12,35 +12,36 @@ import { logAudit, logSecretAccess, getIpAddress, getUserAgent } from '@/lib/eme
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient()
-    
+    const { id } = await params
+
     // 1. Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized', data: null },
         { status: 401 }
       )
     }
-    
+
     // 2. Get secret
-    const { data: secret, error: getError } = await supabase
+    const { data: secret, error: getError } = await (supabase as any)
       .from('project_secrets')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
-    
+
     if (getError || !secret) {
       return NextResponse.json(
         { success: false, error: 'Secret not found', data: null },
         { status: 404 }
       )
     }
-    
+
     // 3. Check permissions (must be admin or higher)
     try {
       await requireProjectPermission(user.id, secret.project_id, 'admin')
@@ -50,19 +51,19 @@ export async function PUT(
         { status: 403 }
       )
     }
-    
+
     // 4. Decrypt old value
     const plaintext = decryptSecret({
       encryptedValue: secret.encrypted_value,
       iv: secret.iv,
       authTag: secret.auth_tag
     })
-    
+
     // 5. Re-encrypt with new IV
     const encrypted = encryptSecret(plaintext)
-    
+
     // 6. Update secret
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await (supabase as any)
       .from('project_secrets')
       .update({
         encrypted_value: encrypted.encryptedValue,
@@ -71,24 +72,24 @@ export async function PUT(
         last_rotated_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.id)
+      .eq('id', id)
       .select('id, project_id, key, description, last_rotated_at, created_at, updated_at')
       .single()
-    
+
     if (updateError || !updated) {
       return NextResponse.json(
         { success: false, error: 'Failed to rotate secret', data: null },
         { status: 500 }
       )
     }
-    
+
     // 7. Get project's org_id for audit log
-    const { data: project } = await supabase
+    const { data: project } = await (supabase as any)
       .from('projects')
       .select('org_id')
       .eq('id', secret.project_id)
       .single()
-    
+
     // 8. Log audit event
     if (project) {
       await logAudit({
@@ -96,34 +97,34 @@ export async function PUT(
         orgId: project.org_id,
         action: 'rotate_secret',
         resourceType: 'secret',
-        resourceId: params.id,
+        resourceId: id,
         metadata: { key: secret.key, projectId: secret.project_id },
-        ipAddress: getIpAddress(request.headers),
-        userAgent: getUserAgent(request.headers)
+        ipAddress: getIpAddress(request.headers) || undefined,
+        userAgent: getUserAgent(request.headers) || undefined
       })
     }
-    
+
     // 9. Log secret access
     await logSecretAccess({
-      secretId: params.id,
+      secretId: id,
       userId: user.id,
       action: 'rotate',
-      ipAddress: getIpAddress(request.headers)
+      ipAddress: getIpAddress(request.headers) || undefined
     })
-    
+
     return NextResponse.json({
       success: true,
       data: updated,
       error: null
     })
-    
+
   } catch (error) {
     console.error('Secret rotation error:', error)
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: error instanceof Error ? error.message : 'Internal server error',
-        data: null 
+        data: null
       },
       { status: 500 }
     )

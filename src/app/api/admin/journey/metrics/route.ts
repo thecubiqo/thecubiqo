@@ -12,14 +12,14 @@ export async function GET(request: NextRequest) {
     // Require admin authentication
     const authResult = await requireAdmin(request)
     if (!authResult.authorized) {
-        return authResult.response
+      return authResult.response
     }
 
     // Initialize Supabase admin client
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || '',
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-    );
+    ) as any;
 
     // Get feature flag status
     const { data: featureFlag } = await supabaseAdmin
@@ -82,15 +82,15 @@ export async function GET(request: NextRequest) {
       : 0;
 
     const avgCompletenessScore = metricsAgg && metricsAgg.length > 0
-      ? metricsAgg.reduce((sum, m) => sum + (m.memory_completeness_score || 0), 0) / metricsAgg.length
+      ? metricsAgg.reduce((sum: number, m: any) => sum + (m.memory_completeness_score || 0), 0) / metricsAgg.length
       : 0;
 
     const totalQueries = metricsAgg && metricsAgg.length > 0
-      ? metricsAgg.reduce((sum, m) => sum + (m.similarity_queries_count || 0), 0)
+      ? metricsAgg.reduce((sum: number, m: any) => sum + (m.similarity_queries_count || 0), 0)
       : 0;
 
     const totalPremiumUses = metricsAgg && metricsAgg.length > 0
-      ? metricsAgg.reduce((sum, m) => sum + (m.premium_feature_uses || 0), 0)
+      ? metricsAgg.reduce((sum: number, m: any) => sum + (m.premium_feature_uses || 0), 0)
       : 0;
 
     const avgQueriesPerUser = optedInUsers && optedInUsers > 0
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

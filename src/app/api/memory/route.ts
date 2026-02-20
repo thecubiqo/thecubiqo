@@ -15,7 +15,7 @@ import type { CreateMemoryInput, MemoryQuery } from '@/lib/conscious-memory/type
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ memories });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      
+
       return NextResponse.json(
         { error: error.message },
         { status: 500 }
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ memory }, { status: 201 });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

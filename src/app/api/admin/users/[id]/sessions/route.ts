@@ -10,11 +10,11 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id: userId } = params;
+    const { id: userId } = await params;
     const { searchParams } = new URL(request.url);
 
     // Check admin authorization
@@ -26,7 +26,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
+    const { data: profile } = await (supabase as any)
       .from('profiles')
       .select('is_admin, email')
       .eq('id', user.id)
@@ -71,7 +71,7 @@ export async function GET(
     }
 
     // Build query
-    let query = supabase
+    let query = (supabase as any)
       .from('sessions')
       .select('*', { count: 'exact' })
       .eq('user_id', userId);
@@ -98,21 +98,21 @@ export async function GET(
 
     // Categorize sessions
     const now = new Date();
-    const activeSessions = sessions?.filter(
-      (s) => !s.expires_at || new Date(s.expires_at) > now
+    const activeSessions = (sessions as any[])?.filter(
+      (s: any) => !s.expires_at || new Date(s.expires_at) > now
     ) || [];
-    const expiredSessions = sessions?.filter(
-      (s) => s.expires_at && new Date(s.expires_at) <= now
+    const expiredSessions = (sessions as any[])?.filter(
+      (s: any) => s.expires_at && new Date(s.expires_at) <= now
     ) || [];
 
     // Log admin action
     await supabase.rpc('log_admin_action', {
       p_user_id: user.id,
-      p_user_email: profile.email,
+      p_user_email: profile.email || '',
       p_action_type: 'user_sessions_viewed',
       p_action_details: {
         target_user_id: userId,
-        target_email: targetUser.email,
+        target_email: targetUser.email || '',
       },
     });
 
@@ -156,11 +156,11 @@ export async function GET(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id: userId } = params;
+    const { id: userId } = await params;
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('session_id');
 
@@ -173,7 +173,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
+    const { data: profile } = await (supabase as any)
       .from('profiles')
       .select('is_admin, email')
       .eq('id', user.id)
@@ -256,11 +256,11 @@ export async function DELETE(
       // Log admin action
       await supabase.rpc('log_admin_action', {
         p_user_id: user.id,
-        p_user_email: profile.email,
+        p_user_email: profile.email || '',
         p_action_type: 'session_terminated',
         p_action_details: {
           target_user_id: userId,
-          target_email: targetUser.email,
+          target_email: targetUser.email || '',
           session_id: sessionId,
         },
       });
@@ -293,11 +293,11 @@ export async function DELETE(
       // Log admin action
       await supabase.rpc('log_admin_action', {
         p_user_id: user.id,
-        p_user_email: profile.email,
+        p_user_email: profile.email || '',
         p_action_type: 'all_sessions_terminated',
         p_action_details: {
           target_user_id: userId,
-          target_email: targetUser.email,
+          target_email: targetUser.email || '',
           sessions_terminated: terminatedCount,
         },
       });

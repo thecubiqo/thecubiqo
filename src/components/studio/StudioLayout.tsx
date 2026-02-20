@@ -23,13 +23,13 @@ export default function StudioLayout() {
     },
   ]);
   const [activeTabId, setActiveTabId] = useState<string>('1');
-  
+
   const [fileContents, setFileContents] = useState<Map<string, string>>(
     new Map([
       ['1', '// Welcome to CubiQo Studio\n// Start building with AI\n\nexport default function Home() {\n  return (\n    <div>\n      <h1>Hello from Studio!</h1>\n    </div>\n  );\n}'],
     ])
   );
-  
+
   const [isDeploying, setIsDeploying] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
@@ -44,15 +44,15 @@ export default function StudioLayout() {
         return;
       }
     }
-    
+
     const newTabs = openTabs.filter(t => t.id !== tabId);
     setOpenTabs(newTabs);
-    
+
     // Remove file content
     const newContents = new Map(fileContents);
     newContents.delete(tabId);
     setFileContents(newContents);
-    
+
     // Switch to another tab if this was active
     if (activeTabId === tabId && newTabs.length > 0) {
       setActiveTabId(newTabs[0].id);
@@ -66,7 +66,7 @@ export default function StudioLayout() {
       setActiveTabId(existingTab.id);
       return;
     }
-    
+
     // Create new tab
     const newTab: EditorTab = {
       id: Date.now().toString(),
@@ -74,10 +74,10 @@ export default function StudioLayout() {
       name: path.split('/').pop() || path,
       isDirty: false,
     };
-    
+
     setOpenTabs([...openTabs, newTab]);
     setActiveTabId(newTab.id);
-    
+
     // Load file content (mock for now)
     const newContents = new Map(fileContents);
     newContents.set(newTab.id, `// File: ${path}\n// Content loaded...`);
@@ -88,9 +88,9 @@ export default function StudioLayout() {
     const newContents = new Map(fileContents);
     newContents.set(activeTabId, newCode);
     setFileContents(newContents);
-    
+
     // Mark tab as dirty
-    setOpenTabs(openTabs.map(tab => 
+    setOpenTabs(openTabs.map(tab =>
       tab.id === activeTabId ? { ...tab, isDirty: true } : tab
     ));
   };
@@ -100,7 +100,7 @@ export default function StudioLayout() {
 
   const handleDeploy = async () => {
     if (isDeploying) return;
-    
+
     setIsDeploying(true);
     try {
       const response = await fetch('/api/emergent/deploy', {
@@ -114,7 +114,7 @@ export default function StudioLayout() {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setToast({
           message: `Deployment started! ID: ${data.deployment.id}`,
@@ -162,7 +162,7 @@ export default function StudioLayout() {
           <div className="h-6 w-px bg-gray-700"></div>
           <span className="text-sm text-gray-400">{activeTab?.name || 'No file open'}</span>
         </div>
-        <button 
+        <button
           onClick={handleDeploy}
           disabled={isDeploying}
           className="px-6 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-teal-500/50"
@@ -196,8 +196,9 @@ export default function StudioLayout() {
           <div className="flex-1 flex overflow-hidden">
             {/* File Explorer */}
             <div className="w-64 border-r border-gray-700">
-              <FileExplorer 
+              <FileExplorer
                 onFileSelect={handleFileOpen}
+                currentFile={activeTab?.path || ''}
               />
             </div>
 
@@ -210,7 +211,7 @@ export default function StudioLayout() {
                 onTabChange={handleTabChange}
                 onTabClose={handleTabClose}
               />
-              
+
               {/* Code Editor */}
               <div className="flex-1">
                 {openTabs.length === 0 ? (
@@ -227,7 +228,7 @@ export default function StudioLayout() {
                     }}
                   />
                 ) : (
-                  <CodeEditor 
+                  <CodeEditor
                     value={currentCode}
                     onChange={handleCodeChange}
                     language={activeTab?.language || 'typescript'}

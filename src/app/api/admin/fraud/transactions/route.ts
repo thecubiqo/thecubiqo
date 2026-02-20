@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { searchParams } = new URL(request.url);
 
     // Check admin authorization
@@ -22,9 +22,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
+    const { data: profile } = await (supabase as any)
       .from('profiles')
-      .select('is_admin')
+      .select('is_admin, email')
       .eq('id', user.id)
       .single();
 
@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const status = searchParams.get('status'); // pending, processing, completed, failed, refunded, disputed
     const flaggedOnly = searchParams.get('flaggedOnly') === 'true';
-    const minFraudScore = searchParams.get('minFraudScore') 
-      ? parseFloat(searchParams.get('minFraudScore')!) 
+    const minFraudScore = searchParams.get('minFraudScore')
+      ? parseFloat(searchParams.get('minFraudScore')!)
       : null;
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Build query
-    let query = supabase
+    let query = (supabase as any)
       .from('transactions')
       .select('*, profiles!transactions_user_id_fkey(email, display_name, handle)', { count: 'exact' });
 
@@ -95,26 +95,26 @@ export async function GET(request: NextRequest) {
     }
 
     // Get fraud statistics
-    const { data: fraudStats } = await supabase
+    const { data: fraudStats } = await (supabase as any)
       .from('transactions')
       .select('fraud_score, flagged_for_review, status');
 
     const statistics = {
       totalTransactions: fraudStats?.length || 0,
-      flaggedForReview: fraudStats?.filter(t => t.flagged_for_review).length || 0,
-      highRiskCount: fraudStats?.filter(t => t.fraud_score && t.fraud_score >= 70).length || 0,
-      mediumRiskCount: fraudStats?.filter(t => t.fraud_score && t.fraud_score >= 40 && t.fraud_score < 70).length || 0,
-      lowRiskCount: fraudStats?.filter(t => t.fraud_score && t.fraud_score < 40).length || 0,
-      avgFraudScore: fraudStats?.length 
-        ? Number((fraudStats.reduce((sum, t) => sum + (t.fraud_score || 0), 0) / fraudStats.length).toFixed(2))
+      flaggedForReview: fraudStats?.filter((t: any) => t.flagged_for_review).length || 0,
+      highRiskCount: fraudStats?.filter((t: any) => t.fraud_score && t.fraud_score >= 70).length || 0,
+      mediumRiskCount: fraudStats?.filter((t: any) => t.fraud_score && t.fraud_score >= 40 && t.fraud_score < 70).length || 0,
+      lowRiskCount: fraudStats?.filter((t: any) => t.fraud_score && t.fraud_score < 40).length || 0,
+      avgFraudScore: fraudStats?.length
+        ? Number((fraudStats.reduce((sum: number, t: any) => sum + (t.fraud_score || 0), 0) / fraudStats.length).toFixed(2))
         : 0,
       statusBreakdown: {
-        pending: fraudStats?.filter(t => t.status === 'pending').length || 0,
-        processing: fraudStats?.filter(t => t.status === 'processing').length || 0,
-        completed: fraudStats?.filter(t => t.status === 'completed').length || 0,
-        failed: fraudStats?.filter(t => t.status === 'failed').length || 0,
-        refunded: fraudStats?.filter(t => t.status === 'refunded').length || 0,
-        disputed: fraudStats?.filter(t => t.status === 'disputed').length || 0,
+        pending: fraudStats?.filter((t: any) => t.status === 'pending').length || 0,
+        processing: fraudStats?.filter((t: any) => t.status === 'processing').length || 0,
+        completed: fraudStats?.filter((t: any) => t.status === 'completed').length || 0,
+        failed: fraudStats?.filter((t: any) => t.status === 'failed').length || 0,
+        refunded: fraudStats?.filter((t: any) => t.status === 'refunded').length || 0,
+        disputed: fraudStats?.filter((t: any) => t.status === 'disputed').length || 0,
       },
     };
 
@@ -160,9 +160,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
+    const { data: profile } = await (supabase as any)
       .from('profiles')
-      .select('is_admin')
+      .select('is_admin, email')
       .eq('id', user.id)
       .single();
 
@@ -209,13 +209,13 @@ export async function POST(request: NextRequest) {
 
     // Factor 2: Check user's transaction history
     if (user_id) {
-      const { data: userTransactions } = await supabase
+      const { data: userTransactions } = await (supabase as any)
         .from('transactions')
         .select('status, fraud_score')
         .eq('user_id', user_id);
 
-      const failedTransactions = userTransactions?.filter(t => t.status === 'failed').length || 0;
-      const disputedTransactions = userTransactions?.filter(t => t.status === 'disputed').length || 0;
+      const failedTransactions = userTransactions?.filter((t: any) => t.status === 'failed').length || 0;
+      const disputedTransactions = userTransactions?.filter((t: any) => t.status === 'disputed').length || 0;
 
       if (failedTransactions > 3) fraudScore += 25;
       else if (failedTransactions > 1) fraudScore += 15;
@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
 
       // Check if user had high fraud scores before
       const avgPreviousFraudScore = userTransactions?.length
-        ? userTransactions.reduce((sum, t) => sum + (t.fraud_score || 0), 0) / userTransactions.length
+        ? userTransactions.reduce((sum: number, t: any) => sum + (t.fraud_score || 0), 0) / userTransactions.length
         : 0;
 
       if (avgPreviousFraudScore > 70) fraudScore += 20;
@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
     const flaggedForReview = fraudScore >= 50;
 
     // Create transaction
-    const { data: transaction, error: createError } = await supabase
+    const { data: transaction, error: createError } = await (supabase as any)
       .from('transactions')
       .insert({
         user_id,
@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
 
     // If fraud score is high, create a security alert
     if (fraudScore >= 70) {
-      await supabase.rpc('create_security_alert', {
+      await (supabase as any).rpc('create_security_alert', {
         p_alert_type: 'fraud_detected',
         p_severity: fraudScore >= 90 ? 'critical' : 'high',
         p_user_id: user_id || null,
@@ -287,9 +287,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Log admin action
-    await supabase.rpc('log_admin_action', {
+    await (supabase as any).rpc('log_admin_action', {
       p_user_id: user.id,
-      p_user_email: profile.email,
+      p_user_email: (profile as any)?.email || '',
       p_action_type: 'transaction_created',
       p_action_details: {
         transaction_id: transaction.id,

@@ -15,7 +15,7 @@ import type { CreateEntryInput, SearchFilters } from '@/lib/journal/types';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ entries });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      
+
       return NextResponse.json(
         { error: error.message },
         { status: 500 }
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ entry }, { status: 201 });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

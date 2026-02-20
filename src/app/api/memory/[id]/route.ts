@@ -13,10 +13,11 @@ import type { UpdateMemoryInput } from '@/lib/conscious-memory/types';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
+    const { id: memoryId } = await params;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -26,10 +27,10 @@ export async function GET(
       );
     }
 
-    const { data: memory, error } = await supabase
+    const { data: memory, error } = await (supabase as any)
       .from('conscious_memories')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', memoryId)
       .eq('user_id', user.id)
       .single();
 
@@ -42,15 +43,15 @@ export async function GET(
 
     // Track access
     const updates = ConsciousMemoryService.trackAccess(memory);
-    await supabase
+    await (supabase as any)
       .from('conscious_memories')
       .update(updates)
-      .eq('id', params.id);
+      .eq('id', memoryId);
 
     return NextResponse.json({ memory: { ...memory, ...updates } });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -63,10 +64,11 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
+    const { id: memoryId } = await params;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -79,10 +81,10 @@ export async function PATCH(
     const body: UpdateMemoryInput = await request.json();
 
     // Check memory exists
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing, error: fetchError } = await (supabase as any)
       .from('conscious_memories')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', memoryId)
       .eq('user_id', user.id)
       .single();
 
@@ -115,10 +117,10 @@ export async function PATCH(
     }
 
     // Update memory
-    const { data: memory, error } = await supabase
+    const { data: memory, error } = await (supabase as any)
       .from('conscious_memories')
       .update(updates)
-      .eq('id', params.id)
+      .eq('id', memoryId)
       .eq('user_id', user.id)
       .select()
       .single();
@@ -133,7 +135,7 @@ export async function PATCH(
     return NextResponse.json({ memory });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -146,10 +148,11 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
+    const { id: memoryId } = await params;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -159,10 +162,10 @@ export async function DELETE(
       );
     }
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('conscious_memories')
       .delete()
-      .eq('id', params.id)
+      .eq('id', memoryId)
       .eq('user_id', user.id);
 
     if (error) {
@@ -175,7 +178,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

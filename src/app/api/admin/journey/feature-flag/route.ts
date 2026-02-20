@@ -12,14 +12,14 @@ export async function POST(request: NextRequest) {
     // Require admin authentication
     const authResult = await requireAdmin(request)
     if (!authResult.authorized) {
-        return authResult.response
+      return authResult.response
     }
 
     // Initialize Supabase admin client
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || '',
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-    );
+    ) as any;
 
     const body = await request.json();
     const { enabled } = body;
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      
+
       return NextResponse.json(
         { error: 'Failed to update feature flag' },
         { status: 500 }
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

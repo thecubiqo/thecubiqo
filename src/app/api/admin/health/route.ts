@@ -17,21 +17,21 @@ export async function GET(req: NextRequest) {
     memory: { status: 'unknown' },
     uptime: { status: 'unknown' },
   };
-  
+
   let overallStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
-  
+
   try {
     // Check Supabase connection
     const supabaseStart = Date.now();
     try {
       const supabase = createAdminClient();
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('profiles')
         .select('id')
         .limit(1);
-      
+
       const latency = Date.now() - supabaseStart;
-      
+
       if (error) {
         healthChecks.supabase = {
           status: 'unhealthy',
@@ -53,12 +53,12 @@ export async function GET(req: NextRequest) {
       };
       overallStatus = 'unhealthy';
     }
-    
+
     // Check Agent engine status
     try {
       const agents = listAgents();
       const activeAgents = agents.filter(a => a.status === 'running').length;
-      
+
       if (agents.length === 0) {
         healthChecks.agents = {
           status: 'degraded',
@@ -82,17 +82,17 @@ export async function GET(req: NextRequest) {
       };
       overallStatus = 'unhealthy';
     }
-    
+
     // Check Memory usage
     try {
       const memUsage = process.memoryUsage();
       const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
       const heapTotalMB = Math.round(memUsage.heapTotal / 1024 / 1024);
       const rssMB = Math.round(memUsage.rss / 1024 / 1024);
-      
+
       // Flag if memory usage is high (> 90% of heap)
       const heapUsagePercent = (heapUsedMB / heapTotalMB) * 100;
-      
+
       if (heapUsagePercent > 90) {
         healthChecks.memory = {
           status: 'degraded',
@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
         message: error instanceof Error ? error.message : 'Failed to read memory',
       };
     }
-    
+
     // Check Uptime
     try {
       const uptimeSeconds = Math.floor(process.uptime());
@@ -123,7 +123,7 @@ export async function GET(req: NextRequest) {
       const minutes = Math.floor((uptimeSeconds % 3600) / 60);
       const seconds = uptimeSeconds % 60;
       const uptimeHuman = `${hours}h ${minutes}m ${seconds}s`;
-      
+
       healthChecks.uptime = {
         status: 'healthy',
         uptimeSeconds,
@@ -135,7 +135,7 @@ export async function GET(req: NextRequest) {
         message: error instanceof Error ? error.message : 'Failed to read uptime',
       };
     }
-    
+
     return NextResponse.json({
       status: overallStatus,
       services: healthChecks,

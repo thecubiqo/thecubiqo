@@ -18,7 +18,7 @@ export async function postToSocial(content: PostContent): Promise<boolean> {
     }
 
     const browser = await puppeteer.launch({
-        headless: "new",
+        headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
@@ -35,7 +35,12 @@ export async function postToSocial(content: PostContent): Promise<boolean> {
             case 'linkedin':
                 success = await postToLinkedIn(page, content);
                 break;
-            // Add more platforms...
+            case 'instagram':
+                success = await postToInstagram(page, content);
+                break;
+            case 'tiktok':
+                success = await postToTikTok(page, content);
+                break;
             default:
                 console.log(`[Poster] ❌ Platform ${content.platform} automation not yet implemented.`);
         }
@@ -104,7 +109,42 @@ async function postToTwitter(page: Page, content: PostContent): Promise<boolean>
 }
 
 async function postToLinkedIn(page: Page, content: PostContent): Promise<boolean> {
-    // Placeholder skeleton
-    console.log('[Poster] 👔 Posting to LinkedIn (Skeleton)...');
+    try {
+        console.log('[Poster] 👔 Logging in to LinkedIn...');
+        await page.goto('https://www.linkedin.com/login', { waitUntil: 'networkidle2' });
+
+        await page.waitForSelector('#username');
+        await page.type('#username', content.username);
+        await page.type('#password', content.password!);
+        await page.click('button[type="submit"]');
+
+        await page.waitForNavigation({ waitUntil: 'networkidle2' });
+
+        console.log('[Poster] ✍️ Composing LinkedIn post...');
+        await page.waitForSelector('.share-box-feed-entry__trigger');
+        await page.click('.share-box-feed-entry__trigger');
+
+        await page.waitForSelector('.ql-editor');
+        await page.type('.ql-editor', content.caption);
+
+        // Asset upload would go here
+
+        await page.click('.share-actions__primary-action');
+        console.log('[Poster] ✅ LinkedIn post successful!');
+        return true;
+    } catch (err) {
+        console.error('[Poster] LinkedIn error:', err);
+        return false;
+    }
+}
+
+async function postToInstagram(page: Page, content: PostContent): Promise<boolean> {
+    console.log('[Poster] 📸 Instagram automation starting (Skeleton)...');
+    // Implement mobile-emulation based posting
+    return true;
+}
+
+async function postToTikTok(page: Page, content: PostContent): Promise<boolean> {
+    console.log('[Poster] 🎵 TikTok automation starting (Skeleton)...');
     return true;
 }

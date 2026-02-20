@@ -20,7 +20,7 @@ if (!supabaseUrl || !supabaseServiceKey) {
 const supabaseAdmin = createClient(
   supabaseUrl || 'http://localhost:54321',
   supabaseServiceKey || 'fake-key-for-build'
-)
+) as any
 
 export const dynamic = 'force-dynamic'
 
@@ -42,9 +42,9 @@ export async function GET(request: NextRequest) {
     // Check for required environment variables at runtime
     if (!supabaseUrl || !supabaseServiceKey) {
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: 'Server configuration error: Missing database credentials' 
+          error: 'Server configuration error: Missing database credentials'
         },
         { status: 500 }
       )
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       .gte('created_at', startDate.toISOString())
       .not('user_id', 'is', null)
 
-    const uniqueUserCount = new Set(uniqueUsers?.map(e => e.user_id)).size
+    const uniqueUserCount = new Set(uniqueUsers?.map((e: any) => e.user_id)).size
 
     // Get entries by day (for chart)
     const { data: entriesByDay } = await supabaseAdmin
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
 
     // Group by day
     const dayMap = new Map<string, number>()
-    entriesByDay?.forEach(entry => {
+    entriesByDay?.forEach((entry: any) => {
       const day = new Date(entry.created_at).toISOString().split('T')[0]
       dayMap.set(day, (dayMap.get(day) || 0) + 1)
     })
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
       .select('mood')
       .gte('created_at', startDate.toISOString())
 
-    const moodDistribution = moodData?.reduce((acc, entry) => {
+    const moodDistribution = moodData?.reduce((acc: any, entry: any) => {
       const mood = entry.mood || 'neutral'
       acc[mood] = (acc[mood] || 0) + 1
       return acc
@@ -108,11 +108,11 @@ export async function GET(request: NextRequest) {
       .gte('created_at', startDate.toISOString())
 
     const avgDuration = statsData?.length
-      ? Math.round(statsData.reduce((sum, e) => sum + (e.duration_seconds || 0), 0) / statsData.length / 60)
+      ? Math.round(statsData.reduce((sum: number, e: any) => sum + (e.duration_seconds || 0), 0) / statsData.length / 60)
       : 0
 
     const avgWordCount = statsData?.length
-      ? Math.round(statsData.reduce((sum, e) => sum + (e.word_count || 0), 0) / statsData.length)
+      ? Math.round(statsData.reduce((sum: number, e: any) => sum + (e.word_count || 0), 0) / statsData.length)
       : 0
 
     // Get completion rate from analytics
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
       .gte('created_at', startDate.toISOString())
 
     const avgCompletionRate = analyticsData?.length
-      ? Math.round(analyticsData.reduce((sum, a) => sum + (a.completion_rate || 0), 0) / analyticsData.length)
+      ? Math.round(analyticsData.reduce((sum: number, a: any) => sum + (a.completion_rate || 0), 0) / analyticsData.length)
       : 0
 
     // Get email queue stats
@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
         dailyEntries: dailyData,
         moodDistribution: moodDistribution || {}
       },
-      recentEntries: recentEntries?.map(e => ({
+      recentEntries: recentEntries?.map((e: any) => ({
         id: e.id,
         date: new Date(e.created_at).toLocaleDateString(),
         mood: e.mood,
@@ -174,9 +174,9 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[Admin Journal Analytics] Error:', error)
     return NextResponse.json(
-      { 
+      {
         success: false,
-        error: 'Failed to fetch journal analytics' 
+        error: 'Failed to fetch journal analytics'
       },
       { status: 500 }
     )

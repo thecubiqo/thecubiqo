@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 // POST /api/emergent/deploy - Trigger deployment
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     // 5. Update database with deployment record
 
     const deploymentId = `deploy-${Date.now()}`;
-    
+
     return NextResponse.json({
       success: true,
       deployment: {
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 // GET /api/emergent/deploy?deploymentId=xxx - Get deployment status
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     }
 
     // TODO: Query deployment status from database and Vercel API
-    
+
     return NextResponse.json({
       deployment: {
         id: deploymentId,

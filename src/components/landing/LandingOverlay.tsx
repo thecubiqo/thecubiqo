@@ -29,7 +29,7 @@ export function LandingOverlay({ showTopRightCTA = false }: LandingOverlayProps)
                 }
             `}</style>
             {showTopRightCTA && (
-                <div className="pointer-events-auto">
+                <div className="absolute top-8 right-8 z-50 pointer-events-auto">
                     <TopRightCTA />
                 </div>
             )}

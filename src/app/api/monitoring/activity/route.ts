@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     // Verify authorization
     const authHeader = request.headers.get('authorization')
     const monitoringSecret = process.env.MONITORING_SECRET
-    
+
     if (!monitoringSecret) {
       console.warn('MONITORING_SECRET not configured')
       return NextResponse.json(
@@ -36,27 +36,27 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       )
     }
-    
+
     if (!authHeader || authHeader !== `Bearer ${monitoringSecret}`) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-    
+
     // Parse event data
     const event = await request.json() as ActivityEvent
-    
+
     if (!event.type || !event.timestamp || !event.repository) {
       return NextResponse.json(
         { error: 'Invalid event data: missing required fields' },
         { status: 400 }
       )
     }
-    
+
     // Store event in database
-    const supabase = await createClient()
-    
+    const supabase = (await createClient()) as any
+
     const { data, error } = await supabase
       .from('monitoring_events')
       .insert({
@@ -67,10 +67,10 @@ export async function POST(request: NextRequest) {
       })
       .select()
       .single()
-    
+
     if (error) {
       console.error('Failed to store monitoring event:', error)
-      
+
       // If table doesn't exist, log to console but don't fail
       if (error.code === '42P01') {
         console.log('Monitoring event (table not found):', JSON.stringify(event, null, 2))
@@ -79,16 +79,16 @@ export async function POST(request: NextRequest) {
           message: 'Event logged (database table pending migration)',
         })
       }
-      
+
       return NextResponse.json(
         { error: 'Failed to store event', details: error.message },
         { status: 500 }
       )
     }
-    
+
     // Log significant events to console
     logEventToConsole(event)
-    
+
     return NextResponse.json({
       success: true,
       event_id: data?.id,
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error processing monitoring event:', error)
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
@@ -113,51 +113,51 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
+    const supabase = (await createClient()) as any
+
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-    
+
     // Check if user is admin
     const { data: profile } = await supabase
       .from('profiles')
       .select('is_admin')
       .eq('id', user.id)
       .single()
-    
+
     if (!profile?.is_admin) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
       )
     }
-    
+
     // Parse query parameters
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type')
     const limit = parseInt(searchParams.get('limit') || '50', 10)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
-    
+
     // Query monitoring events
     let query = supabase
       .from('monitoring_events')
       .select('*')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
-    
+
     if (type) {
       query = query.eq('event_type', type)
     }
-    
+
     const { data, error } = await query
-    
+
     if (error) {
       // If table doesn't exist, return empty array
       if (error.code === '42P01') {
@@ -166,14 +166,14 @@ export async function GET(request: NextRequest) {
           message: 'Monitoring table pending migration',
         })
       }
-      
+
       console.error('Failed to fetch monitoring events:', error)
       return NextResponse.json(
         { error: 'Failed to fetch events', details: error.message },
         { status: 500 }
       )
     }
-    
+
     return NextResponse.json({
       events: data || [],
       count: data?.length || 0,
@@ -202,7 +202,7 @@ function logEventToConsole(event: ActivityEvent): void {
   const action = 'action' in event ? event.action : undefined
   const environment = 'environment' in event ? event.environment : undefined
   const state = 'state' in event ? event.state : undefined
-  
+
   switch (event.type) {
     case 'branch_push':
       console.log(`[MONITORING] Branch push to ${branch || 'unknown'} by ${actor || 'unknown'} at ${timestamp}`)

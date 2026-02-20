@@ -1,82 +1,103 @@
 /**
- * The Commander
- * Orchestrates the Social Army.
+ * The Commander v2 — Fleet Mode
+ * Orchestrates the Social Army (100 accounts).
  * 
  * Logic:
- * 1. Reads the Platform Schedule.
- * 2. Wakes up the Content Factory (Interactor + GFXToolz).
- * 3. Distributes content to the 10 Platforms.
+ * 1. Loads 100-account Fleet Config.
+ * 2. Picks one account every 10 mins (Rotates through platforms).
+ * 3. Triggers Content Engine (GFXToolz/Interactor).
+ * 4. Posts using specific account proxy.
  */
 
 require('dotenv').config();
-const platforms = require('../config/platforms.json');
-const { captureSession } = require('./interactor');
-const GFXToolz = require('./gfxtoolz');
+const fs = require('fs');
+const path = require('path');
+const { generateContent } = require('./content-engine');
+const { postToSocial } = require('./poster');
 
-const gfx = new GFXToolz(process.env.GFX_TOOLZ_USER, process.env.GFX_TOOLZ_PASS);
+const CONFIG_PATH = path.join(__dirname, '../config/platforms.json');
 
-async function runCampaign() {
-  console.log('⚔️  Social Army Commander Initialized ⚔️');
-  console.log(`🎯 Targets: ${platforms.length} Platforms`);
+async function getFleet() {
+  if (!fs.existsSync(CONFIG_PATH)) {
+    console.error('❌ Fleet config missing! Run: node scripts/fleet-config-helper.js --generate');
+    return [];
+  }
+  return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+}
 
-  // 1. Authenticate with GFX Toolz
-  await gfx.login();
+async function runCycle(accountIndex) {
+  const fleet = await getFleet();
+  if (fleet.length === 0) return;
 
-  // 2. Loop through platforms (Mocking the loop for the pilot)
-  for (const platform of platforms) {
-    console.log(`\n-----------------------------------`);
-    console.log(`🤖 waking up agent: ${platform.handle} (${platform.type})`);
+  // Wrap around index
+  const idx = accountIndex % fleet.length;
+  const target = fleet[idx];
 
-    // Step A: Generate Content (Recording)
-    // In reality, we'd vary the prompt based on Persona (platform.type)
-    const prompt = `Show me the ${platform.type} features of CubiQo`;
-    const rawVideoPath = await captureSession(prompt, `${platform.platform}_${Date.now()}.mp4`);
+  console.log(`\n⚔️  FLEET MISSION: [${idx + 1}/${fleet.length}] ⚔️`);
+  console.log(`🤖 Agent: ${target.handle} | Platform: ${target.platform.toUpperCase()}`);
 
-    // Step B: Enhance Content (GFXToolz)
-    const processedVideo = await gfx.processVideo(rawVideoPath, platform.type);
+  try {
+    // 1. Generate Content
+    const content = await generateContent({
+      campaignTopic: "Launch of CubiQo AI - The future of personal intelligence",
+      personaType: target.persona,
+      platform: target.platform,
+      contentType: Math.random() > 0.5 ? 'image' : 'video'
+    });
 
-    // Step C: Post (Simulated)
-    // We would use Puppeteer to log in to the specific social platform here
-    console.log(`🚀 POSTING to ${platform.platform.toUpperCase()}...`);
-    console.log(`✅ Success: Content deployed to ${platform.handle}`);
+    // 2. Post to Social (Real automated login)
+    const success = await postToSocial({
+      platform: target.platform,
+      username: target.username,
+      password: target.password, // Hidden in logs
+      caption: content.caption,
+      assetUrl: content.imageUrl || content.videoUrl
+    });
+
+    if (success) {
+      console.log(`✅ Success: Deployed to ${target.handle}`);
+    } else {
+      console.log(`⚠️  Post skipped or failed for ${target.handle}. Check logs.`);
+    }
+
+  } catch (err) {
+    console.error(`❌ Mission Crash for ${target.handle}:`, err.message);
   }
 }
 
-// Run Loop (Every 10 Minutes)
-async function startDaemon() {
-  console.log('⚔️  Social Army Commander Initialized ⚔️');
-  console.log(`🎯 Targets: ${platforms.length} Platforms`);
+async function startArmy() {
+  console.log('⚔️  Social Army Commander ONLINE ⚔️');
+  console.log('⏱️ Schedule: One post every 10 minutes (Rotating Fleet)');
 
-  // Login once at startup
-  await gfx.login();
+  let currentAccount = 0;
 
-  // Recursive campaign loop with error handling
   async function scheduleNext() {
-    setTimeout(async () => {
-      try {
-        const isSystemOn = process.env.SOCIAL_ARMY_STATUS === 'ON';
+    // Randomized Jitter (adds 0-2 mins to avoid exact 10:00 patterns)
+    const jitter = Math.floor(Math.random() * 2 * 60 * 1000);
+    const delay = (10 * 60 * 1000) + jitter;
 
-        if (isSystemOn) {
-          console.log('\n⏰ Scheduled Cycle Triggered...');
-          await runCampaign();
-        } else {
-          console.log('\nzzz System Paused. Waiting for Start signal...');
-        }
-      } catch (err) {
-        console.error('❌ Campaign cycle error:', err.message);
+    console.log(`\n💤 Next mission in ${Math.round(delay / 1000 / 60)} minutes...`);
+
+    setTimeout(async () => {
+      if (process.env.SOCIAL_ARMY_STATUS === 'ON') {
+        await runCycle(currentAccount);
+        currentAccount++;
+      } else {
+        console.log('zzz System Paused (SOCIAL_ARMY_STATUS=OFF)');
       }
       scheduleNext();
-    }, 10 * 60 * 1000);
+    }, delay);
   }
 
-  // Initial Run
-  try {
-    await runCampaign();
-  } catch (err) {
-    console.error('❌ Initial campaign error:', err.message);
+  // Initial Launch
+  if (process.env.SOCIAL_ARMY_STATUS === 'ON') {
+    await runCycle(currentAccount);
+    currentAccount++;
   }
 
   scheduleNext();
 }
 
-startDaemon();
+if (require.main === module) {
+  startArmy();
+}

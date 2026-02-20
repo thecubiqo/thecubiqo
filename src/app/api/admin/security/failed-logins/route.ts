@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
+    const { data: profile } = await (supabase as any)
       .from('profiles')
       .select('is_admin')
       .eq('id', user.id)
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Build query - failed logins are stored as security alerts with type 'failed_login'
-    let query = supabase
+    let query = (supabase as any)
       .from('security_alerts')
       .select('*', { count: 'exact' })
       .eq('alert_type', 'failed_login');
@@ -88,13 +88,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Get top offenders (by email and IP)
-    const { data: topEmails } = await supabase
+    const { data: topEmails } = await (supabase as any)
       .from('security_alerts')
       .select('user_email')
       .eq('alert_type', 'failed_login')
       .not('user_email', 'is', null);
 
-    const { data: topIPs } = await supabase
+    const { data: topIPs } = await (supabase as any)
       .from('security_alerts')
       .select('ip_address')
       .eq('alert_type', 'failed_login')
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
       Date.now() - THRESHOLD_WINDOW_MINUTES * 60 * 1000
     ).toISOString();
 
-    let recentAttemptsQuery = supabase
+    let recentAttemptsQuery = (supabase as any)
       .from('security_alerts')
       .select('id', { count: 'exact' })
       .eq('alert_type', 'failed_login')
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log the failed login attempt
-    const { data: alertId, error: createError } = await supabase.rpc(
+    const { data: alertId, error: createError } = await (supabase as any).rpc(
       'create_security_alert',
       {
         p_alert_type: 'failed_login',
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
 
     // If threshold exceeded, create a brute force alert
     if (recentAttempts && recentAttempts >= FAILED_LOGIN_THRESHOLD) {
-      await supabase.rpc('create_security_alert', {
+      await (supabase as any).rpc('create_security_alert', {
         p_alert_type: 'brute_force',
         p_severity: 'critical',
         p_user_id: null,

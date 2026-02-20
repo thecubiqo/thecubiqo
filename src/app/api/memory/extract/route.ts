@@ -14,7 +14,7 @@ import { routeAIRequest } from '@/lib/ai/router';
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ extraction });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

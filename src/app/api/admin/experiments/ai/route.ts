@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
         }
 
         const { command, experimentId } = await req.json()
-        const supabase = await createClient()
+        const supabase = (await createClient()) as any
         // Use supabase directly
 
         // 1. Get current experiment

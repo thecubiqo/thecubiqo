@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const days = Math.min(parseInt(searchParams.get('days') || '7', 10), 90);
 
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
 
     const since = new Date();
     since.setDate(since.getDate() - days);

@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { searchParams } = new URL(request.url);
 
     // Check admin authorization
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('is_admin')
+      .select('is_admin, email')
       .eq('id', user.id)
       .single();
 
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Build query
-    let query = supabase
+    let query = (supabase as any)
       .from('fraud_detection_rules')
       .select('*', { count: 'exact' });
 
@@ -78,22 +78,22 @@ export async function GET(request: NextRequest) {
     }
 
     // Get summary statistics
-    const { data: allRules } = await supabase
+    const { data: allRules } = await (supabase as any)
       .from('fraud_detection_rules')
       .select('enabled, hit_count, severity, rule_type');
 
     const statistics = {
       totalRules: allRules?.length || 0,
-      enabledRules: allRules?.filter(r => r.enabled).length || 0,
-      disabledRules: allRules?.filter(r => !r.enabled).length || 0,
-      totalHits: allRules?.reduce((sum, r) => sum + (r.hit_count || 0), 0) || 0,
+      enabledRules: allRules?.filter((r: any) => r.enabled).length || 0,
+      disabledRules: allRules?.filter((r: any) => !r.enabled).length || 0,
+      totalHits: allRules?.reduce((sum: number, r: any) => sum + (r.hit_count || 0), 0) || 0,
       bySeverity: {
-        critical: allRules?.filter(r => r.severity === 'critical').length || 0,
-        high: allRules?.filter(r => r.severity === 'high').length || 0,
-        medium: allRules?.filter(r => r.severity === 'medium').length || 0,
-        low: allRules?.filter(r => r.severity === 'low').length || 0,
+        critical: allRules?.filter((r: any) => r.severity === 'critical').length || 0,
+        high: allRules?.filter((r: any) => r.severity === 'high').length || 0,
+        medium: allRules?.filter((r: any) => r.severity === 'medium').length || 0,
+        low: allRules?.filter((r: any) => r.severity === 'low').length || 0,
       },
-      byType: allRules?.reduce((acc, rule) => {
+      byType: allRules?.reduce((acc: Record<string, number>, rule: any) => {
         acc[rule.rule_type] = (acc[rule.rule_type] || 0) + 1;
         return acc;
       }, {} as Record<string, number>) || {},
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
 
     // Check admin authorization
     const {
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('is_admin')
+      .select('is_admin, email')
       .eq('id', user.id)
       .single();
 
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if rule_name already exists
-    const { data: existingRule } = await supabase
+    const { data: existingRule } = await (supabase as any)
       .from('fraud_detection_rules')
       .select('id')
       .eq('rule_name', rule_name)
@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create fraud rule
-    const { data: rule, error: createError } = await supabase
+    const { data: rule, error: createError } = await (supabase as any)
       .from('fraud_detection_rules')
       .insert({
         rule_name,
@@ -236,9 +236,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Log admin action
-    await supabase.rpc('log_admin_action', {
+    await (supabase as any).rpc('log_admin_action', {
       p_user_id: user.id,
-      p_user_email: profile.email,
+      p_user_email: profile?.email || '',
       p_action_type: 'fraud_rule_created',
       p_action_details: {
         rule_id: rule.id,
@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
 
     // Check admin authorization
     const {
@@ -286,7 +286,7 @@ export async function PATCH(request: NextRequest) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('is_admin')
+      .select('is_admin, email')
       .eq('id', user.id)
       .single();
 
@@ -316,7 +316,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Check if rule exists
-    const { data: existingRule, error: fetchError } = await supabase
+    const { data: existingRule, error: fetchError } = await (supabase as any)
       .from('fraud_detection_rules')
       .select('*')
       .eq('id', rule_id)
@@ -367,7 +367,7 @@ export async function PATCH(request: NextRequest) {
     if (enabled !== undefined) updates.enabled = enabled;
 
     // Update fraud rule
-    const { data: updatedRule, error: updateError } = await supabase
+    const { data: updatedRule, error: updateError } = await (supabase as any)
       .from('fraud_detection_rules')
       .update(updates)
       .eq('id', rule_id)
@@ -383,13 +383,13 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Log admin action
-    await supabase.rpc('log_admin_action', {
+    await (supabase as any).rpc('log_admin_action', {
       p_user_id: user.id,
-      p_user_email: profile.email,
+      p_user_email: profile?.email || '',
       p_action_type: 'fraud_rule_updated',
       p_action_details: {
         rule_id,
-        rule_name: existingRule.rule_name,
+        rule_name: (existingRule as any)?.rule_name,
         changes: updates,
       },
     });
@@ -432,7 +432,7 @@ export async function DELETE(request: NextRequest) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('is_admin')
+      .select('is_admin, email')
       .eq('id', user.id)
       .single();
 
@@ -455,7 +455,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if rule exists
-    const { data: existingRule, error: fetchError } = await supabase
+    const { data: existingRule, error: fetchError } = await (supabase as any)
       .from('fraud_detection_rules')
       .select('*')
       .eq('id', rule_id)
@@ -469,7 +469,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete fraud rule
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await (supabase as any)
       .from('fraud_detection_rules')
       .delete()
       .eq('id', rule_id);
@@ -483,13 +483,13 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Log admin action
-    await supabase.rpc('log_admin_action', {
+    await (supabase as any).rpc('log_admin_action', {
       p_user_id: user.id,
-      p_user_email: profile.email,
+      p_user_email: profile?.email || '',
       p_action_type: 'fraud_rule_deleted',
       p_action_details: {
         rule_id,
-        rule_name: existingRule.rule_name,
+        rule_name: (existingRule as any)?.rule_name,
       },
     });
 

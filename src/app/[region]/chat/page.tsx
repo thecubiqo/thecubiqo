@@ -18,7 +18,7 @@ export default function RegionalChatPage() {
   const { session } = useSession()
   const { regionId, config } = useRegion()
   const [colorName, setColorName] = useState<ColorName>(
-    config?.appearance.defaultColor || 'ORANGE'
+    config?.appearance.defaultColor || 'TEAL'
   )
   const [animationState, setAnimationState] = useState<AnimationState>('idle')
 
@@ -62,7 +62,7 @@ export default function RegionalChatPage() {
               <CubeScene colorName={colorName} animationState={animationState} />
             </div>
             <div className="mt-2 text-center text-xs text-white/50">
-              Mood: <span className="text-white/80">{colorName === 'GREEN_BLUE' ? 'Sattva' : colorName === 'ORANGE' ? 'Fourth Way' : colorName === 'RED' ? 'Tamas' : 'Rajas'}</span>
+              Mood: <span className="text-white/80">{colorName === 'TEAL' ? 'Sattva' : colorName === 'ORANGE' ? 'Fourth Way' : colorName === 'RED' ? 'Tamas' : 'Rajas'}</span>
             </div>
           </div>
 

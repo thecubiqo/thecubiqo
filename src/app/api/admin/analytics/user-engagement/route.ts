@@ -71,26 +71,26 @@ export async function GET(request: NextRequest) {
     });
 
     // Get feature usage statistics
-    const { data: featureUsage } = await supabase
+    const { data: featureUsage } = await (supabase as any)
       .from('user_activity_log')
       .select('activity_type')
       .gte('created_at', thirtyDaysAgo.toISOString());
 
     const featureStats: Record<string, number> = {};
-    featureUsage?.forEach((activity) => {
-      featureStats[activity.activity_type] = 
+    featureUsage?.forEach((activity: any) => {
+      featureStats[activity.activity_type] =
         (featureStats[activity.activity_type] || 0) + 1;
     });
 
     // Get channel breakdown (voice vs text)
-    const { data: channelData } = await supabase
+    const { data: channelData } = await (supabase as any)
       .from('user_activity_log')
       .select('channel, user_id')
       .gte('created_at', thirtyDaysAgo.toISOString())
       .not('channel', 'is', null);
 
     const channelBreakdown: Record<string, { users: Set<string>; activities: number }> = {};
-    channelData?.forEach((activity) => {
+    channelData?.forEach((activity: any) => {
       if (activity.channel) {
         if (!channelBreakdown[activity.channel]) {
           channelBreakdown[activity.channel] = {
@@ -133,17 +133,17 @@ export async function GET(request: NextRequest) {
 
     // Check which users from each cohort were active in the last 7 days
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
+
     const getRetainedUsers = async (cohortUserIds: string[]) => {
       if (!cohortUserIds.length) return 0;
-      
-      const { data: activeUsers } = await supabase
+
+      const { data: activeUsers } = await (supabase as any)
         .from('user_activity_log')
         .select('user_id')
         .in('user_id', cohortUserIds)
         .gte('created_at', sevenDaysAgo.toISOString());
 
-      const uniqueActiveUsers = new Set(activeUsers?.map(a => a.user_id));
+      const uniqueActiveUsers = new Set(activeUsers?.map((a: any) => a.user_id));
       return uniqueActiveUsers.size;
     };
 
@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
         cohort: '30-day',
         totalUsers: cohort30Ids.length,
         retainedUsers: retained30,
-        retentionRate: cohort30Ids.length 
+        retentionRate: cohort30Ids.length
           ? Number((retained30 / cohort30Ids.length * 100).toFixed(2))
           : 0,
       },
@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
         cohort: '60-day',
         totalUsers: cohort60Ids.length,
         retainedUsers: retained60,
-        retentionRate: cohort60Ids.length 
+        retentionRate: cohort60Ids.length
           ? Number((retained60 / cohort60Ids.length * 100).toFixed(2))
           : 0,
       },
@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
         cohort: '90-day',
         totalUsers: cohort90Ids.length,
         retainedUsers: retained90,
-        retentionRate: cohort90Ids.length 
+        retentionRate: cohort90Ids.length
           ? Number((retained90 / cohort90Ids.length * 100).toFixed(2))
           : 0,
       },
@@ -187,12 +187,12 @@ export async function GET(request: NextRequest) {
     // Get average activities per user
     const totalUniqueUsers = Object.keys(sessionsByUser).length;
     const totalActivities = featureUsage?.length || 0;
-    const avgActivitiesPerUser = totalUniqueUsers 
+    const avgActivitiesPerUser = totalUniqueUsers
       ? Number((totalActivities / totalUniqueUsers).toFixed(2))
       : 0;
 
     // Get top engaged users (most activities in last 30 days)
-    const { data: topEngagedData } = await supabase
+    const { data: topEngagedData } = await (supabase as any)
       .from('user_activity_log')
       .select('user_id, profiles!inner(email, display_name, handle)')
       .gte('created_at', thirtyDaysAgo.toISOString());
@@ -234,7 +234,7 @@ export async function GET(request: NextRequest) {
         retention: {
           cohorts: cohortAnalysis,
           overallRetentionRate: Number((
-            cohortAnalysis.reduce((sum, c) => sum + c.retentionRate, 0) / 
+            cohortAnalysis.reduce((sum, c) => sum + c.retentionRate, 0) /
             cohortAnalysis.length
           ).toFixed(2)),
         },

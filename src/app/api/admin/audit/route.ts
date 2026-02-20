@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     // Require admin authentication
     const authResult = await requireAdmin(request)
     if (!authResult.authorized) {
-        return authResult.response
+      return authResult.response
     }
 
     // Check if audit logging is enabled
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     // Get user profile for email
     const supabase = await createClient();
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await (supabase as any)
       .from('profiles')
       .select('email')
       .eq('id', user!.id)
@@ -47,9 +47,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Get IP and user agent from request
-    const ipAddress = request.headers.get('x-forwarded-for') || 
-                      request.headers.get('x-real-ip') || 
-                      'unknown';
+    const ipAddress = request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
     // Log the action
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     // Require admin authentication
     const authResult = await requireAdmin(request)
     if (!authResult.authorized) {
-        return authResult.response
+      return authResult.response
     }
 
     const supabase = await createClient();
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
     const actionType = searchParams.get('actionType') || undefined;
 
     // Fetch audit logs
-    let query = supabase
+    let query = (supabase as any)
       .from('audit_logs')
       .select('*')
       .order('created_at', { ascending: false })
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ logs: logs || [] });
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

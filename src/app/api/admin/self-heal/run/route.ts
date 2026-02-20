@@ -19,14 +19,14 @@ export async function POST(req: NextRequest) {
     // Require admin authentication
     const authResult = await requireAdmin(req)
     if (!authResult.authorized) {
-        return authResult.response
+      return authResult.response
     }
 
     console.log('[Self-Heal] Starting job execution...');
 
     // Execute self-heal
     const result = await executeSelfHeal();
-    
+
     console.log('[Self-Heal] Execution complete:', {
       status: result.status,
       duration: result.duration_ms,
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       throw new Error('Supabase configuration missing');
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey) as any;
 
     const { data: auditEntry, error: dbError } = await supabase
       .from('self_heal_reports')
@@ -139,12 +139,12 @@ export async function GET(req: NextRequest) {
       { status: 405 }
     );
   }
-  
+
   // Require admin authentication even in dev mode
   const authResult = await requireAdmin(req)
   if (!authResult.authorized) {
-      return authResult.response
+    return authResult.response
   }
-  
+
   return POST(req);
 }

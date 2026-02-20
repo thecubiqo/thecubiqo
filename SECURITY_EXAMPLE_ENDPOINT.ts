@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { user } = authResult
+  if (!user) return authResult.response
 
   // STEP 2: Rate Limiting
   // Prevent abuse by limiting requests per user/IP
@@ -104,6 +105,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { user } = authResult
+  if (!user) return authResult.response
 
   // STEP 2: Rate Limiting (stricter for write operations)
   const identifier = getRequestIdentifier(request, user.id)
@@ -119,7 +121,7 @@ export async function POST(request: NextRequest) {
   // STEP 3: Input Validation (for POST body)
   try {
     const body = await request.json()
-    
+
     // Example: validate against a schema
     // const validation = validateRequest(yourSchema, body)
     // if (!validation.success) {

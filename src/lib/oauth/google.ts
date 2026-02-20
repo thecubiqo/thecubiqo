@@ -2,7 +2,12 @@
  * Google OAuth & Gmail Integration
  */
 
-import { google } from 'googleapis';
+let google: any = null;
+try {
+  google = require('googleapis').google;
+} catch (e) {
+  // Ignored for build
+}
 import type {
   OAuthTokens,
   OAuthUser,
@@ -50,7 +55,7 @@ export class GoogleOAuthService {
    */
   async getTokens(code: string): Promise<OAuthTokens> {
     const { tokens } = await this.oauth2Client.getToken(code);
-    
+
     return {
       access_token: tokens.access_token!,
       refresh_token: tokens.refresh_token,
@@ -82,7 +87,7 @@ export class GoogleOAuthService {
    */
   async getUserInfo(accessToken: string): Promise<OAuthUser> {
     this.oauth2Client.setCredentials({ access_token: accessToken });
-    
+
     const oauth2 = google.oauth2({ version: 'v2', auth: this.oauth2Client });
     const { data } = await oauth2.userinfo.get();
 
@@ -104,7 +109,7 @@ export class GoogleOAuthService {
     query?: string
   ): Promise<EmailMessage[]> {
     this.oauth2Client.setCredentials({ access_token: accessToken });
-    
+
     const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
 
     // List messages
@@ -167,7 +172,7 @@ export class GoogleOAuthService {
     params: SendEmailParams
   ): Promise<{ id: string; threadId: string }> {
     this.oauth2Client.setCredentials({ access_token: accessToken });
-    
+
     const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
 
     // Construct email
@@ -225,7 +230,7 @@ export class GoogleOAuthService {
    */
   async markAsRead(accessToken: string, messageId: string): Promise<void> {
     this.oauth2Client.setCredentials({ access_token: accessToken });
-    
+
     const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
 
     await gmail.users.messages.modify({

@@ -11,7 +11,7 @@ import type { OAuthTokens } from '@/lib/verbal-commands/types';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     // Parse new command using AI
     const parsePrompt = buildCommandParsePrompt(command);
-    
+
     const aiResult = await routeAIRequest({
       systemPrompt: parsePrompt,
       messages: [{ role: 'user', content: command }],
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (insertError) {
-        
+
         return NextResponse.json(
           { error: 'Failed to process command' },
           { status: 500 }
@@ -136,10 +136,10 @@ export async function POST(request: NextRequest) {
     // Check if authentication is needed
     if (intent.requiresAuth) {
       const tokens = await getOAuthTokens(supabase, user.id);
-      
+
       // Check if we have the necessary token
       const needsAuth = checkAuthNeeded(intent.type, tokens);
-      
+
       if (needsAuth) {
         const authUrls = router.getAuthUrls();
         return NextResponse.json({
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -212,7 +212,7 @@ async function getOAuthTokens(supabase: any, userId: string): Promise<Record<str
   if (!tokens) return {};
 
   const tokenMap: Record<string, OAuthTokens> = {};
-  
+
   for (const token of tokens) {
     tokenMap[token.service] = {
       access_token: token.access_token,
@@ -230,7 +230,7 @@ async function getOAuthTokens(supabase: any, userId: string): Promise<Record<str
  */
 function checkAuthNeeded(type: string, tokens: Record<string, OAuthTokens>): boolean {
   const authRequired = ['email', 'twitter', 'uber'];
-  
+
   if (!authRequired.includes(type)) {
     return false;
   }

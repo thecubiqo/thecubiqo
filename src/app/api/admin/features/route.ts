@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
         return authResult.response
     }
 
-    const supabase = await createClient()
+    const supabase = (await createClient()) as any;
 
     // Fetch all feature flags
     const { data: flags, error } = await supabase
