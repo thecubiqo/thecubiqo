@@ -51,7 +51,7 @@ export default function JournalPanel() {
         setEntries(entriesData.entries || []);
       }
     } catch (error) {
-      console.error('Failed to load journal data:', error);
+      
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +81,7 @@ export default function JournalPanel() {
         loadData();
       }
     } catch (error) {
-      console.error('Failed to create entry:', error);
+      
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +100,7 @@ export default function JournalPanel() {
         setEntries(entries.map(e => e.id === id ? data.entry : e));
       }
     } catch (error) {
-      console.error('Failed to edit entry:', error);
+      
     }
   };
 
@@ -115,7 +115,7 @@ export default function JournalPanel() {
         loadData(); // Reload stats
       }
     } catch (error) {
-      console.error('Failed to delete entry:', error);
+      
     }
   };
 

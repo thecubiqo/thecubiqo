@@ -244,6 +244,6 @@ export async function cleanupWorkspace(sessionId: string, workspaceRoot?: string
   try {
     await rm(workspaceDir, { recursive: true, force: true });
   } catch (error) {
-    console.error(`Failed to cleanup workspace ${sessionId}:`, error);
+    
   }
 }

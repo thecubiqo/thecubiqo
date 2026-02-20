@@ -54,48 +54,103 @@ interface ContentRequest {
     contentType: 'text' | 'image' | 'video';
 }
 
+
+// ─── Storage Upload Logic ────────────────────────────────
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
+
+async function uploadAsset(filePath: string): Promise<string> {
+    if (!supabase || !fs.existsSync(filePath)) return filePath;
+
+    try {
+        const fileName = path.basename(filePath);
+        const fileBuffer = fs.readFileSync(filePath);
+        const contentType = fileName.endsWith('.mp4') ? 'video/mp4' : 'image/png';
+
+        const { data, error } = await supabase
+            .storage
+            .from('social-assets')
+            .upload(`public/${fileName}`, fileBuffer, {
+                contentType,
+                upsert: true
+            });
+
+        if (error) {
+            console.error(`   ❌ Upload failed: ${error.message}`);
+            return filePath;
+        }
+
+        const { data: publicData } = supabase
+            .storage
+            .from('social-assets')
+            .getPublicUrl(`public/${fileName}`);
+
+        console.log(`   ☁️  Uploaded to Supabase: ${publicData.publicUrl}`);
+        return publicData.publicUrl;
+
+    } catch (err) {
+        console.error(`   ❌ Upload error: ${err}`);
+        return filePath;
+    }
+}
+
 // ─── Main Generation Pipeline ────────────────────────────
 export async function generateContent(request: ContentRequest): Promise<GeneratedContent> {
     console.log(`   🧠 Generating ${request.contentType} content as "${request.personaType}" for ${request.platform}...`);
 
     const persona = brandContext.personas[request.personaType] || brandContext.personas.builder;
-
-    // Build the full context prompt for any generator
     const contextPrompt = buildContextPrompt(request, persona);
 
     // ─── Try GFXToolz First (Primary) ──────────────────
+    let result: GeneratedContent | null = null;
     const gfx = getGFX();
+
     if (gfx) {
         console.log(`   🔧 Using GFXToolz.ai (Primary)`);
         try {
-            const result = await generateWithGFXToolz(gfx, request, contextPrompt);
-            if (result) return result;
+            // @ts-ignore
+            result = await generateWithGFXToolz(gfx, request, contextPrompt);
         } catch (err: any) {
             console.log(`   ⚠️  GFXToolz error: ${err.message}. Falling back...`);
         }
     }
 
     // ─── Fallback: Direct API (Gemini/OpenAI) ──────────
-    console.log(`   🔄 Falling back to direct API...`);
-    const caption = await generateTextFallback(contextPrompt);
-    let imageUrl: string | undefined;
+    if (!result) {
+        console.log(`   🔄 Falling back to direct API...`);
+        const caption = await generateTextFallback(contextPrompt);
+        let imageUrl: string | undefined;
 
-    if (request.contentType === 'image') {
-        const imagePrompt = buildImagePrompt(request);
-        imageUrl = await generateImageFallback(imagePrompt) || undefined;
+        if (request.contentType === 'image') {
+            const imagePrompt = buildImagePrompt(request);
+            imageUrl = await generateImageFallback(imagePrompt) || undefined;
+        }
+
+        const source = process.env.GEMINI_API_KEY ? 'gemini' : process.env.OPENAI_API_KEY ? 'openai' : 'template';
+        result = {
+            caption,
+            imageUrl,
+            contentType: request.contentType,
+            persona: request.personaType,
+            platform: request.platform,
+            source
+        };
     }
 
-    const source = process.env.GEMINI_API_KEY ? 'gemini' : process.env.OPENAI_API_KEY ? 'openai' : 'template';
+    // ─── Upload Local Assets to Cloud ────────────────────
+    if (result.imageUrl && !result.imageUrl.startsWith('http')) {
+        result.imageUrl = await uploadAsset(result.imageUrl);
+    }
+    if (result.videoUrl && !result.videoUrl.startsWith('http')) {
+        result.videoUrl = await uploadAsset(result.videoUrl);
+    }
 
-    return {
-        caption,
-        imageUrl,
-        contentType: request.contentType,
-        persona: request.personaType,
-        platform: request.platform,
-        source
-    };
+    return result;
 }
+
 
 // ─── GFXToolz Generation ─────────────────────────────────
 async function generateWithGFXToolz(

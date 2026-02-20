@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
       timestamp: new Date(),
     });
   } catch (error) {
-    console.error('Admin stats error:', error);
+    
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Failed to fetch stats',

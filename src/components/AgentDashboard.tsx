@@ -38,7 +38,7 @@ export default function AgentDashboard() {
 
       setAgents(agentsWithSessions);
     } catch (error) {
-      console.error('Failed to load agents:', error);
+      
     }
   };
 

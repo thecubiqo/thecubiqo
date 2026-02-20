@@ -15,17 +15,12 @@ export const maxDuration = 300; // 5 minutes max execution time
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('[Self-Heal] Starting job execution...');
+    
 
     // Execute self-heal
     const result = await executeSelfHeal();
     
-    console.log('[Self-Heal] Execution complete:', {
-      status: result.status,
-      duration: result.duration_ms,
-      diagnostics: result.diagnostics.length,
-      fixes: result.fixesApplied.length,
-    });
+    
 
     // Store audit entry in database
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -55,11 +50,11 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (dbError) {
-      console.error('[Self-Heal] Database error:', dbError);
+      
       throw new Error(`Failed to store audit entry: ${dbError.message}`);
     }
 
-    console.log('[Self-Heal] Audit entry created:', auditEntry.id);
+    
 
     // Send email report
     const emailReport = {
@@ -90,9 +85,9 @@ export async function POST(req: NextRequest) {
         })
         .eq('id', auditEntry.id);
 
-      console.log('[Self-Heal] Email sent successfully:', emailResult.messageId);
+      
     } else {
-      console.error('[Self-Heal] Email failed:', emailResult.error);
+      
     }
 
     return NextResponse.json({
@@ -111,7 +106,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Self-Heal] Job failed:', error);
+    
     return NextResponse.json(
       {
         success: false,

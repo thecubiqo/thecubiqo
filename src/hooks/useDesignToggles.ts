@@ -91,7 +91,7 @@ export function useDesignToggles(): UseDesignTogglesResult {
 
         setToggles(fetchedToggles);
       } catch (err) {
-        console.error('Error fetching design toggles:', err);
+        
         setError(err instanceof Error ? err.message : 'Unknown error');
         
         // Fall back to defaults - create mock toggle objects

@@ -46,7 +46,7 @@ export class CommandRouter {
       const intent = JSON.parse(response);
       return intent;
     } catch (error) {
-      console.error('Failed to parse command:', error);
+      
       return null;
     }
   }

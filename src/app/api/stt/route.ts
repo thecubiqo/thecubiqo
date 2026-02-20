@@ -90,12 +90,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     try {
       // Try Groq first (faster and cheaper)
       if (process.env.GROQ_API_KEY) {
-        console.log('[STT] Using Groq Whisper API');
+        
         result = await transcribeWithGroq(tempFilePath, audioFile.name);
       } 
       // Fallback to OpenAI
       else if (process.env.OPENAI_API_KEY) {
-        console.log('[STT] Using OpenAI Whisper API');
+        
         result = await transcribeWithOpenAI(tempFilePath, audioFile.name);
       } 
       else {
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       result.duration = (Date.now() - startTime) / 1000;
 
-      console.log(`[STT] Transcription complete: ${result.duration.toFixed(2)}s (${result.provider})`);
+
 
       return NextResponse.json(result);
     } finally {
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await unlink(tempFilePath).catch(() => {});
     }
   } catch (error) {
-    console.error('[STT] Transcription error:', error);
+    
     return NextResponse.json(
       {
         error: 'Transcription failed',

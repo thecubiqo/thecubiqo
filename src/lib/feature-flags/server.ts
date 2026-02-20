@@ -98,7 +98,7 @@ export async function checkFeatureFlag(
       reason: 'Unknown scope',
     };
   } catch (error) {
-    console.error('Error checking feature flag:', error);
+    
     return {
       enabled: false,
       reason: 'Error checking flag',
@@ -118,7 +118,7 @@ export async function getAllFeatureFlags(): Promise<FeatureFlag[]> {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching feature flags:', error);
+    
     return [];
   }
 
@@ -138,7 +138,7 @@ export async function getFeatureFlag(id: string): Promise<FeatureFlag | null> {
     .single();
 
   if (error) {
-    console.error('Error fetching feature flag:', error);
+    
     return null;
   }
 
@@ -169,7 +169,7 @@ export async function createFeatureFlag(
     .single();
 
   if (error) {
-    console.error('Error creating feature flag:', error);
+    
     return { data: null, error: error.message || 'Failed to create feature flag' };
   }
 
@@ -200,7 +200,7 @@ export async function updateFeatureFlag(
     .single();
 
   if (error) {
-    console.error('Error updating feature flag:', error);
+    
     return { data: null, error: error.message };
   }
 
@@ -221,7 +221,7 @@ export async function deleteFeatureFlag(
     .eq('id', id);
 
   if (error) {
-    console.error('Error deleting feature flag:', error);
+    
     return { error: error.message };
   }
 
@@ -245,7 +245,7 @@ export async function toggleFeatureFlag(
     .single();
 
   if (error) {
-    console.error('Error toggling feature flag:', error);
+    
     return { data: null, error: error.message };
   }
 
@@ -270,7 +270,7 @@ export async function getFeatureFlagAuditLogs(flagId?: string) {
   const { data, error } = await query.limit(100);
 
   if (error) {
-    console.error('Error fetching audit logs:', error);
+    
     return [];
   }
 

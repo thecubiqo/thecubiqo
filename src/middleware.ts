@@ -1,19 +1,16 @@
 /**
- * Middleware - Session Refresh and Route Protection
+ * Next.js Middleware
  * 
- * Related PRs: #12 (Magic-link auth state), #28 (Centralized auth)
- * 
- * This middleware ensures:
- * 1. Session is refreshed on every request (critical for magic-link redirects)
- * 2. Auth cookies stay up-to-date
- * 3. UI never shows stale auth state
+ * Handles authentication and authorization for protected routes.
+ * Specifically enforces admin-only access for /api/admin/* routes.
  */
 
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
+  let response = NextResponse.next({
     request,
   })
 
@@ -26,38 +23,58 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value)
-            supabaseResponse.cookies.set(name, value, options)
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          response = NextResponse.next({
+            request,
           })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
         },
       },
     }
   )
-
-  // CRITICAL: Refresh session on every request
-  // This ensures magic-link redirects immediately reflect authenticated state
-  // getUser() will automatically refresh expired sessions and update cookies
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // Optional: Add debug logging in development
-  if (process.env.NODE_ENV === 'development') {
-    const pathname = request.nextUrl.pathname
-    console.log(`[Middleware] ${pathname} - User: ${user ? user.id : 'guest'}`)
+  
+  // Admin route protection
+  if (request.nextUrl.pathname.startsWith('/api/admin/')) {
+    // Get authenticated user (this also refreshes the session)
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Authentication required' },
+        { status: 401 }
+      )
+    }
+    
+    // Check if user is admin
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single()
+    
+    if (profileError || !profile?.is_admin) {
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      )
+    }
+    
+    // Add admin status to response headers for downstream routes
+    response.headers.set('x-user-id', user.id)
+    response.headers.set('x-user-email', user.email || '')
+    response.headers.set('x-is-admin', 'true')
+    
+    return response
   }
-
-  return supabaseResponse
+  
+  return response
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder files
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/api/admin/**',
+    // Add other protected routes here as needed
   ],
 }

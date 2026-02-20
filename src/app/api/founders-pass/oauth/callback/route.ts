@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.redirect(new URL(returnUrl, req.url));
   } catch (err) {
-    console.error('OAuth callback error:', err);
+    
     return NextResponse.redirect(
       new URL(
         `/founders-pass?oauth_error=${encodeURIComponent(err instanceof Error ? err.message : 'Unknown error')}`,

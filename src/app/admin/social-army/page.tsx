@@ -1,6 +1,11 @@
 'use client';
 
+<<<<<<< HEAD
 import { useEffect, useState } from 'react';
+=======
+import { useState, useEffect } from 'react';
+  const [loading, setLoading] = useState(false);
+>>>>>>> b476b3480b62c47d994c1c684d0813767c9b6f29
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +34,7 @@ export default function SocialArmyDashboard() {
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
 
+<<<<<<< HEAD
     // Polling for updates every 5 seconds
     const fetchData = async () => {
         // 1. Fetch Army
@@ -36,6 +42,17 @@ export default function SocialArmyDashboard() {
             .from('social_accounts')
             .select('*')
             .order('platform');
+=======
+    useEffect(() => {
+    setLoading(true);
+        const fetchData = async () => {
+            // Fetch active campaigns
+            const { data: campaignsData } = await supabase
+                .from('social_campaigns')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(5);
+>>>>>>> b476b3480b62c47d994c1c684d0813767c9b6f29
 
         if (accData) setAccounts(accData);
 
@@ -48,7 +65,45 @@ export default function SocialArmyDashboard() {
 
         if (queueData) setContentQueue(queueData as any);
 
+<<<<<<< HEAD
         setLoading(false);
+=======
+        fetchData();
+
+        // Realtime subscription
+        const channel = supabase
+            .channel('social-army')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'content_queue' }, (payload) => {
+                
+                fetchData(); // Refresh on change
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
+
+    const handleLaunch = async () => {
+        setIsDeploying(true);
+        // Create a new campaign
+        const { error } = await supabase.from('social_campaigns').insert({
+            name: `Auto-Campaign ${new Date().toLocaleTimeString()}`,
+            seed_topic: 'AI Revolution',
+            status: 'running',
+            total_posts_target: 100
+        });
+
+        if (error) {
+            
+        } else {
+            // Refresh
+            const { data } = await supabase.from('social_campaigns').select('*').order('created_at', { ascending: false }).limit(5);
+            if (data) setCampaigns(data.map(c => ({ id: c.id, name: c.name, status: c.status || 'draft', progress: 0 })));
+        }
+
+        setTimeout(() => setIsDeploying(false), 1000);
+>>>>>>> b476b3480b62c47d994c1c684d0813767c9b6f29
     };
 
     useEffect(() => {

@@ -211,7 +211,7 @@ export async function sendSelfHealReport(
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
     if (!resend || !process.env.RESEND_API_KEY) {
-      console.warn('RESEND_API_KEY not configured, skipping email');
+      
       return {
         success: false,
         error: 'RESEND_API_KEY not configured',
@@ -237,7 +237,7 @@ export async function sendSelfHealReport(
       messageId: response.data?.id,
     };
   } catch (error) {
-    console.error('Failed to send self-heal report email:', error);
+    
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

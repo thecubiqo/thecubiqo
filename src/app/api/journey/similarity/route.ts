@@ -53,7 +53,7 @@ async function isFeatureEnabled(supabase: any): Promise<boolean> {
     .single();
 
   if (error) {
-    console.error('[Journey] Feature flag check error:', error);
+    
     return false;
   }
 
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (searchError) {
-      console.error('[Journey/Similarity] Search error:', searchError);
+      
       return NextResponse.json(
         { error: 'Failed to search memories', details: searchError.message },
         { status: 500 }
@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('[Journey/Similarity] Error:', error);
+    
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Internal server error',
@@ -250,7 +250,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Journey/Similarity] Status check error:', error);
+    
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Internal server error',

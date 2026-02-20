@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ memories });
 
   } catch (error) {
-    console.error('Get memories error:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Insert error:', error);
+      
       return NextResponse.json(
         { error: error.message },
         { status: 500 }
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ memory }, { status: 201 });
 
   } catch (error) {
-    console.error('Create memory error:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
