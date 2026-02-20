@@ -90,7 +90,7 @@ export class TwitterService {
 
     // TODO: Handle media uploads if provided
     if (media && media.length > 0) {
-      console.log('Media upload not yet implemented:', media);
+      
     }
 
     // Click tweet button

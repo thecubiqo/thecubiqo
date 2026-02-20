@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
-      console.error('[Journey/Consent] Query error:', error);
+      
       return NextResponse.json(
         { error: 'Failed to fetch consent' },
         { status: 500 }
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Journey/Consent] Error:', error);
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        console.error('[Journey/Consent] Update error:', error);
+        
         return NextResponse.json(
           { error: 'Failed to update consent' },
           { status: 500 }
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        console.error('[Journey/Consent] Insert error:', error);
+        
         return NextResponse.json(
           { error: 'Failed to create consent' },
           { status: 500 }
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Journey/Consent] Error:', error);
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
@@ -208,7 +208,7 @@ export async function DELETE(request: NextRequest) {
       .is('revoked_at', null);
 
     if (revokeError) {
-      console.error('[Journey/Consent] Revoke error:', revokeError);
+      
       return NextResponse.json(
         { error: 'Failed to revoke consent' },
         { status: 500 }
@@ -233,7 +233,7 @@ export async function DELETE(request: NextRequest) {
           .eq('user_id', user.id);
 
         if (deleteError) {
-          console.error('[Journey/Consent] Delete memories error:', deleteError);
+          
         }
       }
     }
@@ -257,7 +257,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Journey/Consent] Error:', error);
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

@@ -50,7 +50,7 @@ export async function GET(
     return NextResponse.json({ memory: { ...memory, ...updates } });
 
   } catch (error) {
-    console.error('Get memory error:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -133,7 +133,7 @@ export async function PATCH(
     return NextResponse.json({ memory });
 
   } catch (error) {
-    console.error('Update memory error:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -175,7 +175,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
 
   } catch (error) {
-    console.error('Delete memory error:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

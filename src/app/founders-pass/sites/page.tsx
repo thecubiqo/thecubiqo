@@ -60,7 +60,7 @@ export default function SitesPage() {
         alert(`Site created! Preview: ${data.previewUrl}`);
       }
     } catch (err) {
-      console.error(err);
+      
     } finally {
       setGenerating(false);
     }

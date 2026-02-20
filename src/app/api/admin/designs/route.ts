@@ -25,7 +25,7 @@ export async function GET() {
       .order('display_name', { ascending: true });
 
     if (error) {
-      console.error('Error fetching design toggles:', error);
+      
       return NextResponse.json(
         { error: 'Failed to fetch design toggles' },
         { status: 500 }
@@ -51,7 +51,7 @@ export async function GET() {
       count: toggles?.length || 0,
     });
   } catch (error) {
-    console.error('Error in GET /api/admin/designs:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -121,7 +121,7 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error updating toggle:', error);
+      
       return NextResponse.json(
         { error: 'Failed to update toggle' },
         { status: 500 }
@@ -130,7 +130,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ toggle });
   } catch (error) {
-    console.error('Error in PATCH /api/admin/designs:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating toggle:', error);
+      
       return NextResponse.json(
         { error: 'Failed to create toggle' },
         { status: 500 }
@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ toggle }, { status: 201 });
   } catch (error) {
-    console.error('Error in POST /api/admin/designs:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -6,11 +6,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+  const [loading, setLoading] = useState(false);
 
 export default function MinimalExperimentsPage() {
   const [design, setDesign] = useState<'plasma' | 'hd'>('plasma')
 
   useEffect(() => {
+    setLoading(true);
     const saved = localStorage.getItem('cube-design')
     if (saved === 'plasma' || saved === 'hd') {
       setDesign(saved)
@@ -18,6 +20,7 @@ export default function MinimalExperimentsPage() {
   }, [])
 
   useEffect(() => {
+    setLoading(true);
     localStorage.setItem('cube-design', design)
   }, [design])
 

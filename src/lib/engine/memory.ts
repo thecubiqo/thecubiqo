@@ -12,7 +12,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.SUPABAS
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.warn('[Memory] Supabase credentials not configured');
+  
 }
 
 const supabase = supabaseUrl && supabaseKey 
@@ -21,7 +21,7 @@ const supabase = supabaseUrl && supabaseKey
 
 const openaiKey = process.env.OPENAI_API_KEY;
 if (!openaiKey) {
-  console.warn('[Memory] OpenAI API key not configured');
+  
 }
 
 const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
@@ -87,7 +87,7 @@ export async function storeMemory(
     try {
       embedding = await generateEmbedding(content);
     } catch (error) {
-      console.error('[Memory] Failed to generate embedding:', error);
+      
       // Continue without embedding - still store the content
     }
   }
@@ -130,7 +130,7 @@ export async function searchMemory(
   try {
     queryEmbedding = await generateEmbedding(query);
   } catch (error) {
-    console.error('[Memory] Failed to generate query embedding:', error);
+    
     throw error;
   }
 
@@ -145,7 +145,7 @@ export async function searchMemory(
 
   if (error) {
     // If RPC function doesn't exist, fall back to manual search
-    console.warn('[Memory] RPC function not found, using fallback search');
+    
     return fallbackSearch(agentId, queryEmbedding, limit, threshold);
   }
 

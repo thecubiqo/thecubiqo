@@ -22,14 +22,14 @@ export async function POST(req: NextRequest) {
     const cronSecret = process.env.CRON_SECRET;
     
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      console.error('[Self-Heal API] Unauthorized access attempt');
+      
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    console.log('[Self-Heal API] Starting self-heal job...');
+    
 
     // Execute self-heal process
     const report = await executeSelfHeal();
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (reportError) {
-      console.error('[Self-Heal API] Failed to save report:', reportError);
+      
       return NextResponse.json(
         { 
           error: 'Failed to save report',
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     }
 
     const reportId = savedReport.id;
-    console.log('[Self-Heal API] Report saved with ID:', reportId);
+    
 
     // Save audit logs
     const auditLogs = report.repairs.map(repair => ({
@@ -91,9 +91,9 @@ export async function POST(req: NextRequest) {
         .insert(auditLogs);
 
       if (auditError) {
-        console.error('[Self-Heal API] Failed to save audit logs:', auditError);
+        
       } else {
-        console.log(`[Self-Heal API] Saved ${auditLogs.length} audit logs`);
+        
       }
     }
 
@@ -110,11 +110,11 @@ export async function POST(req: NextRequest) {
         })
         .eq('id', reportId);
       
-      console.log('[Self-Heal API] Email report sent successfully');
+      
     }
 
     const totalTime = Date.now() - startTime;
-    console.log(`[Self-Heal API] Self-heal job completed in ${totalTime}ms`);
+    
 
     return NextResponse.json({
       success: true,
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     const totalTime = Date.now() - startTime;
-    console.error('[Self-Heal API] Self-heal job failed:', error);
+    
     
     return NextResponse.json(
       {
@@ -164,6 +164,6 @@ export async function GET(req: NextRequest) {
   }
 
   // In development, allow GET for easy testing
-  console.log('[Self-Heal API] Manual trigger via GET (dev only)');
+
   return POST(req);
 }

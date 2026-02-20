@@ -47,7 +47,7 @@ async function buildFileTree(dirPath: string, relativePath: string = ''): Promis
       return a.name.localeCompare(b.name);
     });
   } catch (error) {
-    console.error('Error building file tree:', error);
+    
     return [];
   }
 }
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       workspace: WORKSPACE_ROOT,
     });
   } catch (error) {
-    console.error('File list error:', error);
+    
     return NextResponse.json(
       {
         success: false,

@@ -64,7 +64,7 @@ export function useFeatureFlag(
         const data: FeatureFlagCheckResponse = await response.json();
         setEnabled(data.enabled);
       } catch (err) {
-        console.error('Error checking feature flag:', err);
+        
         setError(err instanceof Error ? err.message : 'Unknown error');
         setEnabled(false);
       } finally {
@@ -148,7 +148,7 @@ export function useFeatureFlags(
 
         setFlags(resultFlags);
       } catch (err) {
-        console.error('Error checking feature flags:', err);
+        
         setError(err instanceof Error ? err.message : 'Unknown error');
         
         // Set all to false on error
@@ -203,7 +203,7 @@ function getPreviewFlags(enablePreview: boolean = true): Set<string> {
         const cookieFlags = decodeURIComponent(value).split(',');
         cookieFlags.forEach((flag) => previewFlags.add(flag.trim()));
       } catch (err) {
-        console.error('Error parsing preview flags cookie:', err);
+        
       }
     }
   }
@@ -223,7 +223,7 @@ export function enablePreviewMode(flagNames: string[]): void {
 
   document.cookie = `__cubiqo_preview_flags=${encodeURIComponent(flags)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
   
-  console.log('Preview mode enabled for flags:', flagNames);
+  
   window.location.reload();
 }
 
@@ -235,6 +235,6 @@ export function disablePreviewMode(): void {
 
   document.cookie = '__cubiqo_preview_flags=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax';
   
-  console.log('Preview mode disabled');
+  
   window.location.reload();
 }

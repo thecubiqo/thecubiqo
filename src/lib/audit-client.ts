@@ -38,7 +38,7 @@ export async function logAdminActionClient(
 
     return { success: true };
   } catch (error) {
-    console.error('Exception while logging admin action (client):', error);
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -70,7 +70,7 @@ export async function getAuditLogsClient(options?: {
     const data = await response.json();
     return { logs: data.logs || [] };
   } catch (error) {
-    console.error('Exception while fetching audit logs (client):', error);
+
     return {
       logs: [],
       error: error instanceof Error ? error.message : 'Unknown error',

@@ -66,7 +66,7 @@ export const visionTool: Tool = {
                 output: analysis,
             };
         } catch (error: any) {
-            console.error('Vision tool error:', error);
+            
             return {
                 success: false,
                 output: '',

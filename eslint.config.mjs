@@ -44,7 +44,15 @@ const eslintConfig = [
           "luminanceSmoothing",
           "mipmapBlur"
         ] 
-      }]
+      }],
+      // Enforce using logAdminAction utility instead of direct RPC calls
+      "no-restricted-syntax": [
+        "error",
+        {
+          "selector": "CallExpression[callee.property.name='rpc'][arguments.0.value='log_admin_action']",
+          "message": "Use logAdminAction() from '@/lib/audit' instead of calling supabase.rpc('log_admin_action') directly"
+        }
+      ]
     }
   }
 ];

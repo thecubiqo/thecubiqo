@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
       .limit(30);
 
     if (error) {
-      console.error('[Self-Heal Reports] Database error:', error);
+      
       throw new Error(`Failed to fetch reports: ${error.message}`);
     }
 
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
       count: reports?.length || 0,
     });
   } catch (error) {
-    console.error('[Self-Heal Reports] Failed to fetch reports:', error);
+    
     return NextResponse.json(
       {
         success: false,

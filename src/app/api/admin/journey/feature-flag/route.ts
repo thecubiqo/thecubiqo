@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('[Admin/Journey/FeatureFlag] Update error:', error);
+      
       return NextResponse.json(
         { error: 'Failed to update feature flag' },
         { status: 500 }
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Admin/Journey/FeatureFlag] Error:', error);
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

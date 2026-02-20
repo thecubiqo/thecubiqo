@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     const { data: reports, error } = await query;
 
     if (error) {
-      console.error('[Admin Self-Heal API] Failed to fetch reports:', error);
+      
       return NextResponse.json(
         { error: 'Failed to fetch reports', details: error.message },
         { status: 500 }
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Admin Self-Heal API] Error:', error);
+    
     return NextResponse.json(
       { 
         error: 'Internal server error',

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       .limit(100);
 
     if (error) {
-      console.error('[Journey/Memories] Query error:', error);
+      
       return NextResponse.json(
         { error: 'Failed to fetch memories' },
         { status: 500 }
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Journey/Memories] Error:', error);
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

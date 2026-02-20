@@ -65,7 +65,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // Create session-specific workspace directory
     const workspaceDir = await ensureWorkspace(sessionId);
-    console.log(`[Code Execute] Using workspace: ${workspaceDir}`);
+    
 
     const startTime = Date.now();
     let result: ExecuteResponse;
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       throw error;
     }
   } catch (error) {
-    console.error('Code execution error:', error);
+    
     return NextResponse.json(
       {
         error: 'Execution failed',

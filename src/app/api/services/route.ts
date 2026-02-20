@@ -57,7 +57,7 @@ export async function getAllvalidRegin(): Promise<Record<string, any>> {
 
     return (data ?? []).map((row) => row.region_id);
   } catch (err) {
-    console.error("Error fetching regions:", err);
+    
     // Decide how you want to fail: rethrow or return empty
     throw err;
     // or: return {};
@@ -92,7 +92,7 @@ export async function getRegionByRegionId(
 
     return normalizeRow(data);
   } catch (err) {
-    console.error("getRegionByRegionId error:", err);
+    
 
     throw err;
   }

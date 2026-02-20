@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error in GET /api/feature-flags/check:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ flags: flagMap });
   } catch (error) {
-    console.error('Error in POST /api/feature-flags/check:', error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

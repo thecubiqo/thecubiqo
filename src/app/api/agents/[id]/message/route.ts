@@ -42,7 +42,7 @@ export async function POST(
       );
     }
 
-    console.log(`[API] Message to ${targetAgentId} from ${fromAgentId || 'external'}: ${message.substring(0, 50)}...`);
+
 
     // Determine session to use
     let targetSessionId = sessionId;
@@ -65,7 +65,7 @@ export async function POST(
     // Send message to agent
     const response = await agent.run(formattedMessage, targetSessionId);
 
-    console.log(`[API] Message delivered to ${targetAgentId}, response length: ${response.length}`);
+    
 
     return NextResponse.json({
       success: true,
@@ -75,7 +75,7 @@ export async function POST(
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[API] Error sending message:', error);
+    
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Failed to send message',

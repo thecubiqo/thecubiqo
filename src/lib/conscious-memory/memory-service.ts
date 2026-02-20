@@ -32,7 +32,7 @@ export class ConsciousMemoryService {
       const extraction = JSON.parse(response);
       return extraction;
     } catch (error) {
-      console.error('Failed to extract memories:', error);
+      
       return {
         potential: [],
         needsConfirmation: false,
@@ -154,7 +154,7 @@ Only JSON, no explanation.`;
         .slice(0, query.limit || 10);
 
     } catch (error) {
-      console.error('Search failed:', error);
+      
       // Fallback: simple text matching
       return filtered
         .map(memory => ({
@@ -276,7 +276,7 @@ Only JSON, no explanation.`;
         .filter((m: any) => m);
 
     } catch (error) {
-      console.error('Failed to find related memories:', error);
+      
       
       // Fallback: tag-based similarity
       return candidates
@@ -376,7 +376,7 @@ Only JSON, no explanation.`;
       return result.newImportance;
 
     } catch (error) {
-      console.error('Failed to suggest importance update:', error);
+      
       return null;
     }
   }

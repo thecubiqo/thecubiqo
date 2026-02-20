@@ -71,7 +71,7 @@ export class ToolRegistry {
           isFounder = true;
         }
       } catch (e) {
-        console.error('Failed to check founder status:', e);
+        
       }
     }
 

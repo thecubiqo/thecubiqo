@@ -1,1910 +1,3126 @@
-# Emergent Tool API Specification
-## Tool Layer for AI App Builder
+# CubiQo Emergent Tool API Specification
 
-**Version:** 1.0.0  
-**Author:** MO (CTO/Tech Architect)  
-**Date:** February 18, 2025  
-**Status:** Architecture Design Phase
+**Version**: 1.0.0  
+**Last Updated**: 2024  
+**Status**: Production
 
 ---
 
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Tool Architecture](#tool-architecture)
-3. [Bulk File Operations](#bulk-file-operations)
-4. [Testing Sub-Agent Interface](#testing-sub-agent-interface)
-5. [Integration Executor Interface](#integration-executor-interface)
-6. [Image Sub-Agent Interface](#image-sub-agent-interface)
-7. [Human Interaction Interface](#human-interaction-interface)
-8. [Database Sub-Agent Interface](#database-sub-agent-interface)
-9. [Deployment Tools](#deployment-tools)
-10. [Monitoring & Analytics Tools](#monitoring--analytics-tools)
-11. [Error Handling & Retry Logic](#error-handling--retry-logic)
-12. [API Security](#api-security)
+2. [Authentication & Authorization](#authentication--authorization)
+3. [Rate Limiting & Quotas](#rate-limiting--quotas)
+4. [Error Handling](#error-handling)
+5. [Agent Tool Registry](#agent-tool-registry)
+6. [HTTP API Endpoints](#http-api-endpoints)
+7. [LLM Router API](#llm-router-api)
+8. [WebSocket APIs](#websocket-apis)
+9. [Security Model](#security-model)
+10. [Code Examples](#code-examples)
 
 ---
 
 ## Overview
 
-The Tool Layer provides a standardized interface for the Main Agent to interact with various sub-agents and external services. All tools follow a consistent API pattern for predictability and maintainability.
+The CubiQo Emergent system provides a comprehensive API for AI agents to interact with files, execute code, control browsers, access web data, and communicate across platforms. This document specifies all available tools, HTTP endpoints, and their usage.
 
-### Design Principles
-
-1. **Idempotency** - Tools can be called multiple times without side effects
-2. **Atomicity** - Operations succeed or fail completely
-3. **Type Safety** - Full TypeScript support with Zod validation
-4. **Error Context** - Rich error messages with actionable suggestions
-5. **Rate Limiting** - Prevent abuse and manage costs
-6. **Audit Logging** - All tool calls logged for debugging and compliance
-
-### Tool Execution Flow
+### Architecture
 
 ```
-Main Agent Request
-    │
-    ▼
-┌────────────────────────────────────┐
-│ Tool Router                        │
-│ • Validate input with Zod          │
-│ • Check rate limits                │
-│ • Verify permissions               │
-└────────────┬───────────────────────┘
-             │
-             ▼
-┌────────────────────────────────────┐
-│ Tool Executor                      │
-│ • Call sub-agent or service        │
-│ • Handle retries on failure        │
-│ • Log execution                    │
-└────────────┬───────────────────────┘
-             │
-             ▼
-┌────────────────────────────────────┐
-│ Response Formatter                 │
-│ • Standardize response shape       │
-│ • Include metadata                 │
-│ • Return to Main Agent             │
-└────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│                  Client Applications                 │
+│         (Browser, CLI, Telegram, Slack, etc.)       │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      │ HTTPS / WebSocket
+                      │
+┌─────────────────────▼───────────────────────────────┐
+│              Next.js API Routes Layer                │
+│  (/api/agents, /api/code, /api/chat, etc.)         │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      │
+┌─────────────────────▼───────────────────────────────┐
+│              Agent Engine Core                       │
+│  (Tool Registry, Session Manager, LLM Router)       │
+└─────────────────────┬───────────────────────────────┘
+                      │
+        ┌─────────────┼─────────────┐
+        │             │             │
+┌───────▼──────┐ ┌───▼────┐ ┌─────▼──────┐
+│  File System │ │  LLMs  │ │  Services  │
+│   (Local/VFS)│ │(Claude,│ │(Supabase,  │
+│              │ │OpenAI) │ │ Telegram)  │
+└──────────────┘ └────────┘ └────────────┘
 ```
+
+### Base URLs
+
+- **Production**: `https://thecubiqo.com/api`
+- **Development**: `http://localhost:3000/api`
+- **Staging**: `https://staging.thecubiqo.com/api`
+
+### Content Types
+
+All API endpoints accept and return `application/json` unless otherwise specified.
 
 ---
 
-## Tool Architecture
+## Authentication & Authorization
 
-### Base Tool Interface
+### Authentication Methods
 
-All tools implement this base interface:
-
-```typescript
-// src/lib/tools/base-tool.ts
-
-interface ToolMetadata {
-  name: string;
-  description: string;
-  version: string;
-  category: 'code' | 'test' | 'image' | 'integration' | 'human' | 'database' | 'deployment';
-  costCredits: number;  // Cost in credits per invocation
-}
-
-interface ToolInput<T = any> {
-  projectId: string;
-  userId: string;
-  params: T;
-  metadata?: {
-    requestId?: string;
-    parentRequestId?: string;
-    retryCount?: number;
-  };
-}
-
-interface ToolOutput<T = any> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-    details?: any;
-    suggestions?: string[];
-  };
-  metadata: {
-    toolName: string;
-    executionTime: number;  // milliseconds
-    creditsUsed: number;
-    timestamp: Date;
-  };
-}
-
-abstract class BaseTool<TInput, TOutput> {
-  abstract metadata: ToolMetadata;
-  abstract inputSchema: z.ZodSchema<TInput>;
-  abstract outputSchema: z.ZodSchema<TOutput>;
-  
-  async execute(input: ToolInput<TInput>): Promise<ToolOutput<TOutput>> {
-    const startTime = Date.now();
-    
-    try {
-      // 1. Validate input
-      const validatedInput = this.inputSchema.parse(input.params);
-      
-      // 2. Check rate limits
-      await this.checkRateLimit(input.userId, input.projectId);
-      
-      // 3. Check permissions
-      await this.checkPermissions(input.userId, input.projectId);
-      
-      // 4. Execute tool logic
-      const result = await this.run(validatedInput, input.projectId, input.userId);
-      
-      // 5. Log execution
-      await this.logExecution(input, result, true);
-      
-      // 6. Deduct credits
-      await this.deductCredits(input.userId, this.metadata.costCredits);
-      
-      return {
-        success: true,
-        data: result,
-        metadata: {
-          toolName: this.metadata.name,
-          executionTime: Date.now() - startTime,
-          creditsUsed: this.metadata.costCredits,
-          timestamp: new Date(),
-        },
-      };
-    } catch (error) {
-      await this.logExecution(input, null, false, error);
-      
-      return {
-        success: false,
-        error: this.formatError(error),
-        metadata: {
-          toolName: this.metadata.name,
-          executionTime: Date.now() - startTime,
-          creditsUsed: 0,
-          timestamp: new Date(),
-        },
-      };
-    }
-  }
-  
-  protected abstract run(
-    params: TInput, 
-    projectId: string, 
-    userId: string
-  ): Promise<TOutput>;
-  
-  protected formatError(error: any): ToolOutput['error'] {
-    // Convert errors into structured format with suggestions
-    return {
-      code: error.code || 'TOOL_ERROR',
-      message: error.message || 'An unexpected error occurred',
-      details: error.details || {},
-      suggestions: this.getSuggestions(error),
-    };
-  }
-  
-  protected getSuggestions(error: any): string[] {
-    // Override in subclasses for context-specific suggestions
-    return ['Check input parameters', 'Verify project exists', 'Try again'];
-  }
-  
-  private async checkRateLimit(userId: string, projectId: string) {
-    const key = `rate_limit:${userId}:${this.metadata.name}`;
-    const count = await redis.incr(key);
-    
-    if (count === 1) {
-      await redis.expire(key, 60);  // 1 minute window
-    }
-    
-    if (count > this.metadata.rateLimit) {
-      throw new RateLimitError(`Rate limit exceeded for ${this.metadata.name}`);
-    }
-  }
-  
-  private async checkPermissions(userId: string, projectId: string) {
-    const hasAccess = await db.projectMembers.exists({
-      where: { userId, projectId }
-    });
-    
-    if (!hasAccess) {
-      throw new PermissionError('User does not have access to this project');
-    }
-  }
-  
-  private async logExecution(
-    input: ToolInput<TInput>, 
-    result: TOutput | null, 
-    success: boolean,
-    error?: any
-  ) {
-    await db.toolExecutionLogs.create({
-      data: {
-        toolName: this.metadata.name,
-        userId: input.userId,
-        projectId: input.projectId,
-        input: input.params,
-        output: result,
-        success,
-        error: error ? this.formatError(error) : null,
-        timestamp: new Date(),
-      },
-    });
-  }
-  
-  private async deductCredits(userId: string, amount: number) {
-    await db.credits.update({
-      where: { userId },
-      data: { balance: { decrement: amount } }
-    });
-  }
-}
+#### 1. Session Cookie (Primary)
+```http
+Cookie: next-auth.session-token=<session-token>
 ```
 
-### Tool Registry
+Used by browser clients. Automatically managed by NextAuth.js.
 
-```typescript
-// src/lib/tools/registry.ts
-
-class ToolRegistry {
-  private tools: Map<string, BaseTool<any, any>> = new Map();
-  
-  register(tool: BaseTool<any, any>) {
-    this.tools.set(tool.metadata.name, tool);
-  }
-  
-  get(toolName: string): BaseTool<any, any> | undefined {
-    return this.tools.get(toolName);
-  }
-  
-  list(): ToolMetadata[] {
-    return Array.from(this.tools.values()).map(tool => tool.metadata);
-  }
-}
-
-export const toolRegistry = new ToolRegistry();
-
-// Register all tools
-toolRegistry.register(new BulkWriteTool());
-toolRegistry.register(new BulkEditTool());
-toolRegistry.register(new RunTestsTool());
-toolRegistry.register(new GenerateImageTool());
-toolRegistry.register(new AskHumanTool());
-// ... etc
+#### 2. Bearer Token (API Clients)
+```http
+Authorization: Bearer <api-key>
 ```
 
----
+For programmatic access. Generate via admin dashboard.
 
-## Bulk File Operations
-
-### 1. Bulk Write Tool
-
-**Purpose:** Create multiple files in a single atomic operation
-
-```typescript
-// src/lib/tools/code/bulk-write-tool.ts
-
-interface BulkWriteInput {
-  files: Array<{
-    path: string;          // Relative path from project root
-    content: string;       // File content
-    encoding?: 'utf8' | 'base64';
-    overwrite?: boolean;   // Default: false (fail if exists)
-  }>;
-  dryRun?: boolean;        // Preview changes without applying
-}
-
-interface BulkWriteOutput {
-  filesCreated: string[];
-  filesSkipped: string[];  // Already exist and overwrite=false
-  totalSize: number;       // Total bytes written
-  warnings?: string[];     // Non-critical issues
-}
-
-class BulkWriteTool extends BaseTool<BulkWriteInput, BulkWriteOutput> {
-  metadata = {
-    name: 'bulk_write',
-    description: 'Create multiple files atomically',
-    version: '1.0.0',
-    category: 'code',
-    costCredits: 5,
-    rateLimit: 10,  // 10 calls per minute
-  };
-  
-  inputSchema = z.object({
-    files: z.array(z.object({
-      path: z.string().min(1).regex(/^[a-zA-Z0-9/_.-]+$/),  // Sanitize paths
-      content: z.string(),
-      encoding: z.enum(['utf8', 'base64']).optional(),
-      overwrite: z.boolean().optional(),
-    })).min(1).max(100),  // Max 100 files per operation
-    dryRun: z.boolean().optional(),
-  });
-  
-  outputSchema = z.object({
-    filesCreated: z.array(z.string()),
-    filesSkipped: z.array(z.string()),
-    totalSize: z.number(),
-    warnings: z.array(z.string()).optional(),
-  });
-  
-  protected async run(
-    params: BulkWriteInput, 
-    projectId: string, 
-    userId: string
-  ): Promise<BulkWriteOutput> {
-    const workspacePath = await this.getWorkspacePath(projectId);
-    const filesCreated: string[] = [];
-    const filesSkipped: string[] = [];
-    let totalSize = 0;
-    const warnings: string[] = [];
-    
-    // Check storage quota
-    const currentSize = await this.getWorkspaceSize(workspacePath);
-    const newSize = params.files.reduce((sum, f) => sum + f.content.length, 0);
-    const quota = await this.getStorageQuota(userId);
-    
-    if (currentSize + newSize > quota) {
-      throw new StorageQuotaError(
-        `Storage quota exceeded: ${currentSize + newSize} > ${quota} bytes`
-      );
-    }
-    
-    // Dry run mode
-    if (params.dryRun) {
-      return {
-        filesCreated: params.files.map(f => f.path),
-        filesSkipped: [],
-        totalSize: newSize,
-        warnings: ['DRY RUN - No files were actually created'],
-      };
-    }
-    
-    // Execute writes atomically
-    const transaction = await this.beginTransaction(workspacePath);
-    
-    try {
-      for (const file of params.files) {
-        const fullPath = path.join(workspacePath, file.path);
-        
-        // Validate path (prevent traversal)
-        if (!fullPath.startsWith(workspacePath)) {
-          throw new PathTraversalError(`Invalid path: ${file.path}`);
-        }
-        
-        // Check if file exists
-        if (fs.existsSync(fullPath) && !file.overwrite) {
-          filesSkipped.push(file.path);
-          warnings.push(`File already exists: ${file.path}`);
-          continue;
-        }
-        
-        // Create directory if needed
-        await fs.promises.mkdir(path.dirname(fullPath), { recursive: true });
-        
-        // Write file
-        const encoding = file.encoding || 'utf8';
-        await fs.promises.writeFile(fullPath, file.content, encoding);
-        
-        filesCreated.push(file.path);
-        totalSize += file.content.length;
-      }
-      
-      await this.commitTransaction(transaction);
-      
-      // Trigger hot reload if dev server is running
-      await this.triggerHotReload(projectId, filesCreated);
-      
-      return {
-        filesCreated,
-        filesSkipped,
-        totalSize,
-        warnings: warnings.length > 0 ? warnings : undefined,
-      };
-    } catch (error) {
-      await this.rollbackTransaction(transaction);
-      throw error;
-    }
-  }
-  
-  protected getSuggestions(error: any): string[] {
-    if (error instanceof StorageQuotaError) {
-      return [
-        'Delete unused files to free up space',
-        'Upgrade to a higher plan for more storage',
-        'Compress or optimize large files',
-      ];
-    }
-    if (error instanceof PathTraversalError) {
-      return [
-        'Use relative paths from project root',
-        'Avoid ".." in file paths',
-        'Check for leading slashes',
-      ];
-    }
-    return super.getSuggestions(error);
-  }
-}
+#### 3. WebAuthn (Biometric)
+```http
+POST /api/auth/webauthn/login/verify
 ```
 
-**API Endpoint:**
-```typescript
-// src/app/api/tools/bulk-write/route.ts
+Passkey-based authentication for enhanced security.
 
-export async function POST(req: Request) {
-  const tool = toolRegistry.get('bulk_write');
-  const input = await req.json();
-  
-  const result = await tool.execute(input);
-  
-  return Response.json(result);
-}
+#### 4. Founders Pass (Special Access)
+```http
+X-Founders-Pass: <32-char-hex>
 ```
 
-**Example Usage:**
+Special header for founders with elevated permissions.
+
+### Authorization Levels
+
+| Level | Description | Capabilities |
+|-------|-------------|--------------|
+| **Public** | Unauthenticated | Health checks, public docs |
+| **User** | Authenticated user | Chat, read files, basic tools |
+| **Agent** | System agent | Tool execution, file operations |
+| **Founder** | Founder account | All tools, admin APIs, code execution |
+| **Admin** | System administrator | User management, audit logs, system config |
+
+### Example Authentication Flow
+
 ```typescript
-const result = await fetch('/api/tools/bulk-write', {
+// 1. Login with credentials
+const response = await fetch('/api/auth/webauthn/login/options', {
+  method: 'GET',
+  credentials: 'include'
+});
+
+const options = await response.json();
+
+// 2. Use WebAuthn API
+const credential = await navigator.credentials.get({
+  publicKey: options
+});
+
+// 3. Verify credential
+await fetch('/api/auth/webauthn/login/verify', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    projectId: 'proj-123',
-    userId: 'user-456',
-    params: {
-      files: [
-        {
-          path: 'src/app/page.tsx',
-          content: 'export default function Home() { return <h1>Hello</h1>; }',
-        },
-        {
-          path: 'src/app/layout.tsx',
-          content: '...',
-        },
-      ],
-    },
-  }),
+  body: JSON.stringify(credential),
+  credentials: 'include'
 });
 
-const output = await result.json();
-// {
-//   success: true,
-//   data: {
-//     filesCreated: ['src/app/page.tsx', 'src/app/layout.tsx'],
-//     filesSkipped: [],
-//     totalSize: 1024,
-//   },
-//   metadata: { ... }
-// }
+// 4. Session cookie is set, subsequent requests are authenticated
 ```
 
 ---
 
-### 2. Bulk Edit Tool
+## Rate Limiting & Quotas
 
-**Purpose:** Modify multiple files with search-and-replace operations
+### Global Rate Limits
 
-```typescript
-// src/lib/tools/code/bulk-edit-tool.ts
+| Endpoint Pattern | Rate Limit | Window | Per |
+|------------------|------------|--------|-----|
+| `/api/chat` | 60 requests | 1 minute | User |
+| `/api/code/execute` | 30 requests | 1 minute | User |
+| `/api/agents/*/run` | 100 requests | 1 minute | Agent |
+| `/api/coder` | 20 requests | 1 minute | User |
+| `/api/browser` | 30 requests | 1 minute | User |
+| `/api/*` (default) | 300 requests | 1 minute | User |
 
-interface BulkEditInput {
-  edits: Array<{
-    path: string;
-    changes: Array<{
-      search: string;       // Exact string to find (or regex if useRegex=true)
-      replace: string;      // Replacement string
-      useRegex?: boolean;   // Default: false
-      lineNumber?: number;  // Optional line hint for faster search
-      all?: boolean;        // Replace all occurrences (default: false)
-    }>;
-  }>;
-  dryRun?: boolean;
-}
+### Resource Quotas
 
-interface BulkEditOutput {
-  filesModified: string[];
-  changesApplied: number;
-  changesFailed: Array<{
-    path: string;
-    reason: string;
-  }>;
-  diff?: string;  // Unified diff format
-}
+| Resource | Limit | Scope |
+|----------|-------|-------|
+| Code execution timeout | 30 seconds | Per request |
+| Code output size | 10 KB | Per execution |
+| File read size | 10 MB | Per request |
+| Session memory | 50 MB | Per session |
+| Concurrent sessions | 10 | Per user |
+| Browser instances | 3 | Per user |
+| VFS storage | 100 MB | Per user |
 
-class BulkEditTool extends BaseTool<BulkEditInput, BulkEditOutput> {
-  metadata = {
-    name: 'bulk_edit',
-    description: 'Edit multiple files with search-and-replace',
-    version: '1.0.0',
-    category: 'code',
-    costCredits: 3,
-    rateLimit: 20,
-  };
-  
-  inputSchema = z.object({
-    edits: z.array(z.object({
-      path: z.string().min(1),
-      changes: z.array(z.object({
-        search: z.string().min(1),
-        replace: z.string(),
-        useRegex: z.boolean().optional(),
-        lineNumber: z.number().positive().optional(),
-        all: z.boolean().optional(),
-      })).min(1),
-    })).min(1).max(50),
-    dryRun: z.boolean().optional(),
-  });
-  
-  outputSchema = z.object({
-    filesModified: z.array(z.string()),
-    changesApplied: z.number(),
-    changesFailed: z.array(z.object({
-      path: z.string(),
-      reason: z.string(),
-    })),
-    diff: z.string().optional(),
-  });
-  
-  protected async run(
-    params: BulkEditInput, 
-    projectId: string, 
-    userId: string
-  ): Promise<BulkEditOutput> {
-    const workspacePath = await this.getWorkspacePath(projectId);
-    const filesModified: string[] = [];
-    let changesApplied = 0;
-    const changesFailed: BulkEditOutput['changesFailed'] = [];
-    const diffs: string[] = [];
-    
-    const transaction = await this.beginTransaction(workspacePath);
-    
-    try {
-      for (const edit of params.edits) {
-        const fullPath = path.join(workspacePath, edit.path);
-        
-        // Validate path
-        if (!fullPath.startsWith(workspacePath)) {
-          changesFailed.push({
-            path: edit.path,
-            reason: 'Invalid path (traversal attempt)',
-          });
-          continue;
-        }
-        
-        // Check if file exists
-        if (!fs.existsSync(fullPath)) {
-          changesFailed.push({
-            path: edit.path,
-            reason: 'File not found',
-          });
-          continue;
-        }
-        
-        // Read file
-        const originalContent = await fs.promises.readFile(fullPath, 'utf8');
-        let modifiedContent = originalContent;
-        let fileChanged = false;
-        
-        // Apply changes
-        for (const change of edit.changes) {
-          try {
-            if (change.useRegex) {
-              const regex = new RegExp(change.search, change.all ? 'g' : '');
-              const newContent = modifiedContent.replace(regex, change.replace);
-              
-              if (newContent !== modifiedContent) {
-                modifiedContent = newContent;
-                fileChanged = true;
-                changesApplied++;
-              }
-            } else {
-              // Exact string match
-              const index = modifiedContent.indexOf(change.search);
-              
-              if (index !== -1) {
-                if (change.all) {
-                  modifiedContent = modifiedContent.split(change.search).join(change.replace);
-                } else {
-                  modifiedContent = 
-                    modifiedContent.substring(0, index) + 
-                    change.replace + 
-                    modifiedContent.substring(index + change.search.length);
-                }
-                fileChanged = true;
-                changesApplied++;
-              } else {
-                changesFailed.push({
-                  path: edit.path,
-                  reason: `Search string not found: "${change.search.substring(0, 50)}..."`,
-                });
-              }
-            }
-          } catch (error) {
-            changesFailed.push({
-              path: edit.path,
-              reason: `Change failed: ${error.message}`,
-            });
-          }
-        }
-        
-        // Write modified file
-        if (fileChanged) {
-          if (!params.dryRun) {
-            await fs.promises.writeFile(fullPath, modifiedContent, 'utf8');
-          }
-          filesModified.push(edit.path);
-          
-          // Generate diff
-          const diff = this.generateDiff(edit.path, originalContent, modifiedContent);
-          diffs.push(diff);
-        }
-      }
-      
-      if (!params.dryRun) {
-        await this.commitTransaction(transaction);
-        
-        // Trigger hot reload
-        await this.triggerHotReload(projectId, filesModified);
-      } else {
-        await this.rollbackTransaction(transaction);
-      }
-      
-      return {
-        filesModified,
-        changesApplied,
-        changesFailed,
-        diff: diffs.length > 0 ? diffs.join('\n\n') : undefined,
-      };
-    } catch (error) {
-      await this.rollbackTransaction(transaction);
-      throw error;
-    }
-  }
-  
-  private generateDiff(filePath: string, original: string, modified: string): string {
-    // Generate unified diff format
-    const originalLines = original.split('\n');
-    const modifiedLines = modified.split('\n');
-    
-    let diff = `--- ${filePath}\n+++ ${filePath}\n`;
-    
-    // Simple line-by-line diff (can use a library like `diff` for more advanced diffing)
-    for (let i = 0; i < Math.max(originalLines.length, modifiedLines.length); i++) {
-      if (originalLines[i] !== modifiedLines[i]) {
-        if (originalLines[i]) diff += `- ${originalLines[i]}\n`;
-        if (modifiedLines[i]) diff += `+ ${modifiedLines[i]}\n`;
-      }
-    }
-    
-    return diff;
-  }
-}
+### Rate Limit Headers
+
+```http
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1609459200
+Retry-After: 30
 ```
 
-**Example Usage:**
-```typescript
-// Edit multiple files to add authentication
-const result = await fetch('/api/tools/bulk-edit', {
-  method: 'POST',
-  body: JSON.stringify({
-    projectId: 'proj-123',
-    userId: 'user-456',
-    params: {
-      edits: [
-        {
-          path: 'src/app/api/auth/route.ts',
-          changes: [
-            {
-              search: '// TODO: Add authentication',
-              replace: 'const user = await authenticateRequest(req);',
-            },
-          ],
-        },
-        {
-          path: 'src/middleware.ts',
-          changes: [
-            {
-              search: 'export function middleware',
-              replace: 'export async function middleware',
-            },
-          ],
-        },
-      ],
-    },
-  }),
-});
+### Rate Limit Error Response
+
+```json
+{
+  "success": false,
+  "error": "Rate limit exceeded",
+  "code": "RATE_LIMIT_EXCEEDED",
+  "retryAfter": 30,
+  "limit": 60,
+  "window": 60
+}
 ```
 
 ---
 
-### 3. View Files Tool
+## Error Handling
 
-**Purpose:** Read file contents (single or multiple files)
+### Standard Error Response Format
+
+```json
+{
+  "success": false,
+  "error": "Human-readable error message",
+  "code": "ERROR_CODE",
+  "details": {
+    "field": "Additional context"
+  },
+  "timestamp": "2024-01-15T10:30:00Z",
+  "requestId": "req_abc123"
+}
+```
+
+### HTTP Status Codes
+
+| Code | Meaning | Usage |
+|------|---------|-------|
+| 200 | OK | Successful request |
+| 201 | Created | Resource created |
+| 400 | Bad Request | Invalid input |
+| 401 | Unauthorized | Missing/invalid auth |
+| 403 | Forbidden | Insufficient permissions |
+| 404 | Not Found | Resource doesn't exist |
+| 409 | Conflict | Resource already exists |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Server Error | Server error |
+| 503 | Service Unavailable | Service temporarily down |
+
+### Error Codes
+
+| Code | Description | Action |
+|------|-------------|--------|
+| `AUTH_REQUIRED` | Authentication required | Login |
+| `AUTH_INVALID` | Invalid credentials | Re-authenticate |
+| `PERMISSION_DENIED` | Insufficient permissions | Check access level |
+| `RATE_LIMIT_EXCEEDED` | Too many requests | Wait and retry |
+| `INVALID_INPUT` | Validation failed | Fix input |
+| `RESOURCE_NOT_FOUND` | Resource doesn't exist | Check ID |
+| `RESOURCE_EXISTS` | Resource already exists | Use different name |
+| `EXECUTION_TIMEOUT` | Code execution timeout | Optimize code |
+| `EXECUTION_ERROR` | Code execution failed | Check code |
+| `FILE_TOO_LARGE` | File exceeds size limit | Reduce file size |
+| `QUOTA_EXCEEDED` | Quota exceeded | Upgrade plan |
+| `SERVICE_UNAVAILABLE` | External service down | Retry later |
+| `INTERNAL_ERROR` | Unexpected error | Contact support |
+
+---
+
+## Agent Tool Registry
+
+The Agent Tool Registry (`src/lib/engine/tools.ts`) provides 15+ tools that agents can use to interact with the system and external services.
+
+### Tool Context
+
+Every tool receives a `ToolContext` object:
 
 ```typescript
-// src/lib/tools/code/view-files-tool.ts
+interface ToolContext {
+  agentId: string;      // ID of the agent executing the tool
+  sessionId: string;    // Current session ID
+  workspace: string;    // Workspace directory path
+  isFounder: boolean;   // Whether user is a founder
+}
+```
 
-interface ViewFilesInput {
-  paths: string[];           // Array of file paths
-  includeMetadata?: boolean; // Include file size, modified date, etc.
-  maxSize?: number;          // Max file size to read (bytes)
+---
+
+### 1. file_read
+
+**Description**: Read file contents from the workspace.
+
+**Access**: All agents
+
+**Parameters**:
+```typescript
+{
+  path: string;  // Relative or absolute file path
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  content?: string;
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "path": "src/app/page.tsx"
 }
 
-interface ViewFilesOutput {
-  files: Array<{
+// Response
+{
+  "success": true,
+  "content": "import React from 'react';\n\nexport default function Home() {\n  return <div>Hello</div>;\n}"
+}
+```
+
+**Errors**:
+- `FILE_NOT_FOUND`: File doesn't exist
+- `PERMISSION_DENIED`: No read access
+- `FILE_TOO_LARGE`: File exceeds 10MB limit
+
+---
+
+### 2. file_write
+
+**Description**: Write or create files in the workspace.
+
+**Access**: Restricted (founders only for non-agents)
+
+**Parameters**:
+```typescript
+{
+  path: string;     // File path
+  content: string;  // File content
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  bytesWritten?: number;
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "path": "src/utils/helper.ts",
+  "content": "export function greet(name: string) {\n  return `Hello, ${name}`;\n}"
+}
+
+// Response
+{
+  "success": true,
+  "bytesWritten": 78
+}
+```
+
+**Errors**:
+- `PERMISSION_DENIED`: No write access
+- `INVALID_PATH`: Invalid file path
+- `DISK_FULL`: No space left
+
+---
+
+### 3. file_list
+
+**Description**: List directory contents.
+
+**Access**: All agents
+
+**Parameters**:
+```typescript
+{
+  path: string;         // Directory path
+  recursive?: boolean;  // List recursively (default: false)
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  files?: Array<{
+    name: string;
+    path: string;
+    type: 'file' | 'directory';
+    size: number;
+    modified: string;
+  }>;
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "path": "src/components",
+  "recursive": false
+}
+
+// Response
+{
+  "success": true,
+  "files": [
+    {
+      "name": "Button.tsx",
+      "path": "src/components/Button.tsx",
+      "type": "file",
+      "size": 1234,
+      "modified": "2024-01-15T10:30:00Z"
+    },
+    {
+      "name": "ui",
+      "path": "src/components/ui",
+      "type": "directory",
+      "size": 0,
+      "modified": "2024-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+**Errors**:
+- `DIRECTORY_NOT_FOUND`: Directory doesn't exist
+- `PERMISSION_DENIED`: No read access
+
+---
+
+### 4. file_patch
+
+**Description**: Apply unified diff patches to existing files.
+
+**Access**: Dev agents
+
+**Parameters**:
+```typescript
+{
+  path: string;   // File to patch
+  patch: string;  // Unified diff format
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  linesChanged?: number;
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "path": "src/app/page.tsx",
+  "patch": "--- a/src/app/page.tsx\n+++ b/src/app/page.tsx\n@@ -1,3 +1,4 @@\n import React from 'react';\n+import { Button } from '@/components/Button';\n \n export default function Home() {"
+}
+
+// Response
+{
+  "success": true,
+  "linesChanged": 1
+}
+```
+
+**Errors**:
+- `PATCH_FAILED`: Patch couldn't be applied
+- `FILE_NOT_FOUND`: File doesn't exist
+- `INVALID_PATCH`: Malformed patch
+
+---
+
+### 5. exec
+
+**Description**: Execute shell commands in a sandboxed environment.
+
+**Access**: Restricted (founders + dev agents)
+
+**Parameters**:
+```typescript
+{
+  command: string;    // Shell command
+  timeout?: number;   // Timeout in seconds (default: 30, max: 30)
+  cwd?: string;       // Working directory
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  stdout?: string;
+  stderr?: string;
+  exitCode?: number;
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "command": "npm run build",
+  "timeout": 60,
+  "cwd": "/workspace"
+}
+
+// Response
+{
+  "success": true,
+  "stdout": "> next build\n\nCreating an optimized production build...\nCompleted in 45s",
+  "stderr": "",
+  "exitCode": 0
+}
+```
+
+**Security**:
+- 30-second timeout enforced
+- 10KB output limit
+- Sandboxed execution
+- No network access (configurable)
+
+**Errors**:
+- `EXECUTION_TIMEOUT`: Command exceeded timeout
+- `EXECUTION_ERROR`: Command failed
+- `PERMISSION_DENIED`: No execute access
+- `OUTPUT_TOO_LARGE`: Output exceeds 10KB
+
+---
+
+### 6. git
+
+**Description**: Execute Git version control operations.
+
+**Access**: Restricted (founders + dev agents)
+
+**Parameters**:
+```typescript
+{
+  args: string[];  // Git command arguments
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  output?: string;
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "args": ["status", "--short"]
+}
+
+// Response
+{
+  "success": true,
+  "output": " M src/app/page.tsx\n?? src/components/Button.tsx"
+}
+```
+
+**Common Commands**:
+```json
+// Check status
+{ "args": ["status"] }
+
+// Commit changes
+{ "args": ["commit", "-m", "Add feature"] }
+
+// Create branch
+{ "args": ["checkout", "-b", "feature/new-feature"] }
+
+// View diff
+{ "args": ["diff", "HEAD"] }
+```
+
+**Errors**:
+- `GIT_ERROR`: Git operation failed
+- `PERMISSION_DENIED`: No git access
+
+---
+
+### 7. web_search
+
+**Description**: Search the web using Brave Search API.
+
+**Access**: All agents
+
+**Parameters**:
+```typescript
+{
+  query: string;   // Search query
+  count?: number;  // Number of results (default: 10, max: 50)
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  results?: Array<{
+    title: string;
+    url: string;
+    description: string;
+    publishedDate?: string;
+  }>;
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "query": "Next.js 14 features",
+  "count": 5
+}
+
+// Response
+{
+  "success": true,
+  "results": [
+    {
+      "title": "Next.js 14 – Vercel",
+      "url": "https://nextjs.org/blog/next-14",
+      "description": "Next.js 14 is our most focused release with...",
+      "publishedDate": "2023-10-26"
+    }
+  ]
+}
+```
+
+**Errors**:
+- `API_ERROR`: Brave Search API error
+- `INVALID_QUERY`: Empty or invalid query
+- `QUOTA_EXCEEDED`: Search quota exceeded
+
+---
+
+### 8. web_fetch
+
+**Description**: Fetch and parse web page content.
+
+**Access**: All agents
+
+**Parameters**:
+```typescript
+{
+  url: string;  // Web page URL
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  content?: string;      // Cleaned text content
+  title?: string;        // Page title
+  metadata?: object;     // Open Graph metadata
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "url": "https://nextjs.org/docs"
+}
+
+// Response
+{
+  "success": true,
+  "title": "Getting Started | Next.js",
+  "content": "Next.js is a React framework...",
+  "metadata": {
+    "og:title": "Getting Started",
+    "og:description": "Learn Next.js fundamentals"
+  }
+}
+```
+
+**Features**:
+- Automatic content extraction
+- JavaScript rendering (Playwright)
+- Metadata parsing
+- Image/script filtering
+
+**Errors**:
+- `FETCH_FAILED`: Network error
+- `INVALID_URL`: Malformed URL
+- `TIMEOUT`: Page load timeout
+
+---
+
+### 9. telegram_send
+
+**Description**: Send messages via Telegram Bot API.
+
+**Access**: Restricted (founders + communication agents)
+
+**Parameters**:
+```typescript
+{
+  chatId: string;   // Telegram chat ID
+  message: string;  // Message text
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  messageId?: number;
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "chatId": "123456789",
+  "message": "Deployment complete! ✅"
+}
+
+// Response
+{
+  "success": true,
+  "messageId": 9876
+}
+```
+
+**Errors**:
+- `TELEGRAM_ERROR`: API error
+- `INVALID_CHAT_ID`: Chat not found
+- `BOT_BLOCKED`: Bot blocked by user
+
+---
+
+### 10. slack_send
+
+**Description**: Send messages to Slack channels.
+
+**Access**: Restricted (founders + communication agents)
+
+**Parameters**:
+```typescript
+{
+  channel: string;  // Channel ID or name
+  message: string;  // Message text
+  blocks?: Array<object>;  // Rich formatting
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  timestamp?: string;
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "channel": "#deployments",
+  "message": "Production deployment started",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Status*: In Progress"
+      }
+    }
+  ]
+}
+
+// Response
+{
+  "success": true,
+  "timestamp": "1609459200.000100"
+}
+```
+
+**Errors**:
+- `SLACK_ERROR`: API error
+- `CHANNEL_NOT_FOUND`: Invalid channel
+- `NOT_IN_CHANNEL`: Bot not in channel
+
+---
+
+### 11. discord_send
+
+**Description**: Send messages to Discord channels.
+
+**Access**: Restricted (founders + communication agents)
+
+**Parameters**:
+```typescript
+{
+  channelId: string;  // Discord channel ID
+  message: string;    // Message text
+  embed?: object;     // Rich embed
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "channelId": "1234567890",
+  "message": "Build failed",
+  "embed": {
+    "title": "Build #42",
+    "color": 16711680,
+    "fields": [
+      { "name": "Status", "value": "Failed" }
+    ]
+  }
+}
+
+// Response
+{
+  "success": true,
+  "messageId": "9876543210"
+}
+```
+
+---
+
+### 12. email_send
+
+**Description**: Send emails via SMTP/SendGrid.
+
+**Access**: Restricted (founders + communication agents)
+
+**Parameters**:
+```typescript
+{
+  to: string;          // Recipient email
+  subject: string;     // Email subject
+  body: string;        // Email body (HTML or plain text)
+  from?: string;       // Sender (default: noreply@thecubiqo.com)
+  cc?: string[];       // CC recipients
+  attachments?: Array<{
+    filename: string;
+    content: string;   // Base64 encoded
+  }>;
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "to": "user@example.com",
+  "subject": "Welcome to CubiQo",
+  "body": "<h1>Welcome!</h1><p>Get started with your account.</p>"
+}
+
+// Response
+{
+  "success": true,
+  "messageId": "msg_abc123"
+}
+```
+
+---
+
+### 13. vision_analyze
+
+**Description**: Analyze images using AI vision models (GPT-4 Vision, Claude 3).
+
+**Access**: Lead agents
+
+**Parameters**:
+```typescript
+{
+  imageUrl: string;  // Image URL or base64 data URI
+  prompt: string;    // Analysis prompt
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  analysis?: string;
+  confidence?: number;
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "imageUrl": "https://example.com/screenshot.png",
+  "prompt": "Describe the UI layout and identify any usability issues"
+}
+
+// Response
+{
+  "success": true,
+  "analysis": "The interface shows a navigation bar at the top with logo on the left. The main content area has a form with 3 input fields. The submit button is not clearly visible, which may cause usability issues.",
+  "confidence": 0.92
+}
+```
+
+**Supported Formats**: PNG, JPEG, WebP, GIF
+
+**Errors**:
+- `INVALID_IMAGE`: Unsupported format
+- `IMAGE_TOO_LARGE`: Exceeds size limit
+- `VISION_ERROR`: AI analysis failed
+
+---
+
+### 14. sessions_spawn
+
+**Description**: Create a sub-agent session for parallel task execution.
+
+**Access**: Restricted (lead agents, founders)
+
+**Parameters**:
+```typescript
+{
+  agentId: string;  // Agent to spawn
+  prompt: string;   // Initial prompt
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  sessionId?: string;
+  response?: string;
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "agentId": "coder-agent-001",
+  "prompt": "Refactor the authentication module for better testability"
+}
+
+// Response
+{
+  "success": true,
+  "sessionId": "sess_abc123",
+  "response": "I'll refactor the auth module. Let me start by analyzing the current code..."
+}
+```
+
+**Use Cases**:
+- Parallel task execution
+- Delegation to specialized agents
+- Background processing
+
+---
+
+### 15. sessions_send
+
+**Description**: Send a message to an existing agent session.
+
+**Access**: All agents
+
+**Parameters**:
+```typescript
+{
+  sessionId: string;  // Target session ID
+  message: string;    // Message to send
+}
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  response?: string;
+  error?: string;
+}
+```
+
+**Example**:
+```json
+// Request
+{
+  "sessionId": "sess_abc123",
+  "message": "Focus on unit tests first, then integration tests"
+}
+
+// Response
+{
+  "success": true,
+  "response": "Understood. I'll prioritize unit tests for the auth module..."
+}
+```
+
+---
+
+## HTTP API Endpoints
+
+### Agent Management API
+
+#### POST /api/agents
+
+**Description**: Create a new agent.
+
+**Auth**: Founder required
+
+**Request Body**:
+```typescript
+{
+  name: string;              // Agent name
+  model: string;             // LLM model (e.g., "claude-3-sonnet")
+  tools: string[];           // Available tools
+  maxConcurrent?: number;    // Max concurrent sessions (default: 5)
+  systemPrompt?: string;     // Custom system prompt
+  metadata?: object;         // Additional metadata
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "agent": {
+    "id": "agent_abc123",
+    "name": "Code Review Agent",
+    "model": "claude-3-sonnet",
+    "tools": ["file_read", "file_write", "git"],
+    "maxConcurrent": 5,
+    "status": "active",
+    "createdAt": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+**Example**:
+```bash
+curl -X POST https://thecubiqo.com/api/agents \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Documentation Agent",
+    "model": "gpt-4",
+    "tools": ["file_read", "file_write", "web_search"],
+    "systemPrompt": "You are a technical writer specializing in API documentation."
+  }'
+```
+
+**Errors**:
+- `400`: Invalid input
+- `401`: Unauthorized
+- `403`: Not a founder
+- `409`: Agent name already exists
+
+---
+
+#### GET /api/agents
+
+**Description**: List all agents with their current status.
+
+**Auth**: User required
+
+**Query Parameters**:
+```typescript
+{
+  status?: 'active' | 'idle' | 'busy' | 'error';
+  limit?: number;    // Default: 50
+  offset?: number;   // Default: 0
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "agents": [
+    {
+      "id": "agent_001",
+      "name": "Coder Agent",
+      "model": "claude-3-sonnet",
+      "status": "busy",
+      "activeSessions": 3,
+      "totalSessions": 127,
+      "lastActive": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "total": 10,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+**Example**:
+```bash
+curl https://thecubiqo.com/api/agents?status=active \
+  -H "Authorization: Bearer <token>"
+```
+
+---
+
+#### POST /api/agents/[id]/run
+
+**Description**: Execute a prompt on a specific agent.
+
+**Auth**: User required
+
+**Request Body**:
+```typescript
+{
+  prompt: string;         // Prompt to execute
+  sessionId?: string;     // Resume existing session (optional)
+  stream?: boolean;       // Stream response (default: false)
+}
+```
+
+**Response (Non-Streaming)**:
+```json
+{
+  "success": true,
+  "response": "I've analyzed the code and found 3 issues...",
+  "sessionId": "sess_abc123",
+  "tokensUsed": 1234,
+  "toolCalls": [
+    {
+      "tool": "file_read",
+      "path": "src/app/page.tsx",
+      "success": true
+    }
+  ]
+}
+```
+
+**Response (Streaming)**:
+```
+data: {"type":"token","content":"I've"}
+data: {"type":"token","content":" analyzed"}
+data: {"type":"tool_call","tool":"file_read","args":{"path":"src/app/page.tsx"}}
+data: {"type":"tool_result","success":true}
+data: {"type":"token","content":" the code"}
+data: {"type":"done","tokensUsed":1234}
+```
+
+**Example**:
+```bash
+# Non-streaming
+curl -X POST https://thecubiqo.com/api/agents/agent_001/run \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Review the authentication module"}'
+
+# Streaming
+curl -X POST https://thecubiqo.com/api/agents/agent_001/run \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -d '{"prompt": "Review the authentication module", "stream": true}'
+```
+
+---
+
+#### POST /api/agents/[id]/spawn
+
+**Description**: Spawn an asynchronous task on an agent.
+
+**Auth**: User required
+
+**Request Body**:
+```typescript
+{
+  prompt: string;  // Task prompt
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "taskId": "task_abc123",
+  "sessionId": "sess_xyz789",
+  "status": "queued"
+}
+```
+
+**Example**:
+```bash
+curl -X POST https://thecubiqo.com/api/agents/agent_001/spawn \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Refactor all components to use TypeScript strict mode"}'
+```
+
+---
+
+#### GET /api/agents/[id]/sessions
+
+**Description**: List all sessions for an agent.
+
+**Auth**: User required
+
+**Query Parameters**:
+```typescript
+{
+  status?: 'active' | 'completed' | 'error';
+  limit?: number;
+  offset?: number;
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "sessions": [
+    {
+      "id": "sess_001",
+      "agentId": "agent_001",
+      "status": "active",
+      "messageCount": 15,
+      "tokensUsed": 8765,
+      "startedAt": "2024-01-15T10:00:00Z",
+      "lastActivity": "2024-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+---
+
+#### POST /api/agents/[id]/message
+
+**Description**: Send an agent-to-agent message.
+
+**Auth**: Agent required
+
+**Request Body**:
+```typescript
+{
+  from: string;      // Sender agent ID
+  message: string;   // Message content
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "messageId": "msg_abc123",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+---
+
+#### GET /api/agents/[id]/tasks
+
+**Description**: Get task execution status for an agent.
+
+**Auth**: User required
+
+**Response**:
+```json
+{
+  "success": true,
+  "tasks": [
+    {
+      "id": "task_001",
+      "status": "running",
+      "progress": 0.65,
+      "startedAt": "2024-01-15T10:00:00Z",
+      "estimatedCompletion": "2024-01-15T10:35:00Z"
+    }
+  ]
+}
+```
+
+---
+
+#### GET /api/agents/activity
+
+**Description**: Get real-time activity feed for all agents.
+
+**Auth**: User required
+
+**Query Parameters**:
+```typescript
+{
+  agentId?: string;  // Filter by agent
+  limit?: number;    // Default: 50
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "activities": [
+    {
+      "id": "activity_001",
+      "agentId": "agent_001",
+      "type": "tool_call",
+      "tool": "file_write",
+      "status": "success",
+      "timestamp": "2024-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### Code Execution API
+
+#### POST /api/code/execute
+
+**Description**: Execute code in a sandboxed environment.
+
+**Auth**: User required (founders) or agent
+
+**Request Body**:
+```typescript
+{
+  code: string;                          // Code to execute
+  language: 'python' | 'javascript' | 'typescript' | 'bash';
+  sessionId?: string;                    // Session for workspace isolation
+  timeout?: number;                      // Timeout in seconds (max: 30)
+  env?: Record<string, string>;          // Environment variables
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "output": "Hello, World!\n",
+  "error": "",
+  "exitCode": 0,
+  "executionTime": 0.123,
+  "sessionId": "sess_abc123"
+}
+```
+
+**Example - Python**:
+```bash
+curl -X POST https://thecubiqo.com/api/code/execute \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "print(\"Hello, World!\")\nprint(2 + 2)",
+    "language": "python",
+    "timeout": 10
+  }'
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "output": "Hello, World!\n4\n",
+  "error": "",
+  "exitCode": 0,
+  "executionTime": 0.05
+}
+```
+
+**Example - TypeScript**:
+```bash
+curl -X POST https://thecubiqo.com/api/code/execute \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "const greet = (name: string) => `Hello, ${name}`;\nconsole.log(greet(\"World\"));",
+    "language": "typescript"
+  }'
+```
+
+**Security**:
+- Isolated per-session workspace in `/tmp/cubiqo-session-{sessionId}`
+- 30-second timeout enforced
+- 10KB output limit
+- No network access (by default)
+- Read-only system directories
+
+**Errors**:
+- `EXECUTION_TIMEOUT`: Code exceeded timeout
+- `EXECUTION_ERROR`: Runtime error
+- `OUTPUT_TOO_LARGE`: Output exceeds 10KB
+- `UNSUPPORTED_LANGUAGE`: Invalid language
+
+---
+
+#### POST /api/code/terminal
+
+**Description**: Interactive shell terminal with session persistence.
+
+**Auth**: Founder required
+
+**Request Body**:
+```typescript
+{
+  command: string;                     // Shell command
+  sessionId: string;                   // Terminal session ID
+  action: 'execute' | 'status' | 'kill';
+  env?: Record<string, string>;
+  timeout?: number;
+}
+```
+
+**Response (execute)**:
+```json
+{
+  "success": true,
+  "output": "drwxr-xr-x  5 user  group  160 Jan 15 10:30 src\n",
+  "exitCode": 0,
+  "pid": 12345,
+  "isRunning": false
+}
+```
+
+**Response (status)**:
+```json
+{
+  "success": true,
+  "isRunning": true,
+  "pid": 12345,
+  "startTime": "2024-01-15T10:30:00Z",
+  "output": "Processing... 45%\n"
+}
+```
+
+**Example - Long Running Command**:
+```bash
+# Start command
+curl -X POST https://thecubiqo.com/api/code/terminal \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "command": "npm run build",
+    "sessionId": "term_001",
+    "action": "execute"
+  }'
+
+# Check status
+curl -X POST https://thecubiqo.com/api/code/terminal \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "sessionId": "term_001",
+    "action": "status"
+  }'
+
+# Kill if needed
+curl -X POST https://thecubiqo.com/api/code/terminal \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "sessionId": "term_001",
+    "action": "kill"
+  }'
+```
+
+---
+
+#### POST /api/code/file-ops
+
+**Description**: File operations within code execution environment.
+
+**Auth**: User required
+
+**Request Body**:
+```typescript
+{
+  action: 'read' | 'write' | 'delete' | 'list' | 'create-dir';
+  path: string;
+  content?: string;      // For write action
+  sessionId: string;
+}
+```
+
+**Response (read)**:
+```json
+{
+  "success": true,
+  "content": "file content here",
+  "size": 1234
+}
+```
+
+**Response (list)**:
+```json
+{
+  "success": true,
+  "files": [
+    { "name": "file.txt", "type": "file", "size": 1234 },
+    { "name": "subdir", "type": "directory" }
+  ]
+}
+```
+
+**Example**:
+```bash
+# Write file
+curl -X POST https://thecubiqo.com/api/code/file-ops \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "action": "write",
+    "path": "/workspace/output.txt",
+    "content": "Result: 42",
+    "sessionId": "sess_001"
+  }'
+
+# Read file
+curl -X POST https://thecubiqo.com/api/code/file-ops \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "action": "read",
+    "path": "/workspace/output.txt",
+    "sessionId": "sess_001"
+  }'
+```
+
+---
+
+### AI Coder API
+
+#### POST /api/coder
+
+**Description**: AI-powered code generation and modification using MiniMax/OpenClaw.
+
+**Auth**: User required
+
+**Request Body**:
+```typescript
+{
+  prompt: string;                    // Coding task description
+  sessionId?: string;                // Session for context
+  files?: Array<{                    // Existing files for context
     path: string;
     content: string;
-    encoding: string;
-    metadata?: {
-      size: number;
-      modified: Date;
-      lines: number;
-    };
   }>;
-  errors?: Array<{
-    path: string;
-    reason: string;
-  }>;
+  model?: string;                    // Override model (default: minimax)
 }
+```
 
-class ViewFilesTool extends BaseTool<ViewFilesInput, ViewFilesOutput> {
-  metadata = {
-    name: 'view_files',
-    description: 'Read contents of one or more files',
-    version: '1.0.0',
-    category: 'code',
-    costCredits: 1,
-    rateLimit: 50,
-  };
-  
-  inputSchema = z.object({
-    paths: z.array(z.string().min(1)).min(1).max(20),
-    includeMetadata: z.boolean().optional(),
-    maxSize: z.number().positive().optional(),
-  });
-  
-  outputSchema = z.object({
-    files: z.array(z.object({
-      path: z.string(),
-      content: z.string(),
-      encoding: z.string(),
-      metadata: z.object({
-        size: z.number(),
-        modified: z.date(),
-        lines: z.number(),
-      }).optional(),
-    })),
-    errors: z.array(z.object({
-      path: z.string(),
-      reason: z.string(),
-    })).optional(),
-  });
-  
-  protected async run(
-    params: ViewFilesInput, 
-    projectId: string, 
-    userId: string
-  ): Promise<ViewFilesOutput> {
-    const workspacePath = await this.getWorkspacePath(projectId);
-    const files: ViewFilesOutput['files'] = [];
-    const errors: ViewFilesOutput['errors'] = [];
-    const maxSize = params.maxSize || 10 * 1024 * 1024; // 10MB default
-    
-    for (const filePath of params.paths) {
-      const fullPath = path.join(workspacePath, filePath);
-      
-      // Validate path
-      if (!fullPath.startsWith(workspacePath)) {
-        errors.push({ path: filePath, reason: 'Invalid path (traversal attempt)' });
-        continue;
-      }
-      
-      // Check if file exists
-      if (!fs.existsSync(fullPath)) {
-        errors.push({ path: filePath, reason: 'File not found' });
-        continue;
-      }
-      
-      // Check file size
-      const stats = await fs.promises.stat(fullPath);
-      if (stats.size > maxSize) {
-        errors.push({ 
-          path: filePath, 
-          reason: `File too large: ${stats.size} > ${maxSize} bytes` 
-        });
-        continue;
-      }
-      
-      // Read file
-      const content = await fs.promises.readFile(fullPath, 'utf8');
-      
-      const fileData: ViewFilesOutput['files'][0] = {
-        path: filePath,
-        content,
-        encoding: 'utf8',
-      };
-      
-      if (params.includeMetadata) {
-        fileData.metadata = {
-          size: stats.size,
-          modified: stats.mtime,
-          lines: content.split('\n').length,
-        };
-      }
-      
-      files.push(fileData);
+**Response**:
+```json
+{
+  "success": true,
+  "response": "I've created a new authentication module...",
+  "files": [
+    {
+      "path": "src/lib/auth.ts",
+      "content": "export function authenticate(token: string) {...}",
+      "action": "create"
+    },
+    {
+      "path": "src/app/api/auth/route.ts",
+      "content": "import { authenticate } from '@/lib/auth';...",
+      "action": "create"
     }
-    
-    return {
-      files,
-      errors: errors.length > 0 ? errors : undefined,
-    };
-  }
+  ],
+  "sessionId": "sess_abc123",
+  "tokensUsed": 2345
+}
+```
+
+**File Markers**:
+The AI coder uses special markers to indicate file operations:
+```
+[FILE:write:src/components/Button.tsx]
+export function Button({ children }: { children: React.ReactNode }) {
+  return <button>{children}</button>;
+}
+[/FILE]
+
+[FILE:write:src/app/page.tsx]
+import { Button } from '@/components/Button';
+...
+[/FILE]
+```
+
+**Example**:
+```bash
+curl -X POST https://thecubiqo.com/api/coder \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Create a reusable Button component with variants (primary, secondary, danger) using Tailwind CSS",
+    "files": [
+      {
+        "path": "tailwind.config.js",
+        "content": "module.exports = { theme: { extend: {} } }"
+      }
+    ]
+  }'
+```
+
+**Virtual File System (VFS)**:
+- Files created by AI coder are stored in Supabase
+- Organized by session ID
+- Automatic versioning
+- Max 100MB per user
+
+**Errors**:
+- `GENERATION_FAILED`: AI failed to generate code
+- `INVALID_PROMPT`: Prompt too short/vague
+- `QUOTA_EXCEEDED`: Token quota exceeded
+- `VFS_ERROR`: File system error
+
+---
+
+### Browser Automation API
+
+#### POST /api/browser
+
+**Description**: Control headless browser with natural language commands.
+
+**Auth**: User required
+
+**Request Body**:
+```typescript
+{
+  action: 'start' | 'close' | 'command' | 'execute' | 'status';
+  sessionId?: string;        // Browser session ID
+  command?: string;          // Natural language command
+  url?: string;              // URL to navigate (for start)
+  javascript?: string;       // JavaScript to execute
+}
+```
+
+**Response (start)**:
+```json
+{
+  "success": true,
+  "sessionId": "browser_abc123",
+  "url": "about:blank"
+}
+```
+
+**Response (command)**:
+```json
+{
+  "success": true,
+  "result": "Clicked the login button and entered credentials",
+  "screenshot": "data:image/png;base64,...",
+  "currentUrl": "https://example.com/dashboard"
+}
+```
+
+**Response (execute)**:
+```json
+{
+  "success": true,
+  "result": { "title": "Example Domain", "links": 5 }
+}
+```
+
+**Example - Natural Language**:
+```bash
+# Start browser
+curl -X POST https://thecubiqo.com/api/browser \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "action": "start",
+    "url": "https://github.com/login"
+  }'
+
+# Execute command
+curl -X POST https://thecubiqo.com/api/browser \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "action": "command",
+    "sessionId": "browser_abc123",
+    "command": "Fill in username with testuser, password with pass123, and click Sign in"
+  }'
+
+# Execute JavaScript
+curl -X POST https://thecubiqo.com/api/browser \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "action": "execute",
+    "sessionId": "browser_abc123",
+    "javascript": "return document.querySelectorAll(\"a\").length"
+  }'
+```
+
+**Natural Language Commands**:
+- "Click the submit button"
+- "Fill in email with user@example.com"
+- "Scroll to the bottom of the page"
+- "Take a screenshot"
+- "Wait for the page to load"
+- "Extract all links"
+
+**Limits**:
+- 3 concurrent browser instances per user
+- 5-minute idle timeout
+- Screenshots limited to 2MB
+
+---
+
+### Session API
+
+#### GET /api/sessions/[id]/compact
+
+**Description**: Get token usage statistics for a session.
+
+**Auth**: User required
+
+**Response**:
+```json
+{
+  "success": true,
+  "sessionId": "sess_abc123",
+  "totalTokens": 45000,
+  "messageCount": 127,
+  "oldestMessage": "2024-01-15T08:00:00Z",
+  "newestMessage": "2024-01-15T10:30:00Z",
+  "canCompact": true,
+  "estimatedSavings": 12000
 }
 ```
 
 ---
 
-## Testing Sub-Agent Interface
+#### POST /api/sessions/[id]/compact
 
-### 4. Run Tests Tool
+**Description**: Compact session by summarizing old messages.
 
-**Purpose:** Execute tests (unit, integration, E2E) and parse results
+**Auth**: User required
 
+**Request Body**:
 ```typescript
-// src/lib/tools/test/run-tests-tool.ts
-
-interface RunTestsInput {
-  type: 'unit' | 'integration' | 'e2e';
-  pattern?: string;          // e.g., '**/*.test.ts'
-  specific?: string[];       // Specific test files
-  watch?: boolean;           // Run in watch mode
-  coverage?: boolean;        // Collect coverage
-  timeout?: number;          // Test timeout (ms)
-  env?: Record<string, string>;  // Environment variables
+{
+  threshold?: number;  // Message age threshold in hours (default: 24)
+  aggressive?: boolean; // More aggressive compression (default: false)
 }
+```
 
-interface RunTestsOutput {
-  success: boolean;
-  summary: {
-    total: number;
-    passed: number;
-    failed: number;
-    skipped: number;
-    duration: number;  // milliseconds
-  };
-  failures?: Array<{
-    testName: string;
-    filePath: string;
-    error: string;
-    stackTrace: string;
-    lineNumber?: number;
-  }>;
-  coverage?: {
-    lines: number;
-    functions: number;
-    branches: number;
-    statements: number;
-  };
-  suggestions?: string[];  // AI-generated fix suggestions
+**Response**:
+```json
+{
+  "success": true,
+  "originalTokens": 45000,
+  "compactedTokens": 18000,
+  "savings": 27000,
+  "messagesCompacted": 89,
+  "summary": "Session focused on implementing user authentication with JWT tokens..."
 }
+```
 
-class RunTestsTool extends BaseTool<RunTestsInput, RunTestsOutput> {
-  metadata = {
-    name: 'run_tests',
-    description: 'Execute tests and return results',
-    version: '1.0.0',
-    category: 'test',
-    costCredits: 2,
-    rateLimit: 10,
-  };
-  
-  inputSchema = z.object({
-    type: z.enum(['unit', 'integration', 'e2e']),
-    pattern: z.string().optional(),
-    specific: z.array(z.string()).optional(),
-    watch: z.boolean().optional(),
-    coverage: z.boolean().optional(),
-    timeout: z.number().positive().optional(),
-    env: z.record(z.string()).optional(),
-  });
-  
-  outputSchema = z.object({
-    success: z.boolean(),
-    summary: z.object({
-      total: z.number(),
-      passed: z.number(),
-      failed: z.number(),
-      skipped: z.number(),
-      duration: z.number(),
-    }),
-    failures: z.array(z.object({
-      testName: z.string(),
-      filePath: z.string(),
-      error: z.string(),
-      stackTrace: z.string(),
-      lineNumber: z.number().optional(),
-    })).optional(),
-    coverage: z.object({
-      lines: z.number(),
-      functions: z.number(),
-      branches: z.number(),
-      statements: z.number(),
-    }).optional(),
-    suggestions: z.array(z.string()).optional(),
-  });
-  
-  protected async run(
-    params: RunTestsInput, 
-    projectId: string, 
-    userId: string
-  ): Promise<RunTestsOutput> {
-    const workspacePath = await this.getWorkspacePath(projectId);
-    
-    // Detect test framework (Vitest, Jest, Playwright)
-    const framework = await this.detectTestFramework(workspacePath);
-    
-    // Build test command
-    const command = this.buildTestCommand(framework, params);
-    
-    // Execute tests
-    const { stdout, stderr, exitCode } = await this.runCommand(
-      workspacePath, 
-      command, 
-      params.env
-    );
-    
-    // Parse test results
-    const results = this.parseTestResults(framework, stdout, stderr);
-    
-    // If tests failed, generate fix suggestions
-    if (!results.success && results.failures) {
-      results.suggestions = await this.generateFixSuggestions(results.failures);
-    }
-    
-    return results;
-  }
-  
-  private async detectTestFramework(workspacePath: string): Promise<string> {
-    const packageJson = JSON.parse(
-      await fs.promises.readFile(path.join(workspacePath, 'package.json'), 'utf8')
-    );
-    
-    if (packageJson.dependencies?.vitest || packageJson.devDependencies?.vitest) {
-      return 'vitest';
-    }
-    if (packageJson.dependencies?.jest || packageJson.devDependencies?.jest) {
-      return 'jest';
-    }
-    if (packageJson.dependencies?.['@playwright/test']) {
-      return 'playwright';
-    }
-    
-    throw new Error('No test framework detected');
-  }
-  
-  private buildTestCommand(framework: string, params: RunTestsInput): string {
-    switch (framework) {
-      case 'vitest':
-        let cmd = 'npx vitest run';
-        if (params.watch) cmd = 'npx vitest';
-        if (params.coverage) cmd += ' --coverage';
-        if (params.pattern) cmd += ` ${params.pattern}`;
-        if (params.specific) cmd += ` ${params.specific.join(' ')}`;
-        return cmd;
-        
-      case 'jest':
-        let jestCmd = 'npx jest';
-        if (params.watch) jestCmd += ' --watch';
-        if (params.coverage) jestCmd += ' --coverage';
-        if (params.pattern) jestCmd += ` --testMatch="${params.pattern}"`;
-        return jestCmd;
-        
-      case 'playwright':
-        return `npx playwright test ${params.specific ? params.specific.join(' ') : ''}`;
-        
-      default:
-        throw new Error(`Unsupported framework: ${framework}`);
-    }
-  }
-  
-  private parseTestResults(
-    framework: string, 
-    stdout: string, 
-    stderr: string
-  ): RunTestsOutput {
-    // Parse test output based on framework
-    // This is a simplified example - real implementation would use regex parsing
-    
-    const lines = stdout.split('\n');
-    const summary = {
-      total: 0,
-      passed: 0,
-      failed: 0,
-      skipped: 0,
-      duration: 0,
-    };
-    const failures: RunTestsOutput['failures'] = [];
-    
-    // Example parsing for Vitest
-    if (framework === 'vitest') {
-      for (const line of lines) {
-        if (line.includes('Test Files')) {
-          // Parse: "Test Files  2 passed (2)"
-          const match = line.match(/(\d+) passed/);
-          if (match) summary.passed = parseInt(match[1]);
-        }
-        if (line.includes('Tests')) {
-          // Parse: "Tests  10 passed (10)"
-          const match = line.match(/(\d+) passed \((\d+)\)/);
-          if (match) {
-            summary.passed = parseInt(match[1]);
-            summary.total = parseInt(match[2]);
+**Example**:
+```bash
+curl -X POST https://thecubiqo.com/api/sessions/sess_abc123/compact \
+  -H "Authorization: Bearer <token>" \
+  -d '{"threshold": 48, "aggressive": true}'
+```
+
+---
+
+### File API
+
+#### GET /api/files/list
+
+**Description**: Get file tree structure.
+
+**Auth**: User required
+
+**Query Parameters**:
+```typescript
+{
+  path?: string;        // Root path (default: workspace root)
+  depth?: number;       // Tree depth (default: 3, max: 10)
+  includeHidden?: boolean;  // Include hidden files (default: false)
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "tree": {
+    "name": "workspace",
+    "type": "directory",
+    "children": [
+      {
+        "name": "src",
+        "type": "directory",
+        "children": [
+          {
+            "name": "app",
+            "type": "directory",
+            "children": [
+              { "name": "page.tsx", "type": "file", "size": 1234 }
+            ]
           }
-        }
-        if (line.includes('Duration')) {
-          // Parse: "Duration  1.23s"
-          const match = line.match(/([\d.]+)s/);
-          if (match) summary.duration = parseFloat(match[1]) * 1000;
+        ]
+      },
+      { "name": "package.json", "type": "file", "size": 567 }
+    ]
+  }
+}
+```
+
+**Example**:
+```bash
+curl 'https://thecubiqo.com/api/files/list?path=src&depth=2' \
+  -H "Authorization: Bearer <token>"
+```
+
+---
+
+#### GET /api/files/read
+
+**Description**: Read file contents.
+
+**Auth**: User required
+
+**Query Parameters**:
+```typescript
+{
+  path: string;  // File path (required)
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "content": "import React from 'react';...",
+  "size": 1234,
+  "encoding": "utf-8",
+  "modified": "2024-01-15T10:30:00Z"
+}
+```
+
+**Example**:
+```bash
+curl 'https://thecubiqo.com/api/files/read?path=src/app/page.tsx' \
+  -H "Authorization: Bearer <token>"
+```
+
+**Errors**:
+- `FILE_NOT_FOUND`: File doesn't exist
+- `FILE_TOO_LARGE`: File exceeds 10MB
+- `PERMISSION_DENIED`: No read access
+
+---
+
+### Auth API
+
+#### GET /api/auth/webauthn/register/options
+
+**Description**: Get WebAuthn registration challenge for passkey creation.
+
+**Auth**: Authenticated user
+
+**Response**:
+```json
+{
+  "success": true,
+  "options": {
+    "challenge": "random-base64-challenge",
+    "rp": {
+      "name": "CubiQo",
+      "id": "thecubiqo.com"
+    },
+    "user": {
+      "id": "user_abc123",
+      "name": "user@example.com",
+      "displayName": "John Doe"
+    },
+    "pubKeyCredParams": [
+      { "type": "public-key", "alg": -7 },
+      { "type": "public-key", "alg": -257 }
+    ],
+    "timeout": 60000,
+    "attestation": "none"
+  }
+}
+```
+
+**Example**:
+```javascript
+// Get options
+const response = await fetch('/api/auth/webauthn/register/options', {
+  credentials: 'include'
+});
+const { options } = await response.json();
+
+// Create credential
+const credential = await navigator.credentials.create({
+  publicKey: options
+});
+
+// Verify (next step)
+```
+
+---
+
+#### POST /api/auth/webauthn/register/verify
+
+**Description**: Verify WebAuthn registration and store credential.
+
+**Auth**: Authenticated user
+
+**Request Body**:
+```typescript
+{
+  id: string;
+  rawId: string;
+  response: {
+    clientDataJSON: string;
+    attestationObject: string;
+  };
+  type: string;
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "credentialId": "cred_abc123",
+  "message": "Passkey registered successfully"
+}
+```
+
+---
+
+#### GET /api/auth/webauthn/login/options
+
+**Description**: Get WebAuthn login challenge.
+
+**Auth**: None (public)
+
+**Query Parameters**:
+```typescript
+{
+  email?: string;  // Optional email hint
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "options": {
+    "challenge": "random-base64-challenge",
+    "timeout": 60000,
+    "rpId": "thecubiqo.com",
+    "allowCredentials": [
+      {
+        "type": "public-key",
+        "id": "credential-id-base64"
+      }
+    ],
+    "userVerification": "preferred"
+  }
+}
+```
+
+---
+
+#### POST /api/auth/webauthn/login/verify
+
+**Description**: Verify WebAuthn login assertion.
+
+**Auth**: None (public)
+
+**Request Body**:
+```typescript
+{
+  id: string;
+  rawId: string;
+  response: {
+    clientDataJSON: string;
+    authenticatorData: string;
+    signature: string;
+    userHandle: string;
+  };
+  type: string;
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "user": {
+    "id": "user_abc123",
+    "email": "user@example.com",
+    "name": "John Doe"
+  },
+  "session": {
+    "token": "session_token",
+    "expiresAt": "2024-01-16T10:30:00Z"
+  }
+}
+```
+
+---
+
+### Admin API
+
+#### POST /api/admin/audit
+
+**Description**: Log an admin action for audit trail.
+
+**Auth**: Admin required
+
+**Request Body**:
+```typescript
+{
+  action: string;              // Action performed
+  resource: string;            // Resource affected
+  details?: object;            // Additional details
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "auditId": "audit_abc123",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+**Example**:
+```bash
+curl -X POST https://thecubiqo.com/api/admin/audit \
+  -H "Authorization: Bearer <admin-token>" \
+  -d '{
+    "action": "user_deleted",
+    "resource": "user_xyz789",
+    "details": { "reason": "Account closure request" }
+  }'
+```
+
+---
+
+#### GET /api/admin/audit
+
+**Description**: Query audit logs.
+
+**Auth**: Admin required
+
+**Query Parameters**:
+```typescript
+{
+  action?: string;       // Filter by action
+  resource?: string;     // Filter by resource
+  userId?: string;       // Filter by user
+  startDate?: string;    // ISO 8601 date
+  endDate?: string;      // ISO 8601 date
+  limit?: number;        // Default: 50
+  offset?: number;       // Default: 0
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "logs": [
+    {
+      "id": "audit_001",
+      "action": "user_created",
+      "resource": "user_abc123",
+      "userId": "admin_001",
+      "timestamp": "2024-01-15T10:30:00Z",
+      "details": { "email": "newuser@example.com" }
+    }
+  ],
+  "total": 1523,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+---
+
+### Other APIs
+
+#### GET /api/health
+
+**Description**: Health check endpoint.
+
+**Auth**: None
+
+**Response**:
+```json
+{
+  "success": true,
+  "status": "healthy",
+  "version": "1.0.0",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "services": {
+    "database": "healthy",
+    "llm": "healthy",
+    "storage": "healthy"
+  }
+}
+```
+
+---
+
+#### POST /api/chat
+
+**Description**: Main chat endpoint for user interaction.
+
+**Auth**: User required
+
+**Request Body**:
+```typescript
+{
+  message: string;           // User message
+  sessionId?: string;        // Continue conversation
+  stream?: boolean;          // Stream response (default: false)
+  model?: string;            // Override model
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "response": "I understand you want to...",
+  "sessionId": "sess_abc123",
+  "tokensUsed": 234
+}
+```
+
+---
+
+#### POST /api/stt
+
+**Description**: Speech-to-text conversion.
+
+**Auth**: User required
+
+**Request**: `multipart/form-data`
+```typescript
+{
+  audio: File;  // Audio file (WAV, MP3, OGG)
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "text": "This is the transcribed text",
+  "confidence": 0.96,
+  "duration": 5.2
+}
+```
+
+---
+
+#### POST /api/tts
+
+**Description**: Text-to-speech conversion.
+
+**Auth**: User required
+
+**Request Body**:
+```typescript
+{
+  text: string;           // Text to convert
+  voice?: string;         // Voice ID (default: "default")
+  speed?: number;         // Speed multiplier (0.5 - 2.0)
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "audioUrl": "https://storage.thecubiqo.com/audio/abc123.mp3",
+  "duration": 5.2
+}
+```
+
+---
+
+#### POST /api/founders-pass
+
+**Description**: Validate founders pass.
+
+**Auth**: User required
+
+**Request Body**:
+```typescript
+{
+  pass: string;  // 32-character hex founders pass
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "valid": true,
+  "founder": {
+    "id": "founder_001",
+    "name": "John Doe",
+    "tier": "platinum"
+  }
+}
+```
+
+---
+
+#### GET /api/feature-flags
+
+**Description**: Get feature flags for current user.
+
+**Auth**: User required
+
+**Response**:
+```json
+{
+  "success": true,
+  "flags": {
+    "new-ui": true,
+    "beta-features": false,
+    "ai-coder": true
+  }
+}
+```
+
+---
+
+#### POST /api/feature-flags
+
+**Description**: Update feature flags (admin only).
+
+**Auth**: Admin required
+
+**Request Body**:
+```typescript
+{
+  flags: Record<string, boolean>;
+  userId?: string;  // Override for specific user
+}
+```
+
+---
+
+## LLM Router API
+
+The LLM Router (`src/lib/llm/router.ts`) provides a unified interface for multiple AI providers.
+
+### Supported Providers
+
+| Provider | Models | Context Window | Speed | Cost |
+|----------|--------|----------------|-------|------|
+| **Anthropic** | Claude 3.5 Sonnet | 200K | Fast | $$ |
+| | Claude 3 Opus | 200K | Medium | $$$ |
+| | Claude 3 Haiku | 200K | Very Fast | $ |
+| **OpenAI** | GPT-4 Turbo | 128K | Fast | $$$ |
+| | GPT-4 | 8K | Medium | $$$ |
+| | GPT-3.5 Turbo | 16K | Very Fast | $ |
+| **Google** | Gemini 1.5 Pro | 1M | Medium | $$ |
+| | Gemini 1.5 Flash | 1M | Very Fast | $ |
+| **Groq** | Llama 3 70B | 8K | Very Fast | $ |
+| | Mixtral 8x7B | 32K | Fast | $ |
+| **Mistral** | Mistral Large | 32K | Fast | $$ |
+| | Mistral Medium | 32K | Fast | $ |
+| **OpenRouter** | Various | Varies | Varies | Varies |
+
+### callLLM Interface
+
+```typescript
+interface LLMRequest {
+  model: ModelConfig;
+  messages: Message[];
+  tools?: ToolDefinition[];
+  maxTokens?: number;
+  temperature?: number;
+  topP?: number;
+  stream?: boolean;
+}
+
+interface ModelConfig {
+  provider: 'anthropic' | 'openai' | 'google' | 'groq' | 'mistral' | 'openrouter';
+  model: string;
+  apiKey?: string;  // Override default
+  baseUrl?: string; // Custom endpoint
+}
+
+interface Message {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: {
+    type: 'object';
+    properties: Record<string, any>;
+    required?: string[];
+  };
+}
+```
+
+### Example Usage
+
+```typescript
+import { callLLM } from '@/lib/llm/router';
+
+// Basic completion
+const response = await callLLM({
+  model: {
+    provider: 'anthropic',
+    model: 'claude-3-sonnet-20240229'
+  },
+  messages: [
+    { role: 'user', content: 'Explain quantum computing' }
+  ],
+  maxTokens: 1000,
+  temperature: 0.7
+});
+
+console.log(response.content);
+// "Quantum computing is a revolutionary approach..."
+```
+
+### Tool Calling
+
+```typescript
+const response = await callLLM({
+  model: { provider: 'anthropic', model: 'claude-3-sonnet-20240229' },
+  messages: [
+    { role: 'user', content: 'What files are in the src directory?' }
+  ],
+  tools: [
+    {
+      name: 'file_list',
+      description: 'List directory contents',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Directory path' }
+        },
+        required: ['path']
+      }
+    }
+  ]
+});
+
+if (response.toolCalls) {
+  for (const call of response.toolCalls) {
+    console.log(`Tool: ${call.name}`);
+    console.log(`Args: ${JSON.stringify(call.arguments)}`);
+  }
+}
+```
+
+### Streaming
+
+```typescript
+const stream = await callLLM({
+  model: { provider: 'openai', model: 'gpt-4' },
+  messages: [
+    { role: 'user', content: 'Write a short story' }
+  ],
+  stream: true
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.content);
+}
+```
+
+### Error Handling
+
+```typescript
+try {
+  const response = await callLLM({...});
+} catch (error) {
+  if (error.code === 'RATE_LIMIT') {
+    console.log('Rate limited, retry after:', error.retryAfter);
+  } else if (error.code === 'CONTEXT_LENGTH_EXCEEDED') {
+    console.log('Context too long, max:', error.maxTokens);
+  } else if (error.code === 'API_ERROR') {
+    console.log('Provider error:', error.message);
+  }
+}
+```
+
+### Provider-Specific Features
+
+#### Anthropic Claude
+
+```typescript
+// Use vision
+const response = await callLLM({
+  model: { provider: 'anthropic', model: 'claude-3-opus-20240229' },
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What\'s in this image?' },
+        { type: 'image', source: { url: 'https://example.com/image.png' } }
+      ]
+    }
+  ]
+});
+```
+
+#### OpenAI GPT-4
+
+```typescript
+// Use function calling
+const response = await callLLM({
+  model: { provider: 'openai', model: 'gpt-4-turbo' },
+  messages: [
+    { role: 'user', content: 'What\'s the weather in SF?' }
+  ],
+  tools: [
+    {
+      name: 'get_weather',
+      description: 'Get current weather',
+      parameters: {
+        type: 'object',
+        properties: {
+          location: { type: 'string' }
         }
       }
-      
-      // Parse failures (simplified)
-      const failureMatch = stderr.match(/FAIL\s+(.+?)\s+(.+)/g);
-      if (failureMatch) {
-        for (const failure of failureMatch) {
-          const [, filePath, testName] = failure.match(/FAIL\s+(.+?)\s+(.+)/) || [];
-          failures.push({
-            testName: testName || 'Unknown test',
-            filePath: filePath || 'Unknown file',
-            error: stderr,  // Simplified - should extract specific error
-            stackTrace: stderr,
-          });
+    }
+  ]
+});
+```
+
+#### Google Gemini
+
+```typescript
+// Use large context
+const response = await callLLM({
+  model: { provider: 'google', model: 'gemini-1.5-pro' },
+  messages: [
+    { role: 'user', content: veryLongDocument }
+  ],
+  maxTokens: 8000
+});
+```
+
+---
+
+## WebSocket APIs
+
+### Agent Activity Stream
+
+**Endpoint**: `wss://thecubiqo.com/api/ws/agents`
+
+**Auth**: Session cookie or token in query param
+
+**Connection**:
+```javascript
+const ws = new WebSocket('wss://thecubiqo.com/api/ws/agents?token=<token>');
+
+ws.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+  console.log('Agent activity:', message);
+};
+```
+
+**Message Format**:
+```json
+{
+  "type": "agent_activity",
+  "agentId": "agent_001",
+  "activity": "tool_call",
+  "tool": "file_write",
+  "status": "success",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+**Message Types**:
+- `agent_activity`: Agent performed an action
+- `session_started`: New session created
+- `session_ended`: Session completed
+- `error`: Error occurred
+
+---
+
+### Chat Stream
+
+**Endpoint**: `wss://thecubiqo.com/api/ws/chat`
+
+**Auth**: Session cookie or token
+
+**Connection**:
+```javascript
+const ws = new WebSocket('wss://thecubiqo.com/api/ws/chat');
+
+// Send message
+ws.send(JSON.stringify({
+  type: 'message',
+  content: 'Hello, how can you help?'
+}));
+
+// Receive response
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.type === 'token') {
+    process.stdout.write(data.content);
+  } else if (data.type === 'done') {
+    console.log('\nTokens used:', data.tokensUsed);
+  }
+};
+```
+
+**Client Messages**:
+```json
+{
+  "type": "message",
+  "content": "User message here",
+  "sessionId": "sess_abc123"
+}
+```
+
+**Server Messages**:
+```json
+// Streaming token
+{
+  "type": "token",
+  "content": "word "
+}
+
+// Tool call
+{
+  "type": "tool_call",
+  "tool": "file_read",
+  "args": { "path": "src/app/page.tsx" }
+}
+
+// Tool result
+{
+  "type": "tool_result",
+  "success": true,
+  "result": "file content"
+}
+
+// Complete
+{
+  "type": "done",
+  "tokensUsed": 1234
+}
+```
+
+---
+
+### Code Execution Stream
+
+**Endpoint**: `wss://thecubiqo.com/api/ws/code`
+
+**Auth**: Session cookie or token
+
+**Use Case**: Real-time code execution output
+
+**Connection**:
+```javascript
+const ws = new WebSocket('wss://thecubiqo.com/api/ws/code');
+
+ws.send(JSON.stringify({
+  type: 'execute',
+  code: 'for i in range(10):\n    print(i)',
+  language: 'python'
+}));
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.type === 'stdout') {
+    console.log(data.content);
+  } else if (data.type === 'stderr') {
+    console.error(data.content);
+  } else if (data.type === 'done') {
+    console.log('Exit code:', data.exitCode);
+  }
+};
+```
+
+---
+
+## Security Model
+
+### Access Control Matrix
+
+| Tool/Endpoint | Public | User | Agent | Founder | Admin |
+|---------------|--------|------|-------|---------|-------|
+| file_read | ❌ | ✅ | ✅ | ✅ | ✅ |
+| file_write | ❌ | ❌ | ✅ | ✅ | ✅ |
+| file_list | ❌ | ✅ | ✅ | ✅ | ✅ |
+| exec | ❌ | ❌ | ✅* | ✅ | ✅ |
+| git | ❌ | ❌ | ✅* | ✅ | ✅ |
+| web_search | ❌ | ✅ | ✅ | ✅ | ✅ |
+| web_fetch | ❌ | ✅ | ✅ | ✅ | ✅ |
+| vision_analyze | ❌ | ❌ | ✅* | ✅ | ✅ |
+| Communication tools | ❌ | ❌ | ✅* | ✅ | ✅ |
+| /api/agents/* | ❌ | ✅ | ✅ | ✅ | ✅ |
+| /api/code/* | ❌ | ❌ | ✅ | ✅ | ✅ |
+| /api/coder | ❌ | ✅ | ✅ | ✅ | ✅ |
+| /api/browser | ❌ | ✅ | ✅ | ✅ | ✅ |
+| /api/admin/* | ❌ | ❌ | ❌ | ❌ | ✅ |
+
+*✅** = Restricted to specific agents defined in `allowedAgents` array
+
+### Tool Security Features
+
+#### Sandboxing
+- Code execution in isolated containers
+- Per-session workspaces
+- No network access (configurable)
+- Resource limits (CPU, memory, disk)
+
+#### Input Validation
+- All inputs validated against JSON schemas
+- Path traversal prevention
+- Command injection prevention
+- SQL injection prevention (Supabase handles this)
+
+#### Output Sanitization
+- Output size limits
+- PII redaction (optional)
+- Error message sanitization
+
+#### Audit Logging
+- All tool calls logged
+- Admin actions logged
+- Failed auth attempts logged
+- Retention: 90 days
+
+### Founders Pass
+
+Special 32-character hex key that grants elevated permissions:
+
+```http
+X-Founders-Pass: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+```
+
+**Capabilities**:
+- Access all tools
+- Bypass rate limits
+- Execute code
+- Access admin APIs
+- Create/modify agents
+
+**Generation** (admin only):
+```bash
+curl -X POST https://thecubiqo.com/api/admin/founders-pass/generate \
+  -H "Authorization: Bearer <admin-token>" \
+  -d '{"founderId": "founder_001", "tier": "platinum"}'
+```
+
+### API Key Management
+
+**Create API Key**:
+```bash
+curl -X POST https://thecubiqo.com/api/auth/api-keys \
+  -H "Authorization: Bearer <session-token>" \
+  -d '{"name": "My CLI Tool", "expiresIn": "90d"}'
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "apiKey": "cq_live_abc123...",
+  "keyId": "key_abc123",
+  "expiresAt": "2024-04-15T10:30:00Z"
+}
+```
+
+**Revoke API Key**:
+```bash
+curl -X DELETE https://thecubiqo.com/api/auth/api-keys/key_abc123 \
+  -H "Authorization: Bearer <session-token>"
+```
+
+---
+
+## Code Examples
+
+### Python SDK Example
+
+```python
+import requests
+
+class CubiQoClient:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.base_url = "https://thecubiqo.com/api"
+        self.headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
         }
-        summary.failed = failures.length;
-      }
-    }
     
-    summary.total = summary.passed + summary.failed + summary.skipped;
+    def chat(self, message, session_id=None):
+        response = requests.post(
+            f"{self.base_url}/chat",
+            headers=self.headers,
+            json={"message": message, "sessionId": session_id}
+        )
+        return response.json()
     
-    return {
-      success: summary.failed === 0,
-      summary,
-      failures: failures.length > 0 ? failures : undefined,
-    };
-  }
-  
-  private async generateFixSuggestions(
-    failures: NonNullable<RunTestsOutput['failures']>
-  ): Promise<string[]> {
-    const suggestions: string[] = [];
+    def execute_code(self, code, language="python"):
+        response = requests.post(
+            f"{self.base_url}/code/execute",
+            headers=self.headers,
+            json={"code": code, "language": language}
+        )
+        return response.json()
     
-    for (const failure of failures) {
-      // Use AI to analyze failure and suggest fix
-      const prompt = `
-        Test failed with error:
-        ${failure.error}
-        
-        Stack trace:
-        ${failure.stackTrace}
-        
-        Suggest a specific fix for this test failure.
-      `;
-      
-      const aiResponse = await this.callAI(prompt);
-      suggestions.push(aiResponse);
-    }
-    
-    return suggestions;
-  }
-}
+    def run_agent(self, agent_id, prompt):
+        response = requests.post(
+            f"{self.base_url}/agents/{agent_id}/run",
+            headers=self.headers,
+            json={"prompt": prompt}
+        )
+        return response.json()
+
+# Usage
+client = CubiQoClient("cq_live_abc123...")
+
+# Chat
+result = client.chat("What's in the src directory?")
+print(result['response'])
+
+# Execute code
+result = client.execute_code("print('Hello, World!')")
+print(result['output'])
+
+# Run agent
+result = client.run_agent("agent_001", "Review the authentication code")
+print(result['response'])
 ```
 
----
-
-## Integration Executor Interface
-
-### 5. Integration Tool (Shopify Example)
+### JavaScript/TypeScript SDK Example
 
 ```typescript
-// src/lib/tools/integration/shopify-tool.ts
+class CubiQoClient {
+  private apiKey: string;
+  private baseUrl: string;
 
-interface ShopifyToolInput {
-  action: 'create_product' | 'update_product' | 'delete_product' | 'get_orders';
-  params: any;  // Action-specific parameters
-}
-
-interface ShopifyToolOutput {
-  success: boolean;
-  data: any;
-}
-
-class ShopifyTool extends BaseTool<ShopifyToolInput, ShopifyToolOutput> {
-  metadata = {
-    name: 'shopify_integration',
-    description: 'Interact with Shopify API',
-    version: '1.0.0',
-    category: 'integration',
-    costCredits: 3,
-    rateLimit: 30,
-  };
-  
-  inputSchema = z.object({
-    action: z.enum(['create_product', 'update_product', 'delete_product', 'get_orders']),
-    params: z.any(),
-  });
-  
-  outputSchema = z.object({
-    success: z.boolean(),
-    data: z.any(),
-  });
-  
-  protected async run(
-    params: ShopifyToolInput, 
-    projectId: string, 
-    userId: string
-  ): Promise<ShopifyToolOutput> {
-    // Get Shopify credentials from secrets manager
-    const credentials = await this.getIntegrationCredentials(projectId, 'shopify');
-    
-    if (!credentials) {
-      throw new Error('Shopify integration not configured for this project');
-    }
-    
-    const shopifyClient = new ShopifyAPI({
-      shopDomain: credentials.shopDomain,
-      accessToken: credentials.accessToken,
-    });
-    
-    // Execute action
-    switch (params.action) {
-      case 'create_product':
-        const product = await shopifyClient.createProduct(params.params);
-        return { success: true, data: product };
-        
-      case 'get_orders':
-        const orders = await shopifyClient.getOrders(params.params);
-        return { success: true, data: orders };
-        
-      // ... other actions
-        
-      default:
-        throw new Error(`Unsupported action: ${params.action}`);
-    }
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+    this.baseUrl = 'https://thecubiqo.com/api';
   }
-  
-  private async getIntegrationCredentials(projectId: string, service: string) {
-    const integration = await db.integrations.findFirst({
-      where: { projectId, service },
-    });
-    
-    if (!integration) return null;
-    
-    // Decrypt credentials
-    const decrypted = await decrypt(integration.credentialsEncrypted);
-    return JSON.parse(decrypted);
-  }
-}
-```
 
----
-
-## Image Sub-Agent Interface
-
-### 6. Generate Image Tool
-
-```typescript
-// src/lib/tools/image/generate-image-tool.ts
-
-interface GenerateImageInput {
-  prompt: string;
-  size?: '256x256' | '512x512' | '1024x1024' | '1792x1024' | '1024x1792';
-  style?: 'realistic' | 'artistic' | 'minimalist' | 'vivid' | 'natural';
-  model?: 'dall-e-3' | 'dall-e-2' | 'stable-diffusion';
-  saveTo?: string;  // Path to save image in workspace
-  uploadCDN?: boolean;  // Upload to CDN and return URL
-}
-
-interface GenerateImageOutput {
-  imageUrl: string;  // Temporary URL (expires after 1 hour)
-  localPath?: string;  // Path in workspace
-  cdnUrl?: string;  // Permanent CDN URL
-  prompt: string;  // Used prompt (may be revised by AI)
-  revisedPrompt?: string;  // AI-revised prompt (DALL-E 3)
-}
-
-class GenerateImageTool extends BaseTool<GenerateImageInput, GenerateImageOutput> {
-  metadata = {
-    name: 'generate_image',
-    description: 'Generate images using AI models',
-    version: '1.0.0',
-    category: 'image',
-    costCredits: 10,
-    rateLimit: 5,
-  };
-  
-  inputSchema = z.object({
-    prompt: z.string().min(1).max(1000),
-    size: z.enum(['256x256', '512x512', '1024x1024', '1792x1024', '1024x1792']).optional(),
-    style: z.enum(['realistic', 'artistic', 'minimalist', 'vivid', 'natural']).optional(),
-    model: z.enum(['dall-e-3', 'dall-e-2', 'stable-diffusion']).optional(),
-    saveTo: z.string().optional(),
-    uploadCDN: z.boolean().optional(),
-  });
-  
-  outputSchema = z.object({
-    imageUrl: z.string(),
-    localPath: z.string().optional(),
-    cdnUrl: z.string().optional(),
-    prompt: z.string(),
-    revisedPrompt: z.string().optional(),
-  });
-  
-  protected async run(
-    params: GenerateImageInput, 
-    projectId: string, 
-    userId: string
-  ): Promise<GenerateImageOutput> {
-    const model = params.model || 'dall-e-3';
-    
-    // Generate image
-    let imageUrl: string;
-    let revisedPrompt: string | undefined;
-    
-    if (model === 'dall-e-3' || model === 'dall-e-2') {
-      const response = await openai.images.generate({
-        model: model,
-        prompt: params.prompt,
-        size: params.size || '1024x1024',
-        quality: params.style === 'realistic' ? 'hd' : 'standard',
-        style: params.style === 'vivid' ? 'vivid' : 'natural',
-      });
-      
-      imageUrl = response.data[0].url!;
-      revisedPrompt = response.data[0].revised_prompt;
-    } else {
-      // Stable Diffusion implementation
-      imageUrl = await this.generateWithStableDiffusion(params.prompt, params.size);
-    }
-    
-    const result: GenerateImageOutput = {
-      imageUrl,
-      prompt: params.prompt,
-      revisedPrompt,
-    };
-    
-    // Save to workspace
-    if (params.saveTo) {
-      const workspacePath = await this.getWorkspacePath(projectId);
-      const fullPath = path.join(workspacePath, params.saveTo);
-      
-      // Download image
-      const imageBuffer = await this.downloadImage(imageUrl);
-      await fs.promises.writeFile(fullPath, imageBuffer);
-      
-      result.localPath = params.saveTo;
-    }
-    
-    // Upload to CDN
-    if (params.uploadCDN) {
-      const imageBuffer = await this.downloadImage(imageUrl);
-      const cdnUrl = await this.uploadToCDN(imageBuffer, projectId);
-      result.cdnUrl = cdnUrl;
-    }
-    
-    return result;
-  }
-  
-  private async downloadImage(url: string): Promise<Buffer> {
-    const response = await fetch(url);
-    const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-  }
-  
-  private async uploadToCDN(buffer: Buffer, projectId: string): Promise<string> {
-    const filename = `${projectId}/${Date.now()}.png`;
-    
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from('generated-images')
-      .upload(filename, buffer, {
-        contentType: 'image/png',
-        cacheControl: '31536000',  // 1 year
-      });
-    
-    if (error) throw error;
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from('generated-images')
-      .getPublicUrl(filename);
-    
-    return publicUrl;
-  }
-}
-```
-
----
-
-## Human Interaction Interface
-
-### 7. Ask Human Tool
-
-```typescript
-// src/lib/tools/human/ask-human-tool.ts
-
-interface AskHumanInput {
-  question: string;
-  type: 'text' | 'confirm' | 'select';
-  options?: string[];  // For 'select' type
-  timeout?: number;  // Seconds to wait for response
-  defaultValue?: string;  // Fallback if no response
-  required?: boolean;
-}
-
-interface AskHumanOutput {
-  answer: string;
-  timestamp: Date;
-  timedOut: boolean;
-}
-
-class AskHumanTool extends BaseTool<AskHumanInput, AskHumanOutput> {
-  metadata = {
-    name: 'ask_human',
-    description: 'Request input or confirmation from user',
-    version: '1.0.0',
-    category: 'human',
-    costCredits: 0,  // Free
-    rateLimit: 20,
-  };
-  
-  inputSchema = z.object({
-    question: z.string().min(1).max(500),
-    type: z.enum(['text', 'confirm', 'select']),
-    options: z.array(z.string()).optional(),
-    timeout: z.number().positive().max(300).optional(),  // Max 5 minutes
-    defaultValue: z.string().optional(),
-    required: z.boolean().optional(),
-  });
-  
-  outputSchema = z.object({
-    answer: z.string(),
-    timestamp: z.date(),
-    timedOut: z.boolean(),
-  });
-  
-  protected async run(
-    params: AskHumanInput, 
-    projectId: string, 
-    userId: string
-  ): Promise<AskHumanOutput> {
-    // Create a pending human input request
-    const request = await db.humanInputRequests.create({
-      data: {
-        projectId,
-        userId,
-        question: params.question,
-        type: params.type,
-        options: params.options,
-        status: 'pending',
-        createdAt: new Date(),
+  private async request(path: string, options: RequestInit = {}) {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
       },
     });
-    
-    // Send real-time notification to user
-    await this.notifyUser(userId, {
-      type: 'human_input_required',
-      requestId: request.id,
-      question: params.question,
-      options: params.options,
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Request failed');
+    }
+
+    return response.json();
+  }
+
+  async chat(message: string, sessionId?: string) {
+    return this.request('/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message, sessionId }),
     });
-    
-    // Wait for response
-    const timeout = (params.timeout || 60) * 1000;  // Default 60 seconds
-    const startTime = Date.now();
-    
-    while (Date.now() - startTime < timeout) {
-      const updated = await db.humanInputRequests.findUnique({
-        where: { id: request.id },
+  }
+
+  async executeCode(code: string, language: 'python' | 'javascript' | 'typescript' | 'bash') {
+    return this.request('/code/execute', {
+      method: 'POST',
+      body: JSON.stringify({ code, language }),
+    });
+  }
+
+  async runAgent(agentId: string, prompt: string, stream = false) {
+    if (!stream) {
+      return this.request(`/agents/${agentId}/run`, {
+        method: 'POST',
+        body: JSON.stringify({ prompt }),
       });
-      
-      if (updated?.status === 'answered') {
-        return {
-          answer: updated.answer!,
-          timestamp: updated.answeredAt!,
-          timedOut: false,
-        };
-      }
-      
-      // Poll every second
-      await new Promise(resolve => setTimeout(resolve, 1000));
     }
-    
-    // Timeout reached
-    if (params.required && !params.defaultValue) {
-      throw new Error('Required human input not received');
-    }
-    
-    return {
-      answer: params.defaultValue || '',
-      timestamp: new Date(),
-      timedOut: true,
-    };
-  }
-  
-  private async notifyUser(userId: string, notification: any) {
-    // Send via WebSocket, SSE, or push notification
-    await pusher.trigger(`user-${userId}`, 'human-input-required', notification);
-  }
-}
 
-// Frontend component to handle human input requests
-// src/components/HumanInputDialog.tsx
-```
-
----
-
-## Database Sub-Agent Interface
-
-### 8. Database Migration Tool
-
-```typescript
-// src/lib/tools/database/migration-tool.ts
-
-interface MigrationToolInput {
-  action: 'create' | 'apply' | 'rollback' | 'status';
-  name?: string;  // For 'create'
-  sql?: string;  // For 'create'
-  steps?: number;  // For 'rollback'
-}
-
-interface MigrationToolOutput {
-  success: boolean;
-  migrations?: Array<{
-    id: string;
-    name: string;
-    appliedAt?: Date;
-    status: 'pending' | 'applied';
-  }>;
-  message?: string;
-}
-
-class MigrationTool extends BaseTool<MigrationToolInput, MigrationToolOutput> {
-  metadata = {
-    name: 'database_migration',
-    description: 'Manage database schema migrations',
-    version: '1.0.0',
-    category: 'database',
-    costCredits: 5,
-    rateLimit: 10,
-  };
-  
-  inputSchema = z.object({
-    action: z.enum(['create', 'apply', 'rollback', 'status']),
-    name: z.string().optional(),
-    sql: z.string().optional(),
-    steps: z.number().positive().optional(),
-  });
-  
-  outputSchema = z.object({
-    success: z.boolean(),
-    migrations: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      appliedAt: z.date().optional(),
-      status: z.enum(['pending', 'applied']),
-    })).optional(),
-    message: z.string().optional(),
-  });
-  
-  protected async run(
-    params: MigrationToolInput, 
-    projectId: string, 
-    userId: string
-  ): Promise<MigrationToolOutput> {
-    const dbConfig = await this.getDatabaseConfig(projectId);
-    
-    switch (params.action) {
-      case 'create':
-        return await this.createMigration(projectId, params.name!, params.sql!);
-        
-      case 'apply':
-        return await this.applyMigrations(projectId, dbConfig);
-        
-      case 'rollback':
-        return await this.rollbackMigrations(projectId, dbConfig, params.steps || 1);
-        
-      case 'status':
-        return await this.getMigrationStatus(projectId, dbConfig);
-        
-      default:
-        throw new Error(`Unknown action: ${params.action}`);
-    }
-  }
-  
-  private async createMigration(
-    projectId: string, 
-    name: string, 
-    sql: string
-  ): Promise<MigrationToolOutput> {
-    const workspacePath = await this.getWorkspacePath(projectId);
-    const migrationsDir = path.join(workspacePath, 'migrations');
-    
-    // Create migrations directory if it doesn't exist
-    await fs.promises.mkdir(migrationsDir, { recursive: true });
-    
-    // Generate migration file
-    const timestamp = Date.now();
-    const filename = `${timestamp}_${name}.sql`;
-    const fullPath = path.join(migrationsDir, filename);
-    
-    await fs.promises.writeFile(fullPath, sql, 'utf8');
-    
-    return {
-      success: true,
-      message: `Migration created: ${filename}`,
-    };
-  }
-  
-  private async applyMigrations(
-    projectId: string, 
-    dbConfig: any
-  ): Promise<MigrationToolOutput> {
-    const workspacePath = await this.getWorkspacePath(projectId);
-    const migrationsDir = path.join(workspacePath, 'migrations');
-    
-    // Get all migration files
-    const files = await fs.promises.readdir(migrationsDir);
-    const sqlFiles = files.filter(f => f.endsWith('.sql')).sort();
-    
-    // Get applied migrations from database
-    const appliedMigrations = await this.getAppliedMigrations(projectId, dbConfig);
-    const appliedIds = new Set(appliedMigrations.map(m => m.id));
-    
-    // Apply pending migrations
-    for (const file of sqlFiles) {
-      if (appliedIds.has(file)) continue;
-      
-      const sql = await fs.promises.readFile(
-        path.join(migrationsDir, file), 
-        'utf8'
-      );
-      
-      await this.executeSql(dbConfig, sql);
-      await this.recordMigration(projectId, dbConfig, file);
-    }
-    
-    return {
-      success: true,
-      message: `Applied ${sqlFiles.length - appliedIds.size} migrations`,
-    };
-  }
-}
-```
-
----
-
-## Deployment Tools
-
-### 9. Deploy Tool
-
-```typescript
-// src/lib/tools/deployment/deploy-tool.ts
-
-interface DeployToolInput {
-  target: 'vercel' | 'netlify' | 'custom';
-  buildCommand?: string;
-  outputDir?: string;
-  envVars?: Record<string, string>;
-  domain?: string;
-}
-
-interface DeployToolOutput {
-  success: boolean;
-  deploymentUrl: string;
-  buildLogs?: string;
-  deploymentId: string;
-}
-
-class DeployTool extends BaseTool<DeployToolInput, DeployToolOutput> {
-  metadata = {
-    name: 'deploy',
-    description: 'Deploy project to production',
-    version: '1.0.0',
-    category: 'deployment',
-    costCredits: 20,
-    rateLimit: 5,
-  };
-  
-  protected async run(
-    params: DeployToolInput, 
-    projectId: string, 
-    userId: string
-  ): Promise<DeployToolOutput> {
-    const workspacePath = await this.getWorkspacePath(projectId);
-    
-    // 1. Build project
-    const buildCommand = params.buildCommand || 'npm run build';
-    const { stdout: buildLogs } = await this.runCommand(workspacePath, buildCommand);
-    
-    // 2. Deploy to target
-    switch (params.target) {
-      case 'vercel':
-        return await this.deployToVercel(projectId, workspacePath, params, buildLogs);
-        
-      case 'netlify':
-        return await this.deployToNetlify(projectId, workspacePath, params, buildLogs);
-        
-      case 'custom':
-        return await this.deployToCustom(projectId, workspacePath, params, buildLogs);
-        
-      default:
-        throw new Error(`Unsupported deployment target: ${params.target}`);
-    }
-  }
-  
-  private async deployToVercel(
-    projectId: string, 
-    workspacePath: string, 
-    params: DeployToolInput,
-    buildLogs: string
-  ): Promise<DeployToolOutput> {
-    // Vercel CLI deployment
-    const { stdout } = await this.runCommand(
-      workspacePath, 
-      'vercel --prod --yes',
-      params.envVars
-    );
-    
-    // Parse deployment URL from output
-    const urlMatch = stdout.match(/https:\/\/[^\s]+/);
-    const deploymentUrl = urlMatch ? urlMatch[0] : '';
-    
-    // Record deployment
-    const deployment = await db.projectDeployments.create({
-      data: {
-        projectId,
-        target: 'vercel',
-        url: deploymentUrl,
-        status: 'success',
-        buildLogs,
-        deployedAt: new Date(),
+    // Streaming
+    const response = await fetch(`${this.baseUrl}/agents/${agentId}/run`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream',
       },
+      body: JSON.stringify({ prompt, stream: true }),
     });
-    
-    return {
-      success: true,
-      deploymentUrl,
-      buildLogs,
-      deploymentId: deployment.id,
-    };
+
+    return this.parseSSE(response);
   }
-}
-```
 
----
+  private async *parseSSE(response: Response) {
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
 
-## Monitoring & Analytics Tools
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-### 10. Monitoring Tool
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
 
-```typescript
-// src/lib/tools/monitoring/monitoring-tool.ts
-
-interface MonitoringToolInput {
-  action: 'uptime' | 'errors' | 'performance' | 'users';
-  timeRange?: '1h' | '24h' | '7d' | '30d';
-}
-
-interface MonitoringToolOutput {
-  success: boolean;
-  data: any;
-}
-
-class MonitoringTool extends BaseTool<MonitoringToolInput, MonitoringToolOutput> {
-  metadata = {
-    name: 'monitoring',
-    description: 'Get monitoring data for deployed project',
-    version: '1.0.0',
-    category: 'monitoring',
-    costCredits: 1,
-    rateLimit: 30,
-  };
-  
-  protected async run(
-    params: MonitoringToolInput, 
-    projectId: string, 
-    userId: string
-  ): Promise<MonitoringToolOutput> {
-    switch (params.action) {
-      case 'uptime':
-        return await this.getUptimeData(projectId, params.timeRange);
-        
-      case 'errors':
-        return await this.getErrorData(projectId, params.timeRange);
-        
-      case 'performance':
-        return await this.getPerformanceData(projectId, params.timeRange);
-        
-      case 'users':
-        return await this.getUserAnalytics(projectId, params.timeRange);
-        
-      default:
-        throw new Error(`Unknown action: ${params.action}`);
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = JSON.parse(line.slice(6));
+          yield data;
+        }
+      }
     }
   }
 }
+
+// Usage
+const client = new CubiQoClient('cq_live_abc123...');
+
+// Chat
+const result = await client.chat('Explain the code structure');
+console.log(result.response);
+
+// Execute code
+const output = await client.executeCode('console.log("Hello")', 'javascript');
+console.log(output.output);
+
+// Streaming agent
+const stream = await client.runAgent('agent_001', 'Refactor this code', true);
+for await (const chunk of stream) {
+  if (chunk.type === 'token') {
+    process.stdout.write(chunk.content);
+  }
+}
 ```
 
----
+### cURL Examples
 
-## Error Handling & Retry Logic
+```bash
+# Set your API key
+API_KEY="cq_live_abc123..."
+BASE_URL="https://thecubiqo.com/api"
 
-### Retry Strategy
+# Chat
+curl -X POST "$BASE_URL/chat" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "List all files in src/"}'
+
+# Execute Python code
+curl -X POST "$BASE_URL/code/execute" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "import math\nprint(math.pi)",
+    "language": "python"
+  }'
+
+# Run agent (streaming)
+curl -X POST "$BASE_URL/agents/agent_001/run" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -d '{"prompt": "Analyze the codebase", "stream": true}' \
+  --no-buffer
+
+# Create agent
+curl -X POST "$BASE_URL/agents" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Review Bot",
+    "model": "claude-3-sonnet",
+    "tools": ["file_read", "git"],
+    "systemPrompt": "You are a code reviewer"
+  }'
+
+# List agents
+curl "$BASE_URL/agents" \
+  -H "Authorization: Bearer $API_KEY"
+
+# Browser automation
+curl -X POST "$BASE_URL/browser" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "start",
+    "url": "https://example.com"
+  }'
+
+# AI code generation
+curl -X POST "$BASE_URL/coder" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Create a React form component with validation"
+  }'
+
+# Web search
+curl -X POST "$BASE_URL/tools/web_search" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Next.js 14 features",
+    "count": 5
+  }'
+
+# Health check
+curl "$BASE_URL/health"
+```
+
+### WebSocket Example (Browser)
+
+```javascript
+// Connect to agent activity stream
+const ws = new WebSocket('wss://thecubiqo.com/api/ws/agents?token=' + apiKey);
+
+ws.onopen = () => {
+  console.log('Connected to agent activity stream');
+};
+
+ws.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+  
+  switch (message.type) {
+    case 'agent_activity':
+      console.log(`Agent ${message.agentId}: ${message.activity}`);
+      break;
+    
+    case 'tool_call':
+      console.log(`Tool called: ${message.tool}`);
+      break;
+    
+    case 'error':
+      console.error('Error:', message.error);
+      break;
+  }
+};
+
+ws.onerror = (error) => {
+  console.error('WebSocket error:', error);
+};
+
+ws.onclose = () => {
+  console.log('Disconnected from agent activity stream');
+};
+
+// Subscribe to specific agent
+ws.send(JSON.stringify({
+  type: 'subscribe',
+  agentId: 'agent_001'
+}));
+```
+
+### React Hook Example
 
 ```typescript
-// src/lib/tools/retry.ts
+import { useState, useEffect } from 'react';
 
-interface RetryOptions {
-  maxRetries: number;
-  backoff: 'exponential' | 'linear';
-  initialDelay: number;  // milliseconds
-  maxDelay: number;
-}
+function useCubiQoAgent(agentId: string, apiKey: string) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [response, setResponse] = useState<string>('');
 
-async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {
-    maxRetries: 3,
-    backoff: 'exponential',
-    initialDelay: 1000,
-    maxDelay: 10000,
-  }
-): Promise<T> {
-  let lastError: any;
-  
-  for (let attempt = 0; attempt <= options.maxRetries; attempt++) {
+  const run = async (prompt: string) => {
+    setLoading(true);
+    setError(null);
+    setResponse('');
+
     try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-      
-      // Don't retry on certain errors
-      if (error instanceof PermissionError || error instanceof ValidationError) {
-        throw error;
+      const res = await fetch(`https://thecubiqo.com/api/agents/${agentId}/run`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error);
       }
-      
-      // Calculate delay
-      let delay = options.initialDelay;
-      if (options.backoff === 'exponential') {
-        delay = Math.min(options.initialDelay * Math.pow(2, attempt), options.maxDelay);
-      } else {
-        delay = Math.min(options.initialDelay * (attempt + 1), options.maxDelay);
-      }
-      
-      // Wait before retry
-      await new Promise(resolve => setTimeout(resolve, delay));
+
+      setResponse(data.response);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
     }
-  }
-  
-  throw lastError;
-}
-
-// Usage in tools
-protected async run(params: TInput, projectId: string, userId: string): Promise<TOutput> {
-  return await withRetry(() => this.executeLogic(params, projectId, userId), {
-    maxRetries: 3,
-    backoff: 'exponential',
-    initialDelay: 1000,
-    maxDelay: 10000,
-  });
-}
-```
-
----
-
-## API Security
-
-### Authentication & Authorization
-
-```typescript
-// src/middleware/auth.ts
-
-export async function authenticateToolRequest(req: Request): Promise<AuthContext> {
-  const token = req.headers.get('Authorization')?.replace('Bearer ', '');
-  
-  if (!token) {
-    throw new UnauthorizedError('No authentication token provided');
-  }
-  
-  // Verify JWT
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-  
-  if (error || !user) {
-    throw new UnauthorizedError('Invalid authentication token');
-  }
-  
-  return {
-    userId: user.id,
-    email: user.email!,
   };
+
+  return { run, loading, error, response };
 }
 
-export async function authorizeProjectAccess(
-  userId: string, 
-  projectId: string
-): Promise<void> {
-  const hasAccess = await db.projectMembers.exists({
-    where: { userId, projectId }
-  });
-  
-  if (!hasAccess) {
-    throw new ForbiddenError('User does not have access to this project');
-  }
-}
-```
+// Usage in component
+function CodeReviewer() {
+  const { run, loading, error, response } = useCubiQoAgent(
+    'agent_001',
+    process.env.NEXT_PUBLIC_CUBIQO_API_KEY!
+  );
 
-### Rate Limiting
+  const handleReview = () => {
+    run('Review the authentication module');
+  };
 
-```typescript
-// src/middleware/rate-limit.ts
-
-import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_URL!,
-  token: process.env.UPSTASH_REDIS_TOKEN!,
-});
-
-const rateLimiter = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(10, '1 m'),  // 10 requests per minute
-});
-
-export async function checkRateLimit(userId: string, toolName: string): Promise<void> {
-  const key = `rate_limit:${userId}:${toolName}`;
-  const { success, remaining } = await rateLimiter.limit(key);
-  
-  if (!success) {
-    throw new RateLimitError(`Rate limit exceeded. Try again later. (${remaining} remaining)`);
-  }
+  return (
+    <div>
+      <button onClick={handleReview} disabled={loading}>
+        {loading ? 'Reviewing...' : 'Review Code'}
+      </button>
+      {error && <div className="error">{error}</div>}
+      {response && <div className="response">{response}</div>}
+    </div>
+  );
 }
 ```
 
-### Input Validation
+---
 
-All tool inputs are validated using Zod schemas before execution. This prevents:
-- SQL injection
-- Path traversal
-- XSS attacks
-- Invalid data types
-- Out-of-range values
+## Appendix
+
+### Environment Variables
+
+```bash
+# API Keys
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+GOOGLE_AI_API_KEY=...
+GROQ_API_KEY=...
+BRAVE_SEARCH_API_KEY=...
+
+# Database
+DATABASE_URL=postgresql://...
+SUPABASE_URL=https://...
+SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_KEY=...
+
+# Auth
+NEXTAUTH_SECRET=...
+NEXTAUTH_URL=https://thecubiqo.com
+
+# Communication
+TELEGRAM_BOT_TOKEN=...
+SLACK_BOT_TOKEN=...
+DISCORD_BOT_TOKEN=...
+SENDGRID_API_KEY=...
+
+# Features
+ENABLE_CODE_EXECUTION=true
+ENABLE_BROWSER_AUTOMATION=true
+ENABLE_FOUNDERS_PASS=true
+
+# Rate Limiting
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_REQUESTS=60
+RATE_LIMIT_WINDOW=60
+
+# Custom LLM
+EMERGENT_BASE_URL=https://custom-llm.example.com
+```
+
+### Response Time SLAs
+
+| Endpoint | p50 | p95 | p99 |
+|----------|-----|-----|-----|
+| /api/health | <50ms | <100ms | <200ms |
+| /api/chat | <1s | <3s | <5s |
+| /api/agents/*/run | <2s | <5s | <10s |
+| /api/code/execute | <500ms | <2s | <5s |
+| /api/coder | <3s | <10s | <20s |
+| /api/browser | <1s | <3s | <5s |
+
+### Support
+
+- **Documentation**: https://docs.thecubiqo.com
+- **API Status**: https://status.thecubiqo.com
+- **Support Email**: support@thecubiqo.com
+- **Discord**: https://discord.gg/cubiqo
+- **GitHub**: https://github.com/thecubiqo/thecubiqo
+
+### Changelog
+
+**v1.0.0** (2024-01-15)
+- Initial release
+- 15 agent tools
+- 50+ HTTP endpoints
+- LLM router with 6 providers
+- WebSocket support
+- Full documentation
 
 ---
 
-## Conclusion
-
-The Tool API provides a standardized, secure, and extensible interface for the Main Agent to interact with various sub-agents and external services. Key features:
-
-1. **Type Safety** - Full TypeScript + Zod validation
-2. **Error Handling** - Structured errors with actionable suggestions
-3. **Rate Limiting** - Prevent abuse and manage costs
-4. **Audit Logging** - All tool calls logged
-5. **Retry Logic** - Automatic retries with backoff
-6. **Authentication** - JWT-based auth with project-level authorization
-7. **Credit System** - Usage-based billing with credit deduction
-
----
-
-**Next Steps:**
-1. Implement core tools (bulk write, bulk edit, view files)
-2. Implement testing sub-agent
-3. Implement integration sub-agents (Shopify, Stripe)
-4. Implement human interaction tool
-5. Create frontend UI components for human input dialogs
-6. Add comprehensive error handling and logging
-7. Write integration tests for all tools
-
----
-
-**Document Maintained By:** MO (CTO/Tech Architect)  
-**Last Updated:** February 18, 2025  
-**Status:** Ready for Implementation
+*This specification is maintained by the CubiQo team. Last updated: 2024-01-15.*

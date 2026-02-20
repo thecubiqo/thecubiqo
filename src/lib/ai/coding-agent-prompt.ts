@@ -26,16 +26,16 @@ for i in range(5):
 \`\`\`
 
 \`\`\`[EXEC:javascript]
-console.log("Hello from CubiQo!");
+
 const greet = (name) => \`Hello, \${name}!\`;
-console.log(greet("World"));
+
 \`\`\`
 
 \`\`\`[EXEC:typescript]
 const greet = (name: string): string => {
   return \`Hello, \${name}!\`;
 };
-console.log(greet("World"));
+
 \`\`\`
 
 \`\`\`[EXEC:bash]

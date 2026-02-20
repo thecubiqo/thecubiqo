@@ -82,7 +82,7 @@ export class CQCallManager {
 
       return call.id;
     } catch (error) {
-      console.error('Error initiating call:', error);
+      
       throw error;
     }
   }
@@ -110,7 +110,7 @@ export class CQCallManager {
       // Wait for offer, then create answer
       // This will be handled by handleSignal() when offer arrives
     } catch (error) {
-      console.error('Error answering call:', error);
+      
       throw error;
     }
   }
@@ -169,7 +169,7 @@ export class CQCallManager {
     try {
       await this.peerConnection!.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (error) {
-      console.error('Error adding ICE candidate:', error);
+      
     }
   }
 
@@ -219,7 +219,7 @@ export class CQCallManager {
       // Clean up
       this.cleanup();
     } catch (error) {
-      console.error('Error ending call:', error);
+      
     }
   }
 
@@ -253,7 +253,7 @@ export class CQCallManager {
 
       return this.screenShareStream;
     } catch (error) {
-      console.error('Error starting screen share:', error);
+      
       throw error;
     }
   }
@@ -282,7 +282,7 @@ export class CQCallManager {
 
       this.screenShareStream = null;
     } catch (error) {
-      console.error('Error stopping screen share:', error);
+      
     }
   }
 
@@ -385,7 +385,7 @@ export class CQCallManager {
           : false,
       });
     } catch (error) {
-      console.error('Error getting local stream:', error);
+      
       throw new Error('Failed to access camera/microphone');
     }
   }
@@ -424,10 +424,7 @@ export class CQCallManager {
 
     // Handle connection state changes
     this.peerConnection.onconnectionstatechange = () => {
-      console.log(
-        'Connection state:',
-        this.peerConnection!.connectionState
-      );
+      
 
       if (
         this.peerConnection!.connectionState === 'disconnected' ||
@@ -511,7 +508,7 @@ export async function checkMediaPermissions(): Promise<{
     // Stop tracks immediately
     stream.getTracks().forEach((track) => track.stop());
   } catch (error) {
-    console.error('Error checking media permissions:', error);
+    
   }
 
   return permissions;
