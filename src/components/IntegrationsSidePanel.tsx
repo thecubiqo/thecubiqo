@@ -2,94 +2,113 @@
 
 /**
  * IntegrationsSidePanel - Comprehensive panel showing available integrations
- * Categorically divided showing availability status
+ * Categorically divided: Social Apps, Utility Apps, Business Apps, Job Hunt, Daily Journal, Codexo
  */
 
 import { useState } from 'react'
 
-interface Integration {
-  id: string
-  name: string
-  icon: string
-  description: string
-  status: 'available' | 'coming_soon' | 'beta'
-  category: string
-}
-
 const INTEGRATION_CATEGORIES = [
   {
-    id: 'ai-models',
-    name: 'AI Models',
-    icon: '🧠',
-    integrations: [
-      { id: 'openai', name: 'OpenAI (GPT)', icon: '🤖', description: 'GPT-4, GPT-3.5 models', status: 'available' as const },
-      { id: 'anthropic', name: 'Anthropic (Claude)', icon: '🟣', description: 'Claude 3.5, Claude 3 models', status: 'available' as const },
-      { id: 'google-ai', name: 'Google AI (Gemini)', icon: '🔵', description: 'Gemini Pro, Gemini Ultra', status: 'available' as const },
-      { id: 'openrouter', name: 'OpenRouter', icon: '🔗', description: 'Unified API for multiple models', status: 'available' as const },
-      { id: 'minimax', name: 'MiniMax', icon: '⚡', description: 'Fast inference models', status: 'available' as const },
-      { id: 'ollama', name: 'Ollama (Local)', icon: '🏠', description: 'Run models locally', status: 'available' as const },
-      { id: 'mistral', name: 'Mistral AI', icon: '🌊', description: 'Mixtral, Mistral models', status: 'available' as const },
-    ],
-  },
-  {
-    id: 'voice',
-    name: 'Voice & Speech',
-    icon: '🎙️',
-    integrations: [
-      { id: 'elevenlabs', name: 'ElevenLabs', icon: '🔊', description: 'Natural text-to-speech', status: 'available' as const },
-      { id: 'browser-stt', name: 'Browser STT', icon: '🎤', description: 'Native speech recognition', status: 'available' as const },
-      { id: 'whisper', name: 'Whisper (Groq)', icon: '👂', description: 'Fast speech-to-text', status: 'available' as const },
-    ],
-  },
-  {
-    id: 'communication',
-    name: 'Communication',
+    id: 'social-apps',
+    name: 'Social Apps',
     icon: '💬',
     integrations: [
-      { id: 'cq-messenger', name: 'CQ Messenger', icon: '📨', description: 'Built-in direct messaging', status: 'available' as const },
-      { id: 'telegram', name: 'Telegram Bot', icon: '✈️', description: 'Telegram chatbot integration', status: 'available' as const },
-      { id: 'email', name: 'Email (Resend)', icon: '📧', description: 'Transactional emails', status: 'available' as const },
-      { id: 'whatsapp', name: 'WhatsApp', icon: '📱', description: 'WhatsApp Business API', status: 'coming_soon' as const },
+      { id: 'whatsapp', name: 'WhatsApp', icon: '💬', description: 'Messaging & voice calls', status: 'coming_soon' as const },
+      { id: 'telegram', name: 'Telegram', icon: '✈️', description: 'Cloud-based messaging', status: 'available' as const },
+      { id: 'instagram', name: 'Instagram', icon: '📸', description: 'Photo & story sharing', status: 'coming_soon' as const },
+      { id: 'x-twitter', name: 'X (Twitter)', icon: '𝕏', description: 'Microblogging & social', status: 'coming_soon' as const },
+      { id: 'facebook', name: 'Facebook', icon: '👤', description: 'Social networking', status: 'coming_soon' as const },
+      { id: 'linkedin', name: 'LinkedIn', icon: '💼', description: 'Professional networking', status: 'coming_soon' as const },
+      { id: 'discord', name: 'Discord', icon: '🎮', description: 'Community & chat servers', status: 'coming_soon' as const },
+      { id: 'slack', name: 'Slack', icon: '💼', description: 'Team communication', status: 'coming_soon' as const },
+      { id: 'tiktok', name: 'TikTok', icon: '🎵', description: 'Short-form video', status: 'coming_soon' as const },
+      { id: 'snapchat', name: 'Snapchat', icon: '👻', description: 'Ephemeral messaging', status: 'coming_soon' as const },
+      { id: 'signal-messenger', name: 'Signal', icon: '🔒', description: 'Encrypted messaging', status: 'coming_soon' as const },
+      { id: 'cq-messenger', name: 'CQ Messenger', icon: '🟧', description: 'Built-in CubiQo messaging', status: 'available' as const },
     ],
   },
   {
-    id: 'commerce',
-    name: 'Commerce & Payments',
-    icon: '💳',
-    integrations: [
-      { id: 'stripe', name: 'Stripe', icon: '💰', description: 'Payment processing', status: 'coming_soon' as const },
-      { id: 'shopify', name: 'Shopify', icon: '🛍️', description: 'E-commerce platform', status: 'coming_soon' as const },
-      { id: 'printify', name: 'Printify', icon: '🖨️', description: 'Print-on-demand', status: 'coming_soon' as const },
-      { id: 'printful', name: 'Printful', icon: '📦', description: 'Print & fulfillment', status: 'coming_soon' as const },
-    ],
-  },
-  {
-    id: 'developer',
-    name: 'Developer Tools',
-    icon: '🛠️',
-    integrations: [
-      { id: 'github', name: 'GitHub', icon: '🐙', description: 'Code repository & CI/CD', status: 'available' as const },
-      { id: 'vercel', name: 'Vercel', icon: '▲', description: 'Deployment platform', status: 'available' as const },
-      { id: 'supabase', name: 'Supabase', icon: '⚡', description: 'Database & auth backend', status: 'available' as const },
-    ],
-  },
-  {
-    id: 'productivity',
-    name: 'Productivity',
-    icon: '📋',
+    id: 'utility-apps',
+    name: 'Utility Apps',
+    icon: '🔧',
     integrations: [
       { id: 'gmail', name: 'Gmail', icon: '📧', description: 'Email management', status: 'coming_soon' as const },
-      { id: 'calendar', name: 'Google Calendar', icon: '📅', description: 'Schedule management', status: 'coming_soon' as const },
-      { id: 'notion', name: 'Notion', icon: '📝', description: 'Knowledge management', status: 'coming_soon' as const },
+      { id: 'outlook', name: 'Outlook', icon: '📬', description: 'Email & calendar', status: 'coming_soon' as const },
+      { id: 'google-calendar', name: 'Google Calendar', icon: '📅', description: 'Schedule & events', status: 'coming_soon' as const },
+      { id: 'google-drive', name: 'Google Drive', icon: '📁', description: 'Cloud file storage', status: 'coming_soon' as const },
+      { id: 'dropbox', name: 'Dropbox', icon: '📦', description: 'File sync & share', status: 'coming_soon' as const },
+      { id: 'notion', name: 'Notion', icon: '📝', description: 'Notes & knowledge base', status: 'coming_soon' as const },
+      { id: 'google-maps', name: 'Google Maps', icon: '🗺️', description: 'Maps & navigation', status: 'coming_soon' as const },
+      { id: 'uber', name: 'Uber', icon: '🚕', description: 'Ride-hailing', status: 'coming_soon' as const },
+      { id: 'doordash', name: 'DoorDash', icon: '🍔', description: 'Food delivery', status: 'coming_soon' as const },
+      { id: 'spotify', name: 'Spotify', icon: '🎧', description: 'Music streaming', status: 'coming_soon' as const },
+      { id: 'weather', name: 'Weather', icon: '🌤️', description: 'Forecasts & alerts', status: 'coming_soon' as const },
+      { id: 'translate', name: 'Translate', icon: '🌐', description: 'Language translation', status: 'coming_soon' as const },
     ],
   },
   {
-    id: 'transport',
-    name: 'Transport & Delivery',
-    icon: '🚗',
+    id: 'business-apps',
+    name: 'Business Apps',
+    icon: '🏢',
     integrations: [
-      { id: 'uber', name: 'Uber', icon: '🚕', description: 'Ride-hailing service', status: 'coming_soon' as const },
-      { id: 'doordash', name: 'DoorDash', icon: '🍔', description: 'Food delivery', status: 'coming_soon' as const },
+      { id: 'stripe', name: 'Stripe', icon: '💳', description: 'Payments & billing', status: 'coming_soon' as const },
+      { id: 'shopify', name: 'Shopify', icon: '🛍️', description: 'E-commerce platform', status: 'coming_soon' as const },
+      { id: 'quickbooks', name: 'QuickBooks', icon: '📊', description: 'Accounting & finance', status: 'coming_soon' as const },
+      { id: 'salesforce', name: 'Salesforce', icon: '☁️', description: 'CRM & sales', status: 'coming_soon' as const },
+      { id: 'hubspot', name: 'HubSpot', icon: '🟠', description: 'Marketing & CRM', status: 'coming_soon' as const },
+      { id: 'zoom', name: 'Zoom', icon: '📹', description: 'Video conferencing', status: 'coming_soon' as const },
+      { id: 'google-meet', name: 'Google Meet', icon: '🎥', description: 'Video meetings', status: 'coming_soon' as const },
+      { id: 'docusign', name: 'DocuSign', icon: '✍️', description: 'E-signatures', status: 'coming_soon' as const },
+      { id: 'printify', name: 'Printify', icon: '🖨️', description: 'Print-on-demand', status: 'coming_soon' as const },
+      { id: 'printful', name: 'Printful', icon: '📦', description: 'Print & fulfillment', status: 'coming_soon' as const },
+      { id: 'mailchimp', name: 'Mailchimp', icon: '📮', description: 'Email marketing', status: 'coming_soon' as const },
+    ],
+  },
+  {
+    id: 'job-hunt',
+    name: 'Job Hunt',
+    icon: '🎯',
+    integrations: [
+      { id: 'linkedin-jobs', name: 'LinkedIn Jobs', icon: '💼', description: 'Job search & applications', status: 'available' as const },
+      { id: 'indeed', name: 'Indeed', icon: '🔍', description: 'Job board aggregator', status: 'coming_soon' as const },
+      { id: 'glassdoor', name: 'Glassdoor', icon: '🏢', description: 'Company reviews & salaries', status: 'coming_soon' as const },
+      { id: 'resume-builder', name: 'Resume Builder', icon: '📄', description: 'AI-powered resume creation', status: 'available' as const },
+      { id: 'interview-prep', name: 'Interview Prep', icon: '🎤', description: 'AI mock interviews', status: 'available' as const },
+      { id: 'application-tracker', name: 'Application Tracker', icon: '📋', description: 'Track job applications', status: 'available' as const },
+      { id: 'salary-insights', name: 'Salary Insights', icon: '💰', description: 'Market rate analysis', status: 'coming_soon' as const },
+      { id: 'network-mapper', name: 'Network Mapper', icon: '🕸️', description: 'Professional connections', status: 'coming_soon' as const },
+    ],
+  },
+  {
+    id: 'daily-journal',
+    name: 'Daily Journal',
+    icon: '📔',
+    integrations: [
+      { id: 'mood-tracker', name: 'Mood Tracker', icon: '🎭', description: 'Daily emotional check-ins', status: 'available' as const },
+      { id: 'voice-journal', name: 'Voice Journal', icon: '🎙️', description: 'Speak your thoughts', status: 'available' as const },
+      { id: 'gratitude-log', name: 'Gratitude Log', icon: '🙏', description: 'Daily gratitude practice', status: 'available' as const },
+      { id: 'goal-tracking', name: 'Goal Tracking', icon: '🎯', description: 'Set and track goals', status: 'available' as const },
+      { id: 'habit-tracker', name: 'Habit Tracker', icon: '✅', description: 'Build daily habits', status: 'coming_soon' as const },
+      { id: 'dream-journal', name: 'Dream Journal', icon: '🌙', description: 'Record and analyze dreams', status: 'coming_soon' as const },
+      { id: 'health-log', name: 'Health Log', icon: '❤️', description: 'Track wellness & fitness', status: 'coming_soon' as const },
+      { id: 'ai-insights', name: 'AI Insights', icon: '🧠', description: 'Pattern & trend analysis', status: 'available' as const },
+    ],
+  },
+  {
+    id: 'codexo',
+    name: 'Codexo',
+    icon: '💻',
+    integrations: [
+      { id: 'github', name: 'GitHub', icon: '🐙', description: 'Code repos & CI/CD', status: 'available' as const },
+      { id: 'vercel', name: 'Vercel', icon: '▲', description: 'Deployment platform', status: 'available' as const },
+      { id: 'vscode', name: 'VS Code', icon: '📘', description: 'Code editor integration', status: 'coming_soon' as const },
+      { id: 'code-executor', name: 'Code Executor', icon: '▶️', description: 'Run code in-browser', status: 'available' as const },
+      { id: 'terminal', name: 'Terminal', icon: '⌨️', description: 'Command-line access', status: 'available' as const },
+      { id: 'ai-code-review', name: 'AI Code Review', icon: '🔍', description: 'Automated code analysis', status: 'available' as const },
+      { id: 'docker', name: 'Docker', icon: '🐳', description: 'Container management', status: 'coming_soon' as const },
+      { id: 'aws', name: 'AWS', icon: '☁️', description: 'Amazon Web Services', status: 'coming_soon' as const },
+      { id: 'supabase', name: 'Supabase', icon: '⚡', description: 'Database & auth backend', status: 'available' as const },
+      { id: 'figma', name: 'Figma', icon: '🎨', description: 'Design to code', status: 'coming_soon' as const },
     ],
   },
 ]
@@ -107,7 +126,7 @@ interface IntegrationsSidePanelProps {
 }
 
 export function IntegrationsSidePanel({ isOpen, onClose, isDark = true }: IntegrationsSidePanelProps) {
-  const [expandedCategory, setExpandedCategory] = useState<string | null>('ai-models')
+  const [expandedCategory, setExpandedCategory] = useState<string | null>('social-apps')
 
   if (!isOpen) return null
 
