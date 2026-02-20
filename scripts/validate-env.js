@@ -62,7 +62,13 @@ function loadEnv() {
     line = line.trim();
     if (line && !line.startsWith('#')) {
       const [key, ...valueParts] = line.split('=');
-      const value = valueParts.join('=').trim();
+      let value = valueParts.join('=').trim();
+      // Strip surrounding quotes if present
+      if (value.startsWith('"') && value.endsWith('"')) {
+        value = value.slice(1, -1);
+      } else if (value.startsWith("'") && value.endsWith("'")) {
+        value = value.slice(1, -1);
+      }
       if (key && value) {
         env[key.trim()] = value;
       }
