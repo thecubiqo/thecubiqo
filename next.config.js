@@ -2,9 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    turbopack: {
-      root: '.',
-    },
+    serverExternalPackages: ['dockerode', 'ssh2', 'ioredis'],
   },
 };
 
