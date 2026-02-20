@@ -281,6 +281,13 @@ interface TechLandingCubeProps {
 
 export function TechLandingCube({ onComplete, isVoiceActive = false }: TechLandingCubeProps) {
   const [voiceIntensity, setVoiceIntensity] = React.useState(0)
+  const [isExiting, setIsExiting] = React.useState(false)
+
+  const handleTap = React.useCallback(() => {
+    if (isExiting) return
+    setIsExiting(true)
+    setTimeout(onComplete, 700)
+  }, [isExiting, onComplete])
   
   // Animate voice intensity
   useEffect(() => {
@@ -302,8 +309,10 @@ export function TechLandingCube({ onComplete, isVoiceActive = false }: TechLandi
   
   return (
     <div 
-      className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center cursor-pointer"
-      onClick={onComplete}
+      className={`fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center cursor-pointer transition-all duration-700 ease-in ${
+        isExiting ? 'scale-[3] opacity-0' : 'scale-100 opacity-100'
+      }`}
+      onClick={handleTap}
       data-testid="tech-landing-cube"
     >
       {/* Deep space background */}
@@ -335,7 +344,7 @@ export function TechLandingCube({ onComplete, isVoiceActive = false }: TechLandi
           One Mind. Many Dimensions.
         </p>
         <p className="text-white/40 text-xs tracking-wide uppercase">
-          Tap to begin
+          you may tap now
         </p>
       </div>
       

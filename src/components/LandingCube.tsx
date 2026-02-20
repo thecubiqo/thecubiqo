@@ -4,9 +4,10 @@
  * LandingCube - Plasma Wave Landing Screen
  * 
  * Shows beautiful flowing plasma waves on the landing page.
- * User taps anywhere to enter the main app.
+ * User taps anywhere to enter the main app with a zoom-in transition.
  */
 
+import { useState, useCallback } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { PlasmaWaveField } from './cube/PlasmaWaveField'
 
@@ -16,10 +17,21 @@ interface LandingCubeProps {
 }
 
 export function LandingCube({ onComplete }: LandingCubeProps) {
+  const [isExiting, setIsExiting] = useState(false)
+
+  const handleTap = useCallback(() => {
+    if (isExiting) return
+    setIsExiting(true)
+    // Allow the zoom-in animation to play, then complete
+    setTimeout(onComplete, 700)
+  }, [isExiting, onComplete])
+
   return (
     <div 
-      className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center cursor-pointer"
-      onClick={onComplete}
+      className={`fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center cursor-pointer transition-all duration-700 ease-in ${
+        isExiting ? 'scale-[3] opacity-0' : 'scale-100 opacity-100'
+      }`}
+      onClick={handleTap}
       data-testid="landing-cube-screen"
     >
       {/* Deep space background */}
@@ -50,7 +62,7 @@ export function LandingCube({ onComplete }: LandingCubeProps) {
           One Mind. Many Dimensions.
         </p>
         <p className="text-white/25 text-xs tracking-wide uppercase">
-          Tap anywhere to begin
+          you may tap now
         </p>
       </div>
       
