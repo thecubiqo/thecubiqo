@@ -40,8 +40,20 @@ interface AdminStats {
   timestamp: string;
 }
 
+interface UsageData {
+  ai: {
+    anthropic: { spent: number; cap: number; remaining: number; percentUsed: number };
+    elevenlabs: { spent: number; cap: number; remaining: number; percentUsed: number };
+    locked: boolean;
+  };
+  database: {
+    locked: boolean;
+  };
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [usage, setUsage] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,9 +71,38 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchUsage = async () => {
+    try {
+      const response = await fetch('/api/admin/usage');
+      if (!response.ok) throw new Error('Failed to fetch usage');
+      const data = await response.json();
+      setUsage(data);
+    } catch (err) {
+      console.error('Usage fetch error:', err);
+    }
+  };
+
+  const toggleLock = async (type: 'ai' | 'database', locked: boolean) => {
+    try {
+      const response = await fetch('/api/admin/usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, locked }),
+      });
+      if (!response.ok) throw new Error('Failed to toggle lock');
+      await fetchUsage();
+    } catch (err) {
+      console.error('Lock toggle error:', err);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
-    const interval = setInterval(fetchStats, 3000); // Refresh every 3 seconds
+    fetchUsage();
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchUsage();
+    }, 3000); // Refresh every 3 seconds
     return () => clearInterval(interval);
   }, []);
 
@@ -208,6 +249,75 @@ export default function AdminDashboard() {
                 </div>
               )}
 
+              {/* AI & Database Usage Monitoring */}
+              {usage && (
+                <div className="bg-gray-900 rounded-lg p-6 mb-8">
+                  <h2 className="text-2xl font-bold mb-4">AI & Database Usage</h2>
+
+                  {/* AI Usage */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold">AI Usage</h3>
+                      <button
+                        onClick={() => toggleLock('ai', !usage.ai.locked)}
+                        className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                          usage.ai.locked
+                            ? 'bg-red-600 hover:bg-red-700 text-white'
+                            : 'bg-green-600 hover:bg-green-700 text-white'
+                        }`}
+                      >
+                        {usage.ai.locked ? '🔒 Locked' : '🔓 Unlocked'}
+                      </button>
+                    </div>
+                    {usage.ai.locked && (
+                      <div className="bg-red-900/20 border border-red-500 rounded-lg p-3 mb-3">
+                        <p className="text-red-400 text-sm">
+                          AI usage is locked. All AI API calls are blocked.
+                        </p>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <UsageBar
+                        label="Anthropic (Claude)"
+                        spent={usage.ai.anthropic.spent}
+                        cap={usage.ai.anthropic.cap}
+                        percentUsed={usage.ai.anthropic.percentUsed}
+                      />
+                      <UsageBar
+                        label="ElevenLabs (TTS)"
+                        spent={usage.ai.elevenlabs.spent}
+                        cap={usage.ai.elevenlabs.cap}
+                        percentUsed={usage.ai.elevenlabs.percentUsed}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Database Usage */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold">Database Usage</h3>
+                      <button
+                        onClick={() => toggleLock('database', !usage.database.locked)}
+                        className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                          usage.database.locked
+                            ? 'bg-red-600 hover:bg-red-700 text-white'
+                            : 'bg-green-600 hover:bg-green-700 text-white'
+                        }`}
+                      >
+                        {usage.database.locked ? '🔒 Locked' : '🔓 Unlocked'}
+                      </button>
+                    </div>
+                    {usage.database.locked && (
+                      <div className="bg-red-900/20 border border-red-500 rounded-lg p-3">
+                        <p className="text-red-400 text-sm">
+                          Database usage is locked. All database write operations are blocked.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Agents */}
               <div className="bg-gray-900 rounded-lg p-6 mb-8">
                 <h2 className="text-2xl font-bold mb-4">Agents</h2>
@@ -324,6 +434,40 @@ function StatCard({ title, value, subtitle, color }: StatCardProps) {
       <h3 className="text-gray-400 text-sm mb-2">{title}</h3>
       <p className="text-3xl font-bold mb-1">{value}</p>
       <p className="text-sm text-gray-500">{subtitle}</p>
+    </div>
+  );
+}
+
+interface UsageBarProps {
+  label: string;
+  spent: number;
+  cap: number;
+  percentUsed: number;
+}
+
+function UsageBar({ label, spent, cap, percentUsed }: UsageBarProps) {
+  const barColor =
+    percentUsed >= 90
+      ? 'bg-red-500'
+      : percentUsed >= 70
+        ? 'bg-yellow-500'
+        : 'bg-green-500';
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium">{label}</span>
+        <span className="text-sm text-gray-400">
+          ${spent.toFixed(2)} / ${cap}
+        </span>
+      </div>
+      <div className="w-full bg-gray-700 rounded-full h-3">
+        <div
+          className={`${barColor} h-3 rounded-full transition-all`}
+          style={{ width: `${Math.min(percentUsed, 100)}%` }}
+        />
+      </div>
+      <p className="text-xs text-gray-500 mt-1">{percentUsed.toFixed(1)}% used</p>
     </div>
   );
 }

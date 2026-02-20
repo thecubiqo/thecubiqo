@@ -37,8 +37,15 @@ Shows the 10 most recently updated sessions with:
 - Message count
 - Last update time
 
-## API Endpoint
+### 5. AI & Database Usage Monitoring
+Displays real-time usage metrics and admin lock controls:
+- **AI Usage**: Shows current spending vs. cap for each provider (Anthropic, ElevenLabs) with progress bars color-coded by utilization (green < 70%, yellow 70-90%, red > 90%)
+- **Database Usage**: Displays database lock status
+- **Lock Controls**: Toggle buttons to lock/unlock AI or database usage instantly. When locked, all corresponding API calls are blocked to keep costs low
 
+## API Endpoints
+
+### Stats Endpoint
 **Endpoint:** `GET /api/admin/stats`
 
 **Response:**
@@ -89,6 +96,48 @@ Shows the 10 most recently updated sessions with:
 }
 ```
 
+### Usage Endpoint
+**Endpoint:** `GET /api/admin/usage`
+
+Returns current AI and database usage metrics plus lock states.
+
+**Response:**
+```json
+{
+  "ai": {
+    "anthropic": { "spent": 12.50, "cap": 200, "remaining": 187.50, "percentUsed": 6 },
+    "elevenlabs": { "spent": 0.00, "cap": 200, "remaining": 200.00, "percentUsed": 0 },
+    "locked": false
+  },
+  "database": {
+    "locked": false
+  },
+  "timestamp": "2026-02-19T12:00:00.000Z"
+}
+```
+
+### Usage Lock Endpoint
+**Endpoint:** `POST /api/admin/usage`
+
+Lock or unlock AI/database usage to control costs.
+
+**Request Body:**
+```json
+{
+  "type": "ai",
+  "locked": true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "type": "ai",
+  "locked": true
+}
+```
+
 ## Real-Time Updates
 
 The dashboard automatically refreshes every **3 seconds** to provide real-time data.
@@ -109,6 +158,11 @@ The dashboard automatically refreshes every **3 seconds** to provide real-time d
    - Responsive grid layout
    - Color-coded status indicators
 
+3. **`/src/app/api/admin/usage/route.ts`**
+   - GET: Returns AI spending status and database lock state
+   - POST: Toggles lock on AI or database usage
+   - Integrates with spending-caps module
+
 ### Status Colors
 
 - **Green**: healthy, running, active
@@ -127,6 +181,9 @@ The dashboard automatically refreshes every **3 seconds** to provide real-time d
 - ✅ Memory usage in MB
 - ✅ Active/total task counts
 - ✅ Session truncation for readability
+- ✅ AI usage monitoring with per-provider spending bars
+- ✅ Database usage monitoring
+- ✅ Admin lock controls for AI and database usage
 
 ## Usage
 
