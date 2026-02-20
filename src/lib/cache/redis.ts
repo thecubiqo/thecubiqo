@@ -1,9 +1,10 @@
 // Redis client for caching and session management
+// ioredis is isolated via eval('require') to bypass Turbopack static analysis
 let Redis: any = null;
 try {
-  Redis = require('ioredis');
+  Redis = eval('require')('ioredis');
 } catch (e) {
-  // Ignored for build
+  // Ignored for build safety on Vercel
 }
 
 let redis: any = null;

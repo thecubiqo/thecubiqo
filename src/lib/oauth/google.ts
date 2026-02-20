@@ -2,11 +2,12 @@
  * Google OAuth & Gmail Integration
  */
 
+// googleapis is isolated via eval('require') to bypass Turbopack static analysis
 let google: any = null;
 try {
-  google = require('googleapis').google;
+  google = eval('require')('googleapis').google;
 } catch (e) {
-  // Ignored for build
+  // Ignored for build safety on Vercel
 }
 import type {
   OAuthTokens,
@@ -125,7 +126,7 @@ export class GoogleOAuthService {
 
     // Fetch full message details
     const messages = await Promise.all(
-      data.messages.map(async (msg) => {
+      data.messages.map(async (msg: any) => {
         const { data: fullMsg } = await gmail.users.messages.get({
           userId: 'me',
           id: msg.id!,
@@ -134,7 +135,7 @@ export class GoogleOAuthService {
 
         const headers = fullMsg.payload?.headers || [];
         const getHeader = (name: string) =>
-          headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value || '';
+          headers.find((h: any) => h.name?.toLowerCase() === name.toLowerCase())?.value || '';
 
         // Decode body
         let body = '';
@@ -142,7 +143,7 @@ export class GoogleOAuthService {
           body = Buffer.from(fullMsg.payload.body.data, 'base64').toString('utf-8');
         } else if (fullMsg.payload?.parts) {
           // Multi-part message
-          const textPart = fullMsg.payload.parts.find((p) => p.mimeType === 'text/plain');
+          const textPart = fullMsg.payload.parts.find((p: any) => p.mimeType === 'text/plain');
           if (textPart?.body?.data) {
             body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
           }

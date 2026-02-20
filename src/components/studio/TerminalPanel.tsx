@@ -14,7 +14,9 @@ export default function TerminalPanel() {
         // Dynamically import xterm modules
         const { Terminal } = await import('@xterm/xterm');
         const { FitAddon } = await import('@xterm/addon-fit');
-        await import('@xterm/xterm/css/xterm.css');
+        if (typeof window !== 'undefined') {
+          require('@xterm/xterm/css/xterm.css');
+        }
 
         // Create terminal instance
         const terminal = new Terminal({

@@ -4,11 +4,12 @@
  */
 
 // Dockerode is conditional to avoid build issues
+// Dockerode is isolated via eval('require') to bypass Turbopack static analysis of ssh2
 let Docker: any = null;
 try {
-  Docker = require('dockerode');
+  Docker = eval('require')('dockerode');
 } catch (e) {
-  // Ignored for build
+  // Ignored for build safety on Vercel
 }
 
 export interface ContainerConfig {

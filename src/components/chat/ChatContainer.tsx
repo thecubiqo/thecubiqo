@@ -12,6 +12,14 @@ import { useChat } from '@/hooks/useChat'
 import { useElevenLabsTTS } from '@/hooks/useElevenLabsTTS'
 import type { ColorName } from '@/config/colors'
 
+export interface ChatMessageProps {
+  key?: number | string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  color?: ColorName;
+  onActionConfirm?: (actionId: string, action: any) => Promise<void>;
+}
+
 interface ChatContainerProps {
   sessionId: string | null
   currentColor: ColorName
