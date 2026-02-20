@@ -1,15 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { ClientProviders } from "@/components/ClientProviders";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
+// Inter font loaded via CSS @import in globals.css for reliability
+// Using CSS variable for consistent font application
 
 // Force dynamic rendering to ensure auth state is always fresh
 export const dynamic = 'force-dynamic';
@@ -191,7 +188,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} antialiased`}
+        className="font-sans antialiased"
       >
         <ClientProviders>
           {children}
