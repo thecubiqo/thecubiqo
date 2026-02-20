@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { ChatContainer } from '@/components/chat/ChatContainer'
 import { v4 as uuidv4 } from 'uuid'
 import { type ColorName } from '@/config/colors'
@@ -24,11 +24,50 @@ export default function SidePanelPage() {
         }
     }, [])
 
+    /**
+     * Send a browser control command to the extension.
+     * Returns a promise that resolves with the result.
+     */
+    const sendBrowserControl = useCallback((action: string, params: Record<string, unknown> = {}): Promise<unknown> => {
+        return new Promise((resolve) => {
+            const requestId = `req-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+
+            const handleResult = (event: MessageEvent) => {
+                if (
+                    event.data?.type === 'BROWSER_CONTROL_RESULT' &&
+                    event.data?.requestId === requestId
+                ) {
+                    window.removeEventListener('message', handleResult)
+                    resolve(event.data.result)
+                }
+            }
+
+            window.addEventListener('message', handleResult)
+
+            // Send to parent (extension sidepanel.js).
+            // Uses '*' because the chrome-extension:// origin ID is dynamic
+            // and not known at build time. The extension sidepanel.js validates
+            // incoming messages by checking event.origin against TARGET_ORIGIN.
+            window.parent.postMessage({
+                type: 'BROWSER_CONTROL',
+                action,
+                params,
+                requestId,
+            }, '*')
+
+            // Timeout after 10 seconds
+            setTimeout(() => {
+                window.removeEventListener('message', handleResult)
+                resolve({ success: false, error: 'Request timed out' })
+            }, 10000)
+        })
+    }, [])
+
     useEffect(() => {
         // Listen for messages from the extension parent window
         const handleMessage = (event: MessageEvent) => {
             if (event.data?.type === 'EXTENSION_CONTEXT_UPDATE') {
-                console.log('Extensions context received:', event.data)
+                console.log('Extension context received:', event.data)
                 setCurrentUrl(event.data.url)
                 setPageTitle(event.data.title)
             }
