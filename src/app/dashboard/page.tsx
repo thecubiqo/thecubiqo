@@ -246,7 +246,7 @@ export default function DashboardPage() {
           {/* Quick Actions */}
           <div className="mb-8">
             <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <Link
                 href="/chat"
                 className="p-4 rounded-xl bg-zinc-900/50 border border-white/10 hover:border-orange-500/50 transition-all group"
@@ -281,6 +281,18 @@ export default function DashboardPage() {
                   </svg>
                 </div>
                 <div className="text-sm font-medium text-center">Voice Mode</div>
+              </Link>
+
+              <Link
+                href="/job-hunt"
+                className="p-4 rounded-xl bg-zinc-900/50 border border-white/10 hover:border-orange-500/50 transition-all group"
+              >
+                <div className="w-12 h-12 mx-auto mb-3 rounded-lg bg-teal-500/20 group-hover:bg-teal-500/30 flex items-center justify-center transition-colors">
+                  <svg className="w-6 h-6 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="text-sm font-medium text-center">Job Hunt</div>
               </Link>
 
               <Link
