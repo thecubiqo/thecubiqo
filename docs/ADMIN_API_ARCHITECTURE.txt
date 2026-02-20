@@ -1,0 +1,396 @@
+```
+ADMIN SECURITY & USER MANAGEMENT API ARCHITECTURE
+═══════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────┐
+│                    ADMIN DASHBOARD UI                        │
+│                  (Frontend - React/Next.js)                  │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         │ HTTP/JSON Requests
+                         │ (Authorization: Bearer TOKEN)
+                         │
+┌────────────────────────▼────────────────────────────────────┐
+│                     API GATEWAY                              │
+│              (Next.js API Routes)                            │
+│              Admin Authentication Check                      │
+│              - Verify JWT Token                              │
+│              - Check is_admin = true                         │
+└──────────────┬──────────────────┬──────────────────────────┘
+               │                   │
+      ┌────────▼────────┐   ┌─────▼──────┐
+      │  SECURITY APIs  │   │  USER APIs  │
+      └────────┬────────┘   └─────┬──────┘
+               │                   │
+        ┌──────▼──────┐     ┌─────▼──────┐
+        │   Alerts    │     │  [id]      │
+        │  /alerts    │     │  /users/   │
+        │             │     │   [id]     │
+        │  GET, POST  │     │            │
+        └──────┬──────┘     │ GET, PATCH,│
+               │            │   DELETE   │
+        ┌──────▼──────┐     └─────┬──────┘
+        │Failed Logins│           │
+        │/failed-logins│     ┌─────▼──────┐
+        │             │     │  Sessions  │
+        │  GET, POST  │     │ /users/[id]│
+        └──────┬──────┘     │  /sessions │
+               │            │            │
+               │            │ GET, DELETE│
+               │            └─────┬──────┘
+               │                  │
+        ┌──────▼──────────────────▼──────┐
+        │     BUSINESS LOGIC LAYER        │
+        │  - Input Validation             │
+        │  - UUID Format Check            │
+        │  - Enum Validation              │
+        │  - Authorization Check          │
+        │  - Audit Logging                │
+        │  - Brute Force Detection        │
+        └──────────────┬──────────────────┘
+                       │
+        ┌──────────────▼──────────────────┐
+        │     SUPABASE CLIENT             │
+        │  createClient() from server     │
+        │  - Auth: getUser()              │
+        │  - DB Queries                   │
+        │  - RPC Functions                │
+        └──────────────┬──────────────────┘
+                       │
+        ┌──────────────▼──────────────────┐
+        │     DATABASE LAYER              │
+        │  PostgreSQL (Supabase)          │
+        │                                 │
+        │  Tables:                        │
+        │  ├─ security_alerts             │
+        │  ├─ user_activity_log           │
+        │  ├─ audit_logs                  │
+        │  ├─ profiles                    │
+        │  └─ sessions                    │
+        │                                 │
+        │  RPC Functions:                 │
+        │  ├─ create_security_alert()     │
+        │  └─ log_admin_action()          │
+        │                                 │
+        │  Policies:                      │
+        │  ├─ Admin-only SELECT           │
+        │  ├─ Admin-only INSERT/UPDATE    │
+        │  └─ Service role bypass         │
+        └─────────────────────────────────┘
+
+
+API ENDPOINT STRUCTURE
+═══════════════════════════════════════════════════════════════
+
+/api/admin/security/
+│
+├── alerts/
+│   └── route.ts
+│       ├── GET  → List security alerts
+│       │         - Filters: severity, status, type, date range
+│       │         - Sorting: by any field
+│       │         - Pagination: page, limit
+│       │         - Stats: by severity, by status
+│       │
+│       └── POST → Create security alert
+│                 - Validation: alert_type, severity
+│                 - Auto-log to audit_logs
+│                 - Uses RPC: create_security_alert()
+│
+└── failed-logins/
+    └── route.ts
+        ├── GET  → List failed login attempts
+        │         - Filters: email, ip, date range
+        │         - Top offenders: by email, by IP
+        │         - Pagination: page, limit
+        │
+        └── POST → Log failed login attempt
+                  - Tracks attempts in 10-min window
+                  - Auto-create brute force alert at 5 attempts
+                  - Severity escalation: low → medium → high
+
+
+/api/admin/users/
+│
+├── [id]/
+│   ├── route.ts
+│   │   ├── GET    → Get user details
+│   │   │           - User profile
+│   │   │           - Sessions (all)
+│   │   │           - Recent activity (50)
+│   │   │           - Security alerts (20)
+│   │   │           - Audit logs (20)
+│   │   │           - Stats: sessions, activity, alerts
+│   │   │
+│   │   ├── PATCH  → Update user
+│   │   │           - Fields: display_name, is_admin, preferences
+│   │   │           - Track changes (from/to)
+│   │   │           - Auto-log to audit_logs
+│   │   │
+│   │   └── DELETE → Soft delete user
+│   │               - Add deleted_at to preferences
+│   │               - Expire all sessions
+│   │               - Prevent self-deletion
+│   │               - Auto-log to audit_logs
+│   │
+│   └── sessions/
+│       └── route.ts
+│           ├── GET    → List user sessions
+│           │           - Filter: active only
+│           │           - Stats: total, active, expired
+│           │           - Pagination: page, limit
+│           │
+│           └── DELETE → Terminate sessions
+│                       - Query param: session_id (optional)
+│                       - If session_id: terminate that session
+│                       - If no session_id: terminate ALL sessions
+│                       - Auto-log to audit_logs
+│
+└── route.ts (existing)
+    ├── GET  → List all users
+    └── POST → Create/invite user
+
+
+DATA FLOW DIAGRAM
+═══════════════════════════════════════════════════════════════
+
+Example: Admin views user details
+
+┌──────────────┐
+│  Admin User  │
+└──────┬───────┘
+       │
+       │ 1. GET /api/admin/users/[id]
+       │    Headers: Authorization: Bearer TOKEN
+       │
+       ▼
+┌──────────────────────────────────────────┐
+│  API Route Handler                       │
+│  src/app/api/admin/users/[id]/route.ts  │
+│                                          │
+│  2. Validate Request                     │
+│     - Extract JWT from header            │
+│     - Parse user ID from URL             │
+│     - Validate UUID format               │
+│                                          │
+│  3. Check Authentication                 │
+│     - supabase.auth.getUser()            │
+│     - Verify token is valid              │
+│                                          │
+│  4. Check Authorization                  │
+│     - Query profiles table               │
+│     - Check is_admin = true              │
+│     - Return 403 if not admin            │
+│                                          │
+│  5. Fetch User Data                      │
+│     ┌─────────────────────────┐         │
+│     │ profiles table          │         │
+│     │ (user profile)          │         │
+│     └─────────────────────────┘         │
+│     ┌─────────────────────────┐         │
+│     │ sessions table          │         │
+│     │ (all sessions)          │         │
+│     └─────────────────────────┘         │
+│     ┌─────────────────────────┐         │
+│     │ user_activity_log       │         │
+│     │ (recent 50 activities)  │         │
+│     └─────────────────────────┘         │
+│     ┌─────────────────────────┐         │
+│     │ security_alerts         │         │
+│     │ (recent 20 alerts)      │         │
+│     └─────────────────────────┘         │
+│     ┌─────────────────────────┐         │
+│     │ audit_logs              │         │
+│     │ (recent 20 logs)        │         │
+│     └─────────────────────────┘         │
+│                                          │
+│  6. Calculate Stats                      │
+│     - Count total sessions               │
+│     - Count active sessions              │
+│     - Count total activities             │
+│     - Count security alerts              │
+│     - Find last activity timestamp       │
+│     - Find last login timestamp          │
+│                                          │
+│  7. Log Admin Action                     │
+│     - Call log_admin_action()            │
+│     - Action: user_viewed                │
+│     - Details: target_user_id, email     │
+│                                          │
+│  8. Build Response                       │
+│     - Combine all data                   │
+│     - Add success flag                   │
+│     - Add timestamp                      │
+│     - Return JSON                        │
+└──────────────┬───────────────────────────┘
+               │
+               │ 9. Response
+               │    Status: 200 OK
+               │    Body: { success, data, timestamp }
+               │
+               ▼
+         ┌──────────────┐
+         │  Admin User  │
+         └──────────────┘
+
+
+SECURITY MODEL
+═══════════════════════════════════════════════════════════════
+
+Authentication Flow:
+  1. User logs in → Receives JWT token
+  2. Token stored in cookie (httpOnly, secure)
+  3. All API requests include token in Authorization header
+  4. API validates token with Supabase Auth
+  5. If invalid → 401 Unauthorized
+
+Authorization Flow:
+  1. API fetches user profile from database
+  2. Checks is_admin flag
+  3. If is_admin = false → 403 Forbidden
+  4. If is_admin = true → Allow request
+
+Audit Logging:
+  1. Every admin action logged to audit_logs
+  2. Logged data:
+     - Admin user_id and email
+     - Action type (user_viewed, user_updated, etc.)
+     - Action details (what changed, who was affected)
+     - IP address (optional)
+     - User agent (optional)
+     - Timestamp
+  3. Audit logs are immutable (INSERT only)
+  4. Only admins can view audit logs
+
+Input Validation:
+  1. UUID format validation (regex)
+  2. Required field checks
+  3. Enum value validation (severity, status)
+  4. Type checking (boolean, object, string)
+  5. Sanitization (prevent SQL injection)
+
+Brute Force Protection:
+  1. Track failed logins per email/IP
+  2. 10-minute rolling window
+  3. Count attempts in window
+  4. Severity escalation:
+     - 1-2 attempts: low severity
+     - 3-4 attempts: medium severity
+     - 5+ attempts: high severity + critical brute_force alert
+
+
+ERROR HANDLING STRATEGY
+═══════════════════════════════════════════════════════════════
+
+Error Types and Responses:
+
+400 Bad Request
+  ├─ Invalid UUID format
+  ├─ Missing required field
+  ├─ Invalid enum value
+  ├─ Invalid data type
+  └─ No fields to update
+
+401 Unauthorized
+  └─ No valid JWT token
+
+403 Forbidden
+  └─ Valid token but is_admin = false
+
+404 Not Found
+  ├─ User not found
+  ├─ Session not found
+  └─ Alert not found
+
+500 Internal Server Error
+  ├─ Database query error
+  ├─ RPC function error
+  └─ Unexpected exception
+
+All errors return consistent format:
+{
+  "success": false,
+  "error": "Human-readable error message"
+}
+
+Server-side logging:
+- All errors logged to console
+- Includes stack trace (development)
+- Includes user context (user_id, email)
+- Includes request details (endpoint, params)
+
+
+PERFORMANCE CONSIDERATIONS
+═══════════════════════════════════════════════════════════════
+
+Pagination:
+  - Default: 50 items per page
+  - Max: 100 items per page
+  - Use offset/limit for database queries
+  - Return total count for frontend
+
+Indexing:
+  - security_alerts: indexed on type, severity, status, created_at
+  - user_activity_log: indexed on user_id, session_id, type, created_at
+  - profiles: indexed on is_admin
+  - sessions: indexed on user_id, expires_at
+
+Query Optimization:
+  - Use SELECT only needed columns
+  - Limit results (50, 20, 10 depending on use case)
+  - Avoid N+1 queries
+  - Use EXPLAIN ANALYZE for slow queries
+
+Caching (Future):
+  - Cache frequently accessed data (user profiles)
+  - Cache top offenders list (5-minute TTL)
+  - Cache stats (1-minute TTL)
+  - Use Redis for caching layer
+
+
+MONITORING & OBSERVABILITY
+═══════════════════════════════════════════════════════════════
+
+Logging:
+  ✓ All admin actions logged to audit_logs
+  ✓ All API errors logged to console
+  ✓ Failed login attempts tracked
+  ✓ Brute force attempts alerted
+
+Metrics (Future):
+  - API response times
+  - Error rates per endpoint
+  - Admin action frequency
+  - Failed login trends
+  - Active session counts
+
+Alerts (Future):
+  - Critical security alerts → Email/Slack
+  - Brute force detected → Email/Slack
+  - API error spike → PagerDuty
+  - High response time → PagerDuty
+
+
+DEPLOYMENT CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+✓ All API files created
+✓ TypeScript compiled without errors
+✓ Git commit created
+✓ Documentation written
+✓ Implementation summary created
+
+⏳ Pending:
+  □ Unit tests
+  □ Integration tests
+  □ Manual testing
+  □ Load testing
+  □ Security audit
+  □ Code review
+  □ Merge to main
+  □ Deploy to staging
+  □ Deploy to production
+
+
+END OF VISUAL ARCHITECTURE DIAGRAM
+```
