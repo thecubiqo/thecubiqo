@@ -39,8 +39,8 @@ jobs:
       - name: Run build
         run: npm run build
       
-      - name: Run unit tests
-        run: npm run test:run
+      - name: Run unit tests with coverage
+        run: npm run test:run -- --coverage
         env:
           NODE_ENV: test
       
@@ -53,6 +53,27 @@ jobs:
             coverage/
             test-results/
           retention-days: 30
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          files: ./coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+        continue-on-error: true
+      
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "## Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f coverage/coverage-summary.json ]; then
+            echo "Coverage summary generated" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No coverage data available" >> $GITHUB_STEP_SUMMARY
+          fi
+        continue-on-error: true
   
   # PR merge audit job
   audit-pr-merges:
