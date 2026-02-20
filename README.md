@@ -7,6 +7,7 @@ CubiQo is an open-source conversational AI platform with voice capabilities, jou
 - 🎙️ **Voice Conversations** - Natural voice interaction with emotional modulation
 - 📔 **Rozana Journal** - Daily reflections with AI-guided conversations
 - 🎨 **RGY Context** - Color-coded life categorization (Red/Yellow/Green)
+- 🤖 **Intelligent Matching** - AI-powered opportunity discovery based on your interests
 - 🔐 **Privacy-First** - BYO (Bring Your Own) mode - use your own API keys
 - 🌐 **Open Source** - Built with open models (Llama, Mixtral, DeepSeek)
 
@@ -269,16 +270,42 @@ vercel --prod
 
 Set environment variables in Vercel dashboard: Supabase credentials, OAuth client IDs/secrets, and `OAUTH_ENCRYPTION_KEY`.
 
+## 🎯 RGY Intelligent Matching
+
+CubiQo includes an AI-powered opportunity discovery system that matches users with relevant rooms, events, connections, and activities based on their interests.
+
+### Key Features
+
+- **RGY Context Zones**: Express interests across three life contexts
+  - 🎯 **Green (Progressive)**: Growth, wellness, career goals
+  - ✨ **Yellow (Sit back)**: Social connections, casual hangouts
+  - 💫 **Red (Indulge)**: Deep conversations, creative exploration
+
+- **AI-Powered Matching**: Vector similarity search using OpenAI embeddings
+- **Pro Match Subscription**: Automated discovery with configurable frequency
+- **Smart Notifications**: Get notified when new opportunities match your interests
+
+### Quick Start
+
+1. **Set Your Interests**: Add keywords for each RGY context
+2. **Discover Opportunities**: AI finds matching rooms, events, and connections
+3. **Express Interest**: Join opportunities that resonate with you
+4. **Enable Pro Match**: Opt-in for automated weekly/daily discovery
+
+See [docs/RGY_MATCHING.md](./docs/RGY_MATCHING.md) for detailed documentation.
+
 ## 🌟 Roadmap
 
+- [x] RGY Intelligent Matching - AI-powered opportunity discovery
 - [ ] Rozana confession room experience
-- [ ] Signal - Intent-based matching
+- [ ] Signal - Enhanced intent-based matching features
 - [ ] Full open model integration (Llama 3, Mixtral)
 - [ ] Self-hosted deployment guides
 - [ ] Mobile apps (iOS/Android)
 
 ## 📚 Documentation
 
+- **[RGY_MATCHING.md](./docs/RGY_MATCHING.md)** - RGY Intelligent Matching system guide
 - **[BRANCHES.md](./BRANCHES.md)** - Complete guide to branch structure and deployment
 - **[BRANCHES_QUICK_REF.md](./BRANCHES_QUICK_REF.md)** - Quick reference for branches
 - **[AUTH_TROUBLESHOOTING.md](./AUTH_TROUBLESHOOTING.md)** - Authentication troubleshooting
