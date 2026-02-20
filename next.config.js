@@ -8,7 +8,8 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Minimal config - no experimental features
+  // Server-only packages that should not be bundled by Turbopack/webpack
+  serverExternalPackages: ['dockerode', 'ioredis'],
 };
 
 module.exports = nextConfig;
