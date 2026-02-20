@@ -2,11 +2,12 @@
 // Add any global test setup here
 import '@testing-library/jest-dom/vitest'
 
-// Polyfill ResizeObserver for R3F/react-use-measure in jsdom
+// Polyfill ResizeObserver for jsdom (required by @react-three/fiber)
 if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
+    constructor(_callback: ResizeObserverCallback) {}
+    observe(_target: Element, _options?: ResizeObserverOptions) {}
+    unobserve(_target: Element) {}
     disconnect() {}
-  } as unknown as typeof ResizeObserver
+  }
 }
