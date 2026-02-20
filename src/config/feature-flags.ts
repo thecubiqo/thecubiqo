@@ -28,6 +28,22 @@ export interface UIFeatureFlags {
 }
 
 /**
+ * Autopilot Feature Flags
+ * Sci-fi features: CubiQo does real work while chatting with the user.
+ * Agents work simultaneously in the background.
+ */
+export interface AutopilotFeatureFlags {
+  /** Enable CubiQo Autopilot - autonomous actions while chatting (default: true) */
+  cubiqoAutopilot: boolean;
+
+  /** Auto-fill profile from conversation data (default: true) */
+  profileAutoFill: boolean;
+
+  /** Enable background agent tasks spawned from chat context (default: false) */
+  backgroundAgents: boolean;
+}
+
+/**
  * Get the current feature flags configuration
  */
 export function getFeatureFlags(): FeatureFlags {
@@ -58,6 +74,28 @@ export function getUIFeatureFlags(): UIFeatureFlags {
 }
 
 /**
+ * Get Autopilot feature flags configuration
+ * These control CubiQo's sci-fi capabilities:
+ * - Autonomous profile filling from conversations
+ * - Background agent tasks while chatting
+ */
+export function getAutopilotFeatureFlags(): AutopilotFeatureFlags {
+  return {
+    // CubiQo Autopilot: autonomous actions while chatting (default: ON)
+    cubiqoAutopilot:
+      process.env.NEXT_PUBLIC_CUBIQO_AUTOPILOT !== 'false',
+
+    // Auto-fill user profile from chat conversations (default: ON)
+    profileAutoFill:
+      process.env.NEXT_PUBLIC_PROFILE_AUTO_FILL !== 'false',
+
+    // Background agent tasks spawned from chat context (default: OFF, opt-in)
+    backgroundAgents:
+      process.env.NEXT_PUBLIC_BACKGROUND_AGENTS === 'true',
+  };
+}
+
+/**
  * Check if a specific feature flag is enabled
  */
 export function isFeatureEnabled(flag: keyof FeatureFlags): boolean {
@@ -70,6 +108,14 @@ export function isFeatureEnabled(flag: keyof FeatureFlags): boolean {
  */
 export function isUIFeatureEnabled(flag: keyof UIFeatureFlags): boolean {
   const flags = getUIFeatureFlags();
+  return flags[flag];
+}
+
+/**
+ * Check if a specific Autopilot feature flag is enabled
+ */
+export function isAutopilotFeatureEnabled(flag: keyof AutopilotFeatureFlags): boolean {
+  const flags = getAutopilotFeatureFlags();
   return flags[flag];
 }
 
@@ -91,4 +137,14 @@ export function getEnabledUIFlags(): Array<keyof UIFeatureFlags> {
   return Object.entries(flags)
     .filter(([, enabled]) => enabled)
     .map(([flag]) => flag as keyof UIFeatureFlags);
+}
+
+/**
+ * Get all enabled Autopilot feature flags
+ */
+export function getEnabledAutopilotFlags(): Array<keyof AutopilotFeatureFlags> {
+  const flags = getAutopilotFeatureFlags();
+  return Object.entries(flags)
+    .filter(([, enabled]) => enabled)
+    .map(([flag]) => flag as keyof AutopilotFeatureFlags);
 }
