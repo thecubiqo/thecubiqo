@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
     Globe,
@@ -44,7 +44,7 @@ export default function SocialArmyConsole() {
         { id: 'memers', name: 'The Memelords', count: 15, status: 'offline', icon: Users, description: 'High-energy chaos, reaction videos, trends' },
     ]);
 
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
 
     useEffect(() => {
         const fetchData = async () => {
