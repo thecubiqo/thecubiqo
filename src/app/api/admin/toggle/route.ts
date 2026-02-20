@@ -8,7 +8,7 @@ if (process.env.NEXT_PUBLIC_SUPABASE_URL1 && process.env.SUPABASE_SERVICE_ROLE_K
     supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL1,
         process.env.SUPABASE_SERVICE_ROLE_KEY1
-    )
+    ) as any
 }
 
 export async function POST(req: NextRequest) {

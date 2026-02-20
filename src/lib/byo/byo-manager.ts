@@ -30,7 +30,7 @@ interface BYOStoredConfig {
  */
 export async function getBYOConfig(userId: string): Promise<BYOConfig | null> {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
 
     // Get user metadata
     const { data: user, error } = await supabase
@@ -84,7 +84,7 @@ export async function saveBYOConfig(
   config: BYOConfig
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const passphrase = generatePassphrase(userId);
 
     // Encrypt keys
@@ -134,7 +134,7 @@ export async function deleteBYOConfig(
   userId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
 
     const { error } = await supabase
       .from('profiles')

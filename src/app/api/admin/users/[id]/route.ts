@@ -10,11 +10,11 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient();
-    const { id: userId } = params;
+    const supabase = (await createClient()) as any;
+    const { id: userId } = await params;
 
     // Check admin authorization
     const {
@@ -49,7 +49,7 @@ export async function GET(
     }
 
     // Fetch user profile
-    const { data: targetUser, error: userError } = await supabase
+    const { data: targetUser, error: userError } = await (supabase as any)
       .from('profiles')
       .select('*')
       .eq('id', userId)
@@ -63,7 +63,7 @@ export async function GET(
     }
 
     // Fetch user sessions
-    const { data: sessions, error: sessionsError } = await supabase
+    const { data: sessions, error: sessionsError } = await (supabase as any)
       .from('sessions')
       .select('*')
       .eq('user_id', userId)
@@ -75,11 +75,11 @@ export async function GET(
 
     // Count active sessions
     const activeSessions = sessions?.filter(
-      (s) => !s.expires_at || new Date(s.expires_at) > new Date()
+      (s: any) => !s.expires_at || new Date(s.expires_at) > new Date()
     ).length || 0;
 
     // Fetch recent activity
-    const { data: recentActivity, error: activityError } = await supabase
+    const { data: recentActivity, error: activityError } = await (supabase as any)
       .from('user_activity_log')
       .select('*')
       .eq('user_id', userId)
@@ -91,7 +91,7 @@ export async function GET(
     }
 
     // Fetch security alerts related to this user
-    const { data: securityAlerts, error: alertsError } = await supabase
+    const { data: securityAlerts, error: alertsError } = await (supabase as any)
       .from('security_alerts')
       .select('*')
       .eq('user_id', userId)
@@ -103,7 +103,7 @@ export async function GET(
     }
 
     // Fetch audit logs for this user
-    const { data: auditLogs, error: auditError } = await supabase
+    const { data: auditLogs, error: auditError } = await (supabase as any)
       .from('audit_logs')
       .select('*')
       .eq('user_id', userId)
@@ -125,11 +125,11 @@ export async function GET(
     };
 
     // Log admin action
-    await supabase.rpc('log_admin_action', {
+    await (supabase as any).rpc('log_admin_action', {
       p_user_id: user.id,
-      p_user_email: profile.email,
+      p_user_email: profile.email || '',
       p_action_type: 'user_viewed',
-      p_action_details: { target_user_id: userId, target_email: targetUser.email },
+      p_action_details: { target_user_id: userId, target_email: targetUser.email || '' },
     });
 
     return NextResponse.json({
@@ -163,11 +163,11 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient();
-    const { id: userId } = params;
+    const supabase = (await createClient()) as any;
+    const { id: userId } = await params;
 
     // Check admin authorization
     const {
@@ -243,7 +243,7 @@ export async function PATCH(
     }
 
     // Fetch current user data for comparison
-    const { data: currentUser } = await supabase
+    const { data: currentUser } = await (supabase as any)
       .from('profiles')
       .select('*')
       .eq('id', userId)
@@ -257,7 +257,7 @@ export async function PATCH(
     }
 
     // Perform update
-    const { data: updatedUser, error: updateError } = await supabase
+    const { data: updatedUser, error: updateError } = await (supabase as any)
       .from('profiles')
       .update(updates)
       .eq('id', userId)
@@ -284,13 +284,13 @@ export async function PATCH(
       changes.preferences = { updated: true };
     }
 
-    await supabase.rpc('log_admin_action', {
+    await (supabase as any).rpc('log_admin_action', {
       p_user_id: user.id,
-      p_user_email: profile.email,
+      p_user_email: profile.email || '',
       p_action_type: 'user_updated',
       p_action_details: {
         target_user_id: userId,
-        target_email: currentUser.email,
+        target_email: currentUser.email || '',
         changes,
       },
     });
@@ -320,11 +320,11 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient();
-    const { id: userId } = params;
+    const supabase = (await createClient()) as any;
+    const { id: userId } = await params;
 
     // Check admin authorization
     const {
@@ -367,7 +367,7 @@ export async function DELETE(
     }
 
     // Fetch user data before deletion
-    const { data: targetUser } = await supabase
+    const { data: targetUser } = await (supabase as any)
       .from('profiles')
       .select('*')
       .eq('id', userId)
@@ -381,11 +381,11 @@ export async function DELETE(
     }
 
     // Soft delete: Add 'deleted_at' to preferences
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('profiles')
       .update({
         preferences: {
-          ...targetUser.preferences,
+          ...(targetUser.preferences as object || {}),
           deleted_at: new Date().toISOString(),
           deleted_by: user.id,
         },
@@ -402,19 +402,19 @@ export async function DELETE(
     }
 
     // Expire all user sessions
-    await supabase
+    await (supabase as any)
       .from('sessions')
       .update({ expires_at: new Date().toISOString() })
       .eq('user_id', userId);
 
     // Log admin action
-    await supabase.rpc('log_admin_action', {
+    await (supabase as any).rpc('log_admin_action', {
       p_user_id: user.id,
-      p_user_email: profile.email,
+      p_user_email: profile.email || '',
       p_action_type: 'user_deleted',
       p_action_details: {
         target_user_id: userId,
-        target_email: targetUser.email,
+        target_email: targetUser.email || '',
         deletion_type: 'soft_delete',
       },
     });

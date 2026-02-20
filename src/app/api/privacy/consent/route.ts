@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       {
         cookies: {
           getAll: () => cookieStore.getAll().map(c => ({ name: c.name, value: c.value })),
-          setAll: () => {},
+          setAll: () => { },
         },
       }
     );
@@ -37,12 +37,12 @@ export async function GET(request: NextRequest) {
 
     // Rate limiting
     const identifier = getClientIdentifier(request.headers, user.id);
-    const rateLimit = await checkRateLimit(identifier, 'authenticated');
+    const rateLimit = await checkRateLimit(identifier, 'AUTH');
 
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: 'Rate limit exceeded' },
-        { 
+        {
           status: 429,
           headers: getRateLimitHeaders(rateLimit),
         }
@@ -75,7 +75,7 @@ export async function PUT(request: NextRequest) {
       {
         cookies: {
           getAll: () => cookieStore.getAll().map(c => ({ name: c.name, value: c.value })),
-          setAll: () => {},
+          setAll: () => { },
         },
       }
     );
@@ -91,12 +91,12 @@ export async function PUT(request: NextRequest) {
 
     // Rate limiting
     const identifier = getClientIdentifier(request.headers, user.id);
-    const rateLimit = await checkRateLimit(identifier, 'authenticated');
+    const rateLimit = await checkRateLimit(identifier, 'AUTH');
 
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: 'Rate limit exceeded' },
-        { 
+        {
           status: 429,
           headers: getRateLimitHeaders(rateLimit),
         }
@@ -127,7 +127,7 @@ export async function PUT(request: NextRequest) {
     const consent = await getUserConsent(user.id);
 
     return NextResponse.json(
-      { 
+      {
         success: true,
         message: 'Consent preferences updated',
         consent,

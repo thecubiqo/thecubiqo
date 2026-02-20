@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = createAdminClient();
+    const supabase = createAdminClient() as any;
     const { searchParams } = new URL(req.url);
 
     // Parse query parameters
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Map audit logs to a consistent format
-    const mappedLogs = (logs || []).map(log => ({
+    const mappedLogs = (logs || []).map((log: any) => ({
       id: log.id,
       action_type: log.action_type,
       action_details: log.action_details,
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('Admin logs error:', error);
     return NextResponse.json(
-      { 
+      {
         error: error instanceof Error ? error.message : 'Failed to fetch logs',
         logs: [],
         total: 0,

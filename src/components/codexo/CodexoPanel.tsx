@@ -187,30 +187,60 @@ export default function CodexoPanel() {
                             </div>
                         </div>
 
-                        {/* 3. Integration Grid (10 Integrations) */}
-                        <div className="space-y-2">
-                            <div className="text-[10px] uppercase text-white/40 tracking-wider font-semibold flex items-center justify-between">
-                                <span>Active Integrations</span>
-                                <span className="text-green-500 animate-pulse">10/10 Online</span>
+                        {/* 3. Integration Grid (Categorical) */}
+                        <div className="space-y-4">
+                            {/* Commercial */}
+                            <div className="space-y-2">
+                                <div className="text-[9px] uppercase text-green-400/60 tracking-widest font-bold">Commercial</div>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {[
+                                        { name: 'Shopify', color: 'bg-green-500' },
+                                        { name: 'Plus', color: 'bg-green-600' },
+                                        { name: 'Faire', color: 'bg-indigo-500' },
+                                        { name: 'ReCharge', color: 'bg-blue-400' }
+                                    ].map((item) => (
+                                        <div key={item.name} className="aspect-square rounded-lg bg-white/5 border border-white/5 flex flex-col items-center justify-center gap-1 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer group" title={item.name}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${item.color} shadow-[0_0_5px_currentColor]`} />
+                                            <span className="text-[7px] text-white/40 group-hover:text-white uppercase truncate w-full text-center px-0.5">{item.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                            <div className="grid grid-cols-5 gap-2">
-                                {[
-                                    { name: 'Shopify', color: 'bg-green-500' },
-                                    { name: 'Printify', color: 'bg-green-500' },
-                                    { name: 'Klaviyo', color: 'bg-green-500 shadow-[0_0_5px_lime]' },
-                                    { name: 'Apliiq', color: 'bg-orange-500' },
-                                    { name: 'Through6', color: 'bg-orange-500' },
-                                    { name: 'Gorgias', color: 'bg-blue-500' },
-                                    { name: 'ReCharge', color: 'bg-blue-500' },
-                                    { name: 'Faire', color: 'bg-purple-500' },
-                                    { name: 'Meta', color: 'bg-blue-600' },
-                                    { name: 'TikTok', color: 'bg-pink-500' }
-                                ].map((item) => (
-                                    <div key={item.name} className="aspect-square rounded-md bg-white/5 border border-white/5 flex flex-col items-center justify-center gap-1 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer group" title={item.name}>
-                                        <div className={`w-1.5 h-1.5 rounded-full ${item.color} group-hover:scale-125 transition-transform`} />
-                                        <span className="text-[7px] text-white/40 group-hover:text-white uppercase truncate w-full text-center px-0.5">{item.name.substring(0, 4)}</span>
-                                    </div>
-                                ))}
+
+                            {/* Productive */}
+                            <div className="space-y-2">
+                                <div className="text-[9px] uppercase text-cyan-400/60 tracking-widest font-bold">Productive</div>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {[
+                                        { name: 'Klaviyo', color: 'bg-cyan-500 shadow-[0_0_5px_cyan]' },
+                                        { name: 'Apliiq', color: 'bg-orange-500' },
+                                        { name: 'Through6', color: 'bg-orange-600' },
+                                        { name: 'Gorgias', color: 'bg-blue-600' }
+                                    ].map((item) => (
+                                        <div key={item.name} className="aspect-square rounded-lg bg-white/5 border border-white/5 flex flex-col items-center justify-center gap-1 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer group" title={item.name}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${item.color}`} />
+                                            <span className="text-[7px] text-white/40 group-hover:text-white uppercase truncate w-full text-center px-0.5">{item.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Social */}
+                            <div className="space-y-2">
+                                <div className="text-[9px] uppercase text-pink-400/60 tracking-widest font-bold">Social</div>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {[
+                                        { name: 'Meta', color: 'bg-blue-600' },
+                                        { name: 'TikTok', color: 'bg-pink-500' },
+                                        { name: 'X', color: 'bg-white' },
+                                        { name: 'YouTube', color: 'bg-red-600' }
+                                    ].map((item) => (
+                                        <div key={item.name} className="aspect-square rounded-lg bg-white/5 border border-white/5 flex flex-col items-center justify-center gap-1 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer group" title={item.name}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${item.color}`} />
+                                            <span className="text-[7px] text-white/40 group-hover:text-white uppercase truncate w-full text-center px-0.5">{item.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 

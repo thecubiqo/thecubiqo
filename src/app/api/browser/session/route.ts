@@ -27,7 +27,7 @@ const createSessionSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const {
       data: { user },
       error: authError,
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Authenticate user
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const {
       data: { user },
       error: authError,

@@ -16,7 +16,7 @@ import { logAdminAction } from '@/lib/audit';
 /**
  * Supported report types
  */
-type ReportType = 
+type ReportType =
   | 'user_activity'
   | 'compliance_gdpr'
   | 'compliance_ccpa'
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     // Step 1: Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -105,9 +105,9 @@ export async function POST(request: NextRequest) {
 
     if (!report_type || !validReportTypes.includes(report_type)) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: `report_type must be one of: ${validReportTypes.join(', ')}` 
+        {
+          success: false,
+          error: `report_type must be one of: ${validReportTypes.join(', ')}`
         },
         { status: 400 }
       );
@@ -117,9 +117,9 @@ export async function POST(request: NextRequest) {
     const validFormats: ReportFormat[] = ['json', 'csv', 'pdf', 'html'];
     if (!validFormats.includes(report_format)) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: `report_format must be one of: ${validFormats.join(', ')}` 
+        {
+          success: false,
+          error: `report_format must be one of: ${validFormats.join(', ')}`
         },
         { status: 400 }
       );
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 5: Store report in compliance_reports table
-    const { data: savedReport, error: saveError } = await supabase
+    const { data: savedReport, error: saveError } = await (supabase as any)
       .from('compliance_reports')
       .insert({
         report_type,
@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
     // Step 6: Log admin action
     await logAdminAction({
       userId: user.id,
-      userEmail: profile.email,
+      userEmail: profile.email as string,
       actionType: 'generate_report',
       actionDetails: {
         report_id: savedReport.id,
@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Unexpected error in POST /api/admin/reports/generate:', error);
-    
+
     // Handle JSON parsing errors
     if (error instanceof SyntaxError) {
       return NextResponse.json(
@@ -260,19 +260,19 @@ async function generateReportData(
   switch (reportType) {
     case 'user_activity':
       return await generateUserActivityReport(supabase, startDate, endDate, filters);
-    
+
     case 'compliance_gdpr':
       return await generateGDPRComplianceReport(supabase, startDate, endDate, filters);
-    
+
     case 'compliance_ccpa':
       return await generateCCPAComplianceReport(supabase, startDate, endDate, filters);
-    
+
     case 'ai_performance':
       return await generateAIPerformanceReport(supabase, startDate, endDate, filters);
-    
+
     case 'security_audit':
       return await generateSecurityAuditReport(supabase, startDate, endDate, filters);
-    
+
     default:
       throw new Error(`Unsupported report type: ${reportType}`);
   }
@@ -289,14 +289,14 @@ async function generateUserActivityReport(
   filters: any
 ) {
   // Get user registration stats
-  const { data: newUsers, count: newUsersCount } = await supabase
+  const { data: newUsers, count: newUsersCount } = await (supabase as any)
     .from('profiles')
     .select('id, created_at', { count: 'exact' })
     .gte('created_at', startDate.toISOString())
     .lte('created_at', endDate.toISOString());
 
   // Get audit log activity
-  const { data: auditLogs, count: totalActions } = await supabase
+  const { data: auditLogs, count: totalActions } = await (supabase as any)
     .from('audit_logs')
     .select('action_type, user_id, created_at', { count: 'exact' })
     .gte('created_at', startDate.toISOString())
@@ -338,7 +338,7 @@ async function generateGDPRComplianceReport(
   filters: any
 ) {
   // Get data access requests from audit logs
-  const { data: dataAccessRequests } = await supabase
+  const { data: dataAccessRequests } = await (supabase as any)
     .from('audit_logs')
     .select('*')
     .eq('action_type', 'data_access_request')
@@ -346,7 +346,7 @@ async function generateGDPRComplianceReport(
     .lte('created_at', endDate.toISOString());
 
   // Get data deletion requests
-  const { data: dataDeletionRequests } = await supabase
+  const { data: dataDeletionRequests } = await (supabase as any)
     .from('audit_logs')
     .select('*')
     .eq('action_type', 'data_deletion_request')
@@ -354,7 +354,7 @@ async function generateGDPRComplianceReport(
     .lte('created_at', endDate.toISOString());
 
   // Get user consent changes
-  const { data: consentChanges } = await supabase
+  const { data: consentChanges } = await (supabase as any)
     .from('audit_logs')
     .select('*')
     .eq('action_type', 'update_consent')
@@ -389,14 +389,14 @@ async function generateCCPAComplianceReport(
   filters: any
 ) {
   // CCPA requirements overlap with GDPR but have different terminology
-  const { data: doNotSellRequests } = await supabase
+  const { data: doNotSellRequests } = await (supabase as any)
     .from('audit_logs')
     .select('*')
     .eq('action_type', 'do_not_sell_request')
     .gte('created_at', startDate.toISOString())
     .lte('created_at', endDate.toISOString());
 
-  const { data: dataDisclosureRequests } = await supabase
+  const { data: dataDisclosureRequests } = await (supabase as any)
     .from('audit_logs')
     .select('*')
     .eq('action_type', 'data_disclosure_request')
@@ -429,7 +429,7 @@ async function generateAIPerformanceReport(
   filters: any
 ) {
   // Get AI-related events
-  const { data: aiEvents } = await supabase
+  const { data: aiEvents } = await (supabase as any)
     .from('events')
     .select('*')
     .or('event_type.eq.ai_chat,event_type.eq.ai_completion,event_type.eq.ai_embedding')
@@ -438,15 +438,15 @@ async function generateAIPerformanceReport(
 
   // Calculate performance metrics
   const totalRequests = aiEvents?.length || 0;
-  const successfulRequests = aiEvents?.filter((e: any) => 
+  const successfulRequests = aiEvents?.filter((e: any) =>
     e.metadata?.success === true
   ).length || 0;
 
-  const avgResponseTime = aiEvents?.reduce((sum: number, e: any) => 
+  const avgResponseTime = aiEvents?.reduce((sum: number, e: any) =>
     sum + (e.metadata?.response_time_ms || 0), 0
   ) / totalRequests || 0;
 
-  const totalTokens = aiEvents?.reduce((sum: number, e: any) => 
+  const totalTokens = aiEvents?.reduce((sum: number, e: any) =>
     sum + (e.metadata?.tokens_used || 0), 0
   ) || 0;
 

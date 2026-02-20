@@ -2,11 +2,14 @@
 const nextConfig = {
   reactStrictMode: false,
   typescript: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    // !! WARN !!
     ignoreBuildErrors: true,
   },
-  // Set turbopack root to fix workspace detection
-  turbopack: {
-    root: __dirname,
+  experimental: {
+    serverExternalPackages: ['dockerode', 'ssh2', 'ioredis'],
   },
 };
 

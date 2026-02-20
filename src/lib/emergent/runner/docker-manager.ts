@@ -3,7 +3,14 @@
  * Manages Docker containers for workspace execution
  */
 
-import Docker from 'dockerode';
+// Dockerode is conditional to avoid build issues
+// Dockerode is isolated via eval('require') to bypass Turbopack static analysis of ssh2
+let Docker: any = null;
+try {
+  Docker = eval('require')('dockerode');
+} catch (e) {
+  // Ignored for build safety on Vercel
+}
 
 export interface ContainerConfig {
   projectId: string;
@@ -25,15 +32,25 @@ export interface ContainerInfo {
 }
 
 export class DockerManager {
-  private docker: Docker;
-  private containerMap: Map<string, Docker.Container>;
+  private docker: any;
+  private containerMap: Map<string, any>;
 
   constructor() {
-    // Connect to Docker daemon
-    // In production, this might use a Unix socket or remote Docker host
-    this.docker = new Docker({
-      socketPath: '/var/run/docker.sock', // Unix socket (Linux/Mac)
-    });
+    if (!Docker) {
+      console.warn('Dockerode not found. Docker functions will be disabled.');
+      this.docker = null as any;
+      this.containerMap = new Map();
+      return;
+    }
+
+    try {
+      this.docker = new Docker({
+        socketPath: '/var/run/docker.sock',
+      });
+    } catch (e) {
+      console.error('Failed to initialize Docker:', e);
+      this.docker = null as any;
+    }
     this.containerMap = new Map();
   }
 
@@ -43,7 +60,7 @@ export class DockerManager {
   async createContainer(config: ContainerConfig): Promise<ContainerInfo> {
     try {
       const { projectId, runtime, workspaceDir, resources = {} } = config;
-      
+
       // Determine base image based on runtime
       const imageMap: Record<string, string> = {
         nodejs: 'node:20-alpine',
@@ -111,10 +128,10 @@ export class DockerManager {
       // Get container info including IP address
       const containerInfo = await container.inspect();
       const ipAddress = containerInfo.NetworkSettings.IPAddress;
-      
+
       // Assign a random port for preview (in production, use port mapping)
       const port = 3000 + Math.floor(Math.random() * 1000);
-      
+
       // Generate preview URL (in production, use Nginx reverse proxy)
       const previewUrl = `http://${ipAddress}:${port}`;
 
@@ -157,7 +174,7 @@ export class DockerManager {
   ): Promise<{ output: string; exitCode: number }> {
     try {
       const container = this.docker.getContainer(containerId);
-      
+
       const exec = await container.exec({
         Cmd: ['/bin/sh', '-c', command],
         AttachStdout: true,
@@ -165,7 +182,7 @@ export class DockerManager {
       });
 
       const stream = await exec.start({ Detach: false });
-      
+
       let output = '';
       stream.on('data', (chunk: Buffer) => {
         output += chunk.toString();
@@ -177,7 +194,7 @@ export class DockerManager {
       });
 
       const inspectData = await exec.inspect();
-      
+
       return {
         output,
         exitCode: inspectData.ExitCode || 0,
@@ -200,7 +217,7 @@ export class DockerManager {
   ): Promise<string> {
     try {
       const container = this.docker.getContainer(containerId);
-      
+
       const logs = await container.logs({
         stdout: true,
         stderr: true,
@@ -268,9 +285,9 @@ export class DockerManager {
     } catch (error) {
       // Image doesn't exist, pull it
       console.log(`Pulling Docker image: ${imageName}`);
-      
+
       const stream = await this.docker.pull(imageName);
-      
+
       // Wait for pull to complete
       await new Promise((resolve, reject) => {
         this.docker.modem.followProgress(stream, (err, res) => {
@@ -278,7 +295,7 @@ export class DockerManager {
           else resolve(res);
         });
       });
-      
+
       console.log(`Successfully pulled image: ${imageName}`);
     }
   }

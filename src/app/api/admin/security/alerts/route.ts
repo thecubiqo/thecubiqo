@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
+    const { data: profile } = await (supabase as any)
       .from('profiles')
       .select('is_admin, email')
       .eq('id', user.id)
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Build query
-    let query = supabase
+    let query = (supabase as any)
       .from('security_alerts')
       .select('*', { count: 'exact' });
 
@@ -91,12 +91,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Get aggregate stats
-    const { data: stats } = await supabase
+    const { data: stats } = await (supabase as any)
       .from('security_alerts')
       .select('severity, status')
-      .then((result) => {
+      .then((result: any) => {
         if (!result.data) return { data: null };
-        
+
         const statsSummary = {
           bySeverity: {
             low: 0,
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
+    const { data: profile } = await (supabase as any)
       .from('profiles')
       .select('is_admin, email')
       .eq('id', user.id)
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create security alert using RPC function
-    const { data: alertId, error: createError } = await supabase.rpc(
+    const { data: alertId, error: createError } = await (supabase as any).rpc(
       'create_security_alert',
       {
         p_alert_type: alert_type,
@@ -240,15 +240,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Log admin action
-    await supabase.rpc('log_admin_action', {
+    await (supabase as any).rpc('log_admin_action', {
       p_user_id: user.id,
-      p_user_email: profile.email,
+      p_user_email: profile?.email || '',
       p_action_type: 'security_alert_created',
       p_action_details: { alert_id: alertId, alert_type, severity },
     });
 
     // Fetch the created alert
-    const { data: alert, error: fetchError } = await supabase
+    const { data: alert, error: fetchError } = await (supabase as any)
       .from('security_alerts')
       .select('*')
       .eq('id', alertId)

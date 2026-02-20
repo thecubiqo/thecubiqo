@@ -141,15 +141,16 @@ async function executeCommand(
   const startTime = Date.now()
 
   return new Promise((resolve) => {
-    const child = spawn(command, {
+    const child = spawn(command, [], {
       cwd: workspaceDir,
       shell: '/bin/bash',
       env: {
+        ...process.env,
         PATH: '/usr/local/bin:/usr/bin:/bin',
         HOME: workspaceDir,
         TERM: 'xterm-256color',
       }
-    })
+    }) as any
 
     let stdout = ''
     let stderr = ''
@@ -168,7 +169,7 @@ async function executeCommand(
     if (background) {
       const pid = child.pid || 0
       backgroundProcesses.set(`${pid}`, { process: child, startTime })
-      
+
       resolve({
         stdout: '',
         stderr: '',
@@ -176,33 +177,33 @@ async function executeCommand(
         pid,
         background: true
       })
-      
+
       child.on('exit', () => {
         clearTimeout(timeoutId)
         backgroundProcesses.delete(`${pid}`)
       })
-      
+
       return
     }
 
     // Capture output
-    child.stdout.on('data', (data) => {
+    child.stdout?.on('data', (data: any) => {
       stdout += data.toString()
     })
 
-    child.stderr.on('data', (data) => {
+    child.stderr?.on('data', (data: any) => {
       stderr += data.toString()
     })
 
-    child.on('error', (error) => {
+    child.on('error', (error: any) => {
       stderr += error.message
     })
 
-    child.on('exit', (code) => {
+    child.on('exit', (code: any) => {
       clearTimeout(timeoutId)
-      
+
       const executionTime = Date.now() - startTime
-      
+
       resolve({
         stdout,
         stderr: killed ? stderr : stderr,
@@ -312,7 +313,7 @@ export async function GET(request: NextRequest) {
 
   // Check specific process
   const processInfo = backgroundProcesses.get(pid)
-  
+
   if (!processInfo) {
     return NextResponse.json(
       { error: 'Process not found' },
@@ -346,7 +347,7 @@ export async function DELETE(request: NextRequest) {
   }
 
   const processInfo = backgroundProcesses.get(pid)
-  
+
   if (!processInfo) {
     return NextResponse.json(
       { error: 'Process not found' },
@@ -357,7 +358,7 @@ export async function DELETE(request: NextRequest) {
   try {
     processInfo.process.kill('SIGTERM')
     backgroundProcesses.delete(pid)
-    
+
     return NextResponse.json({
       success: true,
       pid: parseInt(pid),

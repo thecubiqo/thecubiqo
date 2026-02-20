@@ -10,25 +10,25 @@ import type { CreateJobHuntProfileRequest, UpdateJobHuntProfileRequest } from '@
 // GET - Fetch user's job hunt profile
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
+    const supabase = (await createClient()) as any
+
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-    
+
     // Fetch profile
     const { data: profile, error: profileError } = await supabase
       .from('job_hunt_profiles')
       .select('*')
       .eq('user_id', user.id)
       .single()
-    
+
     if (profileError && profileError.code !== 'PGRST116') {
       console.error('Error fetching job hunt profile:', profileError)
       return NextResponse.json(
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       )
     }
-    
+
     return NextResponse.json({ profile: profile || null })
   } catch (error) {
     console.error('Unexpected error in GET /api/job-hunt/profile:', error)
@@ -50,21 +50,21 @@ export async function GET(request: NextRequest) {
 // POST - Create new job hunt profile
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
+    const supabase = (await createClient()) as any
+
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-    
+
     // Parse request body
-    const body: CreateJobHuntProfileRequest = await request.json()
-    
+    const body = (await request.json()) as any
+
     // Validate required fields
     if (!body.target_roles || body.target_roles.length === 0) {
       return NextResponse.json(
@@ -72,28 +72,28 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    
+
     if (!body.skills || body.skills.length === 0) {
       return NextResponse.json(
         { error: 'Skills are required' },
         { status: 400 }
       )
     }
-    
+
     // Check if profile already exists
     const { data: existingProfile } = await supabase
       .from('job_hunt_profiles')
       .select('id')
       .eq('user_id', user.id)
       .single()
-    
+
     if (existingProfile) {
       return NextResponse.json(
         { error: 'Profile already exists. Use PATCH to update.' },
         { status: 400 }
       )
     }
-    
+
     // Create profile
     const { data: profile, error: insertError } = await supabase
       .from('job_hunt_profiles')
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       })
       .select()
       .single()
-    
+
     if (insertError) {
       console.error('Error creating job hunt profile:', insertError)
       return NextResponse.json(
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
-    
+
     // Log activity
     await supabase.from('job_hunt_activities').insert({
       profile_id: profile.id,
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
       description: 'Job hunt profile created',
       details: { target_roles: body.target_roles },
     })
-    
+
     return NextResponse.json({ profile }, { status: 201 })
   } catch (error) {
     console.error('Unexpected error in POST /api/job-hunt/profile:', error)
@@ -146,38 +146,38 @@ export async function POST(request: NextRequest) {
 // PATCH - Update existing job hunt profile
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
+    const supabase = (await createClient()) as any
+
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-    
+
     // Parse request body
-    const body: UpdateJobHuntProfileRequest = await request.json()
-    
+    const body = (await request.json()) as any
+
     // Fetch existing profile
     const { data: existingProfile, error: fetchError } = await supabase
       .from('job_hunt_profiles')
       .select('id')
       .eq('user_id', user.id)
       .single()
-    
+
     if (fetchError || !existingProfile) {
       return NextResponse.json(
         { error: 'Profile not found. Use POST to create.' },
         { status: 404 }
       )
     }
-    
+
     // Update profile
     const updateData: any = {}
-    
+
     if (body.target_roles !== undefined) updateData.target_roles = body.target_roles
     if (body.target_companies !== undefined) updateData.target_companies = body.target_companies
     if (body.target_locations !== undefined) updateData.target_locations = body.target_locations
@@ -190,14 +190,14 @@ export async function PATCH(request: NextRequest) {
     if (body.linkedin_profile !== undefined) updateData.linkedin_profile = body.linkedin_profile
     if (body.github_profile !== undefined) updateData.github_profile = body.github_profile
     if (body.portfolio_url !== undefined) updateData.portfolio_url = body.portfolio_url
-    
+
     const { data: profile, error: updateError } = await supabase
       .from('job_hunt_profiles')
       .update(updateData)
       .eq('id', existingProfile.id)
       .select()
       .single()
-    
+
     if (updateError) {
       console.error('Error updating job hunt profile:', updateError)
       return NextResponse.json(
@@ -205,7 +205,7 @@ export async function PATCH(request: NextRequest) {
         { status: 500 }
       )
     }
-    
+
     // Log activity
     await supabase.from('job_hunt_activities').insert({
       profile_id: profile.id,
@@ -213,7 +213,7 @@ export async function PATCH(request: NextRequest) {
       description: 'Job hunt profile updated',
       details: { updated_fields: Object.keys(updateData) },
     })
-    
+
     return NextResponse.json({ profile })
   } catch (error) {
     console.error('Unexpected error in PATCH /api/job-hunt/profile:', error)
@@ -227,24 +227,24 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Delete job hunt profile
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
+    const supabase = (await createClient()) as any
+
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-    
+
     // Delete profile (cascade will handle related records)
     const { error: deleteError } = await supabase
       .from('job_hunt_profiles')
       .delete()
       .eq('user_id', user.id)
-    
+
     if (deleteError) {
       console.error('Error deleting job hunt profile:', deleteError)
       return NextResponse.json(
@@ -252,7 +252,7 @@ export async function DELETE(request: NextRequest) {
         { status: 500 }
       )
     }
-    
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Unexpected error in DELETE /api/job-hunt/profile:', error)

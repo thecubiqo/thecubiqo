@@ -24,14 +24,14 @@ export default function AnalyticsPage() {
     useEffect(() => {
         const supabase = createClient();
         Promise.all([
-            supabase.from('conversations').select('id, color_state, created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(10),
-            supabase.from('journal_entries').select('id', { count: 'exact' }).limit(1),
+            (supabase as any).from('conversations').select('id, color_state, created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(10),
+            (supabase as any).from('journal_entries').select('id', { count: 'exact' }).limit(1),
             (supabase as any).from('journey_memory').select('id', { count: 'exact' }).limit(1),
-        ]).then(([convRes, journalRes, memRes]) => {
+        ]).then(([convRes, journalRes, memRes]: any[]) => {
             setData({
                 totalConversations: convRes.count ?? 0,
                 totalJournalEntries: journalRes.count ?? 0,
-                totalMemories: (memRes as any).count ?? 0,
+                totalMemories: memRes.count ?? 0,
                 recentConversations: (convRes.data as ConversationRow[]) ?? [],
             });
             setLoading(false);
@@ -76,12 +76,11 @@ export default function AnalyticsPage() {
                                 {data?.recentConversations.map((c) => (
                                     <div key={c.id} className="flex items-center justify-between py-2 border-b border-white/5 text-sm">
                                         <span className="font-mono text-gray-400">{c.id.slice(0, 12)}…</span>
-                                        <span className={`px-2 py-0.5 rounded text-xs ${
-                                            c.color_state === 'green' ? 'bg-green-500/10 text-green-400' :
-                                            c.color_state === 'yellow' ? 'bg-yellow-500/10 text-yellow-400' :
-                                            c.color_state === 'red' ? 'bg-red-500/10 text-red-400' :
-                                            'bg-gray-500/10 text-gray-400'
-                                        }`}>{c.color_state}</span>
+                                        <span className={`px-2 py-0.5 rounded text-xs ${c.color_state === 'green' ? 'bg-green-500/10 text-green-400' :
+                                                c.color_state === 'yellow' ? 'bg-yellow-500/10 text-yellow-400' :
+                                                    c.color_state === 'red' ? 'bg-red-500/10 text-red-400' :
+                                                        'bg-gray-500/10 text-gray-400'
+                                            }`}>{c.color_state}</span>
                                         <span className="text-gray-500">{new Date(c.created_at).toLocaleDateString()}</span>
                                     </div>
                                 ))}

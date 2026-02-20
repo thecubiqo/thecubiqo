@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     // Step 1: Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Step 2: Verify admin access
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await (supabase as any)
       .from('profiles')
       .select('is_admin, email')
       .eq('id', user.id)
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
       selectFields += ', report_data';
     }
 
-    let query = supabase
+    let query = (supabase as any)
       .from('compliance_reports')
       .select(selectFields, { count: 'exact' });
 
@@ -151,18 +151,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Step 5: Enrich reports with generator information
-    const userIds = [...new Set(reports?.map(r => r.generated_by) || [])];
-    const { data: generators } = await supabase
+    const userIds = [...new Set((reports as any[])?.map((r: any) => r.generated_by) || [])];
+    const { data: generators } = await (supabase as any)
       .from('profiles')
       .select('id, email, full_name')
       .in('id', userIds);
 
-    const generatorMap = generators?.reduce((acc, gen) => {
+    const generatorMap = (generators as any[])?.reduce((acc: any, gen: any) => {
       acc[gen.id] = gen;
       return acc;
     }, {} as Record<string, any>) || {};
 
-    const enrichedReports = reports?.map(report => ({
+    const enrichedReports = (reports as any[])?.map((report: any) => ({
       ...report,
       generated_by_user: generatorMap[report.generated_by] || null,
       data_summary: !includeData && report.report_data ? {
@@ -172,18 +172,18 @@ export async function GET(request: NextRequest) {
     }));
 
     // Step 6: Generate summary statistics
-    const allReportsForSummary = await supabase
+    const { data: summaryData } = await (supabase as any)
       .from('compliance_reports')
-      .select('report_type, created_at', { count: 'exact' });
+      .select('report_type, created_at');
 
-    const byType = allReportsForSummary.data?.reduce((acc, r) => {
+    const byType = (summaryData as any[])?.reduce((acc: any, r: any) => {
       acc[r.report_type] = (acc[r.report_type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>) || {};
 
     const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const recentCount = allReportsForSummary.data?.filter(
-      r => new Date(r.created_at) > last24Hours
+    const recentCount = (summaryData as any[])?.filter(
+      (r: any) => new Date(r.created_at) > last24Hours
     ).length || 0;
 
     const summary = {
@@ -196,7 +196,7 @@ export async function GET(request: NextRequest) {
     // Step 7: Log admin action
     await logAdminAction({
       userId: user.id,
-      userEmail: profile.email,
+      userEmail: profile.email as string,
       actionType: 'view_reports',
       actionDetails: {
         filters: {

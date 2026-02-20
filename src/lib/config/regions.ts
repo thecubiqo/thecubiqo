@@ -41,7 +41,7 @@ export interface RegionConfig {
   }
 
   appearance: {
-    defaultColor: 'ORANGE' | 'RED' | 'YELLOW' | 'GREEN_BLUE'
+    defaultColor: 'ORANGE' | 'RED' | 'YELLOW' | 'TEAL'
     performanceMode: 'full' | 'reduced'
     theme: 'dark' | 'light' | 'system'
   }

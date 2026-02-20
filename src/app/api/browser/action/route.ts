@@ -36,7 +36,7 @@ const executeActionSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const {
       data: { user },
       error: authError,
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Authenticate user
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const {
       data: { user },
       error: authError,
@@ -185,7 +185,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         sessionId,
-        actions: actions.map((action) => ({
+        actions: actions.map((action: any) => ({
           id: action.id,
           actionType: action.action_type,
           target: action.target,

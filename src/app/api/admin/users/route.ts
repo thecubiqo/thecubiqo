@@ -6,19 +6,19 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   try {
     const supabase = createAdminClient();
-    
+
     // Query profiles table for user info
-    const { data: profiles, error: profilesError, count } = await supabase
+    const { data: profiles, error: profilesError, count } = await (supabase as any)
       .from('profiles')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false });
-    
+
     if (profilesError) {
       throw new Error(`Failed to fetch profiles: ${profilesError.message}`);
     }
-    
+
     // Map to user objects with basic info
-    const users = (profiles || []).map(profile => ({
+    const users = (profiles as any[] || []).map((profile: any) => ({
       id: profile.id,
       email: profile.email,
       display_name: profile.display_name,
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       created_at: profile.created_at,
       updated_at: profile.updated_at,
     }));
-    
+
     return NextResponse.json({
       users,
       total: count || users.length,
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('Admin users error:', error);
     return NextResponse.json(
-      { 
+      {
         error: error instanceof Error ? error.message : 'Failed to fetch users',
         users: [],
         total: 0,

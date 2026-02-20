@@ -41,10 +41,10 @@ export interface AuditLogData {
  */
 export async function logAdminAction(data: AuditLogData): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
-    
+    const supabase = (await createClient()) as any;
+
     // Call the database function to log the action
-    const { data: result, error } = await supabase.rpc('log_admin_action', {
+    const { data: result, error } = await (supabase as any).rpc('log_admin_action', {
       p_user_id: data.userId,
       p_user_email: data.userEmail,
       p_action_type: data.actionType,
@@ -54,16 +54,16 @@ export async function logAdminAction(data: AuditLogData): Promise<{ success: boo
     });
 
     if (error) {
-      
+
       return { success: false, error: error.message };
     }
 
     return { success: true };
   } catch (error) {
-    
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 }
@@ -78,8 +78,8 @@ export async function getAuditLogs(options?: {
   offset?: number;
 }): Promise<{ logs: any[]; error?: string }> {
   try {
-    const supabase = await createClient();
-    
+    const supabase = (await createClient()) as any;
+
     let query = supabase
       .from('audit_logs')
       .select('*')
@@ -104,16 +104,16 @@ export async function getAuditLogs(options?: {
     const { data, error } = await query;
 
     if (error) {
-      
+
       return { logs: [], error: error.message };
     }
 
     return { logs: data || [] };
   } catch (error) {
-    
-    return { 
-      logs: [], 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+
+    return {
+      logs: [],
+      error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 }

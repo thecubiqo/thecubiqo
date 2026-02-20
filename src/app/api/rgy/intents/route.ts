@@ -8,8 +8,8 @@ import { SaveIntentRequest } from '@/types/rgy-matching';
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
-    
+    const supabase = (await createClient()) as any;
+
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -128,8 +128,8 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
-    
+    const supabase = (await createClient()) as any;
+
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -182,8 +182,8 @@ export async function GET(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = createClient();
-    
+    const supabase = (await createClient()) as any;
+
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {

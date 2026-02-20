@@ -11,35 +11,36 @@ import { logAudit, logSecretAccess, getIpAddress, getUserAgent } from '@/lib/eme
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient()
-    
+    const { id } = await params
+
     // 1. Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized', data: null },
         { status: 401 }
       )
     }
-    
+
     // 2. Get secret to verify it exists
-    const { data: secret, error: getError } = await supabase
+    const { data: secret, error: getError } = await (supabase as any)
       .from('project_secrets')
       .select('id, project_id, key')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
-    
+
     if (getError || !secret) {
       return NextResponse.json(
         { success: false, error: 'Secret not found', data: null },
         { status: 404 }
       )
     }
-    
+
     // 3. Check permissions (must be admin or higher)
     try {
       await requireProjectPermission(user.id, secret.project_id, 'admin')
@@ -49,27 +50,27 @@ export async function DELETE(
         { status: 403 }
       )
     }
-    
+
     // 4. Delete secret
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await (supabase as any)
       .from('project_secrets')
       .delete()
-      .eq('id', params.id)
-    
+      .eq('id', id)
+
     if (deleteError) {
       return NextResponse.json(
         { success: false, error: 'Failed to delete secret', data: null },
         { status: 500 }
       )
     }
-    
+
     // 5. Get project's org_id for audit log
-    const { data: project } = await supabase
+    const { data: project } = await (supabase as any)
       .from('projects')
       .select('org_id')
       .eq('id', secret.project_id)
       .single()
-    
+
     // 6. Log audit event
     if (project) {
       await logAudit({
@@ -77,34 +78,34 @@ export async function DELETE(
         orgId: project.org_id,
         action: 'delete',
         resourceType: 'secret',
-        resourceId: params.id,
+        resourceId: id,
         metadata: { key: secret.key, projectId: secret.project_id },
-        ipAddress: getIpAddress(request.headers),
-        userAgent: getUserAgent(request.headers)
+        ipAddress: getIpAddress(request.headers) || undefined,
+        userAgent: getUserAgent(request.headers) || undefined
       })
     }
-    
+
     // 7. Log secret access
     await logSecretAccess({
-      secretId: params.id,
+      secretId: id,
       userId: user.id,
       action: 'delete',
-      ipAddress: getIpAddress(request.headers)
+      ipAddress: getIpAddress(request.headers) || undefined
     })
-    
+
     return NextResponse.json({
       success: true,
-      data: { id: params.id },
+      data: { id },
       error: null
     })
-    
+
   } catch (error) {
     console.error('Secret deletion error:', error)
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: error instanceof Error ? error.message : 'Internal server error',
-        data: null 
+        data: null
       },
       { status: 500 }
     )

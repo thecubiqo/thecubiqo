@@ -27,7 +27,7 @@ export default function ChatPage() {
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       {/* Admin Controls */}
       <AdminControls />
-      
+
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 px-4 py-3 bg-[rgba(10,10,15,0.75)] backdrop-blur-[16px] border-b border-white/[0.06]">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -62,7 +62,7 @@ export default function ChatPage() {
               <CubeScene colorName={colorName} animationState={animationState} />
             </div>
             <div className="mt-2 text-center text-xs text-white/50">
-              Mood: <span className="text-white/80">{colorName === 'GREEN_BLUE' ? 'Sattva' : colorName === 'ORANGE' ? 'Fourth Way' : colorName === 'RED' ? 'Tamas' : 'Rajas'}</span>
+              Mood: <span className="text-white/80">{colorName === 'TEAL' ? 'Sattva' : colorName === 'ORANGE' ? 'Fourth Way' : colorName === 'RED' ? 'Tamas' : 'Rajas'}</span>
             </div>
           </div>
 
@@ -76,7 +76,7 @@ export default function ChatPage() {
             />
           </div>
         </div>
-        
+
         {/* Journey Memory Prompt */}
         <JourneyMemoryPrompt position="bottom-left" />
       </main>

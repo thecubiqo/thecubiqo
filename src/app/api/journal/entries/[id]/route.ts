@@ -12,10 +12,11 @@ import type { UpdateEntryInput } from '@/lib/journal/types';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
+    const { id: entryId } = await params;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -26,9 +27,9 @@ export async function GET(
     }
 
     const { data: entry, error } = await supabase
-      .from('journal_entries')
+      .from('journal_entries' as any)
       .select('*')
-      .eq('id', params.id)
+      .eq('id', entryId)
       .eq('user_id', user.id)
       .single();
 
@@ -42,7 +43,7 @@ export async function GET(
     return NextResponse.json({ entry });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -55,10 +56,11 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
+    const { id: entryId } = await params;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -72,9 +74,9 @@ export async function PATCH(
 
     // Get existing entry
     const { data: existingEntry, error: fetchError } = await supabase
-      .from('journal_entries')
+      .from('journal_entries' as any)
       .select('*')
-      .eq('id', params.id)
+      .eq('id', entryId)
       .eq('user_id', user.id)
       .single();
 
@@ -94,8 +96,8 @@ export async function PATCH(
       updates.content = body.content;
       // Increment edit count
       updates.metadata = {
-        ...existingEntry.metadata,
-        editCount: (existingEntry.metadata?.editCount || 0) + 1,
+        ...((existingEntry as any)?.metadata || {}),
+        editCount: (((existingEntry as any)?.metadata?.editCount || 0) as number) + 1,
       };
     }
 
@@ -113,9 +115,9 @@ export async function PATCH(
 
     // Update entry
     const { data: entry, error } = await supabase
-      .from('journal_entries')
+      .from('journal_entries' as any)
       .update(updates)
-      .eq('id', params.id)
+      .eq('id', entryId)
       .eq('user_id', user.id)
       .select()
       .single();
@@ -130,7 +132,7 @@ export async function PATCH(
     return NextResponse.json({ entry });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -143,10 +145,11 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
+    const { id: entryId } = await params;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -157,9 +160,9 @@ export async function DELETE(
     }
 
     const { error } = await supabase
-      .from('journal_entries')
+      .from('journal_entries' as any)
       .delete()
-      .eq('id', params.id)
+      .eq('id', entryId)
       .eq('user_id', user.id);
 
     if (error) {
@@ -172,7 +175,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

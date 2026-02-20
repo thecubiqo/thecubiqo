@@ -9,8 +9,16 @@ import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { AutopilotStatus } from './AutopilotStatus'
 import { useChat } from '@/hooks/useChat'
-import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
+import { useElevenLabsTTS } from '@/hooks/useElevenLabsTTS'
 import type { ColorName } from '@/config/colors'
+
+export interface ChatMessageProps {
+  key?: number | string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  color?: ColorName;
+  onActionConfirm?: (actionId: string, action: any) => Promise<void>;
+}
 
 interface ChatContainerProps {
   sessionId: string | null
@@ -28,9 +36,8 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
   const handleSpeakStart = useCallback(() => onSpeakingChange?.(true), [onSpeakingChange])
   const handleSpeakEnd = useCallback(() => onSpeakingChange?.(false), [onSpeakingChange])
 
-  const { speak, stop, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis({
-    rate: 0.95,
-    pitch: 1,
+  const { speak, stop, isSpeaking, isLoading: isTTSLoading } = useElevenLabsTTS({
+    colorName: currentColor,
     onStart: handleSpeakStart,
     onEnd: handleSpeakEnd
   })
@@ -54,7 +61,6 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
   }, [conversationHistory.length])
 
   // Speak only NEW AI responses (not loaded from DB)
-  // On first initialization, set the index to skip loaded history
   useEffect(() => {
     if (!isInitialized || conversationHistory.length === 0) return
 
@@ -67,12 +73,12 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
       return
     }
 
-    if (ttsSupported && currentIndex > lastSpokenIndexRef.current) {
+    if (!isSpeaking && currentIndex > lastSpokenIndexRef.current) {
       lastSpokenIndexRef.current = currentIndex
       const lastEntry = conversationHistory[currentIndex]
       speak(lastEntry.aiResponse)
     }
-  }, [conversationHistory.length, ttsSupported, speak, isInitialized])
+  }, [conversationHistory.length, speak, isInitialized, isSpeaking])
 
   const handleSend = async (message: string) => {
     if (isSpeaking) {
@@ -93,18 +99,23 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
     <div className="flex flex-col h-[500px] bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800">
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">
-          {!isInitialized ? 'Loading...' : isLoading ? 'Thinking...' : isSpeaking ? 'Speaking...' : 'Ready'}
-        </span>
-        {ttsSupported && isSpeaking && (
-          <button onClick={stop} className="text-xs text-red-500 hover:text-red-600">
-            Stop
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            {!isInitialized ? 'Loading...' : isLoading ? 'Thinking...' : isSpeaking ? 'Speaking...' : 'Ready'}
+          </span>
+          {isTTSLoading && (
+            <div className="w-1 h-1 bg-orange-500 rounded-full animate-ping" />
+          )}
+        </div>
+        {isSpeaking && (
+          <button onClick={stop} className="text-xs text-red-500 hover:text-red-600 font-medium">
+            Stop Audio
           </button>
         )}
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {!isInitialized ? (
           <div className="h-full flex items-center justify-center text-zinc-500 dark:text-zinc-400 text-sm">
             Loading conversation...
@@ -116,18 +127,18 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
         ) : (
           <>
             {conversationHistory.map((entry, index) => (
-              <div key={index}>
-                <ChatMessage role="user" content={entry.userMessage} timestamp={entry.timestamp} />
-                <ChatMessage role="assistant" content={entry.aiResponse} color={entry.color} timestamp={entry.timestamp} />
+              <div key={index} className="space-y-4 mb-4">
+                <ChatMessage role="user" content={entry.userMessage} timestamp={entry.timestamp || new Date().toISOString()} />
+                <ChatMessage role="assistant" content={entry.aiResponse} color={entry.color} timestamp={entry.timestamp || new Date().toISOString()} />
               </div>
             ))}
             {isLoading && (
               <div className="flex justify-start mb-3">
                 <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl px-4 py-3 rounded-bl-md">
                   <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
               </div>
@@ -139,25 +150,28 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
 
       {/* Error Display */}
       {error && (
-        <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border-t border-red-200 dark:border-red-800">
+        <div className="px-4 py-2 bg-red-50 dark:bg-red-900/10 border-t border-red-100 dark:border-red-900/20">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-red-600 dark:text-red-400">
+            <p className="text-[11px] text-red-600 dark:text-red-400 leading-tight">
               {error.includes('NO_PROVIDERS_CONFIGURED') || error.includes('ALL_PROVIDERS_FAILED')
                 ? 'CubiQo is temporarily unable to respond. Please try again shortly.'
                 : error}
             </p>
-            <button onClick={clearError} className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm">
-              Dismiss
+            <button onClick={clearError} className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded">
+              <span className="sr-only">Dismiss</span>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
         </div>
       )}
 
-      {/* Autopilot Status - shows background agent work */}
+      {/* Autopilot Status */}
       <AutopilotStatus sessionId={sessionId} />
 
       {/* Input Area */}
-      <ChatInput onSend={handleSend} disabled={isLoading || !isInitialized} />
+      <div className="shrink-0">
+        <ChatInput onSend={handleSend} disabled={isLoading || !isInitialized} />
+      </div>
     </div>
   )
 }

@@ -12,7 +12,7 @@ import { JournalService } from '@/lib/journal/journal-service';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

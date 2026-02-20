@@ -71,24 +71,24 @@ export function FullscreenApp({
   const [showFloatingQuestions, setShowFloatingQuestions] = useState(true)
   // RGY Signal pulse state - triggers brief pulse when keyword is saved
   const [rgyPulseColor, setRgyPulseColor] = useState<'RED' | 'YELLOW' | 'GREEN' | null>(null)
-  
+
   // RGY Matching flow state
   const [showIntentSetup, setShowIntentSetup] = useState(false)
   const [showOpportunityFeed, setShowOpportunityFeed] = useState(false)
   const [showProMatchSettings, setShowProMatchSettings] = useState(false)
   const [selectedRGYContext, setSelectedRGYContext] = useState<RGYContext | null>(null)
-  
+
   // RGY Chat Room flow state (rgynext design)
   const [showColorSelector, setShowColorSelector] = useState(false)
   const [showRoomList, setShowRoomList] = useState(false)
   const [showRoomChat, setShowRoomChat] = useState(false)
   const [selectedChatColor, setSelectedChatColor] = useState<'green' | 'yellow' | 'red' | null>(null)
   const [selectedRoom, setSelectedRoom] = useState<any>(null)
-  
+
   // ProMatch state
   const [proMatchEnabled, setProMatchEnabled] = useState(false)
   const [proMatchCount, setProMatchCount] = useState(0)
-  
+
   // Simulate ProMatch working in background (for demo)
   useEffect(() => {
     // Check if ProMatch is enabled
@@ -108,7 +108,7 @@ export function FullscreenApp({
         console.error('Error checking ProMatch:', error)
       }
     }
-    
+
     checkProMatch()
     // Check periodically (every 5 minutes)
     const interval = setInterval(checkProMatch, 5 * 60 * 1000)
@@ -139,39 +139,39 @@ export function FullscreenApp({
     setShowRGYChats(false)
     setShowColorSelector(true)
   }
-  
+
   // Handle color selection from color selector (rgynext)
   const handleColorSelect = (color: 'green' | 'yellow' | 'red') => {
     setSelectedChatColor(color)
     setShowColorSelector(false)
     setShowRoomList(true)
   }
-  
+
   // Handle room selection
   const handleRoomSelect = (room: any) => {
     setSelectedRoom(room)
     setShowRoomList(false)
     setShowRoomChat(true)
   }
-  
+
   // Handle back from room list
   const handleBackFromRoomList = () => {
     setShowRoomList(false)
     setShowColorSelector(true)
   }
-  
+
   // Handle back from room chat
   const handleBackFromRoomChat = () => {
     setShowRoomChat(false)
     setShowRoomList(true)
   }
-  
+
   // Handle viewing ProMatch shortlist
   const handleViewProMatchShortlist = () => {
     setShowRoomList(false)
     setShowOpportunityFeed(true)
   }
-  
+
   // Handle back from ProMatch shortlist
   const handleBackFromShortlist = () => {
     setShowOpportunityFeed(false)
@@ -181,7 +181,7 @@ export function FullscreenApp({
       setShowColorSelector(true)
     }
   }
-  
+
   // Legacy handlers (kept for backwards compatibility)
   const handleZoneSelection = (context: RGYContext) => {
     setSelectedRGYContext(context)
@@ -499,11 +499,22 @@ export function FullscreenApp({
         <div className="flex justify-between items-center w-full">
           {/* Left - CubiQo Logo Icon Only */}
           <div className="flex items-center">
-            <img
-              src="https://customer-assets.emergentagent.com/job_signal-ai-chat/artifacts/ay0gj2sk_ChatGPT%20Image%20Feb%205%2C%202026%2C%2003_14_37%20PM.png"
-              alt="CubiQo"
-              className="w-14 h-14 sm:w-16 sm:h-16 object-contain"
-            />
+            <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-orange-600/10 rounded-2xl border border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.15)] group transition-all duration-500 hover:scale-105">
+              <svg
+                viewBox="0 0 24 24"
+                className="w-8 h-8 sm:w-10 sm:h-10 text-orange-500 drop-shadow-[0_0_10px_rgba(249,115,22,0.5)] transition-transform duration-700 group-hover:rotate-12"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <path d="M12 2L4 7v10l8 5 8-5V7l-8-5z" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M12 22V12" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M20 7l-8 5-8-5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M12 12l8-5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M12 12l-8-5" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="12" cy="12" r="2" className="fill-orange-500/20" />
+              </svg>
+            </div>
           </div>
 
           {/* Center - CubiQo Text */}
@@ -523,11 +534,17 @@ export function FullscreenApp({
             onClick={handleSignalClick}
             className="flex items-center gap-3 hover:opacity-80 transition-opacity"
           >
-            <img
-              src="https://customer-assets.emergentagent.com/job_signal-ai-chat/artifacts/1lhd76s4_signal_s_exact%20%281%29.png"
-              alt="SIGNAL"
-              className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
-            />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-lg group-hover:border-white/20 transition-all">
+              <svg
+                viewBox="0 0 24 24"
+                className="w-6 h-6 sm:w-7 sm:h-7 text-white"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" fill="currentColor" fillOpacity="0.8" />
+              </svg>
+            </div>
             <div className="flex flex-col">
               <span className="text-xl sm:text-2xl font-semibold tracking-[0.08em] text-white leading-tight">SIGNAL</span>
               <span className="text-[10px] sm:text-[11px] text-white/60 tracking-wide">One is enough.</span>
@@ -567,14 +584,20 @@ export function FullscreenApp({
         {isAuthenticated && (
           <button
             onClick={() => setShowCQPanel(true)}
-            className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 ${isDark
-              ? 'bg-zinc-800/80 hover:bg-zinc-700/80 text-white/60 hover:text-white/80'
-              : 'bg-white/80 hover:bg-white text-gray-600 hover:text-gray-800'
-              } backdrop-blur-md shadow-lg`}
+            className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isDark
+              ? 'bg-zinc-800/80 hover:bg-zinc-700/80 text-orange-500 hover:text-orange-400'
+              : 'bg-white/80 hover:bg-white text-orange-600 hover:text-orange-500'
+              } backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.1)] border border-orange-500/20 hover:scale-110`}
             title="CQ Connect"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <svg
+              viewBox="0 0 24 24"
+              className="w-6 h-6 drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.38 8.38 0 0 1 3.8.9L22 4l-1.5 6.5Z" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             {unreadCount > 0 && (
               <div className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#FF6F00] text-white text-[11px] font-bold">
@@ -1067,7 +1090,7 @@ export function FullscreenApp({
               </div>
             </div>
           </div>
-          <RGYColorSelector 
+          <RGYColorSelector
             onColorSelect={handleColorSelect}
             showProMatchBadge={proMatchEnabled}
             proMatchCount={proMatchCount}
@@ -1101,7 +1124,7 @@ export function FullscreenApp({
               </div>
             </div>
           </div>
-          <RGYIntentKeywordList 
+          <RGYIntentKeywordList
             color={selectedChatColor}
             onRoomSelect={handleRoomSelect}
             onViewProMatchShortlist={proMatchCount > 0 ? handleViewProMatchShortlist : undefined}

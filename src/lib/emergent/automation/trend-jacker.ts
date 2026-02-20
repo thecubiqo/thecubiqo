@@ -1,6 +1,3 @@
-import { TwitterService } from '../../verbal-commands/twitter-service';
-import { ShopifyService } from '../integrations/playbooks/shopify';
-import { PrintifyService } from '../integrations/playbooks/printify';
 import { executeTool } from '../orchestrator';
 import { createClient } from '@/lib/supabase/server';
 
@@ -9,12 +6,12 @@ import { createClient } from '@/lib/supabase/server';
  * Monitors social trends and automates trend-to-commerce cycles.
  */
 export class TrendJacker {
-    private twitter: TwitterService;
-    private shopify: any; // Using existing Shopify service
-    private printify: any; // Using existing Printify service
+    private twitter: any;
+    private shopify: any;
+    private printify: any;
 
     constructor(browser: any) {
-        this.twitter = new TwitterService(browser);
+        this.twitter = null; // Browser integration pending
         // Initialize other services as needed
     }
 
@@ -22,7 +19,7 @@ export class TrendJacker {
      * Run a full Trend-to-Commerce cycle
      */
     async runCycle(): Promise<void> {
-        const supabase = await createClient();
+        const supabase = (await createClient()) as any;
 
         // 1. Identify trending topics
         const trends = await this.getTrendingTopics();
@@ -51,7 +48,7 @@ export class TrendJacker {
 
     private async getTrendingTopics(): Promise<string[]> {
         // Scrape Twitter Trends or use API
-        const result = await this.twitter.executeCommand({ action: 'read', query: 'trending' });
+        const result = await (this.twitter as any)?.executeCommand({ action: 'read', query: 'trending' });
         // Parse results...
         return ['AI Agents', 'Cubiqo Flagship']; // Mock
     }
@@ -72,7 +69,7 @@ export class TrendJacker {
 
     private async triggerPromotion(product: any, trend: string): Promise<void> {
         // Add to Social Army content queue
-        const supabase = await createClient();
+        const supabase = (await createClient()) as any;
         await supabase.from('content_queue').insert({
             campaign_id: 'trend_campaign',
             content_type: 'image',

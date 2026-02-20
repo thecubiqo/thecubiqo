@@ -108,19 +108,22 @@ export function PWAInstallPrompt() {
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           role="alert"
           aria-label="Install CubiQo app"
-          className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md"
+          className="fixed bottom-6 left-6 right-6 z-50 mx-auto max-w-lg"
         >
           <div
-            className="rounded-2xl border border-white/10 bg-black/90 p-4 shadow-xl backdrop-blur-xl"
-            style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 0.5px rgba(255,255,255,0.08)' }}
+            className="rounded-3xl border border-white/20 bg-zinc-900/40 p-6 shadow-2xl backdrop-blur-2xl"
+            style={{
+              boxShadow: '0 20px 50px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.1)',
+              background: 'linear-gradient(135deg, rgba(24,24,27,0.8) 0%, rgba(39,39,42,0.4) 100%)'
+            }}
           >
             {/* Header row */}
             <div className="flex items-start gap-3">
               {/* App icon */}
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <rect x="4" y="4" width="16" height="16" rx="3" stroke="white" strokeWidth="2" />
-                  <rect x="8" y="8" width="8" height="8" rx="1.5" fill="white" fillOpacity="0.9" />
+              <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-[0_0_20px_rgba(249,115,22,0.3)]">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="2" y="2" width="20" height="20" rx="5" stroke="white" strokeWidth="2" strokeOpacity="0.8" />
+                  <path d="M12 7L12 17M7 12L17 12" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
               </div>
 
@@ -171,18 +174,18 @@ export function PWAInstallPrompt() {
                 </ol>
               </div>
             ) : (
-              <div className="mt-3 flex gap-2">
+              <div className="mt-6 flex gap-3">
                 <button
                   onClick={handleInstall}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition-transform active:scale-[0.97]"
+                  className="flex-1 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-orange-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  Install App
+                  Install CubiQo
                 </button>
                 <button
                   onClick={handleDismiss}
-                  className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/15"
+                  className="rounded-2xl bg-white/5 border border-white/10 px-6 py-3 text-sm font-semibold text-white/50 transition-all hover:bg-white/10 hover:text-white"
                 >
-                  Not Now
+                  Later
                 </button>
               </div>
             )}

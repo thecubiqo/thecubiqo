@@ -15,8 +15,8 @@ type DesignToggle = Database['public']['Tables']['design_toggles']['Row'];
  */
 export async function GET() {
   try {
-    const supabase = await createClient();
-    
+    const supabase = (await createClient()) as any;
+
     // Fetch all design toggles
     const { data: toggles, error } = await supabase
       .from('design_toggles')
@@ -25,7 +25,7 @@ export async function GET() {
       .order('display_name', { ascending: true });
 
     if (error) {
-      
+
       return NextResponse.json(
         { error: 'Failed to fetch design toggles' },
         { status: 500 }
@@ -39,7 +39,7 @@ export async function GET() {
       experiment: [] as DesignToggle[],
     };
 
-    toggles?.forEach((toggle) => {
+    toggles?.forEach((toggle: any) => {
       if (toggle.category in grouped) {
         grouped[toggle.category as keyof typeof grouped].push(toggle);
       }
@@ -51,7 +51,7 @@ export async function GET() {
       count: toggles?.length || 0,
     });
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -66,7 +66,7 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   try {
     // Check authentication
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const {
       data: { user },
       error: authError,
@@ -121,7 +121,7 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (error) {
-      
+
       return NextResponse.json(
         { error: 'Failed to update toggle' },
         { status: 500 }
@@ -130,7 +130,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ toggle });
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      
+
       return NextResponse.json(
         { error: 'Failed to create toggle' },
         { status: 500 }
@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ toggle }, { status: 201 });
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

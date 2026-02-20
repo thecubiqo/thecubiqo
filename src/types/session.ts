@@ -44,3 +44,9 @@ export interface SessionCreate {
   channel?: string;
   userId?: string;
 }
+
+export interface ContentBlock {
+  type: 'text' | 'image' | 'file' | 'tool_use' | 'tool_result';
+  text?: string;
+  data?: any;
+}

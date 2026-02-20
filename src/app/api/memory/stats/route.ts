@@ -12,7 +12,7 @@ import type { MemoryStats, MemoryType, MemoryImportance } from '@/lib/conscious-
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -77,34 +77,34 @@ export async function GET(request: NextRequest) {
       critical: 0,
     };
 
-    for (const memory of memories) {
+    for (const memory of memories as any[]) {
       byType[memory.type as MemoryType]++;
       byImportance[memory.importance as MemoryImportance]++;
     }
 
     // Most accessed
     const mostAccessed = [...memories]
-      .sort((a, b) => b.access_count - a.access_count)
+      .sort((a: any, b: any) => (b.access_count || 0) - (a.access_count || 0))
       .slice(0, 5);
 
     // Recently created
     const recentlyCreated = [...memories]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 5);
 
     const stats: MemoryStats = {
       totalMemories: memories.length,
       byType,
       byImportance,
-      mostAccessed,
-      recentlyCreated,
+      mostAccessed: mostAccessed as any,
+      recentlyCreated: recentlyCreated as any,
       clusters: [], // TODO: Implement clustering
     };
 
     return NextResponse.json({ stats });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

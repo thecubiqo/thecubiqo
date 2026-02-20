@@ -8,8 +8,8 @@ import { DiscoverOpportunitiesRequest } from '@/types/rgy-matching';
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
-    
+    const supabase = (await createClient()) as any;
+
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
         if (!oppError && opportunities) {
           // Merge opportunity details with similarity scores
-          const enrichedMatches = opportunities.map((opp) => {
+          const enrichedMatches = opportunities.map((opp: any) => {
             const match = matches.find((m: any) => m.opportunity_id === opp.id);
             return {
               ...opp,

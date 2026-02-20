@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     if (date) {
       // Get single day summary
       query = query.eq('date', date).single();
-      
+
       const { data: summary, error } = await query;
 
       if (error || !summary) {
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ summaries });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

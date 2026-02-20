@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 // GET /api/emergent/workspaces - List all workspaces for the current user
 export async function GET(request: NextRequest) {
     try {
-        const supabase = await createClient();
+        const supabase = (await createClient()) as any;
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 // POST /api/emergent/workspaces - Create a new workspace
 export async function POST(request: NextRequest) {
     try {
-        const supabase = await createClient();
+        const supabase = (await createClient()) as any;
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {

@@ -32,7 +32,7 @@ export interface CreateNotificationInput {
 }
 
 export class NotificationManager {
-  private supabase = createClient()
+  private supabase = createClient() as any
 
   async create(input: CreateNotificationInput): Promise<Notification> {
     const { data, error } = await this.supabase
@@ -134,7 +134,7 @@ export class NotificationManager {
           schema: 'public',
           table: 'notifications',
         },
-        (payload) => {
+        (payload: any) => {
           callback(payload.new as Notification)
         }
       )

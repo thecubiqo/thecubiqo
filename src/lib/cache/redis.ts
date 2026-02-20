@@ -1,19 +1,30 @@
 // Redis client for caching and session management
-import Redis from 'ioredis';
+// ioredis is isolated via eval('require') to bypass Turbopack static analysis
+let Redis: any = null;
+try {
+  Redis = eval('require')('ioredis');
+} catch (e) {
+  // Ignored for build safety on Vercel
+}
 
-let redis: Redis | null = null;
+let redis: any = null;
 
 /**
  * Get or create Redis client
  * Falls back to in-memory store if Redis is not available
  */
-export function getRedisClient(): Redis | null {
+export function getRedisClient(): any {
   if (redis) return redis;
 
   const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL;
-  
+
   if (!redisUrl) {
     console.warn('Redis URL not configured. Session store will use in-memory fallback.');
+    return null;
+  }
+
+  if (!Redis) {
+    console.warn('Redis module not found. Session store will use in-memory fallback.');
     return null;
   }
 
@@ -49,7 +60,7 @@ export function getRedisClient(): Redis | null {
  * Cache wrapper with automatic serialization
  */
 export class RedisCache {
-  private client: Redis | null;
+  private client: any;
   private prefix: string;
 
   constructor(prefix: string = 'cubiqo') {

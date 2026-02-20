@@ -56,7 +56,7 @@ export interface ChatRoom {
 }
 
 export class CapsuleManager {
-  private supabase = createClient()
+  private supabase = (createClient() as any)
 
   /**
    * Create a new capsule
@@ -301,7 +301,7 @@ export class CapsuleManager {
    * Join a chat room
    */
   async joinRoom(roomId: string, userId: string): Promise<void> {
-    const { error} = await this.supabase.from('rgy_room_participants').insert({
+    const { error } = await this.supabase.from('rgy_room_participants').insert({
       room_id: roomId,
       user_id: userId,
     })
@@ -367,7 +367,7 @@ export class CapsuleManager {
           table: 'rgy_room_messages',
           filter: `room_id=eq.${roomId}`,
         },
-        (payload) => callback(payload.new)
+        (payload: any) => callback(payload.new)
       )
       .subscribe()
   }
@@ -376,7 +376,7 @@ export class CapsuleManager {
    * Format capsule as string: color:intent:keywords
    */
   formatCapsule(capsule: RGYCapsule): string {
-    const parts = [capsule.color]
+    const parts: string[] = [capsule.color]
     if (capsule.intent) {
       parts.push(capsule.intent)
     }

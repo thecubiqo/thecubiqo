@@ -10,15 +10,15 @@ const COLORS = {
   // Orange accent colors
   PRIMARY: '#f97316',
   PRIMARY_DARK: '#ea580c',
-  
+
   // Background colors
   BG_BLACK: '#000000',
   BG_DARK: '#18181b',
   BG_DARKER: '#09090b',
-  
+
   // Border colors
   BORDER: '#27272a',
-  
+
   // Text colors
   TEXT_WHITE: '#ffffff',
   TEXT_GRAY: '#a1a1aa',
@@ -31,7 +31,7 @@ interface MagicLinkEmailTemplateProps {
   magicLink?: string
 }
 
-export function MagicLinkEmailTemplate({ 
+export function MagicLinkEmailTemplate({
   email = 'user@example.com',
   magicLink = '#'
 }: MagicLinkEmailTemplateProps) {
@@ -103,7 +103,7 @@ export function MagicLinkEmailTemplate({
           }}>
             Your Magic Link is Ready
           </h2>
-          
+
           <p style={{
             margin: '0 0 24px',
             fontSize: '15px',
@@ -185,14 +185,14 @@ export function MagicLinkEmailTemplate({
             fontSize: '12px',
             color: COLORS.TEXT_GRAY_LIGHT,
           }}>
-            CubiQo - Your Emotional AI Companion
+            CubiQo — Your Private AI Secretary & Orchestrator
           </p>
           <p style={{
             margin: '0',
             fontSize: '11px',
             color: COLORS.TEXT_GRAY_DARK,
           }}>
-            We'll remember everything. Forever.
+            Zero-Retention. Private. Orchestrated by Intent.
           </p>
           <div style={{
             margin: '16px 0 0',
