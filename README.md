@@ -89,6 +89,24 @@ OPENAI_API_KEY=your_key_here
 ELEVENLABS_API_KEY=your_key_here
 ```
 
+### Staging Environment (For Testing)
+
+**Where is the staging database?** It doesn't exist yet - you need to create it!
+
+Set up a separate staging database for testing before production:
+
+```bash
+# 1. Create Supabase project at https://supabase.com (name: cubiqo-staging)
+# 2. Copy credentials to .env.staging
+# 3. Run setup:
+npm run staging:init      # Initialize staging
+npm run staging:migrate   # Run migrations
+npm run staging:verify    # Check health
+```
+
+See [WHERE_IS_STAGING_DB.md](./WHERE_IS_STAGING_DB.md) for the answer to "where is staging?"  
+See [STAGING_DATABASE_SETUP.md](./STAGING_DATABASE_SETUP.md) for complete instructions.
+
 ## 🏗️ Tech Stack
 
 - **Framework:** Next.js 14 (App Router)
@@ -316,6 +334,9 @@ See [docs/RGY_MATCHING.md](./docs/RGY_MATCHING.md) for detailed documentation.
 - **[VALIDATION_REPORT.md](./VALIDATION_REPORT.md)** - Environment validation report
 - **[AUTH_FIX_SUMMARY.md](./AUTH_FIX_SUMMARY.md)** - Auth bug fix documentation
 - **[SELF_HEAL.md](./docs/SELF_HEAL.md)** - Self-heal job documentation
+- **[STAGING_DATABASE_SETUP.md](./STAGING_DATABASE_SETUP.md)** - Staging database setup guide
+- **[STAGING_QUICK_REF.md](./STAGING_QUICK_REF.md)** - Quick reference for staging
+- **[STAGING_TESTING_HANDOFF.md](./STAGING_TESTING_HANDOFF.md)** - Testing and handoff guide
 
 ## 📧 Contact
 
