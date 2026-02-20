@@ -2,15 +2,9 @@
 const nextConfig = {
   reactStrictMode: false,
   typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
     ignoreBuildErrors: true,
   },
-  experimental: {
-    serverExternalPackages: ['dockerode', 'ssh2', 'ioredis'],
-  },
+  serverExternalPackages: ['dockerode', 'ssh2', 'ioredis', 'googleapis', 'docker-modem'],
 };
 
 module.exports = nextConfig;
