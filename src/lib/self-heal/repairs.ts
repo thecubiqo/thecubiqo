@@ -1,20 +1,27 @@
 /**
  * Self-Heal Repair Actions
  * 
- * Safe auto-repair functions that can be rolled back
+ * Safe auto-repair functions with retry logic and deduplication
  */
 
 import { RepairAction, DiagnosticResult } from './types';
 
+const MAX_RETRIES = 2;
+
 /**
- * Perform repairs based on diagnostic results
+ * Perform repairs based on diagnostic results, with deduplication
  */
 export async function performRepairs(diagnostics: DiagnosticResult[]): Promise<RepairAction[]> {
   const repairs: RepairAction[] = [];
+  const attempted = new Set<string>();
 
   for (const diagnostic of diagnostics) {
     if (diagnostic.status === 'warning' || diagnostic.status === 'critical') {
-      const repair = await attemptRepair(diagnostic);
+      // Deduplicate: skip if we already attempted a repair for this check
+      if (attempted.has(diagnostic.name)) continue;
+      attempted.add(diagnostic.name);
+
+      const repair = await attemptRepairWithRetry(diagnostic);
       if (repair) {
         repairs.push(repair);
       }
@@ -22,6 +29,35 @@ export async function performRepairs(diagnostics: DiagnosticResult[]): Promise<R
   }
 
   return repairs;
+}
+
+/**
+ * Attempt to repair with retry logic
+ */
+async function attemptRepairWithRetry(diagnostic: DiagnosticResult): Promise<RepairAction | null> {
+  let lastResult: RepairAction | null = null;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    lastResult = await attemptRepair(diagnostic);
+    if (!lastResult) return null;
+
+    if (lastResult.status === 'success') {
+      lastResult.retryCount = attempt;
+      return lastResult;
+    }
+
+    // Don't retry on the last attempt
+    if (attempt < MAX_RETRIES) {
+      // Brief backoff before retry
+      await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+    }
+  }
+
+  // All retries exhausted
+  if (lastResult) {
+    lastResult.retryCount = MAX_RETRIES;
+  }
+  return lastResult;
 }
 
 /**

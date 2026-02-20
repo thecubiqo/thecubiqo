@@ -1,14 +1,56 @@
 /**
  * Self-Heal Executor
  * 
- * Main orchestrator for self-heal operations
+ * Main orchestrator for self-heal operations.
+ * Uses parallel diagnostics and produces a daily summary with metrics.
  */
 
 import { runDiagnostics } from './diagnostics';
 import { performRepairs, reapplyMigrations } from './repairs';
 import { generateRollbackPatch, formatRollbackPatch } from './rollback';
 import { generateReport, formatReportAsHtml, formatReportAsText } from './report';
-import { SelfHealReport } from './types';
+import { SelfHealReport, DailySummary } from './types';
+
+/**
+ * Build a daily summary from the report data
+ */
+function buildDailySummary(report: SelfHealReport): DailySummary {
+  const diagnostics = report.diagnostics;
+  const repairs = report.repairs;
+
+  const totalChecks = diagnostics.length;
+  const healthyChecks = diagnostics.filter(d => d.status === 'healthy').length;
+  const warningChecks = diagnostics.filter(d => d.status === 'warning').length;
+  const criticalChecks = diagnostics.filter(d => d.status === 'critical').length;
+
+  const repairsAttempted = repairs.length;
+  const repairsSucceeded = repairs.filter(r => r.status === 'success').length;
+  const repairsFailed = repairs.filter(r => r.status === 'failed').length;
+
+  const uptimePercentage = totalChecks > 0
+    ? Math.round(((healthyChecks / totalChecks) * 100) * 10) / 10
+    : 0;
+
+  const durations = diagnostics
+    .map(d => d.durationMs ?? 0)
+    .filter(d => d > 0);
+  const avgDiagnosticDurationMs = durations.length > 0
+    ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+    : 0;
+
+  return {
+    totalChecks,
+    healthyChecks,
+    warningChecks,
+    criticalChecks,
+    repairsAttempted,
+    repairsSucceeded,
+    repairsFailed,
+    uptimePercentage,
+    avgDiagnosticDurationMs,
+    totalExecutionMs: report.executionTimeMs,
+  };
+}
 
 /**
  * Execute a complete self-heal run
@@ -19,12 +61,12 @@ export async function executeSelfHeal(): Promise<SelfHealReport> {
   try {
     console.log('[Self-Heal] Starting self-heal run...');
 
-    // Step 1: Run diagnostics
+    // Step 1: Run diagnostics (parallel internally)
     console.log('[Self-Heal] Running diagnostics...');
     const diagnostics = await runDiagnostics();
     console.log(`[Self-Heal] Diagnostics completed: ${diagnostics.length} checks performed`);
 
-    // Step 2: Perform repairs based on diagnostics
+    // Step 2: Perform repairs based on diagnostics (with retry + dedup)
     console.log('[Self-Heal] Performing repairs...');
     const repairs = await performRepairs(diagnostics);
     
@@ -43,7 +85,11 @@ export async function executeSelfHeal(): Promise<SelfHealReport> {
     console.log(`[Self-Heal] Generating report (execution time: ${executionTime}ms)...`);
     const report = generateReport(diagnostics, repairs, rollbackPatch, executionTime);
 
+    // Step 6: Compute daily summary
+    report.summary = buildDailySummary(report);
+
     console.log(`[Self-Heal] Self-heal run completed with status: ${report.status}`);
+    console.log(`[Self-Heal] Summary: ${report.summary.healthyChecks}/${report.summary.totalChecks} healthy, ${report.summary.repairsSucceeded} repairs succeeded, uptime ${report.summary.uptimePercentage}%`);
     return report;
   } catch (error) {
     const executionTime = Date.now() - startTime;
@@ -54,7 +100,7 @@ export async function executeSelfHeal(): Promise<SelfHealReport> {
     const emailTo = process.env.SELF_HEAL_EMAIL_TO || 'aditya@cubiqo.ai';
     
     // Return a failed report
-    return {
+    const failedReport: SelfHealReport = {
       runDate: new Date(),
       status: 'failed',
       diagnostics: [],
@@ -72,6 +118,8 @@ export async function executeSelfHeal(): Promise<SelfHealReport> {
       emailTo,
       executionTimeMs: executionTime,
     };
+    failedReport.summary = buildDailySummary(failedReport);
+    return failedReport;
   }
 }
 
