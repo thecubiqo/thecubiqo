@@ -103,10 +103,10 @@ export default function CodexoPanel() {
                             />
                         </div>
                         <div className="text-[10px] text-white/30 h-10 overflow-hidden">
-                            {bootSequence > 20 && <div>> Loading Kernel... OK</div>}
-                            {bootSequence > 40 && <div>> Decrypting Vault... OK</div>}
-                            {bootSequence > 60 && <div>> Connecting Hostinger Node... OK</div>}
-                            {bootSequence > 80 && <div>> Mounting Business Vitals...</div>}
+                            {bootSequence > 20 && <div>&gt; Loading Kernel... OK</div>}
+                            {bootSequence > 40 && <div>&gt; Decrypting Vault... OK</div>}
+                            {bootSequence > 60 && <div>&gt; Connecting Hostinger Node... OK</div>}
+                            {bootSequence > 80 && <div>&gt; Mounting Business Vitals...</div>}
                         </div>
                     </div>
                 </div>

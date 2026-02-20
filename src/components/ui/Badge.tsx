@@ -1,13 +1,14 @@
 // Badge Component
 'use client';
 
-export type BadgeVariant = 
+export type BadgeVariant =
   | 'default'
   | 'success'
   | 'warning'
   | 'error'
   | 'info'
-  | 'neutral';
+  | 'neutral'
+  | 'outline';
 
 export interface BadgeProps {
   children: React.ReactNode;
@@ -24,6 +25,7 @@ const badgeStyles = {
   error: 'bg-red-900 text-red-300 border border-red-700',
   info: 'bg-indigo-900 text-indigo-300 border border-indigo-700',
   neutral: 'bg-zinc-800 text-zinc-400 border border-zinc-700',
+  outline: 'bg-transparent text-zinc-400 border border-zinc-700',
 };
 
 export function Badge({

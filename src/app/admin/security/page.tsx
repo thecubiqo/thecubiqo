@@ -33,7 +33,7 @@ function maskEmail(email: string): string {
     return local.slice(0, 3) + '*'.repeat(local.length - 3) + domain;
 }
 
-(dateStr: string): string {
+function formatRelativeTime(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return 'just now';
@@ -81,8 +81,8 @@ export default function SecurityDashboard() {
                         <p className="text-gray-400 mt-1">Passkey configuration status for passwordless login.</p>
                     </div>
                     <div className={`px-4 py-1.5 rounded-full text-sm font-semibold border flex items-center gap-2 ${biometricStatus === 'configured'
-                            ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                            : 'bg-red-500/10 text-red-400 border-red-500/20'
+                        ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                        : 'bg-red-500/10 text-red-400 border-red-500/20'
                         }`}>
                         {biometricStatus === 'configured' ? (
                             <><CheckCircle size={14} /> Active</>

@@ -3,7 +3,7 @@
  * Each color represents an emotional dimension aligned with the Fourth Way philosophy
  */
 
-export type ColorName = 'RED' | 'YELLOW' | 'GREEN_BLUE' | 'ORANGE'
+export type ColorName = 'RED' | 'YELLOW' | 'TEAL' | 'ORANGE'
 
 export interface ColorConfig {
   name: ColorName
@@ -25,13 +25,13 @@ export interface ColorConfig {
 export const COLORS: Record<ColorName, ColorConfig> = {
   RED: {
     name: 'RED',
-    displayName: 'Tamas',
+    displayName: 'Explicit',
     hex: 0xc2185b,
     emissive: 0x8b0a3d,
-    emotion: 'desire, indulgence, rebellion',
-    tone: 'seductive, slow, impulsive',
-    voiceTone: 'deep, slow, sensual whisper; confident teasing',
-    description: 'Tamas - The force of desire and material attachment',
+    emotion: 'age-gated, critical, goal-oriented',
+    tone: 'discreet, low-volume',
+    voiceTone: 'deep, slow, sensual whisper; discreet',
+    description: 'RED - Age-gated or explicit critical tasks',
     animationSpeed: 0.2,
     glowIntensity: 0.9,
     breathingSpeed: 1.0,
@@ -42,13 +42,13 @@ export const COLORS: Record<ColorName, ColorConfig> = {
 
   YELLOW: {
     name: 'YELLOW',
-    displayName: 'Rajas',
+    displayName: 'Casual',
     hex: 0xffa000,
     emissive: 0xe68a00,
-    emotion: 'activity, energy, curiosity',
-    tone: 'warm, conversational, energetic',
+    emotion: 'casual, general, curious',
+    tone: 'friendly, relaxed, non-leading',
     voiceTone: 'warm, relaxed, friendly pace',
-    description: 'Rajas - The energy of action and daily life',
+    description: 'YELLOW - Casual conversation and general chat',
     animationSpeed: 0.5,
     glowIntensity: 0.7,
     breathingSpeed: 1.5,
@@ -57,15 +57,15 @@ export const COLORS: Record<ColorName, ColorConfig> = {
     mouseFollowSpeed: 0.1,
   },
 
-  GREEN_BLUE: {
-    name: 'GREEN_BLUE',
-    displayName: 'Sattva',
+  TEAL: {
+    name: 'TEAL',
+    displayName: 'Goal',
     hex: 0x00897b,
     emissive: 0x005a52,
-    emotion: 'growth, wellness, ambition',
-    tone: 'purposeful, clear, inspired',
+    emotion: 'ambition, growth, professionalism',
+    tone: 'professional, decisive, goal-oriented',
     voiceTone: 'clear, motivating, balanced',
-    description: 'Sattva - The quality of harmony and growth',
+    description: 'TEAL - Goal-oriented help and growth',
     animationSpeed: 0.4,
     glowIntensity: 0.6,
     breathingSpeed: 1.4,

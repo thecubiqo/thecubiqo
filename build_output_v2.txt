@@ -1,0 +1,482 @@
+npm warn config global-style This option has been deprecated in favor of `--install-strategy=shallow`
+
+> cubiqo@2.0.0 build
+> next build
+
+ΓÜá `eslint` configuration in next.config.js is no longer supported. See more info here: https://nextjs.org/docs/app/api-reference/cli/next#next-lint-options
+ΓÜá Invalid next.config.js options detected: 
+ΓÜá     Unrecognized key(s) in object: 'eslint'
+ΓÜá See more info here: https://nextjs.org/docs/messages/invalid-next-config
+ΓÜá Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\avloy\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\avloy\.gemini\antigravity\scratch\thecubiqo\repo_temp\package-lock.json
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+Found 1 warning while optimizing generated CSS:
+
+Γöé   }
+Γöé }
+Γöé @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+Γöå        ^-- @import rules must precede all rules aside from @charset and @layer statements
+Γöå
+Γöé :root {
+Γöé   --background: #ffffff;
+
+
+> Build error occurred
+Error: Turbopack build failed with 15 errors:
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/admin/security/page.tsx:36:18
+Parsing ecmascript source code failed
+  34 | }
+  35 |
+> 36 | (dateStr: string): string {
+     |                  ^
+  37 |     const diff = Date.now() - new Date(dateStr).getTime();
+  38 |     const mins = Math.floor(diff / 60000);
+  39 |     if (mins < 1) return 'just now';
+
+Expected '=>', got ':'
+
+Import trace:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/admin/security/page.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx:106:56
+Parsing ecmascript source code failed
+  104 |                         </div>
+  105 |                         <div className="text-[10px] text-white/30 h-10 overflow-hidden">
+> 106 |                             {bootSequence > 20 && <div>> Loading Kernel... OK</div>}
+      |                                                        ^
+  107 |                             {bootSequence > 40 && <div>> Decrypting Vault... OK</div>}
+  108 |                             {bootSequence > 60 && <div>> Connecting Hostinger Node... OK</div>}
+  109 |                             {bootSequence > 80 && <div>> Mounting Business Vitals...</div>}
+
+Unexpected token. Did you mean `{'>'}` or `&gt;`?
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Server Component:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/layout.tsx
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx:107:56
+Parsing ecmascript source code failed
+  105 |                         <div className="text-[10px] text-white/30 h-10 overflow-hidden">
+  106 |                             {bootSequence > 20 && <div>> Loading Kernel... OK</div>}
+> 107 |                             {bootSequence > 40 && <div>> Decrypting Vault... OK</div>}
+      |                                                        ^
+  108 |                             {bootSequence > 60 && <div>> Connecting Hostinger Node... OK</div>}
+  109 |                             {bootSequence > 80 && <div>> Mounting Business Vitals...</div>}
+  110 |                         </div>
+
+Unexpected token. Did you mean `{'>'}` or `&gt;`?
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Server Component:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/layout.tsx
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx:108:56
+Parsing ecmascript source code failed
+  106 |                             {bootSequence > 20 && <div>> Loading Kernel... OK</div>}
+  107 |                             {bootSequence > 40 && <div>> Decrypting Vault... OK</div>}
+> 108 |                             {bootSequence > 60 && <div>> Connecting Hostinger Node... OK</div>}
+      |                                                        ^
+  109 |                             {bootSequence > 80 && <div>> Mounting Business Vitals...</div>}
+  110 |                         </div>
+  111 |                     </div>
+
+Unexpected token. Did you mean `{'>'}` or `&gt;`?
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Server Component:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/layout.tsx
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx:109:56
+Parsing ecmascript source code failed
+  107 |                             {bootSequence > 40 && <div>> Decrypting Vault... OK</div>}
+  108 |                             {bootSequence > 60 && <div>> Connecting Hostinger Node... OK</div>}
+> 109 |                             {bootSequence > 80 && <div>> Mounting Business Vitals...</div>}
+      |                                                        ^
+  110 |                         </div>
+  111 |                     </div>
+  112 |                 </div>
+
+Unexpected token. Did you mean `{'>'}` or `&gt;`?
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Server Component:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/layout.tsx
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/PreviewPanel.tsx:146:18
+Parsing ecmascript source code failed
+  144 |                 Preview Coming Soon
+  145 |               </h4>
+> 146 |               <p className="text-sm text-gray-600">
+      |                  ^^^^^^^^^
+  147 |                 Your app will appear here once it's running
+  148 |               </p>
+  149 |               <button className="mt-4 px-4 py-2 bg-teal-500 text-white rounded-md text-sm hover:bg-teal-600">
+
+Expected ';', '}' or <eof>
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/PreviewPanel.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/PreviewPanel.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/studio/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/PreviewPanel.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/studio/page.tsx [Server Component]
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx:5:1
+Module not found: Can't resolve '@/components/ui/badge'
+  3 | import { useState, useMemo } from "react";
+  4 | import { Card } from "@/components/ui/card";
+> 5 | import { Badge } from "@/components/ui/badge";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { Input } from "@/components/ui/input";
+  7 | import { ScrollArea } from "@/components/ui/scroll-area";
+  8 | import { Button } from "@/components/ui/button";
+
+Import map: aliased to relative './src/components/ui/badge' inside of [project]/.gemini/antigravity/scratch/thecubiqo/repo_temp
+
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx:8:1
+Module not found: Can't resolve '@/components/ui/button'
+   6 | import { Input } from "@/components/ui/input";
+   7 | import { ScrollArea } from "@/components/ui/scroll-area";
+>  8 | import { Button } from "@/components/ui/button";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   9 | import { cn } from "@/lib/utils";
+  10 | import { 
+  11 |   Search, 
+
+Import map: aliased to relative './src/components/ui/button' inside of [project]/.gemini/antigravity/scratch/thecubiqo/repo_temp
+
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYColorSelector.tsx:4:1
+Module not found: Can't resolve '@/components/ui/card'
+  2 |
+  3 | import { useState } from "react";
+> 4 | import { Card } from "@/components/ui/card";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 | import { cn } from "@/lib/utils";
+  6 | import { Briefcase, Users, Heart, Zap, TrendingUp, Sparkles, LucideIcon } from "lucide-react";
+  7 |
+
+Import map: aliased to relative './src/components/ui/card' inside of [project]/.gemini/antigravity/scratch/thecubiqo/repo_temp
+
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYColorSelector.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYColorSelector.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYColorSelector.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx:4:1
+Module not found: Can't resolve '@/components/ui/card'
+  2 |
+  3 | import { useState, useMemo } from "react";
+> 4 | import { Card } from "@/components/ui/card";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 | import { Badge } from "@/components/ui/badge";
+  6 | import { Input } from "@/components/ui/input";
+  7 | import { ScrollArea } from "@/components/ui/scroll-area";
+
+Import map: aliased to relative './src/components/ui/card' inside of [project]/.gemini/antigravity/scratch/thecubiqo/repo_temp
+
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx:6:1
+Module not found: Can't resolve '@/components/ui/input'
+  4 | import { Card } from "@/components/ui/card";
+  5 | import { Badge } from "@/components/ui/badge";
+> 6 | import { Input } from "@/components/ui/input";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import { ScrollArea } from "@/components/ui/scroll-area";
+  8 | import { Button } from "@/components/ui/button";
+  9 | import { cn } from "@/lib/utils";
+
+Import map: aliased to relative './src/components/ui/input' inside of [project]/.gemini/antigravity/scratch/thecubiqo/repo_temp
+
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx:7:1
+Module not found: Can't resolve '@/components/ui/scroll-area'
+   5 | import { Badge } from "@/components/ui/badge";
+   6 | import { Input } from "@/components/ui/input";
+>  7 | import { ScrollArea } from "@/components/ui/scroll-area";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   8 | import { Button } from "@/components/ui/button";
+   9 | import { cn } from "@/lib/utils";
+  10 | import { 
+
+Import map: aliased to relative './src/components/ui/scroll-area' inside of [project]/.gemini/antigravity/scratch/thecubiqo/repo_temp
+
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYColorSelector.tsx:5:1
+Module not found: Can't resolve '@/lib/utils'
+  3 | import { useState } from "react";
+  4 | import { Card } from "@/components/ui/card";
+> 5 | import { cn } from "@/lib/utils";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { Briefcase, Users, Heart, Zap, TrendingUp, Sparkles, LucideIcon } from "lucide-react";
+  7 |
+  8 | type ColorType = "green" | "yellow" | "red";
+
+Import map: aliased to relative './src/lib/utils' inside of [project]/.gemini/antigravity/scratch/thecubiqo/repo_temp
+
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYColorSelector.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYColorSelector.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYColorSelector.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx:9:1
+Module not found: Can't resolve '@/lib/utils'
+   7 | import { ScrollArea } from "@/components/ui/scroll-area";
+   8 | import { Button } from "@/components/ui/button";
+>  9 | import { cn } from "@/lib/utils";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 | import { 
+  11 |   Search, 
+  12 |   Users2, 
+
+Import map: aliased to relative './src/lib/utils' inside of [project]/.gemini/antigravity/scratch/thecubiqo/repo_temp
+
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/FullscreenApp.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/lib/cache/redis.ts:2:1
+Module not found: Can't resolve 'ioredis'
+  1 | // Redis client for caching and session management
+> 2 | import Redis from 'ioredis';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 |
+  4 | let redis: Redis | null = null;
+  5 |
+
+
+
+Import traces:
+  #1 [App Route]:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/lib/cache/redis.ts
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  #2 [App Route]:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/lib/cache/redis.ts
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/lib/cache/performance.ts
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/metrics/performance/route.ts
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/admin/security/page.tsx:36:18)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx:106:56)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx:107:56)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx:108:56)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/codexo/CodexoPanel.tsx:109:56)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/PreviewPanel.tsx:146:18)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx:5:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx:8:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYColorSelector.tsx:4:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx:4:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx:7:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYColorSelector.tsx:5:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx:9:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/lib/cache/redis.ts:2:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)

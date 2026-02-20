@@ -167,6 +167,7 @@ const organizationJsonLd = {
 };
 
 import CodexoPanel from "@/components/codexo/CodexoPanel";
+import { SupportChatbot } from "@/components/support/SupportChatbot";
 
 export default function RootLayout({
   children,
@@ -200,6 +201,7 @@ export default function RootLayout({
           {children}
         </ClientProviders>
         <CodexoPanel />
+        <SupportChatbot />
         <ServiceWorkerRegistration />
         <PWAInstallPrompt />
         <Analytics />

@@ -41,7 +41,7 @@ export default function PreviewPanel() {
             </h3>
           </div>
           <div className="flex gap-2">
-            <button 
+            <button
               onClick={() => {
                 setIsLoading(true);
                 setTimeout(() => setIsLoading(false), 500);
@@ -53,7 +53,7 @@ export default function PreviewPanel() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </button>
-            <button 
+            <button
               className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-all"
               title="Open in new window"
             >
@@ -63,7 +63,7 @@ export default function PreviewPanel() {
             </button>
           </div>
         </div>
-        
+
         {/* URL Bar */}
         <div className="flex items-center gap-2 bg-gray-900 rounded-lg px-3 py-2 mb-3 border border-gray-700">
           <span className="text-xs text-gray-500">🔒</span>
@@ -80,31 +80,28 @@ export default function PreviewPanel() {
         <div className="flex gap-1 bg-gray-900 rounded-lg p-1">
           <button
             onClick={() => setDeviceMode('desktop')}
-            className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${
-              deviceMode === 'desktop'
+            className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${deviceMode === 'desktop'
                 ? 'bg-teal-500 text-white'
                 : 'text-gray-400 hover:text-white hover:bg-gray-800'
-            }`}
+              }`}
           >
             🖥️ Desktop
           </button>
           <button
             onClick={() => setDeviceMode('tablet')}
-            className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${
-              deviceMode === 'tablet'
+            className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${deviceMode === 'tablet'
                 ? 'bg-teal-500 text-white'
                 : 'text-gray-400 hover:text-white hover:bg-gray-800'
-            }`}
+              }`}
           >
             📱 Tablet
           </button>
           <button
             onClick={() => setDeviceMode('mobile')}
-            className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${
-              deviceMode === 'mobile'
+            className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${deviceMode === 'mobile'
                 ? 'bg-teal-500 text-white'
                 : 'text-gray-400 hover:text-white hover:bg-gray-800'
-            }`}
+              }`}
           >
             📱 Mobile
           </button>
@@ -136,41 +133,6 @@ export default function PreviewPanel() {
             />
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-              <h4 className="text-lg font-semibold text-gray-800 mb-2">
-                Preview Coming Soon
-              </h4>
-              <p className="text-sm text-gray-600">
-                Your app will appear here once it's running
-              </p>
-              <button className="mt-4 px-4 py-2 bg-teal-500 text-white rounded-md text-sm hover:bg-teal-600">
-                Start Dev Server
-              </button>
-            </div>
-          </div>
-        ) : (
-          <iframe
-            src={previewUrl}
-            className="w-full h-full border-0"
-            title="Preview"
-          />
-        )}
-      </div>
-
-      {/* Device Selector */}
-      <div className="p-2 border-t border-gray-700 flex items-center gap-2 justify-center">
-        <button className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded">
-          💻 Desktop
-        </button>
-        <button className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded">
-          📱 Mobile
-        </button>
-        <button className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded">
-          📱 Tablet
-        </button>
       </div>
     </div>
   );

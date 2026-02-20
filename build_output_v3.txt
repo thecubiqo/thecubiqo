@@ -1,0 +1,162 @@
+npm warn config global-style This option has been deprecated in favor of `--install-strategy=shallow`
+
+> cubiqo@2.0.0 build
+> next build
+
+ΓÜá `eslint` configuration in next.config.js is no longer supported. See more info here: https://nextjs.org/docs/app/api-reference/cli/next#next-lint-options
+ΓÜá Invalid next.config.js options detected: 
+ΓÜá     Unrecognized key(s) in object: 'eslint'
+ΓÜá See more info here: https://nextjs.org/docs/messages/invalid-next-config
+ΓÜá Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\avloy\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\avloy\.gemini\antigravity\scratch\thecubiqo\repo_temp\package-lock.json
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+Found 1 warning while optimizing generated CSS:
+
+Γöé   }
+Γöé }
+Γöé @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+Γöå        ^-- @import rules must precede all rules aside from @charset and @layer statements
+Γöå
+Γöé :root {
+Γöé   --background: #ffffff;
+
+
+> Build error occurred
+Error: Turbopack build failed with 4 errors:
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx:5:1
+Module not found: Can't resolve '@xterm/addon-fit'
+  3 | import { useEffect, useRef } from 'react';
+  4 | import { Terminal } from '@xterm/xterm';
+> 5 | import { FitAddon } from '@xterm/addon-fit';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import '@xterm/xterm/css/xterm.css';
+  7 |
+  8 | export default function TerminalPanel() {
+
+
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/studio/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/studio/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx:4:1
+Module not found: Can't resolve '@xterm/xterm'
+  2 |
+  3 | import { useEffect, useRef } from 'react';
+> 4 | import { Terminal } from '@xterm/xterm';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 | import { FitAddon } from '@xterm/addon-fit';
+  6 | import '@xterm/xterm/css/xterm.css';
+  7 |
+
+
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/studio/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/studio/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx:6:1
+Module not found: Can't resolve '@xterm/xterm/css/xterm.css'
+  4 | import { Terminal } from '@xterm/xterm';
+  5 | import { FitAddon } from '@xterm/addon-fit';
+> 6 | import '@xterm/xterm/css/xterm.css';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 |
+  8 | export default function TerminalPanel() {
+  9 |   const terminalRef = useRef<HTMLDivElement>(null);
+
+
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Client Component Browser]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/studio/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Client Component SSR]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/StudioLayout.tsx [Server Component]
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/studio/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/lib/emergent/runner/docker-manager.ts:6:1
+Module not found: Can't resolve 'dockerode'
+  4 |  */
+  5 |
+> 6 | import Docker from 'dockerode';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 |
+  8 | export interface ContainerConfig {
+  9 |   projectId: string;
+
+
+
+Import traces:
+  #1 [App Route]:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/lib/emergent/runner/docker-manager.ts
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/code/terminal/route.ts
+
+  #2 [App Route]:
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/lib/emergent/runner/docker-manager.ts
+    ./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/api/emergent/workspaces/route.ts
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx:5:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx:4:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/studio/TerminalPanel.tsx:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./.gemini/antigravity/scratch/thecubiqo/repo_temp/src/lib/emergent/runner/docker-manager.ts:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)

@@ -39,6 +39,8 @@ export class TwitterService {
           return await this.postTweet(command);
         case 'read':
           return await this.readTimeline();
+        case 'search':
+          return await this.searchTweets(command);
         case 'reply':
           return await this.replyToTweet(command);
         default:
@@ -53,6 +55,48 @@ export class TwitterService {
         error: error instanceof Error ? error.message : 'Twitter operation failed',
       };
     }
+  }
+
+  /**
+   * Search for tweets
+   */
+  private async searchTweets(command: TwitterCommand): Promise<CommandResult> {
+    const { query, text } = command;
+    const searchTerm = query || text;
+
+    if (!searchTerm) {
+      return {
+        success: false,
+        error: 'Search query required',
+      };
+    }
+
+    // Navigate to search
+    await this.browser.executeAction({
+      type: 'navigate',
+      url: `https://twitter.com/search?q=${encodeURIComponent(searchTerm)}&f=live`,
+    });
+
+    // Wait for results
+    await this.browser.executeAction({
+      type: 'wait',
+      condition: 'selector',
+      value: 'article[data-testid="tweet"]',
+    });
+
+    // Scrape results
+    const result = await this.browser.executeAction({
+      type: 'scrape',
+      selectors: {
+        tweets: 'article[data-testid="tweet"]',
+      },
+    });
+
+    return {
+      success: true,
+      data: result.data,
+      message: `Found tweets for ${searchTerm}`,
+    };
   }
 
   /**
@@ -90,7 +134,7 @@ export class TwitterService {
 
     // TODO: Handle media uploads if provided
     if (media && media.length > 0) {
-      
+
     }
 
     // Click tweet button
@@ -221,7 +265,7 @@ export class TwitterService {
   static getAuthUrl(): string {
     const clientId = process.env.NEXT_PUBLIC_TWITTER_CLIENT_ID;
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/oauth/twitter/callback`;
-    
+
     const scopes = ['tweet.read', 'tweet.write', 'users.read'].join(' ');
 
     return `https://twitter.com/i/oauth2/authorize?` +

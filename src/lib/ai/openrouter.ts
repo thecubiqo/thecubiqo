@@ -16,7 +16,7 @@ export const OPENROUTER_CONFIG = {
 
 export interface OpenRouterMessage {
     role: 'user' | 'assistant' | 'system'
-    content: string
+    content: string | any[] // Support for multimodal content (text + items)
 }
 
 export interface OpenRouterResponse {

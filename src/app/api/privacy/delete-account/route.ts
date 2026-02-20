@@ -21,7 +21,7 @@ export async function DELETE(request: NextRequest) {
       {
         cookies: {
           getAll: () => cookieStore.getAll().map(c => ({ name: c.name, value: c.value })),
-          setAll: () => {},
+          setAll: () => { },
         },
       }
     );
@@ -37,12 +37,12 @@ export async function DELETE(request: NextRequest) {
 
     // Rate limiting
     const identifier = getClientIdentifier(request.headers, user.id);
-    const rateLimit = await checkRateLimit(identifier, 'auth');
+    const rateLimit = await checkRateLimit(identifier, 'AUTH');
 
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: 'Rate limit exceeded. Please try again later.' },
-        { 
+        {
           status: 429,
           headers: getRateLimitHeaders(rateLimit),
         }
@@ -56,7 +56,7 @@ export async function DELETE(request: NextRequest) {
     // Confirm deletion (require explicit confirmation)
     if (!body.confirm) {
       return NextResponse.json(
-        { 
+        {
           error: 'Deletion requires explicit confirmation',
           message: 'Please set "confirm": true in request body'
         },
@@ -86,8 +86,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json(
       {
-        success: true,
-        message: immediate 
+        message: immediate
           ? 'Your account and all associated data have been deleted.'
           : `Your account deletion has been scheduled for ${result.scheduledFor}. You can cancel this request within 30 days.`,
         ...result,
