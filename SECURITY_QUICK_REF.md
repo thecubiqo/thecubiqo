@@ -1,173 +1,185 @@
-# Security & Testing Quick Reference
+# Security Implementation Quick Reference
 
-## 🚀 Quick Start
-
-### Run All Tests
-```bash
-npm test -- tests/security --run
-```
-
-### View Security Documentation
-- **Security Policy**: [SECURITY.md](./SECURITY.md)
-- **Testing Guide**: [TESTING_GUIDE.md](./TESTING_GUIDE.md)
-- **Monitoring Guide**: [MONITORING_GUIDE.md](./MONITORING_GUIDE.md)
-- **Privacy Policy**: [PRIVACY_POLICY.md](./PRIVACY_POLICY.md)
-
-## 🔒 Security Features
-
-### Rate Limiting
-```typescript
-import { checkRateLimit } from '@/lib/security/rate-limit';
-
-const result = await checkRateLimit(identifier, 'api');
-if (!result.allowed) {
-  return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
-}
-```
-
-### Link Scanning
-```typescript
-import { scanUrl } from '@/lib/security/link-scanner';
-
-const result = await scanUrl(userProvidedUrl);
-if (!result.safe) {
-  // Warn user or block URL
-}
-```
-
-### Fraud Detection
-```typescript
-import { analyzeTransaction } from '@/lib/security/fraud-detection';
-
-const analysis = await analyzeTransaction({
-  userId,
-  action: 'purchase',
-  amount: 500,
-  metadata: {},
-});
-
-if (analysis.recommendation === 'block') {
-  // Block transaction
-}
-```
-
-## 🔐 Privacy API
-
-### Export User Data
-```bash
-GET /api/privacy/export-data?format=json
-Authorization: Bearer <token>
-```
-
-### Delete Account
-```bash
-DELETE /api/privacy/delete-account
-Content-Type: application/json
-
-{
-  "confirm": true,
-  "immediate": false
-}
-```
-
-### Manage Consent
-```bash
-PUT /api/privacy/consent
-Content-Type: application/json
-
-{
-  "analytics": true,
-  "marketing": false
-}
-```
-
-## 📊 Monitoring
-
-### Health Check
-```bash
-curl https://cubiqo.ai/api/founders-pass/health
-```
-
-### Key Metrics
-- Error Rate: < 5%
-- Response Time: P95 < 2000ms
-- Failed Auth Rate: < 10%
-- Rate Limit Blocks: Monitor
-
-## 🚨 Incident Response
-
-### Severity Levels
-- **Critical**: Page on-call immediately
-- **High**: Email + Slack within 15 min
-- **Medium**: Slack within 1 hour
-- **Low**: Next business day
-
-### Quick Actions
-
-**DDoS Attack:**
-1. Enable Cloudflare DDoS protection
-2. Increase rate limits
-3. Block malicious IPs
-
-**Brute Force:**
-1. Lock affected accounts
-2. Block attacking IPs
-3. Require MFA
-
-**Data Breach:**
-1. Revoke all tokens
-2. Force password resets
-3. Notify security team
-
-## 📝 Testing
-
-### Security Tests
-```bash
-# Run security tests
-npm test -- tests/security --run
-
-# Run with coverage
-npm test -- tests/security --coverage
-
-# Watch mode
-npm test -- tests/security
-```
-
-### Test Stats
-- Total: 66 tests
-- Pass Rate: 100%
-- Execution: ~1.8s
-
-## 📞 Contacts
-
-- **Security**: security@cubiqo.ai
-- **Privacy**: privacy@cubiqo.ai
-- **Support**: support@cubiqo.ai
-- **On-Call**: Check admin dashboard
-
-## 🔗 Links
-
-- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [GDPR Guide](https://gdpr.eu/)
-- [CCPA Guide](https://oag.ca.gov/privacy/ccpa)
-- [GitHub Security](https://github.com/thecubiqo/thecubiqo/security)
-
-## ✅ Production Checklist
-
-Before deploying to production:
-
-- [ ] Environment variables configured
-- [ ] Monitoring tools set up (Datadog/Sentry)
-- [ ] Alerting configured (Slack/Email)
-- [ ] WAF enabled (Cloudflare)
-- [ ] All tests passing
-- [ ] Security audit completed
-- [ ] Privacy policy reviewed
-- [ ] Team trained on incident response
-- [ ] Backups configured
-- [ ] SSL certificates valid
+**Last Updated**: 2025-01-XX  
+**Status**: 🔴 Action Required
 
 ---
 
-**Last Updated**: February 18, 2026  
-**Version**: 1.0.0
+## Current Security Grade: 🟡 B-
+
+### ✅ Strengths
+- Supabase Auth with JWT
+- OAuth encryption (AES-256-GCM)
+- Row-Level Security (RLS)
+- GDPR-ready data privacy
+- AI spending caps
+
+### 🔴 Critical Gaps
+1. **Unauthenticated admin endpoint** (`/api/admin/journal`)
+2. **Weak admin auth** (`x-founder-auth` header)
+3. **Missing security headers** (CSP, HSTS, etc.)
+4. **No input validation** (missing Zod schemas)
+5. **CORS allows all origins** (`*`)
+
+---
+
+## 🚀 Phase 1: Critical Fixes (1-2 Weeks)
+
+### Priority Tasks
+
+| # | Task | Assignee | Effort | Status |
+|---|------|----------|--------|--------|
+| 1 | Add security headers | Bubbles | 1h | ⏳ Pending |
+| 2 | Fix `/api/admin/journal` auth | Blossom | 30min | ⏳ Pending |
+| 3 | Strengthen admin auth | Blossom | 1 day | ⏳ Pending |
+| 4 | Add Zod validation | Blossom | 2-3 days | ⏳ Pending |
+| 5 | Restrict CORS origins | Blossom | 30min | ⏳ Pending |
+
+**Total Effort**: 4-5 days  
+**All code changes** - No infrastructure dependencies
+
+---
+
+## 📦 Required Dependencies
+
+```bash
+npm install zod
+```
+
+---
+
+## 🔧 Quick Fixes (Can do now)
+
+### 1. Security Headers (1 hour)
+```typescript
+// next.config.ts - Add security headers
+const securityHeaders = [
+  { key: 'Strict-Transport-Security', value: 'max-age=63072000' },
+  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  // ... see SECURITY_PHASE1_IMPLEMENTATION.md for full list
+]
+```
+
+### 2. Fix Admin Endpoint (30 minutes)
+```typescript
+// src/app/api/admin/journal/route.ts
+export async function GET(req: NextRequest) {
+  const supabase = await createServerClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  
+  if (error || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  
+  // Verify admin role...
+  // Continue with business logic...
+}
+```
+
+### 3. Input Validation (2-3 days)
+```typescript
+// src/lib/validation/schemas.ts
+import { z } from 'zod'
+
+export const ChatRequestSchema = z.object({
+  message: z.string().min(1).max(5000),
+  sessionId: z.string().uuid().optional()
+})
+
+// Apply to routes:
+const validation = validateRequest(ChatRequestSchema, body)
+if (!validation.success) {
+  return NextResponse.json({ error: validation.error }, { status: 400 })
+}
+```
+
+---
+
+## 📊 Implementation Progress
+
+```
+Phase 1: Critical Security Fixes
+┌────────────────────────────────────────────┐
+│ ⏳ Security Headers          [░░░░░] 0%   │
+│ ⏳ Admin Auth Fix            [░░░░░] 0%   │
+│ ⏳ Admin Auth Strengthen     [░░░░░] 0%   │
+│ ⏳ Input Validation          [░░░░░] 0%   │
+│ ⏳ CORS Restriction          [░░░░░] 0%   │
+├────────────────────────────────────────────┤
+│ Overall Progress:            [░░░░░] 0%   │
+└────────────────────────────────────────────┘
+```
+
+---
+
+## 🎯 Success Criteria
+
+- [ ] No unauthenticated admin endpoints
+- [ ] All admin endpoints use JWT-based auth
+- [ ] Security headers on all responses
+- [ ] Input validation on all API routes
+- [ ] CORS restricted to known origins
+- [ ] All tests passing
+- [ ] Code review approved by MO
+
+---
+
+## 📚 Documentation
+
+- **Full Architecture**: `SECURITY_ARCHITECTURE.md`
+- **Implementation Guide**: `SECURITY_PHASE1_IMPLEMENTATION.md`
+- **This Quick Ref**: `SECURITY_QUICK_REF.md`
+
+---
+
+## 🚦 Next Phases
+
+### Phase 2 (4-6 weeks) - Infrastructure
+- MFA/2FA (Supabase MFA API)
+- Distributed rate limiting (Upstash Redis)
+- WAF (Cloudflare)
+- Data export API (GDPR)
+- Centralized auth middleware
+
+### Phase 3 (2-3 months) - Advanced
+- Payment processing (Stripe SDK)
+- SIEM integration (Datadog)
+- AI prompt injection protection
+- Anomaly detection
+- Bot protection
+
+---
+
+## 💰 Cost Estimate
+
+| Phase | Cost | Notes |
+|-------|------|-------|
+| Phase 1 | $0 | Code changes only |
+| Phase 2 | $0-50/mo | Free tiers available |
+| Phase 3 | $600-1000/mo | Enterprise tools |
+
+---
+
+## 🆘 Need Help?
+
+- **Technical**: Ask MO (CTO)
+- **Implementation**: Blossom (Backend Lead)
+- **Testing**: Buttercup (QA Lead)
+
+---
+
+## ⚡ Start Here
+
+1. Read `SECURITY_ARCHITECTURE.md` for full context
+2. Follow `SECURITY_PHASE1_IMPLEMENTATION.md` step-by-step
+3. Complete tasks in priority order
+4. Run tests after each task
+5. Request code review from MO
+
+**Estimated Timeline**: Start → 1 week → Code Review → Deploy
+
+---
+
+*"Security is not a feature, it's a foundation."* — MO, CTO
+
