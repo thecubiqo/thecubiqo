@@ -16,6 +16,11 @@ import type { ProviderConfig, ExperimentalProvider, AllProviders } from '../type
 /**
  * Extended Provider Configuration with feature flag support
  * Accepts both core and experimental provider names
+ * 
+ * Note: We omit the 'name' field from ProviderConfig and redefine it
+ * to allow AllProviders (core + experimental) instead of just AIProvider.
+ * This enables experimental providers like OpenClaw to be registered
+ * without modifying the core AIProvider type.
  */
 export interface ExtendedProviderConfig extends Omit<ProviderConfig, 'name'> {
   /**
@@ -104,14 +109,6 @@ export function validateOpenClawConfig(): { valid: boolean; message?: string } {
     return {
       valid: false,
       message: 'OpenClaw is not enabled. Set OPENCLAW_API_KEY or OPENROUTER_KEY_CUBIKEY to enable.'
-    }
-  }
-  
-  const apiKey = process.env.OPENCLAW_API_KEY || process.env.OPENROUTER_KEY_CUBIKEY
-  if (!apiKey) {
-    return {
-      valid: false,
-      message: 'OpenClaw API key not found in environment'
     }
   }
   
