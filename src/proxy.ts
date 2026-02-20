@@ -59,7 +59,7 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   return response
 }
 
-export async function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -92,8 +92,6 @@ export async function proxy(request: NextRequest) {
   supabaseResponse = applySecurityHeaders(supabaseResponse)
   return supabaseResponse
 }
-
-export default proxy
 
 export const config = {
   matcher: [
