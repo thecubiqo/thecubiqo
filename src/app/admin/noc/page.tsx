@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-  const [loading, setLoading] = useState(false);
 import { Terminal, Shield, Cpu, Activity } from 'lucide-react';
 
 interface Agent {
@@ -14,23 +13,81 @@ interface Agent {
     memory: number;
 }
 
-export default function NOCDashboard() {
-    const [agents, setAgents] = useState<Agent[]>([
-        { id: 'agt-01', name: 'Orchestrator', status: 'active', model: 'Gemini 1.5 Pro', uptime: '4d 12h', cpu: 45, memory: 128 },
-        { id: 'agt-02', name: 'Coding Agent', status: 'idle', model: 'Claude 3.5 Sonnet', uptime: '1d 4h', cpu: 12, memory: 512 },
-        { id: 'agt-03', name: 'Memory Agent', status: 'active', model: 'Gemini 1.5 Flash', uptime: '4d 12h', cpu: 28, memory: 256 },
-        { id: 'agt-04', name: 'Marketing Agent', status: 'offline', model: 'GPT-4o', uptime: '0h', cpu: 0, memory: 0 },
-    ]);
+interface AdminStatsAgent {
+    id: string;
+    name: string;
+    status: string;
+    model: string;
+    activeTasks: number;
+    totalTasks: number;
+    createdAt: string;
+    updatedAt: string;
+}
 
+interface SystemEvent {
+    sessionId: string;
+    agentId: string;
+    channel: string;
+    status: string;
+    messageCount: number;
+    updatedAt: string;
+}
+
+function formatUptime(createdAt: string): string {
+    const ms = Date.now() - new Date(createdAt).getTime();
+    const totalSecs = Math.floor(ms / 1000);
+    const days = Math.floor(totalSecs / 86400);
+    const hours = Math.floor((totalSecs % 86400) / 3600);
+    if (days > 0) return `${days}d ${hours}h`;
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    return `${hours}h ${mins}m`;
+}
+
+function mapStatus(status: string): Agent['status'] {
+    if (status === 'running') return 'active';
+    if (status === 'idle') return 'idle';
+    if (status === 'error') return 'error';
+    return 'offline';
+}
+
+export default function NOCDashboard() {
+    const [agents, setAgents] = useState<Agent[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchStats = async () => {
+        try {
+            const res = await fetch('/api/admin/stats');
+            if (!res.ok) return;
+            const data = await res.json();
+
+            const mapped: Agent[] = (data.agents as AdminStatsAgent[]).map(a => ({
+                id: a.id,
+                name: a.name,
+                status: mapStatus(a.status),
+                model: a.model,
+                uptime: formatUptime(a.createdAt),
+                cpu: a.activeTasks,
+                memory: a.totalTasks,
+            }));
+            setAgents(mapped);
+
+            // Build log lines from recent activity
+            const activityLogs: string[] = (data.recentActivity as SystemEvent[]).map(
+                (ev) =>
+                    `[${new Date(ev.updatedAt).toISOString()}] INFO: ${ev.agentId} — ${ev.channel} session ${ev.sessionId.slice(0, 8)} (${ev.status}, ${ev.messageCount} msgs)`
+            );
+            setLogs(activityLogs.slice(0, 20));
+        } catch {
+            // silently handle
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-    setLoading(true);
-        // Simulate log stream
-        const interval = setInterval(() => {
-            const newLog = `[${new Date().toISOString()}] INFO: Heartbeat received from agt-01`;
-            setLogs(prev => [newLog, ...prev.slice(0, 19)]);
-        }, 2000);
+        fetchStats();
+        const interval = setInterval(fetchStats, 5000);
         return () => clearInterval(interval);
     }, []);
 
@@ -50,53 +107,52 @@ export default function NOCDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Agent Grid */}
                 <div className="space-y-4">
-                    {agents.map(agent => (
-                        <div key={agent.id} className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between group hover:border-orange-500/30 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className={`w-3 h-3 rounded-full ${agent.status === 'active' ? 'bg-green-500 animate-pulse' : agent.status === 'idle' ? 'bg-yellow-500' : 'bg-red-500'}`} />
-                                <div>
-                                    <h3 className="font-bold text-lg">{agent.name}</h3>
-                                    <p className="text-xs text-gray-400 font-mono">{agent.id} • {agent.model}</p>
+                    {loading ? (
+                        <p className="text-sm text-gray-500">Loading agents…</p>
+                    ) : agents.length === 0 ? (
+                        <p className="text-sm text-gray-500">No agents running.</p>
+                    ) : (
+                        agents.map(agent => (
+                            <div key={agent.id} className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between group hover:border-orange-500/30 transition-all">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-3 h-3 rounded-full ${agent.status === 'active' ? 'bg-green-500 animate-pulse' : agent.status === 'idle' ? 'bg-yellow-500' : 'bg-red-500'}`} />
+                                    <div>
+                                        <h3 className="font-bold text-lg">{agent.name}</h3>
+                                        <p className="text-xs text-gray-400 font-mono">{agent.id.slice(0, 8)}… • {agent.model}</p>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="flex items-center gap-6 text-sm text-gray-400">
-                                <div className="flex flex-col items-end">
-                                    <span className="text-xs uppercase tracking-wider">Uptime</span>
-                                    <span className="font-mono text-white">{agent.uptime}</span>
-                                </div>
-                                <div className="flex flex-col items-end w-20">
-                                    <span className="text-xs uppercase tracking-wider flex items-center gap-1"><Cpu size={10} /> Load</span>
-                                    <div className="w-full bg-white/10 h-1.5 rounded-full mt-1">
-                                        <div className="bg-orange-500 h-full rounded-full transition-all duration-500" style={{ width: `${agent.cpu}%` }} />
+                                <div className="flex items-center gap-6 text-sm text-gray-400">
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-xs uppercase tracking-wider">Uptime</span>
+                                        <span className="font-mono text-white">{agent.uptime}</span>
+                                    </div>
+                                    <div className="flex flex-col items-end w-20">
+                                        <span className="text-xs uppercase tracking-wider flex items-center gap-1"><Cpu size={10} /> Tasks</span>
+                                        <span className="font-mono text-white text-xs">{agent.cpu}/{agent.memory}</span>
                                     </div>
                                 </div>
                             </div>
-
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                                <button className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white" title="Restart">
-                                    <Activity size={16} />
-                                </button>
-                                <button className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white" title="Logs">
-                                    <Terminal size={16} />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
 
-                {/* Live Logs Console */}
+                {/* Live Activity Console */}
                 <div className="bg-black/80 border border-white/10 rounded-xl p-4 font-mono text-xs text-green-400 h-[600px] overflow-hidden flex flex-col">
                     <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
-                        <span className="flex items-center gap-2"><Terminal size={14} /> SYSTEM.LOG</span>
+                        <span className="flex items-center gap-2"><Terminal size={14} /> ACTIVITY.LOG</span>
                         <span className="text-gray-500">Live Stream</span>
                     </div>
                     <div className="flex-1 overflow-y-auto space-y-1 scrollbar-hide">
-                        {logs.map((log, i) => (
-                            <div key={i} className="opacity-80 hover:opacity-100 transition-opacity">
-                                {log}
-                            </div>
-                        ))}
+                        {logs.length === 0 ? (
+                            <div className="text-gray-600">No recent activity…</div>
+                        ) : (
+                            logs.map((log, i) => (
+                                <div key={i} className="opacity-80 hover:opacity-100 transition-opacity">
+                                    {log}
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             </div>

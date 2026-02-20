@@ -1,14 +1,16 @@
 'use client'
 
 /**
- * CubeScene - Canvas wrapper for the 3D Cube
+ * CubeScene - Canvas wrapper for the advanced shader-based EnergyCube.
  *
- * Staging UI swap: replace legacy cuboid-with-eyes with the shader-based EnergyCube.
+ * Uses the cube/EnergyCube directly (with ColorName config and AnimationState)
+ * instead of bridging through energy-cube/ wireframe variant.
  */
 
-import { useMemo } from 'react'
-import { EnergyCubeScene } from '@/components/energy-cube'
-import type { EnergyCubeColor, EnergyCubeMode } from '@/components/energy-cube'
+import { Suspense, useMemo } from 'react'
+import { Canvas } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'
+import { EnergyCube } from './EnergyCube'
 import type { AnimationState } from './Cube'
 import type { ColorName } from '@/config/colors'
 
@@ -16,35 +18,6 @@ interface CubeSceneProps {
   colorName?: ColorName
   animationState?: AnimationState
   className?: string
-}
-
-function mapColor(colorName: ColorName): EnergyCubeColor {
-  // Default in Cubiqo is ORANGE; user explicitly asked for an orange placeholder.
-  switch (colorName) {
-    case 'RED':
-      return 'red'
-    case 'YELLOW':
-      return 'yellow'
-    case 'ORANGE':
-      return 'orange'
-    // Map any other colors to green until we design a fuller palette.
-    default:
-      return 'green'
-  }
-}
-
-function mapMode(animationState: AnimationState): EnergyCubeMode {
-  switch (animationState) {
-    case 'speaking':
-      return 'speaking'
-    case 'thinking':
-      return 'processing'
-    case 'listening':
-      return 'listening'
-    case 'idle':
-    default:
-      return 'listening'
-  }
 }
 
 export function CubeScene({
@@ -63,11 +36,35 @@ export function CubeScene({
 
   return (
     <div className={`w-full h-full ${className}`}>
-      <EnergyCubeScene
-        color={mapColor(colorName)}
-        mode={mapMode(animationState)}
-        reducedMotion={reducedMotion}
-      />
+      <Canvas
+        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+        camera={{ position: [0, 0.5, 3.5], fov: 50 }}
+        dpr={[1, 2]}
+        style={{ background: 'transparent' }}
+      >
+        <OrbitControls
+          enablePan={false}
+          enableRotate={false}
+          enableZoom={true}
+          minDistance={2}
+          maxDistance={6}
+          dampingFactor={0.05}
+          target={[0, 0.1, 0]}
+        />
+
+        <ambientLight intensity={0.15} />
+        <directionalLight position={[5, 5, 5]} intensity={0.4} color="#ffffff" />
+        <directionalLight position={[-5, -2, -5]} intensity={0.2} color="#4488ff" />
+        <pointLight position={[0, 3, -3]} intensity={0.3} color="#ffffff" />
+
+        <Suspense fallback={null}>
+          <EnergyCube
+            colorName={colorName}
+            animationState={animationState}
+            reducedMotion={reducedMotion}
+          />
+        </Suspense>
+      </Canvas>
     </div>
   )
 }

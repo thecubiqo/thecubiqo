@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createCallManager, isWebRTCSupported } from '../webrtc-calls';
 import type { CQCallManager } from '../webrtc-calls';
+import type { CameraFacingMode } from '../types';
 
 export function useCQCalls(userId: string) {
   const [isInCall, setIsInCall] = useState(false);
@@ -16,6 +17,7 @@ export function useCQCalls(userId: string) {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [facingMode, setFacingMode] = useState<CameraFacingMode>('user');
 
   const callManagerRef = useRef<CQCallManager | null>(null);
 
@@ -110,6 +112,7 @@ export function useCQCalls(userId: string) {
       setIsMuted(false);
       setIsCameraOff(false);
       setIsScreenSharing(false);
+      setFacingMode('user');
     } catch (error) {
       
     }
@@ -168,6 +171,22 @@ export function useCQCalls(userId: string) {
     }
   }, []);
 
+  /**
+   * Switch between front and back camera
+   */
+  const switchCamera = useCallback(async () => {
+    if (!callManagerRef.current) return;
+
+    try {
+      const newMode = await callManagerRef.current.switchCamera();
+      setFacingMode(newMode);
+      setLocalStream(callManagerRef.current.getLocalStream());
+    } catch (error) {
+      console.error('Error switching camera:', error);
+      throw error;
+    }
+  }, []);
+
   return {
     isInCall,
     callType,
@@ -176,11 +195,13 @@ export function useCQCalls(userId: string) {
     isScreenSharing,
     localStream,
     remoteStream,
+    facingMode,
     startCall,
     answerCall,
     endCall,
     toggleMute,
     toggleCamera,
+    switchCamera,
     startScreenShare,
     stopScreenShare,
   };

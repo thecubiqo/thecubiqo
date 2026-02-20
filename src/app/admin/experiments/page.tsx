@@ -171,12 +171,12 @@ export default async function ExperimentsPage() {
                                     <div className="p-4 bg-black/30 rounded-2xl border border-gray-800/60 flex items-center justify-between">
                                         <div className="flex items-center gap-4 text-xs font-bold text-gray-500 uppercase tracking-widest px-4">
                                             <span>Pulse Trace</span>
-                                            <div className="flex gap-1">
+                                            <div className="flex gap-1 items-end">
                                                 {[...Array(20)].map((_, i) => (
                                                     <div
                                                         key={i}
                                                         className="w-1 bg-purple-500/40 rounded-full"
-                                                        style={{ height: `${Math.random() * 20 + 5}px` }}
+                                                        style={{ height: `${Math.round(Math.sin(i * 0.8) * 8 + 12)}px` }}
                                                     />
                                                 ))}
                                             </div>

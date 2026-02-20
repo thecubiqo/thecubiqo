@@ -79,13 +79,14 @@ export function generateReport(
 }
 
 /**
- * Format report as HTML for email
+ * Format report as HTML for email, including daily summary metrics
  */
 export function formatReportAsHtml(report: SelfHealReport): string {
   const statusColor = report.status === 'success' ? '#10b981' : 
                       report.status === 'partial' ? '#f59e0b' : '#ef4444';
   const statusIcon = report.status === 'success' ? '✓' : 
                      report.status === 'partial' ? '⚠' : '✗';
+  const summary = report.summary;
 
   return `
 <!DOCTYPE html>
@@ -175,6 +176,28 @@ export function formatReportAsHtml(report: SelfHealReport): string {
     .status-healthy { color: #10b981; font-weight: bold; }
     .status-warning { color: #f59e0b; font-weight: bold; }
     .status-critical { color: #ef4444; font-weight: bold; }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin: 15px 0;
+    }
+    .summary-card {
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .summary-card .value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #1f2937;
+    }
+    .summary-card .label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
     .footer {
       margin-top: 40px;
       padding-top: 20px;
@@ -201,6 +224,38 @@ export function formatReportAsHtml(report: SelfHealReport): string {
         <span>⏱️ Execution Time: ${report.executionTimeMs}ms</span>
       </div>
     </div>
+
+    ${summary ? `
+    <div class="section">
+      <div class="section-title">📊 Daily Summary</div>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="value" style="color: #10b981;">${summary.uptimePercentage}%</div>
+          <div class="label">Health Score</div>
+        </div>
+        <div class="summary-card">
+          <div class="value">${summary.totalChecks}</div>
+          <div class="label">Total Checks</div>
+        </div>
+        <div class="summary-card">
+          <div class="value" style="color: #10b981;">${summary.healthyChecks}</div>
+          <div class="label">Healthy</div>
+        </div>
+        <div class="summary-card">
+          <div class="value" style="color: ${summary.criticalChecks > 0 ? '#ef4444' : '#6b7280'};">${summary.criticalChecks}</div>
+          <div class="label">Critical</div>
+        </div>
+        <div class="summary-card">
+          <div class="value">${summary.repairsSucceeded}/${summary.repairsAttempted}</div>
+          <div class="label">Repairs OK</div>
+        </div>
+        <div class="summary-card">
+          <div class="value">${summary.avgDiagnosticDurationMs}ms</div>
+          <div class="label">Avg Check Time</div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
 
     ${report.fixedIssues.length > 0 ? `
     <div class="section">
@@ -237,6 +292,7 @@ export function formatReportAsHtml(report: SelfHealReport): string {
             <th>Check</th>
             <th>Status</th>
             <th>Message</th>
+            <th>Duration</th>
           </tr>
         </thead>
         <tbody>
@@ -245,6 +301,7 @@ export function formatReportAsHtml(report: SelfHealReport): string {
               <td>${d.name}</td>
               <td class="status-${d.status}">${d.status.toUpperCase()}</td>
               <td>${d.message}</td>
+              <td>${d.durationMs !== undefined ? d.durationMs + 'ms' : '-'}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -260,6 +317,7 @@ export function formatReportAsHtml(report: SelfHealReport): string {
             <th>Action</th>
             <th>Type</th>
             <th>Status</th>
+            <th>Retries</th>
           </tr>
         </thead>
         <tbody>
@@ -270,6 +328,7 @@ export function formatReportAsHtml(report: SelfHealReport): string {
               <td class="status-${r.status === 'success' ? 'healthy' : r.status === 'failed' ? 'critical' : 'warning'}">
                 ${r.status.toUpperCase()}
               </td>
+              <td>${r.retryCount !== undefined ? r.retryCount : '-'}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -289,7 +348,7 @@ export function formatReportAsHtml(report: SelfHealReport): string {
 }
 
 /**
- * Format report as plain text for logging
+ * Format report as plain text for logging, including daily summary
  */
 export function formatReportAsText(report: SelfHealReport): string {
   const lines: string[] = [];
@@ -301,6 +360,20 @@ export function formatReportAsText(report: SelfHealReport): string {
   lines.push(`Status: ${report.status.toUpperCase()}`);
   lines.push(`Execution Time: ${report.executionTimeMs}ms`);
   lines.push('');
+
+  if (report.summary) {
+    lines.push('DAILY SUMMARY:');
+    lines.push('-'.repeat(80));
+    lines.push(`  Health Score:     ${report.summary.uptimePercentage}%`);
+    lines.push(`  Total Checks:     ${report.summary.totalChecks}`);
+    lines.push(`  Healthy:          ${report.summary.healthyChecks}`);
+    lines.push(`  Warnings:         ${report.summary.warningChecks}`);
+    lines.push(`  Critical:         ${report.summary.criticalChecks}`);
+    lines.push(`  Repairs OK:       ${report.summary.repairsSucceeded}/${report.summary.repairsAttempted}`);
+    lines.push(`  Repairs Failed:   ${report.summary.repairsFailed}`);
+    lines.push(`  Avg Check Time:   ${report.summary.avgDiagnosticDurationMs}ms`);
+    lines.push('');
+  }
 
   if (report.fixedIssues.length > 0) {
     lines.push('FIXED ISSUES:');
@@ -326,7 +399,8 @@ export function formatReportAsText(report: SelfHealReport): string {
   lines.push('DIAGNOSTIC RESULTS:');
   lines.push('-'.repeat(80));
   report.diagnostics.forEach(d => {
-    lines.push(`  ${d.name}: ${d.status.toUpperCase()} - ${d.message}`);
+    const duration = d.durationMs !== undefined ? ` (${d.durationMs}ms)` : '';
+    lines.push(`  ${d.name}: ${d.status.toUpperCase()} - ${d.message}${duration}`);
   });
   lines.push('');
 
@@ -334,7 +408,8 @@ export function formatReportAsText(report: SelfHealReport): string {
     lines.push('REPAIR ACTIONS:');
     lines.push('-'.repeat(80));
     report.repairs.forEach(r => {
-      lines.push(`  [${r.type}] ${r.description}: ${r.status.toUpperCase()}`);
+      const retries = r.retryCount !== undefined ? ` [retries: ${r.retryCount}]` : '';
+      lines.push(`  [${r.type}] ${r.description}: ${r.status.toUpperCase()}${retries}`);
       if (r.errorMessage) {
         lines.push(`    Error: ${r.errorMessage}`);
       }

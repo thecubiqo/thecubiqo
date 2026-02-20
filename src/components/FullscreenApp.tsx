@@ -13,6 +13,11 @@ import { AuthButton } from './AuthButton.client'
 import { BYOSettings } from './byo'
 import { KeywordPanel } from './KeywordPanel'
 import { RGYSignalButton, RGYChatsModal } from './RGYChatsModal'
+import { IntentSetup } from './IntentSetup'
+import { OpportunityFeed } from './OpportunityFeed'
+import { ProMatchSettings } from './ProMatchSettings'
+import { RGYColorSelector } from './RGYColorSelector'
+import { RGYIntentKeywordList } from './RGYIntentKeywordList'
 import { GettingStartedPanel } from './GettingStartedPanel'
 import { LandingCubeRouter } from './LandingCubeRouter'
 import { PoweredByLogosCompact } from './PoweredByLogos'
@@ -20,6 +25,7 @@ import { JourneyMemoryPrompt } from './journey'
 import { AdminControls } from './admin'
 import { SidePanel } from './cq'
 import { TopRightCTA } from '@/components/TopRightCTA.client'
+import type { RGYContext } from '@/types/rgy-matching'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
@@ -65,6 +71,49 @@ export function FullscreenApp({
   const [showFloatingQuestions, setShowFloatingQuestions] = useState(true)
   // RGY Signal pulse state - triggers brief pulse when keyword is saved
   const [rgyPulseColor, setRgyPulseColor] = useState<'RED' | 'YELLOW' | 'GREEN' | null>(null)
+  
+  // RGY Matching flow state
+  const [showIntentSetup, setShowIntentSetup] = useState(false)
+  const [showOpportunityFeed, setShowOpportunityFeed] = useState(false)
+  const [showProMatchSettings, setShowProMatchSettings] = useState(false)
+  const [selectedRGYContext, setSelectedRGYContext] = useState<RGYContext | null>(null)
+  
+  // RGY Chat Room flow state (rgynext design)
+  const [showColorSelector, setShowColorSelector] = useState(false)
+  const [showRoomList, setShowRoomList] = useState(false)
+  const [showRoomChat, setShowRoomChat] = useState(false)
+  const [selectedChatColor, setSelectedChatColor] = useState<'green' | 'yellow' | 'red' | null>(null)
+  const [selectedRoom, setSelectedRoom] = useState<any>(null)
+  
+  // ProMatch state
+  const [proMatchEnabled, setProMatchEnabled] = useState(false)
+  const [proMatchCount, setProMatchCount] = useState(0)
+  
+  // Simulate ProMatch working in background (for demo)
+  useEffect(() => {
+    // Check if ProMatch is enabled
+    const checkProMatch = async () => {
+      try {
+        if (isAuthenticated && user) {
+          const response = await fetch('/api/rgy/subscription')
+          const data = await response.json()
+          if (data.subscription?.is_active) {
+            setProMatchEnabled(true)
+            // Simulate finding matches (in real app, this comes from discovery service)
+            const mockCount = Math.floor(Math.random() * 8) + 3 // 3-10 matches
+            setProMatchCount(mockCount)
+          }
+        }
+      } catch (error) {
+        console.error('Error checking ProMatch:', error)
+      }
+    }
+    
+    checkProMatch()
+    // Check periodically (every 5 minutes)
+    const interval = setInterval(checkProMatch, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [isAuthenticated, user])
 
   // Early access signup
   const [earlyAccessEmail, setEarlyAccessEmail] = useState('')
@@ -83,6 +132,67 @@ export function FullscreenApp({
     setTimeout(() => {
       setShowEarlyAccess(false)
     }, 2000)
+  }
+
+  // Handle RGY SIGNAL click - Show color selector for chat rooms
+  const handleSignalClick = () => {
+    setShowRGYChats(false)
+    setShowColorSelector(true)
+  }
+  
+  // Handle color selection from color selector (rgynext)
+  const handleColorSelect = (color: 'green' | 'yellow' | 'red') => {
+    setSelectedChatColor(color)
+    setShowColorSelector(false)
+    setShowRoomList(true)
+  }
+  
+  // Handle room selection
+  const handleRoomSelect = (room: any) => {
+    setSelectedRoom(room)
+    setShowRoomList(false)
+    setShowRoomChat(true)
+  }
+  
+  // Handle back from room list
+  const handleBackFromRoomList = () => {
+    setShowRoomList(false)
+    setShowColorSelector(true)
+  }
+  
+  // Handle back from room chat
+  const handleBackFromRoomChat = () => {
+    setShowRoomChat(false)
+    setShowRoomList(true)
+  }
+  
+  // Handle viewing ProMatch shortlist
+  const handleViewProMatchShortlist = () => {
+    setShowRoomList(false)
+    setShowOpportunityFeed(true)
+  }
+  
+  // Handle back from ProMatch shortlist
+  const handleBackFromShortlist = () => {
+    setShowOpportunityFeed(false)
+    if (selectedChatColor) {
+      setShowRoomList(true)
+    } else {
+      setShowColorSelector(true)
+    }
+  }
+  
+  // Legacy handlers (kept for backwards compatibility)
+  const handleZoneSelection = (context: RGYContext) => {
+    setSelectedRGYContext(context)
+    setShowRGYChats(false)
+    setShowIntentSetup(true)
+  }
+
+  // Handle intent setup completion
+  const handleIntentSetupComplete = () => {
+    setShowIntentSetup(false)
+    setShowOpportunityFeed(true)
   }
 
   // Function to trigger RGY pulse (call this when a keyword is saved)
@@ -410,7 +520,7 @@ export function FullscreenApp({
 
           {/* Right side - SIGNAL Logo - Clickable */}
           <button
-            onClick={() => setShowRGYChats(true)}
+            onClick={handleSignalClick}
             className="flex items-center gap-3 hover:opacity-80 transition-opacity"
           >
             <img
@@ -715,6 +825,47 @@ export function FullscreenApp({
               {/* Soft Divider */}
               <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
 
+              {/* 2.5 RGY Matching */}
+              <div>
+                <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>RGY Matching</h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      setShowOpportunityFeed(true)
+                      setMenuOpen(false)
+                    }}
+                    className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
+                      }`}
+                  >
+                    <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>Discover Opportunities</span>
+                    <svg className="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowProMatchSettings(true)
+                      setMenuOpen(false)
+                    }}
+                    className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'
+                      }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>Pro Match Settings</span>
+                      <span className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600'
+                        }`}>AI</span>
+                    </div>
+                    <svg className="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Soft Divider */}
+              <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
+
               {/* 3. Privacy */}
               <div>
                 <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Privacy</h3>
@@ -864,7 +1015,100 @@ export function FullscreenApp({
         isOpen={showRGYChats}
         onClose={() => setShowRGYChats(false)}
         isDark={isDark}
+        onZoneSelect={handleZoneSelection}
       />
+
+      {/* Intent Setup Modal */}
+      {selectedRGYContext && (
+        <IntentSetup
+          isOpen={showIntentSetup}
+          onClose={() => {
+            setShowIntentSetup(false)
+            setSelectedRGYContext(null)
+          }}
+          isDark={isDark}
+          rgyContext={selectedRGYContext}
+          onComplete={handleIntentSetupComplete}
+        />
+      )}
+
+      {/* Opportunity Feed Modal */}
+      <OpportunityFeed
+        isOpen={showOpportunityFeed}
+        onClose={handleBackFromShortlist}
+        isDark={isDark}
+        rgyContext={selectedRGYContext || undefined}
+      />
+
+      {/* Pro Match Settings Modal */}
+      <ProMatchSettings
+        isOpen={showProMatchSettings}
+        onClose={() => setShowProMatchSettings(false)}
+        isDark={isDark}
+      />
+
+      {/* RGY Color Selector Modal (rgynext) */}
+      {showColorSelector && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <div className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowColorSelector(false)}
+                  className="h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <h1 className="font-display text-lg font-semibold tracking-tight">
+                  RGY Chats
+                </h1>
+              </div>
+            </div>
+          </div>
+          <RGYColorSelector 
+            onColorSelect={handleColorSelect}
+            showProMatchBadge={proMatchEnabled}
+            proMatchCount={proMatchCount}
+          />
+        </div>
+      )}
+
+      {/* RGY Room List Modal (rgynext) */}
+      {showRoomList && selectedChatColor && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <div className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleBackFromRoomList}
+                  className="h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <div className="flex items-center gap-2">
+                  <h1 className="font-display text-lg font-semibold tracking-tight">
+                    RGY Chats
+                  </h1>
+                  <span className="text-muted-foreground font-mono text-sm">/</span>
+                  <span className={`text-sm font-medium text-rgy-${selectedChatColor}`}>
+                    {selectedChatColor === 'green' ? 'Work' : selectedChatColor === 'yellow' ? 'Social' : 'Dating'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <RGYIntentKeywordList 
+            color={selectedChatColor}
+            onRoomSelect={handleRoomSelect}
+            onViewProMatchShortlist={proMatchCount > 0 ? handleViewProMatchShortlist : undefined}
+            proMatchCount={proMatchCount}
+          />
+        </div>
+      )}
 
       {/* Landing Cube - Shown once per day or after 4+ hours 
           Two designs available:

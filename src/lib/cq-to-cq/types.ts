@@ -81,6 +81,7 @@ export interface CQConversation {
 
 export type CallType = 'audio' | 'video';
 export type CallStatus = 'initiating' | 'ringing' | 'active' | 'ended' | 'missed' | 'rejected';
+export type CameraFacingMode = 'user' | 'environment';
 
 export interface CQCall {
   id: string;

@@ -3,7 +3,7 @@
 -- 1. Social Accounts (The Soldiers)
 create table if not exists social_accounts (
   id uuid default gen_random_uuid() primary key,
-  platform text not null check (platform in ('twitter', 'tiktok', 'linkedin', 'instagram', 'youtube')),
+  platform text not null check (platform in ('twitter', 'tiktok', 'linkedin', 'instagram', 'youtube', 'reddit', 'pinterest', 'threads', 'facebook', 'discord')),
   username text not null,
   password_encrypted text, -- store securely or use reference to vault
   persona_type text check (persona_type in ('builder', 'guru', 'philosopher', 'artist', 'memer')),

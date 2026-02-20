@@ -1,1637 +1,2554 @@
-# CubiQo Emergent — Complete Requirements Extraction
+# Emergent Platform: Extracted Requirements for Incomplete Components
 
-> **Version**: 1.0  
-> **Date**: 2026-02-19  
-> **Status**: Requirements 100% Specified | Implementation 40% Complete  
-> **Audience**: @mo @jo @guy @blossom @bubbles @buttercup @pushpa
-
----
-
-## Table of Contents
-
-1. [Executive Summary](#1-executive-summary)
-2. [System Overview](#2-system-overview)
-3. [What's Complete (40%)](#3-whats-complete-40)
-4. [Frontend Studio UI Requirements](#4-frontend-studio-ui-requirements)
-5. [Runner System Requirements](#5-runner-system-requirements)
-6. [Deployment Flow Requirements](#6-deployment-flow-requirements)
-7. [Post-Launch OS Requirements](#7-post-launch-os-requirements)
-8. [Technical Specifications](#8-technical-specifications)
-9. [Database Extensions Required](#9-database-extensions-required)
-10. [API Endpoints Required](#10-api-endpoints-required)
-11. [Component Library Required](#11-component-library-required)
-12. [Performance Benchmarks](#12-performance-benchmarks)
-13. [Security Requirements](#13-security-requirements)
-14. [Monetization Integration](#14-monetization-integration)
-15. [Integration Points](#15-integration-points)
-16. [Success Criteria](#16-success-criteria)
-17. [Implementation Roadmap](#17-implementation-roadmap)
-18. [Team Assignments](#18-team-assignments)
-19. [Risk Assessment](#19-risk-assessment)
-20. [Appendix: Existing Asset Inventory](#20-appendix-existing-asset-inventory)
+**Document Version:** 1.0  
+**Date:** February 19, 2026  
+**Status:** Requirements Extraction Complete  
+**Source:** `emergent-architecture.md`, `emergent-tool-api.md`, `emergent-security.md`
 
 ---
 
-## 1. Executive Summary
+## Overview
 
-CubiQo is an **Emotional AI Companion** platform built as a Next.js monorepo with a multi-agent orchestration engine called "Emergent." The system enables users to interact with AI agents, create custom workflows, execute code, and manage deployments — all through an integrated web experience.
+This document consolidates detailed requirements for the 4 incomplete components of the Emergent-Level AI App Builder platform, extracted from existing architecture documentation.
 
-### Current State
+### Component Status
 
-| Area | Status | Detail |
-|------|--------|--------|
-| **Architecture** | ✅ Complete | Monorepo, Buckets strategy, 3-tier deployment |
-| **Database** | ✅ Complete | 52+ tables, 22 migrations, RLS on all tables |
-| **Backend APIs** | ✅ Complete | 76 API routes across 32 domains |
-| **Security** | ✅ Complete | AES-256-GCM, WebAuthn, RLS, RBAC, audit logging |
-| **CI/CD** | ✅ Complete | Vitest (32 tests), GitHub Actions, Chromatic |
-| **Agent Engine** | ✅ Complete | 7 agents, 14+ tools, LLM router, session management |
-| **Frontend Components** | ⚠️ Partial | 109 components, 48 pages — Studio UI pending |
-| **Runner System** | ❌ Pending | Task queue, execution runtime, communication bus |
-| **Deployment Flow** | ❌ Pending | One-click deploy, versioning, environment management |
-| **Post-Launch OS** | ❌ Pending | Monitoring, auto-scaling, analytics dashboard |
-
-### Completion Breakdown
-
-```
-██████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 40% Complete
-```
-
-- **Complete (40%)**: Architecture, Database (52+ tables), Backend APIs (76 routes), Security, CI/CD, Agent Engine, Integration Playbooks
-- **Requirements Ready (100%)**: All pending areas fully specified
-- **Pending Implementation (60%)**: Frontend Studio UI, Runner System, Deployment Flow, Post-Launch OS
+| Component | Current Status | Priority | Estimated Effort |
+|-----------|---------------|----------|------------------|
+| Frontend Studio UI | ❌ Not Started (0%) | **High** | 4-6 weeks |
+| Runner System | ❌ Not Started (0%) | **High** | 6-8 weeks |
+| Deployment Flow | ❌ Not Started (0%) | **High** | 4-5 weeks |
+| Post-Launch OS | ❌ Not Started (0%) | Medium | 8-12 weeks |
 
 ---
 
-## 2. System Overview
+## 1. FRONTEND STUDIO UI
 
-### 2.1 Technology Stack
+### 1.1 Functional Requirements
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| **Frontend** | Next.js | 14.2.25 |
-| **UI Library** | React | 18.3.1 |
-| **Language** | TypeScript | 5.x |
-| **Styling** | Tailwind CSS | 3.x |
-| **3D Graphics** | Three.js / React Three Fiber | 8.16.8 |
-| **Animation** | Framer Motion | 12.34.0 |
-| **Code Editor** | Monaco Editor | 0.55.1 |
-| **Charts** | Recharts | 2.12.7 |
-| **Database** | Supabase (PostgreSQL) | Latest |
-| **Auth** | Supabase Auth + WebAuthn | FIDO2 |
-| **Deployment** | Vercel | Edge Network |
-| **Testing** | Vitest | 4.0.18 |
-| **Visual Testing** | Chromatic / Storybook | Latest |
+#### Core Features
+- **Multi-View Interface:**
+  - Builder view with conversational AI interface
+  - Project Manager for workspace navigation
+  - Live Preview Panel synchronized with dev server
+  - Dashboard showing deployment status
+  - Logs viewer with real-time streaming
 
-### 2.2 Architecture: Buckets Strategy
+- **Conversational Builder:**
+  - Chat interface for natural language app building
+  - Voice input support (speech-to-text)
+  - Context-aware suggestions
+  - Command palette for quick actions
+  - History and undo/redo support
 
-The system is organized into 5 independent "Buckets" for scalability:
+- **Code Editor Integration:**
+  - Monaco Editor (VS Code in browser)
+  - Syntax highlighting for 10+ languages
+  - IntelliSense and autocomplete
+  - Multi-file editing with tabs
+  - Search and replace across files
+  - Git diff visualization
 
-| Bucket | Location | Responsibility |
-|--------|----------|----------------|
-| **Core Brain** | `src/app` | Main UI, Chat, Router, Auth |
-| **Control Room** | `src/app/admin` | Admin Dashboard, monitoring, feature toggles |
-| **Social Army** | `social-army/` | Social media automation, content posting |
-| **Agents** | `agents/` | Standalone AI agents for offline tasks |
-| **Extension** | `chrome-extension/` | Browser extension, Ghost Mode |
+- **Terminal Emulator:**
+  - Interactive bash/shell access
+  - Multiple terminal tabs support
+  - Command history
+  - Copy/paste support
+  - Color output rendering
 
-### 2.3 AI Provider Support
+- **File Explorer:**
+  - Tree view of project structure
+  - File/folder creation, rename, delete
+  - Drag-and-drop file upload
+  - Context menu actions
+  - Search files by name
 
-The LLM Router (`src/lib/ai/llm-router.ts`) supports 7 providers:
+- **Project Settings:**
+  - Environment variable management UI (names only, no values)
+  - Build configuration editor
+  - Deployment settings
+  - Team member management
+  - Integration toggles
 
-| Provider | Models | Use Case |
-|----------|--------|----------|
-| **Anthropic** | Claude 3.5 Sonnet, Claude 3 Haiku | Primary reasoning |
-| **Emergent** | Claude via custom endpoint | Default agent provider |
-| **OpenAI** | GPT-4, GPT-3.5 | Fallback, embeddings |
-| **Google** | Gemini Pro, Gemini Flash | Multimodal tasks |
-| **Groq** | Llama, Mixtral | Fast inference |
-| **Mistral** | Mistral Large, Medium | European compliance |
-| **OpenRouter** | Various | Cost optimization |
+#### User Workflows
 
-### 2.4 Deployment Pipeline
-
+**Workflow 1: Create New App**
 ```
-┌─────────────┐     ┌──────────────┐     ┌────────────────────┐
-│   Staging    │ ──► │  Production  │ ──► │ Production Fallback│
-│ (staging0217)│     │    (main)    │     │  (safety valve)    │
-└─────────────┘     └──────────────┘     └────────────────────┘
-     Push              PR Merge            Manual Revert Only
+1. User enters prompt: "Create an e-commerce site for selling plants"
+2. Studio shows conversation view with AI response
+3. AI asks clarifying questions (payment provider, styling preference)
+4. User answers via voice or text
+5. AI generates frontend preview with mock data
+6. Preview panel shows live app with responsive states
+7. User iterates: "Make the header green and add plant icons"
+8. AI updates code, preview auto-refreshes
+9. User approves, clicks "Add Backend"
+10. Studio transitions to backend generation flow
 ```
 
-- **Staging**: Integration testing, dummy data, internal only
-- **Production**: Live traffic, real users, auto-deploy on merge
-- **Fallback**: Last known good config, manual activation only
+**Workflow 2: Edit Existing Project**
+```
+1. User opens project from dashboard
+2. Studio loads file explorer, code editor, preview
+3. User opens terminal, runs `npm install lodash`
+4. Terminal streams output in real-time
+5. User edits code in Monaco editor
+6. Preview hot-reloads on save
+7. User opens secrets manager, adds `STRIPE_SECRET_KEY`
+8. User clicks "Deploy Now"
+9. Deployment flow starts (see Deployment Flow section)
+```
 
----
+### 1.2 Technical Requirements
 
-## 3. What's Complete (40%)
+#### Technology Stack
+- **Framework:** Next.js 16 (App Router, Server Components)
+- **UI Library:** React 19
+- **Styling:** Tailwind CSS 4
+- **State Management:** 
+  - Zustand for global state
+  - React Context for feature-specific state
+  - React Query for server state
+- **Component Libraries:** 
+  - shadcn/ui (base components)
+  - Radix UI (primitives)
+  - Lucide icons
+- **Forms:** React Hook Form + Zod validation
+- **Code Editor:** Monaco Editor (`@monaco-editor/react`)
+- **Terminal:** Xterm.js + xterm-addon-fit
+- **Real-time Communication:** WebSocket (Socket.io or native)
+- **Graphics:** Three.js + React Three Fiber (3D visualizations)
+- **Voice:** ElevenLabs TTS + Web Speech API
 
-### 3.1 Database Schema — 52+ Tables Across 12 Domains
-
-| Domain | Tables | Status |
-|--------|--------|--------|
-| **Core Auth** | profiles, sessions | ✅ |
-| **Conversations** | conversations, messages, memory, events | ✅ |
-| **Integrations** | user_integrations, connections, deployments | ✅ |
-| **Experiments** | experiments, experiment_assignments, experiment_events | ✅ |
-| **Admin** | audit_logs | ✅ |
-| **Feature Flags** | feature_flags, feature_flag_audit, feature_flag_webhooks, feature_flag_webhook_logs, design_toggles, features_catalog, user_feature_toggles | ✅ |
-| **Journal** | journal_entries, journal_analytics, email_queue | ✅ |
-| **Journey Memory** | journey_consents, journey_memories, journey_rollback_logs, journey_metrics | ✅ |
-| **Self-Healing** | self_heal_reports, self_heal_audit_logs | ✅ |
-| **CQ Messaging** | cq_numbers, cq_friend_requests, cq_contacts, cq_conversations, cq_messages, cq_calls, cq_screen_shares, cq_notifications, cq_privacy_settings, cq_voice_synthesis, cq_premium_status | ✅ |
-| **Social Army** | social_accounts, social_campaigns, content_queue | ✅ |
-| **Monetization** | subscription_tiers, user_subscriptions | ✅ |
-
-**Key Features**:
-- pgvector extension for semantic similarity search (journey_memories)
-- Color-state routing for AI conversations (ORANGE/RED/YELLOW/GREEN_BLUE)
-- CQ number rotation (30-day anonymous identity)
-- 150+ Row Level Security policies
-- 100+ performance indexes
-
-### 3.2 Backend APIs — 76 Routes Across 32 Domains
-
-#### Agent Management
-| Route | Methods | Description |
-|-------|---------|-------------|
-| `/api/agents` | GET, POST | List/create agents |
-| `/api/agents/[id]/run` | POST | Execute prompt on agent |
-| `/api/agents/[id]/spawn` | POST | Spawn async background task |
-| `/api/agents/[id]/sessions` | GET | List agent sessions |
-| `/api/agents/[id]/message` | GET, POST | Agent-to-agent messaging |
-| `/api/agents/[id]/tasks` | GET | Agent task status |
-| `/api/agents/activity` | GET | Activity feed (last 50) |
-| `/api/agents/reports` | GET | Agent reports |
-
-#### Code Execution
-| Route | Methods | Description |
-|-------|---------|-------------|
-| `/api/code/execute` | POST | Run code (Python/JS/TS/Bash) |
-| `/api/code/terminal` | GET, POST, DELETE | Shell terminal emulation |
-| `/api/code/file-ops` | POST | File CRUD operations |
-
-#### AI & Communication
-| Route | Methods | Description |
-|-------|---------|-------------|
-| `/api/chat` | POST | Main chat endpoint |
-| `/api/coder` | POST | AI code generation (MiniMax + OpenClaw) |
-| `/api/browser` | POST | Browser automation |
-| `/api/voice` | POST | Voice processing |
-| `/api/stt` | POST | Speech to text |
-| `/api/tts` | POST | Text to speech |
-| `/api/verbal-command` | POST | Natural language commands |
-
-#### Admin & Features
-| Route | Methods | Description |
-|-------|---------|-------------|
-| `/api/admin/audit` | GET, POST | Audit log management |
-| `/api/admin/self-heal/*` | GET, POST | Self-healing system |
-| `/api/admin/features` | GET, POST | Feature management |
-| `/api/admin/designs` | GET, POST | Design toggles |
-| `/api/admin/experiments/*` | GET, POST | A/B testing |
-| `/api/admin/connections/*` | GET, POST | OAuth connections |
-| `/api/admin/journey/*` | GET, POST | Journey management |
-| `/api/feature-flags/*` | GET, POST | Feature flag CRUD |
-| `/api/founders-pass/*` | GET, POST | Founders pass system |
-
-#### Data & Memory
-| Route | Methods | Description |
-|-------|---------|-------------|
-| `/api/journal/*` | GET, POST | Journal entries & stats |
-| `/api/journey/*` | GET, POST | Journey consent, memories, similarity |
-| `/api/memory/*` | GET, POST, DELETE | Memory CRUD, search, extract |
-| `/api/messages` | POST | Message handling |
-| `/api/sessions/[id]/compact` | GET, POST | Session compaction |
-| `/api/files/*` | GET | File tree & read |
-
-#### System
-| Route | Methods | Description |
-|-------|---------|-------------|
-| `/api/health` | GET | Health check |
-| `/api/ai-stats` | GET | AI usage statistics |
-| `/api/cron/self-heal` | POST | Scheduled self-heal |
-| `/api/webhooks/telegram` | POST | Telegram webhook |
-| `/api/integrations/telegram` | POST | Telegram integration |
-
-### 3.3 Agent Engine
-
-**7 Default Agents** (initialized in `src/lib/engine/bootstrap.ts`):
-
-| ID | Name | Role | Tools | Max Concurrent |
-|----|------|------|-------|----------------|
-| a1 | Henry | Project Lead, Architect | 11 tools | 5 |
-| a2 | Dev | Technical Architect | 9 tools | 3 |
-| a3 | Writer | Content & Documentation | 7 tools | 3 |
-| a4 | Tester | QA & Bug Verification | 6 tools | 2 |
-| a5 | Marketing | Social Media & Growth | 11 tools | 3 |
-| a6 | Animator | Visual Interactions | 6 tools | 2 |
-| a7 | Business | Outreach & Customer Service | 9 tools | 3 |
-
-**14+ Tools** (registered in `src/lib/engine/tools.ts`):
-
-| Tool | Category | Access |
-|------|----------|--------|
-| `file_read` | File Operations | All agents |
-| `file_write` | File Operations | Restricted (founders) |
-| `file_list` | File Operations | All agents |
-| `file_patch` | File Operations | Dev agents |
-| `exec` | Execution | Restricted (founders + dev) |
-| `git` | Version Control | Restricted |
-| `web_search` | Web (Brave API) | All agents |
-| `web_fetch` | Web | All agents |
-| `telegram_send` | Communication | Restricted |
-| `slack_send` | Communication | Restricted |
-| `discord_send` | Communication | Restricted |
-| `email_send` | Communication | Restricted |
-| `vision_analyze` | AI | Lead agents |
-| `sessions_spawn` | Session Mgmt | Restricted |
-| `sessions_send` | Session Mgmt | All agents |
-
-### 3.4 Security Layer
-
-- **Authentication**: Supabase Auth (magic links) + WebAuthn/FIDO2 (passwordless)
-- **Encryption**: AES-256-GCM tokens, AES-GCM client-side API keys (PBKDF2, 100K iterations)
-- **Authorization**: RBAC (founder → admin → user → guest), tool access control
-- **Data Protection**: RLS on all 52+ tables (150+ policies), memory privacy zones (green/yellow/red)
-- **Audit**: Admin action logging, feature flag audit, self-heal audit, webhook delivery logs
-- **Privacy**: CQ number rotation (30-day), configurable data retention, right to deletion
-
-### 3.5 Frontend — 109 Components, 48 Pages
-
-**Component Categories**:
-- 3D Scenes (8): EnergyCubeScene, PlasmaWaveField, WaveToCubeMorph, FlowingEnergyCube, LandingCube, TechLandingCube, GlassyAgentCube, AgentActivityCube
-- Dev Console (4): PromptPane, LiveCoderPane, DevConsoleHeader, ConfirmationModal
-- Agent UI (4): AgentDashboard, AgentCreationModal, CodePanel, FileTree
-- Auth (3): AuthButton, OnboardingFlow, HandshakeWizard
-- Chat (2): RGYChatGateway, RGYChatsModal
-- Admin subsystem, Journal, Journey, Landing, Founders components
-- 16 custom hooks, 2 contexts (Auth, Region)
-
-### 3.6 Testing — 32 Test Files
-
-| Category | Count | Examples |
-|----------|-------|---------|
-| Unit | 14 | Components, analytics, feature flags, auth context |
-| Integration | 10 | Auth flows, messaging, onboarding, sandbox |
-| Regression | 2 | Critical selectors, visual smoke tests |
-| Snapshot | 1 | TopRightCTA |
-| E2E | 1 | Landing page |
-| Visual | N/A | Chromatic/Storybook |
-
-### 3.7 Integration Playbooks
-
-- ✅ Telegram bot (implemented, bidirectional messaging)
-- ✅ GitHub OAuth connection
-- ✅ Vercel OAuth connection
-- ✅ Supabase connection management
-- ✅ Shopify integration (designed)
-- ✅ Printify integration (designed)
-
----
-
-## 4. Frontend Studio UI Requirements
-
-### 4.1 Visual Agent Builder
-
-**User Story**: As a user, I want to visually create AI agents by selecting models, tools, and behaviors, so that I can build custom automation without coding.
-
-**Description**: A drag-and-drop visual interface for creating and configuring AI agents. Users select from available LLM providers, assign tools, define personality (soul), and test their agents — all without writing code.
-
-#### Components Required
-
-| Component | Description | Dependencies |
-|-----------|-------------|-------------|
-| `AgentStudioCanvas` | Main drag-and-drop canvas for agent building | @dnd-kit/core or react-dnd |
-| `ToolPalette` | Sidebar listing all 14+ available tools | Existing tools.ts registry |
-| `ModelSelector` | LLM provider/model picker with cost indicators | Existing llm-router.ts |
-| `SoulEditor` | Agent personality/prompt editor | Monaco Editor (installed) |
-| `WorkspaceManager` | Agent workspace file browser | Existing FileTree component |
-| `AgentTestPanel` | Live testing panel — send prompts, see responses | Existing /api/agents/[id]/run |
-| `AgentConfigForm` | Form for name, max concurrent, tools selection | New |
-| `ToolConfigDrawer` | Per-tool configuration drawer | New |
-
-#### Technical Specifications
-
+#### API Integration
 ```typescript
-// AgentStudioCanvas props
-interface AgentStudioCanvasProps {
-  agentId?: string;           // Edit existing or create new
-  onSave: (config: AgentConfig) => void;
-  onTest: (prompt: string) => Promise<string>;
-  availableTools: ToolDefinition[];
-  availableModels: ModelConfig[];
-}
-
-// AgentConfig (extends existing type in src/types/agent.ts)
-interface StudioAgentConfig extends AgentConfig {
-  soul: string;              // System prompt / personality
-  workspace: string;         // Workspace path
-  icon?: string;             // Agent icon
-  color?: string;            // Agent color theme
-  description?: string;      // Human-readable description
-  triggers?: TriggerConfig[]; // Auto-execution triggers
-}
-```
-
-#### Acceptance Criteria
-- [ ] User can drag tools from palette onto agent canvas
-- [ ] User can select LLM provider and model from dropdown
-- [ ] User can write/edit agent soul (system prompt) in Monaco Editor
-- [ ] User can test agent with sample prompts and see responses
-- [ ] Agent configuration persists to Supabase
-- [ ] Tool access respects existing RBAC (restricted tools grayed out for non-founders)
-- [ ] Canvas renders in < 100ms
-- [ ] Tool palette loads in < 200ms
-
-#### UI/UX Requirements
-- Desktop-first design with tablet support (min 768px)
-- Dark theme consistent with existing CubiQo design system
-- Drag handles with visual feedback (ghost preview)
-- Tool cards show name, icon, description, access level
-- Model selector shows provider, model name, cost per 1K tokens
-- Save button with validation (required: name, model, at least 1 tool)
-
-**Monetization Angle**: Free tier = view-only. Pro+ = full Studio access.
-
----
-
-### 4.2 Workflow Designer
-
-**User Story**: As a user, I want to chain multiple agent actions into a visual workflow, so that complex multi-step tasks run automatically.
-
-**Description**: A node-based graph editor for creating automated pipelines. Users connect action nodes (tool executions), conditional nodes (branching), and trigger nodes (schedule/event/manual) into workflows that execute sequentially or in parallel.
-
-#### Components Required
-
-| Component | Description | Dependencies |
-|-----------|-------------|-------------|
-| `WorkflowCanvas` | Node-based graph editor | reactflow or elkjs |
-| `ActionNode` | Individual action step (tool execution) | Tool registry |
-| `ConditionalNode` | Branching logic (if/else/switch) | New |
-| `TriggerNode` | Workflow start trigger | Existing cron.ts |
-| `ParallelNode` | Fork/join for parallel execution | New |
-| `WorkflowToolbar` | Save, run, debug, undo/redo controls | New |
-| `WorkflowSidebar` | Node palette and properties panel | New |
-| `ExecutionViewer` | Real-time execution visualization | New |
-
-#### Technical Specifications
-
-```typescript
-// Workflow definition format (JSON)
-interface WorkflowDefinition {
-  id: string;
-  name: string;
-  description?: string;
-  version: number;
-  nodes: WorkflowNode[];
-  edges: WorkflowEdge[];
-  triggers: TriggerConfig[];
-  variables: Record<string, any>;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface WorkflowNode {
-  id: string;
-  type: 'action' | 'conditional' | 'trigger' | 'parallel' | 'end';
-  position: { x: number; y: number };
-  data: {
-    label: string;
-    toolName?: string;       // For action nodes
-    toolParams?: Record<string, any>;
-    condition?: string;      // For conditional nodes
-    branches?: string[];     // For conditional nodes
-    agentId?: string;        // Which agent executes this
-  };
-}
-
-interface WorkflowEdge {
-  id: string;
-  source: string;
-  target: string;
-  label?: string;            // e.g., "true", "false" for conditionals
-  type?: 'default' | 'success' | 'failure';
-}
-
-interface TriggerConfig {
-  type: 'manual' | 'schedule' | 'event' | 'webhook';
-  schedule?: string;         // Cron expression
-  event?: string;            // Event name to listen for
-  webhookPath?: string;      // Webhook URL path
+// Studio Frontend APIs
+interface StudioAPI {
+  // Workspace Operations
+  createProject(prompt: string): Promise<Project>;
+  loadProject(projectId: string): Promise<ProjectData>;
+  saveFile(projectId: string, path: string, content: string): Promise<void>;
+  deleteFile(projectId: string, path: string): Promise<void>;
+  
+  // Terminal Operations
+  openTerminal(workspaceId: string): Promise<WebSocket>;
+  executeCommand(workspaceId: string, command: string): Promise<void>;
+  killProcess(workspaceId: string, pid: number): Promise<void>;
+  
+  // Preview Operations
+  getPreviewURL(workspaceId: string): Promise<string>;
+  restartDevServer(workspaceId: string): Promise<void>;
+  
+  // Deployment Operations
+  triggerDeployment(projectId: string, config: DeployConfig): Promise<Deployment>;
+  getDeploymentStatus(deploymentId: string): Promise<DeploymentStatus>;
+  
+  // Secrets Management (UI only shows names, no values)
+  listSecrets(projectId: string): Promise<SecretMetadata[]>;
+  addSecret(projectId: string, name: string, value: string): Promise<void>;
+  rotateSecret(projectId: string, secretId: string): Promise<void>;
 }
 ```
 
-#### Acceptance Criteria
-- [ ] User can drag nodes from sidebar onto canvas
-- [ ] User can connect nodes with edges (drag from output to input)
-- [ ] User can configure each node's parameters
-- [ ] Conditional nodes support if/else branching
-- [ ] Parallel nodes support fork/join patterns
-- [ ] Workflows can be saved, loaded, and versioned
-- [ ] User can run workflow manually and see real-time execution
-- [ ] Execution shows node-by-node progress with green (success) / red (failure) highlights
-- [ ] Workflow execution start < 3s
-- [ ] Node render < 50ms
+#### File Structure
+```
+src/app/
+  studio/
+    page.tsx                  # Main Studio page
+    [projectId]/
+      page.tsx                # Project-specific Studio view
+    
+src/components/studio/
+  StudioLayout.tsx            # Main layout with panels
+  ConversationPanel.tsx       # Chat interface with AI
+  CodeEditor.tsx              # Monaco editor wrapper
+  FileExplorer.tsx            # File tree navigation
+  TerminalPanel.tsx           # Xterm.js terminal
+  PreviewPanel.tsx            # Live preview iframe
+  SecretsManager.tsx          # Secret management UI
+  DeploymentHistory.tsx       # Deployment list
+  
+src/hooks/studio/
+  useStudioProject.ts         # Project state management
+  useTerminal.ts              # Terminal WebSocket hook
+  usePreview.ts               # Preview state hook
+  useFileOperations.ts        # File CRUD operations
+  
+src/lib/studio/
+  monaco-config.ts            # Monaco editor configuration
+  terminal-commands.ts        # Terminal command handlers
+  websocket-client.ts         # WebSocket connection manager
+```
 
-#### UI/UX Requirements
-- Infinite canvas with zoom/pan (mouse wheel, drag)
-- Minimap for navigation on complex workflows
-- Snap-to-grid alignment
-- Auto-layout option (dagre/elkjs)
-- Keyboard shortcuts: Delete (remove node), Ctrl+Z (undo), Ctrl+S (save), Ctrl+Enter (run)
-- Execution mode: nodes highlight in sequence as they execute
+### 1.3 UI/UX Requirements
 
-**Monetization Angle**: Free = 0 workflows. Pro = 3 workflows. Commander = unlimited.
+#### Design System
+- **Color Palette:**
+  - Primary: Teal/Cyan (CubiQo brand)
+  - Success: Green
+  - Warning: Yellow
+  - Error: Red
+  - Neutral: Gray scale
+  
+- **Typography:**
+  - Headings: Inter or Geist (system font)
+  - Code: Fira Code or JetBrains Mono (monospace)
+  - Body: Inter or system-ui
+  
+- **Layout:**
+  - Responsive grid system (desktop-first)
+  - Minimum width: 1280px (desktop), 768px (tablet)
+  - Panel resizing with drag handles
+  - Collapsible sidebars
+
+#### Interactions
+- **Real-time Updates:**
+  - File changes trigger preview hot-reload < 500ms
+  - Terminal output streams with < 100ms latency
+  - Deployment status updates every 2 seconds
+  
+- **Keyboard Shortcuts:**
+  - `Cmd/Ctrl + S`: Save current file
+  - `Cmd/Ctrl + P`: Command palette
+  - `Cmd/Ctrl + K`: Open file search
+  - `Cmd/Ctrl + \``: Toggle terminal
+  - `Cmd/Ctrl + B`: Toggle file explorer
+  
+- **Visual Feedback:**
+  - Loading states for all async operations
+  - Success/error toasts for user actions
+  - Progress bars for deployments
+  - 3D cube animations for AI thinking states
+
+#### Accessibility
+- WCAG 2.1 Level AA compliance
+- Keyboard navigation for all features
+- Screen reader support (ARIA labels)
+- High contrast mode support
+- Focus indicators on interactive elements
+
+### 1.4 Security Requirements
+
+#### Client-Side Security
+- ❌ **NO secrets/API keys visible in frontend code**
+- All API requests use HTTPS
+- JWT authentication with short-lived tokens (15 min)
+- XSS protection:
+  - Sanitize user input with DOMPurify
+  - Escape HTML in chat messages
+  - Use dangerouslySetInnerHTML sparingly
+- CSRF protection:
+  - CSRF tokens on all state-changing operations
+  - SameSite cookies
+  - Origin validation
+- Content Security Policy (CSP) headers:
+  ```
+  default-src 'self';
+  script-src 'self' 'unsafe-eval';  # Monaco needs eval
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: https:;
+  connect-src 'self' wss://terminal.cubiqo.dev;
+  ```
+
+#### Data Security
+- Sensitive data encrypted in transit (HTTPS/WSS)
+- Local storage encryption for temp data
+- Session timeout after 30 minutes of inactivity
+- Automatic logout on token expiration
+- Secure cookie handling (HttpOnly, Secure, SameSite)
+
+### 1.5 Performance Requirements
+
+#### Load Performance
+- **Initial Load:**
+  - First Contentful Paint (FCP) < 1.5s
+  - Largest Contentful Paint (LCP) < 3s
+  - Time to Interactive (TTI) < 4s
+  
+- **Code Editor:**
+  - File open < 300ms (files up to 10K lines)
+  - Syntax highlighting responsive with 50K+ line files
+  - Autocomplete suggestions < 100ms
+  
+- **Terminal:**
+  - Command execution latency < 100ms
+  - Output rendering 60 FPS
+  - Handle 10K lines of output without freezing
+  
+- **Preview:**
+  - Iframe load < 2s
+  - Hot reload updates < 500ms
+  - Responsive to viewport changes < 200ms
+
+#### Resource Utilization
+- Memory usage < 200MB for typical session
+- Memory usage < 500MB with large files (100K+ lines)
+- CPU usage < 30% on modern hardware
+- Network bandwidth < 1Mbps for WebSocket connections
+
+### 1.6 Integration Points with CubiQo Infrastructure
+
+#### Authentication
+- Use existing Supabase Auth system
+- Support magic link and WebAuthn
+- Session management via `useAuth()` hook
+- Profile data from `profiles` table
+
+#### AI Integration
+- Use existing multi-provider AI routing (MiniMax → Mixtral → Llama → Claude)
+- Conversational interface powered by existing chat API
+- Voice input/output via existing TTS/STT pipeline
+
+#### Analytics
+- Track user interactions via existing Vercel Analytics
+- Custom events via PostHog integration
+- Error tracking via Sentry
+
+#### Feature Flags
+- Control Studio feature rollout via existing feature flags system
+- Per-user and per-org feature toggles
 
 ---
 
-### 4.3 Live Code Editor Enhancements
+## 2. RUNNER SYSTEM (Workspace Execution Environment)
 
-**User Story**: As a developer, I want a full-featured code editor with integrated terminal, AI assistance, and multi-file support, so that I can build and test code within CubiQo.
+### 2.1 Functional Requirements
 
-**Description**: Enhance the existing dev-console (Ctrl+` toggle) and CodePanel components into a full IDE experience.
+#### Workspace Management
 
-#### Already Exists
-- Monaco Editor integration (`@monaco-editor/react` installed)
-- `/api/code/execute` — Multi-language execution (Python, JS, TS, Bash)
-- `/api/code/terminal` — Shell terminal emulation
-- `/api/code/file-ops` — File CRUD operations
-- `/api/coder` — AI code generation (MiniMax + OpenClaw)
-- Dev Console components: PromptPane, LiveCoderPane, DevConsoleHeader
-- FileTree component, CodePanel component
+**Core Operations:**
+- **Create Workspace:**
+  - Spin up isolated Docker container
+  - Initialize project directory structure
+  - Install default dependencies
+  - Start file watcher for hot reload
+  
+- **Start Workspace:**
+  - Resume stopped container
+  - Restore terminal sessions
+  - Reconnect preview server
+  - Load cached dependencies
+  
+- **Stop Workspace:**
+  - Gracefully shutdown dev servers
+  - Save terminal state
+  - Persist file changes
+  - Release resources
+  
+- **Destroy Workspace:**
+  - Stop all processes
+  - Delete container and volumes
+  - Clean up temporary files
+  - Archive logs
 
-#### Enhancements Required
+**Lifecycle:**
+```
+[Created] → [Starting] → [Running] → [Stopping] → [Stopped]
+                ↓                        ↓
+             [Error]                  [Destroyed]
+```
 
-| Enhancement | Description | Effort |
-|-------------|-------------|--------|
-| Multi-file tabs | Tab bar for multiple open files | Small |
-| Integrated terminal | Terminal panel below editor | Small |
-| Git panel | Branch, diff, commit UI | Medium |
-| AI assist sidebar | Connect to /api/coder, inline suggestions | Medium |
-| File tree DnD | Drag-and-drop file management | Small |
-| Split panes | Horizontal/vertical editor splits | Small |
-| Syntax highlighting | Auto-detect language from file extension | Small (Monaco built-in) |
-| Search & replace | Global search across workspace | Small (Monaco built-in) |
+**Resource Management:**
+- Default allocation: 2 CPU cores, 4GB RAM, 10GB storage
+- Pro tier: 4 CPU cores, 8GB RAM, 50GB storage
+- Enterprise tier: 8 CPU cores, 16GB RAM, 200GB storage
+- Automatic cleanup after 30 minutes of inactivity
+- Quota enforcement per organization
 
-#### Technical Specifications
+#### Terminal Emulator
 
+**Features:**
+- Interactive bash/shell access via PTY (pseudo-terminal)
+- Multiple terminal sessions per workspace
+- Command execution with real-time output
+- Process management:
+  - List running processes
+  - Kill processes by PID
+  - Background job control
+- Command history (last 1000 commands)
+- Environment variable support
+- Tab completion
+
+**Technical Implementation:**
+- Use `node-pty` for PTY creation
+- WebSocket connection for real-time I/O
+- Terminal state persistence across reconnections
+- Output buffering to handle high-throughput commands
+
+**Security:**
+- Rate limiting: 100 commands/minute per user
+- Audit log all commands executed
+- Timeout protection: kill processes running > 15 minutes
+- Restrict dangerous commands (e.g., `rm -rf /`)
+- No access to host system files
+
+#### Dev Server Management
+
+**Auto-Detection:**
+- Detect project type from files:
+  - `package.json` → Node.js (Next.js, Vite, CRA, etc.)
+  - `requirements.txt` → Python (Flask, Django, FastAPI)
+  - `composer.json` → PHP (Laravel, Symfony)
+  - `Gemfile` → Ruby (Rails, Sinatra)
+  - `go.mod` → Go
+  
+- Determine start command:
+  - Next.js: `npm run dev` or `next dev`
+  - Vite: `npm run dev` or `vite`
+  - CRA: `npm start`
+  - Flask: `flask run`
+  - Rails: `rails server`
+
+**Operations:**
+- Start dev server on port 3000 (or auto-allocated port)
+- Monitor health with HTTP polling (every 10s)
+- Auto-restart on crash (max 3 retries)
+- Kill dev server on workspace stop
+- Handle WebSocket upgrades for hot reload
+
+**Port Management:**
+- Dynamic port allocation from pool (3000-4000)
+- Port mapping from container to host
+- Proxy all traffic through Nginx
+- Support multiple services per workspace (frontend + backend)
+
+#### Preview Server
+
+**Architecture:**
+```
+User Browser → Nginx Reverse Proxy → Docker Container (Dev Server)
+  https://{project-id}.preview.cubiqo.dev
+           ↓
+  Nginx routes by subdomain to correct container port
+```
+
+**URL Generation:**
+- Format: `https://{project-id}.preview.cubiqo.dev`
+- SSL/TLS termination at Nginx
+- WebSocket upgrade support for hot reload
+- Custom headers for debugging (X-Project-ID, X-Workspace-ID)
+
+**Routing:**
+- Nginx dynamic routing configuration
+- Subdomain → container port mapping in Redis
+- Health check endpoint: `/_health`
+- Fallback to 503 if dev server down
+
+**Features:**
+- Live preview updates with hot reload
+- Mobile device testing (responsive preview)
+- Share preview URL with team members
+- Optional authentication for private projects
+
+### 2.2 Technical Requirements
+
+#### Infrastructure
+
+**Containerization:**
+- **Platform:** Docker 24+
+- **Base Images:**
+  - Node.js: `node:20-alpine`
+  - Python: `python:3.11-slim`
+  - PHP: `php:8.2-fpm-alpine`
+  - Ruby: `ruby:3.2-alpine`
+  - Go: `golang:1.21-alpine`
+  
+- **Container Configuration:**
+  ```dockerfile
+  FROM node:20-alpine
+  
+  # Set working directory
+  WORKDIR /workspace
+  
+  # Install system dependencies
+  RUN apk add --no-cache git curl bash
+  
+  # Set resource limits
+  ENV NODE_OPTIONS="--max-old-space-size=4096"
+  
+  # Expose ports
+  EXPOSE 3000
+  
+  # Start command
+  CMD ["/bin/bash"]
+  ```
+
+- **Resource Limits:**
+  ```yaml
+  services:
+    workspace:
+      cpus: '2'
+      mem_limit: 4g
+      storage_opt:
+        size: 10g
+  ```
+
+**Networking:**
+- Isolated Docker network per project
+- No external network access by default (security)
+- Allow access to approved APIs via whitelist:
+  - npm registry (registry.npmjs.org)
+  - GitHub (github.com, api.github.com)
+  - CDNs (cdn.jsdelivr.net, unpkg.com)
+  - AI providers (api.openai.com, api.anthropic.com)
+
+**Storage:**
+- Docker volumes for persistent project files
+- Shared volume for temporary files
+- Backup snapshots every 6 hours
+- Retention policy: 7 days of snapshots
+
+**Process Management:**
+- Supervisor or systemd for container processes
+- Auto-restart on crash
+- Graceful shutdown on stop
+- Resource monitoring (CPU, memory, disk I/O)
+
+#### APIs
+
+**Workspace API:**
 ```typescript
-// Enhanced editor props
-interface LiveEditorProps {
+// POST /api/runner/workspaces
+interface CreateWorkspaceRequest {
+  projectId: string;
+  runtime: 'nodejs' | 'python' | 'php' | 'ruby' | 'go';
+  template?: string; // Optional starter template
+}
+
+interface CreateWorkspaceResponse {
   workspaceId: string;
-  initialFiles?: FileEntry[];
-  onExecute: (code: string, language: string) => Promise<ExecutionResult>;
-  onSave: (path: string, content: string) => Promise<void>;
-  aiAssistEnabled?: boolean;   // Show AI sidebar
-  terminalEnabled?: boolean;   // Show terminal panel
-  gitEnabled?: boolean;        // Show git panel
+  containerId: string;
+  status: 'created';
+  previewURL: string;
+  terminalURL: string; // WebSocket URL
 }
 
-interface ExecutionResult {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-  executionTime: number;
+// GET /api/runner/workspaces/:id
+interface GetWorkspaceResponse {
+  workspaceId: string;
+  projectId: string;
+  status: 'running' | 'stopped' | 'error';
+  resources: {
+    cpu: number; // percentage
+    memory: number; // MB
+    storage: number; // MB
+  };
+  processes: {
+    pid: number;
+    name: string;
+    cpu: number;
+    memory: number;
+  }[];
+  uptime: number; // seconds
+}
+
+// POST /api/runner/workspaces/:id/start
+// POST /api/runner/workspaces/:id/stop
+// DELETE /api/runner/workspaces/:id
+
+// WS /api/runner/terminal/:workspaceId
+interface TerminalMessage {
+  type: 'input' | 'output' | 'resize';
+  data: string | { cols: number; rows: number };
 }
 ```
 
-#### Acceptance Criteria
-- [ ] Multi-file tabs with unsaved indicator (dot)
-- [ ] Integrated terminal with /api/code/terminal
-- [ ] AI code suggestions via /api/coder
-- [ ] File tree shows workspace files from /api/files/list
-- [ ] Code execution feedback < 3s
-- [ ] Editor loads in < 1s
-- [ ] Supports Python, JavaScript, TypeScript, Bash
-
-#### Performance Requirements
-- Editor load: < 1s
-- Code execution feedback: < 3s
-- File tree render: < 200ms
-- AI suggestion latency: < 2s
-- Terminal response: < 100ms
-
----
-
-### 4.4 Agent Dashboard Enhancements
-
-**User Story**: As an admin, I want to monitor all agents in real-time with performance metrics and cost tracking, so that I can optimize resource usage.
-
-#### Already Exists
-- AgentDashboard component
-- AgentActivityCube (3D visualization)
-- `/api/agents/activity` endpoint
-- `/api/ai-stats` endpoint
-- Recharts charting library (installed)
-
-#### Enhancements Required
-
-| Enhancement | Description | Effort |
-|-------------|-------------|--------|
-| Real-time status | WebSocket/SSE agent status updates | Medium |
-| Token usage charts | Per-agent token consumption (Recharts) | Small |
-| Cost tracking | Dollar cost per agent per day/week/month | Medium |
-| Session browser | Browse and replay agent sessions | Medium |
-| Task queue viz | Visual task queue with priorities | Small |
-| Alert system | Threshold-based alerts (high cost, errors) | Medium |
-
-#### Acceptance Criteria
-- [ ] Dashboard shows real-time status for all 7+ agents
-- [ ] Token usage chart with daily/weekly/monthly views
-- [ ] Cost displayed in USD per agent
-- [ ] Session history browsable with message replay
-- [ ] Task queue shows queued/running/done/failed counts
-- [ ] Dashboard loads in < 2s
-- [ ] Charts render in < 500ms
-
----
-
-## 5. Runner System Requirements
-
-### 5.1 Task Queue Manager
-
-**User Story**: As the system, I want to queue and execute agent tasks in priority order with retry logic, so that resources are used efficiently and tasks don't get lost.
-
-**Description**: A persistent task queue that manages agent task execution with priority, concurrency limits, retry logic, and dead letter handling.
-
-#### Technical Specifications
-
+**Dev Server API:**
 ```typescript
-// Task Queue interface
-interface TaskQueue {
-  enqueue(task: TaskDefinition): Promise<string>;  // Returns taskId
-  dequeue(agentId: string): Promise<TaskDefinition | null>;
-  complete(taskId: string, result: TaskResult): Promise<void>;
-  fail(taskId: string, error: Error): Promise<void>;
-  retry(taskId: string): Promise<void>;
-  getStatus(taskId: string): Promise<TaskStatus>;
-  getQueueLength(agentId?: string): Promise<number>;
+// POST /api/runner/dev-server/:workspaceId/start
+interface StartDevServerRequest {
+  command?: string; // Optional custom command
+  port?: number; // Optional custom port
+  env?: Record<string, string>; // Environment variables
 }
 
-interface TaskDefinition {
-  id: string;
-  agentId: string;
-  prompt: string;
-  priority: 'critical' | 'high' | 'normal' | 'low';
-  maxRetries: number;        // Default: 3
-  retryDelay: number;        // Default: exponential backoff
-  timeout: number;           // Default: 300s (5 min)
-  metadata?: Record<string, any>;
-  createdAt: Date;
-  scheduledFor?: Date;       // Delayed execution
-}
-
-interface TaskResult {
-  output: string;
-  tokenUsage: { input: number; output: number; cost: number };
-  executionTime: number;
-  toolsUsed: string[];
-}
-
-interface TaskStatus {
-  state: 'queued' | 'running' | 'done' | 'failed' | 'dead_letter';
-  attempts: number;
-  lastError?: string;
-  result?: TaskResult;
-  queuedAt: Date;
-  startedAt?: Date;
-  completedAt?: Date;
+// POST /api/runner/dev-server/:workspaceId/stop
+// GET /api/runner/dev-server/:workspaceId/status
+interface DevServerStatus {
+  running: boolean;
+  port: number;
+  previewURL: string;
+  uptime: number; // seconds
+  health: 'healthy' | 'unhealthy' | 'unknown';
 }
 ```
 
-#### Architecture
+#### Deployment Architecture
 
+**Infrastructure Setup:**
+- **Runner Nodes:** AWS EC2 instances (t3.xlarge or higher)
+- **Load Balancer:** AWS ALB or Nginx for routing
+- **Container Orchestration:** Docker Swarm or Kubernetes (future)
+- **Monitoring:** Prometheus + Grafana
+- **Logging:** Loki or CloudWatch Logs
+
+**Scalability:**
+- Horizontal scaling: add more EC2 instances
+- Auto-scaling based on workspace count
+- Target: 20-30 workspaces per instance
+- Load balancing: round-robin across instances
+
+**High Availability:**
+- Multi-AZ deployment
+- Health checks on runner nodes
+- Automatic failover
+- Backup runner nodes for redundancy
+
+### 2.3 Security Requirements
+
+#### Container Isolation
+
+**Network Security:**
+- Each project in separate Docker network
+- No external network access by default
+- Whitelist approved domains (npm, GitHub, CDNs)
+- Block access to internal networks (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+- Firewall rules enforced at container level
+
+**File System Security:**
+- Path traversal prevention:
+  ```typescript
+  function sanitizePath(userPath: string, workspaceRoot: string): string {
+    const resolved = path.resolve(workspaceRoot, userPath);
+    if (!resolved.startsWith(workspaceRoot)) {
+      throw new Error('Path traversal detected');
+    }
+    return resolved;
+  }
+  ```
+- Storage quota enforcement (10GB default)
+- No access outside `/workspace` directory
+- Read-only mounts for system files
+- Secure file permissions (0755 for directories, 0644 for files)
+
+**Process Security:**
+- Resource limits prevent DoS attacks:
+  - CPU: 2 cores default
+  - Memory: 4GB default
+  - Processes: max 100 per container
+  - Open files: max 1024 per container
+- Process namespace isolation (PID 1 in container)
+- No privileged containers
+- Drop unnecessary capabilities (CAP_SYS_ADMIN, etc.)
+
+#### Terminal Security
+
+**Command Filtering:**
+- Rate limiting: 100 commands/minute per user
+- Audit log all terminal commands
+- Block dangerous commands:
+  - `rm -rf /` and variants
+  - `dd` (disk operations)
+  - `mkfs` (format filesystem)
+  - `:(){ :|:& };:` (fork bomb)
+- Timeout protection: kill processes running > 15 minutes
+
+**Authentication:**
+- WebSocket connections require valid JWT token
+- Workspace ownership verification
+- Session timeout after 30 minutes of inactivity
+
+**Data Security:**
+- Terminal output encrypted in transit (WSS)
+- Command history encrypted at rest
+- No sensitive data logged (secrets masked)
+
+#### Preview URL Security
+
+**Access Control:**
+- HTTPS required (TLS 1.3)
+- Project ID verification in Nginx
+- Optional authentication for private projects
+- Rate limiting: 100 requests/minute per IP
+
+**Headers:**
+```nginx
+add_header X-Frame-Options "SAMEORIGIN";
+add_header X-Content-Type-Options "nosniff";
+add_header X-XSS-Protection "1; mode=block";
+add_header Referrer-Policy "strict-origin-when-cross-origin";
 ```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Enqueue    │ ──► │  Task Queue  │ ──► │   Worker     │
-│  (API/Cron)  │     │  (Supabase)  │     │  (Agent)     │
-└──────────────┘     └──────────────┘     └──────────────┘
-                            │                     │
-                            ▼                     ▼
-                     ┌──────────────┐     ┌──────────────┐
-                     │ Dead Letter  │     │   Results    │
-                     │    Queue     │     │  (Supabase)  │
-                     └──────────────┘     └──────────────┘
+
+### 2.4 Performance Requirements
+
+#### Response Times
+- Container startup: < 5 seconds (cold start)
+- Container resume: < 2 seconds (warm start)
+- Terminal command execution: < 100ms latency
+- Dev server start: < 30 seconds
+- Preview URL routing: < 50ms
+- Hot reload propagation: < 500ms
+
+#### Scalability
+- Support 50-100 concurrent workspaces per EC2 instance
+- Handle 500+ workspaces across cluster
+- WebSocket connections: 1000+ concurrent
+- Terminal output: handle 10MB/s throughput
+
+#### Resource Efficiency
+- Container base memory: 512MB
+- Container idle memory: < 100MB overhead
+- Docker image size: < 500MB per runtime
+- Storage efficiency: < 2GB per project on average
+
+### 2.5 Integration Points with CubiQo Infrastructure
+
+#### Supabase
+- Store workspace metadata in `emergent_workspaces` table
+- Store environment variables in `emergent_env_vars` table (encrypted)
+- Log workspace events in `emergent_audit_log`
+
+#### Control Plane API
+- Send workspace status updates
+- Report resource utilization
+- Handle workspace lifecycle events
+
+#### Orchestrator
+- Receive file write/edit operations from main agent
+- Execute test commands via testing subagent
+- Run build commands for deployments
+
+#### Redis
+- Cache workspace → container port mappings
+- Store terminal session state
+- Rate limiting counters
+
+---
+
+## 3. DEPLOYMENT FLOW (Preview to Production)
+
+### 3.1 Functional Requirements
+
+#### Deployment Pipeline
+
+**Phase 1: Build**
+1. Trigger deployment from Studio UI
+2. Validate project configuration
+3. Inject environment variables from secrets manager
+4. Run build command:
+   - Next.js: `npm run build`
+   - Vite: `npm run build`
+   - Custom: user-defined command
+5. Run post-build scripts (if configured)
+6. Generate optimized build artifact (.tar.gz)
+7. Calculate artifact size and checksum
+
+**Phase 2: Upload**
+1. Upload artifact to storage:
+   - Supabase Storage (primary)
+   - AWS S3 (enterprise)
+2. Generate signed URL for deployment target
+3. Log upload completion
+
+**Phase 3: Deploy**
+1. Send artifact to deployment target:
+   - Vercel (primary)
+   - Netlify (secondary)
+   - Custom hosting (AWS, DigitalOcean, etc.)
+2. Configure deployment settings:
+   - Environment variables (injected from secrets)
+   - Build command
+   - Output directory
+   - Node.js version
+3. Wait for deployment to complete
+4. Capture deployment URL
+
+**Phase 4: Verification**
+1. Run health checks on deployment URL:
+   - HTTP 200 status check
+   - Check for specific content (e.g., `<title>`)
+   - Response time < 2s
+2. Run smoke tests (optional):
+   - Critical user flows
+   - API endpoint checks
+3. Update DNS records (if custom domain)
+4. Verify SSL certificate
+5. Log deployment record in database
+
+**Phase 5: Monitoring**
+1. Start uptime monitoring (ping every 5 min)
+2. Enable error tracking (Sentry)
+3. Collect Web Vitals (Vercel Analytics)
+4. Send deployment notification to user
+
+**Rollback Process:**
+1. User triggers rollback from deployment history
+2. Retrieve previous deployment artifact
+3. Redeploy previous version
+4. Run verification checks
+5. Update deployment record with rollback status
+
+#### Deployment Targets
+
+**Vercel (Primary):**
+- Use Vercel API for deployments
+- Automatic SSL certificates
+- Edge network distribution
+- Git integration (optional)
+- Environment variables via API
+
+**Netlify (Secondary):**
+- Use Netlify API for deployments
+- Automatic SSL certificates
+- CDN distribution
+- Build hooks
+- Split testing support (A/B testing)
+
+**Custom Hosting (Enterprise):**
+- AWS EC2 + Nginx
+- DigitalOcean Droplets
+- Google Cloud Run
+- Kubernetes clusters
+- Docker Compose setups
+
+#### Domain Management
+
+**Add Custom Domain:**
+1. User enters domain name (e.g., `myapp.com`)
+2. System generates DNS records:
+   - A record: `myapp.com → 76.76.21.21` (Vercel IP)
+   - CNAME: `www.myapp.com → cname.vercel-dns.com`
+3. User adds DNS records to their provider
+4. System verifies DNS propagation
+5. Request SSL certificate from Let's Encrypt
+6. Configure deployment to use custom domain
+7. Update deployment record
+
+**SSL/TLS Automation:**
+- Automatic certificate issuance via Let's Encrypt
+- Certificate auto-renewal (90 days before expiration)
+- Support for wildcard certificates
+- TLS 1.3 enforcement
+- HTTPS redirect from HTTP
+
+**DNS Verification:**
+```typescript
+async function verifyDNS(domain: string, expectedIP: string): Promise<boolean> {
+  const records = await dns.resolve4(domain);
+  return records.includes(expectedIP);
+}
 ```
 
-#### Acceptance Criteria
-- [ ] Tasks queue with priority ordering (critical > high > normal > low)
-- [ ] FIFO within same priority level
-- [ ] Concurrency respects agent.maxConcurrent setting
-- [ ] Failed tasks retry 3 times with exponential backoff (1s, 4s, 16s)
-- [ ] After max retries, task moves to dead letter queue
-- [ ] Task pickup latency < 100ms
-- [ ] Queue operations (enqueue/dequeue) < 10ms
-- [ ] Queue persists across server restarts (Supabase-backed)
-- [ ] Task timeout enforcement (kill after timeout)
+### 3.2 Technical Requirements
 
-#### Database Table Required
+#### Deployment API
 
+**Endpoints:**
+```typescript
+// POST /api/control-plane/deployments/trigger
+interface TriggerDeploymentRequest {
+  projectId: string;
+  environment: 'preview' | 'production';
+  target: 'vercel' | 'netlify' | 'custom';
+  config: {
+    buildCommand?: string;
+    outputDirectory?: string;
+    envVars?: string[]; // Secret IDs to inject
+    customDomain?: string;
+  };
+}
+
+interface TriggerDeploymentResponse {
+  deploymentId: string;
+  status: 'queued' | 'building' | 'deploying' | 'success' | 'failed';
+  estimatedTime: number; // seconds
+}
+
+// GET /api/control-plane/deployments/:id/status
+interface DeploymentStatus {
+  deploymentId: string;
+  projectId: string;
+  status: 'queued' | 'building' | 'deploying' | 'success' | 'failed';
+  progress: number; // 0-100
+  logs: string[];
+  deploymentURL?: string;
+  customDomain?: string;
+  startedAt: string;
+  completedAt?: string;
+  error?: string;
+}
+
+// POST /api/control-plane/deployments/:id/rollback
+interface RollbackDeploymentRequest {
+  targetDeploymentId: string; // Deployment to rollback to
+}
+
+// DELETE /api/control-plane/deployments/:id
+// Deletes deployment and removes from hosting platform
+
+// GET /api/control-plane/deployments
+// List all deployments for a project (paginated)
+interface ListDeploymentsResponse {
+  deployments: DeploymentSummary[];
+  total: number;
+  page: number;
+  perPage: number;
+}
+```
+
+**Domain API:**
+```typescript
+// POST /api/control-plane/domains/add
+interface AddDomainRequest {
+  projectId: string;
+  domain: string; // e.g., "myapp.com"
+}
+
+interface AddDomainResponse {
+  domainId: string;
+  domain: string;
+  dnsRecords: {
+    type: 'A' | 'CNAME';
+    name: string;
+    value: string;
+  }[];
+  verificationStatus: 'pending' | 'verified' | 'failed';
+  sslStatus: 'pending' | 'active' | 'failed';
+}
+
+// GET /api/control-plane/domains/:id/verify-dns
+// Checks if DNS records are correctly configured
+interface VerifyDNSResponse {
+  verified: boolean;
+  records: {
+    type: string;
+    configured: boolean;
+    expected: string;
+    actual?: string;
+  }[];
+}
+
+// DELETE /api/control-plane/domains/:id
+// Removes custom domain from project
+
+// GET /api/control-plane/domains
+// List all domains for a project
+```
+
+#### External Integrations
+
+**Vercel API:**
+```typescript
+// Vercel deployment creation
+async function deployToVercel(
+  artifact: Buffer,
+  config: VercelConfig
+): Promise<VercelDeployment> {
+  const response = await fetch('https://api.vercel.com/v13/deployments', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.VERCEL_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: config.projectName,
+      files: config.files,
+      projectSettings: {
+        buildCommand: config.buildCommand,
+        outputDirectory: config.outputDirectory,
+        framework: config.framework, // 'nextjs', 'vite', etc.
+      },
+      env: config.envVars,
+      target: config.environment, // 'preview' or 'production'
+    }),
+  });
+  
+  return response.json();
+}
+```
+
+**Cloudflare API (for DNS):**
+```typescript
+// Add DNS record
+async function addDNSRecord(
+  domain: string,
+  type: 'A' | 'CNAME',
+  name: string,
+  value: string
+): Promise<void> {
+  const zoneId = await getCloudflareZoneId(domain);
+  
+  await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.CLOUDFLARE_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      type,
+      name,
+      content: value,
+      ttl: 3600,
+      proxied: true, // Enable Cloudflare proxy
+    }),
+  });
+}
+```
+
+**Let's Encrypt (via ACME client):**
+```typescript
+// Request SSL certificate
+async function requestSSLCertificate(domain: string): Promise<Certificate> {
+  const acme = new ACME.Client({
+    directoryUrl: ACME.directory.letsencrypt.production,
+    accountKey: await loadAccountKey(),
+  });
+  
+  const [key, csr] = await ACME.crypto.createCsr({
+    commonName: domain,
+    altNames: [`www.${domain}`],
+  });
+  
+  const cert = await acme.auto({
+    csr,
+    email: process.env.ACME_EMAIL,
+    termsOfServiceAgreed: true,
+    challengeCreateFn: async (authz, challenge, keyAuthorization) => {
+      // DNS-01 challenge: add TXT record
+      await addDNSRecord(
+        domain,
+        'TXT',
+        `_acme-challenge.${domain}`,
+        keyAuthorization
+      );
+    },
+    challengeRemoveFn: async (authz, challenge, keyAuthorization) => {
+      // Remove TXT record after verification
+      await removeDNSRecord(domain, `_acme-challenge.${domain}`);
+    },
+  });
+  
+  return { privateKey: key, certificate: cert };
+}
+```
+
+#### CI/CD Pipeline
+
+**GitHub Actions Workflow:**
+```yaml
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run tests
+        run: npm test
+        
+      - name: Build project
+        run: npm run build
+        env:
+          # Inject secrets from GitHub Secrets
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          API_KEY: ${{ secrets.API_KEY }}
+          
+      - name: Deploy to Vercel
+        run: |
+          npm i -g vercel
+          vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+          
+      - name: Run smoke tests
+        run: npm run test:smoke
+        
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+```
+
+### 3.3 UI/UX Requirements
+
+#### Deployment Dashboard
+
+**Layout:**
+- Deployment history table with columns:
+  - Status (icon + text)
+  - Environment (preview/production)
+  - Deployment URL
+  - Deployed by (user)
+  - Deployed at (timestamp)
+  - Duration
+  - Actions (rollback, delete)
+  
+- Filters:
+  - Environment (all, preview, production)
+  - Status (all, success, failed)
+  - Date range
+
+**Deployment Detail View:**
+- Deployment metadata (ID, environment, target)
+- Build logs (collapsible sections)
+- Deployment URL with copy button
+- Custom domain configuration (if applicable)
+- SSL certificate status
+- Environment variables used (names only, no values)
+- Rollback button with confirmation modal
+- Delete button with confirmation modal
+
+**Deploy Now Flow:**
+1. User clicks "Deploy Now" in Studio
+2. Modal opens with deployment configuration:
+   - Environment: Preview or Production (radio buttons)
+   - Target: Vercel, Netlify, or Custom (dropdown)
+   - Build command (auto-detected, editable)
+   - Output directory (auto-detected, editable)
+   - Environment variables (checkboxes to select secrets)
+   - Custom domain (optional, text input)
+3. User clicks "Deploy"
+4. Modal transitions to progress view:
+   - Step-by-step progress (building, uploading, deploying)
+   - Real-time logs streaming
+   - Cancel button (if before deploying)
+5. On success:
+   - Show deployment URL with "Open" button
+   - Show custom domain status (if configured)
+   - "View Deployment" button to detail view
+6. On failure:
+   - Show error message
+   - Show logs at point of failure
+   - "Retry" button
+   - "Get Help" button (link to docs/support)
+
+**Domain Management UI:**
+- Add domain button
+- Domain list with status indicators:
+  - DNS verification: pending (yellow), verified (green), failed (red)
+  - SSL status: pending (yellow), active (green), failed (red)
+- Instructions panel:
+  - DNS records to add
+  - Copy buttons for each record
+  - "Verify DNS" button to check configuration
+- Remove domain button with confirmation
+
+**Real-time Updates:**
+- Deployment status updates every 2 seconds (polling or WebSocket)
+- Progress bar animation
+- Log streaming (append new lines without flickering)
+- Toast notifications on completion
+
+### 3.4 Security Requirements
+
+#### Secrets Management
+- ❌ Secrets injected server-side only
+- Environment variables encrypted at rest (AES-256-GCM)
+- Secrets never included in build artifact source code
+- Deployment credentials secured in Secrets Manager
+- API tokens rotated every 90 days
+
+#### Audit Logging
+- Log all deployment actions:
+  - User who triggered deployment
+  - Timestamp
+  - Project ID
+  - Environment (preview/production)
+  - Target platform
+  - Success/failure status
+  - Duration
+  - Artifact checksum
+  
+**Example audit log entry:**
+```json
+{
+  "eventType": "deployment.triggered",
+  "userId": "user_123",
+  "projectId": "proj_456",
+  "deploymentId": "deploy_789",
+  "environment": "production",
+  "target": "vercel",
+  "timestamp": "2026-02-19T10:30:00Z",
+  "metadata": {
+    "buildCommand": "npm run build",
+    "artifactSize": 15728640,
+    "artifactChecksum": "sha256:abc123..."
+  }
+}
+```
+
+#### Deployment Security
+- Signed deployment artifacts (prevent tampering)
+- HTTPS-only for deployment URLs
+- SSL/TLS mandatory for production
+- Domain ownership verification (DNS challenge)
+- Rate limiting on deployment triggers (10/hour per project)
+- Malware scanning of uploaded files (ClamAV)
+
+#### Access Control
+- Only project owners and admins can trigger production deployments
+- Team members can trigger preview deployments
+- Viewers can only view deployment history
+- API endpoints protected by JWT authentication
+- RBAC enforced at database level (Row-Level Security)
+
+### 3.5 Performance Requirements
+
+#### Build Performance
+- Build process: < 5 minutes for typical app
+- Build process: < 10 minutes for large app (1000+ files)
+- Build artifact generation: < 1 minute
+- Build artifact compression: < 30 seconds
+
+#### Upload Performance
+- Upload to Supabase Storage: < 2 minutes for 50MB artifact
+- Upload to AWS S3: < 1 minute for 50MB artifact
+- Parallel upload chunks for large files (> 10MB)
+
+#### Deployment Performance
+- Vercel deployment: < 3 minutes from upload to live
+- Netlify deployment: < 5 minutes from upload to live
+- Health check: < 30 seconds after deployment complete
+- DNS update propagation: < 5 minutes (depends on TTL)
+
+#### Rollback Performance
+- Rollback execution: < 1 minute
+- Verification: < 30 seconds
+
+#### Scalability
+- Support 100+ simultaneous deployments across platform
+- Handle 1000+ deployments per day per project
+- Store 10,000+ deployment records per project (paginated API)
+
+### 3.6 Integration Points with CubiQo Infrastructure
+
+#### Supabase
+- Store deployment records in `emergent_deployments` table
+- Store domain records in `emergent_domains` table
+- Store build artifacts in Supabase Storage
+- Log deployment events in `emergent_audit_log`
+
+#### Runner System
+- Trigger builds in workspace containers
+- Execute build commands via terminal
+- Retrieve build artifacts from workspace filesystem
+
+#### Control Plane
+- Orchestrate deployment pipeline
+- Manage deployment lifecycle
+- Send deployment notifications to users
+
+#### Orchestrator
+- Use Code Agent for build script generation
+- Use Testing Agent for smoke tests
+- Use Integration Agent for deployment platform APIs
+
+#### Existing Infrastructure
+- Use existing Vercel account for primary deployments
+- Integrate with existing Supabase project
+- Use existing Redis for rate limiting and caching
+- Use existing PostHog for deployment analytics
+
+---
+
+## 4. POST-LAUNCH OS (Analytics, SEO, Commerce Ops)
+
+### 4.1 Functional Requirements
+
+#### 4.1.1 Analytics System
+
+**Event Tracking:**
+
+**Core Events:**
+- Page views: track every page load
+- User sessions: identify unique users and sessions
+- Button clicks: track all CTA interactions
+- Form submissions: track conversions
+- API calls: track backend interactions
+- Errors: track client-side errors
+
+**Custom Events:**
+```typescript
+// Example: Track product purchase
+trackEvent('product.purchased', {
+  productId: 'prod_123',
+  productName: 'Succulent Plant',
+  price: 29.99,
+  currency: 'USD',
+  quantity: 2,
+});
+
+// Example: Track user signup
+trackEvent('user.signup', {
+  method: 'email',
+  plan: 'pro',
+});
+```
+
+**User Identification:**
+- Anonymous tracking (via session ID)
+- Authenticated user tracking (via user ID)
+- User properties (email, name, plan, etc.)
+- Device fingerprinting for cross-session tracking
+
+**Session Tracking:**
+- Session duration
+- Pages per session
+- Bounce rate
+- Exit pages
+- Traffic sources (referrer, UTM parameters)
+
+**Conversion Funnels:**
+- Define multi-step funnels (e.g., Home → Product → Checkout → Success)
+- Track drop-off rates at each step
+- Calculate conversion rates
+- A/B test optimization
+
+**Dashboards:**
+
+**Real-time Dashboard:**
+- Live visitor count
+- Active pages (currently viewed)
+- Top events (last 5 minutes)
+- Geographic distribution (world map)
+- Device breakdown (mobile, desktop, tablet)
+
+**Analytics Dashboard:**
+- Time range selector (24h, 7d, 30d, custom)
+- Key metrics cards:
+  - Total visitors
+  - Page views
+  - Bounce rate
+  - Average session duration
+  - Conversion rate
+- Traffic trends chart (line graph)
+- Top pages table (path, views, unique visitors, avg time)
+- Traffic sources pie chart (direct, referral, social, search)
+- User cohorts table (week, active users, retention rate)
+
+**Custom Reports:**
+- Query builder for custom metrics
+- Export to CSV, PDF
+- Schedule email reports (daily, weekly, monthly)
+- Share reports with team members
+
+**Data Retention:**
+- Raw events: 90 days
+- Aggregated data: 2 years
+- GDPR-compliant deletion on user request
+
+#### 4.1.2 Performance Monitoring
+
+**Uptime Monitoring:**
+- HTTP ping every 5 minutes
+- Check for 200 status code
+- Alert on downtime (email, Slack, SMS)
+- Uptime percentage (30-day, 90-day)
+- Incident history log
+
+**Response Time Tracking:**
+- Measure full page load time
+- Track API endpoint latency
+- Database query performance
+- Third-party API response times
+- Historical trends chart
+
+**Web Vitals:**
+- **Largest Contentful Paint (LCP):** < 2.5s (good)
+- **First Input Delay (FID):** < 100ms (good)
+- **Cumulative Layout Shift (CLS):** < 0.1 (good)
+- Track per page
+- Monitor trends over time
+- Alert on regressions
+
+**Error Monitoring:**
+- JavaScript errors (uncaught exceptions)
+- API errors (4xx, 5xx responses)
+- Network errors (timeouts, connection refused)
+- Error rate per page
+- Error grouping (same error across users)
+- Stack traces for debugging
+
+**Performance Score:**
+- Aggregate score (0-100) based on metrics
+- Lighthouse score integration
+- PageSpeed Insights integration
+- Recommendations for improvement
+
+#### 4.1.3 SEO Tooling
+
+**Metadata Management:**
+
+**Per-Page Settings:**
+- Title (max 60 characters)
+- Meta description (max 160 characters)
+- Open Graph tags (og:title, og:description, og:image)
+- Twitter Card tags (twitter:title, twitter:description, twitter:image)
+- Canonical URL
+- Robots meta tag (index/noindex, follow/nofollow)
+
+**UI:**
+- Page list with SEO status indicators (complete, incomplete, issues)
+- Inline editor for each metadata field
+- Character count indicators
+- Preview cards (Google SERP, Facebook, Twitter)
+- Bulk edit mode
+
+**Sitemap Generation:**
+- Automatic sitemap.xml generation
+- Crawl site to discover pages
+- Priority and change frequency per page
+- Submit to Google Search Console
+- Update on content changes
+
+**Robots.txt Management:**
+- Editor for robots.txt file
+- Syntax validation
+- Common presets (allow all, disallow all, etc.)
+- Test tool (check if URL is allowed)
+
+**Schema.org Markup:**
+- Generate JSON-LD structured data
+- Support common schemas:
+  - WebPage
+  - Article
+  - Product
+  - Organization
+  - LocalBusiness
+  - FAQ
+  - Review
+- Validate schema with Google's Rich Results Test
+
+**SEO Audit:**
+
+**Technical SEO Checks:**
+- [x] HTTPS enabled
+- [x] XML sitemap present
+- [x] Robots.txt present
+- [x] Canonical tags set
+- [x] Meta tags complete
+- [x] Images have alt text
+- [x] Headings hierarchy (H1, H2, H3)
+- [x] Mobile-friendly (responsive design)
+- [x] Page speed score > 80
+- [x] No broken links (404 errors)
+
+**On-Page SEO:**
+- Title tag optimization (keyword in title)
+- Meta description optimization (keyword in description)
+- URL structure (short, descriptive URLs)
+- Internal linking (link to related pages)
+- Content length (> 300 words per page)
+- Keyword density (2-3% target keyword)
+
+**Audit Report:**
+- Score (0-100)
+- Issues grouped by severity (critical, warning, info)
+- Recommendations with actionable steps
+- Comparison over time (track improvements)
+
+**Keyword Tracking:**
+- Track target keywords per page
+- Monitor search rankings (via Google Search Console API)
+- Track organic traffic per keyword
+- Competitor analysis (future feature)
+
+#### 4.1.4 Commerce Operations
+
+**Order Management:**
+
+**Order Lifecycle:**
+```
+[Created] → [Paid] → [Processing] → [Fulfilled] → [Delivered]
+              ↓            ↓              ↓
+          [Refunded]  [Cancelled]   [Returned]
+```
+
+**Order Details:**
+- Order number (unique)
+- Customer information (name, email, shipping address)
+- Line items (product, quantity, price)
+- Subtotal, tax, shipping, total
+- Payment method and status
+- Fulfillment status
+- Tracking number
+- Order notes (internal)
+
+**Order Operations:**
+- Create order (manual or API)
+- Update order status
+- Add/remove line items
+- Apply discount codes
+- Process refund (full or partial)
+- Cancel order
+- Send order confirmation email
+- Send shipping notification email
+
+**Customer Management:**
+- Customer list with filters (total orders, lifetime value)
+- Customer detail view (order history, contact info)
+- Customer notes (internal)
+- Customer tags (VIP, wholesale, etc.)
+- Email marketing opt-in status
+
+**Inventory Management:**
+
+**Product Catalog:**
+- Product list with stock levels
+- Product variants (size, color, etc.)
+- SKU (stock keeping unit)
+- Price and cost (for profit calculation)
+- Images (multiple per product)
+- Product tags and categories
+
+**Stock Tracking:**
+- Current stock level
+- Low stock threshold (alert when below)
+- Out of stock indicator
+- Stock adjustment log (manual add/remove)
+- Automatic stock decrease on order
+
+**Inventory Sync:**
+- Sync from Shopify via API
+- Sync from Printify via API
+- Scheduled sync (every hour)
+- Manual sync trigger
+
+**Reporting:**
+
+**Sales Dashboard:**
+- Date range selector
+- Key metrics cards:
+  - Total revenue
+  - Total orders
+  - Average order value
+  - Top products (by revenue)
+  - Top customers (by lifetime value)
+- Revenue trends chart (line graph, bar chart)
+- Orders by status pie chart
+
+**Product Performance:**
+- Products ranked by revenue
+- Products ranked by units sold
+- Products ranked by profit margin
+- Conversion rate per product
+- Abandoned cart rate
+
+**Customer Insights:**
+- New vs returning customers
+- Customer lifetime value distribution
+- Customer acquisition cost
+- Customer churn rate
+- Cohort analysis
+
+**Fulfillment Operations:**
+
+**Order Fulfillment:**
+- Mark order as fulfilled
+- Add tracking number
+- Generate packing slip
+- Send shipping notification email
+
+**Shipping Integrations:**
+- USPS, UPS, FedEx rate calculation
+- Print shipping labels
+- Track shipments
+- Bulk fulfillment (process multiple orders)
+
+**Returns/Refunds:**
+- Create return request
+- Process refund (full or partial)
+- Restock returned items
+- Track return reasons
+
+**Printify Integration (Print-on-Demand):**
+- Sync products from Printify catalog
+- Automatic order forwarding to Printify
+- Fulfillment status updates via webhooks
+- Tracking number updates
+
+**Shopify Integration (E-commerce Platform):**
+- Sync products, orders, inventory from Shopify
+- Two-way sync (CubiQo ↔ Shopify)
+- Webhook listeners for real-time updates
+- OAuth authentication
+
+### 4.2 Technical Requirements
+
+#### 4.2.1 Database Schema
+
+**Analytics Tables:**
 ```sql
-CREATE TABLE task_queue (
+-- Analytics Events
+CREATE TABLE emergent_analytics_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  agent_id TEXT NOT NULL,
-  prompt TEXT NOT NULL,
-  priority TEXT NOT NULL DEFAULT 'normal',
-  state TEXT NOT NULL DEFAULT 'queued',
-  attempts INTEGER DEFAULT 0,
-  max_retries INTEGER DEFAULT 3,
-  timeout_seconds INTEGER DEFAULT 300,
-  result JSONB,
-  error TEXT,
-  metadata JSONB,
-  scheduled_for TIMESTAMPTZ,
-  queued_at TIMESTAMPTZ DEFAULT NOW(),
-  started_at TIMESTAMPTZ,
-  completed_at TIMESTAMPTZ,
-  CONSTRAINT valid_state CHECK (state IN ('queued', 'running', 'done', 'failed', 'dead_letter')),
-  CONSTRAINT valid_priority CHECK (priority IN ('critical', 'high', 'normal', 'low'))
+  project_id UUID NOT NULL REFERENCES emergent_projects(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL,
+  event_data JSONB,
+  user_id TEXT, -- Anonymous or authenticated user ID
+  session_id TEXT NOT NULL,
+  page_path TEXT,
+  referrer TEXT,
+  user_agent TEXT,
+  ip_address INET,
+  country TEXT,
+  city TEXT,
+  device_type TEXT, -- 'mobile', 'tablet', 'desktop'
+  browser TEXT,
+  os TEXT,
+  event_time TIMESTAMP NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  INDEX idx_project_event_time (project_id, event_time),
+  INDEX idx_session (session_id),
+  INDEX idx_event_type (event_type)
 );
 
-CREATE INDEX idx_task_queue_agent_state ON task_queue(agent_id, state);
-CREATE INDEX idx_task_queue_priority ON task_queue(priority, queued_at);
-CREATE INDEX idx_task_queue_scheduled ON task_queue(scheduled_for) WHERE state = 'queued';
-```
-
----
-
-### 5.2 Execution Runtime Enhancements
-
-**User Story**: As the system, I want sandboxed execution environments with persistent state, resource monitoring, and streaming output, so that agent tasks run safely and users get real-time feedback.
-
-#### Already Exists
-- `/api/code/execute` — Multi-language execution with sandbox
-- `/api/code/terminal` — Shell terminal with background process support
-- Per-session workspace isolation (`/tmp/workspace-{sessionId}`)
-- 30-second timeout, 10KB output limit
-
-#### Enhancements Required
-
-| Enhancement | Description | Effort |
-|-------------|-------------|--------|
-| Persistent workspace | Workspace state survives across executions | Medium |
-| Resource monitoring | Track CPU, memory, disk per workspace | Medium |
-| Streaming output | Server-Sent Events for real-time output | Medium |
-| Execution telemetry | Log execution time, resource usage, errors | Small |
-| Runtime management | Install/manage language runtimes | Large |
-| Warm pools | Keep warm execution environments | Medium |
-
-#### Technical Specifications
-
-```typescript
-// Execution Runtime interface
-interface ExecutionRuntime {
-  execute(request: ExecutionRequest): AsyncGenerator<ExecutionEvent>;
-  getWorkspaceState(sessionId: string): Promise<WorkspaceState>;
-  getResourceUsage(sessionId: string): Promise<ResourceUsage>;
-  cleanup(sessionId: string): Promise<void>;
-}
-
-interface ExecutionRequest {
-  code: string;
-  language: 'python' | 'javascript' | 'typescript' | 'bash';
-  sessionId: string;
-  timeout?: number;          // Default: 30s
-  env?: Record<string, string>;
-  workingDir?: string;
-  streaming?: boolean;       // Enable SSE output
-}
-
-interface ExecutionEvent {
-  type: 'stdout' | 'stderr' | 'exit' | 'error' | 'resource';
-  data: string;
-  timestamp: number;
-}
-
-interface ResourceUsage {
-  cpuPercent: number;
-  memoryMB: number;
-  diskMB: number;
-  processCount: number;
-}
-```
-
-#### Acceptance Criteria
-- [ ] Workspace state persists between executions within same session
-- [ ] Resource usage tracked per workspace (CPU, memory, disk)
-- [ ] Streaming output via SSE for long-running tasks
-- [ ] Execution telemetry logged to Supabase
-- [ ] Cold start < 2s
-- [ ] Warm execution < 500ms
-- [ ] Output limit configurable per tier (10KB free, 100KB pro, 1MB commander)
-
----
-
-### 5.3 Agent Communication Bus
-
-**User Story**: As the system, I want agents to communicate with each other via pub/sub messaging, so that multi-agent collaboration happens efficiently.
-
-#### Already Exists
-- `/api/agents/[id]/message` — Agent-to-agent direct messaging
-- `sessions_send` tool — Send message to existing session
-
-#### Enhancements Required
-
-| Enhancement | Description | Effort |
-|-------------|-------------|--------|
-| Pub/Sub channels | Topic-based message broadcasting | Medium |
-| Message routing | Rules-based message routing | Medium |
-| Priority messaging | Priority queue for urgent messages | Small |
-| Dead letter handling | Handle undeliverable messages | Small |
-| Message history | Searchable message log | Small |
-
-#### Technical Specifications
-
-```typescript
-// Communication Bus interface
-interface AgentBus {
-  publish(channel: string, message: BusMessage): Promise<void>;
-  subscribe(channel: string, agentId: string): Promise<void>;
-  unsubscribe(channel: string, agentId: string): Promise<void>;
-  send(fromAgentId: string, toAgentId: string, message: BusMessage): Promise<void>;
-  getHistory(channel: string, limit?: number): Promise<BusMessage[]>;
-}
-
-interface BusMessage {
-  id: string;
-  from: string;              // Agent ID
-  channel?: string;          // Pub/sub channel
-  to?: string;               // Direct message target
-  type: 'request' | 'response' | 'broadcast' | 'alert';
-  priority: 'critical' | 'high' | 'normal' | 'low';
-  payload: any;
-  timestamp: Date;
-  ttl?: number;              // Time-to-live in seconds
-}
-```
-
-#### Acceptance Criteria
-- [ ] Agents can publish to named channels
-- [ ] Multiple agents can subscribe to same channel
-- [ ] Direct agent-to-agent messaging works
-- [ ] Priority messages processed before normal messages
-- [ ] Undelivered messages go to dead letter after TTL
-- [ ] Message delivery < 50ms (direct)
-- [ ] Broadcast delivery < 200ms (to all subscribers)
-- [ ] Message history searchable
-
----
-
-## 6. Deployment Flow Requirements
-
-### 6.1 One-Click Deploy
-
-**User Story**: As a user, I want to deploy my agent configuration with one click, so that my agents go live instantly after testing in Studio.
-
-#### Already Exists
-- `deployments` table in Supabase
-- `connections` table for Vercel OAuth
-- Connection management APIs
-
-#### Components Required
-
-| Component | Description | Effort |
-|-----------|-------------|--------|
-| `DeploymentWizard` | Step-by-step deploy flow | Medium |
-| `EnvironmentSelector` | Target environment picker | Small |
-| `ConfigValidator` | Pre-deploy validation | Medium |
-| `DeploymentMonitor` | Real-time deploy status | Medium |
-| `DeploymentHistory` | Past deployments list | Small |
-
-#### Technical Specifications
-
-```typescript
-// Deployment flow
-interface DeploymentFlow {
-  validate(config: AgentConfig): Promise<ValidationResult>;
-  deploy(config: AgentConfig, environment: Environment): Promise<Deployment>;
-  monitor(deploymentId: string): AsyncGenerator<DeploymentEvent>;
-  rollback(deploymentId: string): Promise<Deployment>;
-}
-
-interface ValidationResult {
-  valid: boolean;
-  errors: ValidationError[];
-  warnings: ValidationWarning[];
-}
-
-interface Deployment {
-  id: string;
-  agentId: string;
-  environment: 'staging' | 'production';
-  status: 'validating' | 'building' | 'deploying' | 'live' | 'failed' | 'rolled_back';
-  version: string;
-  url?: string;
-  buildDuration?: number;
-  createdAt: Date;
-  completedAt?: Date;
-}
-
-type Environment = 'staging' | 'production';
-```
-
-#### Acceptance Criteria
-- [ ] Pre-deploy validation catches config errors before deploy
-- [ ] Deploy creates record in Supabase deployments table
-- [ ] Real-time status updates during deploy (validating → building → deploying → live)
-- [ ] Deploy initiation < 3s
-- [ ] Status updates < 5s interval
-- [ ] One-click rollback to previous version
-- [ ] Deploy requires admin or agent owner role
-
----
-
-### 6.2 Version Management
-
-**User Story**: As a user, I want to version my agent configurations, compare versions, and rollback to previous versions, so that I can safely iterate on my agents.
-
-#### Components Required
-
-| Component | Description | Effort |
-|-----------|-------------|--------|
-| `VersionHistory` | List of config versions with timestamps | Small |
-| `DiffViewer` | Side-by-side version comparison | Small (Monaco diff) |
-| `RollbackButton` | Revert to selected version | Small |
-| `VersionTag` | Tag versions with names/labels | Small |
-
-#### Technical Specifications
-
-```sql
-CREATE TABLE agent_versions (
+-- Aggregated Analytics (hourly rollups for performance)
+CREATE TABLE emergent_analytics_hourly (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  agent_id TEXT NOT NULL,
-  version INTEGER NOT NULL,
-  config JSONB NOT NULL,
-  diff_from_previous JSONB,
-  tag TEXT,
-  created_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(agent_id, version)
+  project_id UUID NOT NULL REFERENCES emergent_projects(id) ON DELETE CASCADE,
+  hour TIMESTAMP NOT NULL, -- Truncated to hour
+  page_views INTEGER DEFAULT 0,
+  unique_visitors INTEGER DEFAULT 0,
+  bounce_rate NUMERIC(5,2),
+  avg_session_duration INTEGER, -- seconds
+  total_events INTEGER DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  UNIQUE(project_id, hour)
 );
 
-CREATE INDEX idx_agent_versions_agent ON agent_versions(agent_id, version DESC);
-```
-
-#### Acceptance Criteria
-- [ ] Each save creates a new version automatically
-- [ ] Semantic versioning (auto-increment)
-- [ ] Diff view shows changes between any two versions (Monaco diff editor)
-- [ ] One-click rollback to any previous version
-- [ ] Version tags for labeling (e.g., "v1.0-stable", "pre-refactor")
-- [ ] Version history immutable (audit trail)
-
----
-
-### 6.3 Environment Management
-
-**User Story**: As an admin, I want to manage staging and production environments, promote configurations between them, and configure per-environment settings.
-
-#### Already Exists
-- 3-tier deployment pipeline (staging → production → fallback)
-- Environment isolation (separate Supabase instances)
-
-#### Components Required
-
-| Component | Description | Effort |
-|-----------|-------------|--------|
-| `EnvironmentDashboard` | View all environments with status | Medium |
-| `PromoteButton` | Promote staging config to production | Small |
-| `EnvironmentConfig` | Per-environment variable management | Medium |
-| `EnvironmentHealth` | Health status per environment | Small |
-
-#### Acceptance Criteria
-- [ ] Dashboard shows staging and production status side-by-side
-- [ ] Promote staging to production with confirmation dialog
-- [ ] Per-environment variables (API keys, feature flags)
-- [ ] Health check per environment (green/yellow/red)
-- [ ] Environment promotion is atomic (all-or-nothing)
-
----
-
-## 7. Post-Launch OS Requirements
-
-### 7.1 Monitoring Dashboard
-
-**User Story**: As an admin, I want a real-time monitoring dashboard showing system health, agent performance, API metrics, and costs, so that I can detect and respond to issues quickly.
-
-#### Already Exists
-- `/api/health` — System health endpoint
-- `/api/ai-stats` — AI usage statistics
-- Self-heal system (reports, audit, cron)
-- Recharts charting library (installed)
-
-#### Components Required
-
-| Component | Description | Effort |
-|-----------|-------------|--------|
-| `SystemHealthPanel` | Overall system status (green/yellow/red) | Medium |
-| `AgentMetricsPanel` | Per-agent performance charts | Medium |
-| `APIMetricsPanel` | API response times, error rates | Medium |
-| `CostDashboard` | LLM spend tracking per agent/provider | Large |
-| `AlertsPanel` | Active alerts with severity | Medium |
-| `MetricsTimeline` | Historical view (24h, 7d, 30d) | Medium |
-
-#### Technical Specifications
-
-```typescript
-// Monitoring data model
-interface SystemHealth {
-  status: 'healthy' | 'degraded' | 'critical';
-  uptime: number;            // Seconds
-  components: ComponentHealth[];
-  lastCheck: Date;
-}
-
-interface ComponentHealth {
-  name: string;              // e.g., "database", "llm-router", "task-queue"
-  status: 'up' | 'degraded' | 'down';
-  latency: number;           // ms
-  errorRate: number;         // Percentage
-  details?: string;
-}
-
-interface AgentMetrics {
-  agentId: string;
-  period: '1h' | '24h' | '7d' | '30d';
-  tasksCompleted: number;
-  tasksFailed: number;
-  avgExecutionTime: number;  // ms
-  totalTokens: number;
-  totalCost: number;         // USD
-  errorRate: number;
-}
-
-interface CostBreakdown {
-  period: '24h' | '7d' | '30d';
-  totalCost: number;
-  byAgent: Record<string, number>;
-  byProvider: Record<string, number>;
-  byModel: Record<string, number>;
-  trend: 'increasing' | 'stable' | 'decreasing';
-  projectedMonthly: number;
-}
-```
-
-#### Acceptance Criteria
-- [ ] Dashboard shows real-time system status
-- [ ] Agent metrics with charts (tasks, tokens, cost, errors)
-- [ ] API metrics (p50, p95, p99 latencies, error rates)
-- [ ] Cost breakdown by agent, provider, and model
-- [ ] Historical views: 24h, 7d, 30d
-- [ ] Configurable alert thresholds
-- [ ] Dashboard loads in < 2s
-- [ ] Charts render in < 500ms
-- [ ] 30-second auto-refresh
-
----
-
-### 7.2 Auto-Scaling
-
-**User Story**: As the system, I want to automatically adjust agent concurrency and resource allocation based on demand, so that the platform stays responsive under varying load.
-
-#### Technical Specifications
-
-```typescript
-interface ScalingRule {
-  id: string;
-  metric: 'queue_depth' | 'response_time' | 'error_rate' | 'cpu_usage';
-  threshold: number;
-  direction: 'scale_up' | 'scale_down';
-  action: ScalingAction;
-  cooldown: number;          // Seconds before next scaling event
-}
-
-interface ScalingAction {
-  type: 'adjust_concurrency' | 'adjust_timeout' | 'enable_fallback';
-  value: number;
-  agentId?: string;          // Specific agent or all
-}
-```
-
-#### Implementation Notes
-- Vercel provides serverless auto-scaling (built-in for API routes)
-- Agent concurrency adjustment via `agent.maxConcurrent` setting
-- Database connection pooling via Supabase (PgBouncer)
-- Rate limiting per subscription tier
-- Queue depth monitoring triggers scaling events
-
-#### Acceptance Criteria
-- [ ] Auto-adjust agent concurrency based on queue depth
-- [ ] Rate limiting enforced per subscription tier
-- [ ] Scaling events logged to scaling_events table
-- [ ] Cooldown period prevents scaling thrashing
-- [ ] Manual override available for admins
-
----
-
-### 7.3 Self-Healing Enhancements
-
-**User Story**: As the system, I want automated recovery from known failure modes with root cause analysis, so that the platform maintains 99.9% uptime.
-
-#### Already Exists
-- `self_heal_reports` table — Diagnostic results
-- `self_heal_audit_logs` table — Repair action audit
-- `/api/admin/self-heal/*` — Management APIs
-- `/api/cron/self-heal` — Scheduled execution
-
-#### Enhancements Required
-
-| Enhancement | Description | Effort |
-|-------------|-------------|--------|
-| Automated recovery | Auto-fix known issues without human intervention | Large |
-| Root cause analysis | ML-based pattern detection | Large |
-| Predictive alerts | Alert before failures occur | Medium |
-| Recovery playbooks | Documented recovery procedures | Small |
-| Dashboard integration | Self-heal status in monitoring dashboard | Small |
-
-#### Acceptance Criteria
-- [ ] Auto-recover from: database connection loss, LLM provider timeout, queue overflow
-- [ ] Root cause analysis identifies failure patterns
-- [ ] Predictive alerts fire 5+ minutes before predicted failure
-- [ ] Recovery playbooks documented for each failure mode
-- [ ] Self-heal resolves 80% of known issues automatically
-- [ ] All recovery actions logged with rollback commands
-
----
-
-### 7.4 Analytics & Insights
-
-**User Story**: As a product owner, I want business analytics tracking user funnels, feature adoption, churn signals, and revenue metrics, so that I can make data-driven product decisions.
-
-#### Already Exists
-- `events` table — Analytics event tracking
-- `experiments` system — A/B testing
-- `journey_metrics` table — User journey metrics
-- Analytics test coverage
-
-#### Components Required
-
-| Component | Description | Effort |
-|-----------|-------------|--------|
-| `UserFunnel` | Acquisition → activation → retention → revenue | Medium |
-| `FeatureAdoption` | Usage tracking per feature from features_catalog | Medium |
-| `ChurnPrediction` | Signals: inactivity, reduced usage, support tickets | Large |
-| `RevenueMetrics` | MRR, ARR, LTV, CAC, ARPU tracking | Medium |
-| `CohortAnalysis` | User cohort behavior over time | Medium |
-
-#### Technical Specifications
-
-```typescript
-interface FunnelMetrics {
-  period: '7d' | '30d' | '90d';
-  stages: {
-    visitors: number;
-    signups: number;
-    activated: number;        // Completed onboarding
-    retained: number;         // Active after 7 days
-    paying: number;           // Converted to paid
-    referrers: number;        // Invited others
-  };
-  conversionRates: {
-    visitorToSignup: number;
-    signupToActivated: number;
-    activatedToRetained: number;
-    retainedToPaying: number;
-    payingToReferrer: number;
-  };
-}
-
-interface RevenueMetrics {
-  mrr: number;               // Monthly Recurring Revenue
-  arr: number;               // Annual Recurring Revenue
-  arpu: number;              // Average Revenue Per User
-  ltv: number;               // Lifetime Value
-  cac: number;               // Customer Acquisition Cost
-  churnRate: number;          // Monthly churn percentage
-  netRevenueRetention: number; // NRR percentage
-}
-```
-
-#### Acceptance Criteria
-- [ ] Funnel visualization with conversion rates at each stage
-- [ ] Feature adoption heatmap (most/least used features)
-- [ ] Churn risk scoring per user (low/medium/high)
-- [ ] Revenue dashboard with MRR, ARR, LTV, CAC
-- [ ] Cohort analysis with retention curves
-- [ ] Data exportable (CSV, JSON)
-
-**Monetization Angle**: Basic analytics for Pro tier. Advanced analytics (churn prediction, cohort analysis) for Commander/General tiers.
-
----
-
-## 8. Technical Specifications
-
-### 8.1 State Management
-
-Currently using React context (AuthContext, RegionContext) + Supabase real-time for state. For Studio UI, consider:
-
-- **Local state**: React useState/useReducer for UI state
-- **Server state**: Supabase queries via existing hooks
-- **Real-time**: Supabase Realtime for live updates
-- **Optimistic updates**: Update UI immediately, sync with server
-
-### 8.2 Real-Time Communication
-
-For Runner and Monitoring features:
-
-| Protocol | Use Case | Implementation |
-|----------|----------|----------------|
-| **SSE** | Streaming execution output | Next.js API route with ReadableStream |
-| **Supabase Realtime** | Database change notifications | Existing subscription infrastructure |
-| **Polling** | Dashboard metrics refresh | 30-second interval with SWR/fetch |
-
-### 8.3 Error Handling Strategy
-
-```typescript
-// Standard error response format
-interface APIError {
-  error: {
-    code: string;            // e.g., 'AGENT_NOT_FOUND', 'QUEUE_FULL'
-    message: string;         // Human-readable description
-    details?: any;           // Additional context
-    retryable: boolean;      // Whether client should retry
-    retryAfter?: number;     // Seconds to wait before retry
-  };
-  status: number;            // HTTP status code
-}
-```
-
-### 8.4 Caching Strategy
-
-| Data | Cache Location | TTL | Invalidation |
-|------|---------------|-----|-------------|
-| Agent configs | Memory | 5 min | On save |
-| Feature flags | Memory | 1 min | On toggle |
-| LLM model list | Memory | 1 hour | Manual |
-| Dashboard metrics | Client | 30 sec | Auto-refresh |
-| File tree | Memory | 30 sec | On file change |
-| Workflow defs | Memory | 5 min | On save |
-
----
-
-## 9. Database Extensions Required
-
-### New Tables for Pending Features
-
-| Table | Domain | Purpose |
-|-------|--------|---------|
-| `workflows` | Studio | Workflow definitions (JSON graph) |
-| `workflow_runs` | Studio | Workflow execution history |
-| `workflow_nodes` | Studio | Individual workflow steps |
-| `agent_versions` | Deployment | Agent config version history |
-| `task_queue` | Runner | Persistent task queue |
-| `task_executions` | Runner | Task execution history with telemetry |
-| `deploy_records` | Deployment | Deployment history with status |
-| `monitoring_snapshots` | Post-Launch | Periodic health metric snapshots |
-| `scaling_events` | Post-Launch | Auto-scaling event log |
-| `cost_tracking` | Post-Launch | LLM cost per agent/session/provider |
-| `alert_rules` | Post-Launch | Configurable alert thresholds |
-| `alert_events` | Post-Launch | Triggered alert history |
-
-### Schema Definitions
-
-```sql
--- Workflows
-CREATE TABLE workflows (
+-- User Sessions
+CREATE TABLE emergent_analytics_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  project_id UUID NOT NULL REFERENCES emergent_projects(id) ON DELETE CASCADE,
+  session_id TEXT UNIQUE NOT NULL,
+  user_id TEXT,
+  started_at TIMESTAMP NOT NULL,
+  ended_at TIMESTAMP,
+  duration INTEGER, -- seconds
+  page_views INTEGER DEFAULT 0,
+  events INTEGER DEFAULT 0,
+  traffic_source TEXT, -- 'direct', 'referral', 'social', 'search'
+  referrer TEXT,
+  landing_page TEXT,
+  exit_page TEXT,
+  device_type TEXT,
+  country TEXT,
+  INDEX idx_project_session (project_id, started_at)
+);
+```
+
+**Performance Monitoring Tables:**
+```sql
+-- Uptime Checks
+CREATE TABLE emergent_uptime_checks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES emergent_projects(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  status_code INTEGER,
+  response_time INTEGER, -- milliseconds
+  success BOOLEAN NOT NULL,
+  error_message TEXT,
+  checked_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  INDEX idx_project_checked (project_id, checked_at)
+);
+
+-- Error Logs
+CREATE TABLE emergent_error_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES emergent_projects(id) ON DELETE CASCADE,
+  error_type TEXT NOT NULL, -- 'javascript', 'api', 'network'
+  error_message TEXT NOT NULL,
+  stack_trace TEXT,
+  page_path TEXT,
+  user_id TEXT,
+  session_id TEXT,
+  user_agent TEXT,
+  count INTEGER DEFAULT 1, -- Number of occurrences
+  first_seen TIMESTAMP NOT NULL DEFAULT NOW(),
+  last_seen TIMESTAMP NOT NULL DEFAULT NOW(),
+  INDEX idx_project_error (project_id, first_seen)
+);
+
+-- Web Vitals
+CREATE TABLE emergent_web_vitals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES emergent_projects(id) ON DELETE CASCADE,
+  page_path TEXT NOT NULL,
+  lcp NUMERIC(10,2), -- Largest Contentful Paint (ms)
+  fid NUMERIC(10,2), -- First Input Delay (ms)
+  cls NUMERIC(10,4), -- Cumulative Layout Shift
+  ttfb NUMERIC(10,2), -- Time to First Byte (ms)
+  measured_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  INDEX idx_project_page_vitals (project_id, page_path, measured_at)
+);
+```
+
+**SEO Tables:**
+```sql
+-- SEO Metadata (already exists in emergent_seo_metadata from previous migration)
+
+-- SEO Audit Results
+CREATE TABLE emergent_seo_audits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES emergent_projects(id) ON DELETE CASCADE,
+  score INTEGER NOT NULL, -- 0-100
+  issues JSONB NOT NULL, -- Array of {severity, category, message, recommendation}
+  pages_checked INTEGER,
+  audited_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  INDEX idx_project_audited (project_id, audited_at)
+);
+
+-- Keyword Rankings (future)
+CREATE TABLE emergent_keyword_rankings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES emergent_projects(id) ON DELETE CASCADE,
+  keyword TEXT NOT NULL,
+  page_path TEXT NOT NULL,
+  ranking INTEGER, -- Position in search results (1-100)
+  search_volume INTEGER, -- Monthly search volume
+  checked_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  INDEX idx_project_keyword (project_id, keyword, checked_at)
+);
+```
+
+**Commerce Tables:**
+```sql
+-- Orders (already exists in emergent_commerce_orders from previous migration)
+
+-- Customers
+CREATE TABLE emergent_commerce_customers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES emergent_projects(id) ON DELETE CASCADE,
+  external_id TEXT, -- ID from external system (Shopify, Stripe)
+  email TEXT NOT NULL,
+  first_name TEXT,
+  last_name TEXT,
+  phone TEXT,
+  total_orders INTEGER DEFAULT 0,
+  lifetime_value NUMERIC(10,2) DEFAULT 0,
+  tags TEXT[], -- ['VIP', 'wholesale', etc.]
+  notes TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  UNIQUE(project_id, email),
+  INDEX idx_project_customer (project_id, email)
+);
+
+-- Products
+CREATE TABLE emergent_commerce_products (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES emergent_projects(id) ON DELETE CASCADE,
+  external_id TEXT, -- ID from external system (Shopify, Printify)
   name TEXT NOT NULL,
   description TEXT,
-  definition JSONB NOT NULL,
-  version INTEGER DEFAULT 1,
-  status TEXT DEFAULT 'draft',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  sku TEXT,
+  price NUMERIC(10,2) NOT NULL,
+  cost NUMERIC(10,2), -- For profit calculation
+  stock_level INTEGER DEFAULT 0,
+  low_stock_threshold INTEGER DEFAULT 10,
+  images TEXT[], -- Array of image URLs
+  tags TEXT[],
+  category TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  INDEX idx_project_product (project_id, name)
 );
 
--- Workflow Runs
-CREATE TABLE workflow_runs (
+-- Inventory Adjustments Log
+CREATE TABLE emergent_inventory_adjustments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workflow_id UUID REFERENCES workflows(id) NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',
-  started_at TIMESTAMPTZ,
-  completed_at TIMESTAMPTZ,
-  result JSONB,
-  error TEXT,
-  node_statuses JSONB DEFAULT '{}'
-);
-
--- Cost Tracking
-CREATE TABLE cost_tracking (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  agent_id TEXT NOT NULL,
-  session_id TEXT,
-  provider TEXT NOT NULL,
-  model TEXT NOT NULL,
-  input_tokens INTEGER NOT NULL,
-  output_tokens INTEGER NOT NULL,
-  cost_usd DECIMAL(10,6) NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX idx_cost_tracking_agent ON cost_tracking(agent_id, created_at);
-CREATE INDEX idx_cost_tracking_provider ON cost_tracking(provider, created_at);
-
--- Monitoring Snapshots
-CREATE TABLE monitoring_snapshots (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  component TEXT NOT NULL,
-  status TEXT NOT NULL,
-  latency_ms INTEGER,
-  error_rate DECIMAL(5,2),
-  metadata JSONB,
-  captured_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX idx_monitoring_snapshots_component ON monitoring_snapshots(component, captured_at);
-
--- Alert Rules
-CREATE TABLE alert_rules (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  metric TEXT NOT NULL,
-  threshold DECIMAL NOT NULL,
-  comparison TEXT NOT NULL,
-  severity TEXT NOT NULL DEFAULT 'warning',
-  enabled BOOLEAN DEFAULT true,
-  cooldown_seconds INTEGER DEFAULT 300,
-  notify_channels JSONB DEFAULT '[]',
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Alert Events
-CREATE TABLE alert_events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  rule_id UUID REFERENCES alert_rules(id),
-  severity TEXT NOT NULL,
-  metric_value DECIMAL NOT NULL,
-  message TEXT NOT NULL,
-  acknowledged BOOLEAN DEFAULT false,
-  acknowledged_by UUID,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  product_id UUID NOT NULL REFERENCES emergent_commerce_products(id) ON DELETE CASCADE,
+  adjustment INTEGER NOT NULL, -- Positive or negative
+  reason TEXT NOT NULL, -- 'sale', 'restock', 'return', 'correction'
+  reference_id TEXT, -- Order ID, return ID, etc.
+  adjusted_by UUID REFERENCES auth.users(id),
+  adjusted_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 ```
 
+#### 4.2.2 External Integrations
+
+**PostHog (Analytics):**
+```typescript
+// Initialize PostHog SDK
+import posthog from 'posthog-js';
+
+posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+  api_host: 'https://app.posthog.com',
+  capture_pageview: true,
+  capture_pageleave: true,
+});
+
+// Track custom event
+posthog.capture('product_purchased', {
+  productId: 'prod_123',
+  price: 29.99,
+});
+
+// Identify user
+posthog.identify('user_123', {
+  email: 'user@example.com',
+  plan: 'pro',
+});
+```
+
+**Sentry (Error Tracking):**
+```typescript
+// Initialize Sentry SDK
+import * as Sentry from '@sentry/nextjs';
+
+Sentry.init({
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  environment: process.env.NODE_ENV,
+  tracesSampleRate: 1.0,
+  integrations: [
+    new Sentry.BrowserTracing(),
+    new Sentry.Replay({
+      maskAllText: true,
+      blockAllMedia: true,
+    }),
+  ],
+});
+
+// Capture error
+Sentry.captureException(error, {
+  tags: { page: '/product/123' },
+  user: { id: 'user_123' },
+});
+```
+
+**Vercel Analytics (Web Vitals):**
+```typescript
+// pages/_app.tsx
+import { Analytics } from '@vercel/analytics/react';
+
+export default function App({ Component, pageProps }) {
+  return (
+    <>
+      <Component {...pageProps} />
+      <Analytics />
+    </>
+  );
+}
+```
+
+**UptimeRobot (Uptime Monitoring):**
+```typescript
+// Create monitor via API
+async function createUptimeMonitor(url: string): Promise<string> {
+  const response = await fetch('https://api.uptimerobot.com/v2/newMonitor', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      api_key: process.env.UPTIMEROBOT_API_KEY,
+      format: 'json',
+      type: 1, // HTTP(s)
+      url: url,
+      friendly_name: `Project ${projectId}`,
+      interval: 300, // 5 minutes
+    }),
+  });
+  
+  const data = await response.json();
+  return data.monitor.id;
+}
+```
+
+**Shopify API:**
+```typescript
+// Sync orders from Shopify
+async function syncShopifyOrders(projectId: string): Promise<void> {
+  const config = await getIntegrationConfig(projectId, 'shopify');
+  
+  const response = await fetch(
+    `https://${config.shopUrl}/admin/api/2024-01/orders.json`,
+    {
+      headers: {
+        'X-Shopify-Access-Token': config.accessToken,
+      },
+    }
+  );
+  
+  const data = await response.json();
+  
+  for (const order of data.orders) {
+    await upsertOrder({
+      projectId,
+      externalId: order.id,
+      customerEmail: order.customer.email,
+      totalPrice: order.total_price,
+      status: order.fulfillment_status || 'unfulfilled',
+      lineItems: order.line_items.map(item => ({
+        productName: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+    });
+  }
+}
+```
+
+**Printify API:**
+```typescript
+// Sync products from Printify
+async function syncPrintifyProducts(projectId: string): Promise<void> {
+  const config = await getIntegrationConfig(projectId, 'printify');
+  
+  const response = await fetch(
+    `https://api.printify.com/v1/shops/${config.shopId}/products.json`,
+    {
+      headers: {
+        'Authorization': `Bearer ${config.accessToken}`,
+      },
+    }
+  );
+  
+  const data = await response.json();
+  
+  for (const product of data.data) {
+    await upsertProduct({
+      projectId,
+      externalId: product.id,
+      name: product.title,
+      description: product.description,
+      price: product.variants[0].price / 100, // Convert cents to dollars
+      images: product.images.map(img => img.src),
+    });
+  }
+}
+
+// Forward order to Printify
+async function createPrintifyOrder(orderId: string): Promise<void> {
+  const order = await getOrder(orderId);
+  const config = await getIntegrationConfig(order.projectId, 'printify');
+  
+  await fetch(
+    `https://api.printify.com/v1/shops/${config.shopId}/orders.json`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${config.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        external_id: order.id,
+        line_items: order.lineItems.map(item => ({
+          product_id: item.externalProductId,
+          variant_id: item.externalVariantId,
+          quantity: item.quantity,
+        })),
+        shipping_method: 1, // Standard
+        address_to: order.shippingAddress,
+      }),
+    }
+  );
+}
+```
+
+#### 4.2.3 APIs
+
+**Analytics API:**
+```typescript
+// GET /api/control-plane/analytics/:projectId/overview
+interface AnalyticsOverviewResponse {
+  dateRange: { start: string; end: string };
+  metrics: {
+    totalVisitors: number;
+    pageViews: number;
+    bounceRate: number; // percentage
+    avgSessionDuration: number; // seconds
+    conversionRate: number; // percentage
+  };
+  trends: {
+    date: string;
+    visitors: number;
+    pageViews: number;
+  }[];
+  topPages: {
+    path: string;
+    views: number;
+    uniqueVisitors: number;
+    avgTime: number; // seconds
+  }[];
+  trafficSources: {
+    source: string; // 'direct', 'referral', 'social', 'search'
+    visitors: number;
+    percentage: number;
+  }[];
+}
+
+// GET /api/control-plane/analytics/:projectId/realtime
+interface RealtimeAnalyticsResponse {
+  activeVisitors: number;
+  activePages: {
+    path: string;
+    visitors: number;
+  }[];
+  recentEvents: {
+    eventType: string;
+    timestamp: string;
+    page: string;
+  }[];
+  geoDistribution: {
+    country: string;
+    visitors: number;
+  }[];
+}
+
+// POST /api/control-plane/analytics/:projectId/track
+interface TrackEventRequest {
+  eventType: string;
+  eventData?: Record<string, any>;
+  userId?: string;
+  sessionId: string;
+  pagePath: string;
+  referrer?: string;
+}
+
+// GET /api/control-plane/analytics/:projectId/export
+// Export analytics data to CSV
+```
+
+**Performance Monitoring API:**
+```typescript
+// GET /api/control-plane/monitoring/:projectId/uptime
+interface UptimeResponse {
+  uptime: number; // percentage (0-100)
+  checks: {
+    timestamp: string;
+    success: boolean;
+    responseTime: number; // ms
+  }[];
+  incidents: {
+    startedAt: string;
+    endedAt?: string;
+    duration: number; // minutes
+  }[];
+}
+
+// GET /api/control-plane/monitoring/:projectId/errors
+interface ErrorsResponse {
+  totalErrors: number;
+  errorRate: number; // errors per 1000 requests
+  groupedErrors: {
+    message: string;
+    count: number;
+    firstSeen: string;
+    lastSeen: string;
+    stackTrace: string;
+  }[];
+}
+
+// GET /api/control-plane/monitoring/:projectId/performance
+interface PerformanceResponse {
+  avgResponseTime: number; // ms
+  p50ResponseTime: number; // ms
+  p95ResponseTime: number; // ms
+  p99ResponseTime: number; // ms
+  webVitals: {
+    lcp: { avg: number; p75: number }; // ms
+    fid: { avg: number; p75: number }; // ms
+    cls: { avg: number; p75: number };
+  };
+}
+```
+
+**SEO API:**
+```typescript
+// GET /api/control-plane/seo/:projectId/metadata
+interface SEOMetadataListResponse {
+  pages: {
+    id: string;
+    pagePath: string;
+    title: string;
+    description: string;
+    ogImage?: string;
+    status: 'complete' | 'incomplete' | 'issues';
+    issues: string[];
+  }[];
+}
+
+// PUT /api/control-plane/seo/:projectId/metadata/:pageId
+interface UpdateSEOMetadataRequest {
+  title: string;
+  description: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  twitterTitle?: string;
+  twitterDescription?: string;
+  twitterImage?: string;
+  canonicalUrl?: string;
+  robotsMeta?: string; // 'index,follow' or 'noindex,nofollow'
+}
+
+// POST /api/control-plane/seo/:projectId/sitemap/generate
+// Generates sitemap.xml
+
+// POST /api/control-plane/seo/:projectId/audit
+interface SEOAuditResponse {
+  score: number; // 0-100
+  issues: {
+    severity: 'critical' | 'warning' | 'info';
+    category: string;
+    message: string;
+    recommendation: string;
+    pages: string[];
+  }[];
+  pagesChecked: number;
+}
+```
+
+**Commerce API:**
+```typescript
+// GET /api/control-plane/commerce/:projectId/orders
+interface ListOrdersResponse {
+  orders: {
+    id: string;
+    orderNumber: string;
+    customerEmail: string;
+    totalPrice: number;
+    status: string;
+    createdAt: string;
+  }[];
+  total: number;
+  page: number;
+  perPage: number;
+}
+
+// POST /api/control-plane/commerce/:projectId/orders
+interface CreateOrderRequest {
+  customerEmail: string;
+  lineItems: {
+    productId: string;
+    quantity: number;
+    price: number;
+  }[];
+  shippingAddress: {
+    name: string;
+    address1: string;
+    address2?: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+  };
+  paymentMethod: string;
+}
+
+// PUT /api/control-plane/commerce/:projectId/orders/:orderId/fulfill
+interface FulfillOrderRequest {
+  trackingNumber: string;
+  trackingUrl?: string;
+  carrier?: string;
+}
+
+// POST /api/control-plane/commerce/:projectId/orders/:orderId/refund
+interface RefundOrderRequest {
+  amount: number; // Partial or full refund
+  reason: string;
+}
+
+// GET /api/control-plane/commerce/:projectId/dashboard
+interface CommerceDashboardResponse {
+  dateRange: { start: string; end: string };
+  metrics: {
+    totalRevenue: number;
+    totalOrders: number;
+    averageOrderValue: number;
+    conversionRate: number;
+  };
+  trends: {
+    date: string;
+    revenue: number;
+    orders: number;
+  }[];
+  topProducts: {
+    id: string;
+    name: string;
+    revenue: number;
+    unitsSold: number;
+  }[];
+  topCustomers: {
+    id: string;
+    email: string;
+    lifetimeValue: number;
+    totalOrders: number;
+  }[];
+}
+
+// POST /api/control-plane/commerce/:projectId/sync/shopify
+// Sync orders and products from Shopify
+
+// POST /api/control-plane/commerce/:projectId/sync/printify
+// Sync products from Printify
+```
+
+### 4.3 UI/UX Requirements
+
+#### Analytics Dashboard
+
+**Layout:**
+- Top navigation: Analytics, Performance, SEO, Commerce tabs
+- Date range picker (top right)
+- Key metrics cards (4 across):
+  - Total Visitors (with trend indicator)
+  - Page Views (with trend indicator)
+  - Bounce Rate (with trend indicator)
+  - Avg Session Duration (with trend indicator)
+- Traffic trends chart (line graph, weekly/daily toggle)
+- Two-column layout below:
+  - Left: Top Pages table
+  - Right: Traffic Sources pie chart
+- User cohorts table (bottom)
+
+**Interactions:**
+- Hover on charts shows tooltips with exact values
+- Click on metric cards opens detailed view
+- Click on page in table opens page-specific analytics
+- Export button (CSV, PDF) in top right
+
+#### Performance Monitoring Dashboard
+
+**Layout:**
+- Uptime status (large percentage, green/yellow/red)
+- Uptime chart (last 30 days, green=up, red=down)
+- Response time chart (p50, p95, p99 lines)
+- Web Vitals cards (LCP, FID, CLS with score indicators)
+- Error list table (grouped by error type)
+
+**Interactions:**
+- Click on uptime incident shows details (start time, duration, error message)
+- Click on error row expands to show stack trace
+- Real-time updates (poll every 30 seconds)
+
+#### SEO Dashboard
+
+**Layout:**
+- SEO score (large number, 0-100, color-coded)
+- Issues list (grouped by severity: critical, warning, info)
+- Pages table with SEO status column
+- Sitemap and robots.txt status indicators
+
+**Interactions:**
+- Click "Fix" button on issue opens help modal with instructions
+- Click page row opens metadata editor
+- Preview button shows SERP preview (Google, Facebook, Twitter)
+- Run audit button triggers SEO audit
+- Download sitemap button
+
+#### Commerce Dashboard
+
+**Layout:**
+- Revenue, orders, AOV, conversion rate cards
+- Revenue trends chart (bar chart, daily/weekly/monthly toggle)
+- Orders by status pie chart
+- Top products table (product, revenue, units sold, profit margin)
+- Recent orders list (customer, total, status, date)
+
+**Interactions:**
+- Click order row opens order detail view
+- Click product row opens product detail view
+- "Fulfill Order" button opens fulfillment modal
+- "Refund" button opens refund modal with amount input
+- "Sync Shopify" button triggers sync
+- "Sync Printify" button triggers sync
+
+### 4.4 Security Requirements
+
+#### Data Security
+- Sensitive order data encrypted at rest (credit card data never stored)
+- Customer PII encrypted (email, phone, address)
+- Analytics data anonymized (IP addresses hashed)
+- GDPR-compliant data retention policies:
+  - Raw analytics events: 90 days
+  - Aggregated analytics: 2 years
+  - Delete user data on request within 30 days
+
+#### API Security
+- JWT authentication on all endpoints
+- Rate limiting:
+  - Analytics tracking: 1000 events/minute per project
+  - Dashboard queries: 100 requests/minute per user
+  - Data export: 10 requests/hour per user
+- API keys for external integrations rotated every 90 days
+
+#### Webhook Security
+- Verify webhook signatures from external services:
+  - Shopify: `X-Shopify-Hmac-SHA256` header
+  - Printify: `X-Printify-Signature` header
+- Use HTTPS for all webhook endpoints
+- Implement idempotency (handle duplicate webhooks)
+
+#### Access Control
+- RBAC enforced at database level (Row-Level Security)
+- Project owners can view all analytics
+- Team members can view limited analytics (no customer PII)
+- Viewers can view aggregate data only
+
+### 4.5 Performance Requirements
+
+#### Analytics Ingestion
+- Event ingestion: < 100ms per event
+- Batch event ingestion: 10,000 events/second
+- Dashboard query response: < 500ms
+- Real-time dashboard updates: < 1s latency
+
+#### Database Performance
+- Support 10M+ analytics events per project
+- Aggregation queries on 1-year history: < 2s
+- Hourly rollup generation: < 5 minutes
+- Uptime check insertion: < 50ms
+
+#### Dashboard Load Times
+- Initial dashboard load: < 2 seconds
+- Chart rendering: < 500ms
+- Data export (CSV): < 10 seconds for 1M rows
+
+#### Scalability
+- Support 1000+ projects
+- Handle 1B+ analytics events across platform
+- 10,000+ concurrent dashboard users
+
+### 4.6 Integration Points with CubiQo Infrastructure
+
+#### Supabase
+- Store all analytics, performance, SEO, commerce data
+- Use existing RLS policies for access control
+- Use Supabase Realtime for live dashboard updates
+
+#### PostHog
+- Use PostHog SDK in deployed apps for event tracking
+- Sync PostHog data to CubiQo database for unified view
+
+#### Sentry
+- Aggregate error data from Sentry API
+- Display in CubiQo dashboard
+
+#### Vercel Analytics
+- Fetch Web Vitals from Vercel API
+- Display in Performance Monitoring dashboard
+
+#### Shopify & Printify
+- Sync orders, products, inventory via APIs
+- Handle webhooks for real-time updates
+
+#### Control Plane
+- Use existing project and user authentication
+- Share secrets manager for API keys
+
+#### Orchestrator
+- Use SEO Agent for schema.org markup generation
+- Use Analytics Agent for custom report generation
+
 ---
 
-## 10. API Endpoints Required
+## 5. IMPLEMENTATION ROADMAP
 
-### New Endpoints for Pending Features
+### Phase 1: MVP (Months 1-3)
 
-| Endpoint | Method | Description | Domain |
-|----------|--------|-------------|--------|
-| `/api/workflows` | GET, POST | List/create workflows | Studio |
-| `/api/workflows/[id]` | GET, PUT, DELETE | CRUD single workflow | Studio |
-| `/api/workflows/[id]/run` | POST | Execute workflow | Studio |
-| `/api/workflows/[id]/runs` | GET | Workflow run history | Studio |
-| `/api/queue/tasks` | GET | Task queue status | Runner |
-| `/api/queue/enqueue` | POST | Add task to queue | Runner |
-| `/api/queue/[taskId]` | GET | Task status | Runner |
-| `/api/deploy` | POST | Initiate deployment | Deploy |
-| `/api/deploy/[id]/status` | GET | Deployment status | Deploy |
-| `/api/deploy/[id]/rollback` | POST | Rollback deployment | Deploy |
-| `/api/versions/[agentId]` | GET, POST | Agent version history | Deploy |
-| `/api/versions/[agentId]/[version]` | GET | Specific version | Deploy |
-| `/api/monitoring/health` | GET | System health metrics | OS |
-| `/api/monitoring/agents` | GET | Agent performance | OS |
-| `/api/monitoring/costs` | GET | Cost breakdown | OS |
-| `/api/monitoring/alerts` | GET, POST | Alert management | OS |
-| `/api/analytics/funnel` | GET | User funnel metrics | OS |
-| `/api/analytics/revenue` | GET | Revenue metrics | OS |
-| `/api/analytics/features` | GET | Feature adoption | OS |
+**Priority: High**
 
----
+**Frontend Studio UI:**
+- [ ] Basic conversation interface
+- [ ] Monaco code editor integration
+- [ ] File explorer (read-only)
+- [ ] Terminal emulator (Xterm.js)
+- [ ] Live preview panel
+- [ ] Deployment trigger button
 
-## 11. Component Library Required
+**Runner System:**
+- [ ] Docker container creation
+- [ ] Basic terminal PTY support
+- [ ] Dev server auto-start (Node.js only)
+- [ ] Preview URL generation (Nginx routing)
+- [ ] Resource limits enforcement
 
-### New Components for Pending Features
+**Deployment Flow:**
+- [ ] Vercel deployment integration
+- [ ] Build artifact generation
+- [ ] Environment variable injection
+- [ ] Basic deployment history
+- [ ] Rollback support
 
-| Component | Category | Dependencies | Effort |
-|-----------|----------|-------------|--------|
-| `AgentStudioCanvas` | Studio | @dnd-kit/core | Large |
-| `ToolPalette` | Studio | tools.ts | Small |
-| `ModelSelector` | Studio | llm-router.ts | Small |
-| `SoulEditor` | Studio | Monaco Editor | Medium |
-| `WorkflowCanvas` | Studio | reactflow | Large |
-| `ActionNode` | Studio | Tool registry | Small |
-| `ConditionalNode` | Studio | New | Small |
-| `TriggerNode` | Studio | cron.ts | Small |
-| `WorkflowToolbar` | Studio | New | Small |
-| `ExecutionViewer` | Studio | SSE | Medium |
-| `DeploymentWizard` | Deploy | connections | Medium |
-| `EnvironmentSelector` | Deploy | New | Small |
-| `ConfigValidator` | Deploy | New | Medium |
-| `DeploymentMonitor` | Deploy | SSE | Medium |
-| `VersionHistory` | Deploy | New | Small |
-| `DiffViewer` | Deploy | Monaco diff | Small |
-| `SystemHealthPanel` | OS | Recharts | Medium |
-| `AgentMetricsPanel` | OS | Recharts | Medium |
-| `CostDashboard` | OS | Recharts | Medium |
-| `AlertsPanel` | OS | New | Medium |
-| `UserFunnel` | OS | Recharts | Medium |
-| `RevenueMetrics` | OS | Recharts | Medium |
+**Post-Launch OS:**
+- [ ] Basic analytics (page views, visitors)
+- [ ] Uptime monitoring
+- [ ] Error logging
+- [ ] Simple analytics dashboard
 
-**New Dependencies Required**: @dnd-kit/core (or react-dnd), reactflow
+**Estimated Effort:** 12 weeks, 3-4 developers
 
 ---
 
-## 12. Performance Benchmarks
+### Phase 2: Enhancement (Months 4-6)
 
-### Target Metrics
+**Priority: Medium**
 
-| Metric | Target | Priority |
-|--------|--------|----------|
-| Studio canvas render | < 100ms | P0 |
-| Tool palette load | < 200ms | P0 |
-| Workflow execution start | < 3s | P0 |
-| Node render | < 50ms | P1 |
-| Task queue pickup | < 100ms | P0 |
-| Queue operations | < 10ms | P0 |
-| Agent cold start | < 2s | P1 |
-| Agent warm execution | < 500ms | P0 |
-| Message delivery (direct) | < 50ms | P0 |
-| Message broadcast | < 200ms | P1 |
-| Deploy initiation | < 3s | P0 |
-| Deploy status update | < 5s | P1 |
-| Dashboard load | < 2s | P0 |
-| Chart render | < 500ms | P0 |
-| Code execution feedback | < 3s | P0 |
-| Editor load | < 1s | P0 |
-| API response (p95) | < 500ms | P0 |
-| API response (p99) | < 1s | P1 |
+**Frontend Studio UI:**
+- [ ] Voice input/output integration
+- [ ] File create/edit/delete operations
+- [ ] Multi-file editing with tabs
+- [ ] Secrets management UI
+- [ ] Team collaboration features (cursors)
+- [ ] Keyboard shortcuts
 
-### Load Targets
+**Runner System:**
+- [ ] Multi-language support (Python, PHP, Ruby, Go)
+- [ ] Multiple terminal sessions
+- [ ] Process management (kill, restart)
+- [ ] Storage snapshots and backups
+- [ ] Resource monitoring dashboard
 
-| Metric | Target |
-|--------|--------|
-| Concurrent users | 1,000 |
-| API requests/sec | 500 |
-| WebSocket connections | 5,000 |
-| Task queue depth | 10,000 |
-| Database connections | 100 (pooled) |
-| Agent concurrency (total) | 50 |
+**Deployment Flow:**
+- [ ] Netlify integration
+- [ ] Custom hosting targets
+- [ ] Custom domain management
+- [ ] SSL/TLS automation
+- [ ] CD pipeline (GitHub Actions)
+- [ ] Smoke tests post-deployment
 
----
+**Post-Launch OS:**
+- [ ] Custom event tracking
+- [ ] Conversion funnels
+- [ ] User cohort analysis
+- [ ] SEO metadata management
+- [ ] Sitemap generation
+- [ ] Basic commerce (order list, fulfillment)
 
-## 13. Security Requirements
-
-### For New Features
-
-| Feature | Security Requirement |
-|---------|---------------------|
-| Studio | Agent configs encrypted at rest, RBAC on agent access |
-| Workflows | Workflow execution sandboxed per user, no cross-user access |
-| Task Queue | Tasks validated before execution, timeout enforcement |
-| Deployment | Deploy requires admin or owner role, audit logged |
-| Monitoring | Cost data encrypted, admin-only access |
-| Analytics | PII anonymized in analytics, GDPR-compliant export |
-| Versions | Version history immutable (append-only) |
-| Alerts | Alert rules admin-only, notification channels validated |
-
-### Authentication Requirements
-- All new API endpoints require Supabase session authentication
-- Admin endpoints require `is_admin: true` profile flag
-- Agent owner endpoints require `user_id` match
-- Rate limiting per subscription tier:
-  - Free: 100 req/min
-  - Pro: 500 req/min
-  - Commander: 2000 req/min
-  - General: 10000 req/min
-
-### Data Retention
-- Workflow runs: 90 days
-- Task executions: 30 days
-- Monitoring snapshots: 30 days
-- Cost tracking: 365 days
-- Alert events: 90 days
-- Agent versions: Indefinite (immutable)
+**Estimated Effort:** 12 weeks, 4-5 developers
 
 ---
 
-## 14. Monetization Integration
+### Phase 3: Scale (Months 7-9)
 
-### Subscription Tiers (Existing)
+**Priority: Medium**
 
-| Tier | Price | Key Limits |
-|------|-------|-----------|
-| **Free** | $0/mo | 50 msgs/day, 1 agent, 1 memory slot, view-only Studio |
-| **Pro** | $29/mo | Unlimited msgs, 5 agents, 3 workflows, 100 memory slots, basic deploy & monitoring |
-| **Commander** | $499/mo | API access, 25 agents, unlimited workflows, 1000 memory slots, full deploy & monitoring, cost tracking, advanced analytics |
-| **General** | $1999/mo | White-label, unlimited agents, SLA, custom integrations, enterprise analytics, dedicated support |
+**Frontend Studio UI:**
+- [ ] 3D visual feedback (Three.js)
+- [ ] Real-time collaboration (multiplayer)
+- [ ] AI code suggestions
+- [ ] Template marketplace
+- [ ] Plugin system
 
-### Feature Gating by Tier
+**Runner System:**
+- [ ] Kubernetes orchestration
+- [ ] Auto-scaling based on demand
+- [ ] Multi-region deployment
+- [ ] High availability setup
+- [ ] Advanced networking (VPC, subnets)
 
-| Feature | Free | Pro | Commander | General |
-|---------|------|-----|-----------|---------|
-| Studio (view) | ✅ | ✅ | ✅ | ✅ |
-| Studio (create) | ❌ | ✅ | ✅ | ✅ |
-| Workflows | 0 | 3 | ∞ | ∞ |
-| Agent count | 1 | 5 | 25 | ∞ |
-| Task queue | 10/day | 100/day | 1000/day | ∞ |
-| Code execution | 10/day | 100/day | 1000/day | ∞ |
-| Deploy | ❌ | Basic | Full | Full + SLA |
-| Monitoring | ❌ | Basic | Advanced | Enterprise |
-| Analytics | ❌ | Basic | Advanced | Enterprise |
-| Cost tracking | ❌ | ❌ | ✅ | ✅ |
-| API access | ❌ | ❌ | ✅ | ✅ |
-| Support | Community | Email | Priority | Dedicated |
+**Deployment Flow:**
+- [ ] Multi-environment support (dev, staging, prod)
+- [ ] Blue-green deployments
+- [ ] Canary deployments
+- [ ] A/B testing infrastructure
+- [ ] Deployment rollback automation
 
-### Revenue Projections
+**Post-Launch OS:**
+- [ ] Advanced analytics (cohorts, retention)
+- [ ] Custom report builder
+- [ ] SEO audit automation
+- [ ] Keyword tracking
+- [ ] Full commerce ops (inventory, refunds, shipping)
+- [ ] Shopify/Printify sync
 
-**Conversion Funnel Targets**:
-- Free → Pro: 5% conversion rate
-- Pro → Commander: 2% conversion rate
-- Commander → General: 0.5% conversion rate
-
-**Revenue Model (Month 6 target)**:
-- 10,000 free users × 5% = 500 Pro users × $29 = $14,500/mo
-- 500 Pro × 2% = 10 Commander users × $499 = $4,990/mo
-- 10 Commander × 0.5% = ~1 General user × $1,999 = $1,999/mo
-- **Projected MRR**: ~$21,489/mo
-- **Projected ARR**: ~$257,868/yr
+**Estimated Effort:** 12 weeks, 5-6 developers
 
 ---
 
-## 15. Integration Points
+### Phase 4: Enterprise (Months 10-12)
 
-### Existing Integrations
-| Integration | Status | Implementation |
-|-------------|--------|----------------|
-| Telegram | ✅ Implemented | Bot webhook, bidirectional messaging |
-| GitHub OAuth | ✅ Implemented | Connection management, agent tool |
-| Vercel OAuth | ✅ Implemented | Deployment tracking |
-| Supabase | ✅ Implemented | Core data layer |
-| Stripe | ✅ Schema ready | subscription_tiers, user_subscriptions |
-| Shopify | 📋 Designed | Integration playbook |
-| Printify | 📋 Designed | Integration playbook |
+**Priority: Low**
 
-### Planned Integrations (Post-Launch)
-| Integration | Priority | Purpose |
-|-------------|----------|---------|
-| Slack App | P1 | Team notifications, agent control |
-| Discord Bot | P1 | Community engagement |
-| Zapier | P2 | 3rd-party workflow automation |
-| Notion | P2 | Documentation sync |
-| Linear | P2 | Issue tracking sync |
-| Google Workspace | P3 | Calendar, Docs, Sheets integration |
-| Microsoft 365 | P3 | Enterprise compatibility |
+**Frontend Studio UI:**
+- [ ] White-label customization
+- [ ] SAML/SSO authentication
+- [ ] Audit log viewer
+- [ ] Advanced permissions
 
----
+**Runner System:**
+- [ ] Self-hosted option
+- [ ] Air-gapped deployments
+- [ ] Custom runtime support
+- [ ] GPU support for ML workloads
 
-## 16. Success Criteria
+**Deployment Flow:**
+- [ ] Enterprise deployment targets (on-prem)
+- [ ] Compliance certifications (SOC 2, HIPAA)
+- [ ] SLA guarantees
+- [ ] Dedicated support
 
-### Studio UI Success Criteria
-- [ ] User can create a working agent in < 5 minutes
-- [ ] User can build a workflow with 5+ nodes
-- [ ] Code editor supports all 4 languages (Python, JS, TS, Bash)
-- [ ] Dashboard shows real-time status for all agents
-- [ ] Studio renders correctly on desktop (1280px+) and tablet (768px+)
+**Post-Launch OS:**
+- [ ] Advanced BI (data warehouse, SQL queries)
+- [ ] Machine learning insights
+- [ ] Predictive analytics
+- [ ] White-label analytics dashboards
+- [ ] API for third-party integrations
 
-### Runner System Success Criteria
-- [ ] Tasks execute within 100ms of queue pickup
-- [ ] Failed tasks retry 3 times with exponential backoff
-- [ ] Agent-to-agent communication < 50ms latency
-- [ ] 99.9% task completion rate
-- [ ] Queue handles 10,000+ pending tasks without degradation
-
-### Deployment Flow Success Criteria
-- [ ] One-click deploy completes in < 30 seconds
-- [ ] Rollback completes in < 10 seconds
-- [ ] Version diff visualization renders correctly
-- [ ] Environment promotion is atomic (all-or-nothing)
-- [ ] Zero-downtime deployments
-
-### Post-Launch OS Success Criteria
-- [ ] Monitoring dashboard loads in < 2 seconds
-- [ ] Alerts fire within 30 seconds of threshold breach
-- [ ] Self-heal resolves 80% of known issues automatically
-- [ ] Cost tracking accurate to $0.01
-- [ ] System maintains 99.9% uptime
+**Estimated Effort:** 12 weeks, 6-8 developers
 
 ---
 
-## 17. Implementation Roadmap
+## 6. SUCCESS CRITERIA
 
-### Phase 1: Studio UI (Weeks 1-4) — Effort: Large
+### Functional Requirements Met
+- [x] Architecture and security specifications documented
+- [x] Database schema designed and migrated
+- [x] Backend APIs implemented for Control Plane
+- [x] CI/CD and automated testing in place
+- [ ] Frontend Studio UI functional with all core features
+- [ ] Runner System operational with Docker containers
+- [ ] Deployment Flow working end-to-end
+- [ ] Post-Launch OS providing analytics, SEO, commerce dashboards
 
-| Week | Deliverables | Team |
-|------|-------------|------|
-| 1 | Agent Builder canvas + tool palette | Bubbles + Pushpa |
-| 2 | Model selector + soul editor + agent test panel | Bubbles + Blossom |
-| 3 | Workflow designer (node-based canvas) | Bubbles + Pushpa |
-| 4 | Code editor enhancements + dashboard improvements | Bubbles + Blossom |
+### Performance Benchmarks Achieved
+- [ ] Studio UI initial load < 3s
+- [ ] Terminal latency < 100ms
+- [ ] Live preview updates < 500ms
+- [ ] Container startup < 5s
+- [ ] Deployment completion < 5 minutes
+- [ ] Analytics query response < 500ms
+- [ ] Dashboard load < 2s
 
-### Phase 2: Runner System (Weeks 5-7) — Effort: Medium
+### Security Requirements Met
+- [x] No secrets exposed in frontend
+- [x] All API endpoints authenticated
+- [x] Audit logging implemented
+- [ ] Container isolation enforced
+- [ ] Data encrypted at rest and in transit
+- [ ] GDPR compliance achieved
+- [ ] Security audit passed
 
-| Week | Deliverables | Team |
-|------|-------------|------|
-| 5 | Task queue manager + scheduler | Blossom + Guy |
-| 6 | Execution runtime enhancements + SSE streaming | Blossom |
-| 7 | Agent communication bus + pub/sub | Blossom |
-
-### Phase 3: Deployment Flow (Weeks 8-9) — Effort: Medium
-
-| Week | Deliverables | Team |
-|------|-------------|------|
-| 8 | One-click deploy + config validation | Blossom + Bubbles |
-| 9 | Version management + environment management | Blossom + Guy |
-
-### Phase 4: Post-Launch OS (Weeks 10-12) — Effort: Large
-
-| Week | Deliverables | Team |
-|------|-------------|------|
-| 10 | Monitoring dashboard + health panels | Bubbles + Blossom |
-| 11 | Auto-scaling + self-healing enhancements | Blossom |
-| 12 | Analytics & insights + revenue metrics | Bubbles + Jo |
-
-### Testing Throughout (Buttercup)
-- Unit tests for all new components
-- Integration tests for API endpoints
-- E2E tests for critical flows (agent creation, workflow execution, deploy)
-- Performance tests against benchmarks
+### User Acceptance
+- [ ] Can create app from prompt in < 5 minutes
+- [ ] Can deploy to production in < 10 minutes
+- [ ] Can manage post-launch operations from dashboard
+- [ ] User satisfaction score > 4/5
+- [ ] Net Promoter Score (NPS) > 50
 
 ---
 
-## 18. Team Assignments
+## 7. CONCLUSION
 
-| Team Member | Primary Role | Key Deliverables |
-|-------------|-------------|------------------|
-| **MO** | Architecture & Review | System design, code review, merge approvals |
-| **JO** | Product Owner | Requirements, prioritization, monetization strategy |
-| **Bubbles** | Frontend | Studio UI, Dashboard, Agent Builder, Monitoring UI |
-| **Blossom** | Backend | Runner APIs, Task Queue, Deploy Flow, Communication Bus |
-| **Guy** | Database | Schema extensions, migrations, query optimization |
-| **Buttercup** | QA | Test coverage, E2E tests, performance validation |
-| **Pushpa** | UI/UX & 3D | Studio canvas design, 3D visualizations, animations |
+This requirements document consolidates all functional, technical, security, and performance requirements for the 4 incomplete components of the Emergent-Level AI App Builder platform:
 
----
+1. **Frontend Studio UI** - Conversational interface for building apps with voice input, code editor, terminal, and live preview
+2. **Runner System** - Docker-based workspace execution environment with terminal access and preview URLs
+3. **Deployment Flow** - One-click deployment to Vercel/Netlify with custom domains and SSL automation
+4. **Post-Launch OS** - Comprehensive analytics, performance monitoring, SEO tooling, and commerce operations dashboard
 
-## 19. Risk Assessment
+All requirements have been extracted from existing architecture documentation and aligned with the overall system design. The implementation roadmap provides a phased approach over 12 months with clear priorities.
 
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| LLM cost overruns | High | Medium | Implement cost caps per agent, spending alerts |
-| Task queue overflow | High | Low | Dead letter queue, auto-scaling, rate limiting |
-| Security breach | Critical | Low | Sandbox isolation, input validation, audit logging |
-| Performance degradation | High | Medium | Caching, connection pooling, lazy loading |
-| Scope creep | Medium | High | MVP-first approach, strict phase boundaries |
-| Third-party API outages | Medium | Medium | Provider fallback (LLM router), circuit breaker |
-| Database scaling | Medium | Low | Supabase managed scaling, read replicas |
+**Next Steps:**
+1. Review and approve requirements
+2. Create detailed wireframes and mockups
+3. Break down into GitHub issues and user stories
+4. Assign to team members based on expertise
+5. Begin Phase 1 implementation
 
----
-
-## 20. Appendix: Existing Asset Inventory
-
-### Codebase Statistics
-
-| Metric | Count |
-|--------|-------|
-| API Routes | 76 |
-| React Components | 109 |
-| Pages | 48 |
-| Test Files | 32 |
-| Database Tables | 52+ |
-| Migrations | 22 |
-| Custom Hooks | 16 |
-| Library Modules | 99 |
-| Agent Tools | 14+ |
-| Default Agents | 7 |
-| Subscription Tiers | 4 |
-| Feature Flags | 32+ |
-| RLS Policies | 150+ |
-| Database Indexes | 100+ |
-
-### Key File Paths
-
-| File | Purpose |
-|------|---------|
-| `src/types/agent.ts` | Agent, ModelConfig, Task type definitions |
-| `src/types/tool.ts` | Tool, ToolContext type definitions |
-| `src/lib/engine/agent.ts` | AgentInstance class |
-| `src/lib/engine/bootstrap.ts` | Agent initialization (7 agents) |
-| `src/lib/engine/tools.ts` | Tool registry (14+ tools) |
-| `src/lib/engine/session.ts` | Session management with compaction |
-| `src/lib/engine/cron.ts` | Scheduled job execution |
-| `src/lib/ai/llm-router.ts` | Multi-provider LLM routing |
-| `src/middleware.ts` | Auth session refresh middleware |
-| `src/config/feature-flags.ts` | Feature flag configuration |
-| `vitest.config.ts` | Test configuration |
-
-### Supporting Documentation
-
-| Document | Location | Size |
-|----------|----------|------|
-| System Architecture | `/docs/emergent-architecture.md` | ~77KB |
-| Database Schema | `/docs/emergent-database-schema.md` | ~78KB |
-| Tool API Specification | `/docs/emergent-tool-api.md` | ~63KB |
-| Security Documentation | `/docs/emergent-security.md` | ~91KB |
-| Testing Strategy | `/docs/emergent-testing.md` | ~15KB |
-| This Document | `/docs/EMERGENT_REQUIREMENTS_EXTRACTED.md` | ~70KB |
-
----
-
-*Document generated: 2026-02-19*  
-*Next review: After Phase 1 completion*  
-*Owner: JO (Product Owner) + MO (CTO)*
+**Document Status:** ✅ Complete and ready for team review

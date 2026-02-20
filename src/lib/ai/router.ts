@@ -21,6 +21,7 @@ import { callOllamaWithFallback, isOllamaAvailable } from './ollama'
 import { callMiniMax } from './minimax'
 import { callOpenClaw } from './openclaw'
 import { SYSTEM_PROMPT_UNHINGED } from './system-prompt-unhinged'
+import { getBYOConfig } from '@/lib/byo/byo-manager'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 
@@ -94,6 +95,7 @@ interface RouterOptions {
   messages: { role: string; content: string }[]
   byoClaudeKey?: string | null
   byoOpenaiKey?: string | null
+  userId?: string // User ID for BYO key lookup
   forceCloud?: boolean // Force cloud provider (skip Ollama)
   preferredCloud?: 'claude' | 'openai' | 'openclaw' | 'minimax' // Which cloud to prefer
   isFounder?: boolean // Special access for aditya@cubiqo.ai
@@ -160,18 +162,35 @@ function needsAdvancedReasoning(messages: { role: string; content: string }[]): 
 
 /**
  * Main router - decides which provider to use
+ * Now with BYO API key support!
  */
 export async function routeAIRequest(options: RouterOptions): Promise<RouterResult> {
-  const {
+  let {
     systemPrompt,
     messages,
     byoClaudeKey,
     byoOpenaiKey,
+    userId,
     forceCloud = false,
     preferredCloud = 'openclaw',
     isFounder = false,
     abTestVariant = 'A'
   } = options
+
+  // 🔑 BYO KEY RESOLUTION: Check if user has BYO keys configured
+  if (userId && !byoClaudeKey && !byoOpenaiKey) {
+    console.log('[Router] 🔑 Checking for BYO API keys...')
+    const byoConfig = await getBYOConfig(userId)
+    
+    if (byoConfig?.enabled) {
+      byoClaudeKey = byoConfig.claudeApiKey
+      byoOpenaiKey = byoConfig.openaiApiKey
+      console.log('[Router] ✅ BYO keys loaded:', {
+        hasClaude: !!byoClaudeKey,
+        hasOpenAI: !!byoOpenaiKey
+      })
+    }
+  }
 
   // Calculate estimated input tokens for cost tracking
   const inputText = systemPrompt + messages.map(m => m.content).join('')
@@ -192,6 +211,8 @@ export async function routeAIRequest(options: RouterOptions): Promise<RouterResu
     console.log('[Router] 🚀 FOUNDER MODE: Bypassing checks, using smartest provider')
     return await useCloudProvider({
       ...options,
+      byoClaudeKey,
+      byoOpenaiKey,
       preferredCloud: 'openclaw' // Force OpenClaw (Claude Sonnet) for Founder
     }, inputTokens)
   }
@@ -199,14 +220,14 @@ export async function routeAIRequest(options: RouterOptions): Promise<RouterResu
   // OPTION 1: Force cloud provider (skip Ollama)
   if (forceCloud) {
     console.log('[Router] Forcing cloud provider')
-    return await useCloudProvider(options, inputTokens)
+    return await useCloudProvider({ ...options, byoClaudeKey, byoOpenaiKey }, inputTokens)
   }
 
   // OPTION 2: Check if query needs advanced reasoning
   const needsAdvanced = needsAdvancedReasoning(messages)
   if (needsAdvanced) {
     console.log('[Router] Complex query detected, using cloud provider')
-    return await useCloudProvider(options, inputTokens)
+    return await useCloudProvider({ ...options, byoClaudeKey, byoOpenaiKey }, inputTokens)
   }
 
   // OPTION 3: Try Ollama first (PRIMARY - free, no guardrails)
@@ -237,7 +258,7 @@ export async function routeAIRequest(options: RouterOptions): Promise<RouterResu
   }
 
   // OPTION 4: Fallback to cloud provider
-  return await useCloudProvider(options, inputTokens)
+  return await useCloudProvider({ ...options, byoClaudeKey, byoOpenaiKey }, inputTokens)
 }
 
 /**

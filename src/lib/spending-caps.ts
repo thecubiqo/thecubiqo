@@ -162,3 +162,40 @@ export function resetSpending(provider?: 'anthropic' | 'elevenlabs'): void {
     console.log('[SpendingCaps] Reset all spending to $0')
   }
 }
+
+// --- Usage Lock Controls ---
+// Admin can manually lock AI or database usage to keep costs low
+
+interface UsageLocks {
+  ai: boolean
+  database: boolean
+}
+
+// In-memory usage lock state (resets on server restart, like spending records above)
+// For production, persist to Supabase or Redis
+let usageLocks: UsageLocks = {
+  ai: false,
+  database: false
+}
+
+/**
+ * Check if a usage type is locked by admin
+ */
+export function isUsageLocked(type: 'ai' | 'database'): boolean {
+  return usageLocks[type]
+}
+
+/**
+ * Set the lock state for AI or database usage
+ */
+export function setUsageLock(type: 'ai' | 'database', locked: boolean): void {
+  usageLocks[type] = locked
+  console.log(`[UsageLock] ${type} usage ${locked ? 'LOCKED' : 'UNLOCKED'}`)
+}
+
+/**
+ * Get all usage lock states
+ */
+export function getUsageLocks(): UsageLocks {
+  return { ...usageLocks }
+}

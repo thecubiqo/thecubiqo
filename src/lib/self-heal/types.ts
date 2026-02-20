@@ -8,6 +8,7 @@ export interface DiagnosticResult {
   message: string;
   details?: Record<string, any>;
   timestamp: Date;
+  durationMs?: number;
 }
 
 export interface RepairAction {
@@ -18,12 +19,26 @@ export interface RepairAction {
   rollbackCommand?: string;
   details?: Record<string, any>;
   executedAt: Date;
+  retryCount?: number;
 }
 
 export interface RollbackPatch {
   commands: string[];
   sqlStatements: string[];
   description: string;
+}
+
+export interface DailySummary {
+  totalChecks: number;
+  healthyChecks: number;
+  warningChecks: number;
+  criticalChecks: number;
+  repairsAttempted: number;
+  repairsSucceeded: number;
+  repairsFailed: number;
+  uptimePercentage: number;
+  avgDiagnosticDurationMs: number;
+  totalExecutionMs: number;
 }
 
 export interface SelfHealReport {
@@ -41,6 +56,7 @@ export interface SelfHealReport {
   emailFrom: string;
   emailTo: string;
   executionTimeMs: number;
+  summary?: DailySummary;
 }
 
 export interface AuditLog {

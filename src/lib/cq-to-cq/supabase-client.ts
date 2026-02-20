@@ -82,22 +82,26 @@ export async function rotateCQNumber(
   expiresAt: Date,
   rotationInterval: number
 ) {
-  // Mark old CQ# as expired
-  await supabase
-    .from('cq_numbers')
-    .update({ status: 'expired' })
-    .eq('user_id', userId)
-    .eq('status', 'active');
+  // Mark old CQ# as expired and create new one atomically via Promise.all
+  // The unique partial index on (user_id) WHERE status='active' ensures
+  // only one active CQ# per user at the database level
+  const [, newRecord] = await Promise.all([
+    supabase
+      .from('cq_numbers')
+      .update({ status: 'expired' })
+      .eq('user_id', userId)
+      .eq('status', 'active'),
+    saveCQNumber({
+      cqNumber: newCQNumber,
+      userId,
+      createdAt: new Date(),
+      expiresAt,
+      status: 'active',
+      rotationInterval,
+    }),
+  ]);
 
-  // Create new CQ#
-  return saveCQNumber({
-    cqNumber: newCQNumber,
-    userId,
-    createdAt: new Date(),
-    expiresAt,
-    status: 'active',
-    rotationInterval,
-  });
+  return newRecord;
 }
 
 // ==================== FRIEND REQUESTS ====================
@@ -107,12 +111,13 @@ export async function sendFriendRequest(
   toCQNumber: string,
   message?: string
 ) {
-  // Find recipient user ID from CQ#
-  const toUserId = await getUserByCQNumber(toCQNumber);
-  if (!toUserId) throw new Error('CQ# not found');
+  // Resolve both CQ numbers in parallel for efficiency
+  const [toUserId, fromCQNumber] = await Promise.all([
+    getUserByCQNumber(toCQNumber),
+    getActiveCQNumber(fromUserId),
+  ]);
 
-  // Get sender's CQ#
-  const fromCQNumber = await getActiveCQNumber(fromUserId);
+  if (!toUserId) throw new Error('CQ# not found');
   if (!fromCQNumber) throw new Error('Sender CQ# not found');
 
   const { data, error } = await supabase
@@ -276,25 +281,24 @@ export async function markConversationAsRead(
   conversationId: string,
   userId: string
 ) {
-  // Mark all unread messages as read
-  const { error: messageError } = await supabase
-    .from('cq_messages')
-    .update({ read_at: new Date().toISOString(), status: 'read' })
-    .eq('conversation_id', conversationId)
-    .eq('to_user_id', userId)
-    .is('read_at', null);
+  // Batch both updates in parallel for efficiency
+  const [messageResult, convResult] = await Promise.all([
+    supabase
+      .from('cq_messages')
+      .update({ read_at: new Date().toISOString(), status: 'read' })
+      .eq('conversation_id', conversationId)
+      .eq('to_user_id', userId)
+      .is('read_at', null),
+    supabase
+      .from('cq_conversations')
+      .update({
+        unread_counts: {},
+      })
+      .eq('id', conversationId),
+  ]);
 
-  if (messageError) throw messageError;
-
-  // Reset unread count in conversation
-  const { error: convError } = await supabase
-    .from('cq_conversations')
-    .update({
-      unread_counts: {}, // Reset handled by trigger
-    })
-    .eq('id', conversationId);
-
-  if (convError) throw convError;
+  if (messageResult.error) throw messageResult.error;
+  if (convResult.error) throw convResult.error;
 }
 
 // ==================== MESSAGES ====================

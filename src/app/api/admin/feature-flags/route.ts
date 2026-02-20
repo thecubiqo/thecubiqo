@@ -1,21 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { withAdminAuth } from '@/lib/auth/admin-guard'
 import { toggleFeatureFlag } from '@/lib/feature-flags/server'
+import { logAdminAction } from '@/lib/audit'
 
-// Simple secret to protect the endpoint (in real app use proper auth)
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'cubiqo-admin-secret'
-
-export async function GET(request: NextRequest) {
+export const GET = withAdminAuth(async (request, { supabase, user, profile }) => {
   const searchParams = request.nextUrl.searchParams
-  const secret = searchParams.get('secret')
   const action = searchParams.get('action') // 'enable' | 'disable' | 'check'
   const flagName = searchParams.get('name') || 'ui.topRightCTA.v1'
-
-  if (secret !== ADMIN_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const supabase = await createClient(); // Await the promise
 
   // 1. Get Flag ID by Name
   const { data: flag } = await supabase
@@ -35,8 +26,17 @@ export async function GET(request: NextRequest) {
   if (action === 'enable' || action === 'disable') {
     const enabled = action === 'enable'
     const result = await toggleFeatureFlag(flag.id, enabled)
+
+    // Log the action using shared audit utility
+    await logAdminAction({
+      userId: user.id,
+      userEmail: profile.email,
+      actionType: 'feature_flag_toggled',
+      actionDetails: { flag: flagName, action, enabled },
+    })
+
     return NextResponse.json({ result })
   }
 
   return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
-}
+})

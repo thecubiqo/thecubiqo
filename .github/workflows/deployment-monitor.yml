@@ -1,0 +1,115 @@
+name: Deployment Monitor
+
+on:
+  deployment_status:
+  push:
+    branches:
+      - main
+      - develop
+      - master
+  workflow_dispatch:
+
+jobs:
+  # Track deployment status events from Vercel / GitHub Deployments
+  track-deployment:
+    name: Track Deployment Status
+    runs-on: ubuntu-latest
+    if: github.event_name == 'deployment_status'
+    permissions: {}
+
+    steps:
+      - name: Report deployment status
+        run: |
+          BRANCH="${{ github.event.deployment.ref }}"
+          STATE="${{ github.event.deployment_status.state }}"
+          ENV="${{ github.event.deployment.environment }}"
+          URL="${{ github.event.deployment_status.target_url }}"
+
+          echo "Branch    : $BRANCH"
+          echo "Environment: $ENV"
+          echo "State     : $STATE"
+          echo "URL       : $URL"
+
+          case "$STATE" in
+            success)
+              echo "✅ Deployment succeeded for branch '$BRANCH' → $URL"
+              ;;
+            failure|error)
+              echo "❌ Deployment FAILED for branch '$BRANCH' in environment '$ENV'"
+              exit 1
+              ;;
+            pending|in_progress|queued|waiting)
+              echo "⏳ Deployment is $STATE for branch '$BRANCH'"
+              ;;
+            *)
+              echo "ℹ️  Deployment state '$STATE' for branch '$BRANCH'"
+              ;;
+          esac
+
+  # After a successful deployment on a monitored branch, run a health check
+  health-check:
+    name: Post-Deployment Health Check
+    runs-on: ubuntu-latest
+    permissions: {}
+    if: >
+      github.event_name == 'deployment_status' &&
+      github.event.deployment_status.state == 'success' &&
+      (
+        github.event.deployment.ref == 'main' ||
+        github.event.deployment.ref == 'develop' ||
+        github.event.deployment.ref == 'master'
+      )
+
+    steps:
+      - name: Check application health
+        run: |
+          BASE_URL="${{ github.event.deployment_status.target_url }}"
+          HEALTH_URL="${BASE_URL}/api/health"
+
+          echo "Running health check: $HEALTH_URL"
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            --max-time 15 \
+            -H "Content-Type: application/json" \
+            "$HEALTH_URL" || echo -e "\n000")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "HTTP Status : $HTTP_CODE"
+          echo "Response    : $BODY"
+
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            echo "✅ Health check passed for branch '${{ github.event.deployment.ref }}'"
+          elif [ "$HTTP_CODE" -eq 000 ]; then
+            echo "❌ Health check endpoint unreachable — network timeout or DNS issue"
+            exit 1
+          else
+            echo "❌ Health check returned HTTP $HTTP_CODE for branch '${{ github.event.deployment.ref }}'"
+            exit 1
+          fi
+
+  # Lightweight check that runs on push to confirm safe + emergent branches are being tracked
+  branch-push-monitor:
+    name: Branch Push Monitor
+    runs-on: ubuntu-latest
+    permissions: {}
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Log monitored branch activity
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          case "$BRANCH" in
+            main|develop)
+              echo "🔒 Safe branch '$BRANCH' received a push — deployment monitoring active"
+              ;;
+            master)
+              echo "⚡ Emergent code branch '$BRANCH' received a push — deployment monitoring active"
+              ;;
+            *)
+              echo "📌 Branch '$BRANCH' received a push"
+              ;;
+          esac
+          echo "Commit : ${{ github.sha }}"
+          echo "Actor  : ${{ github.actor }}"

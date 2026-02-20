@@ -1,5 +1,6 @@
 import { bootstrapAgents } from './bootstrap';
 import { startCron } from './cron';
+import { taskRouter } from './router';
 
 let initialized = false;
 
@@ -23,6 +24,8 @@ export async function initializeEngine() {
     
   }
 }
+
+export { taskRouter };
 
 // Auto-initialize on import (server-side only, not during build)
 if (typeof window === 'undefined' && process.env.NEXT_PHASE !== 'phase-production-build') {

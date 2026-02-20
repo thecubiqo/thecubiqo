@@ -1,22 +1,22 @@
 -- =============================================================================
--- EMERGENT RUNNER SYSTEM MIGRATION (Ciqo Edition)
+-- EMERGENT RUNNER SYSTEM MIGRATION
 -- =============================================================================
--- Description: Tables for Ciqo (formerly Emergent Runner) workspaces, deployments
--- Author: Antigravity Agent
+-- Description: Tables for workspaces, deployments, domains, and environments
+-- Author: GUY (Database Administrator)
 -- Date: 2026-02-18
--- Version: 1.0.1
+-- Version: 1.0.0
 -- =============================================================================
 
 -- =============================================================================
 -- 1. WORKSPACES (Sandboxed Execution Environments)
 -- =============================================================================
 
-CREATE TABLE IF NOT EXISTS emergent_workspaces (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID NOT NULL REFERENCES emergent_projects(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS workspaces (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   
   -- Workspace identity
-  workspace_id VARCHAR(255) UNIQUE NOT NULL, -- External ID in Ciqo runner system
+  workspace_id VARCHAR(255) UNIQUE NOT NULL, -- External ID in runner system
   subdomain VARCHAR(100) UNIQUE NOT NULL, -- e.g., 'proj-abc123.emergent.dev'
   
   -- Status
@@ -39,46 +39,46 @@ CREATE TABLE IF NOT EXISTS emergent_workspaces (
   storage_used_mb INTEGER DEFAULT 0,
   
   -- Runtime
-  started_at TIMESTAMP WITH TIME ZONE,
-  stopped_at TIMESTAMP WITH TIME ZONE,
-  last_activity_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  started_at TIMESTAMP,
+  stopped_at TIMESTAMP,
+  last_activity_at TIMESTAMP DEFAULT NOW(),
   
   -- Auto-shutdown
   auto_shutdown_minutes INTEGER DEFAULT 60, -- Stop after inactivity
-  shutdown_scheduled_at TIMESTAMP WITH TIME ZONE,
+  shutdown_scheduled_at TIMESTAMP,
   
   -- Metadata
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  deleted_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMP,
   
   UNIQUE(project_id)
 );
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_emergent_workspaces_project_id ON emergent_workspaces(project_id);
-CREATE INDEX IF NOT EXISTS idx_emergent_workspaces_workspace_id ON emergent_workspaces(workspace_id);
-CREATE INDEX IF NOT EXISTS idx_emergent_workspaces_status ON emergent_workspaces(status);
-CREATE INDEX IF NOT EXISTS idx_emergent_workspaces_subdomain ON emergent_workspaces(subdomain);
-CREATE INDEX IF NOT EXISTS idx_emergent_workspaces_last_activity ON emergent_workspaces(last_activity_at DESC);
-CREATE INDEX IF NOT EXISTS idx_emergent_workspaces_shutdown_scheduled ON emergent_workspaces(shutdown_scheduled_at) WHERE shutdown_scheduled_at IS NOT NULL;
+CREATE INDEX idx_workspaces_project_id ON workspaces(project_id);
+CREATE INDEX idx_workspaces_workspace_id ON workspaces(workspace_id);
+CREATE INDEX idx_workspaces_status ON workspaces(status);
+CREATE INDEX idx_workspaces_subdomain ON workspaces(subdomain);
+CREATE INDEX idx_workspaces_last_activity ON workspaces(last_activity_at DESC);
+CREATE INDEX idx_workspaces_shutdown_scheduled ON workspaces(shutdown_scheduled_at) WHERE shutdown_scheduled_at IS NOT NULL;
 
 -- Trigger for updated_at
-CREATE TRIGGER emergent_workspaces_updated_at
-  BEFORE UPDATE ON emergent_workspaces
+CREATE TRIGGER workspaces_updated_at
+  BEFORE UPDATE ON workspaces
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
 -- RLS
-ALTER TABLE emergent_workspaces ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workspaces ENABLE ROW LEVEL SECURITY;
 
--- Policies
-CREATE POLICY "Users can view project workspaces" ON emergent_workspaces
+-- Policies: Users can view workspaces for their projects
+CREATE POLICY "Users can view project workspaces" ON workspaces
   FOR SELECT
   USING (
     project_id IN (
-      SELECT id FROM emergent_projects WHERE org_id IN (
-        SELECT org_id FROM emergent_org_members WHERE user_id = auth.uid()
+      SELECT id FROM projects WHERE org_id IN (
+        SELECT org_id FROM org_members WHERE user_id = auth.uid()
       )
     )
   );
@@ -87,12 +87,12 @@ CREATE POLICY "Users can view project workspaces" ON emergent_workspaces
 -- 2. DEPLOYMENTS (Build & Deploy History)
 -- =============================================================================
 
-CREATE TABLE IF NOT EXISTS emergent_deployments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID NOT NULL REFERENCES emergent_projects(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS deployments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   
   -- Deployment identity
-  deployment_number INTEGER, -- Auto-increment per project
+  deployment_number INTEGER NOT NULL, -- Auto-increment per project
   version VARCHAR(50), -- e.g., 'v1.2.3' or commit SHA
   
   -- Environment
@@ -103,14 +103,14 @@ CREATE TABLE IF NOT EXISTS emergent_deployments (
   error_message TEXT,
   
   -- Build info
-  build_started_at TIMESTAMP WITH TIME ZONE,
-  build_completed_at TIMESTAMP WITH TIME ZONE,
+  build_started_at TIMESTAMP,
+  build_completed_at TIMESTAMP,
   build_duration_seconds INTEGER,
   build_logs_url TEXT,
   
   -- Deploy info
-  deploy_started_at TIMESTAMP WITH TIME ZONE,
-  deploy_completed_at TIMESTAMP WITH TIME ZONE,
+  deploy_started_at TIMESTAMP,
+  deploy_completed_at TIMESTAMP,
   deploy_duration_seconds INTEGER,
   deploy_logs_url TEXT,
   
@@ -132,28 +132,28 @@ CREATE TABLE IF NOT EXISTS emergent_deployments (
   -- Health check
   health_check_url VARCHAR(500),
   health_check_status VARCHAR(50),
-  health_check_last_checked_at TIMESTAMP WITH TIME ZONE,
+  health_check_last_checked_at TIMESTAMP,
   
   -- Metadata
   triggered_by UUID, -- References auth.users
   metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   
   UNIQUE(project_id, deployment_number)
 );
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_emergent_deployments_project_id ON emergent_deployments(project_id);
-CREATE INDEX IF NOT EXISTS idx_emergent_deployments_environment ON emergent_deployments(environment);
-CREATE INDEX IF NOT EXISTS idx_emergent_deployments_status ON emergent_deployments(status);
-CREATE INDEX IF NOT EXISTS idx_emergent_deployments_created_at ON emergent_deployments(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_emergent_deployments_platform_id ON emergent_deployments(platform, platform_deployment_id);
-CREATE INDEX IF NOT EXISTS idx_emergent_deployments_git_commit ON emergent_deployments(git_commit_sha);
+CREATE INDEX idx_deployments_project_id ON deployments(project_id);
+CREATE INDEX idx_deployments_environment ON deployments(environment);
+CREATE INDEX idx_deployments_status ON deployments(status);
+CREATE INDEX idx_deployments_created_at ON deployments(created_at DESC);
+CREATE INDEX idx_deployments_platform_id ON deployments(platform, platform_deployment_id);
+CREATE INDEX idx_deployments_git_commit ON deployments(git_commit_sha);
 
 -- Trigger for updated_at
-CREATE TRIGGER emergent_deployments_updated_at
-  BEFORE UPDATE ON emergent_deployments
+CREATE TRIGGER deployments_updated_at
+  BEFORE UPDATE ON deployments
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
@@ -164,38 +164,39 @@ BEGIN
   IF NEW.deployment_number IS NULL THEN
     SELECT COALESCE(MAX(deployment_number), 0) + 1
     INTO NEW.deployment_number
-    FROM emergent_deployments
+    FROM deployments
     WHERE project_id = NEW.project_id;
   END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER emergent_deployments_set_number
-  BEFORE INSERT ON emergent_deployments
+CREATE TRIGGER deployments_set_number
+  BEFORE INSERT ON deployments
   FOR EACH ROW
   EXECUTE FUNCTION set_deployment_number();
 
 -- RLS
-ALTER TABLE emergent_deployments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE deployments ENABLE ROW LEVEL SECURITY;
 
--- Policies
-CREATE POLICY "Users can view project deployments" ON emergent_deployments
+-- Policies: Users can view deployments for their projects
+CREATE POLICY "Users can view project deployments" ON deployments
   FOR SELECT
   USING (
     project_id IN (
-      SELECT id FROM emergent_projects WHERE org_id IN (
-        SELECT org_id FROM emergent_org_members WHERE user_id = auth.uid()
+      SELECT id FROM projects WHERE org_id IN (
+        SELECT org_id FROM org_members WHERE user_id = auth.uid()
       )
     )
   );
 
-CREATE POLICY "Members can create deployments" ON emergent_deployments
+-- Policies: Members can create deployments
+CREATE POLICY "Members can create deployments" ON deployments
   FOR INSERT
   WITH CHECK (
     project_id IN (
-      SELECT id FROM emergent_projects WHERE org_id IN (
-        SELECT org_id FROM emergent_org_members 
+      SELECT id FROM projects WHERE org_id IN (
+        SELECT org_id FROM org_members 
         WHERE user_id = auth.uid() 
         AND role IN ('owner', 'admin', 'member')
       )
@@ -206,9 +207,9 @@ CREATE POLICY "Members can create deployments" ON emergent_deployments
 -- 3. CUSTOM DOMAINS
 -- =============================================================================
 
-CREATE TABLE IF NOT EXISTS emergent_domains (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID NOT NULL REFERENCES emergent_projects(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS custom_domains (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   
   -- Domain info
   domain VARCHAR(255) UNIQUE NOT NULL,
@@ -218,20 +219,20 @@ CREATE TABLE IF NOT EXISTS emergent_domains (
   verification_status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (verification_status IN ('pending', 'verified', 'failed')),
   verification_token VARCHAR(255) UNIQUE,
   verification_method VARCHAR(50) DEFAULT 'txt' CHECK (verification_method IN ('txt', 'cname')),
-  verified_at TIMESTAMP WITH TIME ZONE,
+  verified_at TIMESTAMP,
   
   -- SSL/TLS
   ssl_status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (ssl_status IN ('pending', 'issued', 'failed', 'expired')),
-  ssl_cert_issued_at TIMESTAMP WITH TIME ZONE,
-  ssl_cert_expires_at TIMESTAMP WITH TIME ZONE,
+  ssl_cert_issued_at TIMESTAMP,
+  ssl_cert_expires_at TIMESTAMP,
   ssl_cert_auto_renew BOOLEAN DEFAULT TRUE,
   
-  -- DNS records
-  dns_records JSONB DEFAULT '[]',
+  -- DNS records (for display to user)
+  dns_records JSONB DEFAULT '[]', -- Array of required DNS records
   
   -- Deployment target
   environment VARCHAR(50) NOT NULL DEFAULT 'production' CHECK (environment IN ('preview', 'production')),
-  deployment_id UUID REFERENCES emergent_deployments(id) ON DELETE SET NULL,
+  deployment_id UUID REFERENCES deployments(id) ON DELETE SET NULL,
   
   -- Status
   status VARCHAR(50) NOT NULL DEFAULT 'configuring' CHECK (status IN ('configuring', 'active', 'error', 'disabled')),
@@ -239,45 +240,46 @@ CREATE TABLE IF NOT EXISTS emergent_domains (
   
   -- Metadata
   added_by UUID NOT NULL, -- References auth.users
-  added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  deleted_at TIMESTAMP WITH TIME ZONE
+  added_at TIMESTAMP DEFAULT NOW(),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMP
 );
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_emergent_domains_project_id ON emergent_domains(project_id);
-CREATE INDEX IF NOT EXISTS idx_emergent_domains_domain ON emergent_domains(domain);
-CREATE INDEX IF NOT EXISTS idx_emergent_domains_verification_status ON emergent_domains(verification_status);
-CREATE INDEX IF NOT EXISTS idx_emergent_domains_ssl_status ON emergent_domains(ssl_status);
-CREATE INDEX IF NOT EXISTS idx_emergent_domains_ssl_expires ON emergent_domains(ssl_cert_expires_at) WHERE ssl_cert_expires_at IS NOT NULL;
+CREATE INDEX idx_custom_domains_project_id ON custom_domains(project_id);
+CREATE INDEX idx_custom_domains_domain ON custom_domains(domain);
+CREATE INDEX idx_custom_domains_verification_status ON custom_domains(verification_status);
+CREATE INDEX idx_custom_domains_ssl_status ON custom_domains(ssl_status);
+CREATE INDEX idx_custom_domains_ssl_expires ON custom_domains(ssl_cert_expires_at) WHERE ssl_cert_expires_at IS NOT NULL;
 
 -- Trigger for updated_at
-CREATE TRIGGER emergent_domains_updated_at
-  BEFORE UPDATE ON emergent_domains
+CREATE TRIGGER custom_domains_updated_at
+  BEFORE UPDATE ON custom_domains
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
 -- RLS
-ALTER TABLE emergent_domains ENABLE ROW LEVEL SECURITY;
+ALTER TABLE custom_domains ENABLE ROW LEVEL SECURITY;
 
--- Policies
-CREATE POLICY "Users can view project domains" ON emergent_domains
+-- Policies: Users can view domains for their projects
+CREATE POLICY "Users can view project domains" ON custom_domains
   FOR SELECT
   USING (
     project_id IN (
-      SELECT id FROM emergent_projects WHERE org_id IN (
-        SELECT org_id FROM emergent_org_members WHERE user_id = auth.uid()
+      SELECT id FROM projects WHERE org_id IN (
+        SELECT org_id FROM org_members WHERE user_id = auth.uid()
       )
     )
   );
 
-CREATE POLICY "Admins can manage domains" ON emergent_domains
+-- Policies: Admins can manage domains
+CREATE POLICY "Admins can manage domains" ON custom_domains
   FOR ALL
   USING (
     project_id IN (
-      SELECT id FROM emergent_projects WHERE org_id IN (
-        SELECT org_id FROM emergent_org_members 
+      SELECT id FROM projects WHERE org_id IN (
+        SELECT org_id FROM org_members 
         WHERE user_id = auth.uid() 
         AND role IN ('owner', 'admin')
       )
@@ -288,9 +290,9 @@ CREATE POLICY "Admins can manage domains" ON emergent_domains
 -- 4. ENVIRONMENT VARIABLES
 -- =============================================================================
 
-CREATE TABLE IF NOT EXISTS emergent_env_vars (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID NOT NULL REFERENCES emergent_projects(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS environment_variables (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   
   -- Variable info
   key_name VARCHAR(255) NOT NULL,
@@ -306,44 +308,45 @@ CREATE TABLE IF NOT EXISTS emergent_env_vars (
   
   -- Metadata
   created_by UUID NOT NULL, -- References auth.users
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  deleted_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMP,
   
   UNIQUE(project_id, key_name, environment)
 );
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_emergent_env_vars_project_id ON emergent_env_vars(project_id);
-CREATE INDEX IF NOT EXISTS idx_emergent_env_vars_environment ON emergent_env_vars(environment);
-CREATE INDEX IF NOT EXISTS idx_emergent_env_vars_is_secret ON emergent_env_vars(is_secret);
+CREATE INDEX idx_environment_variables_project_id ON environment_variables(project_id);
+CREATE INDEX idx_environment_variables_environment ON environment_variables(environment);
+CREATE INDEX idx_environment_variables_is_secret ON environment_variables(is_secret);
 
 -- Trigger for updated_at
-CREATE TRIGGER emergent_env_vars_updated_at
-  BEFORE UPDATE ON emergent_env_vars
+CREATE TRIGGER environment_variables_updated_at
+  BEFORE UPDATE ON environment_variables
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
 -- RLS
-ALTER TABLE emergent_env_vars ENABLE ROW LEVEL SECURITY;
+ALTER TABLE environment_variables ENABLE ROW LEVEL SECURITY;
 
--- Policies
-CREATE POLICY "Users can view env vars" ON emergent_env_vars
+-- Policies: Users can view env vars for their projects (but not values for secrets)
+CREATE POLICY "Users can view env vars" ON environment_variables
   FOR SELECT
   USING (
     project_id IN (
-      SELECT id FROM emergent_projects WHERE org_id IN (
-        SELECT org_id FROM emergent_org_members WHERE user_id = auth.uid()
+      SELECT id FROM projects WHERE org_id IN (
+        SELECT org_id FROM org_members WHERE user_id = auth.uid()
       )
     )
   );
 
-CREATE POLICY "Editors can manage env vars" ON emergent_env_vars
+-- Policies: Editors can manage env vars
+CREATE POLICY "Editors can manage env vars" ON environment_variables
   FOR ALL
   USING (
     project_id IN (
-      SELECT id FROM emergent_projects WHERE org_id IN (
-        SELECT org_id FROM emergent_org_members 
+      SELECT id FROM projects WHERE org_id IN (
+        SELECT org_id FROM org_members 
         WHERE user_id = auth.uid() 
         AND role IN ('owner', 'admin', 'member')
       )
@@ -354,9 +357,9 @@ CREATE POLICY "Editors can manage env vars" ON emergent_env_vars
 -- 5. BUILD LOGS (Streaming Build Output)
 -- =============================================================================
 
-CREATE TABLE IF NOT EXISTS emergent_build_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  deployment_id UUID NOT NULL REFERENCES emergent_deployments(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS build_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  deployment_id UUID NOT NULL REFERENCES deployments(id) ON DELETE CASCADE,
   
   -- Log data
   log_line INTEGER NOT NULL, -- Line number for ordering
@@ -367,27 +370,27 @@ CREATE TABLE IF NOT EXISTS emergent_build_logs (
   phase VARCHAR(50), -- e.g., 'install', 'build', 'test', 'deploy'
   
   -- Metadata
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   
   UNIQUE(deployment_id, log_line)
 );
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_emergent_build_logs_deployment_id ON emergent_build_logs(deployment_id, log_line);
-CREATE INDEX IF NOT EXISTS idx_emergent_build_logs_level ON emergent_build_logs(log_level);
-CREATE INDEX IF NOT EXISTS idx_emergent_build_logs_created_at ON emergent_build_logs(created_at);
+CREATE INDEX idx_build_logs_deployment_id ON build_logs(deployment_id, log_line);
+CREATE INDEX idx_build_logs_level ON build_logs(log_level);
+CREATE INDEX idx_build_logs_created_at ON build_logs(created_at);
 
 -- RLS
-ALTER TABLE emergent_build_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE build_logs ENABLE ROW LEVEL SECURITY;
 
--- Policies
-CREATE POLICY "Users can view build logs" ON emergent_build_logs
+-- Policies: Users can view logs for their deployments
+CREATE POLICY "Users can view build logs" ON build_logs
   FOR SELECT
   USING (
     deployment_id IN (
-      SELECT id FROM emergent_deployments WHERE project_id IN (
-        SELECT id FROM emergent_projects WHERE org_id IN (
-          SELECT org_id FROM emergent_org_members WHERE user_id = auth.uid()
+      SELECT id FROM deployments WHERE project_id IN (
+        SELECT id FROM projects WHERE org_id IN (
+          SELECT org_id FROM org_members WHERE user_id = auth.uid()
         )
       )
     )
@@ -397,9 +400,9 @@ CREATE POLICY "Users can view build logs" ON emergent_build_logs
 -- 6. WORKSPACE SNAPSHOTS (Backup & Restore)
 -- =============================================================================
 
-CREATE TABLE IF NOT EXISTS emergent_snapshots (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES emergent_workspaces(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS workspace_snapshots (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   
   -- Snapshot info
   snapshot_name VARCHAR(255),
@@ -419,28 +422,28 @@ CREATE TABLE IF NOT EXISTS emergent_snapshots (
   
   -- Metadata
   created_by UUID, -- References auth.users
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  expires_at TIMESTAMP WITH TIME ZONE, -- Auto-delete after this date
-  restored_at TIMESTAMP WITH TIME ZONE,
-  deleted_at TIMESTAMP WITH TIME ZONE
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMP, -- Auto-delete after this date
+  restored_at TIMESTAMP,
+  deleted_at TIMESTAMP
 );
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_emergent_snapshots_workspace_id ON emergent_snapshots(workspace_id);
-CREATE INDEX IF NOT EXISTS idx_emergent_snapshots_created_at ON emergent_snapshots(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_emergent_snapshots_expires_at ON emergent_snapshots(expires_at) WHERE expires_at IS NOT NULL;
+CREATE INDEX idx_workspace_snapshots_workspace_id ON workspace_snapshots(workspace_id);
+CREATE INDEX idx_workspace_snapshots_created_at ON workspace_snapshots(created_at DESC);
+CREATE INDEX idx_workspace_snapshots_expires_at ON workspace_snapshots(expires_at) WHERE expires_at IS NOT NULL;
 
 -- RLS
-ALTER TABLE emergent_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workspace_snapshots ENABLE ROW LEVEL SECURITY;
 
--- Policies
-CREATE POLICY "Users can view workspace snapshots" ON emergent_snapshots
+-- Policies: Users can view snapshots for their workspaces
+CREATE POLICY "Users can view workspace snapshots" ON workspace_snapshots
   FOR SELECT
   USING (
     workspace_id IN (
-      SELECT id FROM emergent_workspaces WHERE project_id IN (
-        SELECT id FROM emergent_projects WHERE org_id IN (
-          SELECT org_id FROM emergent_org_members WHERE user_id = auth.uid()
+      SELECT id FROM workspaces WHERE project_id IN (
+        SELECT id FROM projects WHERE org_id IN (
+          SELECT org_id FROM org_members WHERE user_id = auth.uid()
         )
       )
     )
@@ -454,7 +457,7 @@ CREATE POLICY "Users can view workspace snapshots" ON emergent_snapshots
 CREATE OR REPLACE FUNCTION update_workspace_activity()
 RETURNS TRIGGER AS $$
 BEGIN
-  UPDATE emergent_workspaces
+  UPDATE workspaces
   SET last_activity_at = NOW()
   WHERE id = NEW.workspace_id;
   
@@ -473,8 +476,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER emergent_workspaces_schedule_shutdown
-  BEFORE UPDATE ON emergent_workspaces
+CREATE TRIGGER workspaces_schedule_shutdown
+  BEFORE UPDATE ON workspaces
   FOR EACH ROW
   WHEN (NEW.last_activity_at IS DISTINCT FROM OLD.last_activity_at)
   EXECUTE FUNCTION schedule_workspace_shutdown();
@@ -483,18 +486,20 @@ CREATE TRIGGER emergent_workspaces_schedule_shutdown
 -- VIEWS (Convenience Queries)
 -- =============================================================================
 
-CREATE OR REPLACE VIEW emergent_active_deployments AS
+-- Active deployments by project
+CREATE OR REPLACE VIEW active_deployments AS
 SELECT 
   d.*,
   p.name AS project_name,
   p.org_id,
   o.name AS org_name
-FROM emergent_deployments d
-JOIN emergent_projects p ON d.project_id = p.id
-JOIN emergent_orgs o ON p.org_id = o.id
+FROM deployments d
+JOIN projects p ON d.project_id = p.id
+JOIN organizations o ON p.org_id = o.id
 WHERE d.status = 'active';
 
-CREATE OR REPLACE VIEW emergent_workspace_health AS
+-- Workspace health summary
+CREATE OR REPLACE VIEW workspace_health AS
 SELECT 
   w.*,
   p.name AS project_name,
@@ -514,20 +519,20 @@ SELECT
     WHEN w.storage_used_mb::DECIMAL / w.storage_limit_mb > 0.6 THEN 'warning'
     ELSE 'healthy'
   END AS storage_health
-FROM emergent_workspaces w
-JOIN emergent_projects p ON w.project_id = p.id
+FROM workspaces w
+JOIN projects p ON w.project_id = p.id
 WHERE w.status = 'running';
 
 -- =============================================================================
 -- COMMENTS (Documentation)
 -- =============================================================================
 
-COMMENT ON TABLE emergent_workspaces IS 'Sandboxed execution environments for Ciqo (formerly Emergent Runner)';
-COMMENT ON TABLE emergent_deployments IS 'Deployment history with build and deploy logs';
-COMMENT ON TABLE emergent_domains IS 'Custom domain configurations with SSL/TLS';
-COMMENT ON TABLE emergent_env_vars IS 'Per-environment configuration variables';
-COMMENT ON TABLE emergent_build_logs IS 'Streaming build output logs';
-COMMENT ON TABLE emergent_snapshots IS 'Workspace backups for restore functionality';
+COMMENT ON TABLE workspaces IS 'Sandboxed execution environments for projects';
+COMMENT ON TABLE deployments IS 'Deployment history with build and deploy logs';
+COMMENT ON TABLE custom_domains IS 'Custom domain configurations with SSL/TLS';
+COMMENT ON TABLE environment_variables IS 'Per-environment configuration variables';
+COMMENT ON TABLE build_logs IS 'Streaming build output logs';
+COMMENT ON TABLE workspace_snapshots IS 'Workspace backups for restore functionality';
 
 -- =============================================================================
 -- END OF MIGRATION

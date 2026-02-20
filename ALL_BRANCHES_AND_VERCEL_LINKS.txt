@@ -1,0 +1,284 @@
+# ALL BRANCHES AND VERCEL LINKS
+=====================================
+
+Repository: https://github.com/thecubiqo/thecubiqo
+Vercel Project: cubiqo
+
+## PRODUCTION & MAIN BRANCHES
+
+production
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/production
+└─ Vercel: https://cubiqo.ai
+
+main
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/main
+└─ Vercel: https://thecubiqo-main.vercel.app
+
+preview
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/preview
+└─ Vercel: https://thecubiqo-preview.vercel.app
+
+staging-environment
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/staging-environment
+└─ Vercel: https://thecubiqo-staging-environment.vercel.app
+
+## ALL OTHER BRANCHES (64 total)
+
+backup-main-20260215-224930
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/backup-main-20260215-224930
+└─ Vercel: https://thecubiqo-git-backup-main-20260215-224930.vercel.app
+
+conflict_130226_1721
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/conflict_130226_1721
+└─ Vercel: https://thecubiqo-git-conflict_130226_1721.vercel.app
+
+conflict_150226_1305
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/conflict_150226_1305
+└─ Vercel: https://thecubiqo-git-conflict_150226_1305.vercel.app
+
+conflict_160226_1535
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/conflict_160226_1535
+└─ Vercel: https://thecubiqo-git-conflict_160226_1535.vercel.app
+
+copilot/add-agents-onboarding
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/add-agents-onboarding
+└─ Vercel: https://thecubiqo-git-copilot-add-agents-onboarding.vercel.app
+
+copilot/add-daily-self-heal-job
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/add-daily-self-heal-job
+└─ Vercel: https://thecubiqo-git-copilot-add-daily-self-heal-job.vercel.app
+
+copilot/add-daily-self-heal-job-again
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/add-daily-self-heal-job-again
+└─ Vercel: https://thecubiqo-git-copilot-add-daily-self-heal-job-again.vercel.app
+
+copilot/add-magic-link-buttons
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/add-magic-link-buttons
+└─ Vercel: https://thecubiqo-git-copilot-add-magic-link-buttons.vercel.app
+
+copilot/add-openclaw-provider-abstraction
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/add-openclaw-provider-abstraction
+└─ Vercel: https://thecubiqo-git-copilot-add-openclaw-provider-abstraction.vercel.app
+
+copilot/add-openclaw-provider-abstraction-again
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/add-openclaw-provider-abstraction-again
+└─ Vercel: https://thecubiqo-git-copilot-add-openclaw-provider-abstraction-again.vercel.app
+
+copilot/add-particle-landing-feature-flag
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/add-particle-landing-feature-flag
+└─ Vercel: https://thecubiqo-git-copilot-add-particle-landing-feature-flag.vercel.app
+
+copilot/add-user-search-functionality
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/add-user-search-functionality
+└─ Vercel: https://thecubiqo-git-copilot-add-user-search-functionality.vercel.app
+
+copilot/apply-landing-page-ui-changes
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/apply-landing-page-ui-changes
+└─ Vercel: https://thecubiqo-git-copilot-apply-landing-page-ui-changes.vercel.app
+
+copilot/audit-pr-merges-and-testing
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/audit-pr-merges-and-testing
+└─ Vercel: https://thecubiqo-git-copilot-audit-pr-merges-and-testing.vercel.app
+
+copilot/centralize-auth-state
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/centralize-auth-state
+└─ Vercel: https://thecubiqo-git-copilot-centralize-auth-state.vercel.app
+
+copilot/check-access-to-vscode
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/check-access-to-vscode
+└─ Vercel: https://thecubiqo-git-copilot-check-access-to-vscode.vercel.app
+
+copilot/check-chromatic-connection
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/check-chromatic-connection
+└─ Vercel: https://thecubiqo-git-copilot-check-chromatic-connection.vercel.app
+
+copilot/check-chromatic-connection-again
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/check-chromatic-connection-again
+└─ Vercel: https://thecubiqo-git-copilot-check-chromatic-connection-again.vercel.app
+
+copilot/compare-backup-with-main
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/compare-backup-with-main
+└─ Vercel: https://thecubiqo-git-copilot-compare-backup-with-main.vercel.app
+
+copilot/compare-sopark-features
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/compare-sopark-features
+└─ Vercel: https://thecubiqo-git-copilot-compare-sopark-features.vercel.app
+
+copilot/create-founders-pass-admin
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/create-founders-pass-admin
+└─ Vercel: https://thecubiqo-git-copilot-create-founders-pass-admin.vercel.app
+
+copilot/create-pr-triage-agent
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/create-pr-triage-agent
+└─ Vercel: https://thecubiqo-git-copilot-create-pr-triage-agent.vercel.app
+
+copilot/debug-code-issues
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/debug-code-issues
+└─ Vercel: https://thecubiqo-git-copilot-debug-code-issues.vercel.app
+
+copilot/design-journey-memory-system
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/design-journey-memory-system
+└─ Vercel: https://thecubiqo-git-copilot-design-journey-memory-system.vercel.app
+
+copilot/fix-120k-particle-view
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/fix-120k-particle-view
+└─ Vercel: https://thecubiqo-git-copilot-fix-120k-particle-view.vercel.app
+
+copilot/fix-auth-ui-implementation
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/fix-auth-ui-implementation
+└─ Vercel: https://thecubiqo-git-copilot-fix-auth-ui-implementation.vercel.app
+
+copilot/fix-authentication-ui-session-state
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/fix-authentication-ui-session-state
+└─ Vercel: https://thecubiqo-git-copilot-fix-authentication-ui-session-state.vercel.app
+
+copilot/fix-email-rate-limiting-issues
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/fix-email-rate-limiting-issues
+└─ Vercel: https://thecubiqo-git-copilot-fix-email-rate-limiting-issues.vercel.app
+
+copilot/fix-founderspass-dashboard-ux
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/fix-founderspass-dashboard-ux
+└─ Vercel: https://thecubiqo-git-copilot-fix-founderspass-dashboard-ux.vercel.app
+
+copilot/fix-nextjs-build-error-again
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/fix-nextjs-build-error-again
+└─ Vercel: https://thecubiqo-git-copilot-fix-nextjs-build-error-again.vercel.app
+
+copilot/fix-plasma-wave-visibility
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/fix-plasma-wave-visibility
+└─ Vercel: https://thecubiqo-git-copilot-fix-plasma-wave-visibility.vercel.app
+
+copilot/fix-plasma-wave-visibility-again
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/fix-plasma-wave-visibility-again
+└─ Vercel: https://thecubiqo-git-copilot-fix-plasma-wave-visibility-again.vercel.app
+
+copilot/fix-sign-in-button-issue
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/fix-sign-in-button-issue
+└─ Vercel: https://thecubiqo-git-copilot-fix-sign-in-button-issue.vercel.app
+
+copilot/fix-typo-and-update-year
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/fix-typo-and-update-year
+└─ Vercel: https://thecubiqo-git-copilot-fix-typo-and-update-year.vercel.app
+
+copilot/fix-vercel-deployment-issues
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/fix-vercel-deployment-issues
+└─ Vercel: https://thecubiqo-git-copilot-fix-vercel-deployment-issues.vercel.app
+
+copilot/fix-working-issue
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/fix-working-issue
+└─ Vercel: https://thecubiqo-git-copilot-fix-working-issue.vercel.app
+
+copilot/merge-feature-branches-to-main
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/merge-feature-branches-to-main
+└─ Vercel: https://thecubiqo-git-copilot-merge-feature-branches-to-main.vercel.app
+
+copilot/merge-features-into-main
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/merge-features-into-main
+└─ Vercel: https://thecubiqo-git-copilot-merge-features-into-main.vercel.app
+
+copilot/port-wave-to-cube-morph
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/port-wave-to-cube-morph
+└─ Vercel: https://thecubiqo-git-copilot-port-wave-to-cube-morph.vercel.app
+
+copilot/preview-app-folder
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/preview-app-folder
+└─ Vercel: https://thecubiqo-git-copilot-preview-app-folder.vercel.app
+
+copilot/recreate-pr-28-auth-context
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/recreate-pr-28-auth-context
+└─ Vercel: https://thecubiqo-git-copilot-recreate-pr-28-auth-context.vercel.app
+
+copilot/resolve-open-pr-conflicts
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/resolve-open-pr-conflicts
+└─ Vercel: https://thecubiqo-git-copilot-resolve-open-pr-conflicts.vercel.app
+
+copilot/resolve-pull-request-conflicts-another-one
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/resolve-pull-request-conflicts-another-one
+└─ Vercel: https://thecubiqo-git-copilot-resolve-pull-request-conflicts-another-one.vercel.app
+
+copilot/restore-energy-cube-components
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/restore-energy-cube-components
+└─ Vercel: https://thecubiqo-git-copilot-restore-energy-cube-components.vercel.app
+
+copilot/restore-energy-cube-components-again
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/restore-energy-cube-components-again
+└─ Vercel: https://thecubiqo-git-copilot-restore-energy-cube-components-again.vercel.app
+
+copilot/setup-chromatic-visual-testing
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/setup-chromatic-visual-testing
+└─ Vercel: https://thecubiqo-git-copilot-setup-chromatic-visual-testing.vercel.app
+
+copilot/setup-release-process
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/setup-release-process
+└─ Vercel: https://thecubiqo-git-copilot-setup-release-process.vercel.app
+
+copilot/test-broken-chat-audio-landing-page
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/test-broken-chat-audio-landing-page
+└─ Vercel: https://thecubiqo-git-copilot-test-broken-chat-audio-landing-page.vercel.app
+
+copilot/update-cubiqo-ui-design
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/update-cubiqo-ui-design
+└─ Vercel: https://thecubiqo-git-copilot-update-cubiqo-ui-design.vercel.app
+
+copilot/update-ui-elements-for-premium-feel
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/update-ui-elements-for-premium-feel
+└─ Vercel: https://thecubiqo-git-copilot-update-ui-elements-for-premium-feel.vercel.app
+
+copilot/validate-and-reintroduce-missing-pr-changes
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/validate-and-reintroduce-missing-pr-changes
+└─ Vercel: https://thecubiqo-git-copilot-validate-and-reintroduce-missing-pr-changes.vercel.app
+
+copilot/verify-vercel-analytics-installation
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/copilot/verify-vercel-analytics-installation
+└─ Vercel: https://thecubiqo-git-copilot-verify-vercel-analytics-installation.vercel.app
+
+feat/top-right-cta-highdef
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/feat/top-right-cta-highdef
+└─ Vercel: https://thecubiqo-git-feat-top-right-cta-highdef.vercel.app
+
+fix/api-keys-mismatch
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/fix/api-keys-mismatch
+└─ Vercel: https://thecubiqo-git-fix-api-keys-mismatch.vercel.app
+
+fix/chat-audio-validation
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/fix/chat-audio-validation
+└─ Vercel: https://thecubiqo-git-fix-chat-audio-validation.vercel.app
+
+master
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/master
+└─ Vercel: https://thecubiqo-git-master.vercel.app
+
+merge-all-features
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/merge-all-features
+└─ Vercel: https://thecubiqo-git-merge-all-features.vercel.app
+
+passedesigns
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/passedesigns
+└─ Vercel: https://thecubiqo-git-passedesigns.vercel.app
+
+test/thecubiqo-main
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/test/thecubiqo-main
+└─ Vercel: https://thecubiqo-git-test-thecubiqo-main.vercel.app
+
+ui/energy-cube-staging
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/ui/energy-cube-staging
+└─ Vercel: https://thecubiqo-git-ui-energy-cube-staging.vercel.app
+
+visuals-demo
+├─ GitHub: https://github.com/thecubiqo/thecubiqo/tree/visuals-demo
+└─ Vercel: https://thecubiqo-git-visuals-demo.vercel.app
+
+=====================================
+QUICK ACCESS
+=====================================
+
+Production:     https://cubiqo.ai
+Main:           https://thecubiqo-main.vercel.app
+All Branches:   https://github.com/thecubiqo/thecubiqo/branches
+Vercel Project: cubiqo
+
+NOTES:
+- Vercel auto-creates preview URLs for all branches
+- Format: https://thecubiqo-git-[branch-name].vercel.app
+- Branch slashes (/) become hyphens (-) in URLs
+- Production branch deploys to cubiqo.ai domain

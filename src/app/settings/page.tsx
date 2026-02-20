@@ -1,6 +1,8 @@
 'use client'
 
 import { AppLayout } from '@/components/AppLayout'
+import { VoiceModulationPanel } from '@/components/settings/VoiceModulationPanel'
+import { VerbalCommandsPanel } from '@/components/settings/VerbalCommandsPanel'
 
 export default function SettingsPage() {
   return (
@@ -27,6 +29,8 @@ export default function SettingsPage() {
               </div>
             </div>
             
+            <VoiceModulationPanel />
+            
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Voice</h3>
               <div className="space-y-4">
@@ -38,6 +42,8 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+            
+            <VerbalCommandsPanel />
             
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Privacy</h3>

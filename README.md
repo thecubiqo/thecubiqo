@@ -2,11 +2,16 @@
 
 CubiQo is an open-source conversational AI platform with voice capabilities, journaling, and intent-based matching.
 
+> 📚 **New to the codebase?** Looking for specific features?  
+> → Read **[BRANCHES_ULTRA_QUICK.md](BRANCHES_ULTRA_QUICK.md)** - Which branch has what  
+> → Read **[START_HERE_FEATURES.md](START_HERE_FEATURES.md)** - Where to find everything
+
 ## ✨ Features
 
 - 🎙️ **Voice Conversations** - Natural voice interaction with emotional modulation
 - 📔 **Rozana Journal** - Daily reflections with AI-guided conversations
 - 🎨 **RGY Context** - Color-coded life categorization (Red/Yellow/Green)
+- 🤖 **Intelligent Matching** - AI-powered opportunity discovery based on your interests
 - 🔐 **Privacy-First** - BYO (Bring Your Own) mode - use your own API keys
 - 🌐 **Open Source** - Built with open models (Llama, Mixtral, DeepSeek)
 
@@ -83,6 +88,24 @@ ANTHROPIC_API_KEY=your_key_here
 OPENAI_API_KEY=your_key_here
 ELEVENLABS_API_KEY=your_key_here
 ```
+
+### Staging Environment (For Testing)
+
+**Where is the staging database?** It doesn't exist yet - you need to create it!
+
+Set up a separate staging database for testing before production:
+
+```bash
+# 1. Create Supabase project at https://supabase.com (name: cubiqo-staging)
+# 2. Copy credentials to .env.staging
+# 3. Run setup:
+npm run staging:init      # Initialize staging
+npm run staging:migrate   # Run migrations
+npm run staging:verify    # Check health
+```
+
+See [WHERE_IS_STAGING_DB.md](./WHERE_IS_STAGING_DB.md) for the answer to "where is staging?"  
+See [STAGING_DATABASE_SETUP.md](./STAGING_DATABASE_SETUP.md) for complete instructions.
 
 ## 🏗️ Tech Stack
 
@@ -269,24 +292,51 @@ vercel --prod
 
 Set environment variables in Vercel dashboard: Supabase credentials, OAuth client IDs/secrets, and `OAUTH_ENCRYPTION_KEY`.
 
+## 🎯 RGY Intelligent Matching
+
+CubiQo includes an AI-powered opportunity discovery system that matches users with relevant rooms, events, connections, and activities based on their interests.
+
+### Key Features
+
+- **RGY Context Zones**: Express interests across three life contexts
+  - 🎯 **Green (Progressive)**: Growth, wellness, career goals
+  - ✨ **Yellow (Sit back)**: Social connections, casual hangouts
+  - 💫 **Red (Indulge)**: Deep conversations, creative exploration
+
+- **AI-Powered Matching**: Vector similarity search using OpenAI embeddings
+- **Pro Match Subscription**: Automated discovery with configurable frequency
+- **Smart Notifications**: Get notified when new opportunities match your interests
+
+### Quick Start
+
+1. **Set Your Interests**: Add keywords for each RGY context
+2. **Discover Opportunities**: AI finds matching rooms, events, and connections
+3. **Express Interest**: Join opportunities that resonate with you
+4. **Enable Pro Match**: Opt-in for automated weekly/daily discovery
+
+See [docs/RGY_MATCHING.md](./docs/RGY_MATCHING.md) for detailed documentation.
+
 ## 🌟 Roadmap
 
+- [x] RGY Intelligent Matching - AI-powered opportunity discovery
 - [ ] Rozana confession room experience
-- [ ] Signal - Intent-based matching
+- [ ] Signal - Enhanced intent-based matching features
 - [ ] Full open model integration (Llama 3, Mixtral)
 - [ ] Self-hosted deployment guides
 - [ ] Mobile apps (iOS/Android)
 
 ## 📚 Documentation
 
+- **[RGY_MATCHING.md](./docs/RGY_MATCHING.md)** - RGY Intelligent Matching system guide
 - **[BRANCHES.md](./BRANCHES.md)** - Complete guide to branch structure and deployment
 - **[BRANCHES_QUICK_REF.md](./BRANCHES_QUICK_REF.md)** - Quick reference for branches
 - **[AUTH_TROUBLESHOOTING.md](./AUTH_TROUBLESHOOTING.md)** - Authentication troubleshooting
 - **[VALIDATION_REPORT.md](./VALIDATION_REPORT.md)** - Environment validation report
 - **[AUTH_FIX_SUMMARY.md](./AUTH_FIX_SUMMARY.md)** - Auth bug fix documentation
 - **[SELF_HEAL.md](./docs/SELF_HEAL.md)** - Self-heal job documentation
-- **[MONITORING_SYSTEM.md](./MONITORING_SYSTEM.md)** - Comprehensive monitoring system guide
-- **[DEPLOYMENT_IMPACT_ANALYSIS.md](./DEPLOYMENT_IMPACT_ANALYSIS.md)** - Admin dashboard deployment analysis
+- **[STAGING_DATABASE_SETUP.md](./STAGING_DATABASE_SETUP.md)** - Staging database setup guide
+- **[STAGING_QUICK_REF.md](./STAGING_QUICK_REF.md)** - Quick reference for staging
+- **[STAGING_TESTING_HANDOFF.md](./STAGING_TESTING_HANDOFF.md)** - Testing and handoff guide
 
 ## 📧 Contact
 

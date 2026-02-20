@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readFile, writeFile, unlink, readdir, stat, mkdir } from 'fs/promises';
 import { join, resolve, relative } from 'path';
 import { validatePath, ensureWorkspace, getWorkspaceDir } from '@/lib/code-execution/sandbox';
+import { createClient } from '@/lib/supabase/server';
 
 interface FileOpsRequest {
   operation: 'read' | 'write' | 'delete' | 'list' | 'create-dir';
   path: string;
   content?: string;
-  sessionId?: string;
 }
 
 interface FileOpsResponse {
@@ -17,12 +17,12 @@ interface FileOpsResponse {
 }
 
 // Security: Use session-specific workspace
-function getSessionWorkspace(sessionId: string): string {
-  return getWorkspaceDir(sessionId);
+function getSessionWorkspace(userId: string): string {
+  return getWorkspaceDir(userId);
 }
 
-function sanitizePath(userPath: string, sessionId: string): string {
-  const workspaceRoot = getSessionWorkspace(sessionId);
+function sanitizePath(userPath: string, userId: string): string {
+  const workspaceRoot = getSessionWorkspace(userId);
   
   const validation = validatePath(userPath, workspaceRoot);
   if (!validation.allowed) {
@@ -34,8 +34,15 @@ function sanitizePath(userPath: string, sessionId: string): string {
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    // Auth check
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body: FileOpsRequest = await req.json();
-    const { operation, path, content, sessionId = 'default' } = body;
+    const { operation, path, content } = body;
 
     if (!operation || !path) {
       return NextResponse.json(
@@ -44,10 +51,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Ensure workspace exists
-    await ensureWorkspace(sessionId);
+    // Ensure workspace exists (keyed by user ID)
+    await ensureWorkspace(user.id);
 
-    const safePath = sanitizePath(path, sessionId);
+    const safePath = sanitizePath(path, user.id);
     let result: FileOpsResponse;
 
     switch (operation) {

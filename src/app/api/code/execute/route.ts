@@ -10,6 +10,7 @@ import {
   getWorkspaceDir,
   getSandboxExecOptions 
 } from '@/lib/code-execution/sandbox';
+import { createClient } from '@/lib/supabase/server';
 
 const execAsync = promisify(exec);
 
@@ -44,8 +45,16 @@ const MAX_OUTPUT_SIZE = 10000; // characters
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    // Auth check
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body: ExecuteRequest = await req.json();
-    const { language, code, sessionId = 'default', context } = body;
+    const { language, code, context } = body;
+    const sessionId = user.id;
 
     if (!code || !language) {
       return NextResponse.json(

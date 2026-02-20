@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Import Space Grotesk font for emergent RGY design */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
 /* ================================================================== */
 /*  CubiQo — Apple-Grade Premium Global Styles                       */
 /*  This file is the single authoritative CSS layer applied to EVERY  */
@@ -67,6 +70,26 @@
 
   /* Focus ring (a11y) */
   --focus-ring: 0 0 0 2px var(--background), 0 0 0 4px rgba(255,111,0,0.7);
+
+  /* ---- RGY (Emergent Design) Color System ---- */
+  /* Neon accent colors for RGY contexts */
+  --rgy-red: 350 85% 58%;          /* Neon pink-red for Dating/Adult */
+  --rgy-green: 160 80% 45%;        /* Teal-green for Work/Trade/Wellness */
+  --rgy-yellow: 45 95% 55%;        /* Bright yellow for Social/Friends */
+  --rgy-blue: 210 90% 55%;         /* Sky blue (alternative) */
+
+  /* Surface levels for depth hierarchy (0 = background, 4 = elevated) */
+  --surface-0: 220 20% 4%;         /* Deep background */
+  --surface-1: 220 18% 7%;         /* Card surface */
+  --surface-2: 220 16% 10%;        /* Hover state */
+  --surface-3: 220 15% 14%;        /* Active state */
+  --surface-4: 220 14% 18%;        /* Elevated elements */
+
+  /* Glow shadows for RGY colors */
+  --glow-red: 0 8px 32px hsla(350, 85%, 58%, 0.35);
+  --glow-green: 0 8px 32px hsla(160, 80%, 45%, 0.35);
+  --glow-yellow: 0 8px 32px hsla(45, 95%, 55%, 0.35);
+  --glow-blue: 0 8px 32px hsla(210, 90%, 55%, 0.35);
 }
 
 /* ---- Tailwind v4 @theme mapping ---- */
@@ -90,6 +113,12 @@
     --shadow-md: 0 4px 12px -2px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.2);
     --shadow-lg: 0 12px 32px -4px rgba(0,0,0,0.55), 0 4px 8px -2px rgba(0,0,0,0.25);
     --shadow-xl: 0 24px 64px -8px rgba(0,0,0,0.7), 0 8px 20px -4px rgba(0,0,0,0.35);
+
+    /* RGY colors remain vibrant in dark mode */
+    --rgy-red: 350 85% 58%;
+    --rgy-green: 160 80% 45%;
+    --rgy-yellow: 45 95% 55%;
+    --rgy-blue: 210 90% 55%;
   }
 }
 
@@ -320,4 +349,211 @@ button,
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ------------------------------------------------------------------ */
+/*  10. RGY (Emergent Design) Utility Classes                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * RGY Color Selector Cards
+ * Dark OS-like cards with neon accent colors
+ */
+.rgy-selector-green {
+  background: hsl(var(--surface-1));
+  border: 1px solid hsl(var(--surface-3));
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.rgy-selector-green:hover {
+  background: hsl(var(--surface-2));
+  border-color: hsl(var(--rgy-green));
+  box-shadow: var(--glow-green);
+}
+
+.rgy-selector-yellow {
+  background: hsl(var(--surface-1));
+  border: 1px solid hsl(var(--surface-3));
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.rgy-selector-yellow:hover {
+  background: hsl(var(--surface-2));
+  border-color: hsl(var(--rgy-yellow));
+  box-shadow: var(--glow-yellow);
+}
+
+.rgy-selector-red {
+  background: hsl(var(--surface-1));
+  border: 1px solid hsl(var(--surface-3));
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.rgy-selector-red:hover {
+  background: hsl(var(--surface-2));
+  border-color: hsl(var(--rgy-red));
+  box-shadow: var(--glow-red);
+}
+
+/**
+ * RGY Text Colors
+ */
+.text-rgy-green {
+  color: hsl(var(--rgy-green));
+}
+
+.text-rgy-yellow {
+  color: hsl(var(--rgy-yellow));
+}
+
+.text-rgy-red {
+  color: hsl(var(--rgy-red));
+}
+
+.text-rgy-blue {
+  color: hsl(var(--rgy-blue));
+}
+
+/**
+ * RGY Border Colors
+ */
+.border-rgy-green {
+  border-color: hsl(var(--rgy-green));
+}
+
+.border-rgy-yellow {
+  border-color: hsl(var(--rgy-yellow));
+}
+
+.border-rgy-red {
+  border-color: hsl(var(--rgy-red));
+}
+
+/**
+ * RGY Glow Shadows
+ */
+.shadow-glow-green {
+  box-shadow: var(--glow-green);
+}
+
+.shadow-glow-yellow {
+  box-shadow: var(--glow-yellow);
+}
+
+.shadow-glow-red {
+  box-shadow: var(--glow-red);
+}
+
+/**
+ * Intent Badge Styles
+ */
+.intent-badge-collab {
+  background: hsla(var(--rgy-blue), 0.15);
+  color: hsl(var(--rgy-blue));
+  border: 1px solid hsla(var(--rgy-blue), 0.3);
+}
+
+.intent-badge-company {
+  background: hsla(var(--rgy-green), 0.15);
+  color: hsl(var(--rgy-green));
+  border: 1px solid hsla(var(--rgy-green), 0.3);
+}
+
+.intent-badge-trade {
+  background: hsla(var(--rgy-yellow), 0.15);
+  color: hsl(var(--rgy-yellow));
+  border: 1px solid hsla(var(--rgy-yellow), 0.3);
+}
+
+/**
+ * Surface Level Backgrounds
+ */
+.bg-surface-0 {
+  background: hsl(var(--surface-0));
+}
+
+.bg-surface-1 {
+  background: hsl(var(--surface-1));
+}
+
+.bg-surface-2 {
+  background: hsl(var(--surface-2));
+}
+
+.bg-surface-3 {
+  background: hsl(var(--surface-3));
+}
+
+.bg-surface-4 {
+  background: hsl(var(--surface-4));
+}
+
+/**
+ * Border Surface Colors
+ */
+.border-surface-1 {
+  border-color: hsl(var(--surface-1));
+}
+
+.border-surface-2 {
+  border-color: hsl(var(--surface-2));
+}
+
+.border-surface-3 {
+  border-color: hsl(var(--surface-3));
+}
+
+/**
+ * Animations for RGY Components
+ */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/**
+ * RGY Room Card Hover Effects
+ */
+.rgy-room-card {
+  background: hsl(var(--surface-1));
+  border: 1px solid hsl(var(--surface-3));
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.rgy-room-card:hover {
+  background: hsl(var(--surface-2));
+  border-color: hsl(var(--surface-4));
+  transform: translateY(-2px);
+}
+
+/**
+ * Font Display Class (for Space Grotesk when available)
+ */
+.font-display {
+  font-family: 'Space Grotesk', var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }

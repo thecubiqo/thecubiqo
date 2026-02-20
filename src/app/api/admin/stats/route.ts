@@ -1,11 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { listAgents } from '@/lib/engine/agent';
+import { requireAdmin } from '@/lib/auth/admin';
 import '@/lib/engine/init';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest) {
+export async function GET(request: any) {
   try {
+    // Require admin authentication
+    const authResult = await requireAdmin(request)
+    if (!authResult.authorized) {
+        return authResult.response
+    }
+    
     const agents = listAgents();
     
     // Calculate stats
