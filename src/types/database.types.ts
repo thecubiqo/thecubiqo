@@ -841,6 +841,8 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          cubiqo_email: string | null
+          cubiqo_phone: string | null
           display_name: string | null
           email: string | null
           handle: string | null
@@ -853,6 +855,8 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+          cubiqo_email?: string | null
+          cubiqo_phone?: string | null
           display_name?: string | null
           email?: string | null
           handle?: string | null
@@ -865,6 +869,8 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+          cubiqo_email?: string | null
+          cubiqo_phone?: string | null
           display_name?: string | null
           email?: string | null
           handle?: string | null
