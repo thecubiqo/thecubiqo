@@ -6,12 +6,17 @@
  * 
  * SPENDING CAPS:
  * - Anthropic (Claude): $200/month
+ * 
+ * ADAPTIVE LEARNING:
+ * - Builds user model from interaction signals
+ * - Personalizes system prompt with learned preferences
+ * - Voice promotion for deeper engagement
+ * - Persuasive conversion strategy for guest users
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import {
-  SYSTEM_PROMPT,
   buildMessages,
   parseResponse,
   CLAUDE_CONFIG,
@@ -21,6 +26,7 @@ import {
   type ChatRequest,
   type AIResponse
 } from '@/lib/ai'
+import { buildAdaptiveSystemPrompt } from '@/lib/ai/system-prompt'
 import { callOpenClaw } from '@/lib/ai/openclaw'
 import { buildMemoryContext } from '@/lib/ai/memory-extraction.server'
 import { getRegionConfig, buildRegionalPrompt } from '@/lib/config/regions'
@@ -30,11 +36,23 @@ import {
   estimateAnthropicCost,
   estimateTokens
 } from '@/lib/spending-caps'
+import {
+  createUserModel,
+  updateUserModel,
+  classifyEngagement,
+  classifyInteractionCategory,
+  getTimeSlot,
+} from '@/lib/adaptive-learning/user-model'
+import type { UserAdaptiveModel, InteractionSignal } from '@/lib/adaptive-learning/types'
 
 // Rate limiting for MiniMax: 100 requests/hour per session
 const minimaxRateLimitMap = new Map<string, { count: number; resetTime: number }>()
 const MINIMAX_RATE_LIMIT = 100 // requests per hour
 const MINIMAX_RATE_WINDOW = 60 * 60 * 1000 // 1 hour in ms
+
+// In-memory adaptive user model store (keyed by sessionId)
+// TODO: Persist to Supabase for cross-instance and restart durability
+const userModelStore = new Map<string, UserAdaptiveModel>()
 
 // Sensitive content patterns for classification layer
 // These patterns route messages directly to Claude Haiku for better handling
@@ -337,8 +355,8 @@ Remember: This is about creating an emotional moment with an easy next step, not
 
 export async function POST(request: NextRequest) {
   try {
-    const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string } = await request.json()
-    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region } = body
+    const body: ChatRequest & { isGuest?: boolean; messageCount?: number; sessionId?: string; region?: string; usedVoice?: boolean } = await request.json()
+    const { message, conversationHistory = [], currentColor = 'ORANGE', isGuest = false, messageCount = 0, sessionId, region, usedVoice = false } = body
 
     // Get BYO API key from headers (if user has BYO mode enabled)
     const byoClaudeKey = request.headers.get('x-byo-claude-key')
@@ -392,9 +410,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Adaptive Learning: Get or create user model for this session
+    let userModel: UserAdaptiveModel | null = null
+    if (sessionId) {
+      userModel = userModelStore.get(sessionId) || createUserModel(sessionId)
+    }
+
+    // Get the last AI response for conversion trigger detection
+    const lastAiResponse = conversationHistory.length > 0
+      ? conversationHistory[conversationHistory.length - 1]?.aiResponse || ''
+      : ''
+
+    // Build adaptive system prompt with all personalization layers
+    const adaptiveBasePrompt = buildAdaptiveSystemPrompt({
+      userModel,
+      isGuest,
+      messageCount,
+      userMessage: message,
+      lastAiResponse,
+    })
+
     // Build full system prompt with memory, regional context, and optional auth nudge
     const authNudge = buildAuthNudgePrompt(isGuest, messageCount)
-    const fullSystemPrompt = SYSTEM_PROMPT + memoryContext + regionalContext + authNudge
+    const fullSystemPrompt = adaptiveBasePrompt + memoryContext + regionalContext + authNudge
 
     // Classify message to determine if we should skip directly to Claude
     const isSensitiveContent = classifyMessage(message)
@@ -469,6 +507,26 @@ export async function POST(request: NextRequest) {
 
     // Parse response
     const aiResponse: AIResponse = parseResponse(content)
+
+    // Adaptive Learning: Update user model with this interaction signal
+    if (sessionId && userModel) {
+      const engagement = classifyEngagement(
+        message.length,
+        message.includes('?'),
+        /\b(feel|my|I am|I'm|personally)\b/i.test(message)
+      )
+      const signal: InteractionSignal = {
+        category: classifyInteractionCategory(message),
+        color: aiResponse.color || currentColor,
+        messageLength: message.length,
+        responseEngagement: engagement,
+        timestamp: new Date().toISOString(),
+        timeSlot: getTimeSlot(new Date().toISOString()),
+        usedVoice: usedVoice,
+      }
+      const updatedModel = updateUserModel(userModel, signal)
+      userModelStore.set(sessionId, updatedModel)
+    }
 
     return NextResponse.json({
       ...aiResponse,
