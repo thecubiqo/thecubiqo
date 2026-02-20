@@ -1,81 +1,100 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Terminal } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
-import '@xterm/xterm/css/xterm.css';
 
 export default function TerminalPanel() {
   const terminalRef = useRef<HTMLDivElement>(null);
-  const xtermRef = useRef<Terminal | null>(null);
-  const fitAddonRef = useRef<FitAddon | null>(null);
+  const xtermRef = useRef<any>(null);
+  const fitAddonRef = useRef<any>(null);
 
   useEffect(() => {
     if (!terminalRef.current || xtermRef.current) return;
 
-    // Create terminal instance
-    const terminal = new Terminal({
-      cursorBlink: true,
-      fontSize: 14,
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-      theme: {
-        background: '#1f2937',
-        foreground: '#e5e7eb',
-        cursor: '#10b981',
-        selectionBackground: '#374151',
-      },
-      rows: 15,
-    });
+    let disposed = false;
 
-    // Create fit addon
-    const fitAddon = new FitAddon();
-    terminal.loadAddon(fitAddon);
+    // Dynamically import xterm to avoid build failure when not installed
+    Promise.all([
+      import('@xterm/xterm'),
+      import('@xterm/addon-fit'),
+    ]).then(([{ Terminal }, { FitAddon }]) => {
+      if (disposed || !terminalRef.current) return;
 
-    // Open terminal
-    terminal.open(terminalRef.current);
-    fitAddon.fit();
+      // Create terminal instance
+      const terminal = new Terminal({
+        cursorBlink: true,
+        fontSize: 14,
+        fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+        theme: {
+          background: '#1f2937',
+          foreground: '#e5e7eb',
+          cursor: '#10b981',
+          selectionBackground: '#374151',
+        },
+        rows: 15,
+      });
 
-    // Write welcome message
-    terminal.writeln('Welcome to CubiQo Studio Terminal!');
-    terminal.writeln('');
-    terminal.writeln('$ _');
+      // Create fit addon
+      const fitAddon = new FitAddon();
+      terminal.loadAddon(fitAddon);
 
-    // Simulate interactive terminal
-    let currentLine = '';
-    terminal.onData((data) => {
-      if (data === '\r') { // Enter key
-        terminal.write('\r\n');
-        if (currentLine.trim()) {
-          // Simulate command execution
-          terminal.writeln(`Command "${currentLine}" received (integration coming soon)`);
+      // Open terminal
+      terminal.open(terminalRef.current!);
+      fitAddon.fit();
+
+      // Write welcome message
+      terminal.writeln('Welcome to CubiQo Studio Terminal!');
+      terminal.writeln('');
+      terminal.writeln('$ _');
+
+      // Simulate interactive terminal
+      let currentLine = '';
+      terminal.onData((data: string) => {
+        if (data === '\r') { // Enter key
+          terminal.write('\r\n');
+          if (currentLine.trim()) {
+            terminal.writeln(`Command "${currentLine}" received (integration coming soon)`);
+          }
+          terminal.write('$ ');
+          currentLine = '';
+        } else if (data === '\u007F') { // Backspace
+          if (currentLine.length > 0) {
+            currentLine = currentLine.slice(0, -1);
+            terminal.write('\b \b');
+          }
+        } else {
+          currentLine += data;
+          terminal.write(data);
         }
-        terminal.write('$ ');
-        currentLine = '';
-      } else if (data === '\u007F') { // Backspace
-        if (currentLine.length > 0) {
-          currentLine = currentLine.slice(0, -1);
-          terminal.write('\b \b');
-        }
-      } else {
-        currentLine += data;
-        terminal.write(data);
+      });
+
+      // Save refs
+      xtermRef.current = terminal;
+      fitAddonRef.current = fitAddon;
+
+      // Handle resize
+      const handleResize = () => {
+        fitAddon.fit();
+      };
+      window.addEventListener('resize', handleResize);
+
+      // Store cleanup handler
+      (terminalRef.current as any).__cleanup = () => {
+        window.removeEventListener('resize', handleResize);
+        terminal.dispose();
+      };
+    }).catch((err) => {
+      console.warn('Terminal dependencies not available:', err);
+      if (terminalRef.current) {
+        terminalRef.current.innerHTML = '<p class="text-gray-400 text-sm p-4">Terminal not available</p>';
       }
     });
 
-    // Save refs
-    xtermRef.current = terminal;
-    fitAddonRef.current = fitAddon;
-
-    // Handle resize
-    const handleResize = () => {
-      fitAddon.fit();
-    };
-    window.addEventListener('resize', handleResize);
-
     // Cleanup
     return () => {
-      window.removeEventListener('resize', handleResize);
-      terminal.dispose();
+      disposed = true;
+      if ((terminalRef.current as any)?.__cleanup) {
+        (terminalRef.current as any).__cleanup();
+      }
     };
   }, []);
 

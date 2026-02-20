@@ -3,7 +3,8 @@
  * Manages Docker containers for workspace execution
  */
 
-import Docker from 'dockerode';
+// dockerode is loaded dynamically to avoid build failures when not installed
+type DockerInstance = any;
 
 export interface ContainerConfig {
   projectId: string;
@@ -24,16 +25,21 @@ export interface ContainerInfo {
   port?: number;
 }
 
+function loadDocker(): DockerInstance {
+  // Dynamic import to avoid build failure when dockerode is not installed
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Docker = require('dockerode');
+  return new Docker({
+    socketPath: '/var/run/docker.sock',
+  });
+}
+
 export class DockerManager {
-  private docker: Docker;
-  private containerMap: Map<string, Docker.Container>;
+  private docker: DockerInstance;
+  private containerMap: Map<string, any>;
 
   constructor() {
-    // Connect to Docker daemon
-    // In production, this might use a Unix socket or remote Docker host
-    this.docker = new Docker({
-      socketPath: '/var/run/docker.sock', // Unix socket (Linux/Mac)
-    });
+    this.docker = loadDocker();
     this.containerMap = new Map();
   }
 

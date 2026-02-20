@@ -5,18 +5,19 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Disable ESLint during build  
-  eslint: {
-    ignoreDuringBuilds: true,
+  // Turbopack configuration (Next.js 16 default bundler)
+  turbopack: {
+    resolveAlias: {
+      // Stub out optional packages that are not installed
+      // These are used in code paths that gracefully handle their absence at runtime
+      'dockerode': './src/lib/stubs/optional-package.ts',
+      'ioredis': './src/lib/stubs/optional-package.ts',
+      '@xterm/xterm': './src/lib/stubs/optional-package.ts',
+      '@xterm/addon-fit': './src/lib/stubs/optional-package.ts',
+    },
   },
-  // COMPLETELY disable Turbopack - use Webpack
-  experimental: {
-    forceSwcTransforms: true,
-  },
-  // Webpack config to ensure no Turbopack
-  webpack: (config, { isServer }) => {
-    return config;
-  },
+  // Mark optional server-side packages as external so they are not bundled
+  serverExternalPackages: ['dockerode', 'ioredis'],
 };
 
 module.exports = nextConfig;
