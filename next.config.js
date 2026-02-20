@@ -9,12 +9,20 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // COMPLETELY disable Turbopack - use Webpack
+  // Force Webpack and disable Turbopack completely
   experimental: {
+    // These should force Webpack usage
     forceSwcTransforms: true,
+    swcMinify: true,
   },
-  // Webpack config to ensure no Turbopack
-  webpack: (config, { isServer }) => {
+  // Explicitly disable Turbopack via webpack
+  webpack: (config, { isServer, dev }) => {
+    // Ensure Turbopack is not used
+    if (dev) {
+      // In development, we want to force Webpack
+      process.env.TURBOPACK = '0';
+      process.env.NEXT_TURBOPACK = '0';
+    }
     return config;
   },
 };
