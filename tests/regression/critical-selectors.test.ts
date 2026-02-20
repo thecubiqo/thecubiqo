@@ -314,7 +314,7 @@ describe('Critical Selectors Validation', () => {
     it('should use consistent spacing classes', () => {
       const spacing = ['p-4', 'm-2', 'gap-3', 'space-y-4'];
       spacing.forEach(space => {
-        expect(space).toMatch(/^(p|m|gap|space)(-[xy])?-\d+$/);
+        expect(space).toMatch(/^((p|m|gap)(-[xy])?|space-[xy])-\d+$/);
       });
     });
   });
