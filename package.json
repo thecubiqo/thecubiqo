@@ -11,6 +11,7 @@
     "validate-env": "node scripts/validate-env.js",
     "pr-triage": "tsx scripts/pr-triage-agent.ts",
     "audit-pr-merges": "tsx scripts/audit-pr-merges.ts",
+    "staging-readiness": "tsx scripts/staging-readiness-report.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
