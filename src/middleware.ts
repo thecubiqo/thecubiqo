@@ -74,7 +74,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/api/admin/**',
+    '/api/admin/:path*',
     // Add other protected routes here as needed
   ],
 }
