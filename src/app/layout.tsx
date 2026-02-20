@@ -170,6 +170,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/svg+xml" href="/icons/cubiqo-logo.svg" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <link rel="canonical" href="https://www.cubiqo.ai" />
 

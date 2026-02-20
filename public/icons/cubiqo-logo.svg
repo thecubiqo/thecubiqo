@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="cube-grad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF8C33"/>
+      <stop offset="100%" stop-color="#FF6F00"/>
+    </linearGradient>
+    <linearGradient id="c-grad" x1="16" y1="16" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F0F0F0"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded cube background -->
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#cube-grad)"/>
+  <!-- Inner shadow for depth -->
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="1"/>
+  <!-- C letter -->
+  <path d="M44 18H24C20.686 18 18 20.686 18 24V40C18 43.314 20.686 46 24 46H44V38H26V26H44V18Z" fill="url(#c-grad)"/>
+</svg>
