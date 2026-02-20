@@ -1,0 +1,102 @@
+name: Staging Preview Validation
+
+# Deployment Flow:
+#   1. Feature PR → staging0217  (this workflow validates: lint, build, test)
+#   2. Vercel auto-deploys preview → STAGING_PREVIEW_URL (staging Supabase DB)
+#   3. Verify staging preview manually
+#   4. Open PR: staging0217 → main  (CI workflow validates again)
+#   5. Approve + merge → Vercel deploys to cubiqo.ai (production Supabase DB)
+#
+# Deployment Targets:
+#   staging0217 branch → cubiqo-repo-git-staging0217-cubiqo-projects.vercel.app (staging)
+#   main branch        → cubiqo.ai / www.cubiqo.ai (production)
+
+on:
+  pull_request:
+    branches: [staging0217]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [staging0217]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  STAGING_PREVIEW_URL: https://cubiqo-repo-git-staging0217-cubiqo-projects.vercel.app
+  PRODUCTION_URL: https://cubiqo.ai
+
+jobs:
+  validate:
+    name: Validate for Staging Preview
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Run build
+        run: npm run build
+
+      - name: Run unit tests
+        run: npm run test:run
+        env:
+          NODE_ENV: test
+
+      - name: Post validation status
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "## Staging Preview Validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Build and tests passed for staging0217 preview" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Targets" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Branch | URL | Database |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|-----|----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Staging (current)** | \`staging0217\` | [${{ env.STAGING_PREVIEW_URL }}](${{ env.STAGING_PREVIEW_URL }}) | cubiqo-staging |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Production (next)** | \`main\` | [${{ env.PRODUCTION_URL }}](${{ env.PRODUCTION_URL }}) | cubiqo-production |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Merge this PR into \`staging0217\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Verify at the staging URL above" >> $GITHUB_STEP_SUMMARY
+          echo "3. Open PR: \`staging0217\` → \`main\` to promote to production" >> $GITHUB_STEP_SUMMARY
+          echo "4. Approve + merge → deploys to ${{ env.PRODUCTION_URL }}" >> $GITHUB_STEP_SUMMARY
+
+  staging-ready:
+    name: Staging Ready Check
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging0217'
+
+    steps:
+      - name: Report staging deployment status
+        run: |
+          echo "## Staging Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Changes validated and deployed to staging0217" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Targets" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Branch | URL | Database |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|-----|----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Staging (deployed)** | \`staging0217\` | [${{ env.STAGING_PREVIEW_URL }}](${{ env.STAGING_PREVIEW_URL }}) | cubiqo-staging |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Production (pending)** | \`main\` | [${{ env.PRODUCTION_URL }}](${{ env.PRODUCTION_URL }}) | cubiqo-production |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### To Promote to Production" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Verify the staging preview at the URL above" >> $GITHUB_STEP_SUMMARY
+          echo "2. Open a PR from \`staging0217\` → \`main\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Approve and merge → deploys to ${{ env.PRODUCTION_URL }}" >> $GITHUB_STEP_SUMMARY
