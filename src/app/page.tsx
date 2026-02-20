@@ -1,35 +1,25 @@
-import { Suspense } from 'react'
 import { checkFeatureFlag } from '@/lib/feature-flags/server'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { FullscreenApp } from '@/components/FullscreenApp'
+import { LandingPage } from '@/components/landing/LandingPage'
 
 // Force dynamic rendering to ensure auth/flag state updates are reflected immediately
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   // Check feature flags
-  // Check feature flags with fail-safe
-  let ctaFlag = { enabled: false };
-  let particleFlag = { enabled: false };
+  const { enabled: showTopRightCTA } = await checkFeatureFlag({
+    flag_name: 'ui.topRightCTA.v1'
+  });
 
-  try {
-    [ctaFlag, particleFlag] = await Promise.all([
-      checkFeatureFlag({ flag_name: 'ui.topRightCTA.v1' }),
-      checkFeatureFlag({ flag_name: 'ui.landing.particles.v1' })
-    ]);
-  } catch (error) {
-    
-    // Proceed with safe defaults
+  const { enabled: useParticleLandingAsHome } = await checkFeatureFlag({
+    flag_name: 'ui.useParticleLandingAsHome'
+  });
+
+  // If feature flag is enabled, render LandingPage (with ParticleLanding)
+  if (useParticleLandingAsHome) {
+    return <LandingPage showTopRightCTA={showTopRightCTA} />
   }
 
-  return (
-    <Suspense fallback={null}>
-      <ErrorBoundary>
-        <FullscreenApp
-          showTopRightCTA={ctaFlag.enabled}
-          showParticleLanding={particleFlag.enabled}
-        />
-      </ErrorBoundary>
-    </Suspense>
-  )
+  // Default behavior: render FullscreenApp
+  return <FullscreenApp showTopRightCTA={showTopRightCTA} />
 }

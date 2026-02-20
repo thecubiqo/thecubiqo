@@ -28,9 +28,6 @@ export default function FoundersPassLayout({
         <Link href="/founders-pass/integrations" className="text-zinc-400 hover:text-white">
           Integrations
         </Link>
-        <Link href="/founders-pass/integrations/ecosystem" className="text-zinc-400 hover:text-white">
-          Ecosystem
-        </Link>
         <Link href="/founders-pass/actions" className="text-zinc-400 hover:text-white">
           Actions
         </Link>

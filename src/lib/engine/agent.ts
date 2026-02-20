@@ -70,12 +70,12 @@ export class AgentInstance implements Agent {
 
       // Check if session needs compaction (before adding new message)
       if (await this.sessionStore.needsCompaction(session.id, this.model.model)) {
-        
+        console.log(`[Agent] Auto-compacting session ${session.id}`);
         try {
           const result = await this.sessionStore.compactSession(session.id, this.model);
-          
+          console.log(`[Agent] Compaction saved ~${result.tokensSaved} tokens`);
         } catch (error) {
-          
+          console.error(`[Agent] Compaction failed, continuing anyway:`, error);
         }
       }
 

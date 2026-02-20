@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, develop, staging]
+    branches: [main, develop]
   pull_request:
-    branches: [main, develop, staging]
+    branches: [main, develop]
   workflow_dispatch:
 
 permissions:
@@ -44,8 +44,8 @@ jobs:
       - name: Run build
         run: npm run build
       
-      - name: Run unit tests with coverage
-        run: npm run test:run -- --coverage
+      - name: Run unit tests
+        run: npm run test:run
         env:
           NODE_ENV: test
       
@@ -58,27 +58,6 @@ jobs:
             coverage/
             test-results/
           retention-days: 30
-      
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        if: matrix.os == 'ubuntu-latest'
-        with:
-          files: ./coverage/coverage-final.json
-          flags: unittests
-          name: codecov-umbrella
-        continue-on-error: true
-      
-      - name: Comment coverage on PR
-        if: github.event_name == 'pull_request'
-        run: |
-          echo "## Test Coverage Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f coverage/coverage-summary.json ]; then
-            echo "Coverage summary generated" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "No coverage data available" >> $GITHUB_STEP_SUMMARY
-          fi
-        continue-on-error: true
   
   # PR merge audit job
   audit-pr-merges:
@@ -126,43 +105,3 @@ jobs:
           else
             echo "Audit report not found"
           fi
-
-  # Staging validation job — API and database checks for staging merges
-  staging-api-db-checks:
-    name: Staging API & Database Checks
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    if: >
-      github.base_ref == 'staging' ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/staging')
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Validate API routes
-        run: npx vitest run tests/api-routes.test.ts
-        env:
-          NODE_ENV: test
-
-      - name: Validate database schema & migrations
-        run: npx vitest run tests/database-schema.test.ts
-        env:
-          NODE_ENV: test
-
-      - name: Validate health endpoint module
-        run: npx vitest run tests/integration/health-endpoint.test.ts
-        env:
-          NODE_ENV: test

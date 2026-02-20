@@ -64,4 +64,4 @@ self-heal-artifacts/
 
 # Storybook
 storybook-static/
-yarn.lock
+.env.local

@@ -7,9 +7,8 @@
 import { useRef, useEffect, useCallback } from 'react'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
-import { DealsPanel } from '@/components/deals/DealsPanel'
+import { AutopilotStatus } from './AutopilotStatus'
 import { useChat } from '@/hooks/useChat'
-import { useDeals } from '@/hooks/useDeals'
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
 import type { ColorName } from '@/config/colors'
 
@@ -49,14 +48,6 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
     regionId
   })
 
-  const {
-    deals,
-    isVisible: dealsVisible,
-    isLoading: dealsLoading,
-    checkForDeals,
-    dismissDeals
-  } = useDeals()
-
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -88,8 +79,6 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
       stop()
     }
     await sendMessage(message, currentColor)
-    // Check for contextual deals based on user message
-    checkForDeals(message)
   }
 
   if (!sessionId) {
@@ -164,13 +153,8 @@ export function ChatContainer({ sessionId, currentColor, onColorChange, onSpeaki
         </div>
       )}
 
-      {/* Contextual Deals */}
-      <DealsPanel
-        deals={deals}
-        isVisible={dealsVisible}
-        isLoading={dealsLoading}
-        onDismiss={dismissDeals}
-      />
+      {/* Autopilot Status - shows background agent work */}
+      <AutopilotStatus sessionId={sessionId} />
 
       {/* Input Area */}
       <ChatInput onSend={handleSend} disabled={isLoading || !isInitialized} />
