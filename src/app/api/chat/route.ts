@@ -65,16 +65,16 @@ const SENSITIVE_CONTENT_PATTERNS = [
 function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining: number } {
   const now = Date.now()
   const record = minimaxRateLimitMap.get(sessionId)
-  
+
   if (!record || now > record.resetTime) {
     minimaxRateLimitMap.set(sessionId, { count: 1, resetTime: now + MINIMAX_RATE_WINDOW })
     return { allowed: true, remaining: MINIMAX_RATE_LIMIT - 1 }
   }
-  
+
   if (record.count >= MINIMAX_RATE_LIMIT) {
     return { allowed: false, remaining: 0 }
   }
-  
+
   record.count++
   return { allowed: true, remaining: MINIMAX_RATE_LIMIT - record.count }
 }
@@ -128,12 +128,12 @@ async function callMiniMax(
   }
 
   const data = await response.json()
-  
+
   // MiniMax returns choices similar to OpenAI
   if (data.choices && data.choices[0]?.message?.content) {
     return data.choices[0].message.content
   }
-  
+
   throw new Error('Invalid MiniMax response format')
 }
 
@@ -178,11 +178,11 @@ async function callMixtral(
   }
 
   const data = await response.json()
-  
+
   if (data.choices && data.choices[0]?.message?.content) {
     return data.choices[0].message.content
   }
-  
+
   throw new Error('Invalid Mixtral response format')
 }
 
@@ -221,11 +221,11 @@ async function callLlama(
   }
 
   const data = await response.json()
-  
+
   if (data.choices && data.choices[0]?.message?.content) {
     return data.choices[0].message.content
   }
-  
+
   throw new Error('Invalid Llama response format')
 }
 
@@ -244,10 +244,10 @@ async function callClaude(
     }
   }
 
-  const apiKey = byoApiKey || process.env.ANTHROPIC_API_KEY
+  const apiKey = byoApiKey || process.env.ANTHROPIC_API_KEY || process.env.OPENROUTER_KEY || process.env.OPENROUTER_API_KEY
 
   if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY not configured')
+    throw new Error('ANTHROPIC_API_KEY or OPENROUTER_KEY not configured')
   }
 
   // Estimate input tokens for cost tracking
@@ -307,7 +307,7 @@ async function callClaude(
 
   const data = await response.json()
   const outputText = data.content[0].text
-  
+
   // Record spending (skip if using BYO key)
   if (!byoApiKey) {
     const estimatedOutputTokens = estimateTokens(outputText)
@@ -332,8 +332,8 @@ function buildAuthNudgePrompt(isGuest: boolean, messageCount: number): string {
 SPECIAL CONTEXT (use wisely):
 The person you're talking to is a guest - they haven't signed in yet. You've had ${messageCount} exchanges with them.
 ${isMandatory
-    ? 'This is your LAST chance to suggest signing in. You MUST include the sign-in suggestion in this response - find a natural way to weave it in.'
-    : 'When you feel the moment is RIGHT - perhaps when they share something personal, meaningful, or show real interest - you MAY naturally and warmly suggest they sign in so you can remember them forever.'}
+      ? 'This is your LAST chance to suggest signing in. You MUST include the sign-in suggestion in this response - find a natural way to weave it in.'
+      : 'When you feel the moment is RIGHT - perhaps when they share something personal, meaningful, or show real interest - you MAY naturally and warmly suggest they sign in so you can remember them forever.'}
 
 Rules for this suggestion:
 - ${isMandatory ? 'You MUST suggest signing in this time' : 'Do it ONLY ONCE, and only when it feels genuinely caring, not pushy'}
@@ -439,7 +439,7 @@ export async function POST(request: NextRequest) {
 
     let content: string
     let provider: 'minimax' | 'mixtral' | 'llama' | 'claude' = 'minimax'
-    
+
     // If sensitive content detected, skip directly to Claude Haiku
     if (isSensitiveContent) {
       console.log('[AI Router] Sensitive content detected, routing to Claude Haiku')
