@@ -126,6 +126,12 @@ export default function AdminDashboard() {
                 >
                   🎚️ Feature Gate
                 </button>
+                <button
+                  onClick={() => window.location.href = '/admin/spending'}
+                  className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  💰 Spending
+                </button>
               </div>
             </div>
             {stats && (
