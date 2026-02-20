@@ -2,12 +2,17 @@
  * Type definitions for verbal commands system
  */
 
-export type CommandType = 
+export type CommandType =
   | 'email'
   | 'twitter'
   | 'maps'
   | 'uber'
-  | 'whatsapp';
+  | 'whatsapp'
+  | 'discord'
+  | 'slack'
+  | 'notion'
+  | 'trello'
+  | 'spotify';
 
 export interface CommandIntent {
   type: CommandType;
@@ -48,8 +53,9 @@ export interface Email {
 
 // Twitter types
 export interface TwitterCommand {
-  action: 'post' | 'read' | 'reply';
+  action: 'post' | 'read' | 'reply' | 'search';
   text?: string;
+  query?: string;
   tweetId?: string;
   media?: string[];
 }

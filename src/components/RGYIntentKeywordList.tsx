@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
+import { ScrollArea } from "@/components/ui/ScrollArea";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
-import { 
-  Search, 
-  Users2, 
-  Building2, 
+import {
+  Search,
+  Users2,
+  Building2,
   ArrowLeftRight,
   ChevronRight,
   Sparkles,
@@ -24,7 +24,7 @@ type ColorType = "green" | "yellow" | "red";
 // Mock data - Keywords would come from user capsule in real implementation
 const MOCK_KEYWORDS: Record<ColorType, string[]> = {
   green: [
-    "Frontend Dev", "React", "AI/ML", "Startup", "Crypto", "Design", 
+    "Frontend Dev", "React", "AI/ML", "Startup", "Crypto", "Design",
     "Marketing", "Sales", "Finance", "Legal", "Health", "Fitness"
   ],
   yellow: [
@@ -47,23 +47,23 @@ interface Intent {
 
 // Fixed intents
 const INTENTS: Intent[] = [
-  { 
-    id: "collab", 
-    label: "Collab", 
+  {
+    id: "collab",
+    label: "Collab",
     description: "Find collaborators",
     icon: Users2,
     badgeClass: "intent-badge-collab"
   },
-  { 
-    id: "company", 
-    label: "Company", 
+  {
+    id: "company",
+    label: "Company",
     description: "Join or form groups",
     icon: Building2,
     badgeClass: "intent-badge-company"
   },
-  { 
-    id: "trade", 
-    label: "Trade", 
+  {
+    id: "trade",
+    label: "Trade",
     description: "Exchange & deals",
     icon: ArrowLeftRight,
     badgeClass: "intent-badge-trade"
@@ -86,8 +86,8 @@ interface RGYIntentKeywordListProps {
   proMatchCount?: number;
 }
 
-export const RGYIntentKeywordList = ({ 
-  color, 
+export const RGYIntentKeywordList = ({
+  color,
   onRoomSelect,
   onViewProMatchShortlist,
   proMatchCount = 0
@@ -100,20 +100,20 @@ export const RGYIntentKeywordList = ({
   const rooms = useMemo(() => {
     const keywords = MOCK_KEYWORDS[color] || [];
     const result: Room[] = [];
-    const intentsToUse = selectedIntent 
-      ? INTENTS.filter(i => i.id === selectedIntent) 
+    const intentsToUse = selectedIntent
+      ? INTENTS.filter(i => i.id === selectedIntent)
       : INTENTS;
 
     intentsToUse.forEach(intent => {
       keywords.forEach(keyword => {
         const roomId = `${intent.id}-${keyword.toLowerCase().replace(/\s+/g, '-')}`;
         const roomName = `${intent.label} × ${keyword}`;
-        
+
         if (searchQuery) {
           const query = searchQuery.toLowerCase();
           if (!roomName.toLowerCase().includes(query)) return;
         }
-        
+
         result.push({
           id: roomId,
           intent: intent,
@@ -124,7 +124,7 @@ export const RGYIntentKeywordList = ({
         });
       });
     });
-    
+
     return result;
   }, [color, selectedIntent, searchQuery]);
 
@@ -151,8 +151,8 @@ export const RGYIntentKeywordList = ({
                 </p>
               </div>
             </div>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               onClick={onViewProMatchShortlist}
               className="bg-rgy-yellow/20 hover:bg-rgy-yellow/30 text-rgy-yellow border border-rgy-yellow/30"
             >

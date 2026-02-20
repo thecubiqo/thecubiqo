@@ -6,19 +6,20 @@ import { Points, PointMaterial } from '@react-three/drei'
 import * as THREE from 'three'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 
-const PARTICLE_COUNT = 5000
+const PARTICLE_COUNT = 8000
+const IMPLOSION_CENTER = new THREE.Vector3(0, 0, 0)
 
-export function ParticleLanding() {
+export function ParticleLanding({ isImploding = false }: { isImploding?: boolean }) {
     return (
         <>
             <color attach="background" args={['#000000']} />
-            <SimpleStarField />
+            <SimpleStarField isImploding={isImploding} />
             <StableEffects />
         </>
     )
 }
 
-function SimpleStarField() {
+function SimpleStarField({ isImploding }: { isImploding: boolean }) {
     const ref = useRef<THREE.Points>(null!)
     const { viewport, mouse } = useThree()
 
@@ -59,8 +60,14 @@ function SimpleStarField() {
     useFrame((state) => {
         if (!ref.current) return
 
-        // Safety check for attributes
         const currentPositions = ref.current.geometry.attributes.position.array as Float32Array
+
+        // 0. Camera Parallax
+        const targetX = state.mouse.x * 2
+        const targetY = state.mouse.y * 2
+        state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, targetX, 0.05)
+        state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, targetY, 0.05)
+        state.camera.lookAt(0, 0, 0)
 
         // Mouse in 3D space
         const mouseX = (state.mouse.x * viewport.width) / 2
@@ -99,6 +106,15 @@ function SimpleStarField() {
             x += Math.sin(time * 0.5 + i) * 0.1
             y += Math.cos(time * 0.3 + i) * 0.1
 
+            // 4. Click Warp (Implosion)
+            if (isImploding) {
+                const towardCenter = IMPLOSION_CENTER.clone().sub(new THREE.Vector3(x, y, z))
+                const speed = 0.2 + Math.random() * 0.3
+                x += towardCenter.x * speed
+                y += towardCenter.y * speed
+                z += towardCenter.z * speed
+            }
+
             // Apply
             currentPositions[i3] = x
             currentPositions[i3 + 1] = y
@@ -127,12 +143,12 @@ function SimpleStarField() {
 
 function StableEffects() {
     return (
-        <EffectComposer>
+        <EffectComposer disableNormalPass>
             <Bloom
-                luminanceThreshold={0.2}
+                luminanceThreshold={0.1}
                 luminanceSmoothing={0.9}
-                height={300}
-                intensity={1.0}
+                height={400}
+                intensity={2.5}
             />
         </EffectComposer>
     )

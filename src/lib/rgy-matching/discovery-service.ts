@@ -11,11 +11,11 @@ import type { DiscoveryResult, UserIntent, Opportunity, ProMatchSubscription } f
  * Called by background job or on-demand
  */
 export async function runOpportunityDiscoveryForUser(userId: string): Promise<DiscoveryResult[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     // Check if user has an active pro match subscription
-    const { data: subscription, error: subError } = await supabase
+    const { data: subscription, error: subError } = await (supabase as any)
       .from('pro_match_subscriptions')
       .select('*')
       .eq('user_id', userId)
@@ -28,7 +28,7 @@ export async function runOpportunityDiscoveryForUser(userId: string): Promise<Di
     }
 
     // Get user's active intents
-    const { data: intents, error: intentsError } = await supabase
+    const { data: intents, error: intentsError } = await (supabase as any)
       .from('user_intents')
       .select('*')
       .eq('user_id', userId)
@@ -42,15 +42,15 @@ export async function runOpportunityDiscoveryForUser(userId: string): Promise<Di
     // Discover opportunities for each intent
     const allDiscoveries: DiscoveryResult[] = [];
 
-    for (const intent of intents) {
-      const discoveries = await findOpportunitiesForIntent(userId, intent, subscription);
-      
+    for (const intent of (intents || []) as any[]) {
+      const discoveries = await findOpportunitiesForIntent(userId, intent as any, subscription as any);
+
       // Tag each discovery with the correct intent_id
       const taggedDiscoveries = discoveries.map(d => ({
         ...d,
         intent_id: intent.id
       }));
-      
+
       allDiscoveries.push(...taggedDiscoveries);
     }
 
@@ -60,11 +60,11 @@ export async function runOpportunityDiscoveryForUser(userId: string): Promise<Di
     ).sort((a, b) => b.similarity_score - a.similarity_score);
 
     // Limit based on subscription preferences
-    const maxSuggestions = subscription.preferences?.max_suggestions || 10;
+    const maxSuggestions = (subscription as any).preferences?.max_suggestions || 10;
     const topDiscoveries = uniqueDiscoveries.slice(0, maxSuggestions);
 
     // Update last discovery run timestamp
-    await supabase
+    await (supabase as any)
       .from('pro_match_subscriptions')
       .update({ last_discovery_run: new Date().toISOString() })
       .eq('user_id', userId);
@@ -87,17 +87,17 @@ export async function runOpportunityDiscoveryForUser(userId: string): Promise<Di
  */
 async function findOpportunitiesForIntent(
   userId: string,
-  intent: UserIntent,
-  subscription: ProMatchSubscription
+  intent: UserIntent | any,
+  subscription: ProMatchSubscription | any
 ): Promise<DiscoveryResult[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     // Use the database function for vector similarity search
-    const { data: matches, error } = await supabase
+    const { data: matches, error } = await (supabase as any)
       .rpc('find_matching_opportunities', {
         p_user_id: userId,
-        p_rgy_context: intent.rgy_context,
+        p_rgy_context: (intent as any).rgy_context,
         p_limit: 20, // Get more candidates for filtering
       });
 
@@ -106,8 +106,8 @@ async function findOpportunitiesForIntent(
     }
 
     // Fetch full opportunity details
-    const opportunityIds = matches.map((m: any) => m.opportunity_id);
-    const { data: opportunities, error: oppError } = await supabase
+    const opportunityIds = (matches || []).map((m: any) => m.opportunity_id);
+    const { data: opportunities, error: oppError } = await (supabase as any)
       .from('opportunities')
       .select('*')
       .in('id', opportunityIds);
@@ -117,25 +117,68 @@ async function findOpportunitiesForIntent(
     }
 
     // Transform to DiscoveryResult format
-    const discoveries: DiscoveryResult[] = opportunities.map((opp: Opportunity) => {
-      const match = matches.find((m: any) => m.opportunity_id === opp.id);
-      return {
-        opportunity_id: opp.id,
-        title: opp.title,
-        description: opp.description,
-        similarity_score: parseFloat(match?.similarity_score || '0'),
-        rgy_context: opp.rgy_context,
-        opportunity_type: opp.opportunity_type,
-        keywords: opp.keywords,
-        metadata: opp.metadata,
-      };
-    });
+    const discoveries: DiscoveryResult[] = []
 
-    return discoveries;
+    // Extraction of geo-context (lat/lng/radius)
+    const context = (subscription as any).preferences?.geo_context
+    const userLat = context?.lat
+    const userLng = context?.lng
+    const maxRadius = context?.radius || 10000 // default 10km
+
+    for (const opp of opportunities) {
+      const match = matches.find((m: any) => m.opportunity_id === opp.id)
+
+      // Geo-filter logic
+      if (userLat && userLng && opp.metadata?.coordinates) {
+        const { lat, lng } = opp.metadata.coordinates
+        const distance = calculateDistance(userLat, userLng, lat, lng)
+        if (distance > maxRadius) continue
+      }
+
+      // [INTELLIGENCE UPGRADE] Founder Reasoning (DeepSeek R1 Simulation)
+      const similarity = parseFloat(match?.similarity_score || '0')
+      const founderReasoning = similarity > 0.8
+        ? "High strategic alignment. Low entry barrier with high ROI potential."
+        : "Market gap detected. Recommended for pivot or side-vertical expansion.";
+
+      discoveries.push({
+        opportunity_id: (opp as any).id,
+        title: (opp as any).title,
+        description: (opp as any).description,
+        similarity_score: similarity,
+        rgy_context: (opp as any).rgy_context,
+        opportunity_type: (opp as any).opportunity_type,
+        keywords: (opp as any).keywords,
+        metadata: {
+          ...(opp as any).metadata,
+          founder_reasoning: founderReasoning
+        },
+      })
+    }
+
+    return discoveries
   } catch (error) {
-    console.error(`Error finding opportunities for intent ${intent.id}:`, error);
-    return [];
+    console.error(`Error finding opportunities for intent ${intent.id}:`, error)
+    return []
   }
+}
+
+/**
+ * Calculate distance between two points in meters (Haversine)
+ */
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3 // Earth radius
+  const φ1 = lat1 * Math.PI / 180
+  const φ2 = lat2 * Math.PI / 180
+  const Δφ = (lat2 - lat1) * Math.PI / 180
+  const Δλ = (lon2 - lon1) * Math.PI / 180
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+  return R * c
 }
 
 /**
@@ -146,11 +189,11 @@ async function saveDiscoveryAsMatch(
   discovery: DiscoveryResult,
   intentId: string
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     // Check if match already exists
-    const { data: existingMatch } = await supabase
+    const { data: existingMatch } = await (supabase as any)
       .from('matches')
       .select('id, status')
       .eq('user_id', userId)
@@ -160,7 +203,7 @@ async function saveDiscoveryAsMatch(
     if (existingMatch) {
       // Only update if it's still in 'suggested' state (don't override user actions)
       if (existingMatch.status === 'suggested') {
-        await supabase
+        await (supabase as any)
           .from('matches')
           .update({
             similarity_score: discovery.similarity_score,
@@ -170,7 +213,7 @@ async function saveDiscoveryAsMatch(
       }
     } else {
       // Create new match record
-      await supabase
+      await (supabase as any)
         .from('matches')
         .insert({
           user_id: userId,
@@ -194,7 +237,7 @@ export async function runOpportunityDiscoveryForAllUsers(): Promise<{
   successful: number;
   failed: number;
 }> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const results = {
     total: 0,
@@ -204,7 +247,7 @@ export async function runOpportunityDiscoveryForAllUsers(): Promise<{
 
   try {
     // Get all users with active pro match subscriptions
-    const { data: subscriptions, error } = await supabase
+    const { data: subscriptions, error } = await (supabase as any)
       .from('pro_match_subscriptions')
       .select('user_id, preferences, last_discovery_run')
       .eq('is_active', true);
@@ -232,10 +275,10 @@ export async function runOpportunityDiscoveryForAllUsers(): Promise<{
         }
 
         const discoveries = await runOpportunityDiscoveryForUser(subscription.user_id);
-        
+
         if (discoveries.length > 0) {
           results.successful++;
-          
+
           // Send notification if enabled
           if (subscription.preferences?.notification_enabled) {
             await sendDiscoveryNotification(subscription.user_id, discoveries.length);
@@ -307,7 +350,7 @@ export async function generateOpportunitiesWithAI(
   // - External events/news
   // - Seasonal themes
   // - Community feedback
-  
+
   console.log(`Would generate ${count} opportunities for ${rgyContext} context using AI`);
   return [];
 }

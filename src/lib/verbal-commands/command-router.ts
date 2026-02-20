@@ -9,6 +9,11 @@ import { TwitterService } from './twitter-service';
 import { MapsService } from './maps-service';
 import { UberService } from './uber-service';
 import { WhatsAppService } from './whatsapp-service';
+import { DiscordService } from './discord-service';
+import { SlackService } from './slack-service';
+import { NotionService } from './notion-service';
+import { TrelloService } from './trello-service';
+import { SpotifyService } from './spotify-service';
 import type { CommandIntent, CommandResult, OAuthTokens } from './types';
 
 export class CommandRouter {
@@ -18,6 +23,11 @@ export class CommandRouter {
   private maps: MapsService;
   private uber: UberService;
   private whatsapp: WhatsAppService;
+  private discord: DiscordService;
+  private slack: SlackService;
+  private notion: NotionService;
+  private trello: TrelloService;
+  private spotify: SpotifyService;
 
   constructor() {
     this.browser = new BrowserService();
@@ -26,6 +36,11 @@ export class CommandRouter {
     this.maps = new MapsService(this.browser);
     this.uber = new UberService(this.browser);
     this.whatsapp = new WhatsAppService(this.browser);
+    this.discord = new DiscordService(this.browser);
+    this.slack = new SlackService(this.browser);
+    this.notion = new NotionService(this.browser);
+    this.trello = new TrelloService(this.browser);
+    this.spotify = new SpotifyService(this.browser);
   }
 
   /**
@@ -46,7 +61,7 @@ export class CommandRouter {
       const intent = JSON.parse(response);
       return intent;
     } catch (error) {
-      
+
       return null;
     }
   }
@@ -79,6 +94,21 @@ export class CommandRouter {
         case 'whatsapp':
           return await this.whatsapp.executeCommand(intent.parameters as any);
 
+        case 'discord':
+          return await this.discord.executeCommand(intent.parameters as any);
+
+        case 'slack':
+          return await this.slack.executeCommand(intent.parameters as any);
+
+        case 'notion':
+          return await this.notion.executeCommand(intent.parameters as any);
+
+        case 'trello':
+          return await this.trello.executeCommand(intent.parameters as any);
+
+        case 'spotify':
+          return await this.spotify.executeCommand(intent.parameters as any);
+
         default:
           return {
             success: false,
@@ -104,7 +134,7 @@ User request: "${userInput}"
 Analyze this request and respond with a JSON object following this structure:
 
 {
-  "type": "email" | "twitter" | "maps" | "uber" | "whatsapp",
+  "type": "email" | "twitter" | "maps" | "uber" | "whatsapp" | "discord" | "slack" | "notion" | "trello" | "spotify",
   "action": "specific action for the service",
   "parameters": {
     // Service-specific parameters

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import { Briefcase, Users, Heart, Zap, TrendingUp, Sparkles, LucideIcon } from "lucide-react";
 
@@ -65,10 +65,10 @@ interface RGYColorSelectorProps {
   proMatchCount?: number;
 }
 
-export const RGYColorSelector = ({ 
-  onColorSelect, 
+export const RGYColorSelector = ({
+  onColorSelect,
   showProMatchBadge = false,
-  proMatchCount = 0 
+  proMatchCount = 0
 }: RGYColorSelectorProps) => {
   const [hoveredColor, setHoveredColor] = useState<ColorType | null>(null);
   const [selectedColor, setSelectedColor] = useState<ColorType | null>(null);
@@ -101,7 +101,7 @@ export const RGYColorSelector = ({
           Choose Your Context
         </h2>
         <p className="text-muted-foreground text-base max-w-md mx-auto">
-          Select a color to set the context for your conversations. 
+          Select a color to set the context for your conversations.
           Each color unlocks different intent-based rooms.
         </p>
       </div>
@@ -132,7 +132,7 @@ export const RGYColorSelector = ({
               style={{ animationDelay: `${index * 100}ms` }}
             >
               {/* Glow effect on hover */}
-              <div 
+              <div
                 className={cn(
                   "absolute inset-0 rounded-xl transition-opacity duration-300",
                   isHovered || isSelected ? "opacity-100" : "opacity-0"

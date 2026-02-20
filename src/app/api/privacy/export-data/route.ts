@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       {
         cookies: {
           getAll: () => cookieStore.getAll().map(c => ({ name: c.name, value: c.value })),
-          setAll: () => {},
+          setAll: () => { },
         },
       }
     );
@@ -37,12 +37,12 @@ export async function GET(request: NextRequest) {
 
     // Rate limiting
     const identifier = getClientIdentifier(request.headers, user.id);
-    const rateLimit = await checkRateLimit(identifier, 'export');
+    const rateLimit = await checkRateLimit(identifier, 'EXPORT');
 
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: 'Rate limit exceeded. Please try again later.' },
-        { 
+        {
           status: 429,
           headers: getRateLimitHeaders(rateLimit),
         }

@@ -230,7 +230,7 @@ export interface CreditTransaction {
 // Agent Orchestrator Types
 // ============================================================================
 
-export type SubAgentType = 'code' | 'test' | 'image' | 'integration' | 'human' | 'migration'
+export type SubAgentType = 'code' | 'test' | 'image' | 'integration' | 'human' | 'migration' | 'media'
 
 export interface SubAgentRequest {
   type: SubAgentType

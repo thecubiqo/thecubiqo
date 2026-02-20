@@ -26,6 +26,13 @@
 
 import { NextResponse } from 'next/server'
 
+export interface RateLimitResult {
+  allowed: boolean
+  remaining: number
+  resetTime: number
+  retryAfter?: number
+}
+
 interface RateLimitEntry {
   count: number
   resetTime: number
@@ -75,16 +82,24 @@ startCleanupTimer()
  */
 export function checkRateLimit(
   identifier: string,
-  limit: number,
-  windowMs: number
-): {
-  allowed: boolean
-  remaining: number
-  resetTime: number
-  retryAfter?: number
-} {
+  limitOrPreset: number | keyof typeof RateLimits,
+  windowMs?: number
+): RateLimitResult {
   const now = Date.now()
-  const key = `${identifier}:${windowMs}`
+
+  let limit: number
+  let actualWindowMs: number
+
+  if (typeof limitOrPreset === 'string') {
+    const preset = RateLimits[limitOrPreset as keyof typeof RateLimits]
+    limit = preset.limit
+    actualWindowMs = preset.windowMs
+  } else {
+    limit = limitOrPreset
+    actualWindowMs = windowMs || 60000
+  }
+
+  const key = `${identifier}:${actualWindowMs}`
 
   // Get existing entry or create new one
   let entry = rateLimitStore.get(key)
@@ -93,7 +108,7 @@ export function checkRateLimit(
   if (!entry || entry.resetTime < now) {
     entry = {
       count: 1,
-      resetTime: now + windowMs
+      resetTime: now + actualWindowMs
     }
     rateLimitStore.set(key, entry)
 
@@ -165,6 +180,17 @@ export function enforceRateLimit(
 }
 
 /**
+ * Get headers for rate limit response
+ */
+export function getRateLimitHeaders(result: RateLimitResult): Record<string, string> {
+  return {
+    'X-RateLimit-Remaining': String(result.remaining),
+    'X-RateLimit-Reset': String(Math.floor(result.resetTime / 1000)),
+    ...(result.retryAfter ? { 'Retry-After': String(result.retryAfter) } : {})
+  }
+}
+
+/**
  * Preset rate limit configurations
  */
 export const RateLimits = {
@@ -182,7 +208,18 @@ export const RateLimits = {
 
   // Admin operations - extra strict
   ADMIN: { limit: 10, windowMs: 60000 }, // 10 per minute
+
+  // Export - specialized for privacy
+  EXPORT: { limit: 2, windowMs: 86400000 }, // 2 per day
 } as const
+
+/**
+ * Get identifier from request
+ * Compatibility helper for older routes
+ */
+export function getClientIdentifier(headers: Headers, userId?: string): string {
+  return getRequestIdentifier({ headers }, userId)
+}
 
 /**
  * Get identifier from request
