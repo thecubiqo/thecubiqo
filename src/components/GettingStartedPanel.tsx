@@ -39,14 +39,14 @@ const EXAMPLE_INTERACTIONS = [
 ]
 
 const POPULAR_KEYWORDS = [
-  { word: 'productivity', count: 1247, color: '#22c55e' },
-  { word: 'mindfulness', count: 892, color: '#eab308' },
+  { word: 'productivity', count: 1247, color: '#00897b' },
+  { word: 'mindfulness', count: 892, color: '#ffa000' },
   { word: 'adventure', count: 743, color: '#ec4899' },
   { word: 'creativity', count: 681, color: '#8b5cf6' },
-  { word: 'fitness', count: 567, color: '#22c55e' },
+  { word: 'fitness', count: 567, color: '#00897b' },
   { word: 'learning', count: 512, color: '#3b82f6' },
   { word: 'relationships', count: 489, color: '#ec4899' },
-  { word: 'travel', count: 445, color: '#eab308' },
+  { word: 'travel', count: 445, color: '#ffa000' },
 ]
 
 export function GettingStartedPanel({ 
