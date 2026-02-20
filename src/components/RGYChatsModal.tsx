@@ -11,6 +11,7 @@ interface RGYChatsModalProps {
   isOpen: boolean
   onClose: () => void
   isDark?: boolean
+  onZoneSelect?: (context: 'red' | 'yellow' | 'green') => void
 }
 
 const ZONES = [
@@ -73,7 +74,7 @@ const ZONES = [
   },
 ]
 
-export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalProps) {
+export function RGYChatsModal({ isOpen, onClose, isDark = true, onZoneSelect }: RGYChatsModalProps) {
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -90,6 +91,14 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
     setIsSubmitted(true)
     setTimeout(() => setIsSubmitted(false), 3000)
     setEmail('')
+  }
+
+  const handleZoneSelect = async (zoneId: string) => {
+    setSelectedZone(zoneId)
+    // Call parent handler if provided
+    if (onZoneSelect) {
+      onZoneSelect(zoneId as 'red' | 'yellow' | 'green')
+    }
   }
 
   if (!isOpen) return null
@@ -175,7 +184,7 @@ export function RGYChatsModal({ isOpen, onClose, isDark = true }: RGYChatsModalP
             {ZONES.map(zone => (
               <button
                 key={zone.id}
-                onClick={() => setSelectedZone(zone.id)}
+                onClick={() => handleZoneSelect(zone.id)}
                 className={`relative p-6 rounded-2xl text-left transition-all duration-200 ${
                   selectedZone === zone.id ? 'scale-[1.02]' : 'hover:scale-[1.01]'
                 }`}
