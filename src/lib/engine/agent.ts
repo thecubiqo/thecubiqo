@@ -6,7 +6,8 @@ import { randomUUID } from 'crypto';
 import { SessionStore } from './session';
 import { ToolRegistry } from './tools';
 import { callLLM } from '../ai/llm-router';
-import { WorkspaceManager } from './workspace';
+import { ContextAssembler } from './context-assembly';
+import { TaskQueue } from './queue';
 
 export class AgentInstance implements Agent {
   id: string;
@@ -23,7 +24,8 @@ export class AgentInstance implements Agent {
 
   private sessionStore: SessionStore;
   private toolRegistry: ToolRegistry;
-  workspaceManager: WorkspaceManager;
+  private contextAssembler?: ContextAssembler;
+  private taskQueue: TaskQueue;
 
   constructor(config: AgentConfig) {
     this.id = config.id;
@@ -40,7 +42,7 @@ export class AgentInstance implements Agent {
 
     this.sessionStore = new SessionStore(this.id);
     this.toolRegistry = new ToolRegistry();
-    this.workspaceManager = new WorkspaceManager(this.workspace);
+    this.taskQueue = new TaskQueue(this.maxConcurrent);
   }
 
   async initialize(): Promise<void> {
@@ -55,12 +57,19 @@ export class AgentInstance implements Agent {
     // Ensure workspace exists
     const { mkdir } = await import('fs/promises');
     await mkdir(this.workspace, { recursive: true });
+
+    // Initialize context assembler after soul is loaded
+    this.contextAssembler = new ContextAssembler({
+      agentId: this.id,
+      soul: this.soul,
+      workspace: this.workspace,
+      model: this.model,
+    });
   }
 
-  async run(prompt: string, sessionId?: string, userId?: string, workspaceOverride?: string): Promise<string> {
+  async run(prompt: string, sessionId?: string, userId?: string): Promise<string> {
     this.status = 'running';
     this.updatedAt = new Date();
-    const effectiveWorkspace = workspaceOverride || this.workspace;
 
     try {
       // Get or create session
@@ -70,36 +79,35 @@ export class AgentInstance implements Agent {
 
       // Check if session needs compaction (before adding new message)
       if (await this.sessionStore.needsCompaction(session.id, this.model.model)) {
-        
+        console.log(`[Agent] Auto-compacting session ${session.id}`);
         try {
           const result = await this.sessionStore.compactSession(session.id, this.model);
-          
+          console.log(`[Agent] Compaction saved ~${result.tokensSaved} tokens`);
         } catch (error) {
-          
+          console.error(`[Agent] Compaction failed, continuing anyway:`, error);
         }
       }
 
       // Get conversation history
       const history = await this.sessionStore.getHistory(session.id);
 
-      // Build context
-      const systemPrompt = await this.buildSystemPrompt(effectiveWorkspace);
-      const messages = [
-        { role: 'system' as const, content: systemPrompt },
-        ...history.map((msg) => ({
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content,
-        })),
-        { role: 'user' as const, content: prompt },
-      ];
-
       // Get tools for LLM (filtered by user integrations)
       const availableTools = await this.toolRegistry.getTools(this.tools, userId);
+
+      // Build context using ContextAssembler
+      if (!this.contextAssembler) {
+        throw new Error('Agent not initialized. Call initialize() first.');
+      }
+      const context = await this.contextAssembler.assemble({
+        history,
+        tools: availableTools,
+        userPrompt: prompt,
+      });
 
       // Call LLM
       const response = await callLLM({
         model: this.model,
-        messages,
+        messages: context.messages,
         tools: availableTools,
         maxTokens: this.model.maxTokens,
         temperature: this.model.temperature,
@@ -119,15 +127,13 @@ export class AgentInstance implements Agent {
 
       // Handle tool calls
       if (response.toolCalls && response.toolCalls.length > 0) {
-        const toolResults = await this.executeTools(response.toolCalls, session.id, effectiveWorkspace);
+        const toolResults = await this.executeTools(response.toolCalls, session.id);
 
         // If tools were executed, make another LLM call with results
         if (toolResults.length > 0) {
           return await this.run(
             `Tool results: ${JSON.stringify(toolResults)}`,
-            session.id,
-            undefined,
-            effectiveWorkspace
+            session.id
           );
         }
       }
@@ -154,29 +160,13 @@ export class AgentInstance implements Agent {
 
     this.currentTasks.push(taskObj);
 
-    // Create isolated workspace for this task
-    const wsInfo = await this.workspaceManager.createTaskWorkspace(taskId);
-
-    // Execute task asynchronously with isolated workspace
-    setImmediate(async () => {
-      try {
-        taskObj.status = 'running';
-        taskObj.startedAt = new Date();
-
-        const result = await this.run(task, session.id, undefined, wsInfo.taskDir);
-
-        taskObj.status = 'done';
-        taskObj.result = result;
-        taskObj.completedAt = new Date();
-      } catch (error) {
-        taskObj.status = 'failed';
-        taskObj.result = error instanceof Error ? error.message : 'Unknown error';
-        taskObj.completedAt = new Date();
-      } finally {
-        // Clean up task workspace
-        await this.workspaceManager.cleanupTaskWorkspace(taskId);
+    // Enqueue task with proper concurrency control
+    this.taskQueue.enqueue(
+      taskObj,
+      async () => {
+        return await this.run(task, session.id);
       }
-    });
+    );
 
     return { runId: taskId, sessionId: session.id };
   }
@@ -198,23 +188,7 @@ export class AgentInstance implements Agent {
     return await this.sessionStore.list();
   }
 
-  private async buildSystemPrompt(effectiveWorkspace?: string): Promise<string> {
-    let prompt = this.soul + '\n\n';
-
-    prompt += '# Available Tools\n';
-    const tools = await this.toolRegistry.getTools(this.tools);
-    tools.forEach((tool) => {
-      prompt += `- ${tool.name}: ${tool.description}\n`;
-    });
-
-    prompt += '\n# Workspace\n';
-    prompt += `Your workspace is at: ${effectiveWorkspace || this.workspace}\n`;
-    prompt += 'All file operations are relative to this directory.\n';
-
-    return prompt;
-  }
-
-  private async executeTools(toolCalls: any[], sessionId: string, effectiveWorkspace?: string): Promise<any[]> {
+  private async executeTools(toolCalls: any[], sessionId: string): Promise<any[]> {
     const results = [];
 
     for (const call of toolCalls) {
@@ -222,7 +196,7 @@ export class AgentInstance implements Agent {
         const result = await this.toolRegistry.execute(call.name, call.arguments, {
           agentId: this.id,
           sessionId,
-          workspace: effectiveWorkspace || this.workspace,
+          workspace: this.workspace,
         });
 
         results.push({

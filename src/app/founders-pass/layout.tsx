@@ -1,5 +1,4 @@
 // Founders Pass Admin Layout
-// Unified navigation linking admin sub-routes and main founderspass pages
 import Link from 'next/link';
 
 export default function FoundersPassLayout({
@@ -10,14 +9,8 @@ export default function FoundersPassLayout({
   return (
     <div className="min-h-screen bg-black text-white">
       <nav className="border-b border-zinc-800 px-6 py-3 flex items-center gap-6 text-sm">
-        <Link href="/founderspass" className="font-bold text-indigo-400 hover:text-indigo-300">
+        <Link href="/founders-pass" className="font-bold text-indigo-400 hover:text-indigo-300">
           🚀 Founders Pass
-        </Link>
-        <Link href="/founderspass/dashboard" className="text-zinc-400 hover:text-white">
-          Dashboard
-        </Link>
-        <Link href="/founderspass/experiments" className="text-zinc-400 hover:text-white">
-          Experiments
         </Link>
         <Link href="/founders-pass/flags" className="text-zinc-400 hover:text-white">
           Flags

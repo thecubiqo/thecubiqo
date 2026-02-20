@@ -1,19 +1,15 @@
 name: Chromatic Visual Tests
 
-# Trigger on pull requests and pushes to main/staging0217
-# Deployment targets:
-#   staging0217 → cubiqo-repo-git-staging0217-cubiqo-projects.vercel.app (staging)
-#   main        → cubiqo.ai (production)
+# Trigger on pull requests and pushes to main
 on:
   push:
     branches:
       - main
-      - staging0217
   pull_request:
     branches:
       - main
       - develop
-      - staging0217
+      - master
 
 jobs:
   chromatic:

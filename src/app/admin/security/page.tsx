@@ -1,11 +1,65 @@
 'use client';
 
-import { Shield, Lock, Fingerprint, Key, AlertTriangle, CheckCircle, Bug, Search } from 'lucide-react';
-import { useState } from 'react';
+import { Shield, Lock, Fingerprint, Key, AlertTriangle, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
+interface EnvCheck {
+    label: string;
+    passed: boolean;
+}
+
+interface SecurityEvent {
+    id: string;
+    user_email: string | null;
+    action_type: string;
+    ip_address: string | null;
+    created_at: string;
+}
+
+interface SecurityData {
+    passkeyCount: number;
+    rpId: string;
+    biometricStatus: 'configured' | 'missing_env';
+    envChecks: EnvCheck[];
+    recentEvents: SecurityEvent[];
+}
+
+function maskEmail(email: string): string {
+    const atIdx = email.indexOf('@');
+    if (atIdx <= 0) return '***';
+    const local = email.slice(0, atIdx);
+    const domain = email.slice(atIdx);
+    if (local.length <= 3) return local[0] + '**' + domain;
+    return local.slice(0, 3) + '*'.repeat(local.length - 3) + domain;
+}
+
+(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins} min${mins === 1 ? '' : 's'} ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    return new Date(dateStr).toLocaleDateString();
+}
 
 export default function SecurityDashboard() {
-    const [biometricStatus, setBiometricStatus] = useState<'configured' | 'missing_env'>('configured');
-    const [rpId, setRpId] = useState('cubiqo.ai');
+    const [data, setData] = useState<SecurityData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetch('/api/admin/security')
+            .then(r => r.json())
+            .then(setData)
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    }, []);
+
+    const biometricStatus = data?.biometricStatus ?? 'missing_env';
+    const rpId = data?.rpId ?? '—';
+    const passkeyCount = data?.passkeyCount ?? 0;
+    const envChecks = data?.envChecks ?? [];
+    const recentEvents = data?.recentEvents ?? [];
 
     return (
         <div className="space-y-6">
@@ -44,13 +98,15 @@ export default function SecurityDashboard() {
                             <label className="text-xs text-gray-500 uppercase tracking-wider block mb-1">Relying Party ID (RP_ID)</label>
                             <div className="font-mono text-white flex items-center gap-2">
                                 <Key size={14} className="text-gray-500" />
-                                {rpId}
+                                {loading ? '…' : rpId}
                             </div>
                         </div>
 
                         <div className="bg-black/20 p-4 rounded-lg border border-white/5">
                             <label className="text-xs text-gray-500 uppercase tracking-wider block mb-1">Active Passkeys</label>
-                            <div className="font-mono text-white text-xl">1,248</div>
+                            <div className="font-mono text-white text-xl">
+                                {loading ? '…' : passkeyCount.toLocaleString()}
+                            </div>
                         </div>
                     </div>
 
@@ -58,87 +114,22 @@ export default function SecurityDashboard() {
                         <h3 className="font-semibold text-blue-200 mb-2 flex items-center gap-2">
                             <AlertTriangle size={16} /> Configuration Check
                         </h3>
-                        <ul className="space-y-2 text-sm text-blue-100/70">
-                            <li className="flex items-center gap-2">
-                                <CheckCircle size={14} className="text-green-400" />
-                                <span>NEXT_PUBLIC_RP_ID is set</span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <CheckCircle size={14} className="text-green-400" />
-                                <span>Original/Domain matches Vercel URL</span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <CheckCircle size={14} className="text-green-400" />
-                                <span>Supabase "auth.users" tables accessible</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            {/* Antivirus Protection Card */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-32 bg-green-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
-
-                <div className="flex items-start justify-between mb-6">
-                    <div>
-                        <h2 className="text-xl font-bold flex items-center gap-2">
-                            <Shield className="text-green-400" />
-                            Antivirus & Threat Protection
-                        </h2>
-                        <p className="text-gray-400 mt-1">Real-time protection against malware and security threats.</p>
-                    </div>
-                    <div className="px-4 py-1.5 rounded-full text-sm font-semibold border flex items-center gap-2 bg-green-500/10 text-green-400 border-green-500/20">
-                        <CheckCircle size={14} /> Protected
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                        <div className="bg-black/20 p-4 rounded-lg border border-white/5">
-                            <label className="text-xs text-gray-500 uppercase tracking-wider block mb-1">
-                                <Search size={12} className="inline mr-1" />
-                                Real-time Scanning
-                            </label>
-                            <div className="font-semibold text-green-400 text-lg">Enabled</div>
-                        </div>
-
-                        <div className="bg-black/20 p-4 rounded-lg border border-white/5">
-                            <label className="text-xs text-gray-500 uppercase tracking-wider block mb-1">Total Scans</label>
-                            <div className="font-mono text-white text-xl">12,847</div>
-                        </div>
-
-                        <div className="bg-black/20 p-4 rounded-lg border border-white/5">
-                            <label className="text-xs text-gray-500 uppercase tracking-wider block mb-1">
-                                <Bug size={12} className="inline mr-1" />
-                                Threats Blocked
-                            </label>
-                            <div className="font-mono text-red-400 text-xl">23</div>
-                        </div>
-                    </div>
-
-                    <div className="bg-green-500/5 border border-green-500/10 rounded-lg p-4">
-                        <h3 className="font-semibold text-green-200 mb-3 flex items-center gap-2">
-                            <Shield size={16} /> Protection Features
-                        </h3>
-                        <ul className="space-y-3 text-sm text-green-100/70">
-                            <li className="flex items-center gap-2">
-                                <CheckCircle size={14} className="text-green-400" />
-                                <span>Real-time file scanning</span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <CheckCircle size={14} className="text-green-400" />
-                                <span>Input sanitization active</span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <CheckCircle size={14} className="text-green-400" />
-                                <span>XSS protection enabled</span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <CheckCircle size={14} className="text-green-400" />
-                                <span>SQL injection prevention</span>
-                            </li>
-                        </ul>
+                        {loading ? (
+                            <p className="text-sm text-gray-500">Loading…</p>
+                        ) : (
+                            <ul className="space-y-2 text-sm text-blue-100/70">
+                                {envChecks.map((check, i) => (
+                                    <li key={i} className="flex items-center gap-2">
+                                        {check.passed ? (
+                                            <CheckCircle size={14} className="text-green-400 shrink-0" />
+                                        ) : (
+                                            <AlertTriangle size={14} className="text-red-400 shrink-0" />
+                                        )}
+                                        <span>{check.label}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
                 </div>
             </div>
@@ -147,39 +138,41 @@ export default function SecurityDashboard() {
             <div className="bg-white/5 border border-white/10 rounded-xl p-6">
                 <h2 className="text-xl font-bold mb-4">Recent Security Events</h2>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="border-b border-white/10 text-gray-400 text-sm">
-                                <th className="py-3 px-4">Event</th>
-                                <th className="py-3 px-4">User</th>
-                                <th className="py-3 px-4">IP Address</th>
-                                <th className="py-3 px-4">Time</th>
-                                <th className="py-3 px-4">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-sm">
-                            <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                <td className="py-3 px-4 flex items-center gap-2">
-                                    <Fingerprint size={14} className="text-green-400" />
-                                    Passkey Login
-                                </td>
-                                <td className="py-3 px-4 font-mono text-gray-400">usr_8a92...</td>
-                                <td className="py-3 px-4 text-gray-400">192.168.1.1</td>
-                                <td className="py-3 px-4 text-gray-400">2 mins ago</td>
-                                <td className="py-3 px-4"><span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-xs">Success</span></td>
-                            </tr>
-                            <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                <td className="py-3 px-4 flex items-center gap-2">
-                                    <Lock size={14} className="text-red-400" />
-                                    Failed Login
-                                </td>
-                                <td className="py-3 px-4 font-mono text-gray-400">usr_b211...</td>
-                                <td className="py-3 px-4 text-gray-400">10.0.0.5</td>
-                                <td className="py-3 px-4 text-gray-400">15 mins ago</td>
-                                <td className="py-3 px-4"><span className="text-red-400 bg-red-500/10 px-2 py-0.5 rounded text-xs">Blocked</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    {loading ? (
+                        <p className="text-sm text-gray-500 py-4">Loading events…</p>
+                    ) : recentEvents.length === 0 ? (
+                        <p className="text-sm text-gray-500 py-4">No security events recorded yet.</p>
+                    ) : (
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="border-b border-white/10 text-gray-400 text-sm">
+                                    <th className="py-3 px-4">Event</th>
+                                    <th className="py-3 px-4">User</th>
+                                    <th className="py-3 px-4">IP Address</th>
+                                    <th className="py-3 px-4">Time</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-sm">
+                                {recentEvents.map((event) => (
+                                    <tr key={event.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                        <td className="py-3 px-4 flex items-center gap-2">
+                                            {event.action_type.includes('login') || event.action_type.includes('webauthn') ? (
+                                                <Fingerprint size={14} className="text-blue-400 shrink-0" />
+                                            ) : (
+                                                <Lock size={14} className="text-gray-400 shrink-0" />
+                                            )}
+                                            <span className="font-mono text-xs">{event.action_type}</span>
+                                        </td>
+                                        <td className="py-3 px-4 font-mono text-gray-400 text-xs">
+                                            {event.user_email ? maskEmail(event.user_email) : '—'}
+                                        </td>
+                                        <td className="py-3 px-4 text-gray-400">{event.ip_address ?? '—'}</td>
+                                        <td className="py-3 px-4 text-gray-400">{formatRelativeTime(event.created_at)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </div>
         </div>
