@@ -2,6 +2,10 @@
 
 CubiQo is an open-source conversational AI platform with voice capabilities, journaling, and intent-based matching.
 
+> 📚 **New to the codebase?** Looking for specific features?  
+> → Read **[BRANCHES_ULTRA_QUICK.md](BRANCHES_ULTRA_QUICK.md)** - Which branch has what  
+> → Read **[START_HERE_FEATURES.md](START_HERE_FEATURES.md)** - Where to find everything
+
 ## ✨ Features
 
 - 🎙️ **Voice Conversations** - Natural voice interaction with emotional modulation
