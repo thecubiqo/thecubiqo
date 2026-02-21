@@ -1,5 +1,25 @@
 # How to Preview CubiQo
 
+## 🚀 Direct Links (No Setup Required)
+
+### Vercel Preview (live right now)
+| Page | Link |
+|---|---|
+| **Frontend preview** | https://cubiqo-repo-git-copilot-preview-16de32-cubiqo-projects-d7156840.vercel.app/preview |
+| **Hero WebGL** | https://cubiqo-repo-git-copilot-preview-16de32-cubiqo-projects-d7156840.vercel.app/hero-webgl-preview |
+| **Neon Glass Cube** | https://cubiqo-repo-git-copilot-preview-16de32-cubiqo-projects-d7156840.vercel.app/neon-cube-preview |
+| **All previews hub** | https://cubiqo-repo-git-copilot-preview-16de32-cubiqo-projects-d7156840.vercel.app/previews |
+
+### Local (after `npm run dev`)
+| Page | Link |
+|---|---|
+| **Frontend preview** | http://localhost:3000/preview |
+| **Hero WebGL** | http://localhost:3000/hero-webgl-preview |
+| **Neon Glass Cube** | http://localhost:3000/neon-cube-preview |
+| **All previews hub** | http://localhost:3000/previews |
+
+---
+
 ## Quick Start
 
 ### Local Development

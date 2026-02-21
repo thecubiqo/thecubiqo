@@ -1,5 +1,7 @@
 'use client'
 
+import React from 'react'
+
 /**
  * /previews — hub page listing all preview & demo routes.
  *
@@ -70,6 +72,13 @@ const routes = [
   },
 ]
 
+const VERCEL_BASE = 'https://cubiqo-repo-git-copilot-preview-16de32-cubiqo-projects-d7156840.vercel.app'
+const LOCAL_BASE = 'http://localhost:3000'
+
+const linkRowStyle: React.CSSProperties = { display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' as const }
+const labelStyle: React.CSSProperties = { fontSize: '0.75rem', color: '#7a94c4', minWidth: '90px' }
+const linkStyle: React.CSSProperties = { color: '#8bb9fe', fontSize: '0.9rem', wordBreak: 'break-all' }
+
 export default function PreviewsHub() {
   return (
     <div
@@ -98,12 +107,41 @@ export default function PreviewsHub() {
             fontSize: '0.85rem',
             color: '#8bb9fe',
             letterSpacing: '0.15em',
-            marginBottom: '48px',
+            marginBottom: '32px',
             textTransform: 'uppercase',
           }}
         >
           Preview Hub
         </p>
+
+        {/* Quick-access links */}
+        <div
+          style={{
+            padding: '20px 24px',
+            background: 'rgba(232,92,0,0.08)',
+            border: '1px solid rgba(232,92,0,0.35)',
+            borderRadius: '12px',
+            marginBottom: '40px',
+          }}
+        >
+          <p style={{ margin: '0 0 12px', fontSize: '0.8rem', color: '#ffa060', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            🔗 Quick access
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={linkRowStyle}>
+              <span style={labelStyle}>Vercel (live)</span>
+              <a href={`${VERCEL_BASE}/preview`} target="_blank" rel="noreferrer" style={linkStyle}>
+                {VERCEL_BASE}/preview
+              </a>
+            </div>
+            <div style={linkRowStyle}>
+              <span style={labelStyle}>Local dev</span>
+              <a href={`${LOCAL_BASE}/preview`} target="_blank" rel="noreferrer" style={linkStyle}>
+                {LOCAL_BASE}/preview
+              </a>
+            </div>
+          </div>
+        </div>
 
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
           {routes.map(({ href, label, description, emoji }) => (
