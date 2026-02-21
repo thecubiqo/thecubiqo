@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CUBIQO — Hero WebGL</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  #ui {
+    position: fixed; top: 20px; left: 20px; z-index: 10;
+    background: rgba(0,0,0,.7); padding: 14px 18px; border-radius: 10px;
+    border: 1px solid rgba(232,92,0,.3); color: #ffa060; max-width: 260px;
+  }
+  #ui h1 { margin: 0 0 6px; font-size: 1.1rem; font-weight: 400; color: #fff; letter-spacing: .08em; }
+  #ui p  { margin: 0 0 8px; font-size: .78rem; line-height: 1.5; color: #aaa; }
+  #ui a  { font-size: .72rem; color: #8bb9fe; text-decoration: none; opacity: .7; }
+  #ui a:hover { opacity: 1; }
+  #status { display: inline-block; margin-top: 8px; padding: 4px 10px; border-radius: 5px;
+    font-size: .75rem; font-weight: 600; }
+  .loading { background: rgba(255,193,7,.18); color: #ffc107; }
+  .ok      { background: rgba(76,175,80,.18); color: #4caf50; }
+  .err     { background: rgba(244,67,54,.18); color: #f44336; }
+</style>
+</head>
+<body>
+<div id="ui">
+  <h1>✨ Hero WebGL</h1>
+  <p>Wave-thread shader · SoulCore sphere · CUBIQO wordmark</p>
+  <a href="index.html">← Back to hub</a>
+  <div id="status" class="loading">Loading…</div>
+</div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const status = document.getElementById('status');
+
+try {
+  /* ── renderer ──────────────────────────────────────────────── */
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true,
+    powerPreference: 'high-performance' });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  document.body.appendChild(renderer.domElement);
+  renderer.domElement.style.cssText = 'position:fixed;top:0;left:0;';
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 100);
+  camera.position.set(0, 1.6, 6.4);
+
+  /* ── lights ────────────────────────────────────────────────── */
+  scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+  const dir = new THREE.DirectionalLight(0xffffff, 1.1);
+  dir.position.set(3, 5, 2);
+  scene.add(dir);
+  const pt = new THREE.PointLight(0xffffff, 0.8);
+  pt.position.set(-3, 2, 2);
+  scene.add(pt);
+
+  /* ── wave threads ──────────────────────────────────────────── */
+  const ROWS = 42, COLS = 180, W = 9.2, D = 4.4;
+  const pos = [], aRow = [], aCol = [], idx = [];
+
+  for (let r = 0; r < ROWS; r++) {
+    const z = THREE.MathUtils.lerp(-D/2, D/2, r/(ROWS-1));
+    for (let c = 0; c < COLS; c++) {
+      const x = THREE.MathUtils.lerp(-W/2, W/2, c/(COLS-1));
+      pos.push(x, 0, z); aRow.push(r); aCol.push(c);
+    }
+  }
+  for (let r = 0; r < ROWS; r++) {
+    const s = r * COLS;
+    for (let c = 0; c < COLS-1; c++) idx.push(s+c, s+c+1);
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('aRow',     new THREE.Float32BufferAttribute(aRow, 1));
+  geo.setAttribute('aCol',     new THREE.Float32BufferAttribute(aCol, 1));
+  geo.setIndex(idx);
+
+  const waveUniforms = {
+    uTime:     { value: 0 },
+    uAmp:      { value: 0.52 },
+    uFreq:     { value: 1.15 },
+    uSpeed:    { value: 0.42 },
+    uSilverA:  { value: new THREE.Color(0.62, 0.64, 0.72) },
+    uSilverB:  { value: new THREE.Color(0.90, 0.91, 0.95) },
+    uAlpha:    { value: 0.75 },
+    uContrast: { value: 1.6 },
+  };
+
+  const waveMat = new THREE.ShaderMaterial({
+    uniforms: waveUniforms,
+    vertexShader: `
+      uniform float uTime; uniform float uAmp; uniform float uFreq; uniform float uSpeed;
+      attribute float aRow; attribute float aCol; varying float vGlow;
+      void main() {
+        vec3 p = position;
+        float t = uTime * uSpeed;
+        float w1 = sin((p.x*uFreq)+(aRow*0.18)+t);
+        float w2 = cos((p.z*(uFreq*0.85))+(aCol*0.10)+t*0.85);
+        p.y += (w1*0.55+w2*0.45)*uAmp;
+        p.x += sin(t*0.25+aRow*0.12)*(uAmp*0.12);
+        vGlow = abs(w1)*0.6+abs(w2)*0.4;
+        gl_Position = projectionMatrix*modelViewMatrix*vec4(p,1.0);
+      }`,
+    fragmentShader: `
+      uniform vec3 uSilverA; uniform vec3 uSilverB;
+      uniform float uAlpha; uniform float uContrast;
+      varying float vGlow;
+      void main() {
+        float g = clamp(pow(vGlow,uContrast),0.0,1.0);
+        vec3 col = mix(uSilverA,uSilverB,g);
+        gl_FragColor = vec4(col, uAlpha*(0.55+g*0.65));
+      }`,
+    transparent: true, depthWrite: false,
+  });
+
+  const threads = new THREE.LineSegments(geo, waveMat);
+  threads.position.y = -0.25;
+  scene.add(threads);
+
+  /* ── soul core ─────────────────────────────────────────────── */
+  const coreMat = new THREE.MeshStandardMaterial({
+    metalness: 1, roughness: 0.22,
+    color: new THREE.Color('#e85c00'),
+    emissive: new THREE.Color('#ff6a00'),
+    emissiveIntensity: 0.65,
+  });
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.22, 64, 64), coreMat);
+  core.position.set(0.2, 0.18 - 0.25, 0);
+  scene.add(core);
+
+  /* ── wordmark (canvas texture) ─────────────────────────────── */
+  function makeLetterSprite(letter, color) {
+    const cv = document.createElement('canvas');
+    cv.width = 128; cv.height = 128;
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, 128, 128);
+    ctx.font = 'bold 90px -apple-system, sans-serif';
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(letter, 64, 64);
+    const tex = new THREE.CanvasTexture(cv);
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(0.55, 0.55, 1);
+    return sprite;
+  }
+
+  const LETTERS = [
+    ['C', '#e85c00'], ['u', '#d9d9d9'], ['b', '#d9d9d9'],
+    ['i', '#d9d9d9'], ['Q', '#e85c00'], ['o', '#d9d9d9'], ['™', '#8a8a8a'],
+  ];
+  const SPACING = 0.52;
+  const TOTAL = LETTERS.length * SPACING;
+  const wGroup = new THREE.Group();
+  wGroup.position.set(-TOTAL / 2, 1.72 - 0.25, 0);
+  LETTERS.forEach(([l, col], i) => {
+    const sp = makeLetterSprite(l, col);
+    sp.position.x = i * SPACING;
+    if (l === '™') { sp.scale.multiplyScalar(0.38); sp.position.y = 0.22; }
+    wGroup.add(sp);
+  });
+  scene.add(wGroup);
+
+  status.textContent = '✓ Running';
+  status.className = 'ok';
+
+  /* ── animate ───────────────────────────────────────────────── */
+  const clock = new THREE.Clock();
+  (function animate() {
+    requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
+    waveUniforms.uTime.value = t;
+    core.scale.setScalar(1 + Math.sin(t * 1.1) * 0.05);
+    core.rotation.y = t * 0.25;
+    // gentle float for wordmark
+    wGroup.position.y = (1.72 - 0.25) + Math.sin(t * 0.65) * 0.04;
+    renderer.render(scene, camera);
+  })();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+} catch (e) {
+  status.textContent = '✗ ' + e.message;
+  status.className = 'err';
+  console.error(e);
+}
+</script>
+</body>
+</html>

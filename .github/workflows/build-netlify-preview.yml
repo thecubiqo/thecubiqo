@@ -1,0 +1,30 @@
+name: Build Netlify Preview Zip
+
+on:
+  push:
+    branches:
+      - 'copilot/preview-standalone-implementation'
+    paths:
+      - 'netlify-preview/**'
+  workflow_dispatch:
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Zip netlify-preview folder
+        run: |
+          cd netlify-preview
+          zip -r ../cubiqo-preview.zip .
+          cd ..
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cubiqo-netlify-preview
+          path: cubiqo-preview.zip
+          retention-days: 30
