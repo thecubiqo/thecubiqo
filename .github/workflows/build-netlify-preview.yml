@@ -1,0 +1,61 @@
+name: Build Netlify Preview Zip
+
+on:
+  push:
+    branches:
+      - 'copilot/preview-standalone-implementation'
+    paths:
+      - 'netlify-preview/**'
+  workflow_dispatch:
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Zip netlify-preview folder
+        run: |
+          cd netlify-preview
+          zip -r ../cubiqo-preview.zip .
+          cd ..
+          echo "SIZE=$(du -sh cubiqo-preview.zip | cut -f1)" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: cubiqo-netlify-preview
+          path: cubiqo-preview.zip
+          retention-days: 30
+
+      - name: Write job summary with download link
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          cat >> "$GITHUB_STEP_SUMMARY" << EOF
+          ## ✅ cubiqo-preview.zip is ready (${SIZE})
+
+          ### ⬇️ How to download
+
+          1. Scroll to the bottom of this page  
+             **or** open the run directly: ${RUN_URL}
+          2. Look for the **Artifacts** section at the very bottom
+          3. Click **cubiqo-netlify-preview** — it downloads as a zip
+
+          ### 🚀 Deploy to Netlify Drop
+
+          1. Unzip → you get a folder with \`index.html\`, \`neon-cube.html\`, \`hero-webgl.html\`, \`landing.html\`
+          2. Go to **https://netlify.com/drop**
+          3. Drag the **folder** (or re-zip it and drag the zip)
+
+          ### 📂 Pages inside
+
+          | File | Preview |
+          |---|---|
+          | \`index.html\` | Hub — links to all previews |
+          | \`neon-cube.html\` | Interactive neon glass cube |
+          | \`hero-webgl.html\` | Wave-thread shader + SoulCore + wordmark |
+          | \`landing.html\` | Particle starfield landing |
+          EOF
