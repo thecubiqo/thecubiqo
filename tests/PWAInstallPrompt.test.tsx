@@ -12,16 +12,12 @@ vi.mock('framer-motion', () => ({
 
 describe('PWAInstallPrompt', () => {
   let originalMatchMedia: typeof window.matchMedia
-  let originalLocalStorage: Storage
 
   beforeEach(() => {
     // Default: not standalone, not iOS
     originalMatchMedia = window.matchMedia
     window.matchMedia = vi.fn().mockReturnValue({ matches: false })
-
-    originalLocalStorage = window.localStorage
     localStorage.clear()
-
     Object.defineProperty(navigator, 'userAgent', {
       value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120',
       configurable: true,
@@ -55,9 +51,15 @@ describe('PWAInstallPrompt', () => {
       window.dispatchEvent(event)
     })
 
-    expect(screen.getByText('Install CubiQo')).toBeDefined()
-    expect(screen.getByText('Install App')).toBeDefined()
-    expect(screen.getByText('Not Now')).toBeDefined()
+    // Component has <h3>Install CubiQo</h3> and <button>Install CubiQo</button>
+    const installElements = screen.getAllByText('Install CubiQo')
+    expect(installElements.length).toBeGreaterThanOrEqual(1)
+    // The heading is an h3
+    expect(installElements.some(el => el.tagName === 'H3')).toBe(true)
+    // The action button
+    expect(installElements.some(el => el.tagName === 'BUTTON')).toBe(true)
+    // Dismiss button says "Later"
+    expect(screen.getByText('Later')).toBeDefined()
   })
 
   it('hides banner when dismissed and sets localStorage cooldown', async () => {
@@ -71,10 +73,12 @@ describe('PWAInstallPrompt', () => {
       window.dispatchEvent(event)
     })
 
-    expect(screen.getByText('Install CubiQo')).toBeDefined()
+    // Title heading appears in banner
+    const heading = screen.getAllByText('Install CubiQo').find(el => el.tagName === 'H3')
+    expect(heading).toBeDefined()
 
     await act(async () => {
-      fireEvent.click(screen.getByText('Not Now'))
+      fireEvent.click(screen.getByText('Later'))
     })
 
     expect(localStorage.getItem('pwa-install-dismissed')).toBeTruthy()
@@ -93,7 +97,7 @@ describe('PWAInstallPrompt', () => {
       window.dispatchEvent(event)
     })
 
-    expect(screen.queryByText('Install CubiQo')).toBeNull()
+    expect(screen.queryAllByText('Install CubiQo')).toHaveLength(0)
   })
 
   it('shows banner if dismiss cooldown has expired', async () => {
@@ -110,7 +114,8 @@ describe('PWAInstallPrompt', () => {
       window.dispatchEvent(event)
     })
 
-    expect(screen.getByText('Install CubiQo')).toBeDefined()
+    const installElements = screen.getAllByText('Install CubiQo')
+    expect(installElements.length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows iOS instructions on iOS Safari', async () => {
@@ -127,7 +132,7 @@ describe('PWAInstallPrompt', () => {
       vi.advanceTimersByTime(3500)
     })
 
-    expect(screen.getByText('Add to Home Screen')).toBeDefined()
+    expect(screen.getByText(/Add to Home Screen/i)).toBeDefined()
 
     vi.useRealTimers()
   })

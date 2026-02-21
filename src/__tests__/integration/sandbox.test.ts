@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { join } from 'path';
 import {
   sanitizeCommand,
   validatePath,
@@ -136,8 +137,11 @@ describe('Code Execution Sandbox', () => {
       const sessionId = 'test-session-123';
       const customRoot = '/custom/workspace';
       const workspaceDir = getWorkspaceDir(sessionId, customRoot);
-      expect(workspaceDir).toContain(customRoot);
+      // Use platform-agnostic check — join normalises separators
       expect(workspaceDir).toContain(sessionId);
+      // The returned dir must start with the custom root (normalised)
+      const normalisedRoot = join(customRoot); // normalises / vs \ on Windows
+      expect(workspaceDir.startsWith(normalisedRoot)).toBe(true);
     });
   });
 

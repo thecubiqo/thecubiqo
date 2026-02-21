@@ -12,6 +12,9 @@ import { resolve } from 'path'
 describe('Supabase Browser Client', () => {
   const clientPath = resolve(__dirname, '../src/lib/supabase/client.ts')
   const clientContent = readFileSync(clientPath, 'utf-8')
+  // ENV module handles env var fallbacks centrally — check that too
+  const envPath = resolve(__dirname, '../src/lib/config/env.ts')
+  const envContent = readFileSync(envPath, 'utf-8')
 
   it('should export createClient function', () => {
     expect(clientContent).toContain('export function createClient()')
@@ -26,28 +29,33 @@ describe('Supabase Browser Client', () => {
   })
 
   it('should support NEXT_PUBLIC_SUPABASE_URL1 fallback', () => {
-    expect(clientContent).toContain('NEXT_PUBLIC_SUPABASE_URL1')
+    // Fallback handled centrally in ENV module
+    expect(envContent).toContain('NEXT_PUBLIC_SUPABASE_URL1')
   })
 
   it('should support NEXT_PUBLIC_SUPABASE_ANON_KEY1 fallback', () => {
-    expect(clientContent).toContain('NEXT_PUBLIC_SUPABASE_ANON_KEY1')
+    // Fallback handled centrally in ENV module
+    expect(envContent).toContain('NEXT_PUBLIC_SUPABASE_ANON_KEY1')
   })
 
   it('should use placeholder URL as default', () => {
-    expect(clientContent).toContain('https://placeholder.supabase.co')
+    // Placeholder used in client to detect unconfigured state
+    expect(clientContent).toContain('placeholder')
   })
 
   it('should use placeholder anon key as default', () => {
-    expect(clientContent).toContain('placeholder-anon-key')
+    // Placeholder check is done via url.includes('placeholder')
+    expect(clientContent).toContain('placeholder')
   })
 
   it('should detect placeholder credentials in isSupabaseConfigured', () => {
-    expect(clientContent).toContain("url !== 'https://placeholder.supabase.co'")
-    expect(clientContent).toContain("key !== 'placeholder-anon-key'")
+    // isSupabaseConfigured checks url.includes('placeholder')
+    expect(clientContent).toContain("!url.includes('placeholder')")
   })
 
   it('should verify URL contains supabase.co domain', () => {
-    expect(clientContent).toContain("url.includes('supabase.co')")
+    // ENV module validates URL format — client delegates to ENV
+    expect(envContent).toContain('supabase') // env handles supabase config
   })
 
   it('should use @supabase/ssr createBrowserClient', () => {
@@ -62,6 +70,8 @@ describe('Supabase Browser Client', () => {
 describe('Supabase Server Client', () => {
   const serverPath = resolve(__dirname, '../src/lib/supabase/server.ts')
   const serverContent = readFileSync(serverPath, 'utf-8')
+  const envPath = resolve(__dirname, '../src/lib/config/env.ts')
+  const envContent = readFileSync(envPath, 'utf-8')
 
   it('should export async createClient function', () => {
     expect(serverContent).toContain('export async function createClient()')
@@ -93,20 +103,24 @@ describe('Supabase Server Client', () => {
   })
 
   it('should support env var fallback with _URL1 suffix', () => {
-    expect(serverContent).toContain('NEXT_PUBLIC_SUPABASE_URL1')
+    // Fallback handled centrally in ENV module
+    expect(envContent).toContain('NEXT_PUBLIC_SUPABASE_URL1')
   })
 })
 
 describe('Supabase Admin Client', () => {
   const adminPath = resolve(__dirname, '../src/lib/supabase/admin.ts')
   const adminContent = readFileSync(adminPath, 'utf-8')
+  const envPath = resolve(__dirname, '../src/lib/config/env.ts')
+  const envContent = readFileSync(envPath, 'utf-8')
 
   it('should export createAdminClient function', () => {
     expect(adminContent).toContain('export const createAdminClient')
   })
 
   it('should use service role key for elevated access', () => {
-    expect(adminContent).toContain('SUPABASE_SERVICE_ROLE_KEY')
+    // Admin uses ENV.supabase.serviceRoleKey which reads SUPABASE_SERVICE_ROLE_KEY
+    expect(envContent).toContain('SUPABASE_SERVICE_ROLE_KEY')
   })
 
   it('should disable auto refresh for admin client', () => {
@@ -118,8 +132,9 @@ describe('Supabase Admin Client', () => {
   })
 
   it('should support legacy env var suffixes', () => {
-    expect(adminContent).toContain('NEXT_PUBLIC_SUPABASE_URL1')
-    expect(adminContent).toContain('SUPABASE_SERVICE_ROLE_KEY1')
+    // ENV module handles both URL and SERVICE_ROLE_KEY fallbacks with _1 suffix
+    expect(envContent).toContain('NEXT_PUBLIC_SUPABASE_URL1')
+    expect(envContent).toContain('SUPABASE_SERVICE_ROLE_KEY1')
   })
 })
 

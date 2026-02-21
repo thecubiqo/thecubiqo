@@ -36,7 +36,7 @@ export async function saveCQNumber(data: Omit<CQNumber, 'id'>) {
     console.warn('Supabase not configured - saveCQNumber skipped');
     return null;
   }
-  
+
   const { data: result, error } = await supabase
     .from('cq_numbers')
     .insert({
@@ -130,6 +130,46 @@ export async function sendMessage(
     .single();
   if (error) throw error;
   return data as unknown as CQMessage;
+}
+
+export async function getMessages(
+  conversationId: string,
+  limit = 50,
+  before?: string
+): Promise<CQMessage[]> {
+  if (!supabase) {
+    console.warn('Supabase not configured - getMessages skipped');
+    return [];
+  }
+  let query = supabase
+    .from('cq_messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (before) {
+    query = query.lt('created_at', before);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return ((data || []) as unknown as CQMessage[]).reverse();
+}
+
+export async function markConversationAsRead(
+  conversationId: string,
+  userId: string
+): Promise<void> {
+  if (!supabase) {
+    console.warn('Supabase not configured - markConversationAsRead skipped');
+    return;
+  }
+  const { error } = await supabase
+    .from('cq_messages')
+    .update({ read_at: new Date().toISOString() })
+    .eq('conversation_id', conversationId)
+    .neq('sender_id', userId)
+    .is('read_at', null);
+  if (error) throw error;
 }
 
 // ==================== NOTIFICATIONS ====================

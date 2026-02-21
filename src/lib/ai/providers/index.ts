@@ -92,7 +92,7 @@ export function isOpenClawEnabled(): boolean {
 export const OPENCLAW_PROVIDER: ExtendedProviderConfig = {
   name: 'openclaw',
   displayName: 'OpenClaw (via Clawdbot)',
-  model: 'claude-3-5-sonnet-20241022',
+  model: 'emergent-claude/claude-sonnet-4-5',
   maxTokens: 4000,
   apiKeyEnv: 'OPENCLAW_API_KEY',
   baseUrl: process.env.OPENCLAW_BASE_URL || 'http://localhost:18789',
