@@ -28,7 +28,7 @@ export const LLAMA_CONFIG: ProviderConfig = {
 
 export const OPENAI_CONFIG: ProviderConfig = {
   name: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-3.5-turbo',
   maxTokens: 200,
   apiKeyEnv: 'OPENAI_API_KEY'
 }
@@ -40,8 +40,8 @@ export const CLAUDE_CONFIG: ProviderConfig = {
   apiKeyEnv: 'ANTHROPIC_API_KEY'
 }
 
-// Primary provider - MiniMax
-export const PRIMARY_PROVIDER = MINIMAX_CONFIG
+// Primary provider - OpenAI (MiniMax models deprecated)
+export const PRIMARY_PROVIDER = OPENAI_CONFIG
 
-// Fallback chain
-export const FALLBACK_PROVIDERS = [OPENAI_CONFIG, MIXTRAL_CONFIG, LLAMA_CONFIG, CLAUDE_CONFIG]
+// Fallback chain (MiniMax removed, others as fallbacks)
+export const FALLBACK_PROVIDERS = [MIXTRAL_CONFIG, LLAMA_CONFIG, CLAUDE_CONFIG]
