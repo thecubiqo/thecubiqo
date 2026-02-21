@@ -29,7 +29,10 @@ function createMockQueryBuilder(): Record<string, (...args: unknown[]) => unknow
   builder.single = async () => ({ data: null, error: mockError })
   builder.maybeSingle = async () => ({ data: null, error: null })
   builder.then = (...args: unknown[]) =>
-    Promise.resolve({ data: null, error: mockError }).then(args[0] as (value: unknown) => unknown)
+    Promise.resolve({ data: null, error: mockError }).then(
+      args[0] as ((value: unknown) => unknown) | undefined,
+      args[1] as ((reason: unknown) => unknown) | undefined
+    )
   return builder
 }
 

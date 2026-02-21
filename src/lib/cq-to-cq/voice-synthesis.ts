@@ -255,7 +255,7 @@ async function uploadAudioToStorage(audioBlob: Blob): Promise<string> {
   }
 
   // Get public URL
-  const { data: urlData } = supabase!.storage
+  const { data: urlData } = supabase.storage
     .from('cq-audio')
     .getPublicUrl(fileName);
 
