@@ -293,4 +293,345 @@ Of the four opportunities, **Opportunity 1 (Voice Parameter Modulation)** is the
 
 ---
 
+## Implementation Specifications — What to Build Before Filing Each Provisional
+
+These specifications describe the exact code changes that must be made before handing files to a patent attorney. They represent the "strengthening tweaks" that raise each opportunity's approval probability and broaden claim scope.
+
+### Specification 1 — Dual-Stage Mood Classifier (Opportunity 1)
+
+**Target file:** `src/lib/voice-modulation.ts`  
+**Target file:** `src/app/api/tts/route.ts`  
+**Implementation time:** 1 day
+
+```typescript
+// ADD to src/lib/voice-modulation.ts
+
+/**
+ * Stage 2 confirmation: LLM override for ambiguous mood classifications.
+ * Required before patent filing to distinguish from pure keyword-matching prior art.
+ */
+async function confirmMoodWithLLM(
+  text: string,
+  byoApiKey?: string
+): Promise<VoiceMood | null> {
+  const apiKey = byoApiKey ?? process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return null
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-3-5-haiku-20241022',
+      max_tokens: 10,
+      messages: [{
+        role: 'user',
+        content: `Classify the emotional tone of this text as exactly one word: intimate, candid, sincere, or neutral.\n\nText: "${text.slice(0, 200)}"\n\nReply with one word only.`
+      }]
+    })
+  })
+  const data = await response.json()
+  const word = data.content?.[0]?.text?.trim().toLowerCase()
+  const valid: VoiceMood[] = ['intimate', 'candid', 'sincere', 'neutral']
+  return valid.includes(word as VoiceMood) ? (word as VoiceMood) : null
+}
+
+/**
+ * PATENT-CRITICAL: Dual-stage mood classifier.
+ * Stage 1: keyword matching (O(n), no API call).
+ * Stage 2: LLM confirmation only for ambiguous inputs (< 2 keyword matches).
+ * 
+ * This two-stage pipeline is the novel contribution claimed in Provisional #1.
+ */
+export async function detectVoiceMoodDualStage(
+  text: string,
+  byoApiKey?: string
+): Promise<VoiceMood> {
+  const lowerText = text.toLowerCase()
+
+  // Stage 1: count keyword matches per category
+  const intimateScore = INTIMATE_MARKERS.reduce(
+    (n, m) => n + (lowerText.includes(m) ? 1 : 0), 0)
+  const candidScore   = CANDID_MARKERS.reduce(
+    (n, m) => n + (lowerText.includes(m) ? 1 : 0), 0)
+  const sincereScore  = SINCERE_MARKERS.reduce(
+    (n, m) => n + (lowerText.includes(m) ? 1 : 0), 0)
+
+  const maxScore = Math.max(intimateScore, candidScore, sincereScore)
+
+  // Stage 2: ambiguous → LLM confirmation
+  if (maxScore < 2) {
+    const llmMood = await confirmMoodWithLLM(text, byoApiKey)
+    if (llmMood) return llmMood
+  }
+
+  // Return keyword result (or neutral default)
+  if (maxScore === 0) return 'neutral'
+  if (intimateScore === maxScore) return 'intimate'
+  if (candidScore   === maxScore) return 'candid'
+  if (sincereScore  === maxScore) return 'sincere'
+  return 'neutral'
+}
+
+// Export marker arrays for use by confirmMoodWithLLM and tests
+export const INTIMATE_MARKERS = [
+  'whisper', 'softly', 'quietly', 'secret', 'between us',
+  'confession', 'vulnerable', 'intimate', 'close', 'personal', '❤️', '💕', '🥺'
+]
+export const CANDID_MARKERS = [
+  'haha', 'lol', 'hehe', 'funny', 'joke', 'kidding', 'casual',
+  'honestly', 'by the way', 'btw', 'anyway', 'literally', 'basically',
+  'like,', 'so,', '😂', '😄', '🤣', '😅'
+]
+export const SINCERE_MARKERS = [
+  'important', 'serious', 'understand', 'explain', 'however',
+  'therefore', 'consequently', 'significant', 'crucial',
+  'analysis', 'data', 'research', 'study', 'evidence'
+]
+```
+
+**Evidence packet for attorney:**
+- Full `voice-modulation.ts` with dual-stage classifier
+- Full `/api/tts/route.ts` showing integration
+- `VOICE_MODULATION.md` (documents the Madhyama Marg calibration philosophy)
+- Git timestamps of all three files (prior-creation evidence)
+
+---
+
+### Specification 2 — State-Parameterised Morph Speed (Opportunity 2)
+
+**Target file:** `src/components/cube/PlasmaWaveField.tsx`  
+**Implementation time:** 0.5 days
+
+```typescript
+// ADD to PlasmaWaveField.tsx — inside the PlasmaWaveField component
+
+/**
+ * PATENT-CRITICAL: State-parameterised morphology rate.
+ * Each AI state has a distinct morph speed, not just a distinct morph target.
+ * This is the novel element that distinguishes from simple "change shape on state" prior art.
+ */
+const MORPH_SPEEDS: Record<AIState, number> = {
+  neutral:   0.06,  // fast snap to wave (idle return)
+  listening: 0.04,  // moderate — attentive urgency
+  thinking:  0.02,  // slow — deliberate, pondering quality
+  speaking:  0.03,  // medium — confident, measured
+  error:     0.08,  // fast — alarm urgency
+}
+
+// Replace in useFrame callback:
+useFrame((state, delta) => {
+  if (!pointsRef.current) return
+
+  const speed = MORPH_SPEEDS[aiState]  // ← state-parameterised speed (NOVEL)
+  morphProgress.current = THREE.MathUtils.lerp(
+    morphProgress.current,
+    targetMorph.current,
+    speed                              // ← varies by state (not fixed)
+  )
+
+  // ... rest of existing useFrame logic unchanged
+})
+```
+
+**Evidence packet for attorney:**
+- Full `PlasmaWaveField.tsx` after tweak applied
+- `EnergyCubeScene.tsx` (shows the state machine mapping)
+- Screen recording of the morph running at 120K particles with voice active
+- `PARTICLE_COUNT = 120000` constant — establishes scale of technical contribution
+
+---
+
+### Specification 3 — Journal-to-Capsule Colour Sync Trigger (Opportunity 3)
+
+**New file:** `supabase/migrations/YYYYMMDD_journal_capsule_colour_sync.sql`  
+**Implementation time:** 2 days (SQL + API route)
+
+```sql
+-- supabase/migrations/20260222000001_journal_capsule_colour_sync.sql
+
+/**
+ * PATENT-CRITICAL: Closed-loop emotional state propagation.
+ * Journal entries (AI-companion observations) automatically update
+ * the user's RGY peer-discovery capsule colour.
+ * This creates the novel feedback loop:
+ *   AI observes state → encodes in peer discovery → matched on inferred state.
+ */
+
+CREATE OR REPLACE FUNCTION sync_capsule_color_from_journal(p_user_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  green_count  INTEGER := 0;
+  yellow_count INTEGER := 0;
+  red_count    INTEGER := 0;
+  dominant_color TEXT;
+BEGIN
+  -- Count journal entries by color_category over configurable lookback window
+  SELECT
+    COUNT(*) FILTER (WHERE color_category = 'green'),
+    COUNT(*) FILTER (WHERE color_category = 'yellow'),
+    COUNT(*) FILTER (WHERE color_category = 'red')
+  INTO green_count, yellow_count, red_count
+  FROM journal_entries
+  WHERE user_id = p_user_id
+    AND timestamp >= NOW() - INTERVAL '7 days';
+
+  -- argmax: dominant colour determines capsule state
+  IF green_count >= yellow_count AND green_count >= red_count THEN
+    dominant_color := 'green';
+  ELSIF red_count >= yellow_count THEN
+    dominant_color := 'red';
+  ELSE
+    dominant_color := 'yellow';
+  END IF;
+
+  -- Auto-update active capsule — no user input required (NOVEL)
+  UPDATE rgy_capsules
+  SET
+    color      = dominant_color,
+    updated_at = NOW()
+  WHERE user_id = p_user_id
+    AND is_active = true;
+END;
+$$;
+
+-- Trigger: fires on every journal INSERT (real-time state propagation)
+CREATE TRIGGER trg_journal_capsule_colour_sync
+AFTER INSERT ON journal_entries
+FOR EACH ROW
+EXECUTE FUNCTION sync_capsule_color_from_journal(NEW.user_id);
+
+COMMENT ON FUNCTION sync_capsule_color_from_journal IS
+  'Patent-critical: automatically propagates AI-companion journal emotional state
+   to peer-discovery capsule colour. Part of the novel closed-loop architecture.';
+```
+
+**Evidence packet for attorney:**
+- `20260218000200_rgy_capsules_and_matching.sql` (full pipeline)
+- `src/lib/rgy-matching/discovery-service.ts` (matching service)
+- The new trigger migration above
+- This shows the closed loop: AI companion → journal entries → capsule colour → peer matching
+
+---
+
+### Specification 4 — Safety Override Audit Trail (Opportunity 4)
+
+**New migration:** `supabase/migrations/YYYYMMDD_safety_override_log.sql`  
+**Target file:** `src/lib/ai/policy-router.ts`  
+**Implementation time:** 1 day
+
+```sql
+-- supabase/migrations/20260222000002_safety_override_log.sql
+
+/**
+ * PATENT-CRITICAL: Dedicated audit table for safety routing overrides.
+ * Separate from admin_audit_log — establishes the safety pre-processor
+ * as a distinct, auditable system component.
+ * Strengthens § 101 "something more" argument: concrete technical improvement
+ * to system safety auditability.
+ */
+
+CREATE TABLE IF NOT EXISTS safety_override_log (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          UUID        REFERENCES auth.users(id),  -- nullable (anon)
+  message_hash     TEXT        NOT NULL,  -- SHA-256 of message (privacy-safe)
+  original_zone    TEXT        NOT NULL,  -- zone before override
+  override_reason  TEXT        NOT NULL DEFAULT 'crisis_pattern_match',
+  pattern_matched  TEXT        NOT NULL,  -- which category matched
+  created_at       TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Admin-only read (security: no personal data, only hashes)
+ALTER TABLE safety_override_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "admin_read_safety_overrides" ON safety_override_log
+  FOR SELECT
+  USING (auth.jwt()->'app_metadata'->>'role' = 'admin');
+
+COMMENT ON TABLE safety_override_log IS
+  'Patent-critical: audit trail for safety routing overrides.
+   Records when the crisis pre-processor overrides zone-based model selection.
+   message_hash is SHA-256 of user message — raw content is never stored.';
+```
+
+```typescript
+// ADD to src/lib/ai/policy-router.ts — inside the route() method
+
+// PATENT-CRITICAL: Safety audit trail (add before filing Provisional #4)
+private static async logSafetyOverride(
+  userId: string | undefined,
+  originalZone: ZoneColor,
+  messageText: string,
+  patternCategory: string
+): Promise<void> {
+  try {
+    // Hash the message for privacy — never store raw user message
+    const msgBuffer = new TextEncoder().encode(messageText)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
+    const hashHex = Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0')).join('')
+
+    const supabase = await createClient()
+    await supabase.from('safety_override_log').insert({
+      user_id: userId ?? null,
+      message_hash: hashHex,
+      original_zone: originalZone,
+      override_reason: 'crisis_pattern_match',
+      pattern_matched: patternCategory,
+    })
+  } catch {
+    // Silently fail — safety override still executes even if logging fails
+  }
+}
+
+// In route() method, replace the crisis detection block with:
+if (selfHarmPatterns.test(lastMessageText)) {
+  console.log('[Router] High-risk intent detected. Routing to YELLOW support.')
+  await PolicyRouter.logSafetyOverride(     // ← ADD: audit trail
+    config.userId,
+    zone,
+    lastMessageText,
+    'self_harm_vocabulary'
+  )
+  zone = 'YELLOW'                           // ← existing: zone override
+  systemPrompt += " \nIMPORTANT: ..."       // ← existing: prompt injection
+}
+```
+
+**Evidence packet for attorney:**
+- Full `policy-router.ts` after audit trail added
+- The `safety_override_log` migration above
+- Git log showing the crisis detection was implemented before public disclosure
+- This diagram showing the override is pre-routing (before zone selection)
+
+---
+
+## Consolidated Evidence Checklist (Send to Attorney)
+
+Before the attorney begins drafting claims, assemble this packet:
+
+| Item | Source | Purpose |
+|------|--------|---------|
+| `voice-modulation.ts` (with dual-stage added) | `/src/lib/voice-modulation.ts` | Primary exhibit for Opp. 1 |
+| `/api/tts/route.ts` | `/src/app/api/tts/route.ts` | Integration exhibit for Opp. 1 |
+| `VOICE_MODULATION.md` | repo root | Madhyama Marg calibration philosophy |
+| `PlasmaWaveField.tsx` (with MORPH_SPEEDS added) | `/src/components/cube/` | Primary exhibit for Opp. 2 |
+| `EnergyCubeScene.tsx` | `/src/components/cube/` | State machine mapping for Opp. 2 |
+| 3D cube screen recording (MP4, timestamped) | record locally | Visual prior-creation evidence for Opp. 2 |
+| `20260218000200_rgy_capsules_and_matching.sql` | `/supabase/migrations/` | Primary exhibit for Opp. 3 |
+| `discovery-service.ts` | `/src/lib/rgy-matching/` | Matching service for Opp. 3 |
+| Journal→capsule trigger migration | new file | Closed-loop evidence for Opp. 3 |
+| `policy-router.ts` (with audit trail added) | `/src/lib/ai/` | Primary exhibit for Opp. 4 |
+| `safety_override_log` migration | new file | Audit trail evidence for Opp. 4 |
+| Git log (`git log --oneline --all`) | run in repo | Prior-creation dates for all |
+| `PATENT_FLOW_DIAGRAMS.md` | repo root | Technical diagrams for all 4 claims |
+
+---
+
 *This analysis was prepared based on direct inspection of the Cubiqo codebase and general knowledge of USPTO examination practice. It does not constitute legal advice. Retain a registered patent practitioner before filing any application.*
