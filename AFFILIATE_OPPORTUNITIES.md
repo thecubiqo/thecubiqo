@@ -38,6 +38,8 @@ Based on features in the codebase, Cubiqo serves five distinct user personas:
 | **Kajabi** | Online course creation, community, memberships | 30% lifetime recurring | ⭐ Recurring | 30 days | [kajabi.com/partners](https://kajabi.com/partners) |
 | **Teachable** | Online courses and coaching | 30% lifetime recurring | ⭐ Recurring | 90 days | [teachable.com/affiliates](https://teachable.com/affiliates) |
 | **ConvertKit (Kit)** | Email list + creator monetization | 30% recurring for 24 months | ⭐ Recurring | 90 days | [partners.kit.com](https://partners.kit.com/) |
+| **Beehiiv** 🆕 | Newsletter platform (Mailchimp replacement) | **60% recurring for 12 months** (as of Feb 2026) | ⭐ Recurring | 30 days | [beehiiv.com/partner](https://www.beehiiv.com/partner) |
+| **Adobe Creative Cloud** 🆕 | Design suite (Figma replacement for non-coders) | 85% of first month's subscription OR 8.33% of first year | 💰 One-time | 30 days | [adobe.com/affiliates](https://www.adobe.com/affiliates.html) |
 
 ---
 
@@ -54,6 +56,8 @@ Based on features in the codebase, Cubiqo serves five distinct user personas:
 | **Hostinger** | Web hosting for new site builders | Up to 60% per sale | 💰 One-time | 30 days | [hostinger.com/affiliates](https://www.hostinger.com/affiliates) |
 | **Jasper** | AI content writing (founders, creators) | 25% recurring | ⭐ Recurring | 30 days | [jasper.ai/affiliates](https://www.jasper.ai/affiliates) |
 | **Copy.ai** | AI copywriting for e-commerce, marketing | 30% recurring | ⭐ Recurring | 60 days | [copy.ai/affiliates](https://www.copy.ai/affiliates) |
+| **Lark** 🆕 | Team messaging (Slack replacement) | 10% of deal value — up to $10,000 per enterprise deal | 💰 One-time | 30 days | [larksuite.com/en_us/referral/ambassador](https://www.larksuite.com/en_us/referral/ambassador) |
+| **Apollo.io** 🆕 | Sales intelligence (LinkedIn Premium replacement) | 20% recurring per paid referral | ⭐ Recurring | 30 days | [apollo.io/partners/affiliates](https://www.apollo.io/partners/affiliates) |
 
 ---
 
@@ -71,6 +75,10 @@ Based on features in the codebase, Cubiqo serves five distinct user personas:
 | **Grammarly** | Writing assistant for professionals | $0.20/free signup + $20/Premium | 💰 One-time | 90 days | [grammarly.com/affiliates](https://www.grammarly.com/affiliates) |
 | **Pipedrive** | Sales CRM for founders | 20% recurring | ⭐ Recurring | 90 days | [pipedrive.com/en/affiliates](https://www.pipedrive.com/en/affiliates) |
 | **Thinkific** | Online course platform | 30% recurring (first year) | ⭐ Recurring | 90 days | [thinkific.com/affiliates](https://www.thinkific.com/affiliates/) |
+| **ClickUp** 🆕 | Project management (Notion replacement) | $25 per new free workspace referral (tiered bonuses for volume) | 💰 One-time | 30 days | [clickup.com/partners/affiliates](https://clickup.com/partners/affiliates) |
+| **Flock** 🆕 | Team messaging (Slack replacement) | 25% recurring for life of account | ⭐ Recurring (lifetime) | 30 days | [flock.com/partners](https://flock.com/) |
+| **Zoho Workplace** 🆕 | Business productivity suite (Google Workspace replacement) | 10–25% of first-year revenue (applied via partner program) | 💰 One-time | 30 days | [zoho.com/partners](https://www.zoho.com/partners/) |
+| **CodeRabbit** 🆕 | AI code review (bridges GitHub/GitLab/Bitbucket users) | $30 per lead/signup | 💰 One-time | 30 days | [partners.dub.co/coderabbit](https://partners.dub.co/coderabbit) |
 
 ---
 
@@ -150,22 +158,34 @@ Assuming 500 active users, 3% click-through, 10% conversion on clicks:
 
 ---
 
-## ❌ High-Traffic Tools With No Affiliate Programs
+## 🔄 Apps With No Affiliate Program — And Their Best-Paying Alternatives
 
-These apps Cubiqo users commonly use but have no affiliate program (or very low commission):
+For each of the 10 high-traffic apps that have **no affiliate program**, the table below gives the best-paying alternative(s) that Cubiqo can recommend instead. Where two strong options exist, both are listed as Primary and Secondary. Commission rates verified February 2026.
 
-| App | Why No Program | Alternative to Promote |
-|-----|----------------|------------------------|
-| Notion | Deprecated affiliate program | Craft, Coda ($25/referral via PartnerStack) |
-| Slack | No affiliate | Microsoft Teams (no program either) |
-| Figma | No affiliate | Canva Pro (strong program) |
-| Google Workspace | No affiliate | Zoho Workplace (15% recurring) |
-| Mailchimp | No public affiliate | ConvertKit or ActiveCampaign (30%) |
-| LinkedIn Premium | No affiliate | Loom, Grammarly |
-| GitHub | No affiliate | GitLab (15% recurring) |
-| Ahrefs | Program closed 2019 | Semrush ($200+/sale) |
-| Twilio | No affiliate | None direct — skip |
-| Stripe | No affiliate (partner only) | Square (no affiliate either) |
+| App Users Love | Why No Program | ✅ Best Alternative to Recommend | Commission | Type | Why This Alternative Wins |
+|---------------|----------------|----------------------------------|-----------|------|--------------------------|
+| **Notion** | Deprecated program (inactive since 2022) | **ClickUp** *(primary)* · **Coda** *(doc-heavy teams)* | ClickUp: $25/workspace signup · Coda: 10–30% first-year revenue (PartnerStack) | One-time | ClickUp for general PM users; Coda for teams needing Notion's "page-as-app" depth |
+| **Slack** | No public affiliate program | **Lark** *(enterprise, up to $10K/deal)* · **Flock** *(SMB, 25% lifetime recurring)* | Lark: 10% of deal value · Flock: 25% recurring for life | One-time / Recurring | Lark for B2B enterprise deals; Flock for small teams with high recurring value |
+| **Figma** | No affiliate program | **Adobe Creative Cloud** | **85% of first month** OR 8.33% of first year | One-time | The #1 Figma alternative by market share; massive per-sale value |
+| **Figma** (casual users — secondary) | — | **Canva Pro** | $36/subscriber | One-time | Already in Tier 3; ideal for non-designers switching from Figma |
+| **Google Workspace** | No affiliate program | **Zoho Workplace** | 10–25% of first-year revenue | One-time | Google Workspace features at 1/5th the price; huge SMB addressable market |
+| **Google Workspace** (enterprise — secondary) | — | **Microsoft 365** | 10–15% of first-year revenue (via Microsoft Partner Center) | One-time | Same scale, higher per-seat price = higher $ commission |
+| **Mailchimp** | Ended public affiliate program | **Beehiiv** | **60% recurring for 12 months** — highest in email/newsletter category | Recurring | Creator-first newsletter platform; explosive growth; best-in-class commission |
+| **Mailchimp** (secondary) | — | **ConvertKit (Kit)** | 30% recurring for 24 months | Recurring | Already in Tier 1; ideal upsell for Social Army + creator users |
+| **LinkedIn Premium** | No affiliate program | **Apollo.io** | 20% recurring per paid referral (PartnerStack) | Recurring | Sales intelligence + prospecting — replaces LinkedIn Sales Navigator |
+| **LinkedIn Premium** (secondary) | — | **Superhuman** | Rewards-based (apply to partner program for rates) | Negotiated | Premium email for power professionals; high-intent audience match |
+| **GitHub** | No affiliate program | **CodeRabbit** | $30 per lead/signup | One-time | AI code review that integrates with GitHub, GitLab, Bitbucket — developer native |
+| **GitHub** (hosting angle — secondary) | — | **DigitalOcean** | $25 credit per referred account (referral) + partner program | One-time | Dev hosting; 1-click app deployments; beloved by indie builders |
+| **Ahrefs** | Affiliate program closed 2019 | **Semrush** | $200–$450/sale + $10/free trial | One-time (tiered) | Already in Tier 1; direct functional replacement for Ahrefs |
+| **Twilio** | No public affiliate program (enterprise sales only) | **Plivo** | Revenue share (negotiated via Plivo partner program) | Negotiated | Cheaper Twilio alternative with simpler API; developer-friendly |
+| **Twilio** (secondary) | — | **Vonage / Bird** | Revenue share (negotiated) | Negotiated | Omnichannel messaging (SMS + WhatsApp + Voice); partner program available |
+| **Stripe** | No affiliate (partner network only) | **Paddle** | Revenue share per referred SaaS business (negotiated) | Negotiated | MoR with built-in global tax handling; popular with SaaS founders |
+
+### 🌟 Hidden Gem: Beehiiv
+
+**60% recurring for 12 months** (as of Feb 2026) makes Beehiiv the highest-paying affiliate in the email/newsletter category — above HubSpot (30%) and ConvertKit (30%). Every Cubiqo user building a Social Army audience needs a newsletter. This is a natural, high-converting recommendation.
+
+Affiliate sign-up: [beehiiv.com/partner](https://www.beehiiv.com/partner)
 
 ---
 
@@ -199,6 +219,8 @@ These apps Cubiqo users commonly use but have no affiliate program (or very low 
 | Monday.com | 100% first / 25% recurring | Both | All | 🔥🔥🔥🔥🔥 |
 | ConvertKit | 30% × 24mo | Recurring | Creators | 🔥🔥🔥🔥🔥 |
 | Kajabi | 30% lifetime | Recurring | Creators | 🔥🔥🔥🔥🔥 |
+| **Beehiiv** 🆕 | **60% × 12mo** | Recurring | Creators | 🔥🔥🔥🔥🔥 |
+| **Adobe Creative Cloud** 🆕 | **85% first month** | One-time | Designers | 🔥🔥🔥🔥🔥 |
 | Teachable | 30% lifetime | Recurring | Creators | 🔥🔥🔥🔥 |
 | Shopify | $150/store | One-time | E-Commerce | 🔥🔥🔥🔥 |
 | Printful | 10% × 12mo | Recurring | E-Commerce | 🔥🔥🔥🔥 |
@@ -206,13 +228,19 @@ These apps Cubiqo users commonly use but have no affiliate program (or very low 
 | Surfer SEO | 25% recurring | Recurring | Founders, Creators | 🔥🔥🔥🔥 |
 | NordVPN | 30–40% recurring | Recurring | Privacy users | 🔥🔥🔥🔥 |
 | Hostinger | 60% per sale | One-time | Devs | 🔥🔥🔥🔥 |
+| **Lark** 🆕 | 10% / up to $10K per deal | One-time | All teams | 🔥🔥🔥🔥 |
+| **Apollo.io** 🆕 | 20% recurring | Recurring | Founders, Sales | 🔥🔥🔥🔥 |
 | Jasper | 25% recurring | Recurring | Creators | 🔥🔥🔥 |
 | Copy.ai | 30% recurring | Recurring | Creators | 🔥🔥🔥 |
 | Printify | 5% × 12mo | Recurring | E-Commerce | 🔥🔥🔥 |
 | Canva Pro | $36/subscriber | One-time | All | 🔥🔥🔥 |
 | Pipedrive | 20% recurring | Recurring | Founders | 🔥🔥🔥 |
 | Gusto | $100–$300/referral | One-time | Founders | 🔥🔥🔥 |
-| Thinkific | 30% × 1yr | Recurring | Creators | 🔥��🔥 |
+| **ClickUp** 🆕 | $25/workspace signup | One-time | All | 🔥🔥🔥 |
+| **Flock** 🆕 | 25% recurring lifetime | Recurring | SMB teams | 🔥🔥🔥 |
+| **Zoho Workplace** 🆕 | 10–25% first year | One-time | Founders, SMBs | 🔥🔥🔥 |
+| **CodeRabbit** 🆕 | $30/lead | One-time | Devs | 🔥🔥🔥 |
+| Thinkific | 30% × 1yr | Recurring | Creators | 🔥🔥🔥 |
 | FreshBooks | $55/upgrade | One-time | Freelancers | 🔥🔥 |
 | QuickBooks | $50–$75/sale | One-time | Founders | 🔥🔥 |
 | Buffer | 20% recurring | Recurring | Creators | 🔥🔥 |
