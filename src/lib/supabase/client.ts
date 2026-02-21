@@ -25,10 +25,34 @@ export function createClient() {
   if (!client) {
     // Support both old and new env var names with fallback
     // Note: The "1" suffix is per legacy naming convention for backward compatibility
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    client = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
+    // Only create client if we have real credentials
+    if (supabaseUrl && supabaseAnonKey && 
+        supabaseUrl !== 'https://placeholder.supabase.co' &&
+        supabaseAnonKey !== 'placeholder-anon-key' &&
+        supabaseUrl.includes('supabase.co')) {
+      client = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
+    } else {
+      // Return a mock client that won't crash but will fail gracefully
+      console.warn('Supabase not properly configured - using mock client');
+      client = {
+        auth: {
+          getUser: async () => ({ data: { user: null }, error: null }),
+          signInWithOtp: async () => ({ error: new Error('Supabase not configured') }),
+          signOut: async () => ({ error: null }),
+          onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+        },
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              single: async () => ({ data: null, error: new Error('Supabase not configured') })
+            })
+          })
+        })
+      } as any;
+    }
   }
 
   return client

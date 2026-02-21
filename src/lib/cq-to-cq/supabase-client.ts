@@ -18,14 +18,25 @@ import type {
 } from './types';
 
 // Initialize Supabase client (configure with your project URL and key)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create Supabase client only if credentials are available
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
+
+// Helper to check if Supabase is configured
+export const isSupabaseConfigured = () => !!supabase;
 
 // ==================== CQ NUMBERS ====================
 
 export async function saveCQNumber(data: Omit<CQNumber, 'id'>) {
+  if (!supabase) {
+    console.warn('Supabase not configured - saveCQNumber skipped');
+    return null;
+  }
+  
   const { data: result, error } = await supabase
     .from('cq_numbers')
     .insert({
