@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { ENV } from '@/lib/config/env'
 
 const supabaseAdmin = createClient(
-  ENV.supabase.url,
+  ENV.supabase.url || 'https://placeholder.supabase.co',
   ENV.supabase.serviceRoleKey || 'placeholder-key'
 )
 

@@ -4,8 +4,8 @@ import { ENV } from '@/lib/config/env'
 // Use a service role client for authenticator management to bypass RLS for inserts/updates
 // and to access auth.users
 const supabaseAdmin = createClient(
-    ENV.supabase.url,
-    ENV.supabase.serviceRoleKey!,
+    ENV.supabase.url || 'https://placeholder.supabase.co',
+    ENV.supabase.serviceRoleKey || 'placeholder-key',
     {
         auth: {
             autoRefreshToken: false,

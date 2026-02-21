@@ -239,6 +239,10 @@ async function uploadAudioToStorage(audioBlob: Blob): Promise<string> {
 
   const fileName = `cq-voice/${Date.now()}-${Math.random().toString(36).substring(7)}.mp3`;
 
+  if (!supabase) {
+    throw new Error('Supabase not configured - cannot upload audio');
+  }
+
   const { data, error } = await supabase.storage
     .from('cq-audio')
     .upload(fileName, audioBlob, {

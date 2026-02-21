@@ -9,7 +9,10 @@ import OpenAI from 'openai';
 import { ENV } from '@/lib/config/env'
 
 // Initialize clients
-const supabase = createClient(ENV.supabase.url, ENV.supabase.serviceRoleKey!);
+const supabase = createClient(
+  ENV.supabase.url || 'https://placeholder.supabase.co',
+  ENV.supabase.serviceRoleKey || 'placeholder-key'
+);
 const openai = ENV.ai.openai ? new OpenAI({ apiKey: ENV.ai.openai }) : null;
 
 // Types
