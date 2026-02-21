@@ -38,7 +38,7 @@ describe('Security Headers', () => {
 
     it('should allow camera and microphone for same origin', () => {
       const headers = getSecurityHeaders();
-      
+
       expect(headers['Permissions-Policy']).toContain('camera=(self)');
       expect(headers['Permissions-Policy']).toContain('microphone=(self)');
     });
@@ -68,6 +68,14 @@ describe('Security Headers', () => {
       expect(csp).toContain('supabase.co');
       expect(csp).toContain('api.openai.com');
       expect(csp).toContain('api.anthropic.com');
+    });
+
+    it('should allow blob and data URIs for media sources', () => {
+      const csp = getContentSecurityPolicy();
+
+      expect(csp).toContain('media-src');
+      expect(csp).toContain('blob:');
+      expect(csp).toContain('data:');
     });
   });
 
