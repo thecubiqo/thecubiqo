@@ -1,7 +1,18 @@
 'use client'
 
-import NeonGlassCube from '@/components/NeonGlassCube'
+import dynamic from 'next/dynamic'
 import { useState, useEffect } from 'react'
+
+/**
+ * NeonGlassCube uses Three.js + OrbitControls which are not SSR-safe.
+ * Loaded dynamically with ssr: false.
+ */
+const cubeLoadingEl = <div style={{ width: '100%', minHeight: '60vh', background: '#050814' }} />
+
+const NeonGlassCube = dynamic(
+  () => import('@/components/NeonGlassCube'),
+  { ssr: false, loading: () => cubeLoadingEl }
+)
 
 export default function NeonCubePreview() {
   const [dimensions, setDimensions] = useState({ width: 600, height: 600 })
