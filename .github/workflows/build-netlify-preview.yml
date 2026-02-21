@@ -42,13 +42,14 @@ jobs:
           1. Scroll to the bottom of this page  
              **or** open the run directly: ${RUN_URL}
           2. Look for the **Artifacts** section at the very bottom
-          3. Click **cubiqo-netlify-preview** — it downloads as a zip
+          3. Click **cubiqo-netlify-preview** — it downloads as \`cubiqo-netlify-preview.zip\`
 
-          ### 🚀 Deploy to Netlify Drop
+          ### 🚀 Deploy to Netlify Drop (2 steps)
 
-          1. Unzip → you get a folder with \`index.html\`, \`neon-cube.html\`, \`hero-webgl.html\`, \`landing.html\`
-          2. Go to **https://netlify.com/drop**
-          3. Drag the **folder** (or re-zip it and drag the zip)
+          1. Go to **https://netlify.com/drop**
+          2. Drag the downloaded **\`cubiqo-netlify-preview.zip\`** straight onto the page — done ✅
+
+          > Netlify Drop accepts the zip file directly. No extraction needed.
 
           ### 📂 Pages inside
 
