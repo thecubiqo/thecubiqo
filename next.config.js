@@ -15,7 +15,7 @@ const nextConfig = {
       '@xterm/addon-fit': './src/lib/stubs/optional-package.ts',
     },
   },
-  // Mark optional server-side packages as external so they are not bundled
+  // Server-only packages that should not be bundled by Turbopack/webpack
   serverExternalPackages: ['dockerode', 'ioredis'],
 };
 
