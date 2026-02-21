@@ -58,6 +58,7 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
     'geolocation=()',
     'interest-cohort=()'
   ].join(', '))
+
   // Strict Transport Security - enforce HTTPS (only in production)
   if (process.env.NODE_ENV === 'production') {
     headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
@@ -77,33 +78,40 @@ export async function middleware(request: NextRequest) {
     request,
   })
 
-  const supabase = createServerClient(
-    ENV.supabase.url,
-    ENV.supabase.anonKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
+  const { url, anonKey } = ENV.supabase;
+
+  // Only initialize Supabase if credentials are available
+  if (url && anonKey && !url.includes('placeholder')) {
+    const supabase = createServerClient(
+      url,
+      anonKey,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              request.cookies.set(name, value)
+              supabaseResponse.cookies.set(name, value, options)
+            })
+          },
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value)
-            supabaseResponse.cookies.set(name, value, options)
-          })
-        },
-      },
+      }
+    )
+
+    // CRITICAL: Refresh session on every request
+    // This ensures magic-link redirects immediately reflect authenticated state
+    // getUser() will automatically refresh expired sessions and update cookies
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    // Optional: Add debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      const pathname = request.nextUrl.pathname
+      console.log(`[Middleware] ${pathname} - User: ${user ? user.id : 'guest'}`)
     }
-  )
-
-  // CRITICAL: Refresh session on every request
-  // This ensures magic-link redirects immediately reflect authenticated state
-  // getUser() will automatically refresh expired sessions and update cookies
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // Optional: Add debug logging in development
-  if (process.env.NODE_ENV === 'development') {
-    const pathname = request.nextUrl.pathname
-    console.log(`[Middleware] ${pathname} - User: ${user ? user.id : 'guest'}`)
+  } else {
+    console.warn('Supabase credentials not configured - authentication disabled')
   }
 
   // Apply security headers to the response

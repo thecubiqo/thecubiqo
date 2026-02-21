@@ -15,7 +15,30 @@ export function isSupabaseConfigured(): boolean {
 
 export function createClient() {
   if (!client) {
-    client = createBrowserClient<Database>(ENV.supabase.url, ENV.supabase.anonKey)
+    const { url, anonKey } = ENV.supabase;
+    
+    // Only create client if we have real credentials
+    if (url && anonKey && !url.includes('placeholder')) {
+      client = createBrowserClient<Database>(url, anonKey)
+    } else {
+      // Return a mock client that won't crash but will fail gracefully
+      console.warn('Supabase not properly configured - using mock client');
+      client = {
+        auth: {
+          getUser: async () => ({ data: { user: null }, error: null }),
+          signInWithOtp: async () => ({ error: new Error('Supabase not configured') }),
+          signOut: async () => ({ error: null }),
+          onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+        },
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              single: async () => ({ data: null, error: new Error('Supabase not configured') })
+            })
+          })
+        })
+      } as any;
+    }
   }
   return client
 }
