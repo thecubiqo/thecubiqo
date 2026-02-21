@@ -54,11 +54,10 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   // Permissions policy - restrict browser features
   headers.set('Permissions-Policy', [
     'camera=()',
-    'microphone=()',
+    'microphone=*',
     'geolocation=()',
     'interest-cohort=()'
   ].join(', '))
-
   // Strict Transport Security - enforce HTTPS (only in production)
   if (process.env.NODE_ENV === 'production') {
     headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
@@ -73,7 +72,7 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   return response
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })

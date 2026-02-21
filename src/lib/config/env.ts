@@ -16,9 +16,10 @@ function cleanEnv(val: string | undefined): string | undefined {
 
 export const ENV = {
     supabase: {
-        url: cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL1) || 'https://naoxezcmcauecawchgjk.supabase.co',
-        anonKey: cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1) || 'placeholder-anon-key',
-        serviceRoleKey: cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY1) || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        // No hardcoded defaults - must be set in the environment to prevent accidental staging connections on production
+        url: cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL1),
+        anonKey: cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1),
+        serviceRoleKey: cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY1),
     },
     ai: {
         minimax: cleanEnv(process.env.MINIMAX_KEY || process.env.MINIMAX_API_KEY),
