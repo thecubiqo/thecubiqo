@@ -26,6 +26,7 @@ export const ENV = {
         openai: cleanEnv(process.env.OPENAI_API_KEY),
         mistral: cleanEnv(process.env.MISTRAL_API_KEY),
         together: cleanEnv(process.env.TOGETHER_API_KEY),
+        openclaw: cleanEnv(process.env.OPENCLAW_API_KEY || process.env.OPENROUTER_KEY_CUBIKEY),
     },
     voice: {
         elevenlabs: cleanEnv(process.env.ELEVENLABS_API_KEY || process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY),

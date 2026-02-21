@@ -1,14 +1,11 @@
-/**
- * OpenClaw Integration
- * Routes AI calls through Clawdbot for tool use, memory, and enhanced capabilities
- */
+import { ENV } from '@/lib/config/env'
 
 export const OPENCLAW_CONFIG = {
   name: 'openclaw',
   baseUrl: process.env.OPENCLAW_BASE_URL || 'http://localhost:18789',
-  model: 'emergent-claude/claude-sonnet-4-5', // or any model configured in Clawdbot
+  model: 'claude-3-5-sonnet-20241022', // Standard capable model for Clawdbot
   maxTokens: 4000,
-  apiKeyEnv: 'OPENCLAW_API_KEY' // Also supports OPENROUTER_KEY_CUBIKEY as fallback
+  apiKeyEnv: 'OPENCLAW_API_KEY'
 }
 
 /**
@@ -20,7 +17,7 @@ export async function callOpenClaw(
   apiKey?: string | null
 ): Promise<string> {
   // Support both old and new env var names with fallback
-  const key = apiKey || process.env.OPENROUTER_KEY_CUBIKEY || process.env.OPENCLAW_API_KEY
+  const key = apiKey || ENV.ai.openclaw
   const baseUrl = process.env.OPENCLAW_BASE_URL || 'http://localhost:18789'
 
   if (!key) {
@@ -57,7 +54,7 @@ export async function callOpenClaw(
   }
 
   const data = await response.json()
-  
+
   // Extract the response text from OpenAI-compatible format
   return data.choices[0]?.message?.content || ''
 }
