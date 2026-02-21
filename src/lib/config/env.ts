@@ -27,6 +27,7 @@ export const ENV = {
         mistral: cleanEnv(process.env.MISTRAL_API_KEY),
         together: cleanEnv(process.env.TOGETHER_API_KEY),
         openclaw: cleanEnv(process.env.OPENCLAW_API_KEY || process.env.OPENROUTER_KEY_CUBIKEY),
+        openrouter: cleanEnv(process.env.CUBIQO_UNIVERSAL_KEY || process.env.OPENROUTER_KEY || process.env.MULTIVA_CUBI_KEY || process.env.OPENROUTER_KEY_CUBIKEY || process.env.OPENROUTER_API_KEY),
     },
     voice: {
         elevenlabs: cleanEnv(process.env.ELEVENLABS_API_KEY || process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY),
