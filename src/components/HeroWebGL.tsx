@@ -1,9 +1,10 @@
 'use client'
 
 import * as THREE from 'three'
-import React, { useMemo, useRef } from 'react'
+import React, { Suspense, useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Environment, Float, Text } from '@react-three/drei'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 /**
  * Premium animated "threads" using a custom shader on a line field:
@@ -57,10 +58,14 @@ const fragmentShader = `
   }
 `
 
+// Inter font from jsDelivr (reliable CDN, no CORS issues)
+const FONT_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-400-normal.woff'
+
 function WaveThreads() {
   const materialRef = useRef<THREE.ShaderMaterial>(null)
 
-  const { geometry } = useMemo(() => {
+  // Memoize geometry — only built once
+  const geometry = useMemo(() => {
     const rows = 42
     const cols = 180
     const width = 9.2
@@ -93,14 +98,23 @@ function WaveThreads() {
     geo.setAttribute('aRow', new THREE.Float32BufferAttribute(aRow, 1))
     geo.setAttribute('aCol', new THREE.Float32BufferAttribute(aCol, 1))
     geo.setIndex(indices)
-
-    return { geometry: geo }
+    return geo
   }, [])
 
+  // Memoize uniforms — stable object so R3F doesn't re-assign the whole map each render
+  const uniforms = useMemo(() => ({
+    uTime:     { value: 0 },
+    uAmp:      { value: 0.52 },
+    uFreq:     { value: 1.15 },
+    uSpeed:    { value: 0.42 },
+    uSilverA:  { value: new THREE.Color(0.62, 0.64, 0.72) },
+    uSilverB:  { value: new THREE.Color(0.90, 0.91, 0.95) },
+    uAlpha:    { value: 0.75 },
+    uContrast: { value: 1.6 },
+  }), [])
+
   useFrame(({ clock }) => {
-    if (materialRef.current) {
-      materialRef.current.uniforms.uTime.value = clock.getElapsedTime()
-    }
+    uniforms.uTime.value = clock.getElapsedTime()
   })
 
   return (
@@ -109,16 +123,7 @@ function WaveThreads() {
         ref={materialRef}
         vertexShader={vertexShader}
         fragmentShader={fragmentShader}
-        uniforms={{
-          uTime:     { value: 0 },
-          uAmp:      { value: 0.52 },
-          uFreq:     { value: 1.15 },
-          uSpeed:    { value: 0.42 },
-          uSilverA:  { value: new THREE.Color(0.62, 0.64, 0.72) },
-          uSilverB:  { value: new THREE.Color(0.90, 0.91, 0.95) },
-          uAlpha:    { value: 0.75 },
-          uContrast: { value: 1.6 },
-        }}
+        uniforms={uniforms}
         transparent
         depthWrite={false}
       />
@@ -158,37 +163,37 @@ function Wordmark3D() {
   return (
     <group position={[-1.35, y, 0]}>
       <Float speed={0.65} rotationIntensity={0.08} floatIntensity={0.08}>
-        <Text fontSize={0.55} anchorX="left" anchorY="middle" position={[0 * spacing, 0, 0]}>
+        <Text font={FONT_URL} fontSize={0.55} anchorX="left" anchorY="middle" position={[0 * spacing, 0, 0]}>
           {'C'}
           <meshStandardMaterial metalness={1} roughness={0.16} color="#e85c00" emissive="#ff6a00" emissiveIntensity={0.18} />
         </Text>
 
-        <Text fontSize={0.55} anchorX="left" anchorY="middle" position={[1 * spacing, 0, 0]}>
+        <Text font={FONT_URL} fontSize={0.55} anchorX="left" anchorY="middle" position={[1 * spacing, 0, 0]}>
           {'u'}
           <meshStandardMaterial metalness={1} roughness={0.18} color="#d9d9d9" />
         </Text>
 
-        <Text fontSize={0.55} anchorX="left" anchorY="middle" position={[2 * spacing, 0, 0]}>
+        <Text font={FONT_URL} fontSize={0.55} anchorX="left" anchorY="middle" position={[2 * spacing, 0, 0]}>
           {'b'}
           <meshStandardMaterial metalness={1} roughness={0.18} color="#d9d9d9" />
         </Text>
 
-        <Text fontSize={0.55} anchorX="left" anchorY="middle" position={[3 * spacing, 0, 0]}>
+        <Text font={FONT_URL} fontSize={0.55} anchorX="left" anchorY="middle" position={[3 * spacing, 0, 0]}>
           {'i'}
           <meshStandardMaterial metalness={1} roughness={0.18} color="#d9d9d9" />
         </Text>
 
-        <Text fontSize={0.55} anchorX="left" anchorY="middle" position={[4 * spacing, 0, 0]}>
+        <Text font={FONT_URL} fontSize={0.55} anchorX="left" anchorY="middle" position={[4 * spacing, 0, 0]}>
           {'Q'}
           <meshStandardMaterial metalness={1} roughness={0.16} color="#e85c00" emissive="#ff6a00" emissiveIntensity={0.18} />
         </Text>
 
-        <Text fontSize={0.55} anchorX="left" anchorY="middle" position={[5 * spacing, 0, 0]}>
+        <Text font={FONT_URL} fontSize={0.55} anchorX="left" anchorY="middle" position={[5 * spacing, 0, 0]}>
           {'o'}
           <meshStandardMaterial metalness={1} roughness={0.18} color="#d9d9d9" />
         </Text>
 
-        <Text fontSize={0.18} anchorX="left" anchorY="middle" position={[5.8 * spacing, 0.22, 0]}>
+        <Text font={FONT_URL} fontSize={0.18} anchorX="left" anchorY="middle" position={[5.8 * spacing, 0.22, 0]}>
           {'™'}
           <meshStandardMaterial metalness={0.4} roughness={0.6} color="#8a8a8a" />
         </Text>
@@ -204,10 +209,16 @@ function Scene() {
       <directionalLight position={[3, 5, 2]} intensity={1.1} />
       <pointLight position={[-3, 2, 2]} intensity={0.8} />
 
-      <Environment preset="city" />
+      {/* Environment map loaded async — needs Suspense */}
+      <Suspense fallback={null}>
+        <Environment preset="city" />
+      </Suspense>
 
       <group position={[0, -0.25, 0]}>
-        <Wordmark3D />
+        {/* Wordmark fonts loaded async — needs Suspense */}
+        <Suspense fallback={null}>
+          <Wordmark3D />
+        </Suspense>
         <WaveThreads />
         <SoulCore />
       </group>
@@ -221,14 +232,17 @@ interface HeroWebGLProps {
 
 export default function HeroWebGL({ height = '520px' }: HeroWebGLProps) {
   return (
-    <div style={{ width: '100%', height, background: '#000' }}>
-      <Canvas
-        camera={{ position: [0, 1.6, 6.4], fov: 42 }}
-        dpr={[1, 2]}
-        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-      >
-        <Scene />
-      </Canvas>
-    </div>
+    <ErrorBoundary>
+      <div style={{ width: '100%', height, background: '#000' }}>
+        <Canvas
+          camera={{ position: [0, 1.6, 6.4], fov: 42 }}
+          dpr={[1, 2]}
+          gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+        >
+          <Scene />
+        </Canvas>
+      </div>
+    </ErrorBoundary>
   )
 }
+

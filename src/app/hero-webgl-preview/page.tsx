@@ -17,10 +17,8 @@ const HeroWebGL = dynamic(
 
 export default function HeroWebGLPreview() {
   return (
-    <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: '100%', maxWidth: '1200px' }}>
-        <HeroWebGL />
-      </div>
+    <div style={{ width: '100%', height: '100vh', background: '#000' }}>
+      <HeroWebGL height="100vh" />
     </div>
   )
 }
