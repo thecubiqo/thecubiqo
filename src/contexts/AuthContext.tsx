@@ -14,7 +14,7 @@
  */
 
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import type { User, SupabaseClient } from '@supabase/supabase-js'
 import type { Profile } from '@/types'
 
@@ -75,6 +75,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Initialize auth state using onAuthStateChange - subscribed once at provider level
   useEffect(() => {
+    // When Supabase is not configured (no env vars / preview mode), immediately
+    // resolve to guest state — no network calls, no 4-second timeout hang.
+    if (!isSupabaseConfigured()) {
+      setState({
+        user: null,
+        profile: null,
+        isLoading: false,
+        isAuthenticated: false,
+        isGuest: true,
+      })
+      return
+    }
+
     if (process.env.NODE_ENV === 'development') {
       console.log('[AuthProvider] Setting up auth state listener')
     }
