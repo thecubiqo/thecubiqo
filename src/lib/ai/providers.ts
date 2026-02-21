@@ -7,9 +7,9 @@ import type { ProviderConfig } from './types'
 
 export const MINIMAX_CONFIG: ProviderConfig = {
   name: 'minimax',
-  model: 'abab6.5s-chat',
+  model: 'abab6.5-chat',
   maxTokens: 2048,
-  apiKeyEnv: 'MINIMAX_API_KEY'
+  apiKeyEnv: 'MINIMAX_KEY'
 }
 
 export const MIXTRAL_CONFIG: ProviderConfig = {
