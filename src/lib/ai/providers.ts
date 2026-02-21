@@ -7,9 +7,9 @@ import type { ProviderConfig } from './types'
 
 export const MINIMAX_CONFIG: ProviderConfig = {
   name: 'minimax',
-  model: 'MiniMax-M2',
-  maxTokens: 200,
-  apiKeyEnv: 'MINIMAX_API_KEY' // Also supports MINIMAX_KEY as fallback
+  model: 'abab6.5s-chat',
+  maxTokens: 2048,
+  apiKeyEnv: 'MINIMAX_API_KEY'
 }
 
 export const MIXTRAL_CONFIG: ProviderConfig = {
@@ -35,8 +35,8 @@ export const OPENAI_CONFIG: ProviderConfig = {
 
 export const CLAUDE_CONFIG: ProviderConfig = {
   name: 'claude',
-  model: 'claude-haiku-4-5-20251001',
-  maxTokens: 200,
+  model: 'claude-3-5-haiku-20241022',
+  maxTokens: 1024,
   apiKeyEnv: 'ANTHROPIC_API_KEY'
 }
 

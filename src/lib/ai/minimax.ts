@@ -1,4 +1,4 @@
-
+import { ENV } from '@/lib/config/env'
 import { MINIMAX_CONFIG } from './providers'
 
 // MiniMax API call (primary)
@@ -6,7 +6,7 @@ export async function callMiniMax(
     systemPrompt: string,
     messages: { role: string; content: string }[]
 ): Promise<string> {
-    const apiKey = process.env.MINIMAX_KEY
+    const apiKey = ENV.ai.minimax
 
     if (!apiKey) {
         throw new Error('MINIMAX_KEY not configured')
@@ -21,7 +21,7 @@ export async function callMiniMax(
         }))
     ]
 
-    const response = await fetch('https://api.minimaxi.chat/v1/text/chatcompletion_v2', {
+    const response = await fetch('https://api.minimax.chat/v1/text/chatcompletion_v2', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

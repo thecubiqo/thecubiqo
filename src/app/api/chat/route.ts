@@ -106,7 +106,7 @@ async function callMiniMax(
     }))
   ]
 
-  const response = await fetch('https://api.minimaxi.chat/v1/text/chatcompletion_v2', {
+  const response = await fetch('https://api.minimax.chat/v1/text/chatcompletion_v2', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
