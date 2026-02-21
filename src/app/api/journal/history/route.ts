@@ -24,16 +24,16 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = (await createClient()) as any;
-
+    const supabase = await createClient();
+    
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-
+    
     if (authError || !user) {
       return NextResponse.json(
-        {
+        { 
           success: false,
-          error: 'Unauthorized - Please sign in to view your journal history'
+          error: 'Unauthorized - Please sign in to view your journal history' 
         },
         { status: 401 }
       );
@@ -68,11 +68,11 @@ export async function GET(request: NextRequest) {
     const { data: entries, error: queryError, count } = await query;
 
     if (queryError) {
-
+      console.error('[Journal/History] Query error:', queryError);
       return NextResponse.json(
-        {
+        { 
           success: false,
-          error: 'Failed to fetch journal entries'
+          error: 'Failed to fetch journal entries' 
         },
         { status: 500 }
       );
@@ -96,11 +96,11 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-
+    
     return NextResponse.json(
-      {
+      { 
         success: false,
-        error: error instanceof Error ? error.message : 'Internal server error'
+        error: error instanceof Error ? error.message : 'Internal server error' 
       },
       { status: 500 }
     );

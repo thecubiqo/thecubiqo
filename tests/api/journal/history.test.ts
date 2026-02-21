@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from '@/app/api/journal/history/route';
 import { NextRequest } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 // Mock Supabase
 vi.mock('@/lib/supabase/server', () => ({
@@ -59,8 +60,7 @@ describe('/api/journal/history', () => {
       from: mockFrom,
     };
 
-    const { createClient } = require('@/lib/supabase/server');
-    createClient.mockResolvedValue(mockSupabase);
+    vi.mocked(createClient).mockResolvedValue(mockSupabase);
   });
 
   describe('Authentication', () => {
