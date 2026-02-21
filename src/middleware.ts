@@ -32,7 +32,7 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
     "connect-src 'self' https://*.supabase.co https://vercel.live wss://*.supabase.co",
     "frame-src 'self' https://vercel.live",
     "worker-src 'self' blob:",
-    "media-src 'self' blob:",
+    "media-src 'self' blob: data:",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -53,8 +53,8 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
 
   // Permissions policy - restrict browser features
   headers.set('Permissions-Policy', [
-    'camera=()',
-    'microphone=*',
+    'camera=(self)',
+    'microphone=(self)',
     'geolocation=()',
     'interest-cohort=()'
   ].join(', '))
