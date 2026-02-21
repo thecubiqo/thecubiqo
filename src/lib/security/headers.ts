@@ -22,7 +22,7 @@ export function getSecurityHeaders(): Record<string, string> {
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     
     // Permissions policy
-    'Permissions-Policy': 'camera=(), microphone=(self), geolocation=(), interest-cohort=()',
+    'Permissions-Policy': 'camera=(self), microphone=(self), geolocation=(), interest-cohort=()',
     
     // Force HTTPS (31536000 = 1 year)
     'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',

@@ -35,6 +35,16 @@ describe('Security Headers', () => {
       expect(headers['Strict-Transport-Security']).toContain('includeSubDomains');
       expect(headers['Strict-Transport-Security']).toContain('preload');
     });
+
+    it('should grant camera access to self (not deny all)', () => {
+      const headers = getSecurityHeaders();
+      expect(headers['Permissions-Policy']).toContain('camera=(self)');
+    });
+
+    it('should grant microphone access to self (not wildcard)', () => {
+      const headers = getSecurityHeaders();
+      expect(headers['Permissions-Policy']).toContain('microphone=(self)');
+    });
   });
 
   describe('getContentSecurityPolicy', () => {
