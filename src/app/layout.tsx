@@ -6,6 +6,9 @@ import { ClientProviders } from "@/components/ClientProviders";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
+// Inter font loaded via CSS @import in globals.css for reliability
+// Using CSS variable for consistent font application
+
 // Force dynamic rendering to ensure auth state is always fresh
 export const dynamic = 'force-dynamic';
 
@@ -171,6 +174,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/svg+xml" href="/icons/cubiqo-logo.svg" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <link rel="canonical" href="https://www.cubiqo.ai" />
 
@@ -189,7 +194,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className="antialiased"
+        className="font-sans antialiased"
       >
         <ClientProviders>
           {children}

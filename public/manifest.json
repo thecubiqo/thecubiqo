@@ -1,16 +1,14 @@
 {
-  "id": "/",
-  "name": "CubiQo",
+  "name": "CubiQo — Voice-First AI Assistant",
   "short_name": "CubiQo",
-  "description": "Voice-first, privacy-controlled AI assistant — your digital private secretary.",
+  "description": "One Mind. Many Dimensions. Your voice-first, privacy-controlled AI assistant.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#000000",
+  "background_color": "#0A0A0F",
   "theme_color": "#FF6F00",
   "orientation": "portrait-primary",
   "categories": ["productivity", "utilities"],
-  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-192.png",

@@ -25,6 +25,7 @@ import { PoweredByLogosCompact } from './PoweredByLogos'
 import { JourneyMemoryPrompt } from './journey'
 import { AdminControls } from './admin'
 import { SidePanel } from './cq'
+import { IntegrationsSidePanel } from './IntegrationsSidePanel'
 import { TopRightCTA } from '@/components/TopRightCTA.client'
 import type { RGYContext } from '@/types/rgy-matching'
 import { useSession } from '@/hooks/useSession'
@@ -69,6 +70,7 @@ export function FullscreenApp({
   const [showLandingCube, setShowLandingCube] = useState(false)
   const [showGettingStarted, setShowGettingStarted] = useState(false)
   const [showCQPanel, setShowCQPanel] = useState(false)
+  const [showIntegrationsPanel, setShowIntegrationsPanel] = useState(false)
   const [showFloatingQuestions, setShowFloatingQuestions] = useState(true)
   // RGY Signal pulse state - triggers brief pulse when keyword is saved
   const [rgyPulseColor, setRgyPulseColor] = useState<'RED' | 'YELLOW' | 'GREEN' | null>(null)
@@ -137,7 +139,18 @@ export function FullscreenApp({
 
   // Handle RGY SIGNAL click - Show color selector for chat rooms
   const handleSignalClick = () => {
+    // Close any open overlapping panels first
     setShowRGYChats(false)
+    setShowKeywordPanel(false)
+    setShowIntentSetup(false)
+    setShowOpportunityFeed(false)
+    setShowProMatchSettings(false)
+    setShowRoomList(false)
+    setShowRoomChat(false)
+    setShowCQPanel(false)
+    setMenuOpen(false)
+    setShowAuthForm(false)
+    // Open the SIGNAL color selector
     setShowColorSelector(true)
   }
 
@@ -226,9 +239,7 @@ export function FullscreenApp({
       return
     }
 
-    // If feature flag is disabled (and not forced), don't show
-    if (!showParticleLanding) return;
-
+    // Show the interactive landing cube on first visit or every 4 hours
     const LANDING_STORAGE_KEY = 'cubiqo_last_landing'
     const HOURS_THRESHOLD = 4
 
@@ -236,7 +247,7 @@ export function FullscreenApp({
     const now = Date.now()
 
     if (!lastLanding) {
-      // First visit ever
+      // First visit ever - always show the interactive landing
       setShowLandingCube(true)
       localStorage.setItem(LANDING_STORAGE_KEY, now.toString())
     } else {
@@ -498,24 +509,13 @@ export function FullscreenApp({
           }`}
       >
         <div className="flex justify-between items-center w-full">
-          {/* Left - CubiQo Logo Icon Only */}
+          {/* Left - CubiQo Logo Icon - Premium local SVG */}
           <div className="flex items-center">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-orange-600/10 rounded-2xl border border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.15)] group transition-all duration-500 hover:scale-105">
-              <svg
-                viewBox="0 0 24 24"
-                className="w-8 h-8 sm:w-10 sm:h-10 text-orange-500 drop-shadow-[0_0_10px_rgba(249,115,22,0.5)] transition-transform duration-700 group-hover:rotate-12"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path d="M12 2L4 7v10l8 5 8-5V7l-8-5z" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M12 22V12" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M20 7l-8 5-8-5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M12 12l8-5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M12 12l-8-5" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="12" cy="12" r="2" className="fill-orange-500/20" />
-              </svg>
-            </div>
+            <img
+              src="/icons/cubiqo-logo.svg"
+              alt="CubiQo"
+              className="w-10 h-10 sm:w-12 sm:h-12 object-contain rounded-xl shadow-lg"
+            />
           </div>
 
           {/* Center - CubiQo Text */}
@@ -533,22 +533,16 @@ export function FullscreenApp({
           {/* Right side - SIGNAL Logo - Clickable */}
           <button
             onClick={handleSignalClick}
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
           >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-lg group-hover:border-white/20 transition-all">
-              <svg
-                viewBox="0 0 24 24"
-                className="w-6 h-6 sm:w-7 sm:h-7 text-white"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" fill="currentColor" fillOpacity="0.8" />
-              </svg>
+            <div className="flex flex-col gap-[3px]">
+              <div className="w-6 h-[3px] rounded-full bg-[#ef4444]"></div>
+              <div className="w-6 h-[3px] rounded-full bg-[#eab308]"></div>
+              <div className="w-6 h-[3px] rounded-full bg-[#22c55e]"></div>
             </div>
             <div className="flex flex-col">
-              <span className="text-xl sm:text-2xl font-semibold tracking-[0.08em] text-white leading-tight">SIGNAL</span>
-              <span className="text-[10px] sm:text-[11px] text-white/60 tracking-wide">One is enough.</span>
+              <span className="text-lg sm:text-xl font-semibold tracking-[0.08em] text-white leading-tight">SIGNAL</span>
+              <span className="text-[9px] sm:text-[10px] text-white/50 tracking-wide">One is enough.</span>
             </div>
           </button>
         </div>
@@ -556,6 +550,20 @@ export function FullscreenApp({
 
       {/* Bottom Left Stack: Settings above Sign In */}
       <div className="fixed left-6 bottom-6 z-[55] flex flex-col gap-3">
+        {/* Integrations */}
+        <button
+          onClick={() => setShowIntegrationsPanel(true)}
+          className={`flex items-center gap-2 text-[13px] transition-colors ${isDark
+            ? 'text-white/40 hover:text-white/60'
+            : 'text-gray-500 hover:text-gray-700'
+            }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+          </svg>
+          <span className="font-medium">Integrations</span>
+        </button>
+
         {/* Settings */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
@@ -579,36 +587,31 @@ export function FullscreenApp({
         />
       </div>
 
-      {/* Right side - CQ Connect + RGY Signal + Keywords underneath */}
-      <div className="fixed right-[4.5rem] top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
-        {/* CQ Connect Button - Only shown when authenticated */}
-        {isAuthenticated && (
+      {/* CQ Messenger - Fixed bottom-right (standard chat icon position) */}
+      {isAuthenticated && (
+        <div className="fixed right-6 bottom-6 z-[55]">
           <button
             onClick={() => setShowCQPanel(true)}
-            className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isDark
-              ? 'bg-zinc-800/80 hover:bg-zinc-700/80 text-orange-500 hover:text-orange-400'
-              : 'bg-white/80 hover:bg-white text-orange-600 hover:text-orange-500'
-              } backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.1)] border border-orange-500/20 hover:scale-110`}
-            title="CQ Connect"
+            className={`relative flex items-center justify-center w-14 h-14 rounded-full transition-all duration-200 ${isDark
+              ? 'bg-[#FF6F00] hover:bg-[#FF8C33] text-white shadow-lg shadow-orange-500/30'
+              : 'bg-[#FF6F00] hover:bg-[#FF8C33] text-white shadow-lg shadow-orange-500/30'
+              }`}
+            title="CQ Messenger"
           >
-            <svg
-              viewBox="0 0 24 24"
-              className="w-6 h-6 drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.38 8.38 0 0 1 3.8.9L22 4l-1.5 6.5Z" strokeLinecap="round" strokeLinejoin="round" />
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
             </svg>
             {unreadCount > 0 && (
-              <div className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#FF6F00] text-white text-[11px] font-bold">
+              <div className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold ring-2 ring-black">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </div>
             )}
           </button>
-        )}
+        </div>
+      )}
 
-        {/* RGY Traffic Light - Opens Keywords Panel */}
+      {/* Right side - RGY Signal + Keywords */}
+      <div className="fixed right-6 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
         <RGYSignalButton
           onClick={() => setShowKeywordPanel(true)}
           isDark={isDark}
@@ -696,7 +699,7 @@ export function FullscreenApp({
             <span className="mx-1">—</span>
             <span className="text-white/20">Your data · Your storage · Your API key</span>
             <span className="mx-2">·</span>
-            <span className="text-white/15">© 2025 Cubiqo United Inc.</span>
+            <span className="text-white/15">© 2026 Cubiqo United Inc.</span>
           </p>
         </div>
       </footer>
@@ -1192,6 +1195,9 @@ export function FullscreenApp({
 
       {/* CQ Connect Side Panel */}
       <SidePanel isOpen={showCQPanel} onClose={() => setShowCQPanel(false)} />
+
+      {/* Integrations Side Panel */}
+      <IntegrationsSidePanel isOpen={showIntegrationsPanel} onClose={() => setShowIntegrationsPanel(false)} isDark={isDark} />
 
       {/* Top Right CTA - Biometric Auth / Register */}
       {showTopRightCTA && <TopRightCTA />}

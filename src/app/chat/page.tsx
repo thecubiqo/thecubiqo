@@ -32,24 +32,28 @@ export default function ChatPage() {
       <header className="fixed top-0 left-0 right-0 z-50 px-4 py-3 bg-[rgba(10,10,15,0.75)] backdrop-blur-[16px] border-b border-white/[0.06]">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">Q</span>
-            </div>
+            <img
+              src="/icons/cubiqo-logo.svg"
+              alt="CubiQo"
+              className="w-8 h-8 rounded-lg"
+            />
             <span className="font-bold tracking-widest text-sm">CubiQo™</span>
           </Link>
 
-          <Link
-            href="/"
-            className="text-xs px-3 py-2 rounded-lg bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] transition-colors"
-          >
-            Voice Mode
-          </Link>
-          <Link
-            href="/journal"
-            className="text-xs px-3 py-2 rounded-lg bg-gradient-to-r from-orange-500/80 to-orange-600/80 hover:from-orange-500 hover:to-orange-600 border border-orange-400/30 transition-colors font-medium"
-          >
-            📝 Journal
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/"
+              className="text-xs px-3 py-2 rounded-lg bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] transition-colors"
+            >
+              Voice Mode
+            </Link>
+            <Link
+              href="/journal"
+              className="text-xs px-3 py-2 rounded-lg bg-gradient-to-r from-orange-500/80 to-orange-600/80 hover:from-orange-500 hover:to-orange-600 border border-orange-400/30 transition-colors font-medium"
+            >
+              📝 Journal
+            </Link>
+          </div>
         </div>
       </header>
 

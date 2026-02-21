@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Import Inter and Space Grotesk fonts (non-blocking, loads when available) */
+/* Import Inter and Space Grotesk fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 /* ================================================================== */
