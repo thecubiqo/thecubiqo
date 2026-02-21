@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
@@ -7,10 +6,10 @@ import { ClientProviders } from "@/components/ClientProviders";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
+// Use system font stack for resilient builds (no external font dependency)
+// Inter-like system font stack: -apple-system uses SF Pro on Apple devices,
+// which is visually similar to Inter
+const fontVariable = "--font-inter";
 
 // Force dynamic rendering to ensure auth state is always fresh
 export const dynamic = 'force-dynamic';
@@ -195,7 +194,8 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} antialiased`}
+        className={`${fontVariable} antialiased`}
+        style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
       >
         <ClientProviders>
           {children}

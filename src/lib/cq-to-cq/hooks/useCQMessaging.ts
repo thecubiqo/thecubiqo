@@ -95,7 +95,7 @@ export function useCQMessaging(userId: string) {
 
   // Subscribe to real-time updates via Supabase
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !supabase) return;
 
     // Subscribe to new messages
     const messagesChannel = supabase

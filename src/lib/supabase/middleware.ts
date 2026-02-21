@@ -7,21 +7,27 @@ export async function updateSession(request: NextRequest) {
         request,
     })
 
+    const url = ENV.supabase.url
+    const anonKey = ENV.supabase.anonKey
+    if (!url || !anonKey) {
+        return supabaseResponse
+    }
+
     const supabase = createServerClient(
-        ENV.supabase.url,
-        ENV.supabase.anonKey,
+        url,
+        anonKey,
         {
             cookies: {
                 getAll() {
                     return request.cookies.getAll()
                 },
-                setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+                setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
                     supabaseResponse = NextResponse.next({
                         request,
                     })
                     cookiesToSet.forEach(({ name, value, options }) =>
-                        supabaseResponse.cookies.set(name, value, options)
+                        supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
                     )
                 },
             },

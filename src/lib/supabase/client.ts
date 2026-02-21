@@ -13,7 +13,27 @@ export function isSupabaseConfigured(): boolean {
   return !!(url && anonKey && !url.includes('placeholder'))
 }
 
-export function createClient() {
+// Chainable mock that returns itself for any method call
+function createMockQueryBuilder(): Record<string, (...args: unknown[]) => unknown> {
+  const mockError = new Error('Supabase not configured')
+  const builder: Record<string, (...args: unknown[]) => unknown> = {}
+  const chainMethods = [
+    'select', 'insert', 'update', 'upsert', 'delete',
+    'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'like', 'ilike', 'is', 'in', 'not',
+    'or', 'and', 'filter', 'match', 'contains', 'containedBy', 'overlaps',
+    'order', 'limit', 'range', 'textSearch',
+  ]
+  for (const method of chainMethods) {
+    builder[method] = () => builder
+  }
+  builder.single = async () => ({ data: null, error: mockError })
+  builder.maybeSingle = async () => ({ data: null, error: null })
+  builder.then = (...args: unknown[]) =>
+    Promise.resolve({ data: null, error: mockError }).then(args[0] as (value: unknown) => unknown)
+  return builder
+}
+
+export function createClient(): ReturnType<typeof createBrowserClient<Database>> {
   if (!client) {
     const { url, anonKey } = ENV.supabase;
     
@@ -30,15 +50,14 @@ export function createClient() {
           signOut: async () => ({ error: null }),
           onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
         },
-        from: () => ({
-          select: () => ({
-            eq: () => ({
-              single: async () => ({ data: null, error: new Error('Supabase not configured') })
-            })
-          })
-        })
-      } as any;
+        from: () => createMockQueryBuilder(),
+        channel: () => ({
+          on: () => ({ subscribe: () => ({ unsubscribe: () => {} }) }),
+          subscribe: () => ({ unsubscribe: () => {} }),
+        }),
+        removeChannel: () => Promise.resolve('ok'),
+      } as unknown as ReturnType<typeof createBrowserClient<Database>>;
     }
   }
-  return client
+  return client!
 }
