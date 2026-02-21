@@ -1,12 +1,7 @@
-/**
- * Memory Extraction Module (SERVER-ONLY)
- * Extracts and saves user facts from conversations using AI
- *
- * This file should only be imported in server components/routes
- */
+import { ENV } from '@/lib/config/env'
 
-// Use Haiku 4.5 for cost-effective extraction
-const EXTRACTION_MODEL = 'claude-haiku-4-5-20251001'
+// Use Haiku for cost-effective extraction
+const EXTRACTION_MODEL = 'claude-3-5-haiku-20241022'
 
 export interface ExtractedMemory {
   key: string
@@ -56,7 +51,7 @@ export async function extractMemories(
   byoApiKey?: string
 ): Promise<ExtractedMemory[]> {
   // BYO key takes priority over server key
-  const apiKey = byoApiKey || process.env.ANTHROPIC_API_KEY
+  const apiKey = byoApiKey || ENV.ai.anthropic
 
   if (!apiKey) {
     console.error('[MemoryExtraction] No API key available')

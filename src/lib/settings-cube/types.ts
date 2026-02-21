@@ -10,7 +10,7 @@ export interface SettingsCommand {
 }
 
 export interface CubeConfig {
-  color: 'RED' | 'YELLOW' | 'GREEN_BLUE' | 'ORANGE'
+  color: 'RED' | 'YELLOW' | 'TEAL' | 'ORANGE'
   animation: 'idle' | 'listening' | 'thinking' | 'speaking'
   voice: {
     accent: string

@@ -1038,7 +1038,6 @@ export function FullscreenApp({
         isOpen={showRGYChats}
         onClose={() => setShowRGYChats(false)}
         isDark={isDark}
-        onZoneSelect={handleZoneSelection}
       />
 
       {/* Intent Setup Modal */}

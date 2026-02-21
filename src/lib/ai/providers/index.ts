@@ -27,27 +27,27 @@ export interface ExtendedProviderConfig extends Omit<ProviderConfig, 'name'> {
    * Provider name (can be core or experimental)
    */
   name: AllProviders
-  
+
   /**
    * Display name for UI and logs
    */
   displayName: string
-  
+
   /**
    * Description of the provider's capabilities
    */
   description?: string
-  
+
   /**
    * Base URL for API calls (optional, defaults to provider's default)
    */
   baseUrl?: string
-  
+
   /**
    * Whether this provider is experimental/beta
    */
   experimental?: boolean
-  
+
   /**
    * Feature flag check - returns true if provider is enabled
    */
@@ -72,10 +72,10 @@ export interface ProviderRegistryEntry {
 export function isOpenClawEnabled(): boolean {
   // Check for explicit OpenClaw configuration
   const hasApiKey = !!(
-    process.env.OPENCLAW_API_KEY || 
+    process.env.OPENCLAW_API_KEY ||
     process.env.OPENROUTER_KEY_CUBIKEY
   )
-  
+
   // Only enable if API key is present
   return hasApiKey
 }
@@ -92,7 +92,7 @@ export function isOpenClawEnabled(): boolean {
 export const OPENCLAW_PROVIDER: ExtendedProviderConfig = {
   name: 'openclaw',
   displayName: 'OpenClaw (via Clawdbot)',
-  model: 'emergent-claude/claude-sonnet-4-5',
+  model: 'claude-3-5-sonnet-20241022',
   maxTokens: 4000,
   apiKeyEnv: 'OPENCLAW_API_KEY',
   baseUrl: process.env.OPENCLAW_BASE_URL || 'http://localhost:18789',
@@ -111,7 +111,7 @@ export function validateOpenClawConfig(): { valid: boolean; message?: string } {
       message: 'OpenClaw is not enabled. Set OPENCLAW_API_KEY or OPENROUTER_KEY_CUBIKEY to enable.'
     }
   }
-  
+
   const baseUrl = process.env.OPENCLAW_BASE_URL || 'http://localhost:18789'
   if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
     return {
@@ -119,7 +119,7 @@ export function validateOpenClawConfig(): { valid: boolean; message?: string } {
       message: 'Invalid OPENCLAW_BASE_URL format (must start with http:// or https://)'
     }
   }
-  
+
   return { valid: true }
 }
 
@@ -152,13 +152,13 @@ export function getEnabledProviders(): ExtendedProviderConfig[] {
 export function getProvider(name: string): ExtendedProviderConfig | undefined {
   const entry = PROVIDER_REGISTRY[name]
   if (!entry) return undefined
-  
+
   // Check if provider is enabled
   if (!entry.config.isEnabled()) {
     console.warn(`Provider '${name}' is registered but not enabled`)
     return undefined
   }
-  
+
   return entry.config
 }
 
@@ -173,7 +173,7 @@ export function validateProvider(name: string): { valid: boolean; message?: stri
       message: `Provider '${name}' not found in registry`
     }
   }
-  
+
   return entry.validate()
 }
 

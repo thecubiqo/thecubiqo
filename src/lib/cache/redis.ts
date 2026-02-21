@@ -31,7 +31,7 @@ export function getRedisClient(): any {
   try {
     redis = new Redis(redisUrl, {
       maxRetriesPerRequest: 3,
-      retryStrategy: (times) => {
+      retryStrategy: (times: number) => {
         if (times > 3) {
           console.error('Redis connection failed after 3 retries');
           return null;
@@ -41,7 +41,7 @@ export function getRedisClient(): any {
       lazyConnect: true,
     });
 
-    redis.on('error', (err) => {
+    redis.on('error', (err: any) => {
       console.error('Redis error:', err);
     });
 
@@ -130,7 +130,7 @@ export class RedisCache {
 
     try {
       const keys = await this.client.keys(this.getKey(pattern));
-      return keys.map((k) => k.replace(`${this.prefix}:`, ''));
+      return keys.map((k: string) => k.replace(`${this.prefix}:`, ''));
     } catch (error) {
       console.error('Redis keys error:', error);
       return [];

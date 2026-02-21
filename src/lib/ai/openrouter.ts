@@ -1,5 +1,5 @@
-
 import { createClient } from '@supabase/supabase-js'
+import { ENV } from '@/lib/config/env'
 
 /**
  * OpenRouter Client
@@ -36,7 +36,7 @@ export async function callOpenRouter(
     temperature: number = 0.7,
     maxTokens: number = 4000
 ): Promise<OpenRouterResponse> {
-    const apiKey = process.env.CUBIQO_UNIVERSAL_KEY || process.env.OPENROUTER_KEY || process.env.MULTIVA_CUBI_KEY || process.env.OPENROUTER_KEY_CUBIKEY || process.env.OPENROUTER_API_KEY
+    const apiKey = ENV.ai.openrouter
 
     if (!apiKey) {
         throw new Error('OPENROUTER_KEY not configured')

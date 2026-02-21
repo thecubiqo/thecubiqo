@@ -12,6 +12,7 @@
 
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { ENV } from '@/lib/config/env'
 
 /**
  * Apply security headers to response
@@ -53,7 +54,7 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   // Permissions policy - restrict browser features
   headers.set('Permissions-Policy', [
     'camera=()',
-    'microphone=()',
+    'microphone=*',
     'geolocation=()',
     'interest-cohort=()'
   ].join(', '))
@@ -77,14 +78,13 @@ export async function middleware(request: NextRequest) {
     request,
   })
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const { url, anonKey } = ENV.supabase;
 
   // Only initialize Supabase if credentials are available
-  if (supabaseUrl && supabaseKey) {
+  if (url && anonKey && !url.includes('placeholder')) {
     const supabase = createServerClient(
-      supabaseUrl,
-      supabaseKey,
+      url,
+      anonKey,
       {
         cookies: {
           getAll() {
@@ -112,12 +112,6 @@ export async function middleware(request: NextRequest) {
     }
   } else {
     console.warn('Supabase credentials not configured - authentication disabled')
-  }
-
-  // Optional: Add debug logging in development
-  if (process.env.NODE_ENV === 'development') {
-    const pathname = request.nextUrl.pathname
-    console.log(`[Middleware] ${pathname} - User: ${user ? user.id : 'guest'}`)
   }
 
   // Apply security headers to the response

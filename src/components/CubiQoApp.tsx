@@ -140,11 +140,11 @@ export function CubiQoApp() {
                   backgroundColor:
                     colorName === 'RED' ? '#C2185B' :
                       colorName === 'YELLOW' ? '#FFA000' :
-                        colorName === 'GREEN_BLUE' ? '#00897B' :
+                        colorName === 'TEAL' ? '#00897B' :
                           '#FF6F00'
                 }}
               >
-                {colorName === 'GREEN_BLUE' ? 'Sattva' :
+                {colorName === 'TEAL' ? 'Sattva' :
                   colorName === 'ORANGE' ? 'Fourth Way' :
                     colorName === 'RED' ? 'Tamas' : 'Rajas'}
               </span>

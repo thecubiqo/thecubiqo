@@ -1,16 +1,12 @@
-/**
- * Voice Synthesis for CQ-to-CQ Messaging
- * Reads incoming messages in CubiQo's voice
- */
-
 import { getVoiceSynthesisConfig } from './supabase-client';
+import { ENV } from '@/lib/config/env';
 
 // ElevenLabs API configuration
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+const ELEVENLABS_API_KEY = ENV.voice.elevenlabs;
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
 
 // OpenAI TTS as fallback
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_API_KEY = ENV.ai.openai;
 
 export interface VoiceSynthesisOptions {
   text: string;
@@ -66,10 +62,10 @@ async function synthesizeWithElevenLabs(
   }
 
   const audioBlob = await response.blob();
-  
+
   // Upload to storage (implement your storage solution)
   const audioUrl = await uploadAudioToStorage(audioBlob);
-  
+
   // Estimate duration (you can use audio analysis library for accurate duration)
   const estimatedDuration = estimateAudioDuration(options.text);
 
@@ -148,12 +144,12 @@ export async function synthesizeMessageToSpeech(
   try {
     return await synthesizeWithElevenLabs(options);
   } catch (error) {
-    
-    
+
+
     try {
       return await synthesizeWithOpenAI(options);
     } catch (openaiError) {
-      
+
       throw new Error('Voice synthesis failed for all providers');
     }
   }
@@ -186,7 +182,7 @@ export async function processIncomingMessage(
     if (messageType === 'voice') {
       // Transcribe the voice message first
       const transcription = await transcribeAudio(messageText); // messageText is the audio URL
-      
+
       // Then synthesize in CubiQo's voice
       const result = await synthesizeMessageToSpeech(recipientUserId, transcription);
       return result.audioUrl;
@@ -194,7 +190,7 @@ export async function processIncomingMessage(
 
     return null;
   } catch (error) {
-    
+
     return null;
   }
 }
@@ -240,9 +236,9 @@ async function transcribeAudio(audioUrl: string): Promise<string> {
 async function uploadAudioToStorage(audioBlob: Blob): Promise<string> {
   // Example with Supabase Storage
   const { supabase } = await import('./supabase-client');
-  
+
   const fileName = `cq-voice/${Date.now()}-${Math.random().toString(36).substring(7)}.mp3`;
-  
+
   const { data, error } = await supabase.storage
     .from('cq-audio')
     .upload(fileName, audioBlob, {

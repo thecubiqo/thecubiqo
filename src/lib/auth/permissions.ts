@@ -135,7 +135,7 @@ export async function getOrgIdFromEnvironment(
     return null;
   }
 
-  // @ts-expect-error - Supabase typing issue with nested selects
+  // Supabase typing issue with nested selects
   return data.projects?.org_id || null;
 }
 

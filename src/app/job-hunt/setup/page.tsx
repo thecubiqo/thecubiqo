@@ -15,7 +15,7 @@ export default function JobHuntSetupPage() {
   const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  
+
   // Form state
   const [formData, setFormData] = useState<CreateJobHuntProfileRequest>({
     target_roles: [],
@@ -25,7 +25,7 @@ export default function JobHuntSetupPage() {
     job_types: [],
     target_locations: [],
   })
-  
+
   // Temporary input states
   const [roleInput, setRoleInput] = useState('')
   const [skillInput, setSkillInput] = useState('')
@@ -66,19 +66,21 @@ export default function JobHuntSetupPage() {
   }
 
   const handleAddLocation = () => {
-    if (locationInput.trim() && !formData.target_locations.includes(locationInput.trim())) {
+    const locations = formData.target_locations || []
+    if (locationInput.trim() && !locations.includes(locationInput.trim())) {
       setFormData({
         ...formData,
-        target_locations: [...formData.target_locations, locationInput.trim()]
+        target_locations: [...locations, locationInput.trim()]
       })
       setLocationInput('')
     }
   }
 
   const handleRemoveLocation = (location: string) => {
+    const locations = formData.target_locations || []
     setFormData({
       ...formData,
-      target_locations: formData.target_locations.filter(l => l !== location)
+      target_locations: locations.filter(l => l !== location)
     })
   }
 
@@ -112,42 +114,42 @@ export default function JobHuntSetupPage() {
 
   const handleSubmit = async () => {
     setError('')
-    
+
     // Validation
     if (formData.target_roles.length === 0) {
       setError('Please add at least one target role')
       return
     }
-    
+
     if (formData.skills.length === 0) {
       setError('Please add at least one skill')
       return
     }
-    
+
     if (formData.work_type.length === 0) {
       setError('Please select at least one work type')
       return
     }
-    
+
     if (formData.job_types.length === 0) {
       setError('Please select at least one job type')
       return
     }
-    
+
     setIsLoading(true)
-    
+
     try {
       const response = await fetch('/api/job-hunt/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       })
-      
+
       if (!response.ok) {
         const data = await response.json()
         throw new Error(data.error || 'Failed to create profile')
       }
-      
+
       // Success - redirect to dashboard
       router.push('/job-hunt')
     } catch (err) {
@@ -191,7 +193,7 @@ export default function JobHuntSetupPage() {
             <div className="p-6 rounded-xl bg-zinc-900/50 border border-white/10">
               <h2 className="text-xl font-bold mb-4">Target Roles</h2>
               <p className="text-sm text-white/60 mb-4">What job titles are you interested in?</p>
-              
+
               <div className="flex gap-2 mb-4">
                 <input
                   type="text"
@@ -208,7 +210,7 @@ export default function JobHuntSetupPage() {
                   Add
                 </button>
               </div>
-              
+
               <div className="flex flex-wrap gap-2">
                 {formData.target_roles.map((role) => (
                   <span key={role} className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg flex items-center gap-2">
@@ -223,7 +225,7 @@ export default function JobHuntSetupPage() {
             <div className="p-6 rounded-xl bg-zinc-900/50 border border-white/10">
               <h2 className="text-xl font-bold mb-4">Skills</h2>
               <p className="text-sm text-white/60 mb-4">What are your key skills?</p>
-              
+
               <div className="flex gap-2 mb-4">
                 <input
                   type="text"
@@ -240,7 +242,7 @@ export default function JobHuntSetupPage() {
                   Add
                 </button>
               </div>
-              
+
               <div className="flex flex-wrap gap-2">
                 {formData.skills.map((skill) => (
                   <span key={skill} className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-lg flex items-center gap-2">
@@ -259,11 +261,10 @@ export default function JobHuntSetupPage() {
                   <button
                     key={type}
                     onClick={() => toggleWorkType(type)}
-                    className={`p-4 rounded-lg border transition-all ${
-                      formData.work_type.includes(type)
+                    className={`p-4 rounded-lg border transition-all ${formData.work_type.includes(type)
                         ? 'bg-orange-500/20 border-orange-500 text-orange-400'
                         : 'bg-zinc-800 border-white/10 hover:border-white/30'
-                    }`}
+                      }`}
                   >
                     {type.charAt(0).toUpperCase() + type.slice(1)}
                   </button>
@@ -279,11 +280,10 @@ export default function JobHuntSetupPage() {
                   <button
                     key={type}
                     onClick={() => toggleJobType(type)}
-                    className={`p-4 rounded-lg border transition-all ${
-                      formData.job_types.includes(type)
+                    className={`p-4 rounded-lg border transition-all ${formData.job_types.includes(type)
                         ? 'bg-orange-500/20 border-orange-500 text-orange-400'
                         : 'bg-zinc-800 border-white/10 hover:border-white/30'
-                    }`}
+                      }`}
                   >
                     {type.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                   </button>
@@ -308,7 +308,7 @@ export default function JobHuntSetupPage() {
             <div className="p-6 rounded-xl bg-zinc-900/50 border border-white/10">
               <h2 className="text-xl font-bold mb-4">Preferred Locations (Optional)</h2>
               <p className="text-sm text-white/60 mb-4">Where would you like to work?</p>
-              
+
               <div className="flex gap-2 mb-4">
                 <input
                   type="text"
@@ -325,9 +325,9 @@ export default function JobHuntSetupPage() {
                   Add
                 </button>
               </div>
-              
+
               <div className="flex flex-wrap gap-2">
-                {formData.target_locations.map((location) => (
+                {(formData.target_locations || []).map((location) => (
                   <span key={location} className="px-3 py-1 bg-green-500/20 text-green-400 rounded-lg flex items-center gap-2">
                     {location}
                     <button onClick={() => handleRemoveLocation(location)} className="hover:text-green-300">×</button>

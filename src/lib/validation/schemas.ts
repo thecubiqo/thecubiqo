@@ -122,7 +122,7 @@ export const messageSchema = z.object({
     .min(1, 'Message cannot be empty')
     .max(10000, 'Message too long'),
   sessionId: uuidSchema.optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.string(), z.any()).optional()
 })
 
 /**
@@ -143,7 +143,7 @@ export const searchQuerySchema = z.object({
   query: z.string()
     .min(1, 'Search query required')
     .max(500, 'Search query too long'),
-  filters: z.record(z.any()).optional(),
+  filters: z.record(z.string(), z.any()).optional(),
   ...paginationSchema.shape
 })
 
@@ -165,7 +165,7 @@ export function validateRequest<T>(
  * Helper to extract and format validation errors for API responses
  */
 export function formatValidationErrors(error: z.ZodError): string[] {
-  return error.errors.map(err => {
+  return (error as any).errors.map((err: any) => {
     const path = err.path.join('.')
     return path ? `${path}: ${err.message}` : err.message
   })

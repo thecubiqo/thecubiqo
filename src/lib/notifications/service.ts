@@ -1,9 +1,9 @@
 // Core notification service for delivering system alerts
 
 import { createClient } from '@/lib/supabase/server';
-import type { 
-  Notification, 
-  NotificationType, 
+import type {
+  Notification,
+  NotificationType,
   NotificationPriority,
 } from './types';
 import { randomUUID } from 'crypto';
@@ -27,7 +27,7 @@ export class NotificationService {
       const supabase = await createClient();
 
       // Create notification record
-      const notification: Omit<Notification, 'createdAt'> = {
+      const notification: Notification = {
         id: randomUUID(),
         type: params.type,
         priority: params.priority,
@@ -40,7 +40,7 @@ export class NotificationService {
         read: false,
         dismissed: false,
         createdAt: new Date(),
-        expiresAt: params.expiresInHours 
+        expiresAt: params.expiresInHours
           ? new Date(Date.now() + params.expiresInHours * 60 * 60 * 1000)
           : undefined,
       };
@@ -74,7 +74,7 @@ export class NotificationService {
       if (params.priority === 'critical' || params.priority === 'high') {
         // Send webhook notification
         await this.sendWebhook(notification);
-        
+
         // Send Slack notification
         await this.sendSlack(notification);
       }
@@ -82,9 +82,9 @@ export class NotificationService {
       return { success: true, notificationId: notification.id };
     } catch (error) {
       console.error('Notification service error:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -281,7 +281,7 @@ export class NotificationService {
     try {
       const supabase = await createClient();
 
-      const { data, error} = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from('notifications')
         .delete()
         .lt('expires_at', new Date().toISOString())

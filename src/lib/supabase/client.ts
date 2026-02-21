@@ -1,39 +1,25 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/database.types'
+import { ENV } from '@/lib/config/env'
 
 // Singleton client instance
 let client: ReturnType<typeof createBrowserClient<Database>> | null = null
 
 /**
  * Check if Supabase is configured with real credentials
- * Returns false when running in preview mode with placeholder values
  */
 export function isSupabaseConfigured(): boolean {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  return !!(
-    url &&
-    key &&
-    url !== 'https://placeholder.supabase.co' &&
-    key !== 'placeholder-anon-key' &&
-    url.includes('supabase.co')
-  )
+  const { url, anonKey } = ENV.supabase
+  return !!(url && anonKey && !url.includes('placeholder'))
 }
 
 export function createClient() {
   if (!client) {
-    // Support both old and new env var names with fallback
-    // Note: The "1" suffix is per legacy naming convention for backward compatibility
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
+    const { url, anonKey } = ENV.supabase;
+    
     // Only create client if we have real credentials
-    if (supabaseUrl && supabaseAnonKey && 
-        supabaseUrl !== 'https://placeholder.supabase.co' &&
-        supabaseAnonKey !== 'placeholder-anon-key' &&
-        supabaseUrl.includes('supabase.co')) {
-      client = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
+    if (url && anonKey && !url.includes('placeholder')) {
+      client = createBrowserClient<Database>(url, anonKey)
     } else {
       // Return a mock client that won't crash but will fail gracefully
       console.warn('Supabase not properly configured - using mock client');
@@ -54,7 +40,5 @@ export function createClient() {
       } as any;
     }
   }
-
   return client
 }
-

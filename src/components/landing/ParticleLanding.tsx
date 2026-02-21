@@ -143,7 +143,7 @@ function SimpleStarField({ isImploding }: { isImploding: boolean }) {
 
 function StableEffects() {
     return (
-        <EffectComposer disableNormalPass>
+        <EffectComposer>
             <Bloom
                 luminanceThreshold={0.1}
                 luminanceSmoothing={0.9}

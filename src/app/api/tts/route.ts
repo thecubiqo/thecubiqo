@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { ENV } from '@/lib/config/env'
 import {
   checkSpendingCap,
   recordSpending,
@@ -40,27 +41,27 @@ interface TTSRequest {
 function checkRateLimit(sessionId: string): { allowed: boolean; remaining: number } {
   const now = Date.now()
   const record = rateLimitMap.get(sessionId)
-  
+
   if (!record || now > record.resetTime) {
     // Reset or create new record
     rateLimitMap.set(sessionId, { count: 1, resetTime: now + RATE_WINDOW })
     return { allowed: true, remaining: RATE_LIMIT - 1 }
   }
-  
+
   if (record.count >= RATE_LIMIT) {
     return { allowed: false, remaining: 0 }
   }
-  
+
   record.count++
   return { allowed: true, remaining: RATE_LIMIT - record.count }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const apiKey = process.env.ELEVENLABS_API_KEY || process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY
-    
+    const apiKey = ENV.voice.elevenlabs
+
     console.log('[TTS API] Request received, API key present:', !!apiKey)
-    
+
     if (!apiKey) {
       console.error('[TTS API] ELEVENLABS_API_KEY not found in environment')
       return NextResponse.json(
@@ -68,26 +69,26 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
-    
+
     const body: TTSRequest & { sessionId?: string } = await request.json()
-    const { 
-      text, 
+    const {
+      text,
       voiceId = DEFAULT_VOICE_ID,
       mood,
       sessionId = 'anonymous'
     } = body
-    
+
     // Get dynamic voice settings based on mood/content
     // This achieves the madhyama marg - balancing expressiveness and authenticity
     const voiceSettings = mood || body.stability === undefined
       ? getVoiceSettings(text, mood) // Auto-detect or use provided mood
       : { // Manual override if specific settings provided
-          stability: body.stability ?? 0.7,
-          similarity_boost: body.similarity_boost ?? 0.7,
-          style: body.style ?? 0.2,
-          use_speaker_boost: body.use_speaker_boost ?? true
-        }
-    
+        stability: body.stability ?? 0.7,
+        similarity_boost: body.similarity_boost ?? 0.7,
+        style: body.style ?? 0.2,
+        use_speaker_boost: body.use_speaker_boost ?? true
+      }
+
     if (!text || !text.trim()) {
       return NextResponse.json(
         { error: 'Text is required' },
@@ -104,10 +105,10 @@ export async function POST(request: NextRequest) {
         { status: 429 }
       )
     }
-    
+
     // Check rate limit
     const { allowed, remaining } = checkRateLimit(sessionId)
-    
+
     if (!allowed) {
       return NextResponse.json(
         { error: 'Rate limit exceeded. Please wait a moment.' },
@@ -117,9 +118,9 @@ export async function POST(request: NextRequest) {
 
     // Estimate cost before making call
     const estimatedCost = estimateElevenLabsCost(text.trim().length)
-    
+
     // Call ElevenLabs API - use non-streaming for reliability with longer text
-    const response = await fetch(
+    let response = await fetch(
       `${ELEVENLABS_API_URL}/${voiceId}`,
       {
         method: 'POST',
@@ -130,35 +131,47 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           text: text.trim(),
-          model_id: 'eleven_multilingual_v2',  // Better quality for longer text
+          model_id: 'eleven_multilingual_v2',
           voice_settings: voiceSettings
         })
       }
     )
-    
+
+    // Fallback to OpenAI TTS if ElevenLabs fails
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('[TTS API] ElevenLabs error:', response.status, errorText)
-      
-      if (response.status === 429) {
-        return NextResponse.json(
-          { error: 'ElevenLabs rate limit exceeded. Please try again later.' },
-          { status: 429 }
-        )
+      console.warn('[TTS API] ElevenLabs failed, falling back to OpenAI:', response.status, errorText)
+
+      const openaiKey = ENV.ai.openai
+      if (openaiKey) {
+        response = await fetch('https://api.openai.com/v1/audio/speech', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openaiKey}`
+          },
+          body: JSON.stringify({
+            model: 'tts-1',
+            voice: 'nova',
+            input: text.trim(),
+          })
+        })
       }
-      
+    }
+
+    if (!response.ok) {
       return NextResponse.json(
-        { error: `ElevenLabs API error: ${response.status}` },
+        { error: `Voice synthesis failed (All providers exhausted)` },
         { status: response.status }
       )
     }
 
     // Record spending after successful call
     recordSpending('elevenlabs', estimatedCost)
-    
+
     // Return audio as blob
     const audioBuffer = await response.arrayBuffer()
-    
+
     return new NextResponse(audioBuffer, {
       status: 200,
       headers: {
@@ -168,7 +181,7 @@ export async function POST(request: NextRequest) {
         'Cache-Control': 'no-store'
       }
     })
-    
+
   } catch (error) {
     console.error('[TTS API] Error:', error)
     return NextResponse.json(

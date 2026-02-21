@@ -6,25 +6,11 @@
 
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
+import { ENV } from '@/lib/config/env'
 
 // Initialize clients
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1;
-
-if (!supabaseUrl || !supabaseKey) {
-  
-}
-
-const supabase = supabaseUrl && supabaseKey 
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
-
-const openaiKey = process.env.OPENAI_API_KEY;
-if (!openaiKey) {
-  
-}
-
-const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
+const supabase = createClient(ENV.supabase.url, ENV.supabase.serviceRoleKey!);
+const openai = ENV.ai.openai ? new OpenAI({ apiKey: ENV.ai.openai }) : null;
 
 // Types
 export interface Memory {
@@ -87,7 +73,7 @@ export async function storeMemory(
     try {
       embedding = await generateEmbedding(content);
     } catch (error) {
-      
+
       // Continue without embedding - still store the content
     }
   }
@@ -130,7 +116,7 @@ export async function searchMemory(
   try {
     queryEmbedding = await generateEmbedding(query);
   } catch (error) {
-    
+
     throw error;
   }
 
@@ -145,7 +131,7 @@ export async function searchMemory(
 
   if (error) {
     // If RPC function doesn't exist, fall back to manual search
-    
+
     return fallbackSearch(agentId, queryEmbedding, limit, threshold);
   }
 

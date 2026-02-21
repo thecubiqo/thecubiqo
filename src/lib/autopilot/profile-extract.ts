@@ -1,13 +1,7 @@
-/**
- * Autopilot Profile Extraction (SERVER-ONLY)
- * 
- * Extracts profile-relevant information from chat conversations.
- * CubiQo can autonomously fill out the user's profile while chatting,
- * running as a background agent task simultaneously.
- */
+import { ENV } from '@/lib/config/env'
 
 // Use Haiku for cost-effective extraction
-const EXTRACTION_MODEL = 'claude-haiku-4-5-20251001'
+const EXTRACTION_MODEL = 'claude-3-5-haiku-20241022'
 
 export interface ProfileField {
   field: string
@@ -80,7 +74,7 @@ export async function extractProfileFields(
   existingProfile: Record<string, string> = {},
   apiKey?: string
 ): Promise<ProfileExtractionResult> {
-  const key = apiKey || process.env.ANTHROPIC_API_KEY
+  const key = apiKey || ENV.ai.anthropic
 
   if (!key) {
     console.error('[Autopilot] No API key available for profile extraction')

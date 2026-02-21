@@ -10,7 +10,7 @@ export type BadgeVariant =
   | 'neutral'
   | 'outline';
 
-export interface BadgeProps {
+export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode;
   variant?: BadgeVariant;
   className?: string;
@@ -34,10 +34,12 @@ export function Badge({
   className = '',
   icon,
   pulse = false,
+  ...props
 }: BadgeProps) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${badgeStyles[variant]} ${className}`}
+      {...props}
     >
       {pulse && (
         <span className="w-2 h-2 rounded-full bg-current animate-pulse" />

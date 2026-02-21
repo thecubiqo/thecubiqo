@@ -7,9 +7,9 @@ import type { ProviderConfig } from './types'
 
 export const MINIMAX_CONFIG: ProviderConfig = {
   name: 'minimax',
-  model: 'MiniMax-M2',
-  maxTokens: 200,
-  apiKeyEnv: 'MINIMAX_API_KEY' // Also supports MINIMAX_KEY as fallback
+  model: 'abab6.5s-chat',
+  maxTokens: 2048,
+  apiKeyEnv: 'MINIMAX_API_KEY'
 }
 
 export const MIXTRAL_CONFIG: ProviderConfig = {
@@ -26,10 +26,17 @@ export const LLAMA_CONFIG: ProviderConfig = {
   apiKeyEnv: 'TOGETHER_API_KEY'
 }
 
+export const OPENAI_CONFIG: ProviderConfig = {
+  name: 'openai',
+  model: 'gpt-4o',
+  maxTokens: 200,
+  apiKeyEnv: 'OPENAI_API_KEY'
+}
+
 export const CLAUDE_CONFIG: ProviderConfig = {
   name: 'claude',
-  model: 'claude-haiku-4-5-20251001',
-  maxTokens: 200,
+  model: 'claude-3-5-haiku-20241022',
+  maxTokens: 1024,
   apiKeyEnv: 'ANTHROPIC_API_KEY'
 }
 
@@ -37,4 +44,4 @@ export const CLAUDE_CONFIG: ProviderConfig = {
 export const PRIMARY_PROVIDER = MINIMAX_CONFIG
 
 // Fallback chain
-export const FALLBACK_PROVIDERS = [MIXTRAL_CONFIG, LLAMA_CONFIG, CLAUDE_CONFIG]
+export const FALLBACK_PROVIDERS = [OPENAI_CONFIG, MIXTRAL_CONFIG, LLAMA_CONFIG, CLAUDE_CONFIG]

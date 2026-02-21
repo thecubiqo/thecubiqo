@@ -214,9 +214,12 @@ export function useSession() {
   useEffect(() => {
     if (authUser === undefined) return
 
+    let isMounted = true
+
     const initSession = async () => {
       // Failsafe: Don't let it hang forever
       const timeout = setTimeout(() => {
+        if (!isMounted) return
         setState(prev => {
           if (prev.isLoading) {
             return {
@@ -237,6 +240,7 @@ export function useSession() {
           await handleGuestUser()
         }
       } catch (error) {
+        if (!isMounted) return
         console.error('[useSession] Init error:', error)
         setState(prev => ({
           ...prev,
@@ -249,6 +253,10 @@ export function useSession() {
     }
 
     initSession()
+
+    return () => {
+      isMounted = false
+    }
   }, [authUser, handleAuthenticatedUser, handleGuestUser])
 
   const convertToAuthenticated = useCallback(async (userId: string): Promise<boolean> => {

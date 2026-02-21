@@ -83,9 +83,9 @@ export function SettingsCubeApp() {
                 style={{
                   backgroundColor:
                     config.color === 'RED' ? '#c2185b' :
-                    config.color === 'YELLOW' ? '#ffa000' :
-                    config.color === 'GREEN_BLUE' ? '#00897b' :
-                    '#ff6f00',
+                      config.color === 'YELLOW' ? '#ffa000' :
+                        config.color === 'TEAL' ? '#00897b' :
+                          '#ff6f00',
                 }}
               >
                 {config.color}
