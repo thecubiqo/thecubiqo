@@ -1,92 +1,96 @@
 import { useEffect, useRef } from 'react';
-// XTerm is dynamically imported to avoid build issues
 
 export default function TerminalPanel() {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<any>(null);
   const fitAddonRef = useRef<any>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !terminalRef.current || xtermRef.current) return;
 
-    const initTerminal = async () => {
-      try {
-        // Dynamically import xterm modules
-        const { Terminal } = await import('@xterm/xterm');
-        const { FitAddon } = await import('@xterm/addon-fit');
-        if (typeof window !== 'undefined') {
-          require('@xterm/xterm/css/xterm.css');
-        }
+    let disposed = false;
 
-        // Create terminal instance
-        const terminal = new Terminal({
-          cursorBlink: true,
-          fontSize: 14,
-          fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-          theme: {
-            background: '#1f2937',
-            foreground: '#e5e7eb',
-            cursor: '#10b981',
-            selectionBackground: '#374151',
-          },
-          rows: 15,
-        });
+    // Dynamically import xterm to avoid build failure when not installed
+    Promise.all([
+      import('@xterm/xterm'),
+      import('@xterm/addon-fit'),
+    ]).then(([{ Terminal }, { FitAddon }]) => {
+      if (disposed || !terminalRef.current) return;
 
-        // Create fit addon
-        const fitAddon = new FitAddon();
-        terminal.loadAddon(fitAddon);
+      // Create terminal instance
+      const terminal = new Terminal({
+        cursorBlink: true,
+        fontSize: 14,
+        fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+        theme: {
+          background: '#1f2937',
+          foreground: '#e5e7eb',
+          cursor: '#10b981',
+          selectionBackground: '#374151',
+        },
+        rows: 15,
+      });
 
-        // Open terminal if ref exists
-        if (terminalRef.current) {
-          terminal.open(terminalRef.current);
-          fitAddon.fit();
-        }
+      // Create fit addon
+      const fitAddon = new FitAddon();
+      terminal.loadAddon(fitAddon);
 
-        // Write welcome message
-        terminal.writeln('Welcome to CubiQo Studio Terminal!');
-        terminal.writeln('');
-        terminal.writeln('$ _');
+      // Open terminal
+      terminal.open(terminalRef.current!);
+      fitAddon.fit();
 
-        // Simulate interactive terminal
-        let currentLine = '';
-        terminal.onData((data) => {
-          if (data === '\r') { // Enter key
-            terminal.write('\r\n');
-            if (currentLine.trim()) {
-              // Simulate command execution
-              terminal.writeln(`Command "${currentLine}" received (integration coming soon)`);
-            }
-            terminal.write('$ ');
-            currentLine = '';
-          } else if (data === '\u007F') { // Backspace
-            if (currentLine.length > 0) {
-              currentLine = currentLine.slice(0, -1);
-              terminal.write('\b \b');
-            }
-          } else {
-            currentLine += data;
-            terminal.write(data);
+      // Write welcome message
+      terminal.writeln('Welcome to CubiQo Studio Terminal!');
+      terminal.writeln('');
+      terminal.writeln('$ _');
+
+      // Simulate interactive terminal
+      let currentLine = '';
+      terminal.onData((data: string) => {
+        if (data === '\r') { // Enter key
+          terminal.write('\r\n');
+          if (currentLine.trim()) {
+            terminal.writeln(`Command "${currentLine}" received (integration coming soon)`);
           }
-        });
-
-        // Save refs
-        xtermRef.current = terminal;
-        fitAddonRef.current = fitAddon;
-
-      } catch (error) {
-        console.error('Failed to initialize terminal:', error);
-        if (terminalRef.current) {
-          terminalRef.current.innerHTML = '<div class="p-4 text-gray-500">Terminal initialization failed. Missing dependencies.</div>';
+          terminal.write('$ ');
+          currentLine = '';
+        } else if (data === '\u007F') { // Backspace
+          if (currentLine.length > 0) {
+            currentLine = currentLine.slice(0, -1);
+            terminal.write('\b \b');
+          }
+        } else {
+          currentLine += data;
+          terminal.write(data);
         }
+      });
+
+      // Save refs
+      xtermRef.current = terminal;
+      fitAddonRef.current = fitAddon;
+
+      // Handle resize
+      const handleResize = () => {
+        fitAddon.fit();
+      };
+      window.addEventListener('resize', handleResize);
+
+      cleanupRef.current = () => {
+        window.removeEventListener('resize', handleResize);
+        terminal.dispose();
+      };
+    }).catch((err) => {
+      console.warn('Terminal dependencies not available:', err);
+      if (terminalRef.current) {
+        terminalRef.current.innerHTML = '<p class="text-gray-400 text-sm p-4">Terminal not available</p>';
       }
-    };
+    });
 
-    initTerminal();
-
+    // Cleanup
     return () => {
-      if (xtermRef.current) {
-        xtermRef.current.dispose();
-      }
+      disposed = true;
+      cleanupRef.current?.();
     };
   }, []);
 

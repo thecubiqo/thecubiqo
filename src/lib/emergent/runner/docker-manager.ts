@@ -3,14 +3,8 @@
  * Manages Docker containers for workspace execution
  */
 
-// Dockerode is conditional to avoid build issues
-// Dockerode is isolated via eval('require') to bypass Turbopack static analysis of ssh2
-let Docker: any = null;
-try {
-  Docker = eval('require')('dockerode');
-} catch (e) {
-  // Ignored for build safety on Vercel
-}
+// dockerode is loaded dynamically to avoid build failures when not installed
+type DockerInstance = any;
 
 export interface ContainerConfig {
   projectId: string;
@@ -31,26 +25,26 @@ export interface ContainerInfo {
   port?: number;
 }
 
+function loadDocker(): DockerInstance {
+  try {
+    // Dynamic import to avoid build failure when dockerode is not installed
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Docker = require('dockerode');
+    return new Docker({
+      socketPath: '/var/run/docker.sock',
+    });
+  } catch (error) {
+    console.error('dockerode is not installed. Docker functionality is unavailable.');
+    return null;
+  }
+}
+
 export class DockerManager {
-  private docker: any;
+  private docker: DockerInstance;
   private containerMap: Map<string, any>;
 
   constructor() {
-    if (!Docker) {
-      console.warn('Dockerode not found. Docker functions will be disabled.');
-      this.docker = null as any;
-      this.containerMap = new Map();
-      return;
-    }
-
-    try {
-      this.docker = new Docker({
-        socketPath: '/var/run/docker.sock',
-      });
-    } catch (e) {
-      console.error('Failed to initialize Docker:', e);
-      this.docker = null as any;
-    }
+    this.docker = loadDocker();
     this.containerMap = new Map();
   }
 

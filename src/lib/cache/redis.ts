@@ -1,19 +1,25 @@
 // Redis client for caching and session management
-// ioredis is isolated via eval('require') to bypass Turbopack static analysis
-let Redis: any = null;
-try {
-  Redis = eval('require')('ioredis');
-} catch (e) {
-  // Ignored for build safety on Vercel
-}
+// ioredis is loaded dynamically to avoid build failures when not installed
+type RedisClient = {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string): Promise<string>;
+  setex(key: string, seconds: number, value: string): Promise<string>;
+  del(...keys: string[]): Promise<number>;
+  exists(key: string): Promise<number>;
+  keys(pattern: string): Promise<string[]>;
+  incrby(key: string, increment: number): Promise<number>;
+  expire(key: string, seconds: number): Promise<number>;
+  quit(): Promise<string>;
+  on(event: string, listener: (...args: any[]) => void): void;
+};
 
-let redis: any = null;
+let redis: RedisClient | null = null;
 
 /**
  * Get or create Redis client
  * Falls back to in-memory store if Redis is not available
  */
-export function getRedisClient(): any {
+export function getRedisClient(): RedisClient | null {
   if (redis) return redis;
 
   const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL;
@@ -29,7 +35,10 @@ export function getRedisClient(): any {
   }
 
   try {
-    redis = new Redis(redisUrl, {
+    // Dynamic import to avoid build failure when ioredis is not installed
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const IoRedis = require('ioredis');
+    redis = new IoRedis(redisUrl, {
       maxRetriesPerRequest: 3,
       retryStrategy: (times: number) => {
         if (times > 3) {
@@ -41,11 +50,11 @@ export function getRedisClient(): any {
       lazyConnect: true,
     });
 
-    redis.on('error', (err: any) => {
+    redis!.on('error', (err: Error) => {
       console.error('Redis error:', err);
     });
 
-    redis.on('connect', () => {
+    redis!.on('connect', () => {
       console.log('Redis connected successfully');
     });
 
@@ -60,7 +69,7 @@ export function getRedisClient(): any {
  * Cache wrapper with automatic serialization
  */
 export class RedisCache {
-  private client: any;
+  private client: RedisClient | null;
   private prefix: string;
 
   constructor(prefix: string = 'cubiqo') {
