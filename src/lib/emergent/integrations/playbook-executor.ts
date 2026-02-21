@@ -41,31 +41,31 @@ export async function executePlaybook(
   execution: PlaybookExecution
 ): Promise<unknown> {
   const supabase = await createClient()
-  
+
   // Get playbook
   const { data: playbook, error: playbookError } = await supabase
-    .from('playbooks')
+    .from('playbooks' as any)
     .select('*')
     .eq('id', execution.playbookId)
     .single()
-  
+
   if (playbookError || !playbook) {
     throw new NotFoundError('Playbook')
   }
-  
+
   // Initialize execution context
   const context: ExecutionContext = {
-    variables: { ...execution.params },
-    secrets: {},
-    integrationConfig: execution.context?.integrationConfig || {}
+    variables: { ...execution.params } as Record<string, unknown>,
+    secrets: {} as Record<string, string>,
+    integrationConfig: (execution.context?.integrationConfig as Record<string, unknown>) || ({} as Record<string, unknown>)
   }
-  
+
   // Load secrets
   await loadSecrets(execution.projectId, context)
-  
+
   // Parse playbook code templates
-  const steps = playbook.code_templates as Record<string, unknown>
-  
+  const steps = (playbook as any)?.code_templates as Record<string, unknown> || {}
+
   // Execute playbook
   try {
     const result = await executeSteps(steps, context)
@@ -88,22 +88,22 @@ async function loadSecrets(
   context: ExecutionContext
 ): Promise<void> {
   const supabase = await createClient()
-  
+
   const { data: secrets } = await supabase
-    .from('project_secrets')
+    .from('project_secrets' as any)
     .select('*')
     .eq('project_id', projectId)
-  
+
   if (secrets) {
     for (const secret of secrets) {
       // Handle both snake_case (database) and camelCase (types)
       const authTag = (secret as any).auth_tag || (secret as any).authTag
       const decrypted = decryptSecret({
-        encryptedValue: secret.encrypted_value,
-        iv: secret.iv,
+        encryptedValue: (secret as any).encrypted_value,
+        iv: (secret as any).iv,
         authTag: authTag
       })
-      context.secrets[secret.key] = decrypted
+      context.secrets[(secret as any).key] = decrypted
     }
   }
 }
@@ -117,14 +117,14 @@ async function executeSteps(
 ): Promise<unknown> {
   // For now, treat steps as a simple script
   // In production, parse and execute step-by-step
-  
+
   // Mock execution - replace with actual step execution
   const mockResult = {
     status: 'completed',
     data: context.variables,
     timestamp: new Date().toISOString()
   }
-  
+
   return mockResult
 }
 
@@ -144,12 +144,12 @@ async function executeHttpStep(
   // Replace variables in URL and body
   const url = replaceVariables(config.url, context)
   const body = config.body ? replaceVariables(JSON.stringify(config.body), context) : undefined
-  
+
   // Execute HTTP request
   const controller = new AbortController()
   const timeout = config.timeout || 30000
   const timeoutId = setTimeout(() => controller.abort(), timeout)
-  
+
   try {
     const response = await fetch(url, {
       method: config.method,
@@ -160,13 +160,13 @@ async function executeHttpStep(
       body: body ? JSON.parse(body) : undefined,
       signal: controller.signal
     })
-    
+
     clearTimeout(timeoutId)
-    
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
-    
+
     return await response.json()
   } catch (error) {
     clearTimeout(timeoutId)
@@ -181,15 +181,15 @@ async function executeHttpStep(
 function replaceVariables(str: string, context: ExecutionContext): string {
   return str.replace(/\{\{([^}]+)\}\}/g, (match, varPath) => {
     const path = varPath.trim().split('.')
-    
+
     if (path[0] === 'secrets') {
       return context.secrets[path[1]] || match
     }
-    
+
     if (path[0] === 'config') {
       return String(context.integrationConfig[path[1]] || match)
     }
-    
+
     return String(context.variables[path[0]] || match)
   })
 }

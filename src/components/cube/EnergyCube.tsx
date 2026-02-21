@@ -229,7 +229,7 @@ const COLOR_CONFIGS: Record<ColorName, {
     floats: true,
     floatHeight: 0.3,
   },
-  GREEN_BLUE: {
+  TEAL: {
     // OFFICE - Sincere, professional, focused
     primary: new THREE.Color(0.0, 0.54, 0.48),       // Teal
     secondary: new THREE.Color(0.0, 0.35, 0.43),    // Deep teal
@@ -292,25 +292,25 @@ const MODE_CONFIGS: Record<AnimationState, {
   },
 }
 
-export function EnergyCube({ 
-  colorName = 'ORANGE', 
+export function EnergyCube({
+  colorName = 'ORANGE',
   animationState = 'idle',
-  reducedMotion = false 
+  reducedMotion = false
 }: EnergyCubeProps) {
   const groupRef = useRef<THREE.Group>(null)
   const transitionRef = useRef({ mode: 0, color: 0 })
-  const shuffleRef = useRef({ 
-    active: false, 
-    progress: 0, 
+  const shuffleRef = useRef({
+    active: false,
+    progress: 0,
     axis: 'y' as 'x' | 'y' | 'z',
     fromColor: COLOR_CONFIGS.ORANGE,
     toColor: COLOR_CONFIGS.ORANGE
   })
   const prevColorRef = useRef<ColorName>(colorName)
-  
+
   const colorConfig = COLOR_CONFIGS[colorName] || COLOR_CONFIGS.ORANGE
   const modeConfig = MODE_CONFIGS[animationState] || MODE_CONFIGS.idle
-  
+
   // Shared uniforms
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
@@ -323,7 +323,7 @@ export function EnergyCube({
     uAccentColor: { value: colorConfig.accent.clone() },
     uColorIntensity: { value: 1.2 },
   }), [])
-  
+
   // Trigger shuffle on color change
   useEffect(() => {
     if (prevColorRef.current !== colorName) {
@@ -338,14 +338,14 @@ export function EnergyCube({
       prevColorRef.current = colorName
     }
   }, [colorName, colorConfig])
-  
+
   // Animation loop
   useFrame((state, delta) => {
     if (!groupRef.current) return
-    
+
     const elapsedTime = state.clock.getElapsedTime()
     const motionMultiplier = reducedMotion ? 0.2 : 1.0
-    
+
     // Smooth mode transition
     const transitionSpeed = reducedMotion ? 0.5 : 2.5
     transitionRef.current.mode = THREE.MathUtils.lerp(
@@ -353,21 +353,21 @@ export function EnergyCube({
       modeConfig.intensity,
       delta * transitionSpeed
     )
-    
+
     // Handle Rubik's cube shuffle transition
     if (shuffleRef.current.active) {
       shuffleRef.current.progress += delta * 3.0
-      
+
       if (shuffleRef.current.progress >= 1.0) {
         shuffleRef.current.active = false
         shuffleRef.current.progress = 1.0
       }
-      
+
       // No rotation during shuffle - just color transition
       const t = shuffleRef.current.progress
       const fromConfig = shuffleRef.current.fromColor
       const toConfig = shuffleRef.current.toColor
-      
+
       uniforms.uPrimaryColor.value.lerpColors(fromConfig.primary, toConfig.primary, t)
       uniforms.uSecondaryColor.value.lerpColors(fromConfig.secondary, toConfig.secondary, t)
       uniforms.uAccentColor.value.lerpColors(fromConfig.accent, toConfig.accent, t)
@@ -377,7 +377,7 @@ export function EnergyCube({
       uniforms.uSecondaryColor.value.lerp(colorConfig.secondary, delta * 3)
       uniforms.uAccentColor.value.lerp(colorConfig.accent, delta * 3)
     }
-    
+
     // Update uniforms
     uniforms.uTime.value = elapsedTime
     uniforms.uModeIntensity.value = transitionRef.current.mode
@@ -397,27 +397,27 @@ export function EnergyCube({
       modeConfig.colorIntensity,
       delta * 2
     )
-    
+
     // Float animation based on color config
-    const targetY = colorConfig.floats 
+    const targetY = colorConfig.floats
       ? colorConfig.floatHeight + Math.sin(elapsedTime * 0.5) * 0.03 * motionMultiplier
       : colorConfig.floatHeight // Grounded position for yellow
-    
+
     groupRef.current.position.y = THREE.MathUtils.lerp(
       groupRef.current.position.y,
       targetY,
       delta * 2
     )
-    
+
     // Breathing scale
     const breathe = 1 + Math.sin(elapsedTime * 0.4) * 0.012 * transitionRef.current.mode * motionMultiplier
     const processingScale = 1 + Math.sin(elapsedTime * 2.5) * 0.008 * modeConfig.processing
     groupRef.current.scale.setScalar(breathe * processingScale)
   })
-  
+
   const showShadow = colorConfig.shadowColor !== null
   const shadowColor = colorConfig.shadowColor || new THREE.Color(0.5, 0.5, 0.5)
-  
+
   return (
     <group ref={groupRef} rotation={[0.15, 0.8, 0]}>
       {/* Main rounded cube */}
@@ -432,7 +432,7 @@ export function EnergyCube({
           blending={THREE.AdditiveBlending}
         />
       </RoundedBox>
-      
+
       {/* Inner glow layer */}
       <RoundedBox args={[1.5, 1.5, 1.5]} radius={0.12} smoothness={4}>
         <shaderMaterial
@@ -445,7 +445,7 @@ export function EnergyCube({
           blending={THREE.AdditiveBlending}
         />
       </RoundedBox>
-      
+
       {/* Core glow */}
       <RoundedBox args={[1.0, 1.0, 1.0]} radius={0.1} smoothness={4}>
         <shaderMaterial
@@ -458,7 +458,7 @@ export function EnergyCube({
           blending={THREE.AdditiveBlending}
         />
       </RoundedBox>
-      
+
       {/* Floor shadow - only for GREEN_BLUE and ORANGE */}
       {showShadow && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.2, 0]}>

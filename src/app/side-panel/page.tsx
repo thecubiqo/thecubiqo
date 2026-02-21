@@ -95,9 +95,6 @@ export default function SidePanelPage() {
                     sessionId={sessionId}
                     currentColor={currentColor}
                     onColorChange={setCurrentColor}
-                    initialContext={currentUrl ? `User is currently viewing: ${currentUrl} (${pageTitle})` : undefined}
-                    isExtension={true}
-                // isGuest removed to use API route which bypasses RLS via admin client
                 />
             </div>
 

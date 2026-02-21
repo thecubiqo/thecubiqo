@@ -19,7 +19,7 @@ async function testGen() {
         console.log(`SOURCE: ${result.source}`);
         console.log('-------------------');
     } catch (err) {
-        console.error('❌ Content generation failed:', err.message);
+        console.error('❌ Content generation failed:', err instanceof Error ? err.message : String(err));
     }
 }
 

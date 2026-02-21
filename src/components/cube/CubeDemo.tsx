@@ -9,7 +9,7 @@ import { CubeScene } from './CubeScene'
 import type { AnimationState } from './Cube'
 import type { ColorName } from '@/config/colors'
 
-const COLORS: ColorName[] = ['ORANGE', 'YELLOW', 'GREEN_BLUE', 'RED']
+const COLORS: ColorName[] = ['ORANGE', 'YELLOW', 'TEAL', 'RED']
 const STATES: AnimationState[] = ['idle', 'listening', 'thinking', 'speaking']
 
 export function CubeDemo() {
@@ -35,17 +35,17 @@ export function CubeDemo() {
                 onClick={() => setColorName(color)}
                 className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
                 style={{
-                  backgroundColor: 
+                  backgroundColor:
                     color === 'RED' ? '#C2185B' :
-                    color === 'YELLOW' ? '#FFA000' :
-                    color === 'GREEN_BLUE' ? '#00897B' :
-                    '#FF6F00',
+                      color === 'YELLOW' ? '#FFA000' :
+                        color === 'TEAL' ? '#00897B' :
+                          '#FF6F00',
                   color: 'white',
                   opacity: colorName === color ? 1 : 0.7,
                   boxShadow: colorName === color ? '0 0 0 2px white' : 'none',
                 }}
               >
-                {color === 'GREEN_BLUE' ? 'SATTVA' : color === 'ORANGE' ? 'FOURTH WAY' : color}
+                {color === 'TEAL' ? 'SATTVA' : color === 'ORANGE' ? 'FOURTH WAY' : color}
               </button>
             ))}
           </div>
@@ -59,11 +59,10 @@ export function CubeDemo() {
               <button
                 key={state}
                 onClick={() => setAnimationState(state)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  animationState === state
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${animationState === state
                     ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white'
                     : 'bg-zinc-200/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800'
-                }`}
+                  }`}
               >
                 {state.charAt(0).toUpperCase() + state.slice(1)}
               </button>

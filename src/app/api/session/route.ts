@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-
-// Server-side Supabase client with service role (bypasses RLS)
-// Support both old and new env var names (fallback pattern)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL1
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY1
-
-// Detect placeholder/missing configuration
-const isConfigured = !!supabaseUrl && !!supabaseServiceKey && supabaseUrl !== 'https://placeholder.supabase.co' && supabaseServiceKey !== 'placeholder-key'
+import { ENV } from '@/lib/config/env'
 
 const supabaseAdmin = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseServiceKey || 'placeholder-key'
+  ENV.supabase.url,
+  ENV.supabase.serviceRoleKey || 'placeholder-key'
 )
+
+const isConfigured = !!ENV.supabase.url && !!ENV.supabase.serviceRoleKey && !ENV.supabase.url.includes('placeholder')
 
 export async function POST(req: NextRequest) {
   // Early check: is Supabase properly configured?
@@ -22,8 +17,8 @@ export async function POST(req: NextRequest) {
       error: 'Database not configured',
       details: 'Missing required Supabase environment variables. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel.',
       missing: {
-        url: !supabaseUrl,
-        serviceKey: !supabaseServiceKey,
+        url: !ENV.supabase.url,
+        serviceKey: !ENV.supabase.serviceRoleKey,
       }
     }, { status: 503 })
   }

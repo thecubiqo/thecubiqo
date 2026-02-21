@@ -48,7 +48,7 @@ async function deriveKey(
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt,
+      salt: salt as any,
       iterations: ITERATIONS,
       hash: 'SHA-256',
     },
@@ -85,7 +85,7 @@ export async function encryptKey(
     const ciphertext = await crypto.subtle.encrypt(
       {
         name: ALGORITHM,
-        iv,
+        iv: iv as any,
       },
       key,
       data
@@ -136,7 +136,7 @@ export async function decryptKey(
     const decrypted = await crypto.subtle.decrypt(
       {
         name: ALGORITHM,
-        iv,
+        iv: iv as any,
       },
       key,
       ciphertext
@@ -175,18 +175,18 @@ export async function validateEncryption(
 export function generatePassphrase(userId: string): string {
   // CRITICAL: BYO_ENCRYPTION_SECRET must be set in production
   const secret = process.env.BYO_ENCRYPTION_SECRET;
-  
+
   if (!secret) {
     // In production, this is a critical error
     if (process.env.NODE_ENV === 'production') {
       throw new Error('BYO_ENCRYPTION_SECRET environment variable is required in production');
     }
-    
+
     // In development, use a default (but warn)
     console.warn('[BYO Encryption] WARNING: BYO_ENCRYPTION_SECRET not set, using development default');
     return `${userId}-dev-secret-not-for-production`;
   }
-  
+
   return `${userId}-${secret}`;
 }
 

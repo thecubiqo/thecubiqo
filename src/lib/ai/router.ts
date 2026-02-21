@@ -22,6 +22,7 @@ import { callMiniMax } from './minimax'
 import { callOpenClaw } from './openclaw'
 import { SYSTEM_PROMPT_UNHINGED } from './system-prompt-unhinged'
 import { getBYOConfig } from '@/lib/byo/byo-manager'
+import { ENV } from '@/lib/config/env'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 
@@ -33,7 +34,7 @@ async function callClaude(
   messages: { role: string; content: string }[],
   apiKey?: string | null
 ): Promise<string> {
-  const key = apiKey || process.env.ANTHROPIC_API_KEY
+  const key = apiKey || ENV.ai.anthropic
   if (!key) {
     throw new Error('Claude API key not configured')
   }
@@ -60,7 +61,7 @@ async function callOpenAI(
   messages: { role: string; content: string }[],
   apiKey?: string | null
 ): Promise<string> {
-  const key = apiKey || process.env.OPENAI_API_KEY
+  const key = apiKey || ENV.ai.openai
   if (!key) {
     throw new Error('OpenAI API key not configured')
   }
@@ -181,7 +182,7 @@ export async function routeAIRequest(options: RouterOptions): Promise<RouterResu
   if (userId && !byoClaudeKey && !byoOpenaiKey) {
     console.log('[Router] 🔑 Checking for BYO API keys...')
     const byoConfig = await getBYOConfig(userId)
-    
+
     if (byoConfig?.enabled) {
       byoClaudeKey = byoConfig.claudeApiKey
       byoOpenaiKey = byoConfig.openaiApiKey

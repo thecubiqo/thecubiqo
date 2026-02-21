@@ -14,7 +14,7 @@ import { z } from 'zod'
 export const PlaybookStepSchema = z.object({
   name: z.string().min(1).max(100),
   type: z.enum(['http', 'transform', 'condition', 'loop', 'secret']),
-  config: z.record(z.unknown())
+  config: z.record(z.string(), z.unknown())
 })
 
 /**
@@ -23,7 +23,7 @@ export const PlaybookStepSchema = z.object({
 export const HttpStepConfigSchema = z.object({
   method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
   url: z.string().url(),
-  headers: z.record(z.string()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   body: z.unknown().optional(),
   timeout: z.number().min(1000).max(60000).optional()
 })

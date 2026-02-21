@@ -16,6 +16,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { ENV } from '@/lib/config/env'
 import {
   buildMessages,
   parseResponse,
@@ -80,10 +81,9 @@ function checkMiniMaxRateLimit(sessionId: string): { allowed: boolean; remaining
 }
 
 // Server-side Supabase client for loading memories
-// Support both old and new env var names with fallback
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+  ENV.supabase.url,
+  ENV.supabase.serviceRoleKey || 'placeholder-key'
 )
 
 // MiniMax API call (primary)
@@ -91,11 +91,10 @@ async function callMiniMax(
   systemPrompt: string,
   messages: { role: string; content: string }[]
 ): Promise<string> {
-  // Support both old and new env var names with fallback
-  const apiKey = process.env.MINIMAX_KEY || process.env.MINIMAX_API_KEY
+  const apiKey = ENV.ai.minimax
 
   if (!apiKey) {
-    throw new Error('MINIMAX_KEY or MINIMAX_API_KEY not configured')
+    throw new Error('MINIMAX_KEY not configured')
   }
 
   // Build messages for MiniMax API
@@ -148,7 +147,7 @@ async function callMixtral(
   systemPrompt: string,
   messages: { role: string; content: string }[]
 ): Promise<string> {
-  const apiKey = process.env.MISTRAL_API_KEY
+  const apiKey = ENV.ai.mistral
 
   if (!apiKey) {
     throw new Error('MISTRAL_API_KEY not configured')
@@ -191,7 +190,7 @@ async function callLlama(
   systemPrompt: string,
   messages: { role: string; content: string }[]
 ): Promise<string> {
-  const apiKey = process.env.TOGETHER_API_KEY
+  const apiKey = ENV.ai.together
 
   if (!apiKey) {
     throw new Error('TOGETHER_API_KEY not configured')
@@ -229,7 +228,47 @@ async function callLlama(
   throw new Error('Invalid Llama response format')
 }
 
-// Claude API call with prompt caching (final fallback)
+// OpenAI API call (reliable fallback)
+async function callOpenAI(
+  systemPrompt: string,
+  messages: { role: string; content: string }[]
+): Promise<string> {
+  const apiKey = ENV.ai.openai
+
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY not configured')
+  }
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...messages
+      ],
+      temperature: 0.7
+    })
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('OpenAI API error:', response.status, errorText)
+    throw new Error(`OpenAI API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+
+  if (data.choices && data.choices[0]?.message?.content) {
+    return data.choices[0].message.content
+  }
+
+  throw new Error('Invalid OpenAI response format')
+}
 async function callClaude(
   systemPrompt: string,
   messages: { role: string; content: string }[],
@@ -244,7 +283,7 @@ async function callClaude(
     }
   }
 
-  const apiKey = byoApiKey || process.env.ANTHROPIC_API_KEY || process.env.OPENROUTER_KEY || process.env.OPENROUTER_API_KEY
+  const apiKey = byoApiKey || ENV.ai.anthropic
 
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY or OPENROUTER_KEY not configured')
@@ -438,7 +477,7 @@ export async function POST(request: NextRequest) {
     const isSensitiveContent = classifyMessage(message)
 
     let content: string
-    let provider: 'minimax' | 'mixtral' | 'llama' | 'claude' = 'minimax'
+    let provider: 'minimax' | 'mixtral' | 'llama' | 'claude' | 'openai' = 'minimax'
 
     // If sensitive content detected, skip directly to Claude Haiku
     if (isSensitiveContent) {
@@ -458,47 +497,60 @@ export async function POST(request: NextRequest) {
         try {
           content = await callMiniMax(fullSystemPrompt, messages)
         } catch (minimaxError) {
-          console.warn('MiniMax failed, falling back to Mixtral:', minimaxError)
-          // Fallback to Mixtral
+          console.warn('MiniMax failed, falling back to OpenAI:', minimaxError)
+          // Fallback to OpenAI
+          try {
+            content = await callOpenAI(fullSystemPrompt, messages)
+            provider = 'openai'
+          } catch (openaiError) {
+            console.warn('OpenAI failed, falling back to Mixtral:', openaiError)
+            // Fallback to Mixtral
+            try {
+              content = await callMixtral(fullSystemPrompt, messages)
+              provider = 'mixtral'
+            } catch (mixtralError) {
+              console.warn('Mixtral failed, falling back to Llama:', mixtralError)
+              // Fallback to Llama
+              try {
+                content = await callLlama(fullSystemPrompt, messages)
+                provider = 'llama'
+              } catch (llamaError) {
+                console.warn('Llama failed, falling back to Claude:', llamaError)
+                // Final fallback to Claude Haiku
+                try {
+                  content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
+                  provider = 'claude'
+                } catch {
+                  throw new Error('All AI providers failed')
+                }
+              }
+            }
+          }
+        }
+      } else {
+        // MiniMax rate limited or disabled, try OpenAI as reliable second primary
+        console.warn('MiniMax unavailable, using OpenAI')
+        try {
+          content = await callOpenAI(fullSystemPrompt, messages)
+          provider = 'openai'
+        } catch (openaiError) {
+          console.warn('OpenAI failed, falling back to Mixtral:', openaiError)
           try {
             content = await callMixtral(fullSystemPrompt, messages)
             provider = 'mixtral'
           } catch (mixtralError) {
             console.warn('Mixtral failed, falling back to Llama:', mixtralError)
-            // Fallback to Llama
             try {
               content = await callLlama(fullSystemPrompt, messages)
               provider = 'llama'
             } catch (llamaError) {
               console.warn('Llama failed, falling back to Claude:', llamaError)
-              // Final fallback to Claude Haiku
               try {
                 content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
                 provider = 'claude'
               } catch {
                 throw new Error('All AI providers failed')
               }
-            }
-          }
-        }
-      } else {
-        // MiniMax rate limited, skip to Mixtral
-        console.warn('MiniMax rate limited, using Mixtral')
-        try {
-          content = await callMixtral(fullSystemPrompt, messages)
-          provider = 'mixtral'
-        } catch (mixtralError) {
-          console.warn('Mixtral failed, falling back to Llama:', mixtralError)
-          try {
-            content = await callLlama(fullSystemPrompt, messages)
-            provider = 'llama'
-          } catch (llamaError) {
-            console.warn('Llama failed, falling back to Claude:', llamaError)
-            try {
-              content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
-              provider = 'claude'
-            } catch {
-              throw new Error('All AI providers failed')
             }
           }
         }

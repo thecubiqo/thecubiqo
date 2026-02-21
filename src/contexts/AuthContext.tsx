@@ -28,6 +28,7 @@ export type AuthState = {
 
 type AuthContextValue = AuthState & {
   signInWithEmail: (email: string) => Promise<{ success: boolean }>
+  signInAsDeveloper: (email: string) => Promise<{ success: boolean }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -184,6 +185,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return { success: true }
   }, [supabase])
 
+  // Sign in as developer (bypass OTP/magic link) - ONLY IN DEVELOPMENT
+  const signInAsDeveloper = useCallback(async (email: string) => {
+    if (process.env.NODE_ENV !== 'development') {
+      throw new Error('signInAsDeveloper is only available in development mode')
+    }
+
+    console.log('[AuthProvider] Developer sign-in for:', email)
+
+    // In dev, we can potentially use a fixed session or just mock it for UI testing
+    // If they have a real user, we'd need their password, but for UI testing 
+    // we can just set the state if we don't care about backend validation for now.
+
+    // However, to actually be authenticated with Supabase, we need a session.
+    // For now, let's just mock the state so they can see the UI.
+    setState({
+      user: { id: 'dev-user-id', email } as any,
+      profile: { id: 'dev-user-id', handle: 'dev-user' } as any,
+      isLoading: false,
+      isAuthenticated: true,
+      isGuest: false,
+    })
+
+    return { success: true }
+  }, [])
+
   // Sign out
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut()
@@ -216,10 +242,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     () => ({
       ...state,
       signInWithEmail,
+      signInAsDeveloper,
       signOut,
       refreshProfile,
     }),
-    [state, signInWithEmail, signOut, refreshProfile]
+    [state, signInWithEmail, signInAsDeveloper, signOut, refreshProfile]
   )
 
   return (

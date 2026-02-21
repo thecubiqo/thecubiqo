@@ -21,7 +21,7 @@ export function LoginForm() {
   const [cooldownSeconds, setCooldownSeconds] = useState(0)
   const [attemptCount, setAttemptCount] = useState(0)
 
-  const { signInWithEmail } = useAuth()
+  const { signInWithEmail, signInAsDeveloper } = useAuth() as any
 
   // Cooldown timer effect
   useEffect(() => {
@@ -145,6 +145,20 @@ export function LoginForm() {
         >
           {isLoading ? 'Sending...' : cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : 'Continue'}
         </button>
+
+        {process.env.NODE_ENV === 'development' && (
+          <button
+            type="button"
+            onClick={() => {
+              signInAsDeveloper(email || 'aditya@cubiqo.ai')
+                .then(() => setMessage({ type: 'success', text: 'Dev login successful!' }))
+                .catch((err: any) => setMessage({ type: 'error', text: err.message }));
+            }}
+            className="w-full py-2.5 rounded-[12px] bg-yellow-500/20 text-yellow-400 text-[13px] font-medium border border-yellow-500/30 hover:bg-yellow-500/30 transition-all mt-2"
+          >
+            Manual Login (Dev Bypass)
+          </button>
+        )}
       </form>
 
       <p className="text-center text-[12px] text-white/35 mt-4">

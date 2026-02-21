@@ -264,7 +264,7 @@ export class DockerManager {
         filters,
       });
 
-      return containers.map((container) => ({
+      return containers.map((container: any) => ({
         containerId: container.Id,
         status: container.State as any,
         ipAddress: container.NetworkSettings?.Networks?.bridge?.IPAddress,
@@ -290,7 +290,7 @@ export class DockerManager {
 
       // Wait for pull to complete
       await new Promise((resolve, reject) => {
-        this.docker.modem.followProgress(stream, (err, res) => {
+        this.docker.modem.followProgress(stream, (err: any, res: any) => {
           if (err) reject(err);
           else resolve(res);
         });

@@ -139,7 +139,7 @@ async function deductCredits(
   const supabase = await createClient()
 
   // Start transaction (using Postgres function if available, or manual)
-  const { error: updateError } = await supabase
+  const { error: updateError } = await (supabase as any)
     .from('credits')
     .update({
       balance: (supabase as any).rpc('decrement_balance', { amount }),
@@ -156,7 +156,7 @@ async function deductCredits(
       .single()
 
     if (credit) {
-      await supabase
+      await (supabase as any)
         .from('credits')
         .update({
           balance: credit.balance - amount,

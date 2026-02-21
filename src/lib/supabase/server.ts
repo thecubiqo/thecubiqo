@@ -1,35 +1,22 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/database.types'
+import { ENV } from '@/lib/config/env'
 
 /**
  * Check if Supabase is configured with real credentials
- * Returns false when running in preview mode with placeholder values
  */
 export function isSupabaseConfigured(): boolean {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  return !!(
-    url &&
-    key &&
-    url !== 'https://placeholder.supabase.co' &&
-    key !== 'placeholder-anon-key' &&
-    url.includes('supabase.co')
-  )
+  const { url, anonKey } = ENV.supabase
+  return !!(url && anonKey && !url.includes('placeholder'))
 }
 
 export async function createClient() {
   const cookieStore = await cookies()
 
-  // Support both old and new env var names with fallback
-  // Note: The "1" suffix is per legacy naming convention for backward compatibility
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
   return createServerClient<Database>(
-    supabaseUrl || 'https://placeholder.supabase.co',
-    supabaseAnonKey || 'placeholder-anon-key',
+    ENV.supabase.url,
+    ENV.supabase.anonKey,
     {
       cookies: {
         getAll() {
@@ -48,4 +35,3 @@ export async function createClient() {
     }
   )
 }
-

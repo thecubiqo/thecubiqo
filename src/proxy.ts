@@ -1,8 +1,9 @@
 /**
- * Proxy - Session Refresh, Route Protection, and Security Headers
- * (Renamed from middleware.ts for Next 16 Turbopack compatibility)
+ * Middleware - Session Refresh, Route Protection, and Security Headers
  * 
- * This proxy ensures:
+ * Related PRs: #12 (Magic-link auth state), #28 (Centralized auth)
+ * 
+ * This middleware ensures:
  * 1. Session is refreshed on every request (critical for magic-link redirects)
  * 2. Auth cookies stay up-to-date
  * 3. UI never shows stale auth state
@@ -11,6 +12,7 @@
 
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { ENV } from '@/lib/config/env'
 
 /**
  * Apply security headers to response
@@ -39,9 +41,17 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   ].join('; ')
 
   headers.set('Content-Security-Policy', cspDirectives)
+
+  // Prevent clickjacking attacks
   headers.set('X-Frame-Options', 'DENY')
+
+  // Prevent MIME type sniffing
   headers.set('X-Content-Type-Options', 'nosniff')
+
+  // Referrer policy - control information sent to other sites
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+
+  // Permissions policy - restrict browser features
   headers.set('Permissions-Policy', [
     'camera=()',
     'microphone=()',
@@ -49,11 +59,15 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
     'interest-cohort=()'
   ].join(', '))
 
+  // Strict Transport Security - enforce HTTPS (only in production)
   if (process.env.NODE_ENV === 'production') {
     headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
   }
 
+  // X-XSS-Protection (legacy, but still useful for older browsers)
   headers.set('X-XSS-Protection', '1; mode=block')
+
+  // Remove X-Powered-By to avoid information disclosure
   headers.delete('X-Powered-By')
 
   return response
@@ -64,39 +78,50 @@ export async function proxy(request: NextRequest) {
     request,
   })
 
-  // Prioritize URL1/ANON_KEY1 if set, else fallback to standard env vars
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-  const supabase = createServerClient(supabaseUrl, supabaseKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll()
+  const supabase = createServerClient(
+    ENV.supabase.url,
+    ENV.supabase.anonKey,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value)
+            supabaseResponse.cookies.set(name, value, options)
+          })
+        },
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          request.cookies.set(name, value)
-          supabaseResponse.cookies.set(name, value, options)
-        })
-      },
-    },
-  })
+    }
+  )
 
+  // CRITICAL: Refresh session on every request
+  // This ensures magic-link redirects immediately reflect authenticated state
+  // getUser() will automatically refresh expired sessions and update cookies
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Optional: Add debug logging in development
   if (process.env.NODE_ENV === 'development') {
     const pathname = request.nextUrl.pathname
-    console.log(`[Proxy] ${pathname} - User: ${user ? user.id : 'guest'}`)
+    console.log(`[Middleware] ${pathname} - User: ${user ? user.id : 'guest'}`)
   }
 
+  // Apply security headers to the response
   supabaseResponse = applySecurityHeaders(supabaseResponse)
+
   return supabaseResponse
 }
 
-export default proxy
-
 export const config = {
   matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder files
+     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

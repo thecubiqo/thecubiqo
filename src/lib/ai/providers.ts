@@ -26,6 +26,13 @@ export const LLAMA_CONFIG: ProviderConfig = {
   apiKeyEnv: 'TOGETHER_API_KEY'
 }
 
+export const OPENAI_CONFIG: ProviderConfig = {
+  name: 'openai',
+  model: 'gpt-4o',
+  maxTokens: 200,
+  apiKeyEnv: 'OPENAI_API_KEY'
+}
+
 export const CLAUDE_CONFIG: ProviderConfig = {
   name: 'claude',
   model: 'claude-haiku-4-5-20251001',
@@ -37,4 +44,4 @@ export const CLAUDE_CONFIG: ProviderConfig = {
 export const PRIMARY_PROVIDER = MINIMAX_CONFIG
 
 // Fallback chain
-export const FALLBACK_PROVIDERS = [MIXTRAL_CONFIG, LLAMA_CONFIG, CLAUDE_CONFIG]
+export const FALLBACK_PROVIDERS = [OPENAI_CONFIG, MIXTRAL_CONFIG, LLAMA_CONFIG, CLAUDE_CONFIG]
