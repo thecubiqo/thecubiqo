@@ -45,7 +45,7 @@ export function executeCommand(
   switch (parsed.name) {
     case 'cubiqo.color.lock': {
       const color = parsed.args[0] as CubeConfig['color']
-      if (['RED', 'YELLOW', 'GREEN_BLUE', 'ORANGE'].includes(color)) {
+      if (['RED', 'YELLOW', 'TEAL', 'ORANGE'].includes(color)) {
         return { ...config, color }
       }
       return null

@@ -10,15 +10,15 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/types/database.types'
 
-type AuditAction = 
+type AuditAction =
   | 'create' | 'read' | 'update' | 'delete'
   | 'deploy' | 'rollback' | 'rotate_secret'
   | 'add_member' | 'remove_member' | 'change_role'
   | 'start_workspace' | 'stop_workspace'
   | 'execute_tool' | 'call_integration'
 
-type ResourceType = 
-  | 'organization' | 'project' | 'secret' 
+type ResourceType =
+  | 'organization' | 'project' | 'secret'
   | 'workspace' | 'deployment' | 'integration'
   | 'member' | 'playbook' | 'webhook'
 
@@ -69,8 +69,8 @@ export interface SecretAccessLogParams {
 export async function logAudit(params: AuditLogParams): Promise<string | null> {
   try {
     const supabase = await createClient()
-    
-    const { data, error } = await supabase
+
+    const { data, error } = await (supabase as any)
       .from('audit_logs')
       .insert({
         user_id: params.userId,
@@ -84,12 +84,12 @@ export async function logAudit(params: AuditLogParams): Promise<string | null> {
       })
       .select('id')
       .single()
-    
+
     if (error) {
       console.error('Failed to log audit event:', error)
       return null
     }
-    
+
     return data.id
   } catch (error) {
     console.error('Audit logging error:', error)
@@ -118,8 +118,8 @@ export async function logSecretAccess(
 ): Promise<string | null> {
   try {
     const supabase = await createClient()
-    
-    const { data, error } = await supabase
+
+    const { data, error } = await (supabase as any)
       .from('secret_access_logs')
       .insert({
         secret_id: params.secretId,
@@ -129,12 +129,12 @@ export async function logSecretAccess(
       })
       .select('id')
       .single()
-    
+
     if (error) {
       console.error('Failed to log secret access:', error)
       return null
     }
-    
+
     return data.id
   } catch (error) {
     console.error('Secret access logging error:', error)
@@ -171,51 +171,51 @@ export async function queryAuditLogs(filters: {
   offset?: number
 }) {
   const supabase = await createClient()
-  
-  let query = supabase
+
+  let query = (supabase as any)
     .from('audit_logs')
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
-  
+
   if (filters.orgId) {
     query = query.eq('org_id', filters.orgId)
   }
-  
+
   if (filters.userId) {
     query = query.eq('user_id', filters.userId)
   }
-  
+
   if (filters.resourceType) {
     query = query.eq('resource_type', filters.resourceType)
   }
-  
+
   if (filters.resourceId) {
     query = query.eq('resource_id', filters.resourceId)
   }
-  
+
   if (filters.action) {
     query = query.eq('action', filters.action)
   }
-  
+
   if (filters.startDate) {
     query = query.gte('created_at', filters.startDate.toISOString())
   }
-  
+
   if (filters.endDate) {
     query = query.lte('created_at', filters.endDate.toISOString())
   }
-  
+
   const limit = filters.limit || 50
   const offset = filters.offset || 0
-  
+
   query = query.range(offset, offset + limit - 1)
-  
+
   const { data, error, count } = await query
-  
+
   if (error) {
     throw new Error(`Failed to query audit logs: ${error.message}`)
   }
-  
+
   return {
     logs: data || [],
     total: count || 0,
@@ -258,18 +258,18 @@ export async function getSecretAccessHistory(
   limit: number = 100
 ) {
   const supabase = await createClient()
-  
-  const { data, error } = await supabase
+
+  const { data, error } = await (supabase as any)
     .from('secret_access_logs')
     .select('*')
     .eq('secret_id', secretId)
     .order('created_at', { ascending: false })
     .limit(limit)
-  
+
   if (error) {
     throw new Error(`Failed to query secret access logs: ${error.message}`)
   }
-  
+
   return data || []
 }
 

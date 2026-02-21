@@ -12,6 +12,7 @@
 
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { ENV } from '@/lib/config/env'
 
 /**
  * Apply security headers to response
@@ -72,14 +73,14 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   return response
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    ENV.supabase.url,
+    ENV.supabase.anonKey,
     {
       cookies: {
         getAll() {

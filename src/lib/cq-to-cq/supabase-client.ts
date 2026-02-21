@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { ENV } from '@/lib/config/env';
 import type {
   CQNumber,
   FriendRequest,
@@ -17,11 +18,7 @@ import type {
   CQPremiumStatus,
 } from './types';
 
-// Initialize Supabase client (configure with your project URL and key)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(ENV.supabase.url, ENV.supabase.anonKey);
 
 // ==================== CQ NUMBERS ====================
 
@@ -52,7 +49,7 @@ export async function getActiveCQNumber(userId: string): Promise<CQNumber | null
     .single();
 
   if (error) return null;
-  
+
   return {
     id: data.id,
     cqNumber: data.cq_number,
@@ -143,7 +140,7 @@ export async function respondToFriendRequest(
   accept: boolean
 ) {
   const status = accept ? 'accepted' : 'rejected';
-  
+
   const { data, error } = await supabase
     .from('cq_friend_requests')
     .update({

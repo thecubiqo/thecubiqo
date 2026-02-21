@@ -13,13 +13,14 @@ export interface Session {
   createdAt: Date;
   updatedAt: Date;
   userId?: string;
+  totalTokens?: number;
 }
 
 export interface Message {
   id: string;
   sessionId: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
-  content: string;
+  content: string | ContentBlock[];
   toolCalls?: ToolCall[];
   toolResults?: ToolResult[];
   tokenCount?: number;

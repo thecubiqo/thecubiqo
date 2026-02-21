@@ -14,7 +14,7 @@ interface CommandInputProps {
 const PRESET_COMMANDS = [
   { label: 'RED', cmd: "cubiqo.color.lock('RED')" },
   { label: 'YELLOW', cmd: "cubiqo.color.lock('YELLOW')" },
-  { label: 'GREEN', cmd: "cubiqo.color.lock('GREEN_BLUE')" },
+  { label: 'GREEN', cmd: "cubiqo.color.lock('TEAL')" },
   { label: 'ORANGE', cmd: "cubiqo.color.lock('ORANGE')" },
   { label: 'listening', cmd: "cubiqo.animation.set('listening')" },
   { label: 'thinking', cmd: "cubiqo.animation.set('thinking')" },

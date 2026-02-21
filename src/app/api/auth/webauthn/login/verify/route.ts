@@ -2,15 +2,14 @@ import { verifyAuthenticationResponse } from '@simplewebauthn/server'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthenticatorByCredentialId, updateAuthenticatorCounter } from '@/lib/webauthn'
+import { ENV } from '@/lib/config/env'
 
 const RP_ID = process.env.NEXT_PUBLIC_RP_ID || 'localhost'
 const ORIGIN = process.env.NEXT_PUBLIC_ORIGIN || 'http://localhost:3000'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY1 || process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
 const supabaseAdmin = createClient(
-    supabaseUrl,
-    supabaseServiceKey,
+    ENV.supabase.url,
+    ENV.supabase.serviceRoleKey!,
     {
         auth: {
             autoRefreshToken: false,

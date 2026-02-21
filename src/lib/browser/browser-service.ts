@@ -246,7 +246,7 @@ export class BrowserService {
       for (const [key, selector] of Object.entries(action.selectors)) {
         const elements = await this.page.$$(selector);
         const values = await Promise.all(
-          elements.map(el => el.evaluate(node => node.textContent?.trim() || ''))
+          elements.map((el: any) => el.evaluate((node: any) => node.textContent?.trim() || ''))
         );
         data[key] = values.length === 1 ? values[0] : values;
       }
@@ -320,7 +320,7 @@ export class BrowserService {
   private async scroll(action: ScrollAction): Promise<BrowserResult> {
     if (!this.page) throw new Error('Browser not initialized');
 
-    await this.page.evaluate((direction, amount) => {
+    await this.page.evaluate((direction: string, amount: number | undefined) => {
       switch (direction) {
         case 'up':
           window.scrollBy(0, -(amount || 500));
@@ -353,7 +353,7 @@ export class BrowserService {
 
     switch (action.dataType) {
       case 'text':
-        data = await this.page.evaluate((sel) => {
+        data = await this.page.evaluate((sel: string | undefined) => {
           const element = sel ? document.querySelector(sel) : document.body;
           return element?.textContent?.trim() || '';
         }, action.selector);
@@ -378,14 +378,14 @@ export class BrowserService {
         break;
 
       case 'table':
-        data = await this.page.evaluate((sel) => {
+        data = await this.page.evaluate((sel: string | undefined) => {
           const table = sel ? document.querySelector(sel) : document.querySelector('table');
           if (!table) return null;
 
           const rows = Array.from(table.querySelectorAll('tr'));
-          return rows.map(row => {
+          return rows.map((row: any) => {
             const cells = Array.from(row.querySelectorAll('td, th'));
-            return cells.map(cell => cell.textContent?.trim() || '');
+            return cells.map((cell: any) => cell.textContent?.trim() || '');
           });
         }, action.selector);
         break;

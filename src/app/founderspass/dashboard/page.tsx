@@ -10,7 +10,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ChatMessage } from '@/components/chat/ChatMessage'
-import { Action } from '@/lib/actions/action-types'
 import { AppLayout } from '@/components/AppLayout'
 import { isFounder as checkIsFounder } from '@/lib/auth/feature-gate-simple'
 
@@ -299,41 +298,7 @@ export default function FoundersDashboard() {
         setSaving(null)
     }
 
-    const handleActionConfirm = async (actionId: string, action: Action) => {
-        console.log('[Dashboard] Confirming action:', action)
 
-        try {
-            if (action.type === 'system_command') {
-                // Implementation for system command
-                const cmd = (action as any).command
-                await fetch('/api/code/execute', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code: cmd, language: 'bash' })
-                })
-            } else if (action.type === 'generic' && (action as any).actionLabel === 'Deploy to Vercel') {
-                // Quick Vercel deploy hook
-                const projectId = (action as any).details?.projectId
-                await fetch('/api/admin/connections/vercel/deploy', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ projectId })
-                })
-            } else if (action.type === 'generic' && (action as any).actionLabel === 'Update Experiment') {
-                // Experiment update hook
-                const { experimentId, metadata } = (action as any).details
-                await fetch('/api/admin/experiments/ai', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ experimentId, command: 'force_update', metadata })
-                })
-            }
-            setSuccessMessage(`Action ${action.title} executed successfully.`)
-            setTimeout(() => setSuccessMessage(null), 3000)
-        } catch (e) {
-            setErrorMessage(`Failed to execute action: ${e}`)
-        }
-    }
 
     const sendChat = async () => {
         if (!chatInput.trim() || chatLoading) return
@@ -623,7 +588,6 @@ export default function FoundersDashboard() {
                                                     role={msg.role}
                                                     content={msg.content}
                                                     color="ORANGE"
-                                                    onActionConfirm={handleActionConfirm}
                                                 />
                                             ))
                                         )}

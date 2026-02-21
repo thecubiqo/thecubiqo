@@ -54,19 +54,19 @@ export async function getUserOrgRole(
   orgId: string
 ): Promise<OrgRole | null> {
   const supabase = await createClient()
-  
-  const { data, error } = await supabase
+
+  const { data, error } = await (supabase as any)
     .from('org_members')
     .select('role')
     .eq('user_id', userId)
     .eq('org_id', orgId)
     .not('joined_at', 'is', null) // Only include members who have joined
     .single()
-  
+
   if (error || !data) {
     return null
   }
-  
+
   return data.role as OrgRole
 }
 
@@ -84,14 +84,14 @@ export async function checkOrgPermission(
   requiredRole: OrgRole = 'viewer'
 ): Promise<PermissionResult> {
   const userRole = await getUserOrgRole(userId, orgId)
-  
+
   if (!userRole) {
     return {
       allowed: false,
       reason: 'User is not a member of this organization'
     }
   }
-  
+
   if (!hasRoleLevel(userRole, requiredRole)) {
     return {
       allowed: false,
@@ -99,7 +99,7 @@ export async function checkOrgPermission(
       reason: `Insufficient permissions. Required: ${requiredRole}, Actual: ${userRole}`
     }
   }
-  
+
   return {
     allowed: true,
     role: userRole
@@ -121,21 +121,21 @@ export async function checkProjectPermission(
   requiredRole: OrgRole = 'viewer'
 ): Promise<PermissionResult> {
   const supabase = await createClient()
-  
+
   // Get project's org_id
-  const { data: project, error: projectError } = await supabase
+  const { data: project, error: projectError } = await (supabase as any)
     .from('projects')
     .select('org_id')
     .eq('id', projectId)
     .single()
-  
+
   if (projectError || !project) {
     return {
       allowed: false,
       reason: 'Project not found'
     }
   }
-  
+
   // Check org permission
   return checkOrgPermission(userId, project.org_id, requiredRole)
 }
@@ -154,11 +154,11 @@ export async function requireOrgPermission(
   requiredRole: OrgRole = 'viewer'
 ): Promise<OrgRole> {
   const result = await checkOrgPermission(userId, orgId, requiredRole)
-  
+
   if (!result.allowed) {
     throw new Error(result.reason || 'Permission denied')
   }
-  
+
   return result.role!
 }
 
@@ -176,11 +176,11 @@ export async function requireProjectPermission(
   requiredRole: OrgRole = 'viewer'
 ): Promise<OrgRole> {
   const result = await checkProjectPermission(userId, projectId, requiredRole)
-  
+
   if (!result.allowed) {
     throw new Error(result.reason || 'Permission denied')
   }
-  
+
   return result.role!
 }
 
@@ -196,22 +196,22 @@ export async function getUserOrganizations(
   minRole: OrgRole = 'viewer'
 ): Promise<string[]> {
   const supabase = await createClient()
-  
-  const { data, error } = await supabase
+
+  const { data, error } = await (supabase as any)
     .from('org_members')
     .select('org_id, role')
     .eq('user_id', userId)
     .not('joined_at', 'is', null) // Only include members who have joined
-  
+
   if (error || !data) {
     return []
   }
-  
+
   // Filter by role level
   const minLevel = ROLE_LEVELS[minRole]
   return data
-    .filter(member => ROLE_LEVELS[member.role as OrgRole] >= minLevel)
-    .map(member => member.org_id)
+    .filter((member: any) => ROLE_LEVELS[member.role as OrgRole] >= minLevel)
+    .map((member: any) => member.org_id)
 }
 
 /**
@@ -226,25 +226,25 @@ export async function getUserProjects(
   minRole: OrgRole = 'viewer'
 ): Promise<string[]> {
   const supabase = await createClient()
-  
+
   // Get user's orgs first
   const orgIds = await getUserOrganizations(userId, minRole)
-  
+
   if (orgIds.length === 0) {
     return []
   }
-  
+
   // Get all projects in those orgs
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('projects')
     .select('id')
     .in('org_id', orgIds)
-  
+
   if (error || !data) {
     return []
   }
-  
-  return data.map(project => project.id)
+
+  return data.map((project: any) => project.id)
 }
 
 /**

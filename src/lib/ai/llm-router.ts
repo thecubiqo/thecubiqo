@@ -3,10 +3,11 @@ import OpenAI from 'openai';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { ModelConfig } from '@/types/agent';
 import { ToolDefinition } from '@/types/tool';
+import { ContentBlock } from '@/types/session';
 
 interface LLMRequest {
   model: ModelConfig;
-  messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+  messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string | ContentBlock[] }>;
   tools?: ToolDefinition[];
   maxTokens?: number;
   temperature?: number;
@@ -21,10 +22,15 @@ interface LLMResponse {
   };
 }
 
+function ensureString(content: string | ContentBlock[]): string {
+  if (typeof content === 'string') return content;
+  return content.map(block => block.text || '').join('\n');
+}
+
 export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   const { model, messages, tools, maxTokens = 4096, temperature = 0.7 } = request;
 
-  
+
 
   switch (model.provider) {
     case 'anthropic':
@@ -47,7 +53,7 @@ export async function callLLM(request: LLMRequest): Promise<LLMResponse> {
 
 async function callAnthropic(
   model: ModelConfig,
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: string | ContentBlock[] }>,
   tools?: ToolDefinition[],
   maxTokens?: number,
   temperature?: number
@@ -75,7 +81,7 @@ async function callAnthropic(
     system: systemPrompt,
     messages: conversationMessages.map((m) => ({
       role: m.role as 'user' | 'assistant',
-      content: m.content,
+      content: ensureString(m.content),
     })),
     tools: tools as any,
     max_tokens: maxTokens || 4096,
@@ -84,7 +90,7 @@ async function callAnthropic(
 
   // Parse tool calls
   const toolCalls: Array<{ id: string; name: string; arguments: any }> = [];
-  
+
   for (const block of response.content) {
     if (block.type === 'tool_use') {
       toolCalls.push({
@@ -112,7 +118,7 @@ async function callAnthropic(
 
 async function callOpenAI(
   model: ModelConfig,
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: string | ContentBlock[] }>,
   tools?: ToolDefinition[],
   maxTokens?: number,
   temperature?: number
@@ -140,9 +146,9 @@ async function callOpenAI(
 
   const response = await client.chat.completions.create({
     model: model.model,
-    messages: messages.map((m) => ({
+    messages: (messages as any).map((m: any) => ({
       role: m.role as 'user' | 'assistant' | 'system',
-      content: m.content,
+      content: ensureString(m.content),
     })),
     tools: openaiTools,
     max_tokens: maxTokens || 4096,
@@ -156,7 +162,7 @@ async function callOpenAI(
 
   // Parse tool calls
   const toolCalls: Array<{ id: string; name: string; arguments: any }> = [];
-  
+
   if (message.tool_calls) {
     for (const toolCall of message.tool_calls) {
       if (toolCall.type === 'function') {
@@ -181,7 +187,7 @@ async function callOpenAI(
 
 async function callGroq(
   model: ModelConfig,
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: string | ContentBlock[] }>,
   tools?: ToolDefinition[],
   maxTokens?: number,
   temperature?: number
@@ -211,9 +217,9 @@ async function callGroq(
 
   const response = await client.chat.completions.create({
     model: model.model,
-    messages: messages.map((m) => ({
+    messages: (messages as any).map((m: any) => ({
       role: m.role as 'user' | 'assistant' | 'system',
-      content: m.content,
+      content: ensureString(m.content),
     })),
     tools: openaiTools,
     max_tokens: maxTokens || 4096,
@@ -227,7 +233,7 @@ async function callGroq(
 
   // Parse tool calls
   const toolCalls: Array<{ id: string; name: string; arguments: any }> = [];
-  
+
   if (message.tool_calls) {
     for (const toolCall of message.tool_calls) {
       if (toolCall.type === 'function') {
@@ -252,7 +258,7 @@ async function callGroq(
 
 async function callGoogle(
   model: ModelConfig,
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: string | ContentBlock[] }>,
   tools?: ToolDefinition[],
   maxTokens?: number,
   temperature?: number
@@ -264,7 +270,7 @@ async function callGoogle(
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const geminiModel = genAI.getGenerativeModel({ 
+  const geminiModel = genAI.getGenerativeModel({
     model: model.model,
   });
 
@@ -290,10 +296,10 @@ async function callGoogle(
   // Convert messages to Google format
   const googleMessages = conversationMessages.map((m) => ({
     role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }],
+    parts: [{ text: ensureString(m.content) }],
   }));
 
-  const systemInstruction = systemMessages.map((m) => m.content).join('\n\n');
+  const systemInstruction = systemMessages.map((m) => ensureString(m.content)).join('\n\n');
 
   const chat = geminiModel.startChat({
     history: googleMessages.slice(0, -1),
@@ -306,12 +312,12 @@ async function callGoogle(
   });
 
   const lastMessage = conversationMessages[conversationMessages.length - 1];
-  const result = await chat.sendMessage(lastMessage.content);
+  const result = await chat.sendMessage(ensureString(lastMessage.content));
   const response = result.response;
 
   // Parse tool calls
   const toolCalls: Array<{ id: string; name: string; arguments: any }> = [];
-  
+
   const functionCalls = response.functionCalls();
   if (functionCalls) {
     for (const call of functionCalls) {
@@ -335,7 +341,7 @@ async function callGoogle(
 
 async function callOpenRouter(
   model: ModelConfig,
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: string | ContentBlock[] }>,
   tools?: ToolDefinition[],
   maxTokens?: number,
   temperature?: number
@@ -365,9 +371,9 @@ async function callOpenRouter(
 
   const response = await client.chat.completions.create({
     model: model.model,
-    messages: messages.map((m) => ({
+    messages: (messages as any).map((m: any) => ({
       role: m.role as 'user' | 'assistant' | 'system',
-      content: m.content,
+      content: ensureString(m.content),
     })),
     tools: openaiTools,
     max_tokens: maxTokens || 4096,
@@ -381,7 +387,7 @@ async function callOpenRouter(
 
   // Parse tool calls
   const toolCalls: Array<{ id: string; name: string; arguments: any }> = [];
-  
+
   if (message.tool_calls) {
     for (const toolCall of message.tool_calls) {
       if (toolCall.type === 'function') {
@@ -406,7 +412,7 @@ async function callOpenRouter(
 
 async function callMistral(
   model: ModelConfig,
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: string | ContentBlock[] }>,
   tools?: ToolDefinition[],
   maxTokens?: number,
   temperature?: number
@@ -436,9 +442,9 @@ async function callMistral(
 
   const response = await client.chat.completions.create({
     model: model.model,
-    messages: messages.map((m) => ({
+    messages: (messages as any).map((m: any) => ({
       role: m.role as 'user' | 'assistant' | 'system',
-      content: m.content,
+      content: ensureString(m.content),
     })),
     tools: openaiTools,
     max_tokens: maxTokens || 4096,
@@ -452,7 +458,7 @@ async function callMistral(
 
   // Parse tool calls
   const toolCalls: Array<{ id: string; name: string; arguments: any }> = [];
-  
+
   if (message.tool_calls) {
     for (const toolCall of message.tool_calls) {
       if (toolCall.type === 'function') {
