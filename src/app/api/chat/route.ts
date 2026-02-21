@@ -106,7 +106,7 @@ async function callMiniMax(
     }))
   ]
 
-  const response = await fetch('https://api.minimax.chat/v1/text/chatcompletion_v2', {
+  const response = await fetch('https://api.minimax.io/v1/text/chatcompletion_v2', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -128,12 +128,19 @@ async function callMiniMax(
 
   const data = await response.json()
 
+  // MiniMax V2 returns base_resp with status_code
+  if (data.base_resp && data.base_resp.status_code !== 0) {
+    const errorMsg = data.base_resp.status_msg || 'Unknown MiniMax error'
+    console.error('MiniMax Business Error:', data.base_resp)
+    throw new Error(`MiniMax API error: ${errorMsg} (Code: ${data.base_resp.status_code})`)
+  }
+
   // MiniMax returns choices similar to OpenAI
   if (data.choices && data.choices[0]?.message?.content) {
     return data.choices[0].message.content
   }
 
-  throw new Error('Invalid MiniMax response format')
+  throw new Error('Invalid MiniMax response format: missing choices or content')
 }
 
 // Simple classification layer to detect sensitive/intimate content
