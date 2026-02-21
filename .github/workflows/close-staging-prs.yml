@@ -1,0 +1,90 @@
+name: Close Staging PRs After Merge to Main
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  close-staging-prs:
+    name: Close Open PRs Targeting Staging After Merge
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close open PRs that targeted staging0217
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Verify staging0217 has been merged into main by checking whether
+            // staging0217's HEAD is already reachable from main (status 'behind'
+            // or 'identical' means all its commits are present in main).
+            let stagingMerged = false;
+            try {
+              const { data: comparison } = await github.rest.repos.compareCommits({
+                owner,
+                repo,
+                base: 'main',
+                head: 'staging0217',
+              });
+              // 'behind' means staging0217 HEAD is already reachable from main
+              stagingMerged = comparison.status === 'behind' || comparison.status === 'identical';
+            } catch (err) {
+              console.log(`Could not compare staging0217 with main: ${err.message}`);
+              console.log('Skipping — staging0217 may not exist or is not yet merged.');
+              return;
+            }
+
+            if (!stagingMerged) {
+              console.log('staging0217 has not been fully merged into main yet. Skipping.');
+              return;
+            }
+
+            console.log('staging0217 is fully merged into main. Proceeding to close open PRs.');
+
+            // Collect all open PRs targeting staging0217 with pagination
+            const prs = await github.paginate(github.rest.pulls.list, {
+              owner,
+              repo,
+              state: 'open',
+              base: 'staging0217',
+              per_page: 100,
+            });
+
+            if (prs.length === 0) {
+              console.log('No open PRs targeting staging0217 found.');
+              return;
+            }
+
+            for (const pr of prs) {
+              console.log(`Closing PR #${pr.number}: ${pr.title}`);
+
+              // Add an explanatory comment before closing
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pr.number,
+                body:
+                  '✅ **Auto-closed:** The code from `staging0217` has been merged to `main`. ' +
+                  'This PR is no longer needed and has been automatically closed.',
+              });
+
+              // Close the PR
+              await github.rest.pulls.update({
+                owner,
+                repo,
+                pull_number: pr.number,
+                state: 'closed',
+              });
+
+              console.log(`✅ Closed PR #${pr.number}`);
+            }
+
+            console.log(`Done. Closed ${prs.length} PR(s).`);
