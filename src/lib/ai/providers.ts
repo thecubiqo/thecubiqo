@@ -7,7 +7,7 @@ import type { ProviderConfig } from './types'
 
 export const MINIMAX_CONFIG: ProviderConfig = {
   name: 'minimax',
-  model: 'abab6-chat',
+  model: 'MiniMax-M2',
   maxTokens: 2048,
   apiKeyEnv: 'MINIMAX_KEY'
 }
@@ -40,8 +40,15 @@ export const CLAUDE_CONFIG: ProviderConfig = {
   apiKeyEnv: 'ANTHROPIC_API_KEY'
 }
 
-// Primary provider - OpenAI (MiniMax models deprecated)
-export const PRIMARY_PROVIDER = OPENAI_CONFIG
+export const GEMINI_CONFIG: ProviderConfig = {
+  name: 'gemini',
+  model: 'gemini-1.5-pro',
+  maxTokens: 1024,
+  apiKeyEnv: 'GOOGLE_AI_API_KEY'
+}
 
-// Fallback chain (MiniMax removed, others as fallbacks)
-export const FALLBACK_PROVIDERS = [MIXTRAL_CONFIG, LLAMA_CONFIG, CLAUDE_CONFIG]
+// Primary provider - MiniMax
+export const PRIMARY_PROVIDER = MINIMAX_CONFIG
+
+// Fallback chain
+export const FALLBACK_PROVIDERS = [OPENAI_CONFIG, MIXTRAL_CONFIG, LLAMA_CONFIG, CLAUDE_CONFIG]
