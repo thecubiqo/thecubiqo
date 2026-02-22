@@ -929,8 +929,11 @@ AFTER LAUNCH (when $1K MRR achieved):
 
 | Document | Description | Lines |
 |----------|-------------|-------|
-| `CUBIQO_MASTER_REPORT.md` | **This document — complete synthesis** | ~950 |
-| `CUBIQO_APPENDIX_B.md` | **15 deep dives: dashboard, SEO, Social Army, Emergent, agents, duo mode, job hunt, journal, RGY, user acquisition, milestones, marketing, user personas, insider tricks** | 945 |
+| `CUBIQO_COMPLETE_REPORT.md` | **Single consolidated file — all content below in one place** | ~3,109 |
+| `CUBIQO_COMPLETE_REPORT.pdf` | **PDF of consolidated report — 455 KB** | — |
+| `CUBIQO_MASTER_REPORT.md` | This document — core 8-section synthesis | ~951 |
+| `CUBIQO_APPENDIX_B.md` | 15 deep dives: dashboard, SEO, Social Army, Emergent, agents, duo mode, job hunt, journal, RGY, user acquisition, milestones, marketing, user personas, insider tricks | 945 |
+| `CUBIQO_APPENDIX_C.md` | 10 extended strategy topics: tools/agencies, domains, landing/conversion, CQ Score, CQ Number, commerce/WeChat, silver cube, BYO offline, offline browser, user personas | 1,239 |
 | `CUBIQO_ARCHITECTURE_CURRENT.md` | Color-coded Mermaid diagrams of current system | 230 |
 | `CUBIQO_ARCHITECTURE_ROADMAP.md` | Pre-launch + post-launch Mermaid roadmaps | 254 |
 | `PATENT_OPPORTUNITIES.md` | Detailed patent analysis with claim skeletons + implementation specs | 637 |
