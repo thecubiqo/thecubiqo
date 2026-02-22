@@ -9,6 +9,7 @@
 
 import { LandingCube } from './LandingCube'
 import { TechLandingCube } from './TechLandingCube'
+import { SilverWireLandingCube } from './SilverWireLandingCube'
 import { getLandingVariant, type LandingCubeVariant } from '@/config/landing'
 import { useSearchParams } from 'next/navigation'
 
@@ -29,6 +30,15 @@ export function LandingCubeRouter({
   const activeVariant = variant || getLandingVariant(searchParams || undefined)
   
   // Render the appropriate landing cube
+  if (activeVariant === 'silver-wireframe') {
+    return (
+      <SilverWireLandingCube
+        onComplete={onComplete}
+        isVoiceActive={isVoiceActive}
+      />
+    )
+  }
+
   if (activeVariant === 'tech-wireframe') {
     return (
       <TechLandingCube 
