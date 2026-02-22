@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
+import { join, resolve, sep } from 'path'
 import {
   sanitizeCommand,
   checkBlockedPatterns,
@@ -82,7 +83,8 @@ describe('sandbox — sanitizeCommand (integration)', () => {
 })
 
 describe('sandbox — validatePath', () => {
-  const root = '/tmp/cubiqo-workspace/session-1'
+  // Use an OS-appropriate absolute path for the workspace root
+  const root = resolve('/tmp/cubiqo-workspace/session-1')
 
   it('allows paths inside workspace', () => {
     expect(validatePath('src/index.ts', root).allowed).toBe(true)
@@ -93,6 +95,7 @@ describe('sandbox — validatePath', () => {
   })
 
   it('blocks absolute paths outside workspace', () => {
+    // On Windows resolve('/etc/passwd') becomes C:\etc\passwd — still outside root
     expect(validatePath('/etc/passwd', root).allowed).toBe(false)
   })
 })
@@ -100,7 +103,11 @@ describe('sandbox — validatePath', () => {
 describe('sandbox — getWorkspaceDir', () => {
   it('returns session-scoped directory', () => {
     const dir = getWorkspaceDir('user-abc-123', '/tmp/workspaces')
-    expect(dir).toBe('/tmp/workspaces/user-abc-123')
+    // path.join normalises separators — check both parts are present
+    expect(dir).toContain('user-abc-123')
+    // The dir should start with the root (use join to normalise separators)
+    const normalRoot = join('/tmp/workspaces')
+    expect(dir.startsWith(normalRoot)).toBe(true)
   })
 
   it('defaults root to /tmp/cubiqo-workspace', () => {

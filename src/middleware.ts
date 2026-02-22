@@ -8,7 +8,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
 import { ENV } from '@/lib/config/env'
 
 /**
@@ -95,47 +94,57 @@ export async function middleware(request: NextRequest) {
       },
     }
   )
-  
+
   // Admin route protection
   if (request.nextUrl.pathname.startsWith('/api/admin/')) {
     // Get authenticated user (this also refreshes the session)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized - Authentication required' },
         { status: 401 }
       )
     }
-    
+
     // Check if user is admin
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('is_admin')
       .eq('id', user.id)
       .single()
-    
+
     if (profileError || !profile?.is_admin) {
       return NextResponse.json(
         { error: 'Forbidden - Admin access required' },
         { status: 403 }
       )
     }
-    
+
     // Add admin status to response headers for downstream routes
     response.headers.set('x-user-id', user.id)
     response.headers.set('x-user-email', user.email || '')
     response.headers.set('x-is-admin', 'true')
-    
+
     return response
   }
-  
+
   return response
 }
 
 export const config = {
   matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - Any image file extension (svg, png, jpg, jpeg, gif, webp)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     '/api/admin/:path*',
-    // Add other protected routes here as needed
   ],
 }
+
+// Refs: PR #12
+

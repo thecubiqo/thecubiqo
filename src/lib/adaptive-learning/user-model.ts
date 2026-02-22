@@ -79,7 +79,7 @@ export function classifyEngagement(
  * Determine time slot from a timestamp
  */
 export function getTimeSlot(timestamp: string): TimeSlot {
-  const hour = new Date(timestamp).getHours()
+  const hour = new Date(timestamp).getUTCHours()
   if (hour >= 5 && hour < 12) return 'morning'
   if (hour >= 12 && hour < 17) return 'afternoon'
   if (hour >= 17 && hour < 21) return 'evening'

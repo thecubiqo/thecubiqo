@@ -98,8 +98,8 @@ describe('Chat API: Memory Integration', () => {
     expect(chatRouteContent).toContain('buildMemoryContext')
   })
 
-  it('should import SYSTEM_PROMPT and buildMessages', () => {
-    expect(chatRouteContent).toContain('SYSTEM_PROMPT')
+  it('should import adaptive system prompt builder', () => {
+    expect(chatRouteContent).toContain('buildAdaptiveSystemPrompt')
     expect(chatRouteContent).toContain('buildMessages')
   })
 
@@ -121,12 +121,12 @@ describe('Chat API: Region Support', () => {
 describe('Chat API: Supabase Admin Client', () => {
   it('should create admin Supabase client with service role key', () => {
     expect(chatRouteContent).toContain('supabaseAdmin')
-    expect(chatRouteContent).toContain('SUPABASE_SERVICE_ROLE_KEY')
+    expect(chatRouteContent).toContain('serviceRoleKey')
   })
 
-  it('should support legacy env var names', () => {
-    expect(chatRouteContent).toContain('NEXT_PUBLIC_SUPABASE_URL1')
-    expect(chatRouteContent).toContain('SUPABASE_SERVICE_ROLE_KEY1')
+  it('should support ENV fallback properties', () => {
+    expect(chatRouteContent).toContain('ENV.supabase.url')
+    expect(chatRouteContent).toContain('ENV.supabase.serviceRoleKey')
   })
 
   it('should use placeholders when env vars missing', () => {

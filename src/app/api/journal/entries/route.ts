@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ entries });
 
   } catch (error) {
-
+    console.error('Journal API Error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ entry }, { status: 201 });
 
   } catch (error) {
-
+    console.error('Journal API Error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

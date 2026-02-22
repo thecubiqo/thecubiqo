@@ -35,6 +35,7 @@ function simulateAuthEvent(event: string, session: AuthSession) {
 }
 
 vi.mock('@/lib/supabase/client', () => ({
+  isSupabaseConfigured: () => true,
   createClient: () => ({
     auth: {
       onAuthStateChange: (cb: AuthCallback) => {
@@ -78,7 +79,7 @@ vi.mock('@/lib/supabase/client', () => ({
 function TestApp() {
   return (
     <AuthProvider>
-      <AuthButton onSignInClick={() => {}} onUserClick={() => {}} />
+      <AuthButton onSignInClick={() => { }} onUserClick={() => { }} />
     </AuthProvider>
   )
 }

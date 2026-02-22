@@ -1,0 +1,50 @@
+npm warn config global-style This option has been deprecated in favor of `--install-strategy=shallow`
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp[39m
+
+ [31mΓ¥»[39m src/__tests__/auth-ui.test.tsx [2m([22m[2m4 tests[22m[2m | [22m[31m4 failed[39m[2m)[22m[32m 70[2mms[22m[39m
+[31m     [31m├ù[31m shows Sign In button when user is not authenticated[39m[32m 44[2mms[22m[39m
+[31m     [31m├ù[31m replaces Sign In button with user avatar after magic-link auth[39m[32m 5[2mms[22m[39m
+[31m     [31m├ù[31m shows Sign In when non-standard auth event fires without session[39m[32m 11[2mms[22m[39m
+[31m     [31m├ù[31m falls back to Sign In after timeout if onAuthStateChange never fires[39m[32m 6[2mms[22m[39m
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ» Failed Tests 4 ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+
+ FAIL  src/__tests__/auth-ui.test.tsx > AuthButton smoke test > shows Sign In button when user is not authenticated
+ FAIL  src/__tests__/auth-ui.test.tsx > AuthButton smoke test > replaces Sign In button with user avatar after magic-link auth
+ FAIL  src/__tests__/auth-ui.test.tsx > AuthButton smoke test > shows Sign In when non-standard auth event fires without session
+ FAIL  src/__tests__/auth-ui.test.tsx > AuthButton smoke test > falls back to Sign In after timeout if onAuthStateChange never fires
+Error: [vitest] No "isSupabaseConfigured" export is defined on the "@/lib/supabase/client" mock. Did you forget to return it from "vi.mock"?
+If you need to partially mock a module, you can use "importOriginal" helper inside:
+
+vi.mock(import("@/lib/supabase/client"), async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    // your mocked methods
+  }
+})
+
+ Γ¥» src/contexts/AuthContext.tsx:81:10
+     79|     // When Supabase is not configured (no env vars / preview mode), iΓÇª
+     80|     // resolve to guest state ΓÇö no network calls, no 4-second timeout ΓÇª
+     81|     if (!isSupabaseConfigured()) {
+       |          ^
+     82|       setState({
+     83|         user: null,
+ Γ¥» Object.react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:25989:20
+ Γ¥» runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:874:13
+ Γ¥» commitHookEffectListMount node_modules/react-dom/cjs/react-dom-client.development.js:13249:29
+ Γ¥» commitHookPassiveMountEffects node_modules/react-dom/cjs/react-dom-client.development.js:13336:11
+ Γ¥» commitPassiveMountOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15484:13
+ Γ¥» recursivelyTraversePassiveMountEffects node_modules/react-dom/cjs/react-dom-client.development.js:15439:11
+ Γ¥» commitPassiveMountOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15476:11
+
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[1/4]ΓÄ»
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m4 failed[39m[22m[90m (4)[39m
+[2m   Start at [22m 20:33:43
+[2m   Duration [22m 9.30s[2m (transform 356ms, setup 555ms, import 502ms, tests 70ms, environment 5.02s)[22m
+
