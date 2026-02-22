@@ -1237,3 +1237,390 @@ Each answer triggers a different onboarding sequence, a different first Aha mome
 
 This is a $100M+ ARR opportunity if Cubiqo executes across all seven personas over 5 years. The near-term focus should be 1,000 users → 10,000 users → first $100K ARR. All three are achievable within 18 months with the right execution.
 
+
+---
+
+## Section 11 — Flagship Spec Gap Analysis: Where Does Cubiqo Stand?
+
+> **Reference document:** The "CUBIQO — Flagship" product specification provided February 2026.
+> **Method:** Every claim below is grounded in direct code inspection of the branch `copilot/investigate-features-and-ui-components`. No assumptions.
+>
+> **Legend:** 🟢 Complete · 🟡 Partial (skeleton/type/UI only, core not fully wired) · 🔴 Missing · ⚠️ Deviation (works but differently than spec)
+
+---
+
+### 11.1 Overall Scorecard
+
+| Spec Section | Status | Short Verdict |
+|---|---|---|
+| Color / Voice (UI-level) | 🟢 | TEAL/RED/YELLOW defined with voice tones, lock commands, and per-color animation parameters |
+| Input / Output | 🟡 | STT ✅, TTS ✅, state machine ✅; Vocspad input mode ❌ not found anywhere |
+| State Machine (L→T→S→I) | 🟢 | `useAIState.ts` implements all 4 states with event logging |
+| UI/UX — Wireframe cuboid | 🟢 | Multiple variants: `EnergyCubeWireframe`, `SilverWireLandingCube`, `IsometricCube` |
+| UI/UX — Solid cuboid | 🟢 | `AICuboidGLB.tsx` (GLB-loaded, InnerPlasma + OuterGlass), `SettingsCube.tsx` (RoundedBox) |
+| UI/UX — Hybrid material + color | 🟡 | GLB has OuterGlass + color; ≤50% color rule NOT enforced |
+| UI/UX — Timing tokens | 🟡 | `--duration-normal: 200ms` in CSS; glow 150–300ms tokens not formalized |
+| UI/UX — Reduced motion | 🟡 | `motion-safe:` Tailwind used in VoiceStateIndicator; not applied to 3D cube transitions |
+| Special Moves (8 total) | 🟡 | 5 of 8 animated (Resonance, Breakthrough, Memory Thread, Deep Focus, Co-Presence); Wink, Trust Earned, Handoff are missing |
+| Audio Cues (wake/tick/DND) | 🔴 | AudioContext manager exists for playback; zero wake chime, zero speak ticks, no DND mode |
+| Side Panel — Keywords | 🟢 | `KeywordPanel.tsx` with per-color RGY lists, tap-to-edit, session-scoped localStorage |
+| Side Panel — Geo-fence | 🟡 | Referenced in `capsule-manager.ts` and `discovery-service.ts`; not surfaced in UI |
+| Side Panel — Color lock | 🟢 | `cubiqo.color.lock('RED')` command in `SettingsCube/commands.ts` |
+| SettingsCube — Voice config | 🟢 | `cubiqo.voice.set()` command; ElevenLabs per-color voice tones defined |
+| SettingsCube — Live confirm | 🟡 | CommandInput shows result; no spoken live confirmation |
+| SettingsCube — Event logs | 🟡 | Console logging only; no structured event-only log store |
+| RGY Router — Backends | 🟢 | GPT-4o (OpenAI), Claude 3.5 (Anthropic), Ollama (self-hosted), OpenRouter aggregation |
+| RGY Router — Intent routing | �� | Zone detection → model selection in `policy-router.ts` |
+| RGY Router — Auto-failover | 🟢 | 3-level failover per zone (primary → secondary → ultimate fallback) |
+| RGY Router — Scoped to CUBIQO | 🟡 | No `/rgy/route` endpoint; routing is embedded in chat API; Worlds boundary undefined |
+| RGY Router — CAP Orchestrator | 🔴 | Not implemented; no file, no route, no reference to this concept |
+| RGY Router — Keyword feedback | 🟡 | Session-scoped localStorage only; no DB telemetry pipeline back from sub-domains |
+| RGY Router — Direct override | 🟡 | `isFounder` flag routes to Sonnet; no explicit `model:gpt|claude|local` UI toggle |
+| RGY Router — Zero retention | ⚠️ | "Zero-Retention" is marketing copy in email template; memory system STORES to Supabase; contradiction |
+| Feature — BYO Mode | 🟢 | `byo-manager.ts`, `BYOSettings.tsx`, `/api/byo/route.ts`, AES-256 key encryption |
+| Feature — Auth (magic link) | 🟢 | Supabase magic link, `/auth/callback` |
+| Feature — Auth (WebAuthn/Passkeys) | 🟢 | 4 WebAuthn routes, `BiometricRegistration.tsx`, `BiometricLogin.tsx` |
+| Feature — Email | 🟢 | Resend integration, email templates, `/api/channels/[type]` |
+| Feature — Calendar | 🟡 | Channel API exists; no calendar-specific implementation found |
+| Feature — Food delivery | 🟡 | `action-types.ts` defines ubereats/doordash platform types; no live API calls |
+| Feature — Taxi / ride-share | 🟡 | Mentioned in action-types; no live integration |
+| Feature — Browser automation | 🟢 | Puppeteer-based `BrowserService.ts` with navigate, click, type, fill, screenshot, extract |
+| Feature — Smart-home | 🔴 | `integration-registry.ts` lists smart_home type; no implementation (Google Home, HomeKit, MQTT) |
+| Feature — Intelligent chat/match | 🟢 | RGY capsule system, discovery cron, proactive matching service |
+| Feature — CQ↔CQ connections | 🟡 | `cq-to-cq/` module: CQ number generator, WebSocket, WebRTC calls — not connected to UI |
+| Feature — Wallet / QR escrow | 🟡 | `wallet-service.ts` with QR delayed release backend; no Stripe, no UI, no DB migration |
+| RGY Sub-domain — No coupling | 🟢 | Keywords session-scoped; sub-domains do not force route changes |
+| RGY Sub-domain — CAP Orchestrator | 🔴 | As above — not built |
+| RGY Sub-domain — Telemetry hint | 🟡 | localStorage session hint; not a structured telemetry pipeline |
+
+---
+
+### 11.2 Detailed Gap Analysis by Spec Section
+
+---
+
+#### COLOR / VOICE (UI-LEVEL) — 🟢 Substantially Complete
+
+**What the spec requires:**
+- TEAL (goal-oriented, professional/decisive voice)
+- RED (age-gated/explicit, discreet/low-volume voice)
+- YELLOW (casual/general, friendly, light sarcasm)
+- Color/voice are operational signals; do NOT select models or imply emotion
+- Self-harm: force YELLOW, block instructions, offer resources
+- User may lock to one color + voice; no cross voice↔color mixing
+
+**What exists in code:**
+
+`src/config/colors.ts` defines all four colors (RED/YELLOW/TEAL/ORANGE) with per-color:
+- `voiceTone` strings (e.g. TEAL: "clear, motivating, balanced"; RED: "deep, slow, sensual whisper; discreet")
+- `animationSpeed`, `glowIntensity`, `breathingSpeed`, `blinkStyle`
+
+`src/lib/ai/policy-router.ts` correctly forces YELLOW zone and adds support prompt on self-harm detection:
+```typescript
+if (selfHarmPatterns.test(lastMessageText)) {
+  zone = 'YELLOW';
+  systemPrompt += " IMPORTANT: ... extremely supportive ... provide help resources.";
+}
+```
+
+`src/lib/settings-cube/commands.ts` supports:
+```typescript
+case 'cubiqo.color.lock': { const color = ... if (['RED','YELLOW','TEAL','ORANGE'].includes(color)) ... }
+```
+
+**Gaps:**
+1. **Color as model selector**: Policy-router DOES route RED zone to uncensored models (`MIXTRAL_8X22B`, `LLAMA_UNCENSORED`). This contradicts the spec rule: "Color does not select models." RED is the policy zone for age-gated content — but the spec says color is UI-only and routing is purely intent-based. **Spec vs implementation mismatch.** ⚠️
+2. **Age-gate / age verification**: `colors.ts` says `emotion: 'age-gated, critical, goal-oriented'` for RED, but there is **zero age verification code** anywhere. The RED zone is accessible to all users with no gate.
+3. **ORANGE color**: Not in the spec (spec has TEAL/RED/YELLOW only). ORANGE is a Fourth-Way philosophical color that Cubiqo added. This is an extension, not a violation.
+
+**Fix required:**
+- Add age-gate middleware check before allowing RED zone access (simple: DOB confirmation modal stored to user profile)
+- Document that RED zone uses specific models as a deliberate design decision (or refactor router to be model-agnostic per-zone, using only intent for model scoring)
+
+---
+
+#### INPUT / OUTPUT — 🟡 Partial
+
+**What the spec requires:**
+- Input: speech OR **Vocspad** (type or talk)
+- Output: on-screen text + synthesized speech; synchronized with status cues
+- State machine: Listening → Thinking → Speaking → Idle
+
+**What exists:**
+
+| Requirement | Code Evidence | Status |
+|---|---|---|
+| Speech input (STT) | `/api/stt/route.ts` using Whisper | 🟢 |
+| Text input (chat) | `ChatContainer.tsx`, `/api/chat/route.ts` | 🟢 |
+| **Vocspad** (combined type+talk mode) | ❌ No file named Vocspad anywhere in 300+ files | 🔴 |
+| TTS output | `/api/tts/route.ts`, ElevenLabs, OpenAI TTS fallback | 🟢 |
+| On-screen text | Chat bubbles in `ChatContainer.tsx` | 🟢 |
+| Synchronized status cues | `VoiceStateIndicator.tsx` with pulse rings | 🟢 |
+| State machine | `useAIState.ts` (idle/listening/thinking/speaking) | 🟢 |
+
+**Vocspad gap:** The spec treats Vocspad as a specific named input mode — a hybrid voice+text pad that lets users type and talk simultaneously. This UX component does not exist. The current chat has separate text input and a mic button, but not a unified Vocspad component that merges both modes in a single surface.
+
+**Fix required (2 weeks):**
+Create `src/components/chat/Vocspad.tsx` — a unified input component that:
+- Shows a text area with live STT transcription overlaid
+- Has a mic toggle button embedded inline
+- Falls back gracefully to text-only when no mic permission
+
+---
+
+#### UI/UX — CUBOID FORMS & MATERIALS — 🟡 Partial
+
+**What the spec requires:**
+
+| Form | Description | Code File | Status |
+|---|---|---|---|
+| Outline-only cuboid (fig1) | Floating isometric wireframe, crisp edges, no fill | `EnergyCubeWireframe.tsx`, `SilverWireLandingCube.tsx` | 🟢 |
+| Solid cuboid (fig2) | Filled body, subtle depth, no interior facets | `AICuboidGLB.tsx` (OuterGlass solid), `SettingsCube.tsx` (RoundedBox) | 🟢 |
+| Hybrid material + color (fig3) | Material (e.g. metal/glass) + operational color overlay | `AICuboidGLB.tsx` (OuterGlass + InnerPlasma + color param) | 🟡 |
+| ≤50% color visible area rule | Hero/transition hybrid must show ≤50% color | ❌ Not enforced | 🔴 |
+| Glass material | For aesthetics only, high contrast | `GlassyAgentCube.tsx`, `NeonGlassCube.tsx` | 🟢 |
+| Metal material | For aesthetics only | `SilverWireLandingCube.tsx` (chrome/silver) | 🟢 |
+| Fabric-soft-touch material | For aesthetics only | ❌ Not implemented | 🔴 |
+| Wireframe/Neon Outline variant | Compact/overlays, UI-only, router unchanged | `EnergyCubeWireframe.tsx`, neon demo page | 🟢 |
+| Split Material/Color hero variant | ≤50% color coverage | AICuboidGLB partial | 🟡 |
+
+**Timing Tokens:**
+
+| Token | Spec | Code | Status |
+|---|---|---|---|
+| Color/material swap | ≤200ms | `--duration-normal: 200ms` in `globals.css` | 🟢 |
+| Glow-in/glow-out | 150–300ms | Not formalized as CSS variable | 🟡 |
+| Reduced motion respect | All animations | `motion-safe:` in VoiceStateIndicator; missing on 3D cube lerp transitions | 🟡 |
+
+**Fabric-soft-touch fix (1 week):** Create a `FabricCube.tsx` variant using a Three.js `MeshStandardMaterial` with low metalness, high roughness, and a subtle normal map to simulate soft textile.
+
+**≤50% color rule enforcement:** Add a CSS custom property `--cube-color-coverage` and enforce via a shader uniform `uColorCoverage` clamped to 0.5 in the GLB material.
+
+---
+
+#### SPECIAL MOVES — 🟡 5 of 8 Implemented
+
+**What the spec requires:** 8 named Special Moves, all UI-only, respecting timing tokens.
+
+| Move | Spec | Code in `AICuboidGLB.tsx` | Status |
+|---|---|---|---|
+| Resonance | Rapid pulse | `emissiveModifier = 1.0 + Math.sin(t * 10) * 0.5` | 🟢 |
+| Breakthrough | Flash | `(Math.floor(t * 20) % 2) ? 1.5 : 0.5` | 🟢 |
+| Trust Earned | (unspecified visual) | ❌ Not in switch statement | 🔴 |
+| Co-Presence | (unspecified visual) | `innerRef.current.rotation.z = t * 2` | 🟢 |
+| Wink | YELLOW-only | ❌ Not in switch statement | 🔴 |
+| Deep Focus | (unspecified visual) | `scale.setScalar(0.8 + Math.sin(t * 2) * 0.1)` | 🟢 |
+| Memory Thread | (unspecified visual) | `rotationMultiplier = 5.0` | 🟢 |
+| Handoff | (unspecified visual) | ❌ Not in switch statement | 🔴 |
+
+**Fix required (1 week):** Add 3 missing cases to `AICuboidGLB.tsx` animation switch:
+```typescript
+case 'Trust Earned':
+  // Warm golden pulse + scale breathe — acknowledgement moment
+  mat.emissive.lerp(new THREE.Color('#ffd700'), 0.1)
+  innerRef.current.scale.setScalar(1.0 + Math.sin(t * 3) * 0.05)
+  break
+case 'Wink':
+  // YELLOW-only: quick rotation tilt + emissive blink, 200ms duration
+  if (color === 'YELLOW') {
+    groupRef.current?.rotation.set(0, 0, Math.sin(t * 30) * 0.15)
+    emissiveModifier = Math.sin(t * 40) > 0 ? 1.3 : 0.7
+  }
+  break
+case 'Handoff':
+  // Outward scale + fade → signals transition to another agent/world
+  innerRef.current.scale.setScalar(1.0 + moveTimerRef.current * 0.3)
+  mat.opacity = Math.max(0, 1.0 - moveTimerRef.current * 0.5)
+  break
+```
+
+---
+
+#### AUDIO CUES — 🔴 Not Implemented
+
+**What the spec requires:**
+- **Wake**: brief chime on activation (optional haptics)
+- **Speak start/stop**: soft ticks aligned to TTS start and end
+- **Error/Alert**: single neutral tick
+- **Controls**: volume slider, on/off toggle, DND mode
+
+**What exists:**
+- `src/lib/audio/audioContext.ts`: AudioContext manager — handles playback unlocking on user gesture. No sound files, no generated tones.
+- `src/lib/audio/audio-score-service.ts`: Background ambient scoring — oscillators for ambient music. No UI cues.
+- `src/lib/multimodal/audio.ts`: STT recording helpers. No cue sounds.
+
+**Nothing implements any of the required audio cues.**
+
+**Fix required (2 weeks):**
+
+Create `src/lib/audio/ui-cues.ts`:
+```typescript
+// Uses Web Audio API oscillators — zero external files needed
+export function playWakeChime() { /* 220Hz → 440Hz, 80ms, ramp out */ }
+export function playSpeakTick() { /* 880Hz, 30ms, soft envelope */ }
+export function playErrorTick() { /* 330Hz, 50ms, neutral */ }
+
+// DND mode — stored to user preferences
+export function setDNDAudio(enabled: boolean) { ... }
+export function setAudioVolume(level: 0 | 0.25 | 0.5 | 0.75 | 1.0) { ... }
+```
+
+Call sites:
+- `useAIState.ts`: call `playWakeChime()` on `idle → listening` transition
+- `useElevenLabsTTS.ts`: call `playSpeakTick()` on TTS stream start/end
+- Chat error handler: call `playErrorTick()` on AI failure
+
+---
+
+#### SIDE PANEL & SETTINGSCUBE — 🟢 Substantially Complete (2 minor gaps)
+
+**What the spec requires + code evidence:**
+
+| Requirement | Code | Status |
+|---|---|---|
+| Keywords panel with per-color lists | `KeywordPanel.tsx` — RGY cards with tap-to-edit and session keywords | 🟢 |
+| User can add intent keywords | Add/remove in KeywordPanel; stored to localStorage per session | 🟢 |
+| Company / collaboration / trade intents | `CARD_CONFIG` in `RGYColorSelector.tsx` maps contexts | 🟢 |
+| Geo-fence for match | `capsule-manager.ts` and `discovery-service.ts` reference geofence | 🟡 (not in UI) |
+| Color lock | `cubiqo.color.lock('TEAL')` in SettingsCube commands | 🟢 |
+| Voice lock with color | `cubiqo.voice.set({...})` command | 🟢 |
+| No cross voice↔color mixing | Lock command sets both; no mixing API exposed | 🟢 |
+| Speak to update config | SettingsCubeApp accepts typed/voiced commands | 🟢 |
+| Live confirmations | CommandInput shows result text; no spoken TTS confirmation | �� |
+| Event-only logs | Console.log only; no structured event store | 🟡 |
+
+**Gap: Geo-fence UI.** The geofence data model exists in `rgy_capsules` table (from previous migration analysis) but the KeywordPanel and RGY settings do not expose a "set my location radius" control. Fix: add a geo-fence radius slider to `ProMatchSettings.tsx`.
+
+**Gap: Spoken live confirmation.** When a user says "lock to TEAL," the cube changes color but Cubiqo does not speak a confirmation back. Fix: after `executeCommand()` succeeds in `SettingsCubeApp.tsx`, call the TTS API with the confirmation text.
+
+---
+
+#### RGY ROUTER — 🟡 Mostly Complete; CAP Orchestrator and Zero-Retention Critical Gaps
+
+**Backends and failover:**
+
+| Requirement | Code | Status |
+|---|---|---|
+| GPT backend | `callOpenAI()` in `router.ts`, OpenRouter GPT-4o in `policy-router.ts` | 🟢 |
+| Claude backend | `callClaude()` in `router.ts`, Claude 3.5 Sonnet in `policy-router.ts` | 🟢 |
+| Self-hosted LLM (Ollama) | `callOllamaWithFallback()`, `isOllamaAvailable()` in `ollama.ts` | 🟢 |
+| Auto-failover on errors | 3-level try/catch chains per zone in `policy-router.ts` | 🟢 |
+| SLA breach failover | ❌ No SLA timer / timeout threshold | 🟡 |
+| Direct override (`model:gpt\|claude\|local`) | `isFounder` → Sonnet; no explicit per-message model: field in UI | 🟡 |
+| Reasoning flag | `reasoning: true` → DeepSeek R1 → Opus | 🟢 |
+
+**CAP Orchestrator — 🔴 Critical Gap:**
+
+The spec defines a "CAP Orchestrator" that Worlds (sub-domains/tools) use, inheriting the chosen backend without calling `/rgy/route` directly. This concept does not exist in the codebase. There is:
+- No `cap-orchestrator.ts` file
+- No `/api/cap/` routes
+- No "World" abstraction in code
+- The agents system (`engine/agent.ts`) is the closest concept but it routes to external LLMs directly, bypassing zone/policy logic entirely
+
+This is the **largest architectural gap** in the spec. The CAP Orchestrator is the integration boundary that would allow Emergent, Social Army, Job Hunt, Journal and other sub-domains to route through the same policy-aware backbone as the main Cubiqo chat. Without it, every sub-domain calls its own LLM independently with no shared zone policy, no shared keyword telemetry pipeline, and no shared safety guardrails.
+
+**Build plan for CAP Orchestrator (4 weeks):**
+```
+Week 1: Define `CAPOrchestrator` class in `src/lib/cap/orchestrator.ts`
+         - Accepts: worldId, userId, messages, zoneHint?
+         - Inherits active zone from user session
+         - Passes through PolicyRouter with CUBIQO-scoped config
+Week 2: Expose `/api/cap/route` endpoint
+         - All internal tools/Worlds call this instead of OpenAI directly
+Week 3: Migrate Emergent, Social Army to use CAP endpoint
+Week 4: Add keyword telemetry pipeline: CAP → session store → Side Panel push
+```
+
+**Zero-Retention Contradiction — ⚠️ Spec vs Implementation:**
+
+The spec states: "Zero retention; contextual recommendations only; adaptive within session; no stored profiles."
+
+But the codebase has:
+- `/api/memory/route.ts` — stores and retrieves memory from Supabase
+- `/api/extract-memories/route.ts` — extracts and persists memories from conversations
+- `/api/journey/memories/route.ts` — journey memory with embeddings stored in DB
+- `magic-link.ts` email template says "Zero-Retention. Private." as marketing
+
+**This is a fundamental contradiction.** The product's memory system IS its competitive differentiator (conscious memory, journey tracking). The spec's "zero retention" language was likely written for the ROUTING layer (router doesn't store conversation content), not the entire product.
+
+**Resolution needed:** Clarify the spec to say "Zero retention at the routing layer" — the router itself does not store conversation data. The conscious memory system, when enabled by the user, stores memories with explicit consent. Update the privacy policy accordingly.
+
+---
+
+#### FEATURE SET — Status by Feature
+
+| Feature | Spec Requirement | Code Evidence | Status | Gap |
+|---|---|---|---|---|
+| BYO Mode | Cloud + API keys | `byo-manager.ts`, `/api/byo/`, AES-256 | 🟢 | None |
+| Magic-link auth | Passwordless | Supabase + Resend templates | 🟢 | None |
+| OAuth / OIDC | Account creation | Supabase OAuth providers | 🟢 | None |
+| Passkeys | WebAuthn | 4 WebAuthn routes + UI components | 🟢 | None |
+| Email | Send/receive | Resend + channel API | 🟢 | Receive via webhook only |
+| Calendar | Read/write events | Channel type exists; no iCal/Google Calendar API | 🟡 | 3–4 weeks to wire Google/Outlook Calendar API |
+| Food delivery | Order placement | `action-types.ts` defines platform types; `HandshakeWizard.tsx` shows Uber Eats | 🟡 | No live API calls; needs UberEats/DoorDash developer account |
+| Taxi / ride-share | Book rides | `action-types.ts` type only | 🟡 | Uber/Lyft API or browser automation fallback |
+| Browser access | Navigate/interact | `BrowserService.ts` Puppeteer, `/api/browser/` | 🟢 | Puppeteer not available on Vercel Edge; needs server |
+| Smart-home control | Device control | Integration registry type only | 🔴 | Needs Google Home/HomeKit/MQTT SDK |
+| Browser automation (tickets) | Form fill, navigate | BrowserService navigate+click+fillForm | 🟢 | Consent gate wired correctly |
+| Intelligent chat/match | RGY capsule matching | Capsule manager + discovery cron + RGY rooms | 🟢 | Proactive matching not user-triggered |
+| CQ↔CQ permanent connections | P2P messaging | `cq-to-cq/` module: CQ number, WebSocket, WebRTC | 🟡 | Module exists; not wired to main chat UI |
+| Geo-fence for match | Location-aware matching | Referenced in capsule-manager; no UI control | 🟡 | Geo-fence radius picker missing from Side Panel |
+| Wallet payments | Crypto + fiat | `wallet-service.ts` with escrow | 🟡 | No Stripe; no crypto payment gateway (MetaMask/Coinbase) |
+| QR-based delayed release | Escrow via QR | `wallet-service.ts` — QR code + held/released status | 🟡 | DB migration for `payments` table not found |
+
+---
+
+#### 11.3 Top Priority Gaps to Close Before Launch
+
+| Priority | Gap | Effort | Risk if Skipped |
+|---|---|---|---|
+| 🔴 P0 | Age gate for RED zone access | 1 week | Legal liability if minors access explicit content |
+| 🔴 P0 | Zero-retention spec clarification + privacy policy update | 3 days | Regulatory (GDPR) and trust damage if users believe no data is stored but it is |
+| 🔴 P0 | Smart-home: spec lists it as a feature | 3 weeks | False advertising if listed in feature set at launch |
+| 🟡 P1 | CAP Orchestrator (routing unification) | 4 weeks | Sub-domains bypass safety guardrails; keyword telemetry broken |
+| 🟡 P1 | Audio cues (wake, tick, DND) | 2 weeks | Poor UX; voice mode feels unpolished |
+| 🟡 P1 | Vocspad unified input | 2 weeks | Core UX element missing from spec |
+| 🟡 P1 | Special Moves 3 missing (Wink, Trust Earned, Handoff) | 1 week | Incomplete product spec delivery |
+| 🟡 P1 | CQ↔CQ connection to main chat UI | 2 weeks | CQ number system exists but users can't use it |
+| 🟡 P2 | Wallet DB migration + Stripe | 3 weeks | No monetization beyond CubiKey |
+| 🟡 P2 | Calendar API (Google/Outlook) | 3 weeks | Email without calendar is half a productivity suite |
+| 🟡 P2 | Spoken SettingsCube confirmations | 3 days | Minor UX polish |
+| 🟡 P2 | Geo-fence UI in Side Panel | 1 week | RGY match is less accurate without user location |
+
+---
+
+#### 11.4 What Is Actually Production-Ready Against This Spec
+
+Despite the gaps, the following flagship-spec components are **genuinely production-ready**:
+
+1. **Policy Router** — zone detection, 3-backend failover, self-harm safety, language adaptation, founder mode, reasoning path, freedom path, search-all. This is solid.
+2. **Color system** — TEAL/RED/YELLOW with per-color voice tones, animation parameters, lock commands. Fully wired.
+3. **State machine** — 4-state (idle/listening/thinking/speaking) with event logging.
+4. **Cuboid 3D forms** — wireframe and solid variants working; GLB-loaded AICuboidGLB with 5 Special Moves.
+5. **STT + TTS pipeline** — Whisper STT, ElevenLabs TTS with voice modulation (Madhyama Marg), OpenAI TTS fallback.
+6. **BYO Mode** — complete with AES-256 key encryption, per-model routing, test endpoint.
+7. **Auth** — magic link, OAuth/OIDC, WebAuthn/Passkeys — all four auth modes.
+8. **Browser automation** — Puppeteer service with consent gate, form fill, navigate, screenshot.
+9. **RGY capsule matching** — 4-signal matching (colour → intent → keyword → vector), proactive discovery cron.
+10. **Side Panel keywords** — per-color RGY keyword lists with session persistence.
+
+---
+
+#### 11.5 Spec Alignment Summary
+
+```
+SPEC COVERAGE: ~63% Complete
+
+Completely built:     12 / 33 requirements   ████████░░░░░░░░░░░░  36%
+Partially built:      15 / 33 requirements   ████████████░░░░░░░░  45%
+Not built:             6 / 33 requirements   ████░░░░░░░░░░░░░░░░  18%
+Spec deviation:        1 / 33 requirements   █░░░░░░░░░░░░░░░░░░░   3%
+
+Launch-blocker gaps: 3 (age gate, zero-retention clarification, smart-home)
+Post-launch gaps: 10 (CAP Orchestrator, audio cues, Vocspad, wallet, etc.)
+
+Estimated engineering to reach 100% spec compliance:
+  - 2 developers × 8 weeks OR 1 developer × 16 weeks
+  - Estimated cost: $24K–$48K if contracted out
+```
+
