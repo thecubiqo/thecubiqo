@@ -976,3 +976,264 @@ WeChat succeeded not because it was a great chat app but because it became the i
 | Tauri desktop app | ⚠️ 20 weeks | 16 weeks | Very High | Very High |
 | React Native app | ⚠️ 24 weeks | 20 weeks | Very High | Very High |
 | "Search the web" offline | ❌ Not viable | N/A | N/A | N/A |
+
+---
+
+## Section 10 — Who Are Our Users?
+
+*Grounded in actual Cubiqo feature set: Journal (Rozana), Job Hunt automation, RGY matching, Social Army, Emergent platform, in-app agents, BYO mode, Deals engine, Duo/Companion mode, CQ identity system, voice AI, crisis detection.*
+
+---
+
+### 10.1 The Core Question — Why It Matters
+
+"Who is the user?" is the most important question in product development. It determines:
+- Which features to build next
+- Which marketing channels to invest in
+- What pricing model works
+- What investor narrative to tell
+- What the onboarding flow teaches first
+
+Cubiqo is a **multi-persona product** — intentionally so, because it was built as an "AI OS" that different people use for entirely different reasons. That is a strength (broad TAM) and a risk (unfocused messaging). The answer is **to lead with one persona publicly, serve all privately**.
+
+---
+
+### 10.2 The Seven User Personas
+
+---
+
+#### PERSONA 1 — The Solopreneur Operator
+*"I run a one-person business and I need a full team inside an app."*
+
+| Attribute | Detail |
+|---|---|
+| **Age / Stage** | 28–45, already running a business or side hustle |
+| **Location** | North America, UK, Australia, UAE, India (English-first markets) |
+| **Market size** | 64M solopreneurs in US alone; 400M+ globally (World Bank 2024) |
+| **Income** | $3K–$25K/month revenue, under-resourced |
+| **Tech comfort** | Medium-high; uses Notion, Zapier, ChatGPT, Canva |
+| **Core pain** | Wears every hat — marketing, ops, client work, admin — simultaneously |
+| **Cubiqo features used** | Social Army (posts across 10 platforms), Agents (A1–A7 autonomous tasks), Deals engine (finds tools at discount), BYO mode (controls AI cost), Emergent (launches side projects), Journal (BigBoss accountability prompts) |
+| **Aha moment** | Social Army auto-posts to 10 platforms while they sleep; morning shows 47 new impressions, zero effort |
+| **Monetization path** | Free → Pro ($29/mo) within 2 weeks once Social Army value clicks; upgrades to Founders Pass for unlimited agents |
+| **Acquisition channel** | Twitter/X, Reddit r/entrepreneur, Indie Hackers, Product Hunt |
+| **Churn risk** | Low — deeply embedded across social + ops workflows |
+| **Investor story value** | ⭐⭐⭐⭐⭐ — the "Zapier + Buffer + ChatGPT in one" narrative for the creator economy |
+
+---
+
+#### PERSONA 2 — The Job Seeker in Transition
+*"I need a new job and the process is humiliating, manual, and exhausting."*
+
+| Attribute | Detail |
+|---|---|
+| **Age / Stage** | 24–40, recently laid off, career-pivoting, or quietly looking while employed |
+| **Location** | US, Canada, UK, India, Australia |
+| **Market size** | 200M active job seekers globally at any moment (ILO 2024); US unemployment always ≥ 4M |
+| **Income** | Variable — either unemployed or $60K–$120K employed and frustrated |
+| **Tech comfort** | Medium; uses LinkedIn daily, spreadsheets to track applications |
+| **Core pain** | Applies to 50+ jobs manually, hears nothing back, loses track, gets rejected for unknown reasons |
+| **Cubiqo features used** | Job Hunt automation (resume upload → auto-apply → status tracking), LinkedIn integration, cover letter AI, interview coaching via voice AI, Journal for rejection processing |
+| **Aha moment** | Uploads resume Monday, wakes up Tuesday to 12 applications submitted + 2 interview alerts in inbox |
+| **Monetization path** | Free tier for 10 apps/month → Pro ($29/mo) for unlimited auto-apply; crisis persona is emotionally motivated to pay |
+| **Acquisition channel** | Reddit r/cscareerquestions r/jobs, LinkedIn job seeker groups, YouTube career coaches, TikTok "job hunt tips" |
+| **Churn risk** | Medium — leaves when they get a job (natural churn); re-acquires on next career move |
+| **Investor story value** | ⭐⭐⭐⭐ — automated job applications is a hot category; ZipRecruiter is a $2B company |
+
+**Feature gap to fix:** Full autonomous application submission (currently tracks but doesn't auto-submit). This single gap is the difference between "interesting tool" and "life-changing product" for this persona.
+
+---
+
+#### PERSONA 3 — The Emotionally Overwhelmed Professional
+*"I am doing okay on paper but I am exhausted, isolated, and have no one to actually talk to."*
+
+| Attribute | Detail |
+|---|---|
+| **Age / Stage** | 27–45, high-functioning but emotionally depleted |
+| **Location** | Urban North America, UK, Australia — high-cost, high-pressure cities |
+| **Market size** | 76% of US workers report burnout (Deloitte 2023); 1 in 5 adults experience mental health challenge annually |
+| **Income** | $60K–$200K — can afford a therapist but won't commit to one |
+| **Tech comfort** | Medium; smartphone-heavy, app-native |
+| **Core pain** | No safe space to process stress; therapy stigma or cost barrier; journaling feels juvenile alone |
+| **Cubiqo features used** | Journal/Rozana (BigBoss "friend who tells you the truth" prompts), Duo mode (side-by-side companion), voice AI (emotionally modulated responses), crisis detection (self-harm escalation to safe resources), Companion mode |
+| **Aha moment** | Journal prompt "Your boss just took credit for your work. Say the unsayable." — they type something raw and Cubiqo responds with exactly the right tone: validating, then redirecting |
+| **Monetization path** | Hardest to convert on price alone → convert via **habit** (daily journal streak, weekly emotional summary email) → upgrade for voice companion + unlimited history |
+| **Acquisition channel** | Instagram mental health accounts, Reddit r/mentalhealth r/therapy, therapy-adjacent podcasts, TikTok therapist creators |
+| **Churn risk** | Very low once habit forms (daily journal creates daily return) |
+| **Investor story value** | ⭐⭐⭐ — mental health tech is a $6B market but requires careful positioning to avoid regulatory risk; better to position as "emotional productivity" than "therapy" |
+
+**Critical warning:** This persona triggers real crisis situations. The crisis detection escalation path (`policy-router.ts`) MUST be battle-tested before this persona is publicly targeted. Mental health claims in marketing require legal review.
+
+---
+
+#### PERSONA 4 — The Privacy-Conscious Tech Enthusiast
+*"I want powerful AI but I refuse to send my data to Big Tech servers."*
+
+| Attribute | Detail |
+|---|---|
+| **Age / Stage** | 25–45, developer or highly technical non-developer |
+| **Location** | EU (GDPR-native), Canada, Germany, Switzerland, Japan |
+| **Market size** | Smaller absolute numbers (~5M globally) but extremely vocal and viral |
+| **Income** | $80K–$200K, willing to pay premium for privacy |
+| **Tech comfort** | High — runs their own servers, uses Signal, has a VPN, knows what RAG means |
+| **Core pain** | Every AI product sends their data to OpenAI/Google; no true privacy option exists at a consumer price point |
+| **Cubiqo features used** | BYO mode (own API key, controls data routing), future WebLLM (runs inference entirely in browser), Ollama integration, privacy-first journal |
+| **Aha moment** | Sees BYO settings page — "This is the first AI app that lets me use MY key, MY model, and tells me exactly what happens to my data" |
+| **Monetization path** | Premium/Enterprise tier — this persona pays for the platform fee + will pay for Founders Pass as status symbol |
+| **Acquisition channel** | Hacker News, r/privacy, r/selfhosted, Mastodon, DEF CON community, Lobsters |
+| **Churn risk** | Very low — will become an evangelist and pull in 3–5 more users through word of mouth |
+| **Investor story value** | ⭐⭐⭐⭐ — EU AI Act compliance + privacy-first positioning is increasingly a competitive moat; powerful for EU expansion narrative |
+
+**Note:** Current BYO still routes through Cubiqo server (only key is user's own). True privacy requires WebLLM (Tier 2, 8 weeks). Do NOT market to this persona as "private" until Tier 2 ships — they will call it out publicly and cause reputational damage.
+
+---
+
+#### PERSONA 5 — The Creator / Social Media Entrepreneur
+*"My content is my product and I can't keep up with the pace of posting."*
+
+| Attribute | Detail |
+|---|---|
+| **Age / Stage** | 20–38, full-time or aspiring creator / influencer |
+| **Location** | US, UK, Brazil, India, Philippines, Nigeria |
+| **Market size** | 50M+ content creators globally (SignalFire 2023); 2M+ earn full-time income from content |
+| **Income** | $1K–$30K/month from content; time-constrained and inconsistent |
+| **Tech comfort** | High for social tools; medium for dev tools |
+| **Core pain** | Content creation is a daily grind; one person cannot maintain 5+ platforms without burning out |
+| **Cubiqo features used** | Social Army (10 platforms × 10 accounts × scheduled posting), GFXToolz integration (images/videos), AI caption generation, persona management (different voice per platform), Deals (sponsored content deal tracking) |
+| **Aha moment** | Sets up Social Army once, schedules a week of posts across Instagram/TikTok/Twitter/LinkedIn/YouTube — all from one dashboard |
+| **Monetization path** | Pro immediately ($29/mo is trivial if it saves 10 hours/week); potential Founders Pass for white-label client management |
+| **Acquisition channel** | YouTube creator economy content, CreatorIQ, Creator Commerce, Beehiiv newsletters for creators |
+| **Churn risk** | Medium — churns if Social Army hits API platform restrictions (LinkedIn 1/day, Instagram approval delays) |
+| **Investor story value** | ⭐⭐⭐⭐⭐ — creator economy is the hottest B2C market; Buffer is worth $80M, Hootsuite $750M; Cubiqo is Buffer + AI agents |
+
+---
+
+#### PERSONA 6 — The Developer / Technical Builder
+*"I want to build and ship products faster without managing 20 different tools."*
+
+| Attribute | Detail |
+|---|---|
+| **Age / Stage** | 22–40, freelance dev, indie hacker, startup engineer |
+| **Location** | Global (English-first); strong in India, Eastern Europe, Southeast Asia, Canada |
+| **Market size** | 28M developers globally (Evans Data 2024); 4M freelance devs in US |
+| **Income** | $40K–$200K; cost-sensitive on tools, but pays for 10x productivity gains |
+| **Tech comfort** | Very high — daily VS Code, GitHub, terminal users |
+| **Core pain** | Too many disconnected tools: IDE + hosting + secrets management + deployment + monitoring = cognitive overhead |
+| **Cubiqo features used** | Emergent platform (Monaco editor + sandbox + deploy pipeline), BYO mode (own OpenRouter/Groq key for cheap inference), Agents (code review, test generation, deployment), CQ social for dev community |
+| **Aha moment** | Opens Emergent, types a project description, watches Cubiqo scaffold a Next.js app, configure secrets, and deploy to Vercel — in one session |
+| **Monetization path** | Heavy free user first (builds on Emergent); converts to Pro when projects earn money or team joins; strong Founders Pass candidate for agency use |
+| **Acquisition channel** | Hacker News "Show HN", GitHub trending, DEV.to, r/programming, YouTube dev channels (Theo, Fireship) |
+| **Churn risk** | Low once Emergent hosts a live project (switching cost = redeployment effort) |
+| **Investor story value** | ⭐⭐⭐⭐ — Vercel, Railway, Replit all multi-billion; Cubiqo is the AI-native version of all three |
+
+---
+
+#### PERSONA 7 — The RGY Community Seeker
+*"I want to connect with people who are actually on a similar wavelength, not just network for networking's sake."*
+
+| Attribute | Detail |
+|---|---|
+| **Age / Stage** | 22–45, socially active but disillusioned with LinkedIn/Twitter networking |
+| **Location** | Urban global; early adopter in tech / creative / entrepreneurship communities |
+| **Market size** | Hard to size directly — this is the "quality connection" persona; target is 50M LinkedIn-frustrated professionals |
+| **Income** | Variable — defined more by mindset than income |
+| **Tech comfort** | Medium-high |
+| **Core pain** | Networking feels transactional; LinkedIn is a spam machine; can't find genuine collaborators or people in the same life chapter |
+| **Cubiqo features used** | RGY chat (express intent in colour-coded context: Red=transform, Yellow=grow, Green=stabilise), capsule matching (intent × keyword × vector similarity → anonymous match → consent → reveal), CQ number as identity, CQ-to-CQ direct messaging with voice delivery |
+| **Aha moment** | Sets RGY intent to Yellow: "looking for a technical co-founder for a fintech idea in Toronto" → Cubiqo surfaces 3 anonymised matches → all 3 are genuinely relevant → accepts 1 → that match becomes a co-founder |
+| **Monetization path** | Free RGY → Pro for unlimited capsules + proactive discovery + video RGY rooms → Premium for concierge matching |
+| **Acquisition channel** | RGY is the viral hook — shareable CQ number, RGY colour profile share cards, community subreddits, co-founder matching communities (YC co-founder matching, Indie Hackers) |
+| **Churn risk** | Very low — active matching creates weekly return visit; matched connections create emotional ownership of the platform |
+| **Investor story value** | ⭐⭐⭐⭐⭐ — LinkedIn was a $26B acquisition; the "next LinkedIn" narrative plus patentable matching algorithm (Patent 3) makes this the single most investor-compelling feature |
+
+---
+
+### 10.3 Persona × Feature Matrix
+
+| Feature | Solopreneur | Job Seeker | Emotional | Privacy | Creator | Developer | RGY Seeker |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Journal / Rozana | ✅ | ✅ | ⭐ | ✅ | — | — | ✅ |
+| Job Hunt Automation | — | ⭐ | — | — | — | ✅ | — |
+| Social Army | ⭐ | — | — | — | ⭐ | — | ✅ |
+| RGY Matching | ✅ | ✅ | ✅ | — | ✅ | ✅ | ⭐ |
+| In-App Agents | ⭐ | ✅ | — | ✅ | ✅ | ⭐ | — |
+| BYO Mode | ✅ | — | — | ⭐ | — | ⭐ | — |
+| Emergent Platform | ✅ | — | — | ✅ | — | ⭐ | — |
+| Voice AI | ✅ | ✅ | ⭐ | — | ✅ | — | ✅ |
+| Deals Engine | ⭐ | — | — | — | ✅ | ✅ | — |
+| Duo / Companion | ✅ | ✅ | ⭐ | — | — | — | ✅ |
+| CQ Number / Identity | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⭐ |
+| Crisis Detection | — | — | ⭐ | — | — | — | — |
+
+*⭐ = primary feature for this persona | ✅ = secondary use*
+
+---
+
+### 10.4 Which Persona to Lead With at Launch
+
+**Lead publicly with: Persona 1 (Solopreneur Operator) + Persona 5 (Creator)**
+
+Reason: These two personas have:
+- Highest willingness-to-pay (already spending on Buffer, Zapier, ChatGPT)
+- Lowest regulatory risk (no mental health or employment law exposure)
+- Most viral distribution (they POST publicly, so Cubiqo gets organic impressions)
+- Clearest ROI story ("saves 10 hours/week, worth $29/mo")
+- Strongest investor narrative (creator economy + solopreneur market)
+
+**Serve privately at launch, market loudly at Month 3:**
+- Persona 2 (Job Seeker) — once auto-apply is complete
+- Persona 7 (RGY Community) — once capsule matching has 100+ users to match against
+
+**Serve carefully, never lead marketing with:**
+- Persona 3 (Emotional) — position as "emotional productivity" not "mental health tool"; needs legal review first
+- Persona 4 (Privacy) — position as "data control" not "privacy"; needs WebLLM shipped first
+
+---
+
+### 10.5 The ONE User Who Represents All Seven
+
+If forced to pick a single archetype for everything — product, marketing, pitch:
+
+> **"Alex, 32, runs a 2-person design + copywriting agency in Toronto. Alex uses Cubiqo to post across 8 social platforms daily, track 3 client projects inside Emergent, decompress after client calls in the journal, and has an RGY Yellow capsule active looking for a dev co-founder to productize the agency's workflows. Alex pays $29/month and would pay $99/month if the voice companion was smarter."**
+
+Alex is real. Alex is everywhere. Alex is the user Cubiqo was built for.
+
+---
+
+### 10.6 What This Means for Onboarding
+
+The onboarding flow MUST ask one question first:
+
+```
+"What matters most to you right now?"
+  A) Growing my business / brand online      → routes to Social Army + Agents
+  B) Finding a new job                        → routes to Job Hunt setup
+  C) Building something new                   → routes to Emergent + Agents
+  D) Making sense of my day / life            → routes to Journal (Rozana)
+  E) Connecting with the right people        → routes to RGY intent setup
+```
+
+Each answer triggers a different onboarding sequence, a different first Aha moment, and a different first 30-day email series. This single onboarding branching decision will likely double activation rate versus a one-size-fits-all tour.
+
+**Current gap:** Onboarding is currently a single generic flow. This branching is a P1 priority — build it in week 3–4 post-launch.
+
+---
+
+### 10.7 Market Size Summary
+
+| Persona | Addressable Market | Realistic TAM (Cubiqo serves) | Conversion at 1% |
+|---|---|---|---|
+| Solopreneur Operator | 400M globally | 20M English-first, tech-ready | 200K users |
+| Job Seeker | 200M active seekers | 10M English-first, tech-ready | 100K users |
+| Emotional Professional | 500M+ burnout-affected | 15M willing to use AI for this | 150K users |
+| Privacy Enthusiast | 30M privacy-conscious | 5M willing to pay premium | 50K users |
+| Creator / Social | 50M creators | 5M with posting automation need | 50K users |
+| Developer / Builder | 28M developers | 8M indie/freelance | 80K users |
+| RGY Community Seeker | 900M LinkedIn users | 10M disillusioned networkers | 100K users |
+
+**Combined realistic target at 1% TAM conversion: 730,000 users**
+**At $29/month average blended ARPU: $21.2M ARR**
+**At $15/month average blended ARPU (freemium mix): $131M ARR potential at full TAM**
+
+This is a $100M+ ARR opportunity if Cubiqo executes across all seven personas over 5 years. The near-term focus should be 1,000 users → 10,000 users → first $100K ARR. All three are achievable within 18 months with the right execution.
+
