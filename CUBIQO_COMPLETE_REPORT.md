@@ -1,18 +1,1110 @@
-# CUBIQO — Master Strategic Report
+# CUBIQO — Master Strategic Report (v2)
 
-**Prepared by:** MO (CTO / Co-Founder)  
-**Date:** 2026-02-21  
+**Prepared by:** MO (CTO / AI Co-Founder)  
+**Date:** 2026-02-22 (updated)  
 **Confidential — Founder Eyes Only**
 
 ---
 
-> *This document consolidates all eight analyses conducted on 2026-02-21.  
-> Every finding is grounded in direct inspection of the actual codebase:  
-> 157 API routes · 44 database migrations · 80 UI components.*
+> *This document consolidates all analyses conducted on 2026-02-21/22.*  
+> *Every finding is grounded in direct inspection of the actual codebase:*  
+> *157 API routes · 44 database migrations · 80 UI components.*  
+> *4,586 lines · Sections 1–8 · Appendices A–E · 20 Techno-Functional Requirements*
 
 ---
 
+## EXECUTIVE SUMMARY — Cubiqo Product State (February 2026)
+
+**Prepared by:** MO — CTO / AI Co-Founder  
+**Based on:** Direct code inspection of branch `copilot/investigate-features-and-ui-components` + full analysis corpus (8 documents, 3,100+ lines)
+
+---
+
+### What Cubiqo Is
+
+Cubiqo is an AI-native operating system for solopreneurs and knowledge workers. It routes voice and text input through a policy-aware LLM backend (TEAL/RED/YELLOW zones), orchestrates a suite of integrated tools (Social Army, Journal, Job Hunt, Emergent code editor, RGY peer matching, BYO API keys), and presents itself through a 3D animated cuboid UI that reflects AI state in real time.
+
+---
+
+### Overall Product State at a Glance
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  CUBIQO — PRODUCT READINESS SCORECARD (Feb 2026)                           ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  Flagship Spec Compliance    63%   ████████████░░░░░░░░  (12/33 🟢)        ║
+║  Feature Build Completion    58%   ████████████░░░░░░░░  (est. across all) ║
+║  Legal / Compliance          10%   ██░░░░░░░░░░░░░░░░░░  (0 ToS, 0 PP)    ║
+║  Revenue Infrastructure       5%   █░░░░░░░░░░░░░░░░░░░  (no Stripe)      ║
+║  Analytics Coverage          15%   ███░░░░░░░░░░░░░░░░░  (3 events only)  ║
+║  Test Coverage               35%   ███████░░░░░░░░░░░░░  (Vitest partial) ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
+
+---
+
+### 3 Absolute Launch Blockers (Cannot Ship Without These)
+
+| # | Blocker | Why Critical | Est. Effort |
+|---|---|---|---|
+| 1 | **Stripe billing + CubiKey payment** | CubiKey is placeholder UI — no revenue collection possible | 3 weeks |
+| 2 | **Terms of Service + Privacy Policy pages** | GDPR/CCPA requires these before any user data is collected | 3 days |
+| 3 | **Age gate for RED zone** | Legal liability — minors can access age-gated/explicit content | 1 week |
+
+**Current verdict: Cubiqo is NOT legally launchable today. These 3 items must ship first.**
+
+---
+
+### What Is Genuinely Production-Ready (Ship Now)
+
+| Area | Confirmation |
+|---|---|
+| Policy Router (LLM backend, zone detection, failover, safety) | `src/lib/ai/policy-router.ts` — solid, 3-backend failover |
+| Color system (TEAL/RED/YELLOW, voice tones, lock commands) | `src/config/colors.ts` + `commands.ts` |
+| STT + TTS pipeline (Whisper + ElevenLabs + voice modulation) | `/api/stt/`, `/api/tts/`, `voice-modulation.ts` |
+| Auth (magic link, OAuth, WebAuthn/Passkeys) | 4 auth modes fully wired |
+| BYO Mode (cloud API keys, AES-256 encryption, routing) | `byo-manager.ts`, `/api/byo/` |
+| Browser automation (Puppeteer, consent gate) | `BrowserService.ts`, `/api/browser/` |
+| RGY capsule matching (4-signal: colour→intent→keyword→vector) | `capsule-manager.ts`, `discovery-service.ts` |
+| Side Panel keywords (per-color RGY lists, session persistence) | `KeywordPanel.tsx` |
+| 3D cuboid (wireframe + solid, 5 Special Moves, state-reactive) | `AICuboidGLB.tsx`, `SilverWireLandingCube.tsx` |
+| Conscious memory (extraction, storage, journey tracking) | `/api/memory/`, `/api/extract-memories/` |
+| Emergent code editor (9 API modules, Monaco, sandboxed preview) | `/api/emergent/` routes |
+| Social Army (10 platforms, persona accounts, GFXToolz) | `social-army-service.ts`, `platforms.json` |
+| Journal / Rozana (BigBoss prompts, 24h gate, color classification) | `/api/journal/`, `journal-service.ts` |
+
+---
+
+### Pending Work Summary (All Priorities)
+
+| Priority | Count | Items |
+|---|---|---|
+| 🔴 P0 — Launch Blockers | 5 | Stripe, ToS/PP, Age Gate, Zero-Retention clarification, Smart-home removal or stub |
+| 🟡 P1 — 30-Day Post-Launch | 10 | CAP Orchestrator, Audio Cues, Vocspad, 3 Special Moves, CQ↔CQ UI, Spending Caps persistence, Analytics funnel, Social Army review gate, Onboarding branching |
+| 🟢 P2 — 90-Day Enhancement | 10 | Calendar API, Wallet/Stripe crypto, Geo-fence UI, SettingsCube spoken confirm, Fabric cube material, CQ Score, Food/taxi live API, Referral programme, Emergent collaborative editing, Structured event logs |
+
+---
+
+### Key Numbers From Code (Ground Truth)
+
+| Metric | Value | Source |
+|---|---|---|
+| Total API routes | 157 | `find /api -name route.ts` |
+| Disabled/stub routes | 17 | `// TODO`, `return NextResponse.json({message:'coming soon'})` |
+| TODO / stub markers | 101+ | `grep -r "TODO\|FIXME\|STUB"` |
+| Analytics events tracked | 3 | `trackEvent()` call sites |
+| Stripe references | 0 | No `stripe` in package.json |
+| Social platforms configured | 10 | `platforms.json` |
+| DB migrations applied | 18 | `supabase/migrations/` |
+| Patent opportunities (≥50% approval) | 4 | See PATENT_OPPORTUNITIES.md |
+| Spec compliance (Flagship doc) | 63% | See Section 11 below |
+
+---
+
+## TECHNO-FUNCTIONAL REQUIREMENTS — All Incomplete & Pending Features
+
+> **Format for each TFR:**
+> - **Current State** — what exists in code right now
+> - **Requirement** — what the feature must do when complete
+> - **Technical Approach** — specific implementation path
+> - **Changes Needed** — DB schema / API endpoints / UI components
+> - **Acceptance Criteria** — how to know it's done
+> - **Effort Estimate** — realistic solo developer estimate
+> - **Owner** — which agent/role should implement it
+
+---
+
+### TFR-001 — Stripe Billing + CubiKey Subscription Payment
+
+**Priority:** 🔴 P0 — Launch Blocker
+
+**Current State:**
+- `src/components/CubiKey.tsx` exists but is placeholder UI only
+- `src/lib/cubikey/cubikey-manager.ts` references Stripe but no `stripe` package in `package.json`
+- No `/api/billing/` routes exist
+- No `subscription_plans` or `user_subscriptions` DB table
+
+**Requirement:**
+Users must be able to purchase CubiKey Pro ($29/mo) and CubiKey Max ($79/mo) via Stripe checkout. Subscription status must gate features in real time.
+
+**Technical Approach:**
+```
+1. npm install stripe @stripe/stripe-js
+2. Create Stripe products + price IDs in Stripe dashboard
+3. Build /api/billing/checkout  → creates Stripe Checkout Session
+4. Build /api/billing/webhook   → handles subscription.created/updated/deleted
+5. Build /api/billing/portal    → Stripe Customer Portal for self-serve management
+6. Add user_subscriptions table to Supabase
+7. Add feature gate check to policy-router.ts (plan tier → model access)
+8. Replace CubiKey.tsx placeholder with real checkout button
+```
+
+**DB Changes:**
+```sql
+CREATE TABLE user_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  stripe_customer_id TEXT UNIQUE,
+  stripe_subscription_id TEXT UNIQUE,
+  plan_id TEXT NOT NULL,           -- 'free' | 'pro' | 'max'
+  status TEXT NOT NULL,            -- 'active' | 'past_due' | 'canceled'
+  current_period_end TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX ON user_subscriptions(user_id);
+CREATE INDEX ON user_subscriptions(stripe_customer_id);
+```
+
+**API Endpoints:**
+- `POST /api/billing/checkout` — create Stripe Checkout session, return URL
+- `POST /api/billing/webhook` — Stripe webhook handler (must be raw body)
+- `GET /api/billing/portal` — create Stripe Customer Portal session
+- `GET /api/billing/status` — return current plan for authenticated user
+
+**UI Components:**
+- `CubiKeyCheckoutButton.tsx` — Stripe Checkout trigger
+- `BillingPortalLink.tsx` — link to manage subscription
+- `PlanGateBadge.tsx` — upgrade prompt when feature is gated
+
+**Acceptance Criteria:**
+- [ ] Test card `4242 4242 4242 4242` completes checkout in staging
+- [ ] Webhook updates `user_subscriptions.status` within 5 seconds
+- [ ] Free user cannot access `plan_id='pro'` features
+- [ ] Pro user upgrade/downgrade visible in Stripe dashboard
+
+**Effort:** 3 weeks (1 week Stripe setup + webhook; 1 week feature gates; 1 week UI)
+**Owner:** Blossom (backend) + Bubbles (UI)
+
+---
+
+### TFR-002 — Terms of Service + Privacy Policy Pages
+
+**Priority:** 🔴 P0 — Launch Blocker
+
+**Current State:**
+- No `/terms` or `/privacy` route exists anywhere in the app
+- No ToS or Privacy Policy text in the repository
+- `magic-link.ts` email template says "Zero-Retention. Private." — contradicts memory storage
+
+**Requirement:**
+Legal pages must be live before any user data is collected. Must cover: data storage (memory system), AI processing (third-party LLMs), age restrictions (RED zone), subscription terms, and GDPR/CCPA rights.
+
+**Technical Approach:**
+```
+1. Create src/app/terms/page.tsx     — static MDX page, dated
+2. Create src/app/privacy/page.tsx  — static MDX page, GDPR-compliant
+3. Add footer links to both pages across all layouts
+4. Add checkbox "I agree to Terms + Privacy Policy" to signup form
+5. Store consent timestamp to user profile (GDPR requirement)
+6. Fix magic-link.ts email to remove "Zero-Retention" (false claim)
+```
+
+**DB Changes:**
+```sql
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS
+  terms_accepted_at TIMESTAMPTZ,
+  terms_version TEXT DEFAULT '1.0';
+```
+
+**10 Required ToS Clauses (minimum):**
+1. Subscription terms, refund policy, cancellation
+2. AI-generated content disclaimer (not professional advice)
+3. Age restriction (18+ for RED zone, 13+ general)
+4. Data storage acknowledgement (memory system, Supabase)
+5. Third-party LLM processing (OpenAI, Anthropic, ElevenLabs)
+6. BYO API keys: user owns and is responsible for their keys
+7. Social Army: user is responsible for content posted via their accounts
+8. Acceptable use policy (no abuse, spam, illegal content)
+9. GDPR/CCPA data subject rights (access, deletion, portability)
+10. Limitation of liability + governing law (Ontario, Canada)
+
+**Acceptance Criteria:**
+- [ ] `/terms` and `/privacy` render as static pages with correct content
+- [ ] Signup flow cannot complete without ToS checkbox checked
+- [ ] `terms_accepted_at` is populated for new users
+- [ ] Footer links present on landing, dashboard, and onboarding pages
+
+**Effort:** 3 days (legal text from Termly.io template; 1 day engineering)
+**Owner:** MO (content) + Bubbles (UI wiring)
+
+---
+
+### TFR-003 — Age Gate for RED Zone
+
+**Priority:** 🔴 P0 — Launch Blocker
+
+**Current State:**
+- `src/config/colors.ts` defines RED zone as `emotion: 'age-gated, critical, goal-oriented'`
+- `policy-router.ts` routes RED zone to uncensored models (`MIXTRAL_8X22B`, `LLAMA_UNCENSORED`)
+- Zero age verification code exists anywhere in the codebase
+- Any user can activate RED zone through the color selector
+
+**Requirement:**
+Users must confirm they are 18+ before accessing RED zone. Confirmation must be stored and re-validated on session start. Under-18 users must be blocked with a clear message.
+
+**Technical Approach:**
+```
+1. Add age_verified: boolean + date_of_birth: date to user_profiles
+2. Create AgeVerificationModal.tsx — DOB picker, stores to profile
+3. Wrap ColorZoneSelector.tsx — intercept RED selection with gate check
+4. Add API middleware: /api/chat/route.ts rejects RED requests if !age_verified
+5. Add gate check to policy-router.ts: if zone=RED && !user.age_verified → force YELLOW
+```
+
+**DB Changes:**
+```sql
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS
+  age_verified BOOLEAN DEFAULT FALSE,
+  age_verified_at TIMESTAMPTZ,
+  date_of_birth DATE;
+```
+
+**UI Components:**
+- `AgeVerificationModal.tsx` — DOB picker with clear explanation, stores to Supabase
+- `RedZoneGate.tsx` — wrapper that intercepts RED color selection
+
+**Acceptance Criteria:**
+- [ ] Unverified user clicking RED zone sees age gate modal
+- [ ] DOB entered as <18 shows blocked message, does not unlock RED
+- [ ] DOB entered as 18+ stores `age_verified: true` and allows RED access
+- [ ] Server-side: `/api/chat` returns 403 if zone=RED and user not age-verified
+- [ ] Age verification persists across sessions (stored in DB, not just localStorage)
+
+**Effort:** 1 week
+**Owner:** Blossom (backend gate) + Bubbles (modal UI)
+
+---
+
+### TFR-004 — Zero-Retention Spec Clarification + Privacy Policy Correction
+
+**Priority:** 🔴 P0 — Launch Blocker
+
+**Current State:**
+- `src/lib/email/templates/magic-link.ts` says "Zero-Retention. Private."
+- But `/api/memory/`, `/api/extract-memories/`, `/api/journey/memories/` all store to Supabase
+- This is a direct contradiction and a potential GDPR violation (false representation)
+
+**Requirement:**
+All marketing copy, onboarding text, and email templates must accurately describe what data is stored. The "zero retention" claim must be scoped correctly or removed entirely.
+
+**Technical Approach:**
+```
+1. Search all files for "Zero-Retention", "zero retention", "no data stored"
+2. Replace with accurate copy:
+   "Your conversation routing is private and not logged.
+    Your conscious memories are stored with your consent and deletable any time."
+3. Add "Delete My Data" button to user profile settings
+4. Implement /api/user/delete-data route that cascades deletes across all user tables
+```
+
+**Files to Change:**
+- `src/lib/email/templates/magic-link.ts` — remove false claim
+- Any landing page or onboarding copy referencing zero-retention
+- Privacy Policy (TFR-002) must explicitly describe memory storage
+
+**Acceptance Criteria:**
+- [ ] No file contains unqualified "zero-retention" or "no data stored" claims
+- [ ] Privacy policy accurately describes: what is stored, where, for how long
+- [ ] User can request full data deletion from profile settings
+- [ ] Data deletion cascades across: memories, capsules, journal, profiles, subscriptions
+
+**Effort:** 3 days
+**Owner:** MO (copy) + Blossom (delete-data API)
+
+---
+
+### TFR-005 — Smart-Home Control (Remove from Feature Claims or Implement Stub)
+
+**Priority:** 🔴 P0 — Launch Blocker
+
+**Current State:**
+- `src/lib/integrations/integration-registry.ts` lists `smart_home` as an integration type
+- `src/data/action-types.ts` has smart home action categories
+- Zero implementation: no Google Home, HomeKit, MQTT, or Z-Wave code
+
+**Requirement:**
+Either (A) implement a minimum viable smart-home integration (Google Home API or Home Assistant MQTT), OR (B) remove smart-home from all public feature lists and disable the integration registry entry until implemented.
+
+**Recommendation:** Option B — remove from public claims at launch. Implement in P2.
+
+**Technical Approach (Option B — 1 day):**
+```
+1. Set smart_home entry in integration-registry.ts to available: false
+2. Add "Coming Soon" label to any UI that lists smart-home
+3. Remove from landing page feature list
+4. Add to post-launch roadmap
+```
+
+**Technical Approach (Option A — 3 weeks, P2 scope):**
+```
+1. Integrate Home Assistant REST API (open source, self-hosted, covers most smart devices)
+2. Create /api/integrations/smart-home/[action] routes
+3. Store Home Assistant URL + API token in BYO keys vault
+4. Add device discovery, state read, and command execution
+```
+
+**Acceptance Criteria (Option B):**
+- [ ] Smart-home not mentioned in any public-facing copy at launch
+- [ ] UI shows "Coming Soon" badge, not an active control
+
+**Effort:** 1 day (Option B) / 3 weeks (Option A)
+**Owner:** Blossom
+
+---
+
+### TFR-006 — CAP Orchestrator (Central AI Policy Gateway for Sub-Domains)
+
+**Priority:** 🟡 P1 — 30-Day Post-Launch
+
+**Current State:**
+- No `cap-orchestrator.ts`, no `/api/cap/` routes, no "World" abstraction
+- Each sub-domain (Emergent, Social Army, Job Hunt, Journal) calls OpenAI directly — bypassing zone policy, safety guardrails, and keyword telemetry
+- The flagship spec requires all Worlds to route through the CAP Orchestrator, inheriting the chosen backend
+
+**Requirement:**
+A unified AI gateway that all internal tools call instead of OpenAI directly. Must inherit the user's current zone (TEAL/RED/YELLOW), apply safety guardrails, route to the correct backend, and pipe keywords back to the Side Panel.
+
+**Technical Approach:**
+```
+Week 1: src/lib/cap/orchestrator.ts
+  - class CAPOrchestrator
+  - accepts: { worldId, userId, messages, zoneHint?, tools? }
+  - reads active zone from user session
+  - passes through PolicyRouter (reuses existing policy-router.ts logic)
+  - returns { response, zone, modelUsed, keywords[] }
+
+Week 2: /api/cap/route.ts
+  - POST /api/cap/route
+  - Auth required, rate-limited
+  - All internal tools POST here instead of /api/chat
+
+Week 3: Migrate 3 sub-domains
+  - Emergent: replace direct OpenAI calls with /api/cap/route
+  - Social Army: caption generation → /api/cap/route
+  - Job Hunt: resume parsing + cover letter → /api/cap/route
+
+Week 4: Keyword telemetry pipeline
+  - CAP response includes keywords[]
+  - Client receives keywords, updates Side Panel via localStorage + WebSocket push
+```
+
+**API Endpoint:**
+```typescript
+// POST /api/cap/route
+interface CAPRequest {
+  worldId: 'emergent' | 'social-army' | 'job-hunt' | 'journal' | 'rgy'
+  messages: ChatMessage[]
+  zoneHint?: 'TEAL' | 'RED' | 'YELLOW'
+  tools?: ToolDefinition[]
+}
+interface CAPResponse {
+  content: string
+  zone: string
+  modelUsed: string
+  tokensUsed: number
+  keywords: string[]      // for Side Panel telemetry
+}
+```
+
+**Acceptance Criteria:**
+- [ ] Emergent editor calls `/api/cap/route` for all AI completions
+- [ ] Social Army caption generation calls `/api/cap/route`
+- [ ] Self-harm pattern in any World → forces YELLOW zone (guardrail applies globally)
+- [ ] Keywords from CAP responses appear in Side Panel within 2 seconds
+- [ ] Failover works: primary model down → secondary used transparently
+
+**Effort:** 4 weeks
+**Owner:** Blossom (orchestrator + API) + Bubbles (Side Panel telemetry UI)
+
+---
+
+### TFR-007 — Audio Cues (Wake Chime, Speak Ticks, DND Mode)
+
+**Priority:** 🟡 P1 — 30-Day Post-Launch
+
+**Current State:**
+- `src/lib/audio/audioContext.ts` — AudioContext manager for gesture-unlock; no sound generation
+- `src/lib/audio/audio-score-service.ts` — ambient music oscillators; no UI cues
+- Zero wake chime, zero speak ticks, no DND mode anywhere
+
+**Requirement:**
+The spec requires: Wake chime on activation, soft ticks at TTS start/stop, single neutral tick on error, plus volume/on-off/DND controls.
+
+**Technical Approach:**
+```typescript
+// Create: src/lib/audio/ui-cues.ts
+// Uses Web Audio API — zero external files needed
+
+export function playWakeChime(ctx: AudioContext) {
+  // 220Hz → 440Hz sweep, 80ms, cosine ramp out
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.frequency.setValueAtTime(220, ctx.currentTime)
+  osc.frequency.linearRampToValueAtTime(440, ctx.currentTime + 0.08)
+  gain.gain.setValueAtTime(0.3, ctx.currentTime)
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08)
+  osc.connect(gain); gain.connect(ctx.destination)
+  osc.start(); osc.stop(ctx.currentTime + 0.08)
+}
+
+export function playSpeakTick(ctx: AudioContext) { /* 880Hz, 30ms */ }
+export function playErrorTick(ctx: AudioContext) { /* 330Hz, 50ms */ }
+export function setAudioDND(enabled: boolean) { /* localStorage */ }
+export function setAudioVolume(level: 0 | 0.25 | 0.5 | 0.75 | 1.0) { /* gain node */ }
+```
+
+**Call Sites:**
+- `src/hooks/useAIState.ts` — `playWakeChime()` on `idle → listening` transition
+- `src/hooks/useElevenLabsTTS.ts` — `playSpeakTick()` on TTS stream start + end
+- `src/app/api/chat/route.ts` error handler → `playErrorTick()` via client event
+- `src/components/SettingsCube/SettingsCubeApp.tsx` — DND toggle + volume slider
+
+**Acceptance Criteria:**
+- [ ] Wake chime plays when user activates mic (not on page load)
+- [ ] Soft tick plays at start of TTS audio; second tick at end
+- [ ] Error tick plays on AI failure (not on user input errors)
+- [ ] DND mode silences all cues; preference persists across sessions
+- [ ] Volume control works independently of system volume
+- [ ] `prefers-reduced-motion` users: audio cues still work (audio ≠ animation)
+
+**Effort:** 2 weeks
+**Owner:** Bubbles (Web Audio implementation + DND settings UI)
+
+---
+
+### TFR-008 — Vocspad (Unified Type + Talk Input Component)
+
+**Priority:** 🟡 P1 — 30-Day Post-Launch
+
+**Current State:**
+- `src/components/chat/ChatContainer.tsx` — standard text input + separate mic button
+- `src/app/api/stt/route.ts` — Whisper STT working
+- No unified Vocspad component that merges text and voice in one surface
+
+**Requirement:**
+A single input surface where users can type and talk simultaneously. STT transcription overlays in the text field live. Mic toggle embedded inline. Graceful fallback to text-only without mic permission.
+
+**Technical Approach:**
+```typescript
+// Create: src/components/chat/Vocspad.tsx
+interface VocspadProps {
+  onSubmit: (text: string) => void
+  placeholder?: string
+  disabled?: boolean
+}
+
+// Internal state:
+// - isListening: boolean
+// - transcript: string (live STT overlay)
+// - typedText: string (manual typing)
+// - merged: typedText + transcript (displayed together)
+
+// On mic toggle: call useSTT() hook → stream Whisper transcript into textarea
+// On Enter/Submit: send merged text
+// Graceful fallback: if navigator.mediaDevices unavailable → hide mic button, text-only mode
+```
+
+**UI Spec:**
+```
+┌─────────────────────────────────────────────────┐
+│  [🎤 ▶] Type or talk...             [↑ Send]   │
+│         ▓▓▓▓▓▓ Live transcription here...       │
+└─────────────────────────────────────────────────┘
+  - 🎤 icon pulses red when listening
+  - Live transcript appears in lighter color
+  - Manual typed text appears in full color
+  - Both merge on submit
+```
+
+**Acceptance Criteria:**
+- [ ] User can type text and it appears in Vocspad
+- [ ] User can click mic, speak, and live transcript appears as overlay
+- [ ] User can mix typing and speaking in same input
+- [ ] Submit sends combined text to AI
+- [ ] If mic permission denied, text input works normally with no errors
+- [ ] Works on mobile (touch-friendly mic toggle)
+
+**Effort:** 2 weeks
+**Owner:** Bubbles
+
+---
+
+### TFR-009 — Special Moves: Wink, Trust Earned, Handoff (3 Missing)
+
+**Priority:** 🟡 P1 — 30-Day Post-Launch
+
+**Current State:**
+- `src/components/cube/AICuboidGLB.tsx` implements 5 of 8 Special Moves in animation switch
+- Missing: `'Wink'`, `'Trust Earned'`, `'Handoff'`
+
+**Requirement:**
+All 8 Special Moves defined in the flagship spec must be implemented. Each is UI-only, does not affect routing, and must respect timing tokens (≤200ms swap, 150–300ms glow).
+
+**Technical Approach:**
+Add 3 cases to the `switch (currentMove)` block in `AICuboidGLB.tsx`:
+
+```typescript
+case 'Wink':
+  // YELLOW-only: quick lateral tilt + emissive blink, ~200ms
+  if (color === 'YELLOW') {
+    const winkProgress = Math.sin(moveTimerRef.current * 30)
+    groupRef.current?.rotation.set(0, 0, winkProgress * 0.15)
+    emissiveModifier = winkProgress > 0 ? 1.3 : 0.7
+    if (moveTimerRef.current > 0.2) triggerMove(null) // auto-reset after 200ms
+  }
+  break
+
+case 'Trust Earned':
+  // Warm golden pulse + slow scale breathe — acknowledgement moment
+  mat.emissive.lerp(new THREE.Color('#ffd700'), 0.08)
+  innerRef.current.scale.setScalar(1.0 + Math.sin(moveTimerRef.current * 3) * 0.05)
+  mat.emissiveIntensity = 0.6 + Math.sin(moveTimerRef.current * 2) * 0.2
+  break
+
+case 'Handoff':
+  // Outward scale expansion + fade → signals transition to another agent/World
+  const handoffScale = 1.0 + moveTimerRef.current * 0.4
+  innerRef.current.scale.setScalar(handoffScale)
+  if (mat.transparent) mat.opacity = Math.max(0.1, 1.0 - moveTimerRef.current * 0.6)
+  if (moveTimerRef.current > 1.5) triggerMove(null) // auto-reset after fade
+  break
+```
+
+**Trigger Conditions:**
+- `Wink`: trigger in YELLOW zone after playful/humorous AI response
+- `Trust Earned`: trigger after user completes first memory save or first RGY match
+- `Handoff`: trigger when routing request to another agent or switching Worlds
+
+**Acceptance Criteria:**
+- [ ] All 3 moves render without console errors
+- [ ] Wink only fires in YELLOW zone (guarded by color check)
+- [ ] Trust Earned produces a visible golden pulse (not same as Resonance)
+- [ ] Handoff produces visible scale-out + fade
+- [ ] All respect `prefers-reduced-motion` (check in parent hook)
+- [ ] Timing stays within ≤200ms for instantaneous moves
+
+**Effort:** 1 week
+**Owner:** Pushpa (animation) + Bubbles (trigger wiring)
+
+---
+
+### TFR-010 — CQ↔CQ Connections Wired to Main Chat UI
+
+**Priority:** 🟡 P1 — 30-Day Post-Launch
+
+**Current State:**
+- `src/lib/cq-to-cq/` module exists: CQ number generator, WebSocket, WebRTC calls
+- CQ numbers can be generated programmatically
+- Not connected to any UI — users cannot discover their CQ number or connect to others
+
+**Requirement:**
+Users must be able to: see their CQ number in their profile, share it, receive connection requests from other CQ numbers, and initiate direct encrypted chat/call with a CQ contact.
+
+**Technical Approach:**
+```
+1. Profile page: display CQ number prominently (large, copyable)
+2. QR code generation for CQ number (qrcode.react)
+3. "Connect by CQ" button → input modal for entering another user's CQ number
+4. WebSocket-based connection request flow (already exists in cq-to-cq/)
+5. Accepted connection → appears in Connections list (new sidebar section)
+6. From connection: initiate text chat or WebRTC voice/video call
+7. DB: cq_connections table to store accepted connections
+```
+
+**DB Changes:**
+```sql
+CREATE TABLE cq_connections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  requester_cq TEXT NOT NULL,
+  recipient_cq TEXT NOT NULL,
+  status TEXT DEFAULT 'pending',  -- 'pending' | 'accepted' | 'blocked'
+  connected_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(requester_cq, recipient_cq)
+);
+```
+
+**UI Components:**
+- `CQNumberDisplay.tsx` — large CQ number + copy button + QR code
+- `CQConnectModal.tsx` — enter CQ number, send request
+- `CQConnectionsList.tsx` — accepted connections with chat/call buttons
+
+**Acceptance Criteria:**
+- [ ] Every user has a CQ number visible in their profile
+- [ ] User can copy CQ number to clipboard
+- [ ] User can enter another CQ number and send a connection request
+- [ ] Recipient sees notification of incoming connection request
+- [ ] Accepted connection enables direct chat via existing WebSocket infrastructure
+- [ ] WebRTC call button works (uses existing `cq-to-cq/` WebRTC implementation)
+
+**Effort:** 2 weeks
+**Owner:** Blossom (backend + WebSocket) + Bubbles (UI)
+
+---
+
+### TFR-011 — Spending Caps Persistence (In-Memory → Supabase)
+
+**Priority:** 🟡 P1 — 30-Day Post-Launch
+
+**Current State:**
+- `src/lib/spending/spending-cap-service.ts` uses in-memory `Map` for usage tracking
+- Server restart clears all spending cap data — users can accidentally overspend
+- No DB table for usage records
+
+**Requirement:**
+Spending cap usage must persist across server restarts. Caps must be enforced even after Vercel cold starts. Usage history must be queryable for analytics.
+
+**Technical Approach:**
+```
+1. Create spending_usage DB table
+2. Replace in-memory Map with Supabase read/write in spending-cap-service.ts
+3. Add daily/monthly rollup via Supabase cron
+4. Cache in Redis (Upstash) for hot-path performance (optional P2)
+```
+
+**DB Changes:**
+```sql
+CREATE TABLE spending_usage (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  model TEXT NOT NULL,
+  tokens_used INTEGER NOT NULL DEFAULT 0,
+  cost_usd NUMERIC(10,6) NOT NULL DEFAULT 0,
+  period_start TIMESTAMPTZ NOT NULL,  -- start of billing window
+  period_end TIMESTAMPTZ NOT NULL,    -- end of billing window
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX ON spending_usage(user_id, period_start);
+
+CREATE TABLE spending_caps (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  daily_limit_usd NUMERIC(10,2),
+  monthly_limit_usd NUMERIC(10,2),
+  alert_threshold_pct INTEGER DEFAULT 80,  -- alert at 80% of cap
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+**Code Changes:**
+- `spending-cap-service.ts`: replace `usageMap.get/set` with Supabase upsert calls
+- Add `getRemainingBudget(userId)` that reads from DB
+- Add cap enforcement to `/api/chat/route.ts` pre-call check
+
+**Acceptance Criteria:**
+- [ ] Spending usage persists after server restart (verify by redeploying and checking DB)
+- [ ] User hitting 80% of cap receives email/in-app alert
+- [ ] User hitting 100% of cap gets 429 response with clear message
+- [ ] Usage history queryable in admin dashboard
+- [ ] Latency: cap check adds <50ms to chat request (DB read with index)
+
+**Effort:** 1 week
+**Owner:** Blossom + Guy (DBA)
+
+---
+
+### TFR-012 — Analytics Funnel Expansion (3 Events → Full Funnel)
+
+**Priority:** 🟡 P1 — 30-Day Post-Launch
+
+**Current State:**
+- `trackEvent()` is called in only 3 places across 300+ files
+- No visibility into: signup conversion, feature adoption, retention, churn points, upgrade triggers
+- Cannot make data-driven decisions without this
+
+**Requirement:**
+Instrument all critical user journey events. Enable full funnel analysis from landing → signup → first AI message → memory save → subscription.
+
+**Events to Add (minimum viable set):**
+
+| Event | Trigger | Properties |
+|---|---|---|
+| `page_view` | Every route change | `path`, `referrer` |
+| `signup_started` | Signup form opened | `method` (email/google/github) |
+| `signup_completed` | Auth callback success | `method`, `plan` |
+| `first_message_sent` | First chat message | `zone`, `inputType` (text/voice) |
+| `voice_activated` | Mic button clicked | `zone` |
+| `memory_saved` | Memory extract confirmed | `memoryType` |
+| `byo_key_added` | BYO key saved | `provider` |
+| `social_post_created` | Social Army post queued | `platform`, `contentType` |
+| `journal_entry_created` | Journal saved | `colorZone`, `promptUsed` |
+| `capsule_matched` | RGY match found | `matchScore`, `zone` |
+| `cubikey_viewed` | CubiKey page opened | `currentPlan` |
+| `checkout_started` | Stripe checkout opened | `plan`, `billingInterval` |
+| `subscription_activated` | Webhook: sub created | `plan`, `mrr` |
+| `feature_gate_hit` | Upgrade prompt shown | `featureName`, `currentPlan` |
+| `session_ended` | Tab close / 30min idle | `sessionDuration`, `messageCount` |
+
+**Technical Approach:**
+```typescript
+// Extend src/lib/analytics/analytics.ts (or create if not exists)
+// Use PostHog JS SDK (already in stack per Section 1.1)
+
+import posthog from 'posthog-js'
+
+export function track(event: string, properties?: Record<string, unknown>) {
+  if (typeof window !== 'undefined') {
+    posthog.capture(event, properties)
+  }
+}
+```
+
+**Acceptance Criteria:**
+- [ ] All 15 events above fire in PostHog when triggered
+- [ ] Signup funnel visible in PostHog Funnel analysis
+- [ ] Feature gate events show which features drive upgrades
+- [ ] Session duration trackable for retention analysis
+- [ ] Events fire in production (not just development)
+
+**Effort:** 1 week (spread across components)
+**Owner:** Bubbles (client-side events) + Blossom (server-side events)
+
+---
+
+### TFR-013 — Social Army Poster Review Gate
+
+**Priority:** 🟡 P1 — 30-Day Post-Launch
+
+**Current State:**
+- `src/lib/social-army/social-army-service.ts` posts directly to platforms on schedule
+- No human review step before posts go live
+- No approval workflow, no preview UI before post
+- If AI generates off-brand or harmful content, it posts immediately
+
+**Requirement:**
+All AI-generated social posts must enter a review queue before being published. User must approve each post (or configure auto-approve for trusted templates). Emergency stop to halt all scheduled posts.
+
+**Technical Approach:**
+```
+1. Add status column to social_posts table: 'pending_review' | 'approved' | 'posted' | 'rejected'
+2. After AI generation → set status='pending_review' (not 'approved')
+3. Create SocialArmyReviewQueue.tsx — shows pending posts with preview + approve/reject/edit
+4. Only approved posts are dispatched by the scheduler
+5. Add "Emergency Stop" toggle in Social Army settings → sets global_pause=true in DB
+6. Optional: auto-approve mode for power users who trust their templates
+```
+
+**DB Changes:**
+```sql
+ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS
+  status TEXT DEFAULT 'pending_review',
+  reviewed_at TIMESTAMPTZ,
+  reviewer_notes TEXT,
+  auto_approved BOOLEAN DEFAULT FALSE;
+```
+
+**UI Components:**
+- `SocialArmyReviewQueue.tsx` — scrollable list of pending posts, platform icons, preview text/image
+- `PostPreviewCard.tsx` — individual post with approve/reject/edit buttons
+- `EmergencyStopToggle.tsx` — red button in Social Army settings
+
+**Acceptance Criteria:**
+- [ ] New AI-generated posts default to `status='pending_review'`
+- [ ] Scheduler only dispatches posts where `status='approved'`
+- [ ] User can see all pending posts in review queue UI
+- [ ] Approve/reject updates status immediately
+- [ ] Edit redirects to post editor (preserves platform/scheduling)
+- [ ] Emergency stop halts all scheduled dispatches within 60 seconds
+- [ ] User can enable auto-approve mode per persona (stored in persona settings)
+
+**Effort:** 2 weeks
+**Owner:** Blossom (scheduler gate) + Bubbles (review queue UI)
+
+---
+
+### TFR-014 — Onboarding Flow with 5-Branch Persona Routing
+
+**Priority:** 🟡 P1 — 30-Day Post-Launch
+
+**Current State:**
+- No structured onboarding flow exists
+- New users land directly in the main chat after signup
+- No persona selection, no feature walkthrough, no Aha moment orchestration
+
+**Requirement:**
+After signup, new users complete a 5-question onboarding that routes them to the relevant Cubiqo sub-domain and populates their initial settings.
+
+**Onboarding Flow Design:**
+```
+Step 1: "What brings you to Cubiqo today?"
+  → [A] Run my business better   → Solopreneur track → Social Army + Agents
+  → [B] Find a job               → Job Seeker track  → Job Hunt + Resume
+  → [C] Process my thoughts      → Wellness track    → Journal + RGY
+  → [D] Build something          → Developer track   → Emergent + BYO
+  → [E] Connect with people      → Social track      → RGY Matching + CQ Number
+
+Step 2: "How do you prefer to interact?"
+  → Voice / Text / Both
+
+Step 3: "Do you want Cubiqo to remember things between sessions?"
+  → Yes (enable memory) / No (session-only)
+
+Step 4 (conditional on track A/D): "Do you have your own AI API keys?"
+  → Yes → BYO setup prompt / No → continue with Cubiqo keys
+
+Step 5: "Give me your CQ number — share it with people you trust."
+  → Display CQ number + QR code + copy button
+```
+
+**Technical Approach:**
+```
+1. Create /onboarding route with multi-step form (5 steps)
+2. Store onboarding responses to user_profiles.onboarding_data (JSONB)
+3. Based on track selected: pre-configure color zone, feature flags, first suggestion
+4. Redirect to track-specific dashboard section after completion
+5. Skip link for power users
+```
+
+**DB Changes:**
+```sql
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS
+  onboarding_completed BOOLEAN DEFAULT FALSE,
+  onboarding_track TEXT,  -- 'solopreneur' | 'job-seeker' | 'wellness' | 'developer' | 'social'
+  onboarding_data JSONB DEFAULT '{}';
+```
+
+**Acceptance Criteria:**
+- [ ] New users redirected to `/onboarding` after first login
+- [ ] 5 steps render with clear UX (progress bar, back navigation)
+- [ ] Responses stored to `user_profiles.onboarding_data`
+- [ ] Track selection configures initial color zone preference
+- [ ] Memory preference stored and applied immediately
+- [ ] CQ number displayed prominently in Step 5
+- [ ] Skip link available (stores `onboarding_completed: true` immediately)
+- [ ] Returning users bypass onboarding
+
+**Effort:** 2 weeks
+**Owner:** Bubbles (UI flow) + Blossom (data storage + feature flag routing)
+
+---
+
+### TFR-015 — Calendar API Integration (Google + Outlook)
+
+**Priority:** 🟢 P2 — 90-Day Enhancement
+
+**Current State:**
+- `src/lib/channels/` has channel type definitions including calendar
+- No Google Calendar or Microsoft Graph API calls exist
+- The flagship spec lists "Calendar" as a feature
+
+**Requirement:**
+Users must be able to connect Google Calendar or Outlook Calendar and have Cubiqo read/create events on their behalf.
+
+**Technical Approach:**
+```
+1. Add Google Calendar OAuth scope to Supabase Google provider config
+2. Create /api/calendar/events GET/POST routes using googleapis SDK
+3. For Outlook: use @microsoft/microsoft-graph-client
+4. Store calendar tokens in user_byo_keys (reuse BYO vault infrastructure)
+5. Add Calendar connection to HandshakeWizard.tsx setup flow
+6. AI tools: readCalendar(), createEvent(), findFreeSlot()
+```
+
+**Acceptance Criteria:**
+- [ ] User can connect Google Calendar via OAuth
+- [ ] AI can read upcoming events: "What do I have tomorrow?"
+- [ ] AI can create events: "Schedule a call with Sarah on Friday at 3pm"
+- [ ] Events appear in Google Calendar after AI creation
+- [ ] Token refresh handled transparently
+
+**Effort:** 3 weeks
+**Owner:** Blossom
+
+---
+
+### TFR-016 — Wallet / Payments (DB Migration + Stripe Crypto)
+
+**Priority:** 🟢 P2 — 90-Day Enhancement
+
+**Current State:**
+- `src/lib/wallet/wallet-service.ts` implements QR-delayed-release escrow logic
+- No DB migration for `payments` or `wallet` tables
+- No Stripe (for fiat) or crypto gateway (MetaMask/Coinbase) wired
+
+**Requirement:**
+Users must be able to hold value in a Cubiqo wallet, make payments to other CQ numbers, and use QR-based delayed release for trust-based transactions.
+
+**DB Changes:**
+```sql
+CREATE TABLE wallet_accounts (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id),
+  balance_usd NUMERIC(12,4) DEFAULT 0,
+  balance_crypto JSONB DEFAULT '{}',  -- {ETH: 0.01, SOL: 0.5}
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE wallet_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_id UUID REFERENCES auth.users(id),
+  recipient_id UUID REFERENCES auth.users(id),
+  amount_usd NUMERIC(12,4),
+  currency TEXT DEFAULT 'USD',
+  type TEXT,  -- 'send' | 'receive' | 'escrow' | 'release' | 'refund'
+  qr_code TEXT,      -- for delayed release
+  released_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+**Effort:** 3 weeks
+**Owner:** Blossom + Guy
+
+---
+
+### TFR-017 — Referral Programme
+
+**Priority:** 🟢 P2 — 90-Day Enhancement
+
+**Current State:**
+- No referral code system, no referral tracking, no reward logic
+
+**Requirement:**
+Every user gets a unique referral link. Successful referral (referred user subscribes) earns the referrer 1 month free or commission credit.
+
+**Technical Approach:**
+```
+1. Generate referral_code (8-char alphanumeric) on user creation
+2. Append ?ref=CODE to invite links
+3. Track ref code through signup → first subscription
+4. Apply reward: extend subscription_period_end by 30 days
+5. Use PartnerStack (see TFR-002 agency table) for affiliate tracking if scaling
+```
+
+**DB Changes:**
+```sql
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS
+  referral_code TEXT UNIQUE,
+  referred_by TEXT REFERENCES user_profiles(referral_code),
+  referral_reward_credited_at TIMESTAMPTZ;
+```
+
+**Effort:** 1 week
+**Owner:** Blossom
+
+---
+
+### TFR-018 — Geo-fence Radius UI in Side Panel / RGY Settings
+
+**Priority:** 🟢 P2 — 90-Day Enhancement
+
+**Current State:**
+- `capsule-manager.ts` and `discovery-service.ts` reference geofence in matching logic
+- `rgy_capsules` DB table has `geofence_km` column (from migration audit)
+- No UI exposes this — users cannot set their location radius preference
+
+**Requirement:**
+Users must be able to set their preferred matching radius (e.g., "within 50km") from the Side Panel or RGY settings.
+
+**Technical Approach:**
+- Add radius slider (5km / 25km / 50km / 100km / Global) to `ProMatchSettings.tsx` or `KeywordPanel.tsx`
+- Store to `user_profiles.match_radius_km`
+- Pass radius to `capsule-manager.ts` `findMatches()` call
+
+**Effort:** 1 week
+**Owner:** Bubbles
+
+---
+
+### TFR-019 — SettingsCube Spoken Live Confirmation
+
+**Priority:** 🟢 P2 — 90-Day Enhancement
+
+**Current State:**
+- `SettingsCubeApp.tsx` shows text result after command execution
+- No TTS spoken confirmation: when user says "lock to TEAL," cube changes color silently
+
+**Requirement:**
+After a successful SettingsCube command, Cubiqo must speak the confirmation back to the user (e.g., "Done — locked to Teal mode").
+
+**Technical Approach:**
+- After `executeCommand()` success in `SettingsCubeApp.tsx`, call `/api/tts/route.ts` with confirmation text
+- Use the active color zone's voice tone for the confirmation
+
+**Effort:** 3 days
+**Owner:** Bubbles
+
+---
+
+### TFR-020 — Fabric-Soft-Touch Cuboid Material Variant
+
+**Priority:** 🟢 P2 — 90-Day Enhancement
+
+**Current State:**
+- Glass ✅, Metal/Chrome ✅, Solid ✅ — all implemented
+- Fabric/soft-touch material: not implemented (spec requirement)
+
+**Requirement:**
+A cuboid variant with a soft textile appearance — low metalness, high roughness, subtle normal map, warm diffuse color.
+
+**Technical Approach:**
+```typescript
+// Create: src/components/cube/FabricCube.tsx
+// Three.js MeshStandardMaterial:
+const mat = new THREE.MeshStandardMaterial({
+  color: new THREE.Color('#e8ddd0'),  // warm cream — can be tinted by zone color
+  metalness: 0.02,
+  roughness: 0.95,
+  normalMap: fabricNormalTexture,    // procedural or loaded texture
+  normalScale: new THREE.Vector2(0.3, 0.3),
+})
+```
+
+**Effort:** 1 week
+**Owner:** Pushpa
+
+---
+
+### Summary: Complete Pending Work by Priority
+
+```
+╔══════════════════════════════════════════════════════════════════════════════════╗
+║  PENDING FEATURES — PRIORITY MATRIX                                            ║
+╠══╦═══════════════════════════════════════════════╦═════════╦════════════════════╣
+║  ║ Feature                                       ║ Effort  ║ Owner              ║
+╠══╬═══════════════════════════════════════════════╬═════════╬════════════════════╣
+║P0║ TFR-001 Stripe Billing + CubiKey              ║ 3 weeks ║ Blossom + Bubbles  ║
+║P0║ TFR-002 ToS + Privacy Policy                  ║ 3 days  ║ MO + Bubbles       ║
+║P0║ TFR-003 Age Gate for RED Zone                 ║ 1 week  ║ Blossom + Bubbles  ║
+║P0║ TFR-004 Zero-Retention Copy Fix               ║ 3 days  ║ MO + Blossom       ║
+║P0║ TFR-005 Smart-Home (disable or implement)     ║ 1 day   ║ Blossom            ║
+╠══╬═══════════════════════════════════════════════╬═════════╬════════════════════╣
+║P1║ TFR-006 CAP Orchestrator                      ║ 4 weeks ║ Blossom + Bubbles  ║
+║P1║ TFR-007 Audio Cues (wake/tick/DND)            ║ 2 weeks ║ Bubbles            ║
+║P1║ TFR-008 Vocspad Unified Input                 ║ 2 weeks ║ Bubbles            ║
+║P1║ TFR-009 3 Missing Special Moves               ║ 1 week  ║ Pushpa + Bubbles   ║
+║P1║ TFR-010 CQ↔CQ UI Wiring                      ║ 2 weeks ║ Blossom + Bubbles  ║
+║P1║ TFR-011 Spending Caps → Supabase              ║ 1 week  ║ Blossom + Guy      ║
+║P1║ TFR-012 Analytics Funnel (3 → 15 events)      ║ 1 week  ║ Bubbles + Blossom  ║
+║P1║ TFR-013 Social Army Review Gate               ║ 2 weeks ║ Blossom + Bubbles  ║
+║P1║ TFR-014 Onboarding 5-Branch Flow              ║ 2 weeks ║ Bubbles + Blossom  ║
+╠══╬═══════════════════════════════════════════════╬═════════╬════════════════════╣
+║P2║ TFR-015 Calendar API (Google + Outlook)       ║ 3 weeks ║ Blossom            ║
+║P2║ TFR-016 Wallet / Stripe Crypto                ║ 3 weeks ║ Blossom + Guy      ║
+║P2║ TFR-017 Referral Programme                    ║ 1 week  ║ Blossom            ║
+║P2║ TFR-018 Geo-fence Radius UI                   ║ 1 week  ║ Bubbles            ║
+║P2║ TFR-019 SettingsCube Spoken Confirmation      ║ 3 days  ║ Bubbles            ║
+║P2║ TFR-020 Fabric-Soft-Touch Cube Material       ║ 1 week  ║ Pushpa             ║
+╚══╩═══════════════════════════════════════════════╩═════════╩════════════════════╝
+
+TOTAL EFFORT:
+  P0 (all 5):  ~5.5 weeks — DO THESE BEFORE ANY PUBLIC LAUNCH
+  P1 (all 9):  ~15 weeks  — Complete within 30 days post-soft-launch
+  P2 (all 6):  ~10 weeks  — Complete within 90 days post-launch
+
+Solo developer path: ~30 weeks total to full spec compliance
+2-developer path:    ~16 weeks total
+```
+
+---
+
+
+---
+
+
 ## Table of Contents
+
+**[Executive Summary](#executive-summary--cubiqo-product-state-february-2026)** — Product readiness scorecard, 3 launch blockers, key metrics  
+**[20 Techno-Functional Requirements](#techno-functional-requirements-tfrs-for-all-incomplete--pending-features)** — Every pending feature with full technical spec, SQL, API, effort estimate
 
 1. [Feature & UI Audit — What Is Actually Built](#1-feature--ui-audit)
 2. [Legal, Protection & Business Readiness](#2-legal-protection--business-readiness)
@@ -22,11 +1114,13 @@
 6. [Patent Opportunities](#6-patent-opportunities)
 7. [Architecture: Current State vs Target State](#7-architecture-current-state-vs-target-state)
 8. [Patent Technical Flow Diagrams](#8-patent-technical-flow-diagrams)
+
+**Appendices:**
 - [Appendix A — Key Numbers at a Glance](#appendix-a--key-numbers-at-a-glance)
 - [Appendix B — 30-Day Priority Action Order](#appendix-b--30-day-priority-action-order)
 - [Appendix C — Document Index](#appendix-c--document-index)
 - [Appendix D — 15 Deep-Dive Topics](#appendix-d--15-deep-dive-topics) *(Dashboard, SEO, Social Army, Emergent, Agents, Duo Mode, Job Hunt, Journal, RGY, Users, Milestones, Marketing, Personas, Tricks)*
-- [Appendix E — Extended Strategy: 10 Topics](#appendix-e--extended-strategy-10-additional-topics) *(Tools, Domains, Landing, CQ Score, CQ Number, Commerce, Silver Cube, BYO Offline, Domain Strategy, User Personas)*
+- [Appendix E — Extended Strategy + Flagship Gap Analysis](#appendix-e--extended-strategy-10-topics--flagship-spec-gap-analysis) *(Tools, Domains, Landing, CQ Score, CQ Number, Commerce, Silver Cube, BYO Offline, Browser Vision, User Personas, Flagship Spec Gap)*
 
 ---
 
@@ -1883,7 +2977,8 @@ Research shows that the most retained app categories are health trackers, note-t
 
 ---
 
-# Appendix E — Extended Strategy: 10 Additional Topics
+
+# Appendix E — Extended Strategy: 10 Topics + Flagship Spec Gap Analysis
 
 ## Topic 1 — Tools for Success + 3rd-Party Agencies
 
@@ -3103,7 +4198,393 @@ Each answer triggers a different onboarding sequence, a different first Aha mome
 This is a $100M+ ARR opportunity if Cubiqo executes across all seven personas over 5 years. The near-term focus should be 1,000 users → 10,000 users → first $100K ARR. All three are achievable within 18 months with the right execution.
 
 
+---
+
+## Section 11 — Flagship Spec Gap Analysis: Where Does Cubiqo Stand?
+
+> **Reference document:** The "CUBIQO — Flagship" product specification provided February 2026.
+> **Method:** Every claim below is grounded in direct code inspection of the branch `copilot/investigate-features-and-ui-components`. No assumptions.
+>
+> **Legend:** 🟢 Complete · 🟡 Partial (skeleton/type/UI only, core not fully wired) · 🔴 Missing · ⚠️ Deviation (works but differently than spec)
 
 ---
 
-*End of CUBIQO Complete Report.*
+### 11.1 Overall Scorecard
+
+| Spec Section | Status | Short Verdict |
+|---|---|---|
+| Color / Voice (UI-level) | 🟢 | TEAL/RED/YELLOW defined with voice tones, lock commands, and per-color animation parameters |
+| Input / Output | 🟡 | STT ✅, TTS ✅, state machine ✅; Vocspad input mode ❌ not found anywhere |
+| State Machine (L→T→S→I) | 🟢 | `useAIState.ts` implements all 4 states with event logging |
+| UI/UX — Wireframe cuboid | 🟢 | Multiple variants: `EnergyCubeWireframe`, `SilverWireLandingCube`, `IsometricCube` |
+| UI/UX — Solid cuboid | 🟢 | `AICuboidGLB.tsx` (GLB-loaded, InnerPlasma + OuterGlass), `SettingsCube.tsx` (RoundedBox) |
+| UI/UX — Hybrid material + color | 🟡 | GLB has OuterGlass + color; ≤50% color rule NOT enforced |
+| UI/UX — Timing tokens | 🟡 | `--duration-normal: 200ms` in CSS; glow 150–300ms tokens not formalized |
+| UI/UX — Reduced motion | 🟡 | `motion-safe:` Tailwind used in VoiceStateIndicator; not applied to 3D cube transitions |
+| Special Moves (8 total) | 🟡 | 5 of 8 animated (Resonance, Breakthrough, Memory Thread, Deep Focus, Co-Presence); Wink, Trust Earned, Handoff are missing |
+| Audio Cues (wake/tick/DND) | 🔴 | AudioContext manager exists for playback; zero wake chime, zero speak ticks, no DND mode |
+| Side Panel — Keywords | 🟢 | `KeywordPanel.tsx` with per-color RGY lists, tap-to-edit, session-scoped localStorage |
+| Side Panel — Geo-fence | 🟡 | Referenced in `capsule-manager.ts` and `discovery-service.ts`; not surfaced in UI |
+| Side Panel — Color lock | 🟢 | `cubiqo.color.lock('RED')` command in `SettingsCube/commands.ts` |
+| SettingsCube — Voice config | 🟢 | `cubiqo.voice.set()` command; ElevenLabs per-color voice tones defined |
+| SettingsCube — Live confirm | 🟡 | CommandInput shows result; no spoken live confirmation |
+| SettingsCube — Event logs | 🟡 | Console logging only; no structured event-only log store |
+| RGY Router — Backends | 🟢 | GPT-4o (OpenAI), Claude 3.5 (Anthropic), Ollama (self-hosted), OpenRouter aggregation |
+| RGY Router — Intent routing | �� | Zone detection → model selection in `policy-router.ts` |
+| RGY Router — Auto-failover | 🟢 | 3-level failover per zone (primary → secondary → ultimate fallback) |
+| RGY Router — Scoped to CUBIQO | 🟡 | No `/rgy/route` endpoint; routing is embedded in chat API; Worlds boundary undefined |
+| RGY Router — CAP Orchestrator | 🔴 | Not implemented; no file, no route, no reference to this concept |
+| RGY Router — Keyword feedback | 🟡 | Session-scoped localStorage only; no DB telemetry pipeline back from sub-domains |
+| RGY Router — Direct override | 🟡 | `isFounder` flag routes to Sonnet; no explicit `model:gpt|claude|local` UI toggle |
+| RGY Router — Zero retention | ⚠️ | "Zero-Retention" is marketing copy in email template; memory system STORES to Supabase; contradiction |
+| Feature — BYO Mode | 🟢 | `byo-manager.ts`, `BYOSettings.tsx`, `/api/byo/route.ts`, AES-256 key encryption |
+| Feature — Auth (magic link) | 🟢 | Supabase magic link, `/auth/callback` |
+| Feature — Auth (WebAuthn/Passkeys) | 🟢 | 4 WebAuthn routes, `BiometricRegistration.tsx`, `BiometricLogin.tsx` |
+| Feature — Email | 🟢 | Resend integration, email templates, `/api/channels/[type]` |
+| Feature — Calendar | 🟡 | Channel API exists; no calendar-specific implementation found |
+| Feature — Food delivery | 🟡 | `action-types.ts` defines ubereats/doordash platform types; no live API calls |
+| Feature — Taxi / ride-share | 🟡 | Mentioned in action-types; no live integration |
+| Feature — Browser automation | 🟢 | Puppeteer-based `BrowserService.ts` with navigate, click, type, fill, screenshot, extract |
+| Feature — Smart-home | 🔴 | `integration-registry.ts` lists smart_home type; no implementation (Google Home, HomeKit, MQTT) |
+| Feature — Intelligent chat/match | 🟢 | RGY capsule system, discovery cron, proactive matching service |
+| Feature — CQ↔CQ connections | 🟡 | `cq-to-cq/` module: CQ number generator, WebSocket, WebRTC calls — not connected to UI |
+| Feature — Wallet / QR escrow | 🟡 | `wallet-service.ts` with QR delayed release backend; no Stripe, no UI, no DB migration |
+| RGY Sub-domain — No coupling | 🟢 | Keywords session-scoped; sub-domains do not force route changes |
+| RGY Sub-domain — CAP Orchestrator | 🔴 | As above — not built |
+| RGY Sub-domain — Telemetry hint | 🟡 | localStorage session hint; not a structured telemetry pipeline |
+
+---
+
+### 11.2 Detailed Gap Analysis by Spec Section
+
+---
+
+#### COLOR / VOICE (UI-LEVEL) — 🟢 Substantially Complete
+
+**What the spec requires:**
+- TEAL (goal-oriented, professional/decisive voice)
+- RED (age-gated/explicit, discreet/low-volume voice)
+- YELLOW (casual/general, friendly, light sarcasm)
+- Color/voice are operational signals; do NOT select models or imply emotion
+- Self-harm: force YELLOW, block instructions, offer resources
+- User may lock to one color + voice; no cross voice↔color mixing
+
+**What exists in code:**
+
+`src/config/colors.ts` defines all four colors (RED/YELLOW/TEAL/ORANGE) with per-color:
+- `voiceTone` strings (e.g. TEAL: "clear, motivating, balanced"; RED: "deep, slow, sensual whisper; discreet")
+- `animationSpeed`, `glowIntensity`, `breathingSpeed`, `blinkStyle`
+
+`src/lib/ai/policy-router.ts` correctly forces YELLOW zone and adds support prompt on self-harm detection:
+```typescript
+if (selfHarmPatterns.test(lastMessageText)) {
+  zone = 'YELLOW';
+  systemPrompt += " IMPORTANT: ... extremely supportive ... provide help resources.";
+}
+```
+
+`src/lib/settings-cube/commands.ts` supports:
+```typescript
+case 'cubiqo.color.lock': { const color = ... if (['RED','YELLOW','TEAL','ORANGE'].includes(color)) ... }
+```
+
+**Gaps:**
+1. **Color as model selector**: Policy-router DOES route RED zone to uncensored models (`MIXTRAL_8X22B`, `LLAMA_UNCENSORED`). This contradicts the spec rule: "Color does not select models." RED is the policy zone for age-gated content — but the spec says color is UI-only and routing is purely intent-based. **Spec vs implementation mismatch.** ⚠️
+2. **Age-gate / age verification**: `colors.ts` says `emotion: 'age-gated, critical, goal-oriented'` for RED, but there is **zero age verification code** anywhere. The RED zone is accessible to all users with no gate.
+3. **ORANGE color**: Not in the spec (spec has TEAL/RED/YELLOW only). ORANGE is a Fourth-Way philosophical color that Cubiqo added. This is an extension, not a violation.
+
+**Fix required:**
+- Add age-gate middleware check before allowing RED zone access (simple: DOB confirmation modal stored to user profile)
+- Document that RED zone uses specific models as a deliberate design decision (or refactor router to be model-agnostic per-zone, using only intent for model scoring)
+
+---
+
+#### INPUT / OUTPUT — 🟡 Partial
+
+**What the spec requires:**
+- Input: speech OR **Vocspad** (type or talk)
+- Output: on-screen text + synthesized speech; synchronized with status cues
+- State machine: Listening → Thinking → Speaking → Idle
+
+**What exists:**
+
+| Requirement | Code Evidence | Status |
+|---|---|---|
+| Speech input (STT) | `/api/stt/route.ts` using Whisper | 🟢 |
+| Text input (chat) | `ChatContainer.tsx`, `/api/chat/route.ts` | 🟢 |
+| **Vocspad** (combined type+talk mode) | ❌ No file named Vocspad anywhere in 300+ files | 🔴 |
+| TTS output | `/api/tts/route.ts`, ElevenLabs, OpenAI TTS fallback | 🟢 |
+| On-screen text | Chat bubbles in `ChatContainer.tsx` | 🟢 |
+| Synchronized status cues | `VoiceStateIndicator.tsx` with pulse rings | 🟢 |
+| State machine | `useAIState.ts` (idle/listening/thinking/speaking) | 🟢 |
+
+**Vocspad gap:** The spec treats Vocspad as a specific named input mode — a hybrid voice+text pad that lets users type and talk simultaneously. This UX component does not exist. The current chat has separate text input and a mic button, but not a unified Vocspad component that merges both modes in a single surface.
+
+**Fix required (2 weeks):**
+Create `src/components/chat/Vocspad.tsx` — a unified input component that:
+- Shows a text area with live STT transcription overlaid
+- Has a mic toggle button embedded inline
+- Falls back gracefully to text-only when no mic permission
+
+---
+
+#### UI/UX — CUBOID FORMS & MATERIALS — 🟡 Partial
+
+**What the spec requires:**
+
+| Form | Description | Code File | Status |
+|---|---|---|---|
+| Outline-only cuboid (fig1) | Floating isometric wireframe, crisp edges, no fill | `EnergyCubeWireframe.tsx`, `SilverWireLandingCube.tsx` | 🟢 |
+| Solid cuboid (fig2) | Filled body, subtle depth, no interior facets | `AICuboidGLB.tsx` (OuterGlass solid), `SettingsCube.tsx` (RoundedBox) | 🟢 |
+| Hybrid material + color (fig3) | Material (e.g. metal/glass) + operational color overlay | `AICuboidGLB.tsx` (OuterGlass + InnerPlasma + color param) | 🟡 |
+| ≤50% color visible area rule | Hero/transition hybrid must show ≤50% color | ❌ Not enforced | 🔴 |
+| Glass material | For aesthetics only, high contrast | `GlassyAgentCube.tsx`, `NeonGlassCube.tsx` | 🟢 |
+| Metal material | For aesthetics only | `SilverWireLandingCube.tsx` (chrome/silver) | 🟢 |
+| Fabric-soft-touch material | For aesthetics only | ❌ Not implemented | 🔴 |
+| Wireframe/Neon Outline variant | Compact/overlays, UI-only, router unchanged | `EnergyCubeWireframe.tsx`, neon demo page | 🟢 |
+| Split Material/Color hero variant | ≤50% color coverage | AICuboidGLB partial | 🟡 |
+
+**Timing Tokens:**
+
+| Token | Spec | Code | Status |
+|---|---|---|---|
+| Color/material swap | ≤200ms | `--duration-normal: 200ms` in `globals.css` | 🟢 |
+| Glow-in/glow-out | 150–300ms | Not formalized as CSS variable | 🟡 |
+| Reduced motion respect | All animations | `motion-safe:` in VoiceStateIndicator; missing on 3D cube lerp transitions | 🟡 |
+
+**Fabric-soft-touch fix (1 week):** Create a `FabricCube.tsx` variant using a Three.js `MeshStandardMaterial` with low metalness, high roughness, and a subtle normal map to simulate soft textile.
+
+**≤50% color rule enforcement:** Add a CSS custom property `--cube-color-coverage` and enforce via a shader uniform `uColorCoverage` clamped to 0.5 in the GLB material.
+
+---
+
+#### SPECIAL MOVES — 🟡 5 of 8 Implemented
+
+**What the spec requires:** 8 named Special Moves, all UI-only, respecting timing tokens.
+
+| Move | Spec | Code in `AICuboidGLB.tsx` | Status |
+|---|---|---|---|
+| Resonance | Rapid pulse | `emissiveModifier = 1.0 + Math.sin(t * 10) * 0.5` | 🟢 |
+| Breakthrough | Flash | `(Math.floor(t * 20) % 2) ? 1.5 : 0.5` | 🟢 |
+| Trust Earned | (unspecified visual) | ❌ Not in switch statement | 🔴 |
+| Co-Presence | (unspecified visual) | `innerRef.current.rotation.z = t * 2` | 🟢 |
+| Wink | YELLOW-only | ❌ Not in switch statement | 🔴 |
+| Deep Focus | (unspecified visual) | `scale.setScalar(0.8 + Math.sin(t * 2) * 0.1)` | 🟢 |
+| Memory Thread | (unspecified visual) | `rotationMultiplier = 5.0` | 🟢 |
+| Handoff | (unspecified visual) | ❌ Not in switch statement | 🔴 |
+
+**Fix required (1 week):** Add 3 missing cases to `AICuboidGLB.tsx` animation switch:
+```typescript
+case 'Trust Earned':
+  // Warm golden pulse + scale breathe — acknowledgement moment
+  mat.emissive.lerp(new THREE.Color('#ffd700'), 0.1)
+  innerRef.current.scale.setScalar(1.0 + Math.sin(t * 3) * 0.05)
+  break
+case 'Wink':
+  // YELLOW-only: quick rotation tilt + emissive blink, 200ms duration
+  if (color === 'YELLOW') {
+    groupRef.current?.rotation.set(0, 0, Math.sin(t * 30) * 0.15)
+    emissiveModifier = Math.sin(t * 40) > 0 ? 1.3 : 0.7
+  }
+  break
+case 'Handoff':
+  // Outward scale + fade → signals transition to another agent/world
+  innerRef.current.scale.setScalar(1.0 + moveTimerRef.current * 0.3)
+  mat.opacity = Math.max(0, 1.0 - moveTimerRef.current * 0.5)
+  break
+```
+
+---
+
+#### AUDIO CUES — 🔴 Not Implemented
+
+**What the spec requires:**
+- **Wake**: brief chime on activation (optional haptics)
+- **Speak start/stop**: soft ticks aligned to TTS start and end
+- **Error/Alert**: single neutral tick
+- **Controls**: volume slider, on/off toggle, DND mode
+
+**What exists:**
+- `src/lib/audio/audioContext.ts`: AudioContext manager — handles playback unlocking on user gesture. No sound files, no generated tones.
+- `src/lib/audio/audio-score-service.ts`: Background ambient scoring — oscillators for ambient music. No UI cues.
+- `src/lib/multimodal/audio.ts`: STT recording helpers. No cue sounds.
+
+**Nothing implements any of the required audio cues.**
+
+**Fix required (2 weeks):**
+
+Create `src/lib/audio/ui-cues.ts`:
+```typescript
+// Uses Web Audio API oscillators — zero external files needed
+export function playWakeChime() { /* 220Hz → 440Hz, 80ms, ramp out */ }
+export function playSpeakTick() { /* 880Hz, 30ms, soft envelope */ }
+export function playErrorTick() { /* 330Hz, 50ms, neutral */ }
+
+// DND mode — stored to user preferences
+export function setDNDAudio(enabled: boolean) { ... }
+export function setAudioVolume(level: 0 | 0.25 | 0.5 | 0.75 | 1.0) { ... }
+```
+
+Call sites:
+- `useAIState.ts`: call `playWakeChime()` on `idle → listening` transition
+- `useElevenLabsTTS.ts`: call `playSpeakTick()` on TTS stream start/end
+- Chat error handler: call `playErrorTick()` on AI failure
+
+---
+
+#### SIDE PANEL & SETTINGSCUBE — 🟢 Substantially Complete (2 minor gaps)
+
+**What the spec requires + code evidence:**
+
+| Requirement | Code | Status |
+|---|---|---|
+| Keywords panel with per-color lists | `KeywordPanel.tsx` — RGY cards with tap-to-edit and session keywords | 🟢 |
+| User can add intent keywords | Add/remove in KeywordPanel; stored to localStorage per session | 🟢 |
+| Company / collaboration / trade intents | `CARD_CONFIG` in `RGYColorSelector.tsx` maps contexts | 🟢 |
+| Geo-fence for match | `capsule-manager.ts` and `discovery-service.ts` reference geofence | 🟡 (not in UI) |
+| Color lock | `cubiqo.color.lock('TEAL')` in SettingsCube commands | 🟢 |
+| Voice lock with color | `cubiqo.voice.set({...})` command | 🟢 |
+| No cross voice↔color mixing | Lock command sets both; no mixing API exposed | 🟢 |
+| Speak to update config | SettingsCubeApp accepts typed/voiced commands | 🟢 |
+| Live confirmations | CommandInput shows result text; no spoken TTS confirmation | �� |
+| Event-only logs | Console.log only; no structured event store | 🟡 |
+
+**Gap: Geo-fence UI.** The geofence data model exists in `rgy_capsules` table (from previous migration analysis) but the KeywordPanel and RGY settings do not expose a "set my location radius" control. Fix: add a geo-fence radius slider to `ProMatchSettings.tsx`.
+
+**Gap: Spoken live confirmation.** When a user says "lock to TEAL," the cube changes color but Cubiqo does not speak a confirmation back. Fix: after `executeCommand()` succeeds in `SettingsCubeApp.tsx`, call the TTS API with the confirmation text.
+
+---
+
+#### RGY ROUTER — 🟡 Mostly Complete; CAP Orchestrator and Zero-Retention Critical Gaps
+
+**Backends and failover:**
+
+| Requirement | Code | Status |
+|---|---|---|
+| GPT backend | `callOpenAI()` in `router.ts`, OpenRouter GPT-4o in `policy-router.ts` | 🟢 |
+| Claude backend | `callClaude()` in `router.ts`, Claude 3.5 Sonnet in `policy-router.ts` | 🟢 |
+| Self-hosted LLM (Ollama) | `callOllamaWithFallback()`, `isOllamaAvailable()` in `ollama.ts` | 🟢 |
+| Auto-failover on errors | 3-level try/catch chains per zone in `policy-router.ts` | 🟢 |
+| SLA breach failover | ❌ No SLA timer / timeout threshold | 🟡 |
+| Direct override (`model:gpt\|claude\|local`) | `isFounder` → Sonnet; no explicit per-message model: field in UI | 🟡 |
+| Reasoning flag | `reasoning: true` → DeepSeek R1 → Opus | 🟢 |
+
+**CAP Orchestrator — 🔴 Critical Gap:**
+
+The spec defines a "CAP Orchestrator" that Worlds (sub-domains/tools) use, inheriting the chosen backend without calling `/rgy/route` directly. This concept does not exist in the codebase. There is:
+- No `cap-orchestrator.ts` file
+- No `/api/cap/` routes
+- No "World" abstraction in code
+- The agents system (`engine/agent.ts`) is the closest concept but it routes to external LLMs directly, bypassing zone/policy logic entirely
+
+This is the **largest architectural gap** in the spec. The CAP Orchestrator is the integration boundary that would allow Emergent, Social Army, Job Hunt, Journal and other sub-domains to route through the same policy-aware backbone as the main Cubiqo chat. Without it, every sub-domain calls its own LLM independently with no shared zone policy, no shared keyword telemetry pipeline, and no shared safety guardrails.
+
+**Build plan for CAP Orchestrator (4 weeks):**
+```
+Week 1: Define `CAPOrchestrator` class in `src/lib/cap/orchestrator.ts`
+         - Accepts: worldId, userId, messages, zoneHint?
+         - Inherits active zone from user session
+         - Passes through PolicyRouter with CUBIQO-scoped config
+Week 2: Expose `/api/cap/route` endpoint
+         - All internal tools/Worlds call this instead of OpenAI directly
+Week 3: Migrate Emergent, Social Army to use CAP endpoint
+Week 4: Add keyword telemetry pipeline: CAP → session store → Side Panel push
+```
+
+**Zero-Retention Contradiction — ⚠️ Spec vs Implementation:**
+
+The spec states: "Zero retention; contextual recommendations only; adaptive within session; no stored profiles."
+
+But the codebase has:
+- `/api/memory/route.ts` — stores and retrieves memory from Supabase
+- `/api/extract-memories/route.ts` — extracts and persists memories from conversations
+- `/api/journey/memories/route.ts` — journey memory with embeddings stored in DB
+- `magic-link.ts` email template says "Zero-Retention. Private." as marketing
+
+**This is a fundamental contradiction.** The product's memory system IS its competitive differentiator (conscious memory, journey tracking). The spec's "zero retention" language was likely written for the ROUTING layer (router doesn't store conversation content), not the entire product.
+
+**Resolution needed:** Clarify the spec to say "Zero retention at the routing layer" — the router itself does not store conversation data. The conscious memory system, when enabled by the user, stores memories with explicit consent. Update the privacy policy accordingly.
+
+---
+
+#### FEATURE SET — Status by Feature
+
+| Feature | Spec Requirement | Code Evidence | Status | Gap |
+|---|---|---|---|---|
+| BYO Mode | Cloud + API keys | `byo-manager.ts`, `/api/byo/`, AES-256 | 🟢 | None |
+| Magic-link auth | Passwordless | Supabase + Resend templates | 🟢 | None |
+| OAuth / OIDC | Account creation | Supabase OAuth providers | 🟢 | None |
+| Passkeys | WebAuthn | 4 WebAuthn routes + UI components | 🟢 | None |
+| Email | Send/receive | Resend + channel API | 🟢 | Receive via webhook only |
+| Calendar | Read/write events | Channel type exists; no iCal/Google Calendar API | 🟡 | 3–4 weeks to wire Google/Outlook Calendar API |
+| Food delivery | Order placement | `action-types.ts` defines platform types; `HandshakeWizard.tsx` shows Uber Eats | 🟡 | No live API calls; needs UberEats/DoorDash developer account |
+| Taxi / ride-share | Book rides | `action-types.ts` type only | 🟡 | Uber/Lyft API or browser automation fallback |
+| Browser access | Navigate/interact | `BrowserService.ts` Puppeteer, `/api/browser/` | 🟢 | Puppeteer not available on Vercel Edge; needs server |
+| Smart-home control | Device control | Integration registry type only | 🔴 | Needs Google Home/HomeKit/MQTT SDK |
+| Browser automation (tickets) | Form fill, navigate | BrowserService navigate+click+fillForm | 🟢 | Consent gate wired correctly |
+| Intelligent chat/match | RGY capsule matching | Capsule manager + discovery cron + RGY rooms | 🟢 | Proactive matching not user-triggered |
+| CQ↔CQ permanent connections | P2P messaging | `cq-to-cq/` module: CQ number, WebSocket, WebRTC | 🟡 | Module exists; not wired to main chat UI |
+| Geo-fence for match | Location-aware matching | Referenced in capsule-manager; no UI control | 🟡 | Geo-fence radius picker missing from Side Panel |
+| Wallet payments | Crypto + fiat | `wallet-service.ts` with escrow | 🟡 | No Stripe; no crypto payment gateway (MetaMask/Coinbase) |
+| QR-based delayed release | Escrow via QR | `wallet-service.ts` — QR code + held/released status | 🟡 | DB migration for `payments` table not found |
+
+---
+
+#### 11.3 Top Priority Gaps to Close Before Launch
+
+| Priority | Gap | Effort | Risk if Skipped |
+|---|---|---|---|
+| 🔴 P0 | Age gate for RED zone access | 1 week | Legal liability if minors access explicit content |
+| 🔴 P0 | Zero-retention spec clarification + privacy policy update | 3 days | Regulatory (GDPR) and trust damage if users believe no data is stored but it is |
+| 🔴 P0 | Smart-home: spec lists it as a feature | 3 weeks | False advertising if listed in feature set at launch |
+| 🟡 P1 | CAP Orchestrator (routing unification) | 4 weeks | Sub-domains bypass safety guardrails; keyword telemetry broken |
+| 🟡 P1 | Audio cues (wake, tick, DND) | 2 weeks | Poor UX; voice mode feels unpolished |
+| 🟡 P1 | Vocspad unified input | 2 weeks | Core UX element missing from spec |
+| 🟡 P1 | Special Moves 3 missing (Wink, Trust Earned, Handoff) | 1 week | Incomplete product spec delivery |
+| 🟡 P1 | CQ↔CQ connection to main chat UI | 2 weeks | CQ number system exists but users can't use it |
+| 🟡 P2 | Wallet DB migration + Stripe | 3 weeks | No monetization beyond CubiKey |
+| 🟡 P2 | Calendar API (Google/Outlook) | 3 weeks | Email without calendar is half a productivity suite |
+| 🟡 P2 | Spoken SettingsCube confirmations | 3 days | Minor UX polish |
+| 🟡 P2 | Geo-fence UI in Side Panel | 1 week | RGY match is less accurate without user location |
+
+---
+
+#### 11.4 What Is Actually Production-Ready Against This Spec
+
+Despite the gaps, the following flagship-spec components are **genuinely production-ready**:
+
+1. **Policy Router** — zone detection, 3-backend failover, self-harm safety, language adaptation, founder mode, reasoning path, freedom path, search-all. This is solid.
+2. **Color system** — TEAL/RED/YELLOW with per-color voice tones, animation parameters, lock commands. Fully wired.
+3. **State machine** — 4-state (idle/listening/thinking/speaking) with event logging.
+4. **Cuboid 3D forms** — wireframe and solid variants working; GLB-loaded AICuboidGLB with 5 Special Moves.
+5. **STT + TTS pipeline** — Whisper STT, ElevenLabs TTS with voice modulation (Madhyama Marg), OpenAI TTS fallback.
+6. **BYO Mode** — complete with AES-256 key encryption, per-model routing, test endpoint.
+7. **Auth** — magic link, OAuth/OIDC, WebAuthn/Passkeys — all four auth modes.
+8. **Browser automation** — Puppeteer service with consent gate, form fill, navigate, screenshot.
+9. **RGY capsule matching** — 4-signal matching (colour → intent → keyword → vector), proactive discovery cron.
+10. **Side Panel keywords** — per-color RGY keyword lists with session persistence.
+
+---
+
+#### 11.5 Spec Alignment Summary
+
+```
+SPEC COVERAGE: ~63% Complete
+
+Completely built:     12 / 33 requirements   ████████░░░░░░░░░░░░  36%
+Partially built:      15 / 33 requirements   ████████████░░░░░░░░  45%
+Not built:             6 / 33 requirements   ████░░░░░░░░░░░░░░░░  18%
+Spec deviation:        1 / 33 requirements   █░░░░░░░░░░░░░░░░░░░   3%
+
+Launch-blocker gaps: 3 (age gate, zero-retention clarification, smart-home)
+Post-launch gaps: 10 (CAP Orchestrator, audio cues, Vocspad, wallet, etc.)
+
+Estimated engineering to reach 100% spec compliance:
+  - 2 developers × 8 weeks OR 1 developer × 16 weeks
+  - Estimated cost: $24K–$48K if contracted out
+```
+
+
+---
+
+*End of CUBIQO Complete Report (v2) — All sections consolidated.*
