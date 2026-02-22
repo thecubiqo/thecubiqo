@@ -608,3 +608,371 @@ defaultVariant: 'silver-wireframe'  // change from 'plasma-wave'
 | Silver Cube | ✅ Component built (this PR) | Done | MO | Done |
 | Silver Cube | Add CTA button to silver landing | P0 | Bubbles | 1 day |
 | Silver Cube | A/B test setup | P1 | Blossom | 2 days |
+
+---
+
+## Section 8 — BYO Mode: The Honest Reality, What True Offline Means, and the Road There
+
+### 8.1 What BYO Mode Actually Does Today (vs What Was Assumed)
+
+There is a common misconception worth clearing up first.
+
+| Dimension | What People Think BYO Does | What It Actually Does |
+|---|---|---|
+| API call destination | Goes directly from user's browser to Anthropic/OpenAI | User's browser → Cubiqo server (`/api/chat`) → Anthropic/OpenAI (with user's key) |
+| Key storage | Key stays in the user's browser only | Key is AES-encrypted and stored in Supabase `profiles.byo_config` column |
+| Cloud involvement | None | Cubiqo server is always in the middle — it decrypts and forwards |
+| Cost to user | Billed to their API account | Yes — but still routes through Cubiqo infra |
+| Privacy | Complete | Cubiqo server sees the decrypted key at decrypt-time in memory |
+
+**Current BYO is a billing model, not a privacy model.** The user pays their own cloud bill. Cubiqo still processes the request server-side. This is fine for Phase 1 and is honest — it's stated correctly in the UI ("encrypted before being sent to our backend"). But it is NOT the same as "no cloud call at all."
+
+---
+
+### 8.2 Three Tiers of "Bring Your Own" — From Now to True Offline
+
+```
+TIER 1 (DONE — live now)
+┌─────────────────────────────────────────────────────────────┐
+│  Browser  →  Cubiqo Server  →  Anthropic/OpenAI             │
+│              (user's encrypted key decrypted here)           │
+│  ✅ User pays own API bill                                   │
+│  ❌ Cubiqo server still in the middle                        │
+│  ❌ Not private from Cubiqo infra                            │
+│  ❌ NOT offline                                              │
+└─────────────────────────────────────────────────────────────┘
+
+TIER 2 (8–12 weeks — browser-side inference)
+┌─────────────────────────────────────────────────────────────┐
+│  Browser  →  WebLLM (WASM/WebGPU, runs IN browser tab)      │
+│              Model: Phi-3-mini-4k (2.3 GB download once)    │
+│              or Gemma-2B-IT (1.8 GB)                         │
+│  ✅ Zero server roundtrip for inference                      │
+│  ✅ Truly private — model runs on user's GPU                 │
+│  ✅ Works offline (after first load)                         │
+│  ⚠️ Requires WebGPU (Chrome 113+, Edge 113+, no iOS Safari) │
+│  ⚠️ Slower than cloud (3–8 tok/s vs 50+ tok/s)             │
+│  ❌ Actions (email, calendar) still need internet            │
+└─────────────────────────────────────────────────────────────┘
+
+TIER 3 (16–24 weeks — desktop + mobile native apps)
+┌─────────────────────────────────────────────────────────────┐
+│  Tauri Desktop App  →  Bundled Ollama (llama3.2:3b)         │
+│              One-click install, no terminal needed           │
+│  ✅ Full offline inference, no WASM limitations              │
+│  ✅ File system access for local journal, photos, data       │
+│  ✅ Can talk to local services (printer, local server)       │
+│  ✅ macOS / Windows / Linux                                  │
+│  ⚠️ First download ~4 GB (app + model)                      │
+│  React Native + llama.cpp (iOS/Android)                      │
+│  ✅ Background inference, native camera, contacts            │
+│  ⚠️ App Store approval process (2–4 weeks)                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 8.3 What Already Exists in the Codebase (Useful Foundations)
+
+| Asset | File | Status | Notes |
+|---|---|---|---|
+| Ollama integration | `src/lib/ai/ollama.ts` | ✅ Working | Server-side only; points to `localhost:11434` |
+| AI router (Ollama-first) | `src/lib/ai/router.ts` | ✅ Working | Routes 80% to Ollama, 20% to cloud |
+| PWA manifest | `public/manifest.json` | ✅ Done | Icons 192/512, display: standalone |
+| Service worker | `public/sw.js` | ✅ Working | Network-first + offline.html fallback |
+| ServiceWorkerRegistration | `src/components/ServiceWorkerRegistration.tsx` | ✅ Working | Registers in production |
+| PWA install prompt | `src/components/PWAInstallPrompt.tsx` | ✅ Working | Android + iOS manual instructions |
+| Offline fallback page | `public/offline.html` | ✅ Done | Basic "you're offline" page |
+| BYO key storage | `src/lib/byo/byo-manager.ts` | ✅ Working | AES-encrypted in Supabase |
+| BYO UI | `src/components/byo/BYOSettings.tsx` | ✅ Working | WCAG 2.1 AA compliant |
+
+**Key gap**: The Ollama route currently only works when Cubiqo's server has Ollama running locally (`localhost:11434`). That is the server's localhost, not the user's machine. To make it truly client-side offline, the model must run in the browser (WebLLM) or in a native app (Tauri + Ollama).
+
+---
+
+### 8.4 Tier 2 Implementation Plan — Browser-Side Inference (WebLLM)
+
+**Technology**: [MLC-AI WebLLM](https://github.com/mlc-ai/web-llm) — runs quantised LLMs in browser via WebGPU. No Python, no Ollama, no server.
+
+**Step-by-step build plan**:
+
+```
+Week 1-2: Research + Proof of Concept
+  - Install: npm install @mlc-ai/web-llm
+  - Create src/lib/ai/webllm-client.ts
+  - Wrap WebLLM engine in a React context (useWebLLM hook)
+  - Gate behind feature flag: feature_flag = 'browser_inference'
+  - Test with Phi-3-mini-4k-instruct-q4f16_1 (smallest viable model)
+
+Week 3-4: UX for model download
+  - First-launch download modal: "Download 2.3 GB AI model once, run forever offline"
+  - Progress bar using WebLLM's initProgressCallback
+  - Cache model in IndexedDB (WebLLM handles this automatically)
+  - Show estimated time remaining
+
+Week 5-6: Feature integration
+  - Chat route: if user has browser_inference enabled AND model loaded → use WebLLM
+  - Offline detection: navigator.onLine → switch to WebLLM automatically
+  - Memory extraction: run locally (smaller prompt, acceptable quality)
+  - RGY classification: run locally (keyword-based, already works without cloud)
+
+Week 7-8: Actions bridge
+  - Email/calendar/social still need internet → show "action queued" when offline
+  - Sync queue: store pending actions in IndexedDB → execute when back online
+  - Show user clearly: "Thinking offline ✓ | Will send email when connected ↑"
+```
+
+**Browser compatibility gate** (must show before offering):
+```typescript
+const supportsWebGPU = async (): Promise<boolean> => {
+  if (!navigator.gpu) return false;
+  const adapter = await navigator.gpu.requestAdapter();
+  return !!adapter;
+};
+```
+
+| Browser | WebGPU Support | Notes |
+|---|---|---|
+| Chrome 113+ | ✅ Full | Best experience |
+| Edge 113+ | ✅ Full | Same Chromium engine |
+| Firefox | ⚠️ Partial | Behind flag, unstable |
+| Safari 17.4+ | ⚠️ Partial | Metal backend, limited |
+| iOS Safari | ❌ None | No WebGPU as of Feb 2026 |
+| Android Chrome | ✅ Most devices | Depends on GPU |
+
+**Models to offer (in order of size vs quality)**:
+
+| Model | Size | Speed | Quality | Use Case |
+|---|---|---|---|---|
+| Phi-3-mini-4k (q4f16) | 2.3 GB | 6–10 tok/s | Good | Default choice |
+| Gemma-2B-IT (q4f16) | 1.8 GB | 8–12 tok/s | OK | Smaller devices |
+| Llama-3.2-3B (q4f16) | 2.0 GB | 7–11 tok/s | Good | Open weights |
+| Phi-3.5-mini (q4f16) | 2.5 GB | 5–8 tok/s | Best | Power users |
+
+---
+
+### 8.5 Tier 3 — Desktop App with Bundled Ollama (Tauri)
+
+**Why Tauri over Electron**: Tauri uses the OS WebView (WebKit/EdgeWebView2) instead of bundling Chromium. App size is ~10 MB vs ~150 MB for Electron. Rust backend is faster and more memory-efficient.
+
+**Architecture**:
+```
+┌─ Tauri Rust Core ──────────────────────────────────────────┐
+│  - Spawn Ollama as a sidecar process                        │
+│  - File system access: journals, photos, local data         │
+│  - System tray icon: "CubiQo running"                       │
+│  - Auto-updater (built-in Tauri updater)                    │
+│  - Biometric auth (TouchID / Windows Hello)                 │
+│                                                              │
+│  ┌─ Next.js frontend (compiled to static) ───────────────┐  │
+│  │  - All existing React UI unchanged                     │  │
+│  │  - AI calls → localhost:11434 (Ollama sidecar)         │  │
+│  │  - Storage → user's local files + SQLite              │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**One-click installer experience**:
+1. User downloads `CubiQo-1.0.0-setup.exe` (Windows) or `CubiQo-1.0.0.dmg` (macOS)
+2. Installer places Ollama binary as a Tauri sidecar
+3. First launch: "Downloading your private AI brain... [████████░░] 3.2 GB" (model download)
+4. Model cached at `~/.cubiqo/models/` — never re-downloads
+5. All AI inference: local. Internet only for actions (email, web search, social posts)
+
+**Timeline**: 16 weeks from decision to App Store submission (macOS/Windows). iOS/Android React Native variant: separate 20-week track.
+
+---
+
+### 8.6 Immediate Next Steps (What to Do Now)
+
+| Priority | Action | Owner | Effort |
+|---|---|---|---|
+| P0 | Add honest copy to BYO UI: "Your inference still routes through Cubiqo servers" | Bubbles | 0.5 day |
+| P0 | Add "True Offline (Beta)" toggle behind feature flag (disabled by default) | Blossom | 1 day |
+| P1 | WebLLM PoC: `npm install @mlc-ai/web-llm`, single chat endpoint test | Blossom | 3 days |
+| P1 | Enhance service worker: cache chat-related static assets for offline splash | Blossom | 1 day |
+| P1 | Offline action queue in IndexedDB for emails/posts when offline | Blossom | 1 week |
+| P2 | Tauri desktop app PoC (Next.js static export + Tauri shell) | MO | 2 weeks |
+| P2 | React Native shell wrapping current web views | D3 | 2 weeks |
+
+---
+
+## Section 9 — Domain Strategy (cubiqo.ai vs cubiqo.com) + Offline Browser Vision
+
+### 9.1 cubiqo.ai vs cubiqo.com — The Definitive Recommendation
+
+**Short answer: Own both. Primary on `.com`. Brand on `.ai`.**
+
+Here is the full analysis:
+
+#### Arguments for `.com` as primary:
+- `.com` has ~48% of all registered domains — the default expectation globally
+- Users type `.com` by muscle memory; `.ai` requires deliberate thought
+- Trust signals: enterprise buyers, investors, and press default to `.com`
+- Better email deliverability reputation (`@cubiqo.com` > `@cubiqo.ai`)
+- SEO: Google treats `.com` with no special advantage, but legacy domain authority tends to concentrate there
+- Insurance: if `.ai` ever becomes restricted (Anguilla controls it), `.com` is safe
+
+#### Arguments for `.ai` as primary:
+- Signal: `.ai` immediately communicates what the product is
+- Memorability in the AI space: Perplexity.ai, Character.ai, Poe.ai all use it
+- Differentiation from generic `.com` SaaS noise
+- Premium positioning: `.ai` domains sell for 3–10× `.com` at resale
+- Easier to get: cubiqo.com may be harder to secure if already taken
+
+#### Recommended configuration:
+
+```
+Canonical domain:   cubiqo.com          (all SEO juice lives here)
+AI brand domain:    cubiqo.ai           (redirects 301 to cubiqo.com)
+Alt spellings:      coqo.com / ciqo.com  (redirect to cubiqo.com)
+Email:              @cubiqo.com         (primary) + @cubiqo.ai (alias)
+```
+
+**One exception**: If cubiqo.com is NOT owned and cubiqo.ai IS — use `.ai` as primary immediately and try to acquire `.com` over time.
+
+#### The 30+ country TLD strategy (from previous analysis):
+
+| Tier | Domains | Action | Reason |
+|---|---|---|---|
+| Protect | .com .ai .io .co | Own & keep | Core brand assets |
+| Redirect | .ca .uk .au .de .fr .in .sg .ae | 301 → .com | Key markets, affordable |
+| Hold | .sa .br .mx .za .ng .pk .ph .id | Register if <$50/yr | Emerging markets, option value |
+| Release | All others | Let expire | No ROI, maintenance burden |
+
+---
+
+### 9.2 The Offline Browser Vision — What Is Actually Feasible
+
+The CEO described: an offline browser that uses AI search, works with user data offline, does photo/video editing, face tagging, AI model comparison, and data synthesis.
+
+Let me split this into three categories: **Can do now**, **Can do in 6 months**, **Fundamentally hard or impossible**.
+
+---
+
+#### ✅ CAN DO NOW (or within 8 weeks)
+
+**1. Offline-cached web pages (reading mode)**
+- Service worker already exists in `public/sw.js`
+- Enhancement: add "Save for offline" button → caches full page HTML in IndexedDB
+- User can read saved pages without internet
+- Effort: 1 week
+
+**2. Local AI search over saved content**
+- Run keyword + semantic search over IndexedDB-cached pages
+- Use existing TF-IDF or embed with a tiny local model (transformers.js, `all-MiniLM-L6-v2`, 80 MB)
+- Effort: 2 weeks
+
+**3. Photo viewing + basic editing offline**
+- PWA can access files via File System Access API (Chrome 86+)
+- Basic editing (crop, rotate, filter): use `fabric.js` or `jimp` (WASM port)
+- No uploads needed — pure client-side
+- Effort: 3 weeks
+
+**4. AI model answer comparison**
+- Already partially exists: router.ts routes between Claude, OpenAI, Ollama, MiniMax
+- UI enhancement: "Compare" button sends same prompt to 2+ providers → side-by-side diff
+- Offline: can compare WebLLM models (Phi-3 vs Gemma) without internet
+- Effort: 1 week for UI, existing infrastructure handles routing
+
+**5. Local journal + memory synthesis**
+- Journal data is in Supabase BUT can be cached in localStorage/IndexedDB on write
+- Offline journal: write to IndexedDB → sync to Supabase when back online
+- Local synthesis: "Summarise my last 30 days" → WebLLM processes cached journal entries
+- Effort: 2 weeks
+
+---
+
+#### ⚠️ FEASIBLE IN 6 MONTHS (with significant effort)
+
+**6. Face tagging in photos**
+- Technology: `face-api.js` (TensorFlow.js) — runs in browser, 97% accuracy on aligned faces
+- Models: `ssd_mobilenetv1` (face detection) + `face_recognition_model` (128D embeddings)
+- Workflow: scan photos → cluster by face vector similarity → user names clusters → persistent in IndexedDB
+- Limitation: iOS Safari has poor WASM performance; desktop Chrome is excellent
+- Effort: 4–6 weeks
+
+**7. Video editing (basic)**
+- `ffmpeg.wasm` runs in browser — can cut, trim, merge, add text overlays, change resolution
+- File size limitation: WASM heap is ~2 GB max, so videos >500 MB need chunking
+- Real-time preview is slow (not After Effects); good enough for social clips
+- Effort: 3–4 weeks for basic editor UI
+
+**8. Proactive contextual recommendations (offline)**
+- User's data (journal, RGY capsules, saved pages) processed locally by WebLLM
+- "Based on your journal this week, you seem to be focused on job hunting — want me to find openings?"
+- Runs as a background Web Worker after WebLLM model is loaded
+- Effort: 4 weeks
+
+---
+
+#### ❌ FUNDAMENTALLY HARD OR NOT ADVISABLE
+
+**9. Offline web search (actual search engine)**
+- A real search index (like Google's) requires petabytes of data — impossible offline
+- What IS possible: cached pages + local index of saved content (not "the web")
+- Honest positioning: "Search your saved content offline" not "search the web offline"
+
+**10. Full video editing (After Effects level)**
+- GPU-accelerated video processing requires native code (Metal/CUDA) — not available in browser
+- WASM is single-threaded-ish; real-time 4K editing is not feasible
+- Tauri desktop app with FFmpeg native binary could handle this — separate effort
+
+**11. "Sending emails offline"**
+- SMTP requires internet — no workaround; emails queue locally and send when online
+- This is fine and the right UX; just be honest about it in the UI
+
+---
+
+### 9.3 The "Cubiqo as AI Browser" Product Vision
+
+Putting it together, here is what a 12-month roadmap for "Cubiqo as AI browser/OS" looks like:
+
+```
+PHASE 1 (Now → Launch): Core AI assistant + memory + PWA
+  ✅ Chat, journal, agents, BYO keys
+  ✅ PWA install on mobile/desktop
+  ✅ Basic offline (cached pages, offline.html)
+
+PHASE 2 (Month 1–3): Offline inference + saved content search
+  - WebLLM integration (Phi-3-mini in browser)
+  - "Save page" button → local AI search
+  - Offline journal with sync queue
+  - AI model comparison UI
+
+PHASE 3 (Month 4–6): Media tools + face tagging
+  - Photo viewer + basic editing (crop/filter/text)
+  - Face clustering via face-api.js
+  - Video trimmer via ffmpeg.wasm
+  - Local media library (not cloud upload)
+
+PHASE 4 (Month 7–12): Desktop + mobile native
+  - Tauri desktop app (macOS/Windows) + bundled Ollama
+  - React Native mobile app
+  - Full offline action queue (email/post queued, sent when online)
+  - Local file system access (journal exports, data backups)
+```
+
+**Why this is the right direction — the WeChat analogy revisited**:
+WeChat succeeded not because it was a great chat app but because it became the infrastructure people lived in. The offline + local-first angle is Cubiqo's version of that:
+- Cloud AI (Copilot, ChatGPT, Gemini): always online, always sending your data to servers
+- Cubiqo offline mode: your AI runs on YOUR device, your data stays with YOU
+- That is a genuine competitive moat — especially in privacy-conscious markets (EU, Canada, enterprise)
+
+---
+
+### 9.4 Implementation Priority Table
+
+| Feature | Feasibility | Effort | Revenue Impact | Privacy Story Value |
+|---|---|---|---|---|
+| Honest BYO UI copy | ✅ Now | 0.5 day | None | High (trust) |
+| Offline action queue | ✅ Now | 1 week | Medium | High |
+| Local journal cache | ✅ Now | 1 week | Medium | High |
+| WebLLM integration | ✅ 8 weeks | 6 weeks | Very High | Very High |
+| AI model comparison UI | ✅ 2 weeks | 1 week | Medium | Medium |
+| Photo editor (basic) | ✅ 6 weeks | 4 weeks | High | High |
+| Face tagging | ⚠️ 12 weeks | 6 weeks | High | Very High |
+| Video trimmer | ⚠️ 12 weeks | 4 weeks | Medium | Medium |
+| Tauri desktop app | ⚠️ 20 weeks | 16 weeks | Very High | Very High |
+| React Native app | ⚠️ 24 weeks | 20 weeks | Very High | Very High |
+| "Search the web" offline | ❌ Not viable | N/A | N/A | N/A |
