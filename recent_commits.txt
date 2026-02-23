@@ -1,0 +1,10 @@
+50a08f7 | fix: resolve extension manifest warnings and harden AI router | 
+be63165 | fix: restore founder pass navigation access and case-insensitive check | 
+c4d2449 | fix: resolve build-blocking TypeScript errors and isolate utility scripts | 
+3020bc3 | feat: restore sidebar navigation to Founders Dashboard and unify founder checks | 
+82cb166 | fix: global founder escalation in PolicyRouter and robust response parsing | 
+259d875 | feat: polish auth flow with Open Email shortcuts and expand founder access | 
+2552259 | feat: integrate high-access Founder Agent and agentic experiments dashboard | 
+1ae6fe9 | feat: complete A/B testing suite with premium dashboard and asset management | 
+af780ac | feat: implement premium A/B testing framework and dashboard | 
+bdce794 | feat: implement public features API and global sync for pushing dashboard changes | 
