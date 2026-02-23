@@ -24,7 +24,7 @@ const MODELS = {
     HAIKU: 'anthropic/claude-3-haiku',
 
     // Green Zone (Task/Performance)
-    MINIMAX_DEFAULT: 'minimax/abab6.5s-chat', // OpenRouter ID or use direct if preferred
+    MINIMAX_DEFAULT: 'minimax/MiniMax-M2', // OpenRouter ID or use direct if preferred
     SONNET_3_5: 'anthropic/claude-3.5-sonnet',
     GPT_4O: 'openai/gpt-4o',
     DEEPSEEK_V3: 'deepseek/deepseek-chat',

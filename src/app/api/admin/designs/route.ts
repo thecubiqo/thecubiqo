@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/admin';
 import type { Database } from '@/types/database.types';
 
 type DesignToggle = Database['public']['Tables']['design_toggles']['Row'];
@@ -15,8 +16,8 @@ type DesignToggle = Database['public']['Tables']['design_toggles']['Row'];
  */
 export async function GET() {
   try {
-    const supabase = (await createClient()) as any;
-
+    const supabase = await createClient();
+    
     // Fetch all design toggles
     const { data: toggles, error } = await supabase
       .from('design_toggles')
@@ -25,7 +26,7 @@ export async function GET() {
       .order('display_name', { ascending: true });
 
     if (error) {
-
+      
       return NextResponse.json(
         { error: 'Failed to fetch design toggles' },
         { status: 500 }
@@ -39,7 +40,7 @@ export async function GET() {
       experiment: [] as DesignToggle[],
     };
 
-    toggles?.forEach((toggle: any) => {
+    toggles?.forEach((toggle) => {
       if (toggle.category in grouped) {
         grouped[toggle.category as keyof typeof grouped].push(toggle);
       }
@@ -51,7 +52,7 @@ export async function GET() {
       count: toggles?.length || 0,
     });
   } catch (error) {
-
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -65,28 +66,13 @@ export async function GET() {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    // Check authentication
-    const supabase = (await createClient()) as any;
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Require admin authentication
+    const authResult = await requireAdmin(request)
+    if (!authResult.authorized) {
+      return authResult.response
     }
 
-    // Check admin status
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('id', user.id)
-      .single();
-
-    const adminEmails = ['aditya@cubiqo.ai'];
-    if (!profile || !profile.email || !adminEmails.includes(profile.email)) {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
-    }
+    const supabase = await createClient();
 
     // Get toggle ID from query params
     const toggleId = request.nextUrl.searchParams.get('id');
@@ -113,7 +99,7 @@ export async function PATCH(request: NextRequest) {
       .from('design_toggles')
       .update({
         is_enabled,
-        updated_by: user.id,
+        updated_by: authResult.user!.id,
         updated_at: new Date().toISOString(),
       })
       .eq('id', toggleId)
@@ -121,7 +107,7 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (error) {
-
+      
       return NextResponse.json(
         { error: 'Failed to update toggle' },
         { status: 500 }
@@ -130,7 +116,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ toggle });
   } catch (error) {
-
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -144,28 +130,13 @@ export async function PATCH(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
+    // Require admin authentication
+    const authResult = await requireAdmin(request)
+    if (!authResult.authorized) {
+      return authResult.response
+    }
+
     const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check admin status
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('id', user.id)
-      .single();
-
-    const adminEmails = ['aditya@cubiqo.ai'];
-    if (!profile || !profile.email || !adminEmails.includes(profile.email)) {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
-    }
 
     // Parse request body
     const body = await request.json();
@@ -196,13 +167,13 @@ export async function POST(request: NextRequest) {
         category,
         is_enabled: is_enabled ?? true,
         config: config || {},
-        updated_by: user.id,
+        updated_by: authResult.user!.id,
       })
       .select()
       .single();
 
     if (error) {
-
+      
       return NextResponse.json(
         { error: 'Failed to create toggle' },
         { status: 500 }
@@ -211,7 +182,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ toggle }, { status: 201 });
   } catch (error) {
-
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

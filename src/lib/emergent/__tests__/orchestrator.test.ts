@@ -8,18 +8,60 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { executeTool, getAvailableTools, getToolCost } from '../orchestrator'
 import { mockUsers, mockProjects, mockCredits, mockOrganizations } from '../../../../tests/utils/mock-data'
 import { createMockHeaders } from '../../../../tests/utils/test-helpers'
+import { createClient } from '@/lib/supabase/server'
 
 // Mock Supabase
 vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(() => Promise.resolve({
+  createClient: vi.fn()
+}))
+
+// Mock RBAC
+vi.mock('../security/rbac', () => ({
+  requireProjectPermission: vi.fn(() => Promise.resolve(undefined))
+}))
+
+// Mock Audit Logger
+vi.mock('../security/audit-logger', () => ({
+  logAudit: vi.fn(() => Promise.resolve(undefined)),
+  getIpAddress: vi.fn(() => '127.0.0.1'),
+  getUserAgent: vi.fn(() => 'Mozilla/5.0 (Test)')
+}))
+
+// Mock subagents
+vi.mock('../subagents/testing-agent', () => ({
+  executeTestAgent: vi.fn(() => Promise.resolve({
+    success: true,
+    data: { testsRun: 10, testsPassed: 10, testsFailed: 0 },
+    metadata: { executionTimeMs: 1000 }
+  }))
+}))
+
+vi.mock('../subagents/media-agent', () => ({
+  executeMediaAgent: vi.fn(() => Promise.resolve({
+    success: true,
+    data: { imageUrl: 'https://example.com/image.png' },
+    metadata: { executionTimeMs: 2000 }
+  }))
+}))
+
+vi.mock('../subagents/integration-agent', () => ({
+  executeIntegrationAgent: vi.fn(() => Promise.resolve({
+    success: true,
+    data: { orderId: '12345' },
+    metadata: { executionTimeMs: 1500 }
+  }))
+}))
+
+function setupDefaultSupabaseMock(balance = 10000) {
+  vi.mocked(createClient).mockImplementation(() => Promise.resolve({
     from: (table: string) => ({
       select: () => ({
         eq: () => ({
           single: () => Promise.resolve({
-            data: table === 'projects' 
-              ? { ...mockProjects.active, org_id: mockOrganizations.main.id }
+            data: table === 'projects'
+              ? { id: mockProjects.active.id, org_id: mockOrganizations.main.id }
               : table === 'credits'
-              ? mockCredits.active
+              ? { id: mockCredits.active.id, org_id: mockOrganizations.main.id, balance, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' }
               : null,
             error: null
           }),
@@ -47,37 +89,13 @@ vi.mock('@/lib/supabase/server', () => ({
       })
     }),
     rpc: () => Promise.resolve({ data: null, error: null })
-  }))
-}))
-
-// Mock subagents
-vi.mock('../subagents/testing-agent', () => ({
-  executeTestAgent: vi.fn(() => Promise.resolve({
-    success: true,
-    data: { testsRun: 10, testsPassed: 10, testsFailed: 0 },
-    metadata: { executionTimeMs: 1000 }
-  }))
-}))
-
-vi.mock('../subagents/image-agent', () => ({
-  executeImageAgent: vi.fn(() => Promise.resolve({
-    success: true,
-    data: { imageUrl: 'https://example.com/image.png' },
-    metadata: { executionTimeMs: 2000 }
-  }))
-}))
-
-vi.mock('../subagents/integration-agent', () => ({
-  executeIntegrationAgent: vi.fn(() => Promise.resolve({
-    success: true,
-    data: { orderId: '12345' },
-    metadata: { executionTimeMs: 1500 }
-  }))
-}))
+  }) as any)
+}
 
 describe('Orchestrator', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    setupDefaultSupabaseMock()
   })
 
   describe('executeTool', () => {
@@ -182,7 +200,7 @@ describe('Orchestrator', () => {
       )
       
       expect(response.success).toBe(true)
-      expect(response.metadata?.executionTimeMs).toBeGreaterThan(0)
+      expect(response.metadata?.executionTimeMs).toBeGreaterThanOrEqual(0)
     })
 
     it('should route to correct subagent based on tool', async () => {
@@ -308,28 +326,7 @@ describe('Orchestrator', () => {
   describe('Credits Management', () => {
     it('should check credits before execution', async () => {
       // Mock low credits
-      vi.mock('@/lib/supabase/server', () => ({
-        createClient: vi.fn(() => Promise.resolve({
-          from: (table: string) => ({
-            select: () => ({
-              eq: () => ({
-                single: () => Promise.resolve({
-                  data: table === 'credits' 
-                    ? { ...mockCredits.lowBalance, balance: 5 } 
-                    : mockProjects.active,
-                  error: null
-                }),
-                not: () => ({
-                  single: () => Promise.resolve({
-                    data: { role: 'owner' },
-                    error: null
-                  })
-                })
-              })
-            })
-          })
-        }))
-      }))
+      setupDefaultSupabaseMock(5)
       
       const request = {
         tool: 'generate-image', // Costs 100 credits

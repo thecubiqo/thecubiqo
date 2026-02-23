@@ -125,9 +125,12 @@ describe('Admin Routes Using withAdminAuth', () => {
   ]
 
   adminRoutes.forEach(({ name, path }) => {
-    it(`admin/${name} should import withAdminAuth`, () => {
+    it(`admin/${name} should import withAdminAuth or requireAdmin`, () => {
       const content = readFileSync(resolve(__dirname, path), 'utf-8')
-      expect(content).toContain("from '@/lib/auth/admin-guard'")
+      expect(
+        content.includes("from '@/lib/auth/admin-guard'") ||
+        content.includes("from '@/lib/auth/admin'")
+      ).toBe(true)
     })
 
     it(`admin/${name} should NOT have hardcoded admin email checks`, () => {

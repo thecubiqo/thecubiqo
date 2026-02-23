@@ -25,8 +25,8 @@ export default function AuthPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (mounted && isAuthenticated && !isLoading) {
-      console.log('[Auth Page] User already authenticated, redirecting to home')
-      router.push('/')
+      console.log('[Auth Page] User already authenticated, redirecting to chat')
+      router.push('/chat')
     }
   }, [isAuthenticated, isLoading, mounted, router])
 

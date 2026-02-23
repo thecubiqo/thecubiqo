@@ -288,6 +288,7 @@ class CQWebSocketServer {
     customMessage?: string
   ) {
     // Get user's contacts from database
+    if (!supabase) return;
     const { data: contacts } = await supabase
       .from('cq_contacts')
       .select('user_id')

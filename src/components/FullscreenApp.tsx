@@ -18,6 +18,7 @@ import { OpportunityFeed } from './OpportunityFeed'
 import { ProMatchSettings } from './ProMatchSettings'
 import { RGYColorSelector } from './RGYColorSelector'
 import { RGYIntentKeywordList } from './RGYIntentKeywordList'
+import { RGYRoomView } from './RGYRoomView'
 import { GettingStartedPanel } from './GettingStartedPanel'
 import { LandingCubeRouter } from './LandingCubeRouter'
 import { PoweredByLogosCompact } from './PoweredByLogos'
@@ -1181,6 +1182,40 @@ export function FullscreenApp({
             onRoomSelect={handleRoomSelect}
             onViewProMatchShortlist={proMatchCount > 0 ? handleViewProMatchShortlist : undefined}
             proMatchCount={proMatchCount}
+          />
+        </div>
+      )}
+
+      {/* RGY Room Chat View (rgynext Step 3) */}
+      {showRoomChat && selectedRoom && selectedChatColor && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <div className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleBackFromRoomChat}
+                  className="h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <div className="flex items-center gap-2">
+                  <h1 className="font-display text-lg font-semibold tracking-tight">
+                    RGY Chats
+                  </h1>
+                  <span className="text-muted-foreground font-mono text-sm">/</span>
+                  <span className={`text-sm font-medium text-rgy-${selectedChatColor}`}>
+                    {selectedRoom.name}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <RGYRoomView
+            room={selectedRoom}
+            color={selectedChatColor}
+            onBack={handleBackFromRoomChat}
           />
         </div>
       )}

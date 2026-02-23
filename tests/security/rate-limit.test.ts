@@ -5,63 +5,60 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { checkRateLimit, getClientIdentifier, RateLimits, clearAllRateLimits } from '@/lib/security/rate-limit';
 
 describe('Rate Limiting', () => {
   beforeEach(() => {
     // Clear rate limit store between tests
-    // In production, this would clear Redis/cache
+    clearAllRateLimits();
   });
 
   describe('checkRateLimit', () => {
-    it('should allow requests within limit', async () => {
+    it('should allow requests within limit', () => {
       const identifier = 'test-user-1';
       
-      const result = await checkRateLimit(identifier, 'global');
+      const result = checkRateLimit(identifier, 'STANDARD');
       
       expect(result.allowed).toBe(true);
-      expect(result.limit).toBe(RATE_LIMITS.global.requests);
-      expect(result.remaining).toBeGreaterThan(0);
+      expect(result.remaining).toBe(RateLimits.STANDARD.limit - 1);
     });
 
-    it('should block requests exceeding limit', async () => {
+    it('should block requests exceeding limit', () => {
       const identifier = 'test-user-2';
       
       // Make requests up to the limit
-      for (let i = 0; i < RATE_LIMITS.auth.requests; i++) {
-        await checkRateLimit(identifier, 'auth');
+      for (let i = 0; i < RateLimits.AUTH.limit; i++) {
+        checkRateLimit(identifier, 'AUTH');
       }
       
       // Next request should be blocked
-      const result = await checkRateLimit(identifier, 'auth');
+      const result = checkRateLimit(identifier, 'AUTH');
       
       expect(result.allowed).toBe(false);
       expect(result.remaining).toBe(0);
     });
 
-    it('should reset after time window', async () => {
+    it('should reset after time window', () => {
       const identifier = 'test-user-3';
       
       // Make a request
-      const first = await checkRateLimit(identifier, 'auth');
+      const first = checkRateLimit(identifier, 'AUTH');
       expect(first.allowed).toBe(true);
       
       // Wait for reset time (in real scenario)
       // For testing, we'd mock the time or use a shorter window
-      expect(first.reset).toBeGreaterThan(0);
+      expect(first.resetTime).toBeGreaterThan(0);
     });
 
-    it('should handle different rate limit types', async () => {
-      const identifier = 'test-user-4';
+    it('should handle different rate limit types', () => {
+      const standardResult = checkRateLimit('test-user-4a', 'STANDARD');
+      expect(standardResult.remaining).toBe(RateLimits.STANDARD.limit - 1);
       
-      const globalResult = await checkRateLimit(identifier, 'global');
-      expect(globalResult.limit).toBe(RATE_LIMITS.global.requests);
+      const authResult = checkRateLimit('test-user-4b', 'AUTH');
+      expect(authResult.remaining).toBe(RateLimits.AUTH.limit - 1);
       
-      const authResult = await checkRateLimit(identifier, 'auth');
-      expect(authResult.limit).toBe(RATE_LIMITS.auth.requests);
-      
-      const apiResult = await checkRateLimit(identifier, 'api');
-      expect(apiResult.limit).toBe(RATE_LIMITS.api.requests);
+      const strictResult = checkRateLimit('test-user-4c', 'STRICT');
+      expect(strictResult.remaining).toBe(RateLimits.STRICT.limit - 1);
     });
   });
 

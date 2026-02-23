@@ -35,6 +35,13 @@ describe('Security Headers', () => {
       expect(headers['Strict-Transport-Security']).toContain('includeSubDomains');
       expect(headers['Strict-Transport-Security']).toContain('preload');
     });
+
+    it('should allow camera and microphone for same origin', () => {
+      const headers = getSecurityHeaders();
+      
+      expect(headers['Permissions-Policy']).toContain('camera=(self)');
+      expect(headers['Permissions-Policy']).toContain('microphone=(self)');
+    });
   });
 
   describe('getContentSecurityPolicy', () => {
@@ -45,6 +52,14 @@ describe('Security Headers', () => {
       expect(csp).toContain("frame-ancestors 'none'");
       expect(csp).toContain("object-src 'none'");
       expect(csp).toContain('upgrade-insecure-requests');
+    });
+
+    it('should allow blob and data URIs for media sources', () => {
+      const csp = getContentSecurityPolicy();
+      
+      expect(csp).toContain('media-src');
+      expect(csp).toContain('blob:');
+      expect(csp).toContain('data:');
     });
 
     it('should allow necessary external domains', () => {

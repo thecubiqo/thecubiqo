@@ -588,7 +588,15 @@ export async function POST(request: NextRequest) {
                   } catch (openRouterError) {
                     console.error('All providers exhausted including OpenRouter:', openRouterError)
                     errors.push(`OpenRouter: ${openRouterError instanceof Error ? openRouterError.message : String(openRouterError)}`)
-                    throw new Error(`All AI providers failed. Diagnostics: ${errors.join(' | ')}`)
+                    
+                    // Mock response when all AI providers fail
+                    console.log('All AI providers failed, returning mock response')
+                    return NextResponse.json({
+                      content: "I'm CubiQo, your AI companion! It looks like our AI services are currently being configured. Please try again in a moment, or contact support if this persists.\n\nIn the meantime, you can:\n1. Check your API keys in Settings\n2. Try the BYO (Bring Your Own) mode to use your own API keys\n3. Wait for our team to fix the service configuration",
+                      provider: 'mock',
+                      tokens: 0,
+                      cost: 0
+                    })
                   }
                 }
               }

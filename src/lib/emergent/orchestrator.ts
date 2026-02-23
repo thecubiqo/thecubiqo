@@ -245,6 +245,10 @@ async function routeToSubAgent(
         result = await executeMediaAgent(request)
         break
 
+      case 'integration':
+        result = await executeIntegrationAgent(request)
+        break
+
       case 'code':
       case 'human':
       case 'migration':

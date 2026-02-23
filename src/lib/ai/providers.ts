@@ -7,9 +7,9 @@ import type { ProviderConfig } from './types'
 
 export const MINIMAX_CONFIG: ProviderConfig = {
   name: 'minimax',
-  model: 'abab6.5s-chat',
+  model: 'MiniMax-M2',
   maxTokens: 2048,
-  apiKeyEnv: 'MINIMAX_API_KEY'
+  apiKeyEnv: 'MINIMAX_KEY'
 }
 
 export const MIXTRAL_CONFIG: ProviderConfig = {
@@ -28,7 +28,7 @@ export const LLAMA_CONFIG: ProviderConfig = {
 
 export const OPENAI_CONFIG: ProviderConfig = {
   name: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-3.5-turbo',
   maxTokens: 200,
   apiKeyEnv: 'OPENAI_API_KEY'
 }
@@ -38,6 +38,13 @@ export const CLAUDE_CONFIG: ProviderConfig = {
   model: 'claude-3-5-haiku-20241022',
   maxTokens: 1024,
   apiKeyEnv: 'ANTHROPIC_API_KEY'
+}
+
+export const GEMINI_CONFIG: ProviderConfig = {
+  name: 'gemini',
+  model: 'gemini-1.5-pro',
+  maxTokens: 1024,
+  apiKeyEnv: 'GOOGLE_AI_API_KEY'
 }
 
 // Primary provider - MiniMax

@@ -8,8 +8,8 @@ const RP_ID = process.env.NEXT_PUBLIC_RP_ID || 'localhost'
 const ORIGIN = process.env.NEXT_PUBLIC_ORIGIN || 'http://localhost:3000'
 
 const supabaseAdmin = createClient(
-    ENV.supabase.url,
-    ENV.supabase.serviceRoleKey!,
+    ENV.supabase.url || 'https://placeholder.supabase.co',
+    ENV.supabase.serviceRoleKey || 'placeholder-key',
     {
         auth: {
             autoRefreshToken: false,

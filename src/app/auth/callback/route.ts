@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const error = searchParams.get('error')
   const error_description = searchParams.get('error_description')
-  const next = searchParams.get('next') ?? '/'
+  const next = searchParams.get('next') ?? '/chat'
 
   // Handle error from URL params (e.g., rate limit errors)
   if (error) {
