@@ -50,6 +50,48 @@ export type Database = {
         }
         Relationships: []
       }
+      browser_jobs: {
+        Row: {
+          id: string
+          user_id: string | null
+          job_type: string
+          payload: Json
+          priority: string
+          status: string
+          result: Json | null
+          error_message: string | null
+          created_at: string
+          started_at: string | null
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          job_type: string
+          payload?: Json
+          priority?: string
+          status?: string
+          result?: Json | null
+          error_message?: string | null
+          created_at?: string
+          started_at?: string | null
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          job_type?: string
+          payload?: Json
+          priority?: string
+          status?: string
+          result?: Json | null
+          error_message?: string | null
+          created_at?: string
+          started_at?: string | null
+          completed_at?: string | null
+        }
+        Relationships: []
+      }
       emergent_orgs: {
         Row: {
           id: string
@@ -129,6 +171,8 @@ export type Database = {
           status: string | null
           created_at: string | null
           updated_at: string | null
+          vercel_project_id: string | null
+          deployment_url: string | null
         }
         Insert: {
           id?: string

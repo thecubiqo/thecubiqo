@@ -49,6 +49,7 @@
     "alter_stripe_db.ts",
     "alter_usage_db.ts",
     "create_usage_db.ts",
-    "promote_admin.ts"
+    "promote_admin.ts",
+    "alter_req9_10_db.ts"
   ]
 }
