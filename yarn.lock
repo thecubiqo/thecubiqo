@@ -1579,12 +1579,12 @@
   resolved "https://registry.npmjs.org/@webgpu/types/-/types-0.1.69.tgz"
   integrity sha512-RPmm6kgRbI8e98zSD3RVACvnuktIja5+yLgDAkTmxLr90BEwdTXRQWNLF3ETTTyH/8mKhznZuN5AveXYFEsMGQ==
 
-"@xterm/addon-fit@0.11.0":
+"@xterm/addon-fit@^0.11.0":
   version "0.11.0"
   resolved "https://registry.npmjs.org/@xterm/addon-fit/-/addon-fit-0.11.0.tgz"
   integrity sha512-jYcgT6xtVYhnhgxh3QgYDnnNMYTcf8ElbxxFzX0IZo+vabQqSPAjC3c1wJrKB5E19VwQei89QCiZZP86DCPF7g==
 
-"@xterm/xterm@6.0.0":
+"@xterm/xterm@^6.0.0":
   version "6.0.0"
   resolved "https://registry.npmjs.org/@xterm/xterm/-/xterm-6.0.0.tgz"
   integrity sha512-TQwDdQGtwwDt+2cgKDLn0IRaSxYu1tSUjgKarSDkUM0ZNiSRXFpjxEsvc/Zgc5kq5omJ+V0a8/kIM2WD3sMOYg==
@@ -2273,7 +2273,7 @@ docker-modem@^5.0.6:
     split-ca "^1.0.1"
     ssh2 "^1.15.0"
 
-dockerode@4.0.9:
+dockerode@^4.0.2:
   version "4.0.9"
   resolved "https://registry.npmjs.org/dockerode/-/dockerode-4.0.9.tgz"
   integrity sha512-iND4mcOWhPaCNh54WmK/KoSb35AFqPAUWFMffTQcp52uQt36b5uNwEJTSXntJZBbeGad72Crbi/hvDIv6us/6Q==
@@ -3297,7 +3297,7 @@ internal-slot@^1.1.0:
     hasown "^2.0.2"
     side-channel "^1.1.0"
 
-ioredis@5.9.3:
+ioredis@^5.5.0:
   version "5.9.3"
   resolved "https://registry.npmjs.org/ioredis/-/ioredis-5.9.3.tgz"
   integrity sha512-VI5tMCdeoxZWU5vjHWsiE/Su76JGhBvWF1MJnV9ZtGltHk9BmD48oDq8Tj8haZ85aceXZMxLNDQZRVo5QKNgXA==
