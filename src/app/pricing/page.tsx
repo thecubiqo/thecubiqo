@@ -1,7 +1,9 @@
 'use client';
 
-import { Check, Shield, Zap, Globe, Cpu } from 'lucide-react';
+import { Check, Shield, Zap, Globe, Cpu, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 const TIERS = [
     {
@@ -16,7 +18,8 @@ const TIERS = [
         ],
         cta: 'Start Free',
         href: '/login',
-        popular: false
+        popular: false,
+        tierKey: 'free'
     },
     {
         name: 'Pro',
@@ -30,8 +33,9 @@ const TIERS = [
             'Early Access to Features'
         ],
         cta: 'Upgrade to Pro',
-        href: '/checkout/pro',
-        popular: true
+        href: '#',
+        popular: true,
+        tierKey: 'pro'
     },
     {
         name: 'Commander',
@@ -45,13 +49,47 @@ const TIERS = [
             'Priority Email Support'
         ],
         cta: 'Deploy Army',
-        href: '/contact-sales',
+        href: '#',
         popular: false,
-        special: true
+        special: true,
+        tierKey: 'commander'
     }
 ];
 
 export default function PricingPage() {
+    const [loadingTier, setLoadingTier] = useState<string | null>(null);
+    const router = useRouter();
+
+    const handleCheckout = async (tierKey: string, href: string) => {
+        if (tierKey === 'free') {
+            router.push(href);
+            return;
+        }
+
+        setLoadingTier(tierKey);
+        try {
+            const res = await fetch('/api/stripe/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tier: tierKey })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.url) {
+                window.location.href = data.url;
+            } else if (res.status === 401) {
+                router.push('/login?next=/pricing');
+            } else {
+                console.error('Checkout error:', data.error);
+                alert('Failed to initiate checkout: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Checkout failed', error);
+        } finally {
+            setLoadingTier(null);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-black text-white py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
             {/* Background Glow */}
@@ -72,10 +110,10 @@ export default function PricingPage() {
                         <div
                             key={tier.name}
                             className={`relative rounded-2xl p-8 transition-all duration-300 ${tier.popular
-                                    ? 'bg-white/10 border-2 border-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.15)] scale-105 z-10'
-                                    : tier.special
-                                        ? 'bg-gradient-to-br from-gray-900 to-black border border-white/10 hover:border-orange-500/50'
-                                        : 'bg-white/5 border border-white/10 hover:bg-white/[0.07]'
+                                ? 'bg-white/10 border-2 border-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.15)] scale-105 z-10'
+                                : tier.special
+                                    ? 'bg-gradient-to-br from-gray-900 to-black border border-white/10 hover:border-orange-500/50'
+                                    : 'bg-white/5 border border-white/10 hover:bg-white/[0.07]'
                                 }`}
                         >
                             {tier.popular && (
@@ -107,17 +145,18 @@ export default function PricingPage() {
                                 ))}
                             </ul>
 
-                            <Link
-                                href={tier.href}
-                                className={`block w-full py-3 px-6 rounded-xl text-center font-bold transition-all ${tier.popular
+                            <button
+                                onClick={() => handleCheckout(tier.tierKey, tier.href)}
+                                disabled={loadingTier !== null}
+                                className={`block flex items-center justify-center w-full py-3 px-6 rounded-xl text-center font-bold transition-all ${tier.popular
                                         ? 'bg-white text-black hover:bg-gray-200'
                                         : tier.special
                                             ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white hover:shadow-orange-500/25 shadow-lg'
                                             : 'bg-white/10 text-white hover:bg-white/20'
-                                    }`}
+                                    } ${(loadingTier !== null && loadingTier !== tier.tierKey) ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                                {tier.cta}
-                            </Link>
+                                {loadingTier === tier.tierKey ? <Loader2 className="animate-spin w-5 h-5 mx-auto" /> : tier.cta}
+                            </button>
                         </div>
                     ))}
                 </div>
