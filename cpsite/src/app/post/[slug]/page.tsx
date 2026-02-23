@@ -47,7 +47,7 @@ export default async function PostPage({ params }: Props) {
           <a href="#" className="text-[13px] text-[#5A5752] hover:text-[#0B0B0D]">Instagram</a>
           <a href="#" className="text-[13px] text-[#5A5752] hover:text-[#0B0B0D]">X</a>
           <button
-            onClick={undefined}
+            onClick={() => { if (typeof window !== 'undefined') navigator.clipboard.writeText(window.location.href) }}
             className="ml-auto text-[13px] text-[#5A5752] hover:text-[#0B0B0D]"
           >
             Copy link ↗

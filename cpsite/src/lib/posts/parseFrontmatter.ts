@@ -23,5 +23,5 @@ export function parseFrontmatter(raw: string): { data: PostFrontmatter; content:
       data[key.trim()] = value;
     }
   }
-  return { data: data as PostFrontmatter, content: content.trim() };
+  return { data: data as unknown as PostFrontmatter, content: content.trim() };
 }
