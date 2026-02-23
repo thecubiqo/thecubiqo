@@ -23,6 +23,8 @@ interface EnergyCubeProps {
   colorName?: ColorName
   animationState?: AnimationState
   reducedMotion?: boolean
+  /** AG-UI-1: Real-time TTS amplitude 0.0–1.0 from useAudioAnalyser */
+  audioAmplitude?: number
 }
 
 const vertexShader = `
@@ -295,7 +297,8 @@ const MODE_CONFIGS: Record<AnimationState, {
 export function EnergyCube({
   colorName = 'ORANGE',
   animationState = 'idle',
-  reducedMotion = false
+  reducedMotion = false,
+  audioAmplitude = 0
 }: EnergyCubeProps) {
   const groupRef = useRef<THREE.Group>(null)
   const transitionRef = useRef({ mode: 0, color: 0 })
@@ -387,11 +390,20 @@ export function EnergyCube({
       modeConfig.processing,
       delta * 3
     )
+    // AG-UI-1: Drive uSpeaking from real audio amplitude if available
+    const speakingTarget = audioAmplitude > 0.02
+      ? Math.min(audioAmplitude * 3.5, 1.0) // Amplify subtle TTS signal
+      : (animationState === 'speaking' ? 1.0 : 0.0)
     uniforms.uSpeaking.value = THREE.MathUtils.lerp(
       uniforms.uSpeaking.value,
-      animationState === 'speaking' ? 1.0 : 0.0,
-      delta * 4
+      speakingTarget,
+      delta * 8 // Fast response to beat TTS syllables
     )
+    // Also modulate the cube scale by amplitude for physical pulse
+    if (audioAmplitude > 0.02 && !reducedMotion) {
+      const pulse = 1.0 + audioAmplitude * 0.12
+      groupRef.current.scale.setScalar(groupRef.current.scale.x * 0.85 + pulse * 0.15)
+    }
     uniforms.uColorIntensity.value = THREE.MathUtils.lerp(
       uniforms.uColorIntensity.value,
       modeConfig.colorIntensity,
