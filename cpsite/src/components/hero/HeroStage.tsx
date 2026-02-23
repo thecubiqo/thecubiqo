@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import TopNav from '@/components/nav/TopNav';
 import CreatureScene from './CreatureScene';
 import HeroCopy from './HeroCopy';
+import OrbitText from './OrbitText';
 
 export default function HeroStage() {
   return (
@@ -14,6 +15,9 @@ export default function HeroStage() {
       <div className="absolute inset-0">
         <CreatureScene />
       </div>
+
+      {/* Silver-mercury orbital liner — shimmering words around the creature */}
+      <OrbitText />
 
       {/* Vignette + grain overlay */}
       <div className="pointer-events-none absolute inset-0">
@@ -27,12 +31,12 @@ export default function HeroStage() {
         />
       </div>
 
-      {/* Copy positioned at bottom-left */}
+      {/* Copy positioned at bottom-left — 1.4 s delay (text enters after creature settles) */}
       <div className="relative z-10 flex min-h-[100svh] items-end">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.0, ease: 'easeOut', delay: 0.3 }}
+          transition={{ duration: 1.0, ease: 'easeOut', delay: 1.4 }}
           className="w-full px-6 pb-16 md:px-12 md:pb-20"
         >
           <HeroCopy />
@@ -41,3 +45,4 @@ export default function HeroStage() {
     </section>
   );
 }
+
