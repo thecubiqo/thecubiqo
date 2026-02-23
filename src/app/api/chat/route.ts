@@ -55,6 +55,22 @@ const MINIMAX_RATE_WINDOW = 60 * 60 * 1000 // 1 hour in ms
 // TODO: Persist to Supabase for cross-instance and restart durability
 const userModelStore = new Map<string, UserAdaptiveModel>()
 
+// AG-ROUTING-1: Self-harm intercept — MUST route to YELLOW (empathy) before anything else
+const SELF_HARM_PATTERNS = [
+  /\b(suicide|suicidal|kill myself|end my life|want to die|don't want to live|hur[t]ing myself|self.harm|cut myself|overdose)\b/i,
+  /\b(no reason to live|give up on life|life is not worth|worthless|hopeless)\b/i,
+  /\b(crisis|mental breakdown|can't go on|nothing matters anymore)\b/i,
+]
+
+const CRISIS_RESOURCES = `
+**If you're in crisis, please reach out:**
+- 🆘 **988 Suicide & Crisis Lifeline**: Call or text **988** (US)
+- 📱 **Crisis Text Line**: Text HOME to **741741**
+- 🌍 **International**: [findahelpline.com](https://findahelpline.com)
+
+You are not alone. 💛
+`
+
 // Sensitive content patterns for classification layer
 // These patterns route messages directly to Claude Haiku for better handling
 const SENSITIVE_CONTENT_PATTERNS = [
@@ -463,6 +479,37 @@ export async function POST(request: NextRequest) {
         { error: 'Missing required field: message' },
         { status: 400 }
       )
+    }
+
+    // TFR-003: Age Gate for RED zone
+    // RED mode allows uncensored/explicit content — require age verification
+    if (currentColor === 'RED') {
+      const ageVerified = request.headers.get('x-age-verified') === 'true'
+      const sessionAgeKey = sessionId ? `age_verified_${sessionId}` : null
+      // Allow if header claims verified (client sets this after DOB modal confirms 18+)
+      // Note: this is a soft gate; a hard gate would require a server-side DB flag
+      if (!ageVerified) {
+        return NextResponse.json(
+          {
+            error: 'AGE_GATE_REQUIRED',
+            message: 'RED zone content requires age verification (18+). Please confirm your date of birth.',
+            requiresAgeVerification: true
+          },
+          { status: 403 }
+        )
+      }
+    }
+
+    // AG-ROUTING-1: Self-harm intercept — override ALL routing to YELLOW empathy mode
+    const isSelfHarm = SELF_HARM_PATTERNS.some(p => p.test(message))
+    if (isSelfHarm) {
+      console.log('[Chat] Self-harm pattern detected — routing to YELLOW crisis response')
+      return NextResponse.json({
+        response: `I hear you, and I'm really glad you reached out. What you're feeling matters deeply, and you don't have to face this alone.\n\n${CRISIS_RESOURCES}\n\nI'm here to listen. Would you like to talk about what's going on?`,
+        color: 'YELLOW',
+        provider: 'crisis_intercept',
+        selfHarmDetected: true
+      })
     }
 
     // Load memories for this session (if sessionId provided)

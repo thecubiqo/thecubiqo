@@ -95,23 +95,45 @@ async function processQueue() {
     }
 }
 
-// ─── Auto-Post Ready Content ─────────────────────────────
-async function postReadyContent() {
+// ─── TFR-013: Human Approval Gate ───────────────────────────────────────────
+// SECURITY: Content must be MANUALLY approved before posting.
+// Posts that are 'ready' move to 'awaiting_approval' status.
+// A human must set 'approved = true' via the admin dashboard before posting proceeds.
+async function flagForApproval() {
     const { data: readyItems } = await supabase
         .from('content_queue')
-        .select('*, social_accounts(username, platform)')
+        .select('id, caption, social_accounts(username, platform)')
         .eq('generation_status', 'ready')
-        .limit(3);
+        .limit(10);
 
     if (!readyItems || readyItems.length === 0) return;
 
     for (const item of readyItems) {
-        // In production, this is where Puppeteer would log in and post.
-        // For now, we simulate posting.
-        const postUrl = `https://${item.social_accounts?.platform}.com/${item.social_accounts?.username}/post/${Date.now()}`;
+        console.log(`\n⚠️  APPROVAL REQUIRED: @${(item.social_accounts as any)?.username}: "${(item.caption || '').substring(0, 60)}..."`);
+        console.log(`   Status → awaiting_approval (NOT auto-posting — requires human review)`);
 
-        console.log(`\n🚀 POSTING to ${item.social_accounts?.platform.toUpperCase()}`);
-        console.log(`   @${item.social_accounts?.username}: "${(item.caption || '').substring(0, 60)}..."`);
+        await supabase
+            .from('content_queue')
+            .update({ generation_status: 'awaiting_approval' } as any)
+            .eq('id', item.id);
+    }
+}
+
+// ─── Post only explicitly approved items ─────────────────────────────────────
+async function postApprovedContent() {
+    const { data: approvedItems } = await supabase
+        .from('content_queue')
+        .select('*, social_accounts(username, platform)')
+        .eq('generation_status', 'approved') // Must be EXPLICITLY set to 'approved' by a human
+        .limit(3);
+
+    if (!approvedItems || approvedItems.length === 0) return;
+
+    for (const item of approvedItems) {
+        const postUrl = `https://${(item.social_accounts as any)?.platform}.com/status/${Date.now()}`;
+
+        console.log(`\n✅ POSTING (human-approved) to ${(item.social_accounts as any)?.platform?.toUpperCase()}`);
+        console.log(`   @${(item.social_accounts as any)?.username}: "${(item.caption || '').substring(0, 60)}..."`);
 
         await supabase
             .from('content_queue')
@@ -183,7 +205,8 @@ async function main() {
         try {
             await manageCampaigns();
             await processQueue();
-            await postReadyContent();
+            await flagForApproval();     // TFR-013: flag ready → awaiting_approval
+            await postApprovedContent(); // Only posts items humans approved
         } catch (err) {
             console.error('Loop error:', err);
         }

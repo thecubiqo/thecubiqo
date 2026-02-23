@@ -128,7 +128,8 @@
                     <p class="text-sm text-slate-400">The 3D UI must not be static. We must tie the Web Audio API's
                         <code>AnalyserNode</code> directly to React Three Fiber so the cuboid pulses perfectly to TTS
                         syllables. Also, requires an NLP pre-router to intercept self-harm intents and hard-shift to
-                        YELLOW (empathy) mode.</p>
+                        YELLOW (empathy) mode.
+                    </p>
                 </div>
             </div>
         </section>
@@ -277,6 +278,241 @@
                     <p class="text-sm text-slate-400">Before we send any actual traffic through the RGY routers, we must
                         permanently delete <code>src/app/rescue/page.tsx</code> to remove the hardcoded FoundersPass PIN
                         vulnerabilities. Passkeys & JWT strictly.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TASK 6 — Item 11-12 -->
+        <section class="mb-20">
+            <div class="mb-6 flex items-center justify-between border-b border-slate-700 pb-2">
+                <h2 class="text-2xl font-bold text-white">Task 6: AI Orchestration & CAP Gateway</h2>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">P1 · Month 1–3</span>
+            </div>
+
+            <div class="glass-panel p-6 space-y-2">
+                <div class="voice-section voice-tela">
+                    <div class="flex items-center mb-2"><span class="tag-tela mr-3">Tela's Spec</span>
+                        <h3 class="text-slate-200 font-bold">Unified Policy Gateway (TFR-006)</h3>
+                    </div>
+                    <p class="text-sm text-slate-400">All internal sub-domains — Job Hunt, Social Army, Emergent — must
+                        route through a unified <strong>CAP Orchestrator</strong> that inherits and propagates the
+                        current RGY zone. No module operates outside the zone intent system.</p>
+                </div>
+
+                <div class="voice-section voice-mo">
+                    <div class="flex items-center mb-2"><span class="tag-mo mr-3">MO's Audit</span>
+                        <h3 class="text-slate-200 font-bold">UI ↔ Audio Analyser Syncing (AG-UI-1)</h3>
+                    </div>
+                    <p class="text-sm text-slate-400">Connect the Web Audio API's <code>AnalyserNode</code> to the 3D
+                        Cuboid in React Three Fiber so it pulses to TTS amplitude in real-time. Currently the cuboid is
+                        static during voice output — this kills the premium feel.</p>
+                </div>
+
+                <div class="voice-section voice-ag">
+                    <div class="flex items-center mb-2"><span class="tag-ag mr-3">AG's Advice</span>
+                        <h3 class="text-slate-200 font-bold">Implementation Path</h3>
+                    </div>
+                    <p class="text-sm text-slate-400">Inject a <code>PolicyGateway</code> singleton in
+                        <code>/lib/policy/</code>. Each module submits request + current RGY zone; gateway validates
+                        intent before routing. For audio sync: capture the TTS stream into an <code>AudioContext</code>,
+                        pipe through <code>AnalyserNode</code>, pass amplitude array as a <code>useFrame</code> uniform
+                        to the Three.js shader.</p>
+                </div>
+
+                <div class="mt-4 p-3 rounded-lg bg-green-900/20 border border-green-700/40 text-xs text-green-300">
+                    ✅ <strong>AG-ROUTING-1 SHIPPED:</strong> Self-harm intercept implemented in
+                    <code>/api/chat/route.ts</code> — detects crisis signals and hard-routes to YELLOW empathy mode with
+                    988 + crisis resources.
+                </div>
+            </div>
+        </section>
+
+        <!-- TASK 7 — Items 13-14 -->
+        <section class="mb-20">
+            <div class="mb-6 flex items-center justify-between border-b border-slate-700 pb-2">
+                <h2 class="text-2xl font-bold text-white">Task 7: Voice Personas & Unified Input</h2>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">P1 · Month 1–3</span>
+            </div>
+
+            <div class="glass-panel p-6 space-y-2">
+                <div class="voice-section voice-tela">
+                    <div class="flex items-center mb-2"><span class="tag-tela mr-3">Tela's Spec</span>
+                        <h3 class="text-slate-200 font-bold">Distinct Voice Personalities (TFR-007)</h3>
+                    </div>
+                    <p class="text-sm text-slate-400">Each RGY zone maps to a distinct ElevenLabs voice ID:
+                        <strong>Teal</strong> (calm, professional), <strong>Red</strong> (intense, direct),
+                        <strong>Yellow</strong> (warm, empathetic). Micro-interactions: a wake chime on session start,
+                        subtle ticks during STT processing, haptics on mobile.</p>
+                </div>
+
+                <div class="voice-section voice-mo">
+                    <div class="flex items-center mb-2"><span class="tag-mo mr-3">MO's Audit</span>
+                        <h3 class="text-slate-200 font-bold">Vocspad Unified Input Surface (TFR-008)</h3>
+                    </div>
+                    <p class="text-sm text-slate-400">Merge voice and text into a single input surface. Live Whisper STT
+                        transcription must append text to the input field in real-time as the user speaks — not dump it
+                        all at once when they stop. This is currently two separate UX paths; users expect one.</p>
+                </div>
+
+                <div class="voice-section voice-ag">
+                    <div class="flex items-center mb-2"><span class="tag-ag mr-3">AG's Advice</span>
+                        <h3 class="text-slate-200 font-bold">Implementation Path</h3>
+                    </div>
+                    <p class="text-sm text-slate-400">Use the Web Speech API's <code>SpeechRecognition.onresult</code>
+                        event to stream interim results into a shared <code>inputText</code> state. On final result,
+                        auto-submit. For voice personas: add a <code>voiceId</code> map in
+                        <code>/config/voices.ts</code> keyed to RGY zone, pass to the TTS route. Micro-interactions via
+                        the Web Vibration API + custom CSS animations.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TASK 8 — Items 15-16 -->
+        <section class="mb-20">
+            <div class="mb-6 flex items-center justify-between border-b border-slate-700 pb-2">
+                <h2 class="text-2xl font-bold text-white">Task 8: Retention, Onboarding & 3D Animations</h2>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">P1 · Month 1–3</span>
+            </div>
+
+            <div class="glass-panel p-6 space-y-2">
+                <div class="voice-section voice-tela">
+                    <div class="flex items-center mb-2"><span class="tag-tela mr-3">Tela's Spec</span>
+                        <h3 class="text-slate-200 font-bold">5-Branch Onboarding Flow (TFR-014)</h3>
+                    </div>
+                    <p class="text-sm text-slate-400">Onboarding must be a curated, intentional sequence that branches
+                        based on the user's declared intent: <em>Solopreneur, Developer, Hustler, Companion,
+                            Privacy-First</em>. Each branch customises the initial RGY zone, voice persona, and
+                        suggested first interaction.</p>
+                </div>
+
+                <div class="voice-section voice-mo">
+                    <div class="flex items-center mb-2"><span class="tag-mo mr-3">MO's Audit</span>
+                        <h3 class="text-slate-200 font-bold">Missing 3D Animations & Analytics Funnel (TFR-009 +
+                            TFR-012)</h3>
+                    </div>
+                    <p class="text-sm text-slate-400">Three 3D animations are missing: <strong>Wink</strong>
+                        (playfulness), <strong>Trust Earned</strong> (milestone), <strong>Handoff</strong> (sub-agent
+                        delegation). Analytics funnel must expand to 15 events via PostHog — critical for measuring
+                        Activation rate target of &gt;20%.</p>
+                </div>
+
+                <div class="voice-section voice-ag">
+                    <div class="flex items-center mb-2"><span class="tag-ag mr-3">AG's Advice</span>
+                        <h3 class="text-slate-200 font-bold">Implementation Path</h3>
+                    </div>
+                    <p class="text-sm text-slate-400">Onboarding: create 5 <code>OnboardingPath</code> config objects,
+                        store selection in DB (<code>onboarding_data.intent</code>). Animations: define Three.js morph
+                        targets or GSAP keyframe sequences for Wink/Trust/Handoff; trigger from chat events. PostHog:
+                        add <code>posthog.capture()</code> at 15 funnel stages from <code>page_view</code> through
+                        <code>voice_first_use</code>.</p>
+                </div>
+
+                <div class="mt-4 p-3 rounded-lg bg-green-900/20 border border-green-700/40 text-xs text-green-300">
+                    ✅ <strong>SHIPPED (REQ-02 + REQ-03):</strong> <code>onboarding_data</code> +
+                    <code>onboarding_completed</code> columns live in <code>profiles</code>. Auth callback routes new
+                    users to <code>/onboarding</code> automatically.
+                </div>
+            </div>
+        </section>
+
+        <!-- TASK 9 — Items 17-18 -->
+        <section class="mb-20">
+            <div class="mb-6 flex items-center justify-between border-b border-slate-700 pb-2">
+                <h2 class="text-2xl font-bold text-white">Task 9: Spending Caps, Peer Connections & CQ Network</h2>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">P1 · Month 1–3</span>
+            </div>
+
+            <div class="glass-panel p-6 space-y-2">
+                <div class="voice-section voice-tela">
+                    <div class="flex items-center mb-2"><span class="tag-tela mr-3">Tela's Spec</span>
+                        <h3 class="text-slate-200 font-bold">CQ↔CQ Peer Matching (TFR-010)</h3>
+                    </div>
+                    <p class="text-sm text-slate-400">Expose CQ numbering system in profiles. Enable direct WebRTC
+                        WebSocket chat for RGY-matched peers. Two users with complementary intent profiles (e.g. one
+                        Hustler + one Developer) should be able to see each other and connect.</p>
+                </div>
+
+                <div class="voice-section voice-mo">
+                    <div class="flex items-center mb-2"><span class="tag-mo mr-3">MO's Audit</span>
+                        <h3 class="text-slate-200 font-bold">Spending Caps Must Persist (TFR-011)</h3>
+                    </div>
+                    <p class="text-sm text-slate-400">In-memory spending limits reset on every Vercel deploy/restart —
+                        meaning the $200/mo hard cap can be bypassed simply by triggering a redeploy. Limits must be
+                        persisted in the <code>usage_tracking</code> Supabase table and enforced at query-time.</p>
+                </div>
+
+                <div class="voice-section voice-ag">
+                    <div class="flex items-center mb-2"><span class="tag-ag mr-3">AG's Advice</span>
+                        <h3 class="text-slate-200 font-bold">Implementation Path</h3>
+                    </div>
+                    <p class="text-sm text-slate-400">Spending: <code>checkSpendingCap()</code> already queries Supabase
+                        — verify it sums the current billing cycle correctly. Peer matching: add <code>cq_number</code>
+                        to profiles, implement a <code>/api/rgy/match</code> endpoint that queries compatible intents
+                        within radius, and create a WebSocket channel via Supabase Realtime.</p>
+                </div>
+
+                <div class="mt-4 p-3 rounded-lg bg-green-900/20 border border-green-700/40 text-xs text-green-300">
+                    ✅ <strong>SHIPPED (REQ-08):</strong> <code>checkSpendingCap()</code> and
+                    <code>recordSpending()</code> now use Supabase <code>usage_tracking</code> table. 429 responses
+                    enforced in <code>/api/chat</code> and <code>/api/tts</code>.
+                </div>
+            </div>
+        </section>
+
+        <!-- TASK 10 — Items 19-20 -->
+        <section class="mb-20">
+            <div class="mb-6 flex items-center justify-between border-b border-slate-700 pb-2">
+                <h2 class="text-2xl font-bold text-white">Task 10: Phase Status Board — Shipped vs Remaining</h2>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Live Tracker</span>
+            </div>
+
+            <div class="glass-panel p-6">
+                <p class="text-sm text-slate-400 mb-6">Current execution status across all P0 and P1 requirements as of
+                    <strong>February 2026</strong>.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Shipped Column -->
+                    <div>
+                        <h3 class="text-green-400 font-bold text-sm mb-3 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span> SHIPPED (10 REQs)
+                        </h3>
+                        <ul class="space-y-2 text-xs text-slate-400">
+                            <li>✅ REQ-01: Hardcoded PIN removal (security)</li>
+                            <li>✅ REQ-02: Onboarding DB persistence</li>
+                            <li>✅ REQ-03: New user auth redirect</li>
+                            <li>✅ REQ-04: Cookie banner + GDPR delete endpoint</li>
+                            <li>✅ REQ-05: Stripe checkout + webhooks</li>
+                            <li>✅ REQ-06: Persistent adaptive user model (Supabase)</li>
+                            <li>✅ REQ-07: Dashboard journal entry count</li>
+                            <li>✅ REQ-08: Vercel spending hard caps</li>
+                            <li>✅ REQ-09: Emergent Studio → live Vercel deploy</li>
+                            <li>✅ REQ-10: BrowserPool Railway worker queue</li>
+                            <li>✅ TFR-003: RED zone 18+ age gate (API + UI)</li>
+                            <li>✅ TFR-013: Social Army human approval gate</li>
+                            <li>✅ AG-ROUTING-1: Self-harm crisis intercept → YELLOW</li>
+                        </ul>
+                    </div>
+
+                    <!-- Remaining Column -->
+                    <div>
+                        <h3 class="text-amber-400 font-bold text-sm mb-3 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> REMAINING (P1 Next)
+                        </h3>
+                        <ul class="space-y-2 text-xs text-slate-400">
+                            <li>🟧 TFR-006: CAP Policy Gateway (all modules)</li>
+                            <li>🟧 AG-UI-1: Audio Analyser → 3D Cuboid sync</li>
+                            <li>🟧 TFR-007: Voice Personas (Teal/Red/Yellow)</li>
+                            <li>🟧 TFR-008: Vocspad unified voice+text input</li>
+                            <li>🟧 TFR-014: 5-branch onboarding flow</li>
+                            <li>🟧 TFR-009: 3 missing 3D animations (Wink, Trust, Handoff)</li>
+                            <li>🟧 TFR-012: PostHog 15-event analytics funnel</li>
+                            <li>🟧 TFR-010: CQ↔CQ peer WebRTC matching</li>
+                            <li>🟦 AG-UI-3: SettingsCube voice validation</li>
+                            <li>🟦 TFR-017: Referral programme</li>
+                            <li>🟦 AG-AUTH-1: WebAuthn Passkeys</li>
+                            <li>🟦 AG-OFFLINE-1/2/3: Electron + Local LLM</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </section>
