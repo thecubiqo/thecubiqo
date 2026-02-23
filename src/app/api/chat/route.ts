@@ -501,7 +501,25 @@ export async function POST(request: NextRequest) {
     // Adaptive Learning: Get or create user model for this session
     let userModel: UserAdaptiveModel | null = null
     if (sessionId) {
-      userModel = userModelStore.get(sessionId) || createUserModel(sessionId)
+      userModel = userModelStore.get(sessionId) || null
+      if (!userModel) {
+        try {
+          const { data } = await supabaseAdmin
+            .from('sessions')
+            .select('adaptive_model_state')
+            .eq('id', sessionId)
+            .single()
+
+          if (data && data.adaptive_model_state) {
+            userModel = data.adaptive_model_state as unknown as UserAdaptiveModel
+            userModelStore.set(sessionId, userModel)
+          } else {
+            userModel = createUserModel(sessionId)
+          }
+        } catch (e) {
+          userModel = createUserModel(sessionId)
+        }
+      }
     }
 
     // Get the last AI response for conversion trigger detection
@@ -646,6 +664,15 @@ export async function POST(request: NextRequest) {
       }
       const updatedModel = updateUserModel(userModel, signal)
       userModelStore.set(sessionId, updatedModel)
+
+      // Async DB Patch
+      supabaseAdmin
+        .from('sessions')
+        .update({ adaptive_model_state: updatedModel as any })
+        .eq('id', sessionId)
+        .then(({ error }: any) => {
+          if (error) console.error('[Adaptive] DB Patch error:', error.message)
+        }, (err: any) => console.error(err))
     }
 
     return NextResponse.json({

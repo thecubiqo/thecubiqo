@@ -1,0 +1,79 @@
+.next/dev/types/validator.ts(377,39): error TS2307: Cannot find module '../../../src/app/founderpass/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(467,39): error TS2307: Cannot find module '../../../src/app/founders/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(476,39): error TS2307: Cannot find module '../../../src/app/founderspass/dashboard/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(485,39): error TS2307: Cannot find module '../../../src/app/founderspass/experiments/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(494,39): error TS2307: Cannot find module '../../../src/app/founderspass/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(647,39): error TS2307: Cannot find module '../../../src/app/rescue/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(2145,39): error TS2307: Cannot find module '../../../src/app/founderspass/layout.js' or its corresponding type declarations.
+.next/types/validator.ts(377,39): error TS2307: Cannot find module '../../src/app/founderpass/page.js' or its corresponding type declarations.
+.next/types/validator.ts(467,39): error TS2307: Cannot find module '../../src/app/founders/page.js' or its corresponding type declarations.
+.next/types/validator.ts(476,39): error TS2307: Cannot find module '../../src/app/founderspass/dashboard/page.js' or its corresponding type declarations.
+.next/types/validator.ts(485,39): error TS2307: Cannot find module '../../src/app/founderspass/experiments/page.js' or its corresponding type declarations.
+.next/types/validator.ts(494,39): error TS2307: Cannot find module '../../src/app/founderspass/page.js' or its corresponding type declarations.
+.next/types/validator.ts(647,39): error TS2307: Cannot find module '../../src/app/rescue/page.js' or its corresponding type declarations.
+.next/types/validator.ts(2154,39): error TS2307: Cannot find module '../../src/app/founderspass/layout.js' or its corresponding type declarations.
+alter_db.ts(1,24): error TS2307: Cannot find module 'pg' or its corresponding type declarations.
+alter_session_db.ts(1,24): error TS2307: Cannot find module 'pg' or its corresponding type declarations.
+alter_stripe_db.ts(1,24): error TS2307: Cannot find module 'pg' or its corresponding type declarations.
+alter_usage_db.ts(1,24): error TS2307: Cannot find module 'pg' or its corresponding type declarations.
+create_usage_db.ts(1,24): error TS2307: Cannot find module 'pg' or its corresponding type declarations.
+src/app/api/journal/history/route.ts(53,13): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(relation: "emergent_orgs" | "emergent_projects" | "sessions" | "profiles" | "feature_flags" | "feature_flag_webhooks" | "conversations" | "social_campaigns" | "social_accounts" | ... 15 more ... | "content_queue"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type '"journal_entries"' is not assignable to parameter of type '"emergent_orgs" | "emergent_projects" | "sessions" | "profiles" | "feature_flags" | "feature_flag_webhooks" | "conversations" | "social_campaigns" | "social_accounts" | "emergent_org_members" | ... 14 more ... | "content_queue"'.
+  Overload 2 of 2, '(relation: never): PostgrestQueryBuilder<{ PostgrestVersion: "13.0.5"; }, { Tables: { emergent_orgs: { Row: { id: string; name: string; slug: string; plan: string | null; created_at: string | null; updated_at: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: []; }; ... 23 more ...; content_queue: { ...; }; }; Views: {}; Functions: { ...; }; Enums: {}; CompositeTypes: {}; }, never, never, never>', gave the following error.
+    Argument of type '"journal_entries"' is not assignable to parameter of type 'never'.
+src/app/founders-pass/page.tsx(83,22): error TS2322: Type '"success"' is not assignable to type '"default" | "outline" | "destructive" | "secondary" | undefined'.
+src/app/founders-pass/page.tsx(89,22): error TS2322: Type '"success"' is not assignable to type '"default" | "outline" | "destructive" | "secondary" | undefined'.
+src/app/founders-pass/page.tsx(90,22): error TS2322: Type '"success"' is not assignable to type '"default" | "outline" | "destructive" | "secondary" | undefined'.
+src/app/founders-pass/page.tsx(91,22): error TS2322: Type '"success"' is not assignable to type '"default" | "outline" | "destructive" | "secondary" | undefined'.
+src/app/founders-pass/page.tsx(92,22): error TS2322: Type '"success"' is not assignable to type '"default" | "outline" | "destructive" | "secondary" | undefined'.
+src/app/founders-pass/page.tsx(96,21): error TS2322: Type '"success"' is not assignable to type '"default" | "link" | "outline" | "destructive" | "secondary" | "ghost" | undefined'.
+src/app/founders-pass/page.tsx(106,19): error TS2322: Type '"primary"' is not assignable to type '"default" | "link" | "outline" | "destructive" | "secondary" | "ghost" | undefined'.
+src/app/founders-pass/page.tsx(111,19): error TS2322: Type '"success"' is not assignable to type '"default" | "link" | "outline" | "destructive" | "secondary" | "ghost" | undefined'.
+src/app/founders-pass/page.tsx(116,19): error TS2322: Type '"success"' is not assignable to type '"default" | "link" | "outline" | "destructive" | "secondary" | "ghost" | undefined'.
+src/app/founders-pass/page.tsx(121,19): error TS2322: Type '"warning"' is not assignable to type '"default" | "link" | "outline" | "destructive" | "secondary" | "ghost" | undefined'.
+src/app/founders-pass/page.tsx(126,39): error TS2322: Type '{ children: string; variant: "secondary"; icon: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'icon' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/founders-pass/page.tsx(131,35): error TS2322: Type '{ children: string; variant: "ghost"; icon: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'icon' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/founders-pass/page.tsx(165,25): error TS2322: Type '"neutral" | "success" | "warning"' is not assignable to type '"default" | "outline" | "destructive" | "secondary" | undefined'.
+  Type '"neutral"' is not assignable to type '"default" | "outline" | "destructive" | "secondary" | undefined'.
+src/app/founders-pass/security/page.tsx(118,24): error TS2322: Type '"success"' is not assignable to type '"default" | "outline" | "destructive" | "secondary" | undefined'.
+src/app/founders-pass/security/page.tsx(321,21): error TS2322: Type '"primary"' is not assignable to type '"default" | "link" | "outline" | "destructive" | "secondary" | "ghost" | undefined'.
+src/app/founders-pass/security/page.tsx(326,21): error TS2322: Type '"success"' is not assignable to type '"default" | "link" | "outline" | "destructive" | "secondary" | "ghost" | undefined'.
+src/app/founders-pass/security/page.tsx(331,21): error TS2322: Type '"warning"' is not assignable to type '"default" | "link" | "outline" | "destructive" | "secondary" | "ghost" | undefined'.
+src/app/founders-pass/security/page.tsx(336,41): error TS2322: Type '{ children: string; variant: "secondary"; icon: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'icon' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/founders-pass/security/page.tsx(461,16): error TS2322: Type '"success"' is not assignable to type '"default" | "outline" | "destructive" | "secondary" | undefined'.
+src/components/RGYIntentKeywordList.tsx(5,23): error TS1261: Already included file name 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/ui/Badge.tsx' differs from file name 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/ui/badge.tsx' only in casing.
+  The file is in the program because:
+    Imported via "@/components/ui/Badge" from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx'
+    Imported via "@/components/ui/Badge" from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYRoomView.tsx'
+    Imported via '@/components/ui/Badge' from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/founders-pass/page.tsx'
+    Imported via '@/components/ui/Badge' from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/founders-pass/security/page.tsx'
+    Imported via '@/components/ui/Badge' from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/settings/privacy/page.tsx'
+    Matched by include pattern '**/*.tsx' in 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/tsconfig.json'
+src/components/support/SupportChatbot.tsx(6,22): error TS1261: Already included file name 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/ui/Card.tsx' differs from file name 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/ui/card.tsx' only in casing.
+  The file is in the program because:
+    Imported via '@/components/ui/Card' from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/support/SupportChatbot.tsx'
+    Imported via "@/components/ui/Card" from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYColorSelector.tsx'
+    Imported via "@/components/ui/Card" from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx'
+    Imported via "@/components/ui/Card" from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYRoomView.tsx'
+    Matched by include pattern '**/*.tsx' in 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/tsconfig.json'
+src/components/support/SupportChatbot.tsx(7,24): error TS1261: Already included file name 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/ui/Button.tsx' differs from file name 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/ui/button.tsx' only in casing.
+  The file is in the program because:
+    Imported via '@/components/ui/Button' from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/support/SupportChatbot.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/CookieBanner.tsx'
+    Imported via "@/components/ui/Button" from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/founders-pass/page.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/founders-pass/security/page.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/app/settings/privacy/page.tsx'
+    Matched by include pattern '**/*.tsx' in 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/tsconfig.json'
+src/components/support/SupportChatbot.tsx(8,23): error TS1261: Already included file name 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/ui/Input.tsx' differs from file name 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/ui/input.tsx' only in casing.
+  The file is in the program because:
+    Imported via '@/components/ui/Input' from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/support/SupportChatbot.tsx'
+    Imported via "@/components/ui/Input" from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYIntentKeywordList.tsx'
+    Imported via "@/components/ui/Input" from file 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/src/components/RGYRoomView.tsx'
+    Matched by include pattern '**/*.tsx' in 'C:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp/tsconfig.json'
+src/lib/ai/providers.ts(44,3): error TS2322: Type '"gemini"' is not assignable to type 'AIProvider'.
+src/lib/cache/redis.ts(32,8): error TS2552: Cannot find name 'Redis'. Did you mean 'redis'?

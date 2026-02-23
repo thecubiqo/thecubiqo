@@ -48,10 +48,16 @@ export default function DashboardPage() {
           .select('*', { count: 'exact', head: true })
           .eq('session_id', session.id)
 
+        // Count journal entries
+        const { count: journalEntriesCount } = await supabase
+          .from('journal_entries')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+
         setStats({
           conversationCount: conversationCount || 0,
           messageCount: messageCount || 0,
-          journalEntriesCount: 0, // TODO: Fetch from journal_entries table
+          journalEntriesCount: journalEntriesCount || 0,
         })
       } catch (error) {
         console.error('Error fetching stats:', error)

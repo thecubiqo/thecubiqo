@@ -945,6 +945,7 @@ export type Database = {
           id: string
           is_guest: boolean | null
           user_id: string | null
+          adaptive_model_state: Json | null
         }
         Insert: {
           created_at?: string | null
@@ -954,6 +955,7 @@ export type Database = {
           id?: string
           is_guest?: boolean | null
           user_id?: string | null
+          adaptive_model_state?: Json | null
         }
         Update: {
           created_at?: string | null
@@ -963,6 +965,7 @@ export type Database = {
           id?: string
           is_guest?: boolean | null
           user_id?: string | null
+          adaptive_model_state?: Json | null
         }
         Relationships: [
           {
