@@ -848,6 +848,8 @@ export type Database = {
           handle: string | null
           id: string
           is_admin: boolean | null
+          onboarding_completed: boolean | null
+          onboarding_data: Json | null
           phone: string | null
           preferences: Json | null
           updated_at: string | null
@@ -862,6 +864,8 @@ export type Database = {
           handle?: string | null
           id: string
           is_admin?: boolean | null
+          onboarding_completed?: boolean | null
+          onboarding_data?: Json | null
           phone?: string | null
           preferences?: Json | null
           updated_at?: string | null
@@ -876,6 +880,8 @@ export type Database = {
           handle?: string | null
           id?: string
           is_admin?: boolean | null
+          onboarding_completed?: boolean | null
+          onboarding_data?: Json | null
           phone?: string | null
           preferences?: Json | null
           updated_at?: string | null

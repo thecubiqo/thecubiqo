@@ -17,14 +17,14 @@ export async function GET(request: Request) {
   if (error) {
     console.error('[Auth Callback] URL param error:', error, error_description)
     const errorMessage = error_description || error
-    
+
     // Check if it's a rate limit error
     if (errorMessage.toLowerCase().includes('rate limit') || errorMessage.toLowerCase().includes('too many')) {
       return NextResponse.redirect(
         `${origin}/auth/error?error=rate_limit_exceeded&description=${encodeURIComponent(errorMessage)}`
       )
     }
-    
+
     return NextResponse.redirect(
       `${origin}/auth/error?error=${encodeURIComponent(error)}&description=${encodeURIComponent(errorMessage)}`
     )
@@ -44,14 +44,14 @@ export async function GET(request: Request) {
 
     if (exchangeError) {
       console.error('[Auth Callback] Exchange error:', exchangeError.message)
-      
+
       // Check if it's a rate limit error
       if (exchangeError.message.toLowerCase().includes('rate limit') || exchangeError.message.toLowerCase().includes('too many')) {
         return NextResponse.redirect(
           `${origin}/auth/error?error=rate_limit_exceeded&description=${encodeURIComponent(exchangeError.message)}`
         )
       }
-      
+
       return NextResponse.redirect(`${origin}/auth/error?error=auth_callback_failed`)
     }
 
@@ -64,10 +64,11 @@ export async function GET(request: Request) {
     }
 
     // Ensure profile exists after successful auth
+    let requiresOnboarding = false;
     try {
       const { data: existingProfile } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, onboarding_completed')
         .eq('id', user.id)
         .single()
 
@@ -79,11 +80,14 @@ export async function GET(request: Request) {
             id: user.id,
             email: user.email,
           })
-        
+
         if (insertError) {
           console.error('[Auth Callback] Profile creation error:', insertError.message)
           // Continue anyway - profile might be created by trigger
         }
+        requiresOnboarding = true;
+      } else if (existingProfile.onboarding_completed === false || existingProfile.onboarding_completed === null) {
+        requiresOnboarding = true;
       }
     } catch (profileError) {
       console.error('[Auth Callback] Profile check/creation error:', profileError)
@@ -91,17 +95,18 @@ export async function GET(request: Request) {
     }
 
     // Successful auth - redirect to requested page
-    console.log('[Auth Callback] Auth successful, redirecting to:', next)
-    
+    const finalRedirectPath = requiresOnboarding ? '/onboarding' : next;
+    console.log('[Auth Callback] Auth successful, redirecting to:', finalRedirectPath)
+
     const forwardedHost = request.headers.get('x-forwarded-host')
     const isLocalEnv = process.env.NODE_ENV === 'development'
 
     if (isLocalEnv) {
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`${origin}${finalRedirectPath}`)
     } else if (forwardedHost) {
-      return NextResponse.redirect(`https://${forwardedHost}${next}`)
+      return NextResponse.redirect(`https://${forwardedHost}${finalRedirectPath}`)
     } else {
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`${origin}${finalRedirectPath}`)
     }
   } catch (error) {
     console.error('[Auth Callback] Unexpected error:', error)
