@@ -1,5 +1,6 @@
 'use client';
 
+// Triggering fresh Vercel build v2
 import React from 'react';
 import VollebakHero from '@/components/vollebak/VollebakHero';
 import { Exhibit, MediaExhibit, BlogCard, AudioModule } from '@/components/vollebak/Exhibits';
