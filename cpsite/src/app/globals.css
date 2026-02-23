@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+:root {
+  --black: #0B0B0D;
+  --ivory: #F6F3EE;
+  --ash: #A9A9A9;
+  --red: #7C2020;
+}
+
+::selection {
+  background: var(--black);
+  color: var(--ivory);
+}
+
+img {
+  filter: saturate(0.88) contrast(1.04);
+}
