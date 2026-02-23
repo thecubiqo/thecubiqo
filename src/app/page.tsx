@@ -1,34 +1,7 @@
-import { checkFeatureFlag } from '@/lib/feature-flags/server'
-import { FullscreenApp } from '@/components/FullscreenApp'
-import { LandingPage } from '@/components/landing/LandingPage'
-import { createClient } from '@/lib/supabase/server'
+import PortfolioPage from './portfolio/page';
 
-// Force dynamic rendering to ensure auth/flag state updates are reflected immediately
 export const dynamic = 'force-dynamic';
 
-export default async function Home() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // Check feature flags
-  const { enabled: showTopRightCTA } = await checkFeatureFlag({
-    flag_name: 'ui.topRightCTA.v1'
-  });
-
-  const { enabled: useParticleLandingAsHome } = await checkFeatureFlag({
-    flag_name: 'ui.useParticleLandingAsHome'
-  });
-
-  // If authenticated, always show the FullscreenApp (the "signed-in version")
-  if (user) {
-    return <FullscreenApp showTopRightCTA={showTopRightCTA} />
-  }
-
-  // If feature flag is enabled for guests, render LandingPage (with ParticleLanding)
-  if (useParticleLandingAsHome) {
-    return <LandingPage showTopRightCTA={showTopRightCTA} />
-  }
-
-  // Default behavior for guests: render FullscreenApp
-  return <FullscreenApp showTopRightCTA={showTopRightCTA} />
+export default function Home() {
+  return <PortfolioPage />;
 }
