@@ -5,19 +5,19 @@ import TileCard from '@/components/cards/TileCard';
 
 const tiles = [
   {
-    href: '/life',
-    label: 'Life',
-    desc: 'Fragments, places, photographs, and the quiet details.',
+    href: '/#features',
+    label: 'Features',
+    desc: 'Voice conversations, Rozana Journal, and RGY intelligent matching.',
   },
   {
     href: '/work',
-    label: 'Work',
-    desc: 'Programs, teams, funding, outcomes — built to hold weight.',
+    label: 'Demo',
+    desc: 'Explore the core Cubiqo features — voice, journal, and intelligent matching.',
   },
   {
     href: '/lifes-work',
-    label: "Life's Work",
-    desc: 'Writing, music, and field notes — posted simply, kept intact.',
+    label: 'Blog',
+    desc: 'Updates, feature deep-dives, and community highlights — from the Cubiqo team.',
   },
 ];
 

@@ -7,7 +7,7 @@ import { P } from '@/components/typography/P';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export const metadata: Metadata = { title: 'Field Notes' };
+export const metadata: Metadata = { title: 'Community' };
 
 export default async function FieldNotesPage() {
   const posts = await getAllPosts('field-notes');
@@ -15,9 +15,9 @@ export default async function FieldNotesPage() {
     <>
       <TopNav theme="light" />
       <main className="pt-28 pb-32 px-6 md:px-12 max-w-4xl mx-auto">
-        <H1>Field Notes</H1>
+        <H1>Community</H1>
         <P className="mt-4 text-[#5A5752]">
-          Image-led posts. Handwritten at times. Always kept.
+          Stories and highlights from the Cubiqo community.
         </P>
 
         <div className="mt-16 grid md:grid-cols-2 gap-8">
