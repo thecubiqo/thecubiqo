@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import { Briefcase, Users, Heart, Zap, TrendingUp, Sparkles, LucideIcon } from "lucide-react";
 

@@ -44,12 +44,7 @@ interface SpeechRecognition extends EventTarget {
   onstart: (() => void) | null
 }
 
-declare global {
-  interface Window {
-    SpeechRecognition: new () => SpeechRecognition
-    webkitSpeechRecognition: new () => SpeechRecognition
-  }
-}
+// Access via (window as any) to avoid conflicts with existing lib.dom.d.ts declarations
 
 export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) {
   const {
@@ -92,7 +87,7 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
       recognitionRef.current.abort()
     }
 
-    const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition
+    const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     const recognition = new SpeechRecognitionClass()
 
     recognition.continuous = continuous
@@ -128,8 +123,8 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
       const errorMessage = event.error === 'no-speech'
         ? 'No speech detected'
         : event.error === 'not-allowed'
-        ? 'Microphone access denied'
-        : `Speech error: ${event.error}`
+          ? 'Microphone access denied'
+          : `Speech error: ${event.error}`
 
       setState(prev => ({ ...prev, error: errorMessage, isListening: false }))
     }
@@ -141,7 +136,7 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
 
     recognitionRef.current = recognition
     recognition.start()
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- onResult/onEnd accessed via stable refs
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onResult/onEnd accessed via stable refs
   }, [state.isSupported, continuous, lang])
 
   const stopListening = useCallback(() => {

@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { FeatureFlag, Site, AuditLogEntry } from '@/lib/founders-pass/types';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { SkeletonCard } from '@/components/ui/LoadingSkeleton';
 
 export default function FoundersPassDashboard() {
