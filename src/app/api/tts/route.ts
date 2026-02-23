@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check spending cap FIRST
-    const capCheck = checkSpendingCap('elevenlabs')
+    const capCheck = await checkSpendingCap(sessionId, 'elevenlabs')
     if (!capCheck.allowed) {
       console.error(`[TTS API] Spending cap reached: $${capCheck.currentSpend}/$${capCheck.cap}`)
       return NextResponse.json(
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Record spending after successful call
-    recordSpending('elevenlabs', estimatedCost)
+    recordSpending(sessionId, 'elevenlabs', estimatedCost)
 
     // Return audio as blob
     const audioBuffer = await response.arrayBuffer()

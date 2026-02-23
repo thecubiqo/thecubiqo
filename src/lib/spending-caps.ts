@@ -2,84 +2,85 @@
  * Admin Spending Caps - Cost tracking and limits for API usage
  * 
  * CAPS:
- * - Anthropic (Claude): $200 max
- * - ElevenLabs TTS: $200 max
+ * - Anthropic (Claude): $200 max per user
+ * - ElevenLabs TTS: $200 max per user
  * 
  * Costs are estimated based on token/character usage.
- * Resets monthly or when manually reset by admin.
+ * Persists directly into Supabase 'usage_tracking' table to survive restarts.
  */
 
-// Spending caps in dollars
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+)
+
 export const SPENDING_CAPS = {
-  anthropic: 200,  // $200 max for Claude
-  elevenlabs: 200  // $200 max for ElevenLabs TTS
+  anthropic: 200,  // $200 max 
+  elevenlabs: 200  // $200 max 
 } as const
 
 // Approximate costs per unit (conservative estimates)
 // Claude: ~$15/1M input tokens, ~$75/1M output tokens (Sonnet)
 // ElevenLabs: ~$0.30 per 1000 characters
 export const COST_PER_UNIT = {
-  anthropic_input: 0.000015,    // $15 per 1M tokens = $0.000015 per token
-  anthropic_output: 0.000075,   // $75 per 1M tokens = $0.000075 per token
-  elevenlabs_char: 0.0003       // $0.30 per 1000 chars = $0.0003 per char
+  anthropic_input: 0.000015,
+  anthropic_output: 0.000075,
+  elevenlabs_char: 0.0003
 } as const
 
-// In-memory spending tracker (in production, use database/Redis)
-// This persists across requests but resets on server restart
-// For production, store in Supabase or Redis
-interface SpendingRecord {
-  anthropic: number
-  elevenlabs: number
-  lastReset: number  // Timestamp of last reset
-  monthStart: number // Start of current billing month
-}
-
-let spendingRecord: SpendingRecord = {
-  anthropic: 0,
-  elevenlabs: 0,
-  lastReset: Date.now(),
-  monthStart: getMonthStart()
-}
-
-function getMonthStart(): number {
+// Get start of current month in ISO format
+function getMonthStartISO(): string {
   const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth(), 1).getTime()
-}
-
-// Check if we need to reset for a new month
-function checkMonthlyReset(): void {
-  const currentMonthStart = getMonthStart()
-  if (currentMonthStart > spendingRecord.monthStart) {
-    console.log('[SpendingCaps] Monthly reset - new billing period')
-    spendingRecord = {
-      anthropic: 0,
-      elevenlabs: 0,
-      lastReset: Date.now(),
-      monthStart: currentMonthStart
-    }
-  }
+  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 }
 
 /**
  * Check if spending is within cap for a provider
  */
-export function checkSpendingCap(provider: 'anthropic' | 'elevenlabs'): {
+export async function checkSpendingCap(
+  identifier: string,
+  provider: 'anthropic' | 'elevenlabs'
+): Promise<{
   allowed: boolean
   currentSpend: number
   cap: number
   remaining: number
-} {
-  checkMonthlyReset()
-  
+}> {
+  if (!identifier) {
+    return { allowed: true, currentSpend: 0, cap: SPENDING_CAPS[provider], remaining: SPENDING_CAPS[provider] }
+  }
+
   const cap = SPENDING_CAPS[provider]
-  const currentSpend = spendingRecord[provider]
-  const remaining = Math.max(0, cap - currentSpend)
-  
-  return {
-    allowed: currentSpend < cap,
-    currentSpend: Math.round(currentSpend * 100) / 100,
-    cap,
-    remaining: Math.round(remaining * 100) / 100
+  const monthStart = getMonthStartISO()
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('usage_tracking')
+      .select('cost')
+      .eq('identifier', identifier)
+      .eq('provider', provider)
+      .gte('created_at', monthStart)
+
+    if (error) {
+      console.error('[SpendingCaps] DB query error:', error.message)
+      // Fail open if the DB crashes, to not break service entirely
+      return { allowed: true, currentSpend: 0, cap, remaining: cap }
+    }
+
+    const currentSpend = data?.reduce((acc, row) => acc + (Number(row.cost) || 0), 0) || 0
+    const remaining = Math.max(0, cap - currentSpend)
+
+    return {
+      allowed: currentSpend < cap,
+      currentSpend: Math.round(currentSpend * 100) / 100,
+      cap,
+      remaining: Math.round(remaining * 100) / 100
+    }
+  } catch (err) {
+    console.error('[SpendingCaps] unexpected error:', err)
+    return { allowed: true, currentSpend: 0, cap, remaining: cap }
   }
 }
 
@@ -87,21 +88,30 @@ export function checkSpendingCap(provider: 'anthropic' | 'elevenlabs'): {
  * Record spending for a provider
  */
 export function recordSpending(
+  identifier: string,
   provider: 'anthropic' | 'elevenlabs',
   cost: number
 ): void {
-  checkMonthlyReset()
-  spendingRecord[provider] += cost
-  
-  console.log(`[SpendingCaps] ${provider}: +$${cost.toFixed(4)} | Total: $${spendingRecord[provider].toFixed(2)} / $${SPENDING_CAPS[provider]}`)
+  if (!identifier || cost <= 0) return
+
+  // Fire and forget
+  supabaseAdmin
+    .from('usage_tracking')
+    .insert([{ identifier, provider, cost }])
+    .then(({ error }: any) => {
+      if (error) console.error('[SpendingCaps] Failed to record:', error.message)
+      else console.log(`[SpendingCaps] ${provider}: +$${cost.toFixed(4)} for ${identifier}`)
+    }, (err: any) => {
+      console.error(err)
+    })
 }
 
 /**
  * Estimate cost for Claude (Anthropic) API call
  */
 export function estimateAnthropicCost(inputTokens: number, outputTokens: number): number {
-  return (inputTokens * COST_PER_UNIT.anthropic_input) + 
-         (outputTokens * COST_PER_UNIT.anthropic_output)
+  return (inputTokens * COST_PER_UNIT.anthropic_input) +
+    (outputTokens * COST_PER_UNIT.anthropic_output)
 }
 
 /**
@@ -118,84 +128,10 @@ export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4)
 }
 
-/**
- * Get current spending status for all providers
- */
-export function getSpendingStatus(): Record<string, {
-  spent: number
-  cap: number
-  remaining: number
-  percentUsed: number
-}> {
-  checkMonthlyReset()
-  
-  return {
-    anthropic: {
-      spent: Math.round(spendingRecord.anthropic * 100) / 100,
-      cap: SPENDING_CAPS.anthropic,
-      remaining: Math.round((SPENDING_CAPS.anthropic - spendingRecord.anthropic) * 100) / 100,
-      percentUsed: Math.round((spendingRecord.anthropic / SPENDING_CAPS.anthropic) * 100)
-    },
-    elevenlabs: {
-      spent: Math.round(spendingRecord.elevenlabs * 100) / 100,
-      cap: SPENDING_CAPS.elevenlabs,
-      remaining: Math.round((SPENDING_CAPS.elevenlabs - spendingRecord.elevenlabs) * 100) / 100,
-      percentUsed: Math.round((spendingRecord.elevenlabs / SPENDING_CAPS.elevenlabs) * 100)
-    }
-  }
-}
-
-/**
- * Admin function to manually reset spending
- */
-export function resetSpending(provider?: 'anthropic' | 'elevenlabs'): void {
-  if (provider) {
-    spendingRecord[provider] = 0
-    console.log(`[SpendingCaps] Reset ${provider} spending to $0`)
-  } else {
-    spendingRecord = {
-      anthropic: 0,
-      elevenlabs: 0,
-      lastReset: Date.now(),
-      monthStart: getMonthStart()
-    }
-    console.log('[SpendingCaps] Reset all spending to $0')
-  }
-}
-
 // --- Usage Lock Controls ---
-// Admin can manually lock AI or database usage to keep costs low
+// Deprecated: kept for backwards compatibility if needed locally
+let usageLocks = { ai: false, database: false }
 
-interface UsageLocks {
-  ai: boolean
-  database: boolean
-}
-
-// In-memory usage lock state (resets on server restart, like spending records above)
-// For production, persist to Supabase or Redis
-let usageLocks: UsageLocks = {
-  ai: false,
-  database: false
-}
-
-/**
- * Check if a usage type is locked by admin
- */
-export function isUsageLocked(type: 'ai' | 'database'): boolean {
-  return usageLocks[type]
-}
-
-/**
- * Set the lock state for AI or database usage
- */
-export function setUsageLock(type: 'ai' | 'database', locked: boolean): void {
-  usageLocks[type] = locked
-  console.log(`[UsageLock] ${type} usage ${locked ? 'LOCKED' : 'UNLOCKED'}`)
-}
-
-/**
- * Get all usage lock states
- */
-export function getUsageLocks(): UsageLocks {
-  return { ...usageLocks }
-}
+export function isUsageLocked(type: 'ai' | 'database'): boolean { return usageLocks[type] }
+export function setUsageLock(type: 'ai' | 'database', locked: boolean): void { usageLocks[type] = locked }
+export function getUsageLocks() { return { ...usageLocks } }

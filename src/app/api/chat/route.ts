@@ -320,13 +320,14 @@ async function callOpenRouter(
 async function callClaude(
   systemPrompt: string,
   messages: { role: string; content: string }[],
-  byoApiKey?: string | null
+  byoApiKey?: string | null,
+  userIdOrSessionId?: string
 ): Promise<string> {
   // Check spending cap (skip if using BYO key)
-  if (!byoApiKey) {
-    const capCheck = checkSpendingCap('anthropic')
+  if (!byoApiKey && userIdOrSessionId) {
+    const capCheck = await checkSpendingCap(userIdOrSessionId, 'anthropic')
     if (!capCheck.allowed) {
-      console.error(`[Claude] Spending cap reached: $${capCheck.currentSpend}/$${capCheck.cap}`)
+      console.error(`[Claude] Spending cap reached: $${capCheck.currentSpend}/$${capCheck.cap} for ${userIdOrSessionId}`)
       throw new Error('Anthropic spending cap reached ($200/month). All providers exhausted.')
     }
   }
@@ -396,10 +397,10 @@ async function callClaude(
   const outputText = data.content[0].text
 
   // Record spending (skip if using BYO key)
-  if (!byoApiKey) {
+  if (!byoApiKey && userIdOrSessionId) {
     const estimatedOutputTokens = estimateTokens(outputText)
     const cost = estimateAnthropicCost(estimatedInputTokens, estimatedOutputTokens)
-    recordSpending('anthropic', cost)
+    recordSpending(userIdOrSessionId, 'anthropic', cost)
   }
 
   return outputText
@@ -532,7 +533,7 @@ export async function POST(request: NextRequest) {
     if (isSensitiveContent) {
       console.log('[AI Router] Sensitive content detected, trying Claude Haiku')
       try {
-        content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
+        content = await callClaude(fullSystemPrompt, messages, byoClaudeKey, sessionId || 'anonymous')
         provider = 'claude'
       } catch (error) {
         console.warn('Claude failed for sensitive content, using standard fallback chain:', error)
@@ -576,7 +577,7 @@ export async function POST(request: NextRequest) {
                 errors.push(`Llama: ${llamaError instanceof Error ? llamaError.message : String(llamaError)}`)
                 // Fallback to Claude Haiku
                 try {
-                  content = await callClaude(fullSystemPrompt, messages, byoClaudeKey)
+                  content = await callClaude(fullSystemPrompt, messages, byoClaudeKey, sessionId || 'anonymous')
                   provider = 'claude'
                 } catch (claudeError) {
                   console.warn('Claude failed, falling back to OpenRouter:', claudeError)
@@ -588,7 +589,7 @@ export async function POST(request: NextRequest) {
                   } catch (openRouterError) {
                     console.error('All providers exhausted including OpenRouter:', openRouterError)
                     errors.push(`OpenRouter: ${openRouterError instanceof Error ? openRouterError.message : String(openRouterError)}`)
-                    
+
                     // Mock response when all AI providers fail
                     console.log('All AI providers failed, returning mock response')
                     return NextResponse.json({
