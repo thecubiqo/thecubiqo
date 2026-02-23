@@ -1,7 +1,5 @@
 /* Vollebak-level UI System Architecture */
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500&family=Inter:wght@400&display=swap');
-
 :root {
     /* Color System */
     --v-bg: #000000;
