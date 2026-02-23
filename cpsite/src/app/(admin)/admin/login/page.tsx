@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function AdminLogin() {
+function LoginForm() {
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
-  const router      = useRouter()
+  const router       = useRouter()
   const searchParams = useSearchParams()
 
   async function handleSubmit(e: FormEvent) {
@@ -21,8 +21,7 @@ export default function AdminLogin() {
         body: JSON.stringify({ password }),
       })
       if (res.ok) {
-        const from = searchParams.get('from') ?? '/admin'
-        router.push(from)
+        router.push(searchParams.get('from') ?? '/admin')
       } else {
         setError('Incorrect password.')
       }
@@ -34,15 +33,14 @@ export default function AdminLogin() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0B0B0D] flex items-center justify-center px-6">
+    <main className="min-h-screen bg-black flex items-center justify-center px-6">
       <form onSubmit={handleSubmit} className="w-full max-w-xs">
-        <p className="text-[11px] uppercase tracking-[0.22em] text-[#A9A9A9] mb-8">Admin</p>
-        <h1 className="text-[28px] text-[#F6F3EE] font-[520] mb-10">Carl Phillips</h1>
-
-        {error && (
-          <p className="text-[13px] text-[#7C2020] mb-5">{error}</p>
-        )}
-
+        <p className="text-[11px] uppercase tracking-[0.25em] text-white/40 mb-8">Admin</p>
+        <h1 className="text-[28px] text-[#F2EFE8] font-[400] mb-10 tracking-[-0.02em]"
+            style={{ fontFamily: 'var(--font-display)' }}>
+          Carl Phillips
+        </h1>
+        {error && <p className="text-[13px] text-red-900 mb-5">{error}</p>}
         <input
           type="password"
           value={password}
@@ -50,13 +48,12 @@ export default function AdminLogin() {
           placeholder="Password"
           autoFocus
           required
-          className="w-full bg-transparent border border-[#2A2A2E] text-[#F6F3EE] placeholder-[#4A4A4E] px-4 py-3 text-[15px] mb-6 focus:outline-none focus:border-[#A9A9A9]"
+          className="w-full bg-transparent border border-white/[0.08] text-[#F2EFE8] placeholder-white/20 px-4 py-3 text-[15px] mb-6 focus:outline-none focus:border-white/20"
         />
-
         <button
           type="submit"
           disabled={loading}
-          className="w-full border border-[#F6F3EE]/20 text-[#F6F3EE] py-3 text-[14px] hover:bg-[#F6F3EE]/5 transition disabled:opacity-40"
+          className="w-full border border-white/[0.08] text-[#F2EFE8] py-3 text-[13px] uppercase tracking-[0.18em] hover:border-white/[0.14] hover:bg-white/[0.04] transition disabled:opacity-40"
         >
           {loading ? 'Entering…' : 'Enter'}
         </button>
@@ -64,3 +61,12 @@ export default function AdminLogin() {
     </main>
   )
 }
+
+export default function AdminLogin() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  )
+}
+

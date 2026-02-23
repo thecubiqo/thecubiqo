@@ -8,7 +8,7 @@ import OrbitText from './OrbitText';
 
 export default function HeroStage() {
   return (
-    <section className="relative min-h-[100svh] w-full bg-[#0B0B0D] overflow-hidden">
+    <section className="relative min-h-[100svh] w-full bg-black overflow-hidden">
       <TopNav theme="dark" />
 
       {/* Animated background */}
@@ -31,13 +31,13 @@ export default function HeroStage() {
         />
       </div>
 
-      {/* Copy positioned at bottom-left — 1.4 s delay (text enters after creature settles) */}
+      {/* Copy — bottom-left, enters after creature settles */}
       <div className="relative z-10 flex min-h-[100svh] items-end">
         <motion.div
-          initial={{ opacity: 0, y: 18 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.0, ease: 'easeOut', delay: 1.4 }}
-          className="w-full px-6 pb-16 md:px-12 md:pb-20"
+          transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1], delay: 1.4 }}
+          className="w-full px-6 pb-14 md:px-16 md:pb-20"
         >
           <HeroCopy />
         </motion.div>

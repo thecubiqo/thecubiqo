@@ -1,17 +1,60 @@
 @import "tailwindcss";
 
-:root {
-  --black: #0B0B0D;
-  --ivory: #F6F3EE;
-  --ash: #A9A9A9;
-  --red: #7C2020;
+/*
+ * DESIGN SYSTEM — Carl Phillips
+ * ─────────────────────────────
+ * Canvas:   #000000
+ * Text:     #F2EFE8
+ * Muted:    rgba(242,239,232,0.55)
+ * Border:   rgba(255,255,255,0.08)
+ * Hover bg: rgba(255,255,255,0.04)
+ *
+ * Font system (system fallbacks; inject via next/font/google on Vercel)
+ *   --font-display  →  Cormorant Garamond / Palatino
+ *   --font-sans     →  Inter / system-ui
+ *
+ * Section animation: cubic-bezier(0.22, 1, 0.36, 1) · y 40→0 · 1.0s
+ * Spacing rhythm:    section py ≈ 140px · label→headline gap: 20px
+ */
+
+@theme {
+  --font-sans:    var(--font-inter,    system-ui, -apple-system, 'Segoe UI', sans-serif);
+  --font-display: var(--font-cormorant, 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif);
 }
 
-::selection {
-  background: var(--black);
-  color: var(--ivory);
+/* ── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  background: #000;
+  color: #F2EFE8;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.8;
 }
 
-img {
-  filter: saturate(0.88) contrast(1.04);
+/* ── Selection ─────────────────────────────────────────── */
+::selection { background: #F2EFE8; color: #000; }
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 3px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); }
+
+/* ── Image treatment (global gallery standard) ─────────── */
+img { filter: contrast(0.92) saturate(0.95); display: block; }
+
+/* ── Fixed film-grain overlay ──────────────────────────── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
 }

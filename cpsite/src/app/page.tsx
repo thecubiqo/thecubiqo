@@ -1,17 +1,20 @@
-import HeroStage from '@/components/hero/HeroStage';
-import Statement from '@/components/sections/Statement';
-import ThreeTiles from '@/components/sections/ThreeTiles';
-import SocialPulse from '@/components/sections/SocialPulse';
-import Footer from '@/components/sections/Footer';
+import HeroStage    from '@/components/hero/HeroStage';
+import WorkSection   from '@/components/sections/WorkSection';
+import BlogPreview   from '@/components/sections/BlogPreview';
+import MusicSection  from '@/components/sections/MusicSection';
+import ContactSection from '@/components/sections/ContactSection';
+import Footer        from '@/components/sections/Footer';
 
 export default function HomePage() {
   return (
     <main>
       <HeroStage />
-      <Statement />
-      <ThreeTiles />
-      <SocialPulse />
+      <WorkSection />
+      <BlogPreview />
+      <MusicSection />
+      <ContactSection />
       <Footer />
     </main>
   );
 }
+

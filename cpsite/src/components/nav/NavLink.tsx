@@ -9,14 +9,18 @@ interface Props {
   theme?: 'dark' | 'light';
 }
 
-export default function NavLink({ href, label, theme = 'dark' }: Props) {
+export default function NavLink({ href, label }: Props) {
   const pathname = usePathname();
-  const active = pathname.startsWith(href);
-  const base = theme === 'dark' ? 'text-[#F6F3EE]/70 hover:text-[#F6F3EE]' : 'text-[#5A5752] hover:text-[#0B0B0D]';
-  const activeClass = theme === 'dark' ? 'text-[#F6F3EE]' : 'text-[#0B0B0D]';
+  const active = pathname === href || pathname.startsWith(href + '/');
   return (
-    <Link href={href} className={`text-[13px] transition ${active ? activeClass : base}`}>
+    <Link
+      href={href}
+      className={`text-[11px] uppercase tracking-[0.20em] transition ${
+        active ? 'text-[#F2EFE8]' : 'text-white/30 hover:text-white/65'
+      }`}
+    >
       {label}
     </Link>
   );
 }
+

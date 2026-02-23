@@ -46,7 +46,7 @@ export default function PostEditor() {
 
   function handleTitleChange(val: string) {
     setTitle(val)
-    if (!slug || slug === slugify(title)) {
+    if (!slug || slug === slugify(val)) {
       setSlug(slugify(val))
     }
   }

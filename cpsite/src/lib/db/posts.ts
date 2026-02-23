@@ -1,4 +1,4 @@
-import { supabase, getAdminClient } from './supabase'
+import { getSupabaseClient, getAdminClient } from './supabase'
 
 export interface Post {
   id: string
@@ -20,7 +20,9 @@ export type PostInsert = Omit<Post, 'id' | 'created_at' | 'updated_at'>
 
 /** Public: list all published posts, newest first */
 export async function getPublishedPosts(): Promise<Post[]> {
-  const { data, error } = await supabase
+  const client = getSupabaseClient()
+  if (!client) return []
+  const { data, error } = await client
     .from('posts')
     .select('*')
     .eq('published', true)
@@ -31,7 +33,9 @@ export async function getPublishedPosts(): Promise<Post[]> {
 
 /** Public: get one published post by slug */
 export async function getPostBySlug(slug: string): Promise<Post | null> {
-  const { data, error } = await supabase
+  const client = getSupabaseClient()
+  if (!client) return null
+  const { data, error } = await client
     .from('posts')
     .select('*')
     .eq('published', true)
@@ -44,6 +48,7 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
 /** Admin: get all posts (including drafts) */
 export async function getAllPostsAdmin(): Promise<Post[]> {
   const admin = getAdminClient()
+  if (!admin) return []
   const { data, error } = await admin
     .from('posts')
     .select('*')
@@ -55,6 +60,7 @@ export async function getAllPostsAdmin(): Promise<Post[]> {
 /** Admin: insert a new post */
 export async function createPost(post: PostInsert): Promise<Post> {
   const admin = getAdminClient()
+  if (!admin) throw new Error('Database not configured')
   const { data, error } = await admin
     .from('posts')
     .insert(post)
@@ -67,6 +73,7 @@ export async function createPost(post: PostInsert): Promise<Post> {
 /** Admin: update an existing post */
 export async function updatePost(id: string, patch: Partial<PostInsert>): Promise<Post> {
   const admin = getAdminClient()
+  if (!admin) throw new Error('Database not configured')
   const { data, error } = await admin
     .from('posts')
     .update(patch)
@@ -77,11 +84,13 @@ export async function updatePost(id: string, patch: Partial<PostInsert>): Promis
   return data
 }
 
-/** Public: get up to 3 featured published posts for the Pulse section */
-export async function getFeaturedPosts(): Promise<Array<Pick<Post, 'slug' | 'title' | 'excerpt' | 'category' | 'created_at'>>> {
-  const { data } = await supabase
+/** Public: up to 3 featured published posts for the Pulse section */
+export async function getFeaturedPosts(): Promise<Post[]> {
+  const client = getSupabaseClient()
+  if (!client) return []
+  const { data } = await client
     .from('posts')
-    .select('slug, title, excerpt, category, created_at')
+    .select('*')
     .eq('published', true)
     .eq('featured', true)
     .order('created_at', { ascending: false })
