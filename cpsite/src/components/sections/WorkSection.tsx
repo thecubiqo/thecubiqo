@@ -11,23 +11,31 @@ const reveal = (delay = 0) => ({
   transition:  { duration: 1.0, ease: EASE, delay },
 });
 
-const features = [
+const roles = [
   {
-    title: 'Voice Conversations',
-    body: 'Natural voice interaction with emotional modulation. Cubiqo listens, understands context, and responds with nuance — powered by open models like Llama and Mixtral.',
+    org: 'International Rescue Committee',
+    link: 'https://rescue.org',
+    period: '2016 – Present',
+    location: 'New York, NY',
+    title: 'Senior Program Manager',
+    body: 'Leads a 22-person team delivering resettlement, employment, and economic mobility services to over 3,000 refugees and immigrants annually. Direct oversight of a $12M federal grant portfolio.',
     stats: [
-      { n: 'Open',   label: 'Source models' },
-      { n: 'BYO',    label: 'Bring your keys' },
-      { n: '∞',      label: 'Conversations' },
+      { n: '22',   label: 'Staff & volunteers' },
+      { n: '$12M', label: 'Federal grant' },
+      { n: '3k+',  label: 'Clients annually' },
     ],
   },
   {
-    title: 'Rozana Journal',
-    body: 'Daily reflections with AI-guided conversations. Build a living journal that surfaces patterns, insights, and growth over time using your own private data.',
+    org: 'Peace Corps — Zambia',
+    link: null as string | null,
+    period: '2012 – 2014',
+    location: 'Southern Province',
+    title: 'Education Volunteer',
+    body: 'Two-year service placement teaching secondary school, designing HIV/AIDS curriculum adopted by four schools, and leading gender equity workshops reaching 200+ students.',
     stats: [
-      { n: 'Daily',  label: 'Reflections' },
-      { n: 'RGY',    label: 'Life context' },
-      { n: '100%',   label: 'Private' },
+      { n: '200+', label: 'Students reached' },
+      { n: '4',    label: 'Schools, curriculum' },
+      { n: '2',    label: 'Years in field' },
     ],
   },
 ];
@@ -38,28 +46,34 @@ export default function WorkSection() {
       <div className="max-w-6xl mx-auto">
 
         <motion.div {...reveal()}>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-white/40 mb-5">Features</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-white/40 mb-5">Work</p>
           <h2
             className="text-[40px] md:text-[58px] font-[400] tracking-[-0.03em] leading-[1.06] max-w-3xl text-[#F2EFE8]"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            Voice. Journal.<br className="hidden md:block" /> Intelligent matching.
+            Leadership. Program design.<br className="hidden md:block" /> International service.
           </h2>
         </motion.div>
 
         <div className="mt-20 grid md:grid-cols-2 gap-px bg-white/[0.08]">
-          {features.map((feature, i) => (
-            <motion.div key={feature.title} {...reveal(i * 0.1)}>
+          {roles.map((role, i) => (
+            <motion.div key={role.org} {...reveal(i * 0.1)}>
               <div className="bg-black p-10 md:p-12 h-full flex flex-col">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-white/40 mb-6">
+                  {role.period} · {role.location}
+                </p>
                 <h3
-                  className="text-[24px] md:text-[28px] font-[400] text-[#F2EFE8] leading-[1.1] tracking-[-0.02em] mb-6"
+                  className="text-[24px] md:text-[28px] font-[400] text-[#F2EFE8] leading-[1.1] tracking-[-0.02em] mb-2"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
-                  {feature.title}
+                  {role.link
+                    ? <a href={role.link} target="_blank" rel="noopener noreferrer" className="hover:text-white/60 transition">{role.org}</a>
+                    : role.org}
                 </h3>
-                <p className="text-[15px] text-white/55 leading-[1.8] mb-12 flex-1">{feature.body}</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-white/40 mb-8">{role.title}</p>
+                <p className="text-[15px] text-white/55 leading-[1.8] mb-12 flex-1">{role.body}</p>
                 <div className="grid grid-cols-3 gap-px bg-white/[0.08]">
-                  {feature.stats.map(s => (
+                  {role.stats.map(s => (
                     <div key={s.label} className="bg-black pt-5 pb-4 pr-4">
                       <p className="text-[26px] font-[300] text-[#F2EFE8] leading-none tracking-[-0.02em]"
                          style={{ fontFamily: 'var(--font-display)' }}>
@@ -77,35 +91,41 @@ export default function WorkSection() {
         <motion.div {...reveal(0.2)} className="mt-px bg-white/[0.08]">
           <div className="bg-black px-10 md:px-12 py-10">
             <p className="text-[11px] uppercase tracking-[0.22em] text-white/40 mb-4">
-              Privacy‑First · Open Source
+              Arts &amp; Education · 2008 – Present
             </p>
             <h3
               className="text-[24px] font-[400] text-[#F2EFE8] tracking-[-0.02em] mb-4"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              RGY Context — Your life in colour
+              Musical Director &amp; Educator
             </h3>
             <p className="text-[15px] text-white/55 leading-[1.8] max-w-2xl">
-              Red · Yellow · Green. Colour-code every aspect of your life so Cubiqo can surface opportunities,
-              flag friction, and guide growth — all powered by models you control.
+              BMus — piano performance and music education. Musical direction for theater, choral, and community
+              ensembles. Integration of music and language learning in underserved educational settings.
             </p>
           </div>
         </motion.div>
 
         <motion.div {...reveal(0.3)} className="mt-14 flex flex-wrap gap-10 items-center">
           <a
-            href="https://github.com/thecubiqo/thecubiqo"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/carl-phillips-cv.pdf"
             className="text-[12px] uppercase tracking-[0.22em] border border-white/[0.08] px-6 py-3 text-white/55 hover:border-white/[0.14] hover:text-[#F2EFE8] hover:bg-white/[0.04] transition duration-300"
           >
-            View on GitHub ↗
+            Download CV ↓
           </a>
-          <Link
-            href="/contact"
+          <a
+            href="https://linkedin.com/in/carlphillips"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-[12px] uppercase tracking-[0.22em] text-white/40 hover:text-white/70 transition"
           >
-            Get early access →
+            LinkedIn Profile →
+          </a>
+          <Link
+            href="/work"
+            className="text-[12px] uppercase tracking-[0.22em] text-white/40 hover:text-white/70 transition"
+          >
+            Full History →
           </Link>
         </motion.div>
 

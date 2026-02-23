@@ -38,7 +38,7 @@ function LoginForm() {
         <p className="text-[11px] uppercase tracking-[0.25em] text-white/40 mb-8">Admin</p>
         <h1 className="text-[28px] text-[#F2EFE8] font-[400] mb-10 tracking-[-0.02em]"
             style={{ fontFamily: 'var(--font-display)' }}>
-          Cubiqo
+          Carl Phillips
         </h1>
         {error && <p className="text-[13px] text-red-900 mb-5">{error}</p>}
         <input

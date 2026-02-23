@@ -13,25 +13,25 @@ const reveal = (delay = 0) => ({
 
 const posts = [
   {
-    href: '/lifes-work/voice-update',
-    category: 'Update',
-    title: 'Voice interactions, now smarter.',
-    excerpt: 'Emotional modulation, context carry-over, and sub-100ms latency — the new voice engine is live.',
-    date: 'Feb 2026',
-  },
-  {
-    href: '/lifes-work/rozana-journal',
-    category: 'Feature',
-    title: 'Rozana Journal — daily AI reflections.',
-    excerpt: 'Your AI companion now guides a structured daily reflection, surfacing patterns you might otherwise miss.',
+    href: '/lifes-work/another-year',
+    category: 'Field Notes',
+    title: "Another year and it's still.",
+    excerpt: 'Some years, January feels like a question the year forgot to answer.',
     date: 'Jan 2026',
   },
   {
-    href: '/lifes-work/open-source',
-    category: 'Community',
-    title: 'Cubiqo goes fully open source.',
-    excerpt: 'All core models and the full companion stack are now on GitHub. BYO keys, BYO privacy.',
+    href: '/lifes-work/on-displacement',
+    category: 'Writing',
+    title: 'On displacement and dignity.',
+    excerpt: "Three years in, the work still surprises me — not the hardship, but the persistence of grace.",
     date: 'Dec 2025',
+  },
+  {
+    href: '/lifes-work/evangeline',
+    category: 'Music',
+    title: 'Evangeline — live recording.',
+    excerpt: "A piece I've returned to twice. First as a student. Now as something else.",
+    date: 'Nov 2025',
   },
 ];
 
@@ -41,12 +41,12 @@ export default function BlogPreview() {
       <div className="max-w-6xl mx-auto">
 
         <motion.div {...reveal()}>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-white/40 mb-5">Blog</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-white/40 mb-5">Life&apos;s Work</p>
           <h2
             className="text-[40px] md:text-[58px] font-[400] tracking-[-0.03em] leading-[1.06] max-w-2xl text-[#F2EFE8]"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            Updates. Features.<br className="hidden md:block" /> Community.
+            Writing. Field notes.<br className="hidden md:block" /> Reflection.
           </h2>
         </motion.div>
 

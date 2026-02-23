@@ -4,15 +4,15 @@ import TopNav from '@/components/nav/TopNav'
 import Footer from '@/components/sections/Footer'
 import { getPublishedPosts } from '@/lib/db/posts'
 
-export const metadata: Metadata = { title: 'Blog' }
+export const metadata: Metadata = { title: "Life's Work" }
 
 // Revalidate every hour so new posts appear without a redeploy
 export const revalidate = 3600
 
 const pillars = [
-  { href: '/lifes-work/writing',     label: 'Updates' },
-  { href: '/lifes-work/music',       label: 'Features' },
-  { href: '/lifes-work/field-notes', label: 'Community' },
+  { href: '/lifes-work/writing',     label: 'Writing' },
+  { href: '/lifes-work/music',       label: 'Music' },
+  { href: '/lifes-work/field-notes', label: 'Field Notes' },
 ]
 
 export default async function LifesWorkPage() {
@@ -31,10 +31,10 @@ export default async function LifesWorkPage() {
 
           {/* Page header */}
           <h1 className="text-[40px] md:text-[56px] font-[520] tracking-[-0.025em] leading-[1.06]">
-            Blog
+            Life's Work
           </h1>
           <p className="mt-4 text-[16px] text-[#A9A9A9] max-w-xl leading-[1.65]">
-            Updates, feature deep-dives, and community highlights — from the Cubiqo team.
+            Writing, music, and field notes — posted simply, kept intact.
           </p>
 
           {/* Pillar nav */}
