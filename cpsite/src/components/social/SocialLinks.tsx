@@ -3,10 +3,9 @@ interface Props {
 }
 
 const links = [
-  { label: 'LinkedIn',  href: 'https://linkedin.com/in/carlphillips' },
-  { label: 'Facebook',  href: 'https://facebook.com/carlphillips' },
-  { label: 'Instagram', href: 'https://instagram.com/carlphillips' },
-  { label: 'X',         href: 'https://x.com/carlphillips' },
+  { label: 'GitHub',    href: 'https://github.com/thecubiqo/thecubiqo' },
+  { label: 'Discord',   href: 'https://discord.gg/cubiqo' },
+  { label: 'X',         href: 'https://x.com/cubiqo' },
 ]
 
 export default function SocialLinks({ className = '' }: Props) {

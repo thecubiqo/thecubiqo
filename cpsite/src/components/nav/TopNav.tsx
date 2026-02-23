@@ -5,10 +5,10 @@ import { useEffect, useState } from 'react';
 import NavLink from './NavLink';
 
 const links = [
-  { href: '/life',       label: 'Life' },
-  { href: '/work',       label: 'Work' },
-  { href: '/lifes-work', label: "Life's Work" },
-  { href: '/contact',    label: 'Contact' },
+  { href: '/features',  label: 'Features' },
+  { href: '/work',      label: 'Demo' },
+  { href: '/lifes-work', label: 'Blog' },
+  { href: '/contact',   label: 'Contact' },
 ];
 
 export default function TopNav({ theme: _theme = 'dark' }: { theme?: 'dark' | 'light' }) {
@@ -33,7 +33,7 @@ export default function TopNav({ theme: _theme = 'dark' }: { theme?: 'dark' | 'l
         href="/"
         className="text-[11px] font-[500] tracking-[0.22em] uppercase text-white/35 hover:text-white/70 transition"
       >
-        CP
+        Cubiqo
       </Link>
       <div className="flex items-center gap-8 md:gap-10">
         {links.map((l) => (

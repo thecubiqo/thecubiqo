@@ -12,9 +12,9 @@ const reveal = (delay = 0) => ({
 });
 
 const tracks = [
-  { title: 'Chopin — Nocturne Op. 9 No. 2',  type: 'Piano',           dur: '4:33' },
-  { title: 'Evangeline',                       type: 'Original',        dur: '3:12' },
-  { title: 'Field Songs — Zambia Sketches',    type: 'Field recording', dur: '6:48' },
+  { title: 'Voice demo — natural conversation',  type: 'Voice AI',      dur: '2:14' },
+  { title: 'Rozana Journal walkthrough',          type: 'Feature demo',  dur: '3:45' },
+  { title: 'RGY context — life in colour',        type: 'Feature demo',  dur: '4:02' },
 ];
 
 function MinimalPlayer({ title, type, dur }: { title: string; type: string; dur: string }) {
@@ -48,16 +48,16 @@ export default function MusicSection() {
       <div className="max-w-6xl mx-auto">
 
         <motion.div {...reveal()}>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-white/40 mb-5">Music</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-white/40 mb-5">Demos</p>
           <h2
             className="text-[40px] md:text-[58px] font-[400] tracking-[-0.03em] leading-[1.06] text-[#F2EFE8]"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            Sound as memory.
+            AI in action.
           </h2>
           <p className="mt-6 text-[15px] text-white/55 max-w-lg leading-[1.8]">
-            Piano. Direction. Composition. Music as a second language — or the
-            first, before words organized themselves into sense.
+            Voice. Journal. RGY. See how Cubiqo transforms the way you interact with AI —
+            naturally, privately, and intelligently.
           </p>
         </motion.div>
 
@@ -68,12 +68,14 @@ export default function MusicSection() {
         </motion.div>
 
         <motion.div {...reveal(0.25)} className="mt-14">
-          <Link
-            href="/lifes-work/music"
+          <a
+            href="https://github.com/thecubiqo/thecubiqo"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-[12px] uppercase tracking-[0.22em] text-white/40 hover:text-white/70 transition"
           >
-            All music →
-          </Link>
+            View on GitHub →
+          </a>
         </motion.div>
 
       </div>

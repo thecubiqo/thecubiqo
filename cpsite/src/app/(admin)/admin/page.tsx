@@ -20,7 +20,7 @@ export default async function AdminDashboard() {
         <div className="flex items-center justify-between mb-14">
           <div>
             <p className="text-[11px] uppercase tracking-[0.22em] text-[#A9A9A9] mb-1">Admin</p>
-            <h1 className="text-[28px] font-[520]">Carl Phillips</h1>
+            <h1 className="text-[28px] font-[520]">Cubiqo</h1>
           </div>
           <LogoutButton />
         </div>

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://carlphillips.com';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://cubiqo.ai';
 
 export const siteMetadata = {
-  name: 'Carl Phillips',
-  description: 'Humanitarian leadership. Music. Education. Writing. At the edge of life.',
+  name: 'Cubiqo',
+  description: 'Open-source AI companion with voice, journaling, and intelligent matching. Privacy-first. BYO mode.',
   url: BASE_URL,
 };
 

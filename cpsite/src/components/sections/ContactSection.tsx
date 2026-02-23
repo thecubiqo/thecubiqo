@@ -11,10 +11,10 @@ const reveal = (delay = 0) => ({
 });
 
 const links = [
-  { label: 'Email',     href: 'mailto:hello@carlphillips.com', external: false },
-  { label: 'LinkedIn',  href: 'https://linkedin.com/in/carlphillips',  external: true },
-  { label: 'Facebook',  href: 'https://facebook.com/carlphillips',     external: true },
-  { label: 'Instagram', href: 'https://instagram.com/carlphillips',    external: true },
+  { label: 'Email',     href: 'mailto:hello@cubiqo.ai', external: false },
+  { label: 'GitHub',    href: 'https://github.com/thecubiqo/thecubiqo',  external: true },
+  { label: 'Discord',   href: 'https://discord.gg/cubiqo',     external: true },
+  { label: 'Twitter',   href: 'https://twitter.com/cubiqo',    external: true },
 ];
 
 export default function ContactSection() {
@@ -28,20 +28,20 @@ export default function ContactSection() {
             className="text-[40px] md:text-[58px] font-[400] tracking-[-0.03em] leading-[1.06] text-[#F2EFE8]"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            For collaboration,<br className="hidden md:block" /> inquiry, or conversation.
+            Get early access.<br className="hidden md:block" /> Join the community.
           </h2>
         </motion.div>
 
         <motion.div {...reveal(0.1)} className="mt-16 border-t border-b border-white/[0.08] py-10">
           <a
-            href="mailto:hello@carlphillips.com"
+            href="mailto:hello@cubiqo.ai"
             className="group flex items-center justify-between"
           >
             <span
               className="text-[24px] md:text-[38px] font-[300] tracking-[-0.01em] text-white/55 group-hover:text-[#F2EFE8] transition duration-300"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              hello@carlphillips.com
+              hello@cubiqo.ai
             </span>
             <span className="text-white/25 group-hover:text-white/60 transition text-[18px]">→</span>
           </a>

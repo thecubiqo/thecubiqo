@@ -94,7 +94,7 @@ export default function PostEditor() {
     }
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://carlphillips.com'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://cubiqo.ai'
   const postUrl = published_post ? `${siteUrl}/lifes-work/${published_post.slug}` : ''
 
   return (

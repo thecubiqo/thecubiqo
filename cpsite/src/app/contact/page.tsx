@@ -16,10 +16,10 @@ export default function ContactPage() {
           <div>
             <p className="text-[13px] uppercase tracking-[0.18em] text-[#A9A9A9] mb-2">Email</p>
             <a
-              href="mailto:hello@carlphillips.com"
+              href="mailto:hello@cubiqo.ai"
               className="text-[20px] font-[440] hover:underline underline-offset-4"
             >
-              hello@carlphillips.com
+              hello@cubiqo.ai
             </a>
           </div>
 
@@ -27,10 +27,9 @@ export default function ContactPage() {
             <p className="text-[13px] uppercase tracking-[0.18em] text-[#A9A9A9] mb-3">Elsewhere</p>
             <div className="flex flex-col gap-2">
               {[
-                { label: 'LinkedIn', href: 'https://linkedin.com/in/carlphillips' },
-                { label: 'Facebook', href: 'https://facebook.com/carlphillips' },
-                { label: 'Instagram', href: 'https://instagram.com/carlphillips' },
-                { label: 'X / Twitter', href: 'https://x.com/carlphillips' },
+                { label: 'GitHub', href: 'https://github.com/thecubiqo/thecubiqo' },
+                { label: 'Discord', href: 'https://discord.gg/cubiqo' },
+                { label: 'X / Twitter', href: 'https://x.com/cubiqo' },
               ].map((s) => (
                 <a
                   key={s.label}

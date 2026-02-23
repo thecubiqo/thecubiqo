@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const post = await getPostBySlug(slug)
   if (!post) return {}
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://carlphillips.com'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://cubiqo.ai'
   return {
     title: post.title,
     description: post.excerpt ?? undefined,
@@ -55,7 +55,7 @@ export default async function PostPage({ params }: Props) {
   const post = await getPostBySlug(slug)
   if (!post) notFound()
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://carlphillips.com'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://cubiqo.ai'
   const postUrl = `${siteUrl}/lifes-work/${post.slug}`
 
   const dateStr = new Date(post.created_at).toLocaleDateString('en-US', {

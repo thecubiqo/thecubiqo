@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: { default: 'Carl Phillips', template: '%s — Carl Phillips' },
-  description: 'Humanitarian leadership. Music. Education. Writing. At the edge of life.',
+  title: { default: 'Cubiqo', template: '%s — Cubiqo' },
+  description: 'Open-source AI companion with voice, journaling, and intelligent matching. Privacy-first. BYO mode.',
 };
 
 /*

@@ -4,23 +4,23 @@ import { getFeaturedPosts } from '@/lib/db/posts'
 // Fallback placeholder cards (shown when DB not connected)
 const fallback = [
   {
-    platform: 'LinkedIn',
-    title: 'On resilience in refugee services',
-    excerpt: 'Three years in, the work still surprises me. Not the hardship — that was expected…',
+    platform: 'GitHub',
+    title: 'Cubiqo goes fully open source.',
+    excerpt: 'All core models and the full companion stack are now on GitHub. BYO keys, BYO privacy.',
     date: 'Feb 2026',
-    href: 'https://linkedin.com/in/carlphillips',
+    href: 'https://github.com/thecubiqo/thecubiqo',
   },
   {
-    platform: 'Facebook',
-    title: 'Playing Chopin again after a long pause.',
-    excerpt: "Sometimes you come back to a piece and it's a different piece entirely…",
+    platform: 'Update',
+    title: 'Rozana Journal — daily AI reflections.',
+    excerpt: 'Your AI companion now guides a structured daily reflection, surfacing patterns you might otherwise miss.',
     date: 'Jan 2026',
-    href: 'https://facebook.com/carlphillips',
+    href: '/lifes-work',
   },
   {
-    platform: 'Site',
-    title: 'Field notes from the week.',
-    excerpt: 'Found this on an old drive. A lot was simpler then.',
+    platform: 'Feature',
+    title: 'RGY context — your life in colour.',
+    excerpt: 'Red · Yellow · Green. Colour-code every aspect of your life so Cubiqo can surface opportunities.',
     date: 'Jan 2026',
     href: '/lifes-work',
   },
@@ -51,7 +51,7 @@ export default async function SocialPulse() {
           <div>
             <p className="text-[11px] uppercase tracking-[0.22em] text-[#A9A9A9] mb-2">Recent</p>
             <p className="text-[18px] text-[#F6F3EE] font-[440]">
-              Selected notes and signals — shared across platforms, archived here.
+              Latest updates, features, and community highlights — all in one place.
             </p>
           </div>
           <Link
