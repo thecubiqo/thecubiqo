@@ -1,0 +1,197 @@
+/* Vollebak-level UI System Architecture */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500&family=Inter:wght@400&display=swap');
+
+:root {
+    /* Color System */
+    --v-bg: #000000;
+    --v-text-primary: #F2EFE8;
+    --v-text-secondary: rgba(242, 239, 232, 0.55);
+    --v-border: rgba(255, 255, 255, 0.08);
+    --v-hover: rgba(255, 255, 255, 0.14);
+
+    /* Typography System */
+    --v-font-serif: 'Playfair Display', serif;
+    /* Fallback for Canela/Editorial New */
+    --v-font-sans: 'Inter', sans-serif;
+
+    /* Spacing System */
+    --v-spacing-hero-work: 160px;
+    --v-section-padding: 180px;
+    --v-image-gap: 120px;
+    --v-cta-gap: 60px;
+}
+
+.v-theme {
+    background-color: var(--v-bg);
+    color: var(--v-text-primary);
+    font-family: var(--v-font-sans);
+    min-height: 100vh;
+}
+
+/* Typography Classes */
+.v-headline {
+    font-family: var(--v-font-serif);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    color: var(--v-text-primary);
+}
+
+.v-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    opacity: 0.4;
+    color: var(--v-text-primary);
+}
+
+.v-body {
+    font-family: var(--v-font-sans);
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--v-text-primary);
+}
+
+.v-text-muted {
+    color: var(--v-text-secondary);
+}
+
+/* Scroll Reveal Animation */
+.v-reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 1.1s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.v-reveal.v-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Staggered Children */
+.v-stagger>* {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.v-stagger.v-visible>* {
+    animation: v-fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes v-fade-up {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Image Treatment */
+.v-media-treatment {
+    filter: contrast(0.92) saturate(0.95);
+    width: 100%;
+    display: block;
+}
+
+/* Section Exhibit Layout */
+.v-exhibit {
+    padding: var(--v-section-padding) 0;
+    max-width: 100vw;
+    overflow: hidden;
+}
+
+.v-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 40px;
+}
+
+/* Blog/Grid UI */
+.v-grid {
+    display: grid;
+    gap: 40px;
+}
+
+@media (min-width: 1024px) {
+    .v-grid-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.v-card {
+    border: 1px solid var(--v-border);
+    padding: 30px;
+    transition: background-color 0.4s ease;
+}
+
+.v-card:hover {
+    background-color: var(--v-hover);
+}
+
+/* Audio Module */
+.v-audio-module {
+    border-top: 1px solid var(--v-border);
+    border-bottom: 1px solid var(--v-border);
+    padding: 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.v-progress-bar {
+    height: 1px;
+    background: var(--v-border);
+    flex: 1;
+    position: relative;
+}
+
+.v-progress-fill {
+    height: 100%;
+    background: var(--v-text-primary);
+    width: 30%;
+}
+
+/* Contact/Social Links */
+.v-link {
+    color: var(--v-text-primary);
+    opacity: 0.6;
+    text-decoration: none;
+    transition: opacity 0.3s ease;
+}
+
+.v-link:hover {
+    opacity: 1;
+}
+
+/* Global Motion Rules */
+* {
+    -webkit-font-smoothing: antialiased;
+}
+
+.v-shimmer {
+    position: relative;
+    overflow: hidden;
+}
+
+.v-shimmer::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+    animation: v-shimmer 10s infinite linear;
+    pointer-events: none;
+}
+
+@keyframes v-shimmer {
+    from {
+        transform: translate(-10%, -10%);
+    }
+
+    to {
+        transform: translate(10%, 10%);
+    }
+}
