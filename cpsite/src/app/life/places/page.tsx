@@ -13,14 +13,22 @@ const places = [
     name: 'Zambia',
     years: '2012 – 2014',
     note: 'Two years of service, slow time, red soil. Peace Corps. Teaching. Community.',
-    images: [] as string[],
+    images: [
+      '/images/life/zambia/zambia-1.jpg',
+      '/images/life/zambia/zambia-2.jpg',
+      '/images/life/zambia/zambia-3.jpg',
+    ],
   },
   {
     id: 'new-york',
     name: 'New York',
     years: '2016 – present',
     note: 'The city that holds everything at once. IRC. Music. Late nights.',
-    images: [] as string[],
+    images: [
+      '/images/life/nyc/nyc-1.jpg',
+      '/images/life/nyc/nyc-2.jpg',
+      '/images/life/nyc/nyc-3.jpg',
+    ],
   },
   {
     id: 'new-jersey',
