@@ -43,6 +43,12 @@
     "social-army",
     "**/*.stories.tsx",
     "**/*.test.ts",
-    "**/*.test.tsx"
+    "**/*.test.tsx",
+    "alter_db.ts",
+    "alter_session_db.ts",
+    "alter_stripe_db.ts",
+    "alter_usage_db.ts",
+    "create_usage_db.ts",
+    "promote_admin.ts"
   ]
 }

@@ -29,10 +29,7 @@ export function getRedisClient(): RedisClient | null {
     return null;
   }
 
-  if (!Redis) {
-    console.warn('Redis module not found. Session store will use in-memory fallback.');
-    return null;
-  }
+  // Removed static module check because it's evaluated dynamically
 
   try {
     // Dynamic import to avoid build failure when ioredis is not installed

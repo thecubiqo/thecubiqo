@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      journal_entries: {
+        Row: {
+          id: string
+          user_id: string
+          content: string
+          mood: string | null
+          color_state: string | null
+          word_count: number | null
+          duration_seconds: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          content: string
+          mood?: string | null
+          color_state?: string | null
+          word_count?: number | null
+          duration_seconds?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          content?: string
+          mood?: string | null
+          color_state?: string | null
+          word_count?: number | null
+          duration_seconds?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       emergent_orgs: {
         Row: {
           id: string

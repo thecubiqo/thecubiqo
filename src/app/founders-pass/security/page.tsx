@@ -4,8 +4,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { SkeletonMetricCard } from '@/components/ui/LoadingSkeleton';
 
 interface SecurityMetrics {
