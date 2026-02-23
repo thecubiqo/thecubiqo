@@ -9,6 +9,7 @@ export const metadata: Metadata = { title: 'Work' };
 const roles = [
   {
     org: 'International Rescue Committee',
+    link: 'https://rescue.org',
     location: 'New York / Remote',
     years: '2016 – present',
     title: 'Senior Program Manager',
@@ -22,6 +23,7 @@ const roles = [
   },
   {
     org: 'Peace Corps',
+    link: 'https://www.peacecorps.gov',
     location: 'Zambia',
     years: '2012 – 2014',
     title: 'Education Volunteer',
@@ -49,7 +51,11 @@ export default function WorkPage() {
           {roles.map((role) => (
             <article key={role.org} className="border-t border-[#E2DDD7] pt-10">
               <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-1 mb-6">
-                <h2 className="text-[22px] font-[520] tracking-[-0.01em]">{role.org}</h2>
+                <h2 className="text-[22px] font-[520] tracking-[-0.01em]">
+                  {role.link
+                    ? <a href={role.link} target="_blank" rel="noopener noreferrer" className="hover:underline underline-offset-4">{role.org}</a>
+                    : role.org}
+                </h2>
                 <span className="text-[13px] text-[#A9A9A9]">{role.years} · {role.location}</span>
               </div>
               <p className="text-[14px] uppercase tracking-[0.12em] text-[#A9A9A9] mb-4">{role.title}</p>

@@ -27,7 +27,7 @@ const roles = [
   },
   {
     org: 'Peace Corps — Zambia',
-    link: null as string | null,
+    link: 'https://www.peacecorps.gov' as string | null,
     period: '2012 – 2014',
     location: 'Southern Province',
     title: 'Education Volunteer',
