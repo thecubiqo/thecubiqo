@@ -2,8 +2,10 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import TopNav from '@/components/nav/TopNav';
 import Footer from '@/components/sections/Footer';
+import CopyLinkButton from '@/components/social/CopyLinkButton';
 import { getPost } from '@/lib/posts/getPost';
 import { getAllPosts } from '@/lib/posts/getAllPosts';
+import { linkedInShareUrl, facebookShareUrl, xShareUrl } from '@/lib/social/generateCaptions';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -26,6 +28,9 @@ export default async function PostPage({ params }: Props) {
   const post = await getPost(slug);
   if (!post) notFound();
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://carlphillips.com';
+  const postUrl = `${siteUrl}/post/${slug}`;
+
   return (
     <>
       <TopNav theme="light" />
@@ -42,16 +47,10 @@ export default async function PostPage({ params }: Props) {
         {/* Share bar */}
         <div className="flex items-center gap-4 mb-12 border-y border-[#E2DDD7] py-4">
           <span className="text-[13px] text-[#A9A9A9]">Share</span>
-          <a href="#" className="text-[13px] text-[#5A5752] hover:text-[#0B0B0D]">LinkedIn</a>
-          <a href="#" className="text-[13px] text-[#5A5752] hover:text-[#0B0B0D]">Facebook</a>
-          <a href="#" className="text-[13px] text-[#5A5752] hover:text-[#0B0B0D]">Instagram</a>
-          <a href="#" className="text-[13px] text-[#5A5752] hover:text-[#0B0B0D]">X</a>
-          <button
-            onClick={() => { if (typeof window !== 'undefined') navigator.clipboard.writeText(window.location.href) }}
-            className="ml-auto text-[13px] text-[#5A5752] hover:text-[#0B0B0D]"
-          >
-            Copy link ↗
-          </button>
+          <a href={linkedInShareUrl(postUrl)} target="_blank" rel="noopener noreferrer" className="text-[13px] text-[#5A5752] hover:text-[#0B0B0D]">LinkedIn</a>
+          <a href={facebookShareUrl(postUrl)} target="_blank" rel="noopener noreferrer" className="text-[13px] text-[#5A5752] hover:text-[#0B0B0D]">Facebook</a>
+          <a href={xShareUrl(post.title, postUrl)} target="_blank" rel="noopener noreferrer" className="text-[13px] text-[#5A5752] hover:text-[#0B0B0D]">X</a>
+          <CopyLinkButton url={postUrl} className="ml-auto text-[13px] text-[#5A5752] hover:text-[#0B0B0D]" />
         </div>
 
         <article className="prose prose-stone max-w-none text-[17px] leading-[1.75]">
