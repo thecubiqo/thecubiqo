@@ -157,7 +157,28 @@
 </head>
 <body>
     <div class="page">
-        <h1>CUBIQO — Master Techno-Functional Analysis</h1>
+        <h1>CUBIQO: EXECUTIVE SUMMARY</h1>
+<p><strong>The Vision:</strong> CubiQo is the &quot;Home to Intelligence&quot; — a universally connected, intensely private, and emotionally aware AI orchestrator. It bridges the gap between cold, transactional AI tools and hyper-fragmented digital ecosystems by providing a single, trustworthy gateway to the user&#39;s entire digital life (The &quot;Universal Digital Passport&quot;).</p>
+<p><strong>The Differentiators:</strong></p>
+<ol>
+<li><strong>The Empathy Moat:</strong> CubiQo doesn&#39;t just process tasks; it monitors the user&#39;s emotional state via the RGY (Red/Green/Yellow) intent system. It knows when a user is burnt out (Red) and gently nudges them toward reflection (Yellow), creating unprecedented product loyalty.</li>
+<li><strong>True BYO &amp; Local Computing:</strong> Bridging the power of the cloud with absolute offline privacy. Users can plug in their own localized models (Llama 3, Mistral) for private processing, combined with local semantic search across their own files and photos without uploading data to massive corporate servers.</li>
+<li><strong>The Universal Orchestrator:</strong> Seamlessly connecting disparate aspects of life—from browser automation, email management, and smart home controls to delayed-release crypto wallet payments—all from an iconic, glowing 3D isometric cuboid interface.</li>
+</ol>
+<p><strong>Current State &amp; Readiness:</strong>
+The foundational architecture is deployed and running on a multi-tier Vercel/Supabase stack. </p>
+<ul>
+<li><strong>Strengths:</strong> The robust LLM fallback orchestration route (OpenRouter/MiniMax/Claude), secure Magic Link authentication, interactive 3D frontend components, and the text-intent processing core are highly functional.</li>
+<li><strong>Gaps:</strong> Key integrations remain outstanding. Features like proactive continuous background agents, automated external connectors (food/taxi/email), true Voice/UI synchronization, and certain hardened security protocols (database onboarding persistence, dynamic offline-first components) require immediate development sprints.</li>
+</ul>
+<p><strong>The Roadmap to Mainstream Adoption:</strong></p>
+<ul>
+<li><strong>Phase 1 (Code Freeze &amp; Lockdown):</strong> Resolve immediate security vulnerabilities (hardcoded PINs), implement proxy rotation for the 10-10-10 Social Army, and integrate robust analytics (PostHog/Mixpanel).</li>
+<li><strong>Phase 2 (The Flagship Experience):</strong> Execute the &quot;SettingsCube&quot; voice admin, refine the visual semantic RGY voice personas, and deploy the offline-first Local AI app.</li>
+<li><strong>Phase 3 (Universal Commerce):</strong> Integrate affiliate revenue loops (Universal Commerce Strategy) and push the &quot;CQ Score&quot; as a universal identity graph for partner sites.</li>
+</ul>
+<hr>
+<h1>CUBIQO — Master Techno-Functional Analysis</h1>
 <p><strong>Prepared:</strong> 2026-02-21<br><strong>Sources:</strong> 688 source files, 38 DB migrations, 100 git commits, 12 open PRs, complete src/ inspection<br><strong>Scope:</strong> Answers to Questions A, B, C, D  </p>
 <hr>
 <h2>PART 0 — ENVIRONMENT BASELINE</h2>
@@ -4374,6 +4395,331 @@ User clicks the Journal tab -&gt; CubiQo asks 1 of 8 predefined reflection quest
 Every other company (OpenAI, Google) is trying to build the smartest, most mathematically correct AI. They are building cold calculators. 
 CubiQo&#39;s secret weapon to mainstream success is the RGY mood routing and the Journal. <strong>Do not sell it as a tool that saves time. Sell it as an entity that understands you.</strong> 
 When a user has a bad day, opens the Yellow zone, and CubiQo says, &quot;I remember you mentioned your dog was sick last week, is that what’s bothering you today?&quot; — that is the moment they become a lifelong subscriber. Emotional lock-in is 100x stronger than feature lock-in.</p>
+<p><strong>Current State:</strong> 
+The memory system (<code>conscious_memories</code>) works mechanically. It extracts key facts and saves them. However, it retrieves data purely based on semantic search of the text query, missing the <em>emotional context</em> gap. The RGY UI changes color based on keywords, but the LLM system prompt does not perfectly map the memory retrieval to the emotional state. </p>
+<p><strong>Future State (100% Achievement):</strong> 
+The memory system acts as an &quot;Emotional Graph.&quot; When a user enters the Yellow (Reflective/Empathy) zone, the system doesn&#39;t just search for factual keywords; it prioritizes memories tagged with high emotional resonance or previous unresolved stress points. The AI is specifically prompted to proactively ask about those unresolved emotional threads without being explicitly commanded to do so. It becomes an entity that intrinsically understands the user&#39;s journey.</p>
+<p><strong>The Gap to Close (What needs building):</strong> </p>
+<ol>
+<li><strong>Schema Update:</strong> We need to enhance the <code>conscious_memories</code> Supabase table to include an <code>emotional_weight</code> (1-10 string or int) and <code>intent_category</code> (R, G, or Y) column. </li>
+<li><strong>Extraction Engine:</strong> The memory extraction API (<code>/api/extract-memories</code>) must be updated to use an LLM not just to extract isolated facts (e.g., &quot;User has a dog&quot;), but to extract emotional anchors (e.g., &quot;User was highly stressed about their dog (Weight: 8, Zone: Y)&quot;). </li>
+<li><strong>Retrieval Injection:</strong> The Chat API (<code>/api/chat/route.ts</code>) must be modified. When the UI is in the Yellow zone, the vector search must amplify the scores of Yellow-tagged memories, fundamentally altering the LLM&#39;s context to match the user&#39;s emotional arc over time.</li>
+</ol>
+<h1>APPENDIX 2: BRAND, IDENTITY, AND MARKET EXPANSION</h1>
+<h2>1. The Tool Stack &amp; Agency Partnerships for Success</h2>
+<p><strong>The Tools You Need:</strong></p>
+<ul>
+<li><strong>Analytics (PostHog):</strong> Google Analytics is for traditional e-commerce (tracking page views). For an AI SaaS, you need <strong>PostHog</strong> or <strong>Mixpanel</strong>. They track &quot;Events&quot; (e.g., &quot;User changed RGY color to Yellow&quot;, &quot;User saved a memory&quot;). This is how you identify <em>why</em> users churn.</li>
+<li><strong>SEO (Semrush / Ahrefs):</strong> You need these to identify &quot;low competition, high volume&quot; search terms to feed into your programmatic AI page generator. </li>
+<li><strong>Affiliate Platform (PartnerStack / Rewardful):</strong> Do not build your own affiliate payout system. Rewardful syncs directly with Stripe. When an influencer drives a sale, Rewardful calculates the 30% cut and pays them automatically.</li>
+</ul>
+<p><strong>The Agency Partners You Need:</strong></p>
+<ul>
+<li><strong>Performance / SaaS Growth Agency:</strong> Do not hire a standard &quot;digital marketing&quot; agency. Look for a &quot;SaaS Growth Consultancy&quot; that operates on a performance or revenue-share model. They will set up your email drips, abandoned cart sequences, and affiliate tracking. </li>
+<li><strong>Investment / Fundraising Syndicate:</strong> Do not pay a broker upfront fees. Work with a <strong>Fractional CFO</strong> or a <strong>Syndicate Lead</strong> on platforms like AngelList. They take a &quot;carry&quot; (around 10-20% of the profits of the investment), which aligns their incentives with yours.</li>
+</ul>
+<h2>2. Global Domain Strategy (30+ Domains)</h2>
+<p><strong>The Strategy: Aggressive Consolidation.</strong>
+Having <code>cubiqo.com</code>, <code>coqo.ai</code>, <code>ciqo.co</code>, and 30 country-specific domains (like <code>.in</code>, <code>.uk</code>) is a great defensive moat against copycats, but terrible if you try to build websites on all of them (Google will penalize you for duplicate content).</p>
+<ul>
+<li><strong>The Play:</strong> Pick ONE absolute master domain (e.g., <code>cubiqo.com</code> for B2B/Corporate, or <code>cubiqo.ai</code> for the product). </li>
+<li><strong>301 Redirects:</strong> Point all 29 other domains to the master domain via permanent 301 redirects. </li>
+<li><strong>Localization later:</strong> When you want to target specific countries, do not use the country domains. Use subdirectories (e.g., <code>cubiqo.com/fr/</code> for France). This pools all your &quot;Domain Authority&quot; into one massive, powerful domain for SEO.</li>
+</ul>
+<h2>3. Landing Page Design Critique &amp; Conversion Benchmarks</h2>
+<p><strong>Critique of your Screenshot:</strong></p>
+<ul>
+<li><strong>The Vibe:</strong> It looks powerful, mysterious, and high-tech (almost like an advanced command center or a premium web3 interface). The deep blacks and glowing orange/gold particle waves create a strong emotional hook.</li>
+<li><strong>The Good:</strong> The bottom footer trust signals (&quot;All conversations are confidential&quot;, &quot;Never retains user voice&quot;, &quot;BYO Mode&quot;) are excellent. Identifying the RGY traffic lights under &quot;SIGNAL&quot; establishes the brand language immediately.</li>
+<li><strong>To Fix:</strong> There is a typo in the top left tagline: &quot;The home to intellegence&quot; should be <strong>&quot;intelligence&quot;</strong>. The overlapping translucent glass panels in the center are slightly chaotic—they should either animate smoothly on mouse-hover or be aligned closer to a grid to show structure amidst the visual energy.</li>
+<li><strong>Industry Conversion Benchmarks:</strong> For a premium AI SaaS, <strong>2% to 3%</strong> visitor-to-signup conversion is the industry average. <strong>5% to 7%</strong> is exceptional. Given the dark, mysterious aesthetic, you will likely have a lower <em>click</em> rate from casual users, but a much higher <em>conversion</em> rate from power-users who want an advanced tool.</li>
+</ul>
+<h2>4. The RGY &quot;CQ Score&quot; (Life Unification Metric)</h2>
+<p>You are entirely correct that Red should not mean &quot;Bad&quot; or &quot;Stop.&quot;</p>
+<ul>
+<li><strong>Red (Action/Execution), Green (Creative/Growth), Yellow (Reflection/Empathy).</strong> </li>
+<li><strong>The CQ Score (CubiQo Quotient / Constant Question):</strong> This should not be a score out of 100 where 100 is &quot;winning.&quot; It should be a <strong>Balance Graph</strong> (like a radar chart).</li>
+<li>The system analyzes the user&#39;s life. If a user is constantly in Red (working, executing, paying bills), their CQ Score flags an imbalance. CubiQo then proactively opens the Yellow zone to ask them to reflect or the Green zone to suggest they read a book or create something.</li>
+<li><strong>The Hook:</strong> The CQ Score becomes a metric of &quot;How unified and balanced is your digital life?&quot;</li>
+</ul>
+<h2>5. The &quot;CQ Number&quot; (Universal Human-AI Identity)</h2>
+<p>How do you convince people to get a CQ Number?</p>
+<ul>
+<li><strong>The Problem it Solves:</strong> Right now, every time a user visits a new website, they have to start over. The site doesn&#39;t know their sizes, their preferences, their dietary restrictions, or their budget.</li>
+<li><strong>The CQ Number as an API Key for Humans:</strong> You market the CQ Number as a &quot;Universal Digital Passport.&quot; </li>
+<li>If a user inputs their CQ number on a partner shopping site, CubiQo securely handshakes with the site: <em>&quot;This user is a size 10, prefers dark colors, has a budget of $150, and is allergic to wool.&quot;</em> The site instantly customizes itself to the user. </li>
+<li>You convince them to get it by promising they will never have to fill out a preference form or search filter ever again.</li>
+</ul>
+<h2>6. CubiQo as the Universal Connector (Commerce &amp; Affiliates)</h2>
+<p>If CubiQo becomes this universal intelligence window, it transforms entirely:</p>
+<ul>
+<li><strong>Contextual Agency:</strong> If a user says &quot;I need new running shoes,&quot; CubiQo knows they are marathon training (from the Journal), knows they overpronate (from memory), finds the exact model on sale across 50 websites, and auto-applies a 20% discount code using the BrowserPool.</li>
+<li><strong>The Monetization Magic:</strong> CubiQo itself can use affiliate links for these purchases. The vendor pays CubiQo a 5-10% finder&#39;s fee for the sale. The user gets the shoes cheaper, and CubiQo makes a profit without charging the user an extra dime. This is the &quot;WeChat&quot; super-app revenue model.</li>
+</ul>
+<h1>APPENDIX 3: FLAGSHIP ARCHITECTURE GAP ANALYSIS (EXISTING VS. PENDING)</h1>
+<p>Based on the official &quot;CUBIQO — Flagship&quot; architectural documentation provided, here is a definitive, line-by-line audit of what is currently functional in the codebase vs. what remains to be built or refactored.</p>
+<h2>1. PURPOSE &amp; CORE ORCHESTRATION</h2>
+<p><strong>Requirement:</strong> Primary voice/text assistant orchestrating worlds/tools. Runs routing, guardrails, outputs; exposes Side Panel (keywords) and SettingsCube.</p>
+<ul>
+<li><strong>Exists:</strong> <ul>
+<li>Text assistant is fully functional. </li>
+<li>Side Panel (Keywords) UI exists.</li>
+</ul>
+</li>
+<li><strong>Gap (Pending):</strong> <ul>
+<li>The &quot;SettingsCube&quot; voice admin interface is not implemented.</li>
+<li>Orchestration of external &quot;Worlds&quot; is stubbed; currently, it functions as a single central chat.</li>
+</ul>
+</li>
+</ul>
+<h2>2. COLOR / VOICE SEMANTICS (UI-Level Only)</h2>
+<p><strong>Requirement:</strong> Color/voice are strictly operational signals (UI-only), not backend routing determinants. TEAL (Goal-oriented/Professional), RED (Age-gated/Explicit but goal-oriented), YELLOW (Casual/Time-killing/Friendly). Self-harm forces YELLOW support.</p>
+<ul>
+<li><strong>Exists:</strong> <ul>
+<li>The UI effectively changes colors based on user keywords (RGY system is visually present).</li>
+</ul>
+</li>
+<li><strong>Gap (Pending):</strong> <ul>
+<li><strong>Semantic Mismatch:</strong> The current codebase defines Red as &quot;Urgent/Action&quot; and Green as &quot;Creative&quot;. The new spec requires <strong>TEAL</strong> (Goal), <strong>RED</strong> (Age-gated/Explicit), and <strong>YELLOW</strong> (Casual). The intent mapping needs a rewrite to match this new paradigm.</li>
+<li><strong>Age-Gating &amp; Self-Harm Guards:</strong> There is currently no age-check wall for RED, and no intercept logic that forces self-harm intents specifically to YELLOW.</li>
+<li><strong>Voice Personas:</strong> TTS uses one generic voice. We need to map discrete ElevenLabs/OpenAI voices to Teal (Professional), Red (Discreet/Low-volume), and Yellow (Friendly/Sarcastic).</li>
+</ul>
+</li>
+</ul>
+<h2>3. INPUT / OUTPUT &amp; STATE MACHINE</h2>
+<p><strong>Requirement:</strong> Speech/Vocspad input. Output synced with synthesized speech. State machine: Listening → Thinking → Speaking → Idle.</p>
+<ul>
+<li><strong>Exists:</strong> <ul>
+<li>Vocspad (text input) works.</li>
+</ul>
+</li>
+<li><strong>Gap (Pending):</strong> <ul>
+<li>Real-time speech-to-text (Listening) and text-to-speech (Speaking) exist in UI components but lack the robust State Machine synchronization (visuals reacting perfectly to the exact word being spoken).</li>
+</ul>
+</li>
+</ul>
+<h2>4. UI / UX (ISOMETRIC CUBOID &amp; EFFECTS)</h2>
+<p><strong>Requirement:</strong> Outline-only cuboid vs Solid cuboid. Hybrid material mapping (≤50% color visible). Swift transition tokens (≤200ms). Audio cues (Wake, Speak start/stop, Error). Special Moves (Resonance, Wink, Deep Focus).</p>
+<ul>
+<li><strong>Exists:</strong> <ul>
+<li>The 3D Cuboid itself exists (implemented via Three.js/React Three Fiber in the landing page).</li>
+</ul>
+</li>
+<li><strong>Gap (Pending):</strong> <ul>
+<li>The specific isometric wireframe vs. solid toggle is not fully mapped to these exact design constraints. </li>
+<li><strong>Audio Cues &amp; Special Moves:</strong> None of the micro-interaction audio cues (soft ticks, chimes) or the &quot;Special Moves&quot; (Wink, Handoff) are programmed into the UI layer yet.</li>
+</ul>
+</li>
+</ul>
+<h2>5. SIDE PANEL &amp; SETTINGS</h2>
+<p><strong>Requirement:</strong> Visible keyword lists. User can lock to one color/voice (UI-only). Geo-fencing support. SettingsCube updates via voice.</p>
+<ul>
+<li><strong>Exists:</strong> <ul>
+<li>Side Panel exists visually.</li>
+</ul>
+</li>
+<li><strong>Gap (Pending):</strong> <ul>
+<li>&quot;Locking&quot; a color/voice state is not persisted in the database.</li>
+<li>Geo-fencing logic is completely unwritten.</li>
+<li>Voice-commanded settings updates (&quot;SettingsCube&quot;) do not exist.</li>
+</ul>
+</li>
+</ul>
+<h2>6. RGY ROUTER (BACKENDS &amp; GATEWAY)</h2>
+<p><strong>Requirement:</strong> Detect intent → score models → choose backend (GPT, Claude, Local). Auto-failover. RGY is UI/Telemetry only; it does NOT select models directly. </p>
+<ul>
+<li><strong>Exists:</strong> <ul>
+<li><strong>Auto-Failover:</strong> The backend fallback chain (<code>/api/chat/route.ts</code>) is highly functional (MiniMax → Mixtral → Llama → Claude → OpenAI).</li>
+</ul>
+</li>
+<li><strong>Gap (Pending):</strong> <ul>
+<li>The system currently relies on a sequential fallback chain rather than dynamic scoring based on intent (e.g., routing immediately to Claude for code based on intent scoring). </li>
+<li>Strict enforcement that RGY is <em>UI-only</em> and doesn&#39;t pollute the backend context needs review.</li>
+</ul>
+</li>
+</ul>
+<h2>7. FEATURE SET (CONNECTORS &amp; PAYMENTS)</h2>
+<p><strong>Requirement:</strong> BYO Mode, Auth, Email/Calendar, Food/Taxi, Smart-home, Browser automation, Chat-match (Geo-fence), Wallet/Crypto payments.</p>
+<ul>
+<li><strong>Exists:</strong> <ul>
+<li><strong>Auth:</strong> Account creation &amp; passwordless magic-link are fully working.</li>
+<li><strong>BYO Mode:</strong> UI exists for users to input custom keys.</li>
+</ul>
+</li>
+<li><strong>Gap (Pending):</strong> <ul>
+<li><strong>Connectors:</strong> Email, Calendar, Food delivery, Taxi, and Smart-home APIs are entirely stubbed/missing.</li>
+<li><strong>Browser automation:</strong> Puppeteer POC exists, but not wired for user proxying (booking tickets).</li>
+<li><strong>Wallet/Crypto:</strong> No delayed-release crypto wallet or QR implementation exists in the repo.</li>
+<li><strong>Geo-fenced Chat-match:</strong> Requires location services and vector matching against other users&#39; CQ profiles, which is currently unbuilt.</li>
+</ul>
+</li>
+</ul>
+<h3>VERDICT ON APPENDIX 3:</h3>
+<p>The foundational &quot;chassis&quot; (Auth, LLM Fallback Chain, Next.js architecture, 3D Canvas) is built. However, the specific <strong>Integrations</strong> (Food, Crypto, Smart Home) and the <strong>Strict RGY Redefinition</strong> (Teal/Red/Yellow voice mappings and age-gates) require a dedicated &quot;Phase 2&quot; development sprint.</p>
+<h1>APPENDIX 4: OFFLINE INTELLIGENCE &amp; DOMAIN STRATEGY</h1>
+<p>You have hit on one of the most powerful, cutting-edge directions the AI industry is heading toward: <strong>Local AI (Offline-First Processing).</strong> </p>
+<p>Here is exactly what can and cannot be done based on current technological physics regarding your True BYO Mode and Offline Browser concepts.</p>
+<h2>1. True BYO Mode (The Offline-First App)</h2>
+<p><strong>The Insight:</strong> You are 100% correct. If a user brings their own API key, it is still sending their voice and text to OpenAI&#39;s or Anthropic&#39;s servers. &quot;True BYO&quot; means taking back absolute ownership of the compute.</p>
+<p><strong>What CAN be done:</strong></p>
+<ul>
+<li><strong>The One-Click Desktop/Mobile App:</strong> We can package CubiQo as an Electron (Windows/Mac) or React Native (iOS/Android) application.</li>
+<li><strong>Bundling a Local LLM:</strong> We can embed a highly optimized, &quot;quantized&quot; AI model (like Meta&#39;s Llama-3-8B or Mistral) directly inside the app installer using <code>llama.cpp</code> or <code>Ollama</code>. </li>
+<li><strong>Absolute Privacy:</strong> When the user talks to the Yellow zone or writes in their Rozana journal, the text is processed by their device&#39;s own CPU/GPU. The data <em>never leaves the computer</em>. </li>
+<li><strong>Targeted Internet Access:</strong> The local AI is fenced. It only pings the internet when you give it an &quot;Action Intent&quot; (e.g., &quot;Send an email to John about the meeting&quot;). The app then uses traditional local protocols (like SMTP) to send the email, acting as a true secure agent.</li>
+</ul>
+<p><strong>What CANNOT be done (The Limitations):</strong></p>
+<ul>
+<li><strong>GPT-4 Intelligence Offline:</strong> A standard iPhone or MacBook does not have the RAM to run massive, 1-trillion-parameter models. The offline model will be incredibly fast and secure, but its creative reasoning won&#39;t be quite as brilliant as Claude 3.5 Sonnet. It will feel like a very smart intern rather than a senior engineer.</li>
+</ul>
+<h2>2. Domain Strategy: cubiqo.ai vs cubiqo.com</h2>
+<ul>
+<li><strong><code>cubiqo.com</code> (The Corporate/Brand Home):</strong> Use the <code>.com</code> for your main landing page, investor portals, B2B Founders Pass sales, and the overarching company vision (CubiQo United Inc.). <code>.com</code> signals extreme trust and legacy business stability.</li>
+<li><strong><code>cubiqo.ai</code> (The Product/Portal):</strong> Use the <code>.ai</code> domain as the actual web-app URL where cloud users log in to use the platform. It signals that they are entering the software.</li>
+</ul>
+<h2>3. The Offline Browser &amp; Data Engine</h2>
+<p>Your vision here is morphing CubiQo from a &quot;Chatbot&quot; into what Apple Intelligence is trying to be: a <strong>Local Semantic Synthesizer</strong>.</p>
+<p><strong>What CAN be done:</strong></p>
+<ul>
+<li><strong>Offline &quot;Search Engine&quot; for the User&#39;s Life:</strong> We can bundle a lightweight local Vector Database (like ChromaDB SQLite). It silently indexes the user&#39;s PDFs, word documents, and journals locally. When they search, the AI retrieves their own data instantly, completely offline.</li>
+<li><strong>Offline Face Tagging &amp; Photo Organization:</strong> We can embed a tiny, open-source Vision Neural Network (like OpenAI’s CLIP, running locally). It scans the user&#39;s hard drive photos. They can type <em>&quot;Show me pictures of me sitting near water from last year&quot;</em> into CubiQo, and CubiQo will find the exact photos without ever uploading them to the cloud.</li>
+<li><strong>Multi-Model Synthesis (The Aggregator):</strong> CubiQo can easily act as a router that fires your prompt to 3 different models at once (e.g., Local Llama + Cloud Claude + Cloud GPT-4), compares the three answers internally, and synthesizes the &quot;best&quot; combined answer for the user.</li>
+</ul>
+<p><strong>What CANNOT be done (or is highly unfeasible):</strong></p>
+<ul>
+<li><strong>Offline Video Generation/Heavy Editing:</strong> While we can tag and organize videos locally using the vision model, we <em>cannot</em> do generative AI video editing (like adding VFX or morphing faces) entirely offline on a standard laptop. That requires massive cloud GPU farms (like Runway or Midjourney). </li>
+<li><strong>True &quot;Offline&quot; Web Browsing:</strong> You cannot search the live internet whilst remaining offline (the app can&#39;t store the whole internet). However, CubiQo <em>can</em> fetch live internet pages, temporarily download the HTML, immediately disconnect, and then use the <em>local, offline AI</em> to read and summarize that downloaded page securely.</li>
+</ul>
+<h1>APPENDIX 5: TARGET AUDIENCE – WHO ARE OUR USERS?</h1>
+<p>Understanding the target audience is critical for CubiQo&#39;s Go-To-Market strategy, especially given its unique combination of local privacy (True BYO mode), emotional intelligence (The Empathy Moat / RGY System), and powerful orchestration.</p>
+<p>CubiQo&#39;s user base scales from early tech adopters to a mainstream audience, deeply segmented by intent and pain points.</p>
+<h2>1. The Early Adopters (0 to 10k Users)</h2>
+<p><strong>&quot;The Tool-Fatigued Solopreneur &amp; Privacy Advocate&quot;</strong></p>
+<ul>
+<li><strong>Who they are:</strong> Independent creators, freelance developers, privacy-conscious professionals, and &quot;Local AI&quot; enthusiasts.</li>
+<li><strong>The Pain Point:</strong> They are currently paying $20/mo to OpenAI, $20/mo to Anthropic, and $15/mo for a journaling app. Their data is scattered across five different clouds. They hate context-switching and fear their intellectual property is being used to train big corporate models.</li>
+<li><strong>Why CubiQo:</strong> The <strong>True BYO Mode</strong> is their holy grail. They want a single, sleek application (cubiqo.ai or the offline-first app) where they plug in their own localized APIs and take complete ownership of their compute. They love the offline semantic search capability (indexing their documents without internet access).</li>
+<li><strong>Acquisition Channel:</strong> X (formerly Twitter) tech circles, Reddit (r/LocalLLaMA, r/SaaS), GitHub, and highly specific micro-influencers.</li>
+</ul>
+<h2>2. The Core Market (10k to 100k Users)</h2>
+<p><strong>&quot;The High-Functioning, Burnt-Out Professional&quot;</strong></p>
+<ul>
+<li><strong>Who they are:</strong> Consultants, project managers, marketing directors, and creatives who juggle work lives and personal lives on the same devices.</li>
+<li><strong>The Pain Point:</strong> Existing AI assistants (like ChatGPT or Copilot) are purely transactional and unfeeling. They help write an email, but they don&#39;t help the user untangle the stress of writing it. </li>
+<li><strong>Why CubiQo:</strong> The <strong>Empathy Moat (RGY System &amp; Rozana)</strong>. This user doesn&#39;t just want a robot; they want a co-pilot that recognizes when they are operating in the &quot;RED&quot; (urgent/anxious) and actively guides them back to the &quot;YELLOW&quot; (casual reflection). The emotional memory aspect—where the AI remembers they have a big presentation on Friday and checks in on them—creates fierce product loyalty.</li>
+<li><strong>Acquisition Channel:</strong> LinkedIn thought-leadership, productivity newsletters, targeted Meta Ads highlighting &quot;The AI that actually understands your stress,&quot; and the PartnerStack Affiliate program.</li>
+</ul>
+<h2>3. The Mainstream Vision (100k+ Users)</h2>
+<p><strong>&quot;The Unified Digital Citizen&quot;</strong></p>
+<ul>
+<li><strong>Who they are:</strong> Everyday consumers, students, small business owners.</li>
+<li><strong>The Pain Point:</strong> Managing passwords, logging into 50 different apps to buy a pair of shoes, managing smart-home devices, and booking Ubers require too many separate, disconnected actions.</li>
+<li><strong>Why CubiQo:</strong> The <strong>CQ Universal Passport</strong>. To this user, CubiQo is the &quot;Super App&quot; orchestrator. They rely on the TEAL (Professional) mode to handle complex browser automation—like automatically finding the best flight home and sending the itinerary to their mother—using the user&#39;s stored data securely. They don&#39;t care about the backend LLM; they care that the floating silver cube just <em>gets it done</em>.</li>
+<li><strong>Acquisition Channel:</strong> Viral growth loops (e.g., users sharing their &quot;Living Profile&quot; balance charts), mainstream app store optimization, and built-in viral &quot;Chat-Match&quot; networking.</li>
+</ul>
+<h2>Summary of the User Archetype</h2>
+<p>CubiQo users demand <strong>efficiency without sacrificing their humanity</strong>. They are ambitious but tired of corporate surveillance and fragmented software. They want one unified &quot;home for intelligence&quot; that acts as both a relentless executive assistant (TEAL/RED modes) and a trusted, private confidant (YELLOW mode).</p>
+<hr>
+<h1>APPENDIX 6: EXHAUSTIVE REQUIREMENTS BLUEPRINT (MISSING &amp; INCOMPLETE FEATURES)</h1>
+<p>This document is the definitive technical blueprint mapping the gaps between the currently deployed Vercel/Supabase architecture and the target &quot;CUBIQO — Flagship&quot; architectural specification. It details the requirements across Frontend, Backend, Database, and API Integrations for every missing or partially complete feature.</p>
+<hr>
+<h2>1. The &quot;SettingsCube&quot; &amp; Voice Configuration</h2>
+<p><strong>Status:</strong> Missing (Concept-only)
+<strong>Description:</strong> Users must be able to speak to the app to configure lock settings (color/voice lock, geofence, connectors), confirmed via live event-only logs.</p>
+<ul>
+<li><strong>Frontend (React/Three.js):</strong><ul>
+<li><strong>UI:</strong> A dedicated 3D visual geometry for the SettingsCube (distinct from the primary cuboid). </li>
+<li><strong>State:</strong> Context implementation to handle voice-commanded changes in real-time.</li>
+</ul>
+</li>
+<li><strong>Backend (Next.js/Edge):</strong><ul>
+<li><strong>API:</strong> A dedicated intent-parser route (e.g., <code>/api/voice-config</code>) mapping transcribed speech to config actions.</li>
+</ul>
+</li>
+<li><strong>Database (Supabase):</strong><ul>
+<li><strong>Schema Update:</strong> User JSONB <code>preferences</code> column augmented to store: <code>color_lock: string | null</code>, <code>geo_fenced: boolean</code>.</li>
+</ul>
+</li>
+<li><strong>API Integrations:</strong> Webhook verification for real-time transcription from STT.</li>
+</ul>
+<hr>
+<h2>2. Voice Persona Matrix &amp; Audio Cues</h2>
+<p><strong>Status:</strong> Missing (Only generic TTS exists without granular sound design)
+<strong>Description:</strong> TTS must dynamically swap voices based on the RGY operational signal (Teal = Professional, Red = Discreet, Yellow = Friendly). Must output micro-audio cues (Wake, Speak start/stop alignment, Error) and support haptics.</p>
+<ul>
+<li><strong>Frontend:</strong><ul>
+<li>Web Audio API context manager to load specific <code>&lt;audio&gt;</code> voices based on <code>currentMode</code>.</li>
+<li>Implement Sound Design layers: Wake (brief chime), Speak start/stop (soft ticks synced to TTS), Error/Alert (single neutral tick).</li>
+<li>Haptics API integration for mobile wrappers.</li>
+</ul>
+</li>
+<li><strong>Backend:</strong><ul>
+<li><code>/api/chat/route.ts</code> must pass down a <code>metadata.voice_preset</code> flag depending on intent.</li>
+</ul>
+</li>
+<li><strong>API Integrations (ElevenLabs):</strong> Map specific <code>voice_id</code> keys to the three modes. Optimize for &lt;200ms latency.</li>
+</ul>
+<hr>
+<h2>3. UI ↔ Audio Syncing &amp; &quot;Special Moves&quot;</h2>
+<p><strong>Status:</strong> Half-Way (3D model exists, but visual syncing and transitions are disconnected)
+<strong>Description:</strong> 3D Cuboid must strictly map to the exact state machine: Listening (Outline) → Thinking (Solid/Pulse) → Speaking (Audio-reactive) → Idle. It requires Special Moves (Resonance, Wink, Deep Focus).</p>
+<ul>
+<li><strong>Frontend:</strong><ul>
+<li>Connect Web Audio API’s <code>AnalyserNode</code> to React Three Fiber (<code>useFrame</code>). The audio buffer amplitude must drive the glow/morph logic smoothly.</li>
+<li><strong>Animations:</strong> Author specific Three.js animation interpolations for &quot;Resonance&quot;, &quot;Breakthrough&quot;, &quot;Trust Earned&quot;, &quot;Co-Presence&quot;, &quot;Wink&quot; (restricted to Yellow setting), and &quot;Deep Focus&quot;.</li>
+<li>Enforce &lt;= 200ms token swap, and 150–300ms glow-in/out transitions, respecting CSS <code>prefers-reduced-motion</code>.</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2>4. Universal Connectors (Email, Food, Smart Home, Browser Automation)</h2>
+<p><strong>Status:</strong> Missing (Only stub UI exists)
+<strong>Description:</strong> CubiQo must interact with the DOM of external sites, send emails, order food, and control smart environments.</p>
+<ul>
+<li><strong>Frontend:</strong> Generic &quot;Connector Action Card&quot; component to confirm critical path actions (e.g., &quot;Confirm $14.50 Uber?&quot;).</li>
+<li><strong>Backend:</strong><ul>
+<li>Heavy reliance on Vercel AI SDK Core <code>tools</code> configuration to expose external functions to the LLM.</li>
+<li><strong>Worker:</strong> The headless browser web-scraper (Puppeteer) cannot run securely within Vercel edge functions. It requires a continuous Docker worker (e.g., Railway/Render) executing Playwright scripts.</li>
+</ul>
+</li>
+<li><strong>API Integrations:</strong> Google Workspace API (Email/Calendar), Uber/Lyft APIs (Taxi), IoT protocols (Smart Home), Playwright (DOM manipulation).</li>
+</ul>
+<hr>
+<h2>5. RGY Routing logic, Direct Override, &amp; Self-Harm Guards</h2>
+<p><strong>Status:</strong> Half-Way (Basic router exists, lacks rigorous scoring and strict guardrails)
+<strong>Description:</strong> Router must detect intent, score models (reasoning vs code), and auto-failover. Must support Direct Override (forcing a specific model) and strict keyword interception (Self-harm forces Yellow).</p>
+<ul>
+<li><strong>Backend:</strong><ul>
+<li><strong>Scoring Engine:</strong> Upgrade fallback array to a true scoring logic.</li>
+<li><strong>Direct Mode (Override):</strong> Accept explicit overrides (<code>gpt|claude|local</code>) overriding automated routing.</li>
+<li><strong>Guardrails:</strong> NLP interceptor running before router: if self-harm intent detected -&gt; force <code>metadata.color = &#39;YELLOW&#39;</code>, restrict functional tools, force empathy-response chain.</li>
+</ul>
+</li>
+<li><strong>Database:</strong> Ensure zero-retention on chat queries (contextual recommendations only), ensuring strict session-scoping for keywords.</li>
+</ul>
+<hr>
+<h2>6. Auth Advancement: Passkeys</h2>
+<p><strong>Status:</strong> Half-Way (Account creation &amp; Magic Link exists, Passkeys missing)</p>
+<ul>
+<li><strong>Frontend/Backend:</strong> Integrate WebAuthn standards (Passkeys) using the Supabase Auth or NextAuth adaptors to allow FaceID/TouchID bypassing passwords completely.</li>
+</ul>
+<hr>
+<h2>7. Wallet / QR Crypto Payments</h2>
+<p><strong>Status:</strong> Missing
+<strong>Description:</strong> Wallet/crypto payments including QR-based delayed release functionality.</p>
+<ul>
+<li><strong>Frontend:</strong> Secure Wallet Connect UI and QR Code generation component.</li>
+<li><strong>Backend/API Integrations:</strong> Blockchain RPC providers (e.g., Alchemy or Infura) or a specific Layer 2 API to handle holding funds and generating delayed-release (Escrow-style) smart contract protocols readable via QR code.</li>
+</ul>
+<hr>
+<h2>8. Proactive AI &amp; Offline Engine (True BYO)</h2>
+<p><strong>Status:</strong> Missing
+<strong>Description:</strong> Local deployment option severing reliance on cloud, indexing user documents locally.</p>
+<ul>
+<li><strong>Frontend/Backend Stack:</strong> Package Next.js UI into an <strong>Electron</strong> or <strong>Tauri</strong> desktop wrapper.</li>
+<li><strong>Database:</strong> Integrate completely localized SQLite and ChromaDB (for offline semantic search) running directly on the user&#39;s hard drive without external database pings.</li>
+<li><strong>API Integrations:</strong> Bundle <code>llama.cpp</code> node-bindings to execute downloaded <code>.gguf</code> quantized models directly using the user&#39;s local CPU/GPU limitlessly.</li>
+</ul>
 
     </div>
 </body>

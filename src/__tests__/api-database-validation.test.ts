@@ -46,10 +46,10 @@ describe('Database Schema Validation', () => {
     it('should have migration files following timestamp naming convention', () => {
       const files = fs.readdirSync(migrationsDir);
       const sqlFiles = files.filter(f => f.endsWith('.sql'));
-      
+
       // Pattern: YYYYMMDD or YYYYMMDDHHMMSS prefix (14 digits total for YYYYMMDDHHMMSS)
       const timestampPattern = /^(\d{8}|\d{14})_/;
-      
+
       sqlFiles.forEach(file => {
         expect(file).toMatch(timestampPattern);
       });
@@ -58,7 +58,7 @@ describe('Database Schema Validation', () => {
     it('should have all migration files be non-empty', () => {
       const files = fs.readdirSync(migrationsDir);
       const sqlFiles = files.filter(f => f.endsWith('.sql'));
-      
+
       sqlFiles.forEach(file => {
         const filePath = path.join(migrationsDir, file);
         const content = fs.readFileSync(filePath, 'utf-8');
@@ -155,11 +155,11 @@ describe('Database Schema Validation', () => {
     it('should have indexes defined for performance', () => {
       const files = fs.readdirSync(migrationsDir);
       const sqlFiles = files.filter(f => f.endsWith('.sql'));
-      
+
       const allContent = sqlFiles
         .map(f => fs.readFileSync(path.join(migrationsDir, f), 'utf-8'))
         .join('\n');
-      
+
       // Should have at least some indexes
       expect(allContent).toMatch(/CREATE INDEX/i);
     });
@@ -167,11 +167,11 @@ describe('Database Schema Validation', () => {
     it('should have foreign key constraints', () => {
       const files = fs.readdirSync(migrationsDir);
       const sqlFiles = files.filter(f => f.endsWith('.sql'));
-      
+
       const allContent = sqlFiles
         .map(f => fs.readFileSync(path.join(migrationsDir, f), 'utf-8'))
         .join('\n');
-      
+
       // Should have foreign key references
       expect(allContent).toMatch(/REFERENCES/i);
     });
@@ -248,7 +248,7 @@ describe('API Route Handler Tests', () => {
 
     it('should return healthy status with required fields', async () => {
       const healthRoute = await import('@/app/api/health/route');
-      
+
       // Mock fetch for Supabase connectivity check
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
@@ -294,7 +294,7 @@ describe('API Route Handler Tests', () => {
 
     it('should validate status codes', async () => {
       const healthRoute = await import('@/app/api/health/route');
-      
+
       global.fetch = vi.fn().mockResolvedValue({ ok: true });
       const { createClient } = await import('@supabase/supabase-js');
       (createClient as any).mockReturnValue({
@@ -311,16 +311,16 @@ describe('API Route Handler Tests', () => {
 
     it('should return 503 for critical status', async () => {
       const healthRoute = await import('@/app/api/health/route');
-      
+
       global.fetch = vi.fn().mockResolvedValue({ ok: true });
       const { createClient } = await import('@supabase/supabase-js');
-      
+
       // Mock missing tables error
       (createClient as any).mockReturnValue({
         from: vi.fn(() => ({
           select: vi.fn(() => ({
-            limit: vi.fn(() => Promise.resolve({ 
-              data: null, 
+            limit: vi.fn(() => Promise.resolve({
+              data: null,
               error: { message: 'relation "profiles" does not exist' }
             })),
           })),
@@ -329,7 +329,7 @@ describe('API Route Handler Tests', () => {
 
       const response = await healthRoute.GET();
       const data = await response.json();
-      
+
       // Critical status should return 503
       if (data.status === 'critical') {
         expect(response.status).toBe(503);
@@ -338,7 +338,7 @@ describe('API Route Handler Tests', () => {
 
     it('should include memory and uptime metrics', async () => {
       const healthRoute = await import('@/app/api/health/route');
-      
+
       global.fetch = vi.fn().mockResolvedValue({ ok: true });
       const { createClient } = await import('@supabase/supabase-js');
       (createClient as any).mockReturnValue({
@@ -356,7 +356,7 @@ describe('API Route Handler Tests', () => {
       expect(data.memory.rss).toBeDefined();
       expect(data.memory.heapTotal).toBeDefined();
       expect(data.memory.heapUsed).toBeDefined();
-      
+
       expect(data.uptime).toBeDefined();
       expect(data.uptime.seconds).toBeGreaterThanOrEqual(0);
       expect(data.uptime.formatted).toBeDefined();
@@ -376,7 +376,7 @@ describe('API Route Handler Tests', () => {
 
     it('should return enabled features as a map', async () => {
       const { createServerClient } = await import('@supabase/ssr');
-      
+
       const mockFrom = vi.fn(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => Promise.resolve({
@@ -407,7 +407,7 @@ describe('API Route Handler Tests', () => {
 
     it('should handle DB errors with 500 status', async () => {
       const { createServerClient } = await import('@supabase/ssr');
-      
+
       const mockFrom = vi.fn(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => Promise.resolve({
@@ -424,13 +424,13 @@ describe('API Route Handler Tests', () => {
 
       const featuresRoute = await import('@/app/api/features/route');
       const response = await featuresRoute.GET();
-      
+
       expect(response.status).toBe(500);
     });
 
     it('should return timestamp in response', async () => {
       const { createServerClient } = await import('@supabase/ssr');
-      
+
       const mockFrom = vi.fn(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => Promise.resolve({
@@ -469,7 +469,7 @@ describe('API Route Handler Tests', () => {
 
     it('GET should require authentication', async () => {
       const { createServerClient } = await import('@supabase/ssr');
-      
+
       (createServerClient as any).mockReturnValue({
         auth: {
           getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
@@ -488,7 +488,7 @@ describe('API Route Handler Tests', () => {
 
     it('GET should return entries array for authenticated user', async () => {
       const { createServerClient } = await import('@supabase/ssr');
-      
+
       const mockEntries = [
         { id: '1', content: 'Test entry', user_id: 'user-123' },
       ];
@@ -504,8 +504,8 @@ describe('API Route Handler Tests', () => {
 
       (createServerClient as any).mockReturnValue({
         auth: {
-          getUser: vi.fn().mockResolvedValue({ 
-            data: { user: { id: 'user-123', email: 'test@example.com' } } 
+          getUser: vi.fn().mockResolvedValue({
+            data: { user: { id: 'user-123', email: 'test@example.com' } }
           }),
         },
         from: vi.fn(() => ({
@@ -527,7 +527,7 @@ describe('API Route Handler Tests', () => {
 
     it('POST should require authentication', async () => {
       const { createServerClient } = await import('@supabase/ssr');
-      
+
       (createServerClient as any).mockReturnValue({
         auth: {
           getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
@@ -546,18 +546,18 @@ describe('API Route Handler Tests', () => {
 
     it('POST should validate required content field', async () => {
       const { createServerClient } = await import('@supabase/ssr');
-      
+
       (createServerClient as any).mockReturnValue({
         auth: {
-          getUser: vi.fn().mockResolvedValue({ 
-            data: { user: { id: 'user-123', email: 'test@example.com' } } 
+          getUser: vi.fn().mockResolvedValue({
+            data: { user: { id: 'user-123', email: 'test@example.com' } }
           }),
         },
         from: vi.fn(),
       });
 
       const journalRoute = await import('@/app/api/journal/entries/route');
-      
+
       // Test empty content
       const mockRequest = {
         json: vi.fn().mockResolvedValue({ content: '' }),
@@ -593,7 +593,7 @@ describe('API Route Handler Tests', () => {
 
       vi.resetModules();
       const actionsRoute = await import('@/app/api/founders-pass/actions/route');
-      
+
       const response = await actionsRoute.GET();
       const data = await response.json();
 
@@ -611,14 +611,14 @@ describe('API Route Handler Tests', () => {
 
       vi.resetModules();
       const actionsRoute = await import('@/app/api/founders-pass/actions/route');
-      
+
       const mockRequest = {
         json: vi.fn().mockResolvedValue({ name: 'Test' }),
       } as any;
 
       const response = await actionsRoute.PUT(mockRequest);
       expect(response.status).toBe(400);
-      
+
       const data = await response.json();
       expect(data.error).toContain('id is required');
     });
@@ -633,7 +633,7 @@ describe('API Route Handler Tests', () => {
 
       vi.resetModules();
       const actionsRoute = await import('@/app/api/founders-pass/actions/route');
-      
+
       const response = await actionsRoute.GET();
       expect(response.status).toBe(500);
     });
@@ -642,6 +642,9 @@ describe('API Route Handler Tests', () => {
   describe('Admin Stats API (/api/admin/stats)', () => {
     beforeEach(() => {
       vi.resetModules();
+      vi.doMock('@/lib/auth/admin', () => ({
+        requireAdmin: vi.fn(() => ({ authorized: true })),
+      }));
     });
 
     it('should export GET handler', async () => {
@@ -659,7 +662,7 @@ describe('API Route Handler Tests', () => {
 
       vi.resetModules();
       const statsRoute = await import('@/app/api/admin/stats/route');
-      
+
       const mockRequest = {} as any;
       const response = await statsRoute.GET(mockRequest);
       const data = await response.json();
@@ -683,7 +686,7 @@ describe('API Route Handler Tests', () => {
 
       vi.resetModules();
       const statsRoute = await import('@/app/api/admin/stats/route');
-      
+
       const mockRequest = {} as any;
       const response = await statsRoute.GET(mockRequest);
       const data = await response.json();
@@ -707,12 +710,12 @@ describe('API Route Handler Tests', () => {
 
       vi.resetModules();
       const statsRoute = await import('@/app/api/admin/stats/route');
-      
+
       const mockRequest = {} as any;
       const response = await statsRoute.GET(mockRequest);
-      
+
       expect(response.status).toBe(500);
-      
+
       const data = await response.json();
       expect(data.stats.totalAgents).toBe(0);
       expect(data.systemHealth.status).toBe('error');
@@ -765,7 +768,7 @@ describe('Database Client Configuration', () => {
       const clientModule = await import('@/lib/supabase/client');
       const client1 = clientModule.createClient();
       const client2 = clientModule.createClient();
-      
+
       // Should return the same instance
       expect(client1).toBe(client2);
     });
@@ -793,9 +796,9 @@ describe('Database Client Configuration', () => {
     it('createClient should use cookies', async () => {
       const { cookies } = await import('next/headers');
       const serverModule = await import('@/lib/supabase/server');
-      
+
       await serverModule.createClient();
-      
+
       // Verify cookies was called
       expect(cookies).toHaveBeenCalled();
     });
@@ -810,13 +813,13 @@ describe('Database Client Configuration', () => {
 
     it('should use service role key', async () => {
       process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
-      
+
       vi.resetModules();
       const { createClient } = await import('@supabase/supabase-js');
       const adminModule = await import('@/lib/supabase/admin');
-      
+
       adminModule.createAdminClient();
-      
+
       // Verify createClient was called with service role key
       expect(createClient).toHaveBeenCalled();
     });
@@ -824,9 +827,9 @@ describe('Database Client Configuration', () => {
     it('should disable auto refresh and persist session', async () => {
       const { createClient } = await import('@supabase/supabase-js');
       const adminModule = await import('@/lib/supabase/admin');
-      
+
       adminModule.createAdminClient();
-      
+
       const calls = (createClient as any).mock.calls;
       if (calls.length > 0) {
         const options = calls[calls.length - 1][2];
@@ -880,7 +883,7 @@ describe('Schema Impact and Compatibility Tests', () => {
                 `CREATE TABLE\\s+IF NOT EXISTS\\s+${tableName}`,
                 'i'
               ).test(migration.content);
-              
+
               if (!hasIfNotExists) {
                 // This is informational - multiple definitions might be intentional
                 console.warn(`Table ${tableName} defined in ${file} without IF NOT EXISTS`);
@@ -896,10 +899,10 @@ describe('Schema Impact and Compatibility Tests', () => {
 
     it('should have proper audit tracking in feature_flags', () => {
       const featureFlagsMigration = path.join(migrationsDir, '20260215000001_feature_flags.sql');
-      
+
       if (fs.existsSync(featureFlagsMigration)) {
         const content = fs.readFileSync(featureFlagsMigration, 'utf-8');
-        
+
         // Should have created_at and updated_at for audit tracking
         expect(content).toMatch(/created_at|updated_at|created_by/i);
       }
@@ -907,10 +910,10 @@ describe('Schema Impact and Compatibility Tests', () => {
 
     it('should have proper indexes in journal_entries migration', () => {
       const journalMigration = path.join(migrationsDir, '20260215000001_journal_entries.sql');
-      
+
       if (fs.existsSync(journalMigration)) {
         const content = fs.readFileSync(journalMigration, 'utf-8');
-        
+
         // Should have indexes for common queries
         expect(content).toMatch(/CREATE INDEX.*journal_entries/i);
       }
@@ -918,10 +921,10 @@ describe('Schema Impact and Compatibility Tests', () => {
 
     it('should have founders_pass schema with required tables', () => {
       const foundersMigration = path.join(migrationsDir, '20260215000001_founders_pass_schema.sql');
-      
+
       if (fs.existsSync(foundersMigration)) {
         const content = fs.readFileSync(foundersMigration, 'utf-8');
-        
+
         // Should define necessary tables for founders pass functionality
         expect(content).toMatch(/CREATE TABLE/i);
       }
@@ -929,10 +932,10 @@ describe('Schema Impact and Compatibility Tests', () => {
 
     it('should have monetization schema properly isolated', () => {
       const monetizationMigration = path.join(migrationsDir, '20260218000001_monetization_schema.sql');
-      
+
       if (fs.existsSync(monetizationMigration)) {
         const content = fs.readFileSync(monetizationMigration, 'utf-8');
-        
+
         // Should have its own tables and not modify existing ones
         expect(content).toMatch(/CREATE TABLE.*monetization|subscription|payment/i);
       }
@@ -959,7 +962,7 @@ describe('Schema Impact and Compatibility Tests', () => {
           `CREATE TABLE\\s+(?:IF NOT EXISTS\\s+)?${tableName}\\s*\\(`,
           'i'
         );
-        
+
         expect(allContent).toMatch(tableDefinitionRegex);
       });
     });
@@ -994,7 +997,7 @@ describe('Schema Impact and Compatibility Tests', () => {
 
         while ((tableMatch = tableRegex.exec(migration.content)) !== null) {
           const tableName = tableMatch[1].toLowerCase();
-          
+
           if (initialTables.has(tableName)) {
             // This would be a conflict - new migration redefining initial table
             console.warn(
@@ -1015,7 +1018,7 @@ describe('Schema Impact and Compatibility Tests', () => {
       const allContent = files
         .map(f => fs.readFileSync(path.join(migrationsDir, f), 'utf-8'))
         .join('\n');
-      
+
       expect(allContent).toMatch(/CREATE TABLE.*profiles/i);
     });
 
@@ -1024,7 +1027,7 @@ describe('Schema Impact and Compatibility Tests', () => {
       const allContent = files
         .map(f => fs.readFileSync(path.join(migrationsDir, f), 'utf-8'))
         .join('\n');
-      
+
       expect(allContent).toMatch(/CREATE TABLE.*sessions/i);
     });
 
@@ -1033,7 +1036,7 @@ describe('Schema Impact and Compatibility Tests', () => {
       const allContent = files
         .map(f => fs.readFileSync(path.join(migrationsDir, f), 'utf-8'))
         .join('\n');
-      
+
       expect(allContent).toMatch(/CREATE TABLE.*conversations/i);
     });
 
@@ -1042,7 +1045,7 @@ describe('Schema Impact and Compatibility Tests', () => {
       const allContent = files
         .map(f => fs.readFileSync(path.join(migrationsDir, f), 'utf-8'))
         .join('\n');
-      
+
       expect(allContent).toMatch(/CREATE TABLE.*messages/i);
     });
 
@@ -1051,7 +1054,7 @@ describe('Schema Impact and Compatibility Tests', () => {
       const allContent = files
         .map(f => fs.readFileSync(path.join(migrationsDir, f), 'utf-8'))
         .join('\n');
-      
+
       expect(allContent).toMatch(/feature_flags/i);
     });
 
@@ -1060,7 +1063,7 @@ describe('Schema Impact and Compatibility Tests', () => {
       const allContent = files
         .map(f => fs.readFileSync(path.join(migrationsDir, f), 'utf-8'))
         .join('\n');
-      
+
       expect(allContent).toMatch(/journal_entries/i);
     });
 
@@ -1069,7 +1072,7 @@ describe('Schema Impact and Compatibility Tests', () => {
       const allContent = files
         .map(f => fs.readFileSync(path.join(migrationsDir, f), 'utf-8'))
         .join('\n');
-      
+
       // Check for journal_analytics which replaced daily_summaries
       expect(allContent).toMatch(/journal_analytics|journal_entries/i);
     });

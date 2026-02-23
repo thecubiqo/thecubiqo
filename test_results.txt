@@ -1,0 +1,2738 @@
+npm warn config global-style This option has been deprecated in favor of `--install-strategy=shallow`
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/avloy/.gemini/antigravity/scratch/thecubiqo/repo_temp[39m
+
+ [31mΓ¥»[39m src/__tests__/api-database-validation.test.ts [2m([22m[2m67 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[33m 1418[2mms[22m[39m
+       [32mΓ£ô[39m should have migrations directory[32m 5[2mms[22m[39m
+       [32mΓ£ô[39m should have at least one migration file[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m should have all migration files with .sql extension[32m 2[2mms[22m[39m
+       [32mΓ£ô[39m should have migration files following timestamp naming convention[32m 4[2mms[22m[39m
+       [32mΓ£ô[39m should have all migration files be non-empty[32m 35[2mms[22m[39m
+       [32mΓ£ô[39m should have initial schema migration[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should define profiles table[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should define sessions table[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should define conversations table[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should define messages table[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should have RLS policies defined[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should enable UUID extension[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should have feature_flags migration[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m should have journal_entries migration[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should have journal_analytics or related tables in journal migration[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should have founders_pass schema migration[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should have indexes defined for performance[32m 8[2mms[22m[39m
+       [32mΓ£ô[39m should have foreign key constraints[32m 3[2mms[22m[39m
+       [32mΓ£ô[39m should export GET handler[32m 49[2mms[22m[39m
+       [32mΓ£ô[39m should return healthy status with required fields[32m 2[2mms[22m[39m
+       [32mΓ£ô[39m should return degraded status when env vars are missing[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m should validate status codes[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m should return 503 for critical status[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m should include memory and uptime metrics[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m should export GET handler[32m 68[2mms[22m[39m
+       [32mΓ£ô[39m should return enabled features as a map[32m 7[2mms[22m[39m
+       [32mΓ£ô[39m should handle DB errors with 500 status[32m 3[2mms[22m[39m
+       [32mΓ£ô[39m should return timestamp in response[32m 2[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should export GET and POST handlers [33m 583[2mms[22m[39m
+       [32mΓ£ô[39m GET should require authentication[32m 2[2mms[22m[39m
+       [32mΓ£ô[39m GET should return entries array for authenticated user[32m 2[2mms[22m[39m
+       [32mΓ£ô[39m POST should require authentication[32m 8[2mms[22m[39m
+       [32mΓ£ô[39m POST should validate required content field[32m 2[2mms[22m[39m
+       [32mΓ£ô[39m should export GET, POST, and PUT handlers[32m 34[2mms[22m[39m
+       [32mΓ£ô[39m GET should return templates array[32m 3[2mms[22m[39m
+       [32mΓ£ô[39m PUT should require id field[32m 2[2mms[22m[39m
+       [32mΓ£ô[39m should handle errors with proper status codes[32m 4[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should export GET handler [33m 434[2mms[22m[39m
+[31m       [31m├ù[31m should return stats object with required fields[39m[32m 12[2mms[22m[39m
+[31m       [31m├ù[31m should return system health metrics[39m[32m 10[2mms[22m[39m
+       [32mΓ£ô[39m should handle errors and return degraded stats[32m 3[2mms[22m[39m
+       [32mΓ£ô[39m should export createClient function[32m 13[2mms[22m[39m
+       [32mΓ£ô[39m should export isSupabaseConfigured function[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m isSupabaseConfigured should return false for placeholders[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m isSupabaseConfigured should return true for real credentials[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m should implement singleton pattern[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m should export createClient function[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should export isSupabaseConfigured function[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m createClient should be async[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m createClient should use cookies[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m should export createAdminClient function[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should use service role key[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should disable auto refresh and persist session[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m should not have conflicting table definitions[32m 10[2mms[22m[39m
+       [32mΓ£ô[39m should have proper audit tracking in feature_flags[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m should have proper indexes in journal_entries migration[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should have founders_pass schema with required tables[32m 0[2mms[22m[39m
+       [32mΓ£ô[39m should have monetization schema properly isolated[32m 0[2mms[22m[39m
+[31m       [31m├ù[31m should have valid foreign key references[39m[32m 24[2mms[22m[39m
+       [32mΓ£ô[39m should have 2026 migrations not conflicting with initial schema[32m 8[2mms[22m[39m
+       [32mΓ£ô[39m should have profiles table defined[32m 3[2mms[22m[39m
+       [32mΓ£ô[39m should have sessions table defined[32m 3[2mms[22m[39m
+       [32mΓ£ô[39m should have conversations table defined[32m 5[2mms[22m[39m
+       [32mΓ£ô[39m should have messages table defined[32m 8[2mms[22m[39m
+       [32mΓ£ô[39m should have feature_flags table defined[32m 12[2mms[22m[39m
+       [32mΓ£ô[39m should have journal_entries table defined[32m 7[2mms[22m[39m
+       [32mΓ£ô[39m should have journal_analytics table defined[32m 14[2mms[22m[39m
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ» Failed Tests 3 ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+
+ FAIL  src/__tests__/api-database-validation.test.ts > API Route Handler Tests > Admin Stats API (/api/admin/stats) > should return stats object with required fields
+AssertionError: expected { ΓÇª(5) } to have property "timestamp"
+ Γ¥» src/__tests__/api-database-validation.test.ts:675:20
+    673|       expect(data).toHaveProperty('recentActivity');
+    674|       expect(data).toHaveProperty('systemHealth');
+    675|       expect(data).toHaveProperty('timestamp');
+       |                    ^
+    676|     });
+    677| 
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[1/3]ΓÄ»
+
+ FAIL  src/__tests__/api-database-validation.test.ts > API Route Handler Tests > Admin Stats API (/api/admin/stats) > should return system health metrics
+AssertionError: expected undefined to be defined
+ Γ¥» src/__tests__/api-database-validation.test.ts:693:40
+    691|       expect(data.systemHealth).toBeDefined();
+    692|       expect(data.systemHealth.status).toBeDefined();
+    693|       expect(data.systemHealth.uptime).toBeDefined();
+       |                                        ^
+    694|       expect(data.systemHealth.memory).toBeDefined();
+    695|       expect(data.systemHealth.memory.heapUsed).toBeDefined();
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[2/3]ΓÄ»
+
+ FAIL  src/__tests__/api-database-validation.test.ts > Schema Impact and Compatibility Tests > Migration Compatibility > should have valid foreign key references
+AssertionError: expected '-- Create user_integrations table to ΓÇª' to match /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?ΓÇª/i
+
+- Expected: 
+/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?emergent_projects\s*\(/i
+
++ Received: 
+"-- Create user_integrations table to store OAuth tokens and connection data
+CREATE TABLE IF NOT EXISTS user_integrations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL, -- 'github', 'vercel', etc.
+  access_token TEXT NOT NULL, -- Encrypted OAuth access token
+  refresh_token TEXT, -- Optional refresh token
+  token_expires_at TIMESTAMPTZ, -- When the token expires
+  provider_user_id TEXT, -- User ID from the provider (e.g., GitHub user ID)
+  provider_username TEXT, -- Username from the provider
+  metadata JSONB DEFAULT '{}'::jsonb, -- Additional provider-specific data
+  connected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_synced_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id, provider)
+);
+
+-- Create index for faster lookups
+CREATE INDEX idx_user_integrations_user_id ON user_integrations(user_id);
+CREATE INDEX idx_user_integrations_provider ON user_integrations(provider);
+
+-- Add RLS policies
+ALTER TABLE user_integrations ENABLE ROW LEVEL SECURITY;
+
+-- Users can only read their own integrations
+CREATE POLICY \"Users can view own integrations\"
+  ON user_integrations FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Users can insert their own integrations
+CREATE POLICY \"Users can insert own integrations\"
+  ON user_integrations FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can update their own integrations
+CREATE POLICY \"Users can update own integrations\"
+  ON user_integrations FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- Users can delete their own integrations
+CREATE POLICY \"Users can delete own integrations\"
+  ON user_integrations FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_user_integrations_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to automatically update updated_at
+CREATE TRIGGER user_integrations_updated_at
+  BEFORE UPDATE ON user_integrations
+  FOR EACH ROW
+  EXECUTE FUNCTION update_user_integrations_updated_at();
+
+-- ============================================================================
+-- Add Connections Table for OAuth Integrations
+-- Stores GitHub, Vercel, and other service connections
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.connections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  
+  -- Service details
+  service VARCHAR(50) NOT NULL, -- 'github', 'vercel', 'supabase'
+  
+  -- OAuth tokens (encrypted at rest by Supabase)
+  access_token TEXT NOT NULL,
+  refresh_token TEXT,
+  token_expires_at TIMESTAMPTZ,
+  
+  -- Service-specific metadata
+  metadata JSONB DEFAULT '{}',
+  -- For GitHub: { username, repos, avatar_url }
+  -- For Vercel: { team_id, username, projects }
+  
+  -- Timestamps
+  connected_at TIMESTAMPTZ DEFAULT NOW(),
+  last_used_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  -- Constraints
+  CONSTRAINT unique_user_service UNIQUE(user_id, service)
+);
+
+-- Index for fast lookups
+CREATE INDEX idx_connections_user_service ON public.connections(user_id, service);
+CREATE INDEX idx_connections_service ON public.connections(service);
+
+-- RLS Policies
+ALTER TABLE public.connections ENABLE ROW LEVEL SECURITY;
+
+-- Users can only see their own connections
+CREATE POLICY \"Users can view own connections\"
+  ON public.connections
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Users can insert their own connections
+CREATE POLICY \"Users can insert own connections\"
+  ON public.connections
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can update their own connections
+CREATE POLICY \"Users can update own connections\"
+  ON public.connections
+  FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- Users can delete their own connections
+CREATE POLICY \"Users can delete own connections\"
+  ON public.connections
+  FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Trigger to update updated_at
+CREATE OR REPLACE FUNCTION update_connections_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER connections_updated_at
+  BEFORE UPDATE ON public.connections
+  FOR EACH ROW
+  EXECUTE FUNCTION update_connections_updated_at();
+
+-- ============================================================================
+-- Deployments Table for tracking Vercel deployments
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.deployments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  connection_id UUID NOT NULL REFERENCES public.connections(id) ON DELETE CASCADE,
+  
+  -- Vercel deployment details
+  vercel_deployment_id TEXT NOT NULL,
+  vercel_project_id TEXT NOT NULL,
+  
+  -- Deployment info
+  project_name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  state TEXT NOT NULL, -- 'BUILDING', 'READY', 'ERROR', 'CANCELED'
+  
+  -- Build metadata
+  commit_sha TEXT,
+  commit_message TEXT,
+  branch TEXT,
+  
+  -- Performance
+  build_duration_ms INTEGER,
+  
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  ready_at TIMESTAMPTZ,
+  
+  -- Metadata
+  metadata JSONB DEFAULT '{}'
+);
+
+-- Indexes
+CREATE INDEX idx_deployments_user ON public.deployments(user_id);
+CREATE INDEX idx_deployments_connection ON public.deployments(connection_id);
+CREATE INDEX idx_deployments_vercel_id ON public.deployments(vercel_deployment_id);
+CREATE INDEX idx_deployments_project ON public.deployments(vercel_project_id);
+CREATE INDEX idx_deployments_state ON public.deployments(state);
+
+-- RLS Policies
+ALTER TABLE public.deployments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY \"Users can view own deployments\"
+  ON public.deployments
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY \"Users can insert own deployments\"
+  ON public.deployments
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY \"Users can update own deployments\"
+  ON public.deployments
+  FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- ============================================================================
+-- Comment for documentation
+-- ============================================================================
+
+COMMENT ON TABLE public.connections IS 'OAuth connections to external services (GitHub, Vercel, etc.)';
+COMMENT ON TABLE public.deployments IS 'Vercel deployment history and status tracking';
+
+-- Create experiments table
+create table if not exists public.experiments (
+  id uuid default gen_random_uuid() primary key,
+  name text not null unique,
+  description text,
+  variants jsonb not null, -- e.g. [\"A\", \"B\", \"Control\"]
+  status text not null default 'active', -- 'active', 'paused', 'completed'
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Create assignments table to track which user saw which variant
+create table if not exists public.experiment_assignments (
+  id uuid default gen_random_uuid() primary key,
+  experiment_id uuid references public.experiments(id) on delete cascade not null,
+  user_id uuid references auth.users(id) on delete cascade, -- Nullable for anonymous/guest tracking if needed, or link to profiles
+  session_id text, -- To track anonymous users by session
+  variant text not null,
+  assigned_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(experiment_id, user_id),
+  unique(experiment_id, session_id)
+);
+
+-- Create events table for analytics
+create table if not exists public.experiment_events (
+  id uuid default gen_random_uuid() primary key,
+  experiment_id uuid references public.experiments(id) on delete cascade not null,
+  variant text not null,
+  event_name text not null,
+  value numeric default 1, -- For things like \"revenue\" or just \"1\" for a count
+  user_id uuid references auth.users(id) on delete set null,
+  session_id text,
+  metadata jsonb,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- RLS Policies
+alter table public.experiments enable row level security;
+alter table public.experiment_assignments enable row level security;
+alter table public.experiment_events enable row level security;
+
+-- Everyone can read active experiments
+create policy \"Allow public read access to active experiments\"
+  on public.experiments for select
+  using (status = 'active');
+
+-- Admins/Service role can do everything (simplified for now, relying on service role for admin tasks)
+-- In a real scenario, you'd check for admin claims
+
+-- Assignments: Users can read their own, insert their own
+create policy \"Users can read own assignments\"
+  on public.experiment_assignments for select
+  using (auth.uid() = user_id);
+
+create policy \"Users can insert own assignments\"
+  on public.experiment_assignments for insert
+  with check (auth.uid() = user_id OR user_id is null);
+
+-- Events: Public/Anon can insert events (analytics)
+create policy \"Anyone can insert events\"
+  on public.experiment_events for insert
+  with check (true);
+
+-- Indexes for performance
+create index idx_assignments_experiment_user on public.experiment_assignments(experiment_id, user_id);
+create index idx_assignments_experiment_session on public.experiment_assignments(experiment_id, session_id);
+create index idx_events_experiment_variant on public.experiment_events(experiment_id, variant);
+
+-- Add metadata column to experiments table to store variant assets and config
+alter table public.experiments 
+add column if not exists metadata jsonb default '{}'::jsonb;
+
+-- CubiQo Phase 2 - Initial Database Schema
+-- Created: 2025-11-24
+-- Version: 1.0
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
+
+-- ============================================================================
+-- PROFILES TABLE
+-- Extends auth.users with application-specific data
+-- ============================================================================
+
+CREATE TABLE profiles (
+  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  handle TEXT UNIQUE,                    -- CQ#93 format (generated)
+  display_name TEXT,
+  email TEXT,
+  phone TEXT,
+  avatar_url TEXT,
+  preferences JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Handle format validation: CQ#1-99999
+ALTER TABLE profiles ADD CONSTRAINT handle_format
+  CHECK (handle ~ '^CQ#[0-9]{1,5}$');
+
+-- Index for handle lookups
+CREATE INDEX idx_profiles_handle ON profiles(handle);
+
+-- ============================================================================
+-- SESSIONS TABLE
+-- Tracks both guest and authenticated user sessions
+-- ============================================================================
+
+CREATE TABLE sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  is_guest BOOLEAN DEFAULT true,
+  device_info JSONB DEFAULT '{}'::jsonb,
+  geo_location TEXT,                     -- US/CA only (from middleware)
+  expires_at TIMESTAMPTZ,                -- 30 days for guests
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for session lookups
+CREATE INDEX idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
+
+-- Auto-set expiry for guest sessions (30 days)
+CREATE OR REPLACE FUNCTION set_guest_session_expiry()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.is_guest = true AND NEW.expires_at IS NULL THEN
+    NEW.expires_at := NOW() + INTERVAL '30 days';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_set_guest_session_expiry
+  BEFORE INSERT ON sessions
+  FOR EACH ROW
+  EXECUTE FUNCTION set_guest_session_expiry();
+
+-- ============================================================================
+-- CONVERSATIONS TABLE
+-- Chat conversations with color state and AI model tracking
+-- ============================================================================
+
+CREATE TABLE conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID REFERENCES sessions(id) ON DELETE CASCADE NOT NULL,
+  title TEXT,
+  color_state TEXT DEFAULT 'trcl',      -- trcl/green/yellow/red
+  ai_model TEXT DEFAULT 'claude',       -- claude/openai
+  message_count INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Color state validation
+ALTER TABLE conversations ADD CONSTRAINT color_state_valid
+  CHECK (color_state IN ('trcl', 'green', 'yellow', 'red'));
+
+-- AI model validation
+ALTER TABLE conversations ADD CONSTRAINT ai_model_valid
+  CHECK (ai_model IN ('claude', 'openai'));
+
+-- Indexes for conversation lookups
+CREATE INDEX idx_conversations_session_id ON conversations(session_id);
+CREATE INDEX idx_conversations_color_state ON conversations(color_state);
+
+-- ============================================================================
+-- MESSAGES TABLE
+-- Individual messages within conversations
+-- ============================================================================
+
+CREATE TABLE messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE NOT NULL,
+  role TEXT NOT NULL,                    -- user/assistant/system
+  content TEXT NOT NULL,
+  color TEXT,                            -- green/yellow/red (for routing)
+  tokens_used INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Role validation
+ALTER TABLE messages ADD CONSTRAINT role_valid
+  CHECK (role IN ('user', 'assistant', 'system'));
+
+-- Color validation
+ALTER TABLE messages ADD CONSTRAINT color_valid
+  CHECK (color IS NULL OR color IN ('green', 'yellow', 'red'));
+
+-- Indexes for message lookups
+CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
+CREATE INDEX idx_messages_created_at ON messages(created_at DESC);
+
+-- Increment message count on insert
+CREATE OR REPLACE FUNCTION increment_message_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE conversations
+  SET message_count = message_count + 1,
+      updated_at = NOW()
+  WHERE id = NEW.conversation_id;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_increment_message_count
+  AFTER INSERT ON messages
+  FOR EACH ROW
+  EXECUTE FUNCTION increment_message_count();
+
+-- ============================================================================
+-- MEMORY TABLE
+-- Extracted facts/preferences from conversations
+-- ============================================================================
+
+CREATE TABLE memory (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID REFERENCES sessions(id) ON DELETE CASCADE NOT NULL,
+  key TEXT NOT NULL,                     -- name, preference_food, etc.
+  value TEXT NOT NULL,
+  zone TEXT DEFAULT 'green',             -- green/yellow/red
+  expires_at TIMESTAMPTZ,                -- 30d for guests, NULL for users
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Zone validation
+ALTER TABLE memory ADD CONSTRAINT zone_valid
+  CHECK (zone IN ('green', 'yellow', 'red'));
+
+-- Indexes for memory lookups
+CREATE INDEX idx_memory_session_id ON memory(session_id);
+CREATE INDEX idx_memory_key ON memory(key);
+CREATE INDEX idx_memory_zone ON memory(zone);
+CREATE INDEX idx_memory_expires_at ON memory(expires_at);
+
+-- Unique constraint: one key per session per zone
+CREATE UNIQUE INDEX idx_memory_session_key_zone ON memory(session_id, key, zone);
+
+-- Auto-set expiry for guest memory (30 days)
+CREATE OR REPLACE FUNCTION set_guest_memory_expiry()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.expires_at IS NULL THEN
+    -- Check if session is guest
+    IF EXISTS (
+      SELECT 1 FROM sessions
+      WHERE id = NEW.session_id AND is_guest = true
+    ) THEN
+      NEW.expires_at := NOW() + INTERVAL '30 days';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_set_guest_memory_expiry
+  BEFORE INSERT ON memory
+  FOR EACH ROW
+  EXECUTE FUNCTION set_guest_memory_expiry();
+
+-- ============================================================================
+-- EVENTS TABLE
+-- Analytics and tracking
+-- ============================================================================
+
+CREATE TABLE events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  type TEXT NOT NULL,                    -- app_opened, voice_granted, etc.
+  properties JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for event analytics
+CREATE INDEX idx_events_type ON events(type);
+CREATE INDEX idx_events_session_id ON events(session_id);
+CREATE INDEX idx_events_user_id ON events(user_id);
+CREATE INDEX idx_events_created_at ON events(created_at DESC);
+
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ============================================================================
+
+-- Enable RLS on all tables
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE memory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================================
+-- PROFILES POLICIES
+-- ============================================================================
+
+-- Users can view their own profile
+CREATE POLICY \"Users can view own profile\"
+  ON profiles FOR SELECT
+  USING (auth.uid() = id);
+
+-- Users can update their own profile
+CREATE POLICY \"Users can update own profile\"
+  ON profiles FOR UPDATE
+  USING (auth.uid() = id);
+
+-- Users can insert their own profile (during signup)
+CREATE POLICY \"Users can insert own profile\"
+  ON profiles FOR INSERT
+  WITH CHECK (auth.uid() = id);
+
+-- ============================================================================
+-- SESSIONS POLICIES
+-- ============================================================================
+
+-- Users can access their own sessions
+CREATE POLICY \"Users can view own sessions\"
+  ON sessions FOR SELECT
+  USING (user_id = auth.uid() OR user_id IS NULL);
+
+-- Users can insert sessions
+CREATE POLICY \"Users can create sessions\"
+  ON sessions FOR INSERT
+  WITH CHECK (user_id = auth.uid() OR user_id IS NULL);
+
+-- Users can update their own sessions
+CREATE POLICY \"Users can update own sessions\"
+  ON sessions FOR UPDATE
+  USING (user_id = auth.uid() OR user_id IS NULL);
+
+-- ============================================================================
+-- CONVERSATIONS POLICIES
+-- ============================================================================
+
+-- Users can view conversations from their sessions
+CREATE POLICY \"Users can view own conversations\"
+  ON conversations FOR SELECT
+  USING (
+    session_id IN (
+      SELECT id FROM sessions
+      WHERE user_id = auth.uid() OR user_id IS NULL
+    )
+  );
+
+-- Users can create conversations in their sessions
+CREATE POLICY \"Users can create conversations\"
+  ON conversations FOR INSERT
+  WITH CHECK (
+    session_id IN (
+      SELECT id FROM sessions
+      WHERE user_id = auth.uid() OR user_id IS NULL
+    )
+  );
+
+-- Users can update their own conversations
+CREATE POLICY \"Users can update own conversations\"
+  ON conversations FOR UPDATE
+  USING (
+    session_id IN (
+      SELECT id FROM sessions
+      WHERE user_id = auth.uid() OR user_id IS NULL
+    )
+  );
+
+-- ============================================================================
+-- MESSAGES POLICIES
+-- ============================================================================
+
+-- Users can view messages in their conversations
+CREATE POLICY \"Users can view own messages\"
+  ON messages FOR SELECT
+  USING (
+    conversation_id IN (
+      SELECT id FROM conversations
+      WHERE session_id IN (
+        SELECT id FROM sessions
+        WHERE user_id = auth.uid() OR user_id IS NULL
+      )
+    )
+  );
+
+-- Users can create messages in their conversations
+CREATE POLICY \"Users can create messages\"
+  ON messages FOR INSERT
+  WITH CHECK (
+    conversation_id IN (
+      SELECT id FROM conversations
+      WHERE session_id IN (
+        SELECT id FROM sessions
+        WHERE user_id = auth.uid() OR user_id IS NULL
+      )
+    )
+  );
+
+-- ============================================================================
+-- MEMORY POLICIES
+-- ============================================================================
+
+-- Users can view memory from their sessions
+CREATE POLICY \"Users can view own memory\"
+  ON memory FOR SELECT
+  USING (
+    session_id IN (
+      SELECT id FROM sessions
+      WHERE user_id = auth.uid() OR user_id IS NULL
+    )
+  );
+
+-- Users can create memory in their sessions
+CREATE POLICY \"Users can create memory\"
+  ON memory FOR INSERT
+  WITH CHECK (
+    session_id IN (
+      SELECT id FROM sessions
+      WHERE user_id = auth.uid() OR user_id IS NULL
+    )
+  );
+
+-- Users can update their own memory
+CREATE POLICY \"Users can update own memory\"
+  ON memory FOR UPDATE
+  USING (
+    session_id IN (
+      SELECT id FROM sessions
+      WHERE user_id = auth.uid() OR user_id IS NULL
+    )
+  );
+
+-- Users can delete their own memory
+CREATE POLICY \"Users can delete own memory\"
+  ON memory FOR DELETE
+  USING (
+    session_id IN (
+      SELECT id FROM sessions
+      WHERE user_id = auth.uid() OR user_id IS NULL
+    )
+  );
+
+-- ============================================================================
+-- EVENTS POLICIES
+-- ============================================================================
+
+-- Users can view their own events
+CREATE POLICY \"Users can view own events\"
+  ON events FOR SELECT
+  USING (user_id = auth.uid() OR session_id IN (
+    SELECT id FROM sessions WHERE user_id = auth.uid() OR user_id IS NULL
+  ));
+
+-- Users can create events
+CREATE POLICY \"Users can create events\"
+  ON events FOR INSERT
+  WITH CHECK (user_id = auth.uid() OR user_id IS NULL);
+
+-- ============================================================================
+-- HELPER FUNCTIONS
+-- ============================================================================
+
+-- Generate unique CQ# handle
+CREATE OR REPLACE FUNCTION generate_unique_handle()
+RETURNS TEXT AS $$
+DECLARE
+  new_handle TEXT;
+  handle_number INT;
+BEGIN
+  LOOP
+    -- Generate random number between 1 and 99999
+    handle_number := floor(random() * 99999 + 1)::int;
+    new_handle := 'CQ#' || handle_number;
+
+    -- Check if handle exists
+    IF NOT EXISTS (SELECT 1 FROM profiles WHERE handle = new_handle) THEN
+      RETURN new_handle;
+    END IF;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Auto-generate handle on profile creation
+CREATE OR REPLACE FUNCTION auto_generate_handle()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.handle IS NULL THEN
+    NEW.handle := generate_unique_handle();
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_auto_generate_handle
+  BEFORE INSERT ON profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION auto_generate_handle();
+
+-- Update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_profiles_updated_at
+  BEFORE UPDATE ON profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER trg_conversations_updated_at
+  BEFORE UPDATE ON conversations
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+-- ============================================================================
+-- CLEANUP JOB (Optional - can be scheduled via pg_cron)
+-- ============================================================================
+
+-- Function to clean up expired guest sessions and memory
+CREATE OR REPLACE FUNCTION cleanup_expired_data()
+RETURNS void AS $$
+BEGIN
+  -- Delete expired guest sessions (cascades to conversations, messages, memory)
+  DELETE FROM sessions
+  WHERE is_guest = true
+    AND expires_at < NOW();
+
+  -- Delete expired memory entries
+  DELETE FROM memory
+  WHERE expires_at IS NOT NULL
+    AND expires_at < NOW();
+
+  RAISE NOTICE 'Cleanup completed';
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- INITIAL DATA (Optional)
+-- ============================================================================
+
+-- Example system events types (for reference)
+COMMENT ON COLUMN events.type IS 'Event types: app_opened, world_entered, voice_granted, voice_denied, action_confirmed, action_executed, a2hs_shown, a2hs_done, a2hs_dismissed, session_ended, profile_created, color_changed, adult_mode_enabled';
+
+-- ============================================================================
+-- GRANTS (Public access through RLS)
+-- ============================================================================
+
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
+
+-- ============================================================================
+-- END OF MIGRATION
+-- ============================================================================
+
+-- Fix color_state constraint to match new color system
+-- Old: 'trcl', 'green', 'yellow', 'red'
+-- New: 'ORANGE', 'RED', 'YELLOW', 'GREEN_BLUE'
+
+-- Drop old constraint
+ALTER TABLE conversations DROP CONSTRAINT IF EXISTS color_state_valid;
+
+-- Add new constraint with correct colors
+ALTER TABLE conversations ADD CONSTRAINT color_state_valid
+  CHECK (color_state IN ('ORANGE', 'RED', 'YELLOW', 'GREEN_BLUE'));
+
+-- Also fix messages table if it has the same constraint
+ALTER TABLE messages DROP CONSTRAINT IF EXISTS color_valid;
+ALTER TABLE messages ADD CONSTRAINT color_valid
+  CHECK (color IS NULL OR color IN ('ORANGE', 'RED', 'YELLOW', 'GREEN_BLUE'));
+
+-- Function to ensure profile exists for authenticated user
+-- Uses SECURITY DEFINER to bypass RLS
+-- Called from client after authentication
+
+CREATE OR REPLACE FUNCTION ensure_profile_and_session(
+  p_user_id UUID,
+  p_email TEXT DEFAULT NULL,
+  p_device_info JSONB DEFAULT '{}'::jsonb,
+  p_geo_location TEXT DEFAULT 'US'
+)
+RETURNS TABLE (
+  session_id UUID,
+  is_new_session BOOLEAN
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_session_id UUID;
+  v_is_new BOOLEAN := false;
+BEGIN
+  -- 1. Ensure profile exists (upsert)
+  INSERT INTO profiles (id, email)
+  VALUES (p_user_id, p_email)
+  ON CONFLICT (id) DO UPDATE SET
+    email = COALESCE(EXCLUDED.email, profiles.email),
+    updated_at = NOW();
+
+  -- 2. Try to find existing session for this user
+  SELECT id INTO v_session_id
+  FROM sessions
+  WHERE user_id = p_user_id
+  ORDER BY created_at DESC
+  LIMIT 1;
+
+  -- 3. If no session, create new one
+  IF v_session_id IS NULL THEN
+    INSERT INTO sessions (user_id, is_guest, device_info, geo_location, expires_at)
+    VALUES (p_user_id, false, p_device_info, p_geo_location, NULL)
+    RETURNING id INTO v_session_id;
+    v_is_new := true;
+  END IF;
+
+  RETURN QUERY SELECT v_session_id, v_is_new;
+END;
+$$;
+
+-- Grant execute to authenticated users
+GRANT EXECUTE ON FUNCTION ensure_profile_and_session TO authenticated;
+
+-- Also create a function to convert guest session
+CREATE OR REPLACE FUNCTION convert_guest_session(
+  p_session_id UUID,
+  p_user_id UUID,
+  p_email TEXT DEFAULT NULL
+)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_session_id UUID;
+BEGIN
+  -- 1. Ensure profile exists
+  INSERT INTO profiles (id, email)
+  VALUES (p_user_id, p_email)
+  ON CONFLICT (id) DO UPDATE SET
+    email = COALESCE(EXCLUDED.email, profiles.email),
+    updated_at = NOW();
+
+  -- 2. Convert the session
+  UPDATE sessions
+  SET user_id = p_user_id,
+      is_guest = false,
+      expires_at = NULL
+  WHERE id = p_session_id
+    AND is_guest = true
+  RETURNING id INTO v_session_id;
+
+  RETURN v_session_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION convert_guest_session TO authenticated;
+
+-- Add Admin Identity and Audit Logging
+-- Created: 2026-02-15
+-- Purpose: Add durable admin flag for privileged users and audit logging system
+
+-- ============================================================================
+-- ADD ADMIN FLAG TO PROFILES
+-- ============================================================================
+
+-- Add is_admin column to profiles table
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false;
+
+-- Create index for admin lookups
+CREATE INDEX IF NOT EXISTS idx_profiles_is_admin ON profiles(is_admin) WHERE is_admin = true;
+
+-- Add comment
+COMMENT ON COLUMN profiles.is_admin IS 'Durable admin flag for privileged users with elevated UI controls';
+
+-- ============================================================================
+-- AUDIT LOGS TABLE
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  user_email TEXT,
+  action_type TEXT NOT NULL,
+  action_details JSONB DEFAULT '{}'::jsonb,
+  ip_address TEXT,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for audit log queries
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_email ON audit_logs(user_email);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action_type ON audit_logs(action_type);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
+
+-- Add comments
+COMMENT ON TABLE audit_logs IS 'Audit trail for privileged admin actions';
+COMMENT ON COLUMN audit_logs.action_type IS 'Type of privileged action: debug_view, bypass_confirmation, impersonation, etc.';
+COMMENT ON COLUMN audit_logs.action_details IS 'Additional context about the action (JSON)';
+
+-- ============================================================================
+-- RLS POLICIES FOR AUDIT LOGS
+-- ============================================================================
+
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- Only admins can view audit logs
+CREATE POLICY \"Admins can view audit logs\"
+  ON audit_logs FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.is_admin = true
+    )
+  );
+
+-- Service role can insert audit logs (bypasses RLS)
+-- This allows server-side logging without checking RLS
+CREATE POLICY \"Service role can insert audit logs\"
+  ON audit_logs FOR INSERT
+  WITH CHECK (true);
+
+-- ============================================================================
+-- SET ADMIN FLAG FOR ADITYA@CUBIQO.AI
+-- ============================================================================
+
+-- Set admin flag for aditya@cubiqo.ai if the profile exists
+-- This is idempotent and safe to run multiple times
+UPDATE profiles
+SET is_admin = true
+WHERE email = 'aditya@cubiqo.ai'
+AND is_admin = false;
+
+-- If the email doesn't exist in profiles yet, this will have no effect
+-- The admin flag will need to be set when the user signs up
+
+-- ============================================================================
+-- HELPER FUNCTION TO LOG ADMIN ACTIONS
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION log_admin_action(
+  p_user_id UUID,
+  p_user_email TEXT,
+  p_action_type TEXT,
+  p_action_details JSONB DEFAULT '{}'::jsonb,
+  p_ip_address TEXT DEFAULT NULL,
+  p_user_agent TEXT DEFAULT NULL
+)
+RETURNS UUID AS $$
+DECLARE
+  v_log_id UUID;
+BEGIN
+  INSERT INTO audit_logs (
+    user_id,
+    user_email,
+    action_type,
+    action_details,
+    ip_address,
+    user_agent
+  ) VALUES (
+    p_user_id,
+    p_user_email,
+    p_action_type,
+    p_action_details,
+    p_ip_address,
+    p_user_agent
+  )
+  RETURNING id INTO v_log_id;
+  
+  RETURN v_log_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute to authenticated users
+GRANT EXECUTE ON FUNCTION log_admin_action TO authenticated, anon;
+
+-- Add comment
+COMMENT ON FUNCTION log_admin_action IS 'Helper function to log privileged admin actions to audit_logs table';
+
+-- ============================================================================
+-- GRANTS
+-- ============================================================================
+
+GRANT ALL ON audit_logs TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+
+-- ============================================================================
+-- END OF MIGRATION
+-- ============================================================================
+
+-- Founders Pass Feature Flags System
+-- Created: 2026-02-15
+-- Version: 1.0
+
+-- Enable UUID extension (if not already enabled)
+CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
+
+-- ============================================================================
+-- FEATURE FLAGS TABLE
+-- Stores feature flag definitions with scope (global/site/user)
+-- ============================================================================
+
+CREATE TABLE feature_flags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL UNIQUE,                    -- Unique flag name (e.g., \"founders_pass_v2\")
+  description TEXT,                             -- Human-readable description
+  enabled BOOLEAN DEFAULT false,                -- Master enable/disable
+  scope TEXT DEFAULT 'global',                  -- 'global', 'site', 'user'
+  target_id TEXT,                               -- Site ID or User ID (when scope != 'global')
+  config JSONB DEFAULT '{}'::jsonb,            -- Rollout rules, percentage, user lists, etc.
+  created_by UUID REFERENCES profiles(id),      -- Admin who created this flag
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Scope validation
+ALTER TABLE feature_flags ADD CONSTRAINT scope_valid
+  CHECK (scope IN ('global', 'site', 'user'));
+
+-- Indexes for flag lookups
+CREATE INDEX idx_feature_flags_name ON feature_flags(name);
+CREATE INDEX idx_feature_flags_enabled ON feature_flags(enabled);
+CREATE INDEX idx_feature_flags_scope ON feature_flags(scope);
+CREATE INDEX idx_feature_flags_target_id ON feature_flags(target_id);
+CREATE INDEX idx_feature_flags_created_at ON feature_flags(created_at DESC);
+
+-- ============================================================================
+-- FEATURE FLAG AUDIT LOG TABLE
+-- Tracks all changes to feature flags for compliance and debugging
+-- ============================================================================
+
+CREATE TABLE feature_flag_audit (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  flag_id UUID REFERENCES feature_flags(id) ON DELETE CASCADE,
+  flag_name TEXT NOT NULL,                      -- Denormalized for history
+  action TEXT NOT NULL,                         -- 'created', 'updated', 'deleted', 'toggled'
+  changed_by UUID REFERENCES profiles(id),      -- Admin who made the change
+  changes JSONB DEFAULT '{}'::jsonb,           -- Before/after values
+  metadata JSONB DEFAULT '{}'::jsonb,          -- Additional context (IP, user agent, etc.)
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Action validation
+ALTER TABLE feature_flag_audit ADD CONSTRAINT action_valid
+  CHECK (action IN ('created', 'updated', 'deleted', 'toggled'));
+
+-- Indexes for audit queries
+CREATE INDEX idx_feature_flag_audit_flag_id ON feature_flag_audit(flag_id);
+CREATE INDEX idx_feature_flag_audit_flag_name ON feature_flag_audit(flag_name);
+CREATE INDEX idx_feature_flag_audit_action ON feature_flag_audit(action);
+CREATE INDEX idx_feature_flag_audit_changed_by ON feature_flag_audit(changed_by);
+CREATE INDEX idx_feature_flag_audit_created_at ON feature_flag_audit(created_at DESC);
+
+-- ============================================================================
+-- WEBHOOK CONFIGURATIONS TABLE
+-- Stores webhook endpoints to notify on flag changes
+-- ============================================================================
+
+CREATE TABLE feature_flag_webhooks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  flag_id UUID REFERENCES feature_flags(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,                            -- Webhook endpoint URL
+  secret TEXT,                                  -- Optional HMAC secret for verification
+  enabled BOOLEAN DEFAULT true,                 -- Enable/disable this webhook
+  events TEXT[] DEFAULT ARRAY['updated', 'toggled']::TEXT[], -- Which events to listen to
+  retry_config JSONB DEFAULT '{\"max_retries\": 3, \"backoff_ms\": 1000}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for webhook lookups
+CREATE INDEX idx_feature_flag_webhooks_flag_id ON feature_flag_webhooks(flag_id);
+CREATE INDEX idx_feature_flag_webhooks_enabled ON feature_flag_webhooks(enabled);
+
+-- ============================================================================
+-- WEBHOOK DELIVERY LOG TABLE
+-- Tracks webhook delivery attempts and results
+-- ============================================================================
+
+CREATE TABLE feature_flag_webhook_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  webhook_id UUID REFERENCES feature_flag_webhooks(id) ON DELETE CASCADE,
+  flag_id UUID REFERENCES feature_flags(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,                            -- Snapshot of URL at delivery time
+  event TEXT NOT NULL,                          -- Event type that triggered webhook
+  payload JSONB NOT NULL,                       -- Webhook payload sent
+  status_code INT,                              -- HTTP status code received
+  response_body TEXT,                           -- Response from webhook
+  error TEXT,                                   -- Error message if failed
+  attempt_number INT DEFAULT 1,                 -- Retry attempt number
+  delivered_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for webhook log queries
+CREATE INDEX idx_webhook_logs_webhook_id ON feature_flag_webhook_logs(webhook_id);
+CREATE INDEX idx_webhook_logs_flag_id ON feature_flag_webhook_logs(flag_id);
+CREATE INDEX idx_webhook_logs_status_code ON feature_flag_webhook_logs(status_code);
+CREATE INDEX idx_webhook_logs_delivered_at ON feature_flag_webhook_logs(delivered_at DESC);
+
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ============================================================================
+
+-- Enable RLS on all tables
+ALTER TABLE feature_flags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feature_flag_audit ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feature_flag_webhooks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feature_flag_webhook_logs ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================================
+-- FEATURE FLAGS POLICIES
+-- Admin-only access for modifications, public read for checking flags
+-- ============================================================================
+
+-- Authenticated users can view all feature flags (for checking)
+CREATE POLICY \"Anyone can view feature flags\"
+  ON feature_flags FOR SELECT
+  TO authenticated, anon
+  USING (true);
+
+-- Only authenticated users can insert/update/delete feature flags
+-- (We'll add admin role check via service role key in API)
+CREATE POLICY \"Authenticated users can manage feature flags\"
+  ON feature_flags FOR ALL
+  USING (auth.uid() IS NOT NULL);
+
+-- ============================================================================
+-- AUDIT LOG POLICIES
+-- ============================================================================
+
+-- Anyone can view audit logs (for transparency)
+CREATE POLICY \"Anyone can view audit logs\"
+  ON feature_flag_audit FOR SELECT
+  TO authenticated, anon
+  USING (true);
+
+-- Only authenticated users can insert audit logs
+CREATE POLICY \"Authenticated users can create audit logs\"
+  ON feature_flag_audit FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL);
+
+-- ============================================================================
+-- WEBHOOK POLICIES
+-- ============================================================================
+
+-- Authenticated users can view webhooks
+CREATE POLICY \"Authenticated users can view webhooks\"
+  ON feature_flag_webhooks FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Authenticated users can manage webhooks
+CREATE POLICY \"Authenticated users can manage webhooks\"
+  ON feature_flag_webhooks FOR ALL
+  USING (auth.uid() IS NOT NULL);
+
+-- ============================================================================
+-- WEBHOOK LOG POLICIES
+-- ============================================================================
+
+-- Authenticated users can view webhook logs
+CREATE POLICY \"Authenticated users can view webhook logs\"
+  ON feature_flag_webhook_logs FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Service can insert webhook logs
+CREATE POLICY \"Anyone can create webhook logs\"
+  ON feature_flag_webhook_logs FOR INSERT
+  WITH CHECK (true);
+
+-- ============================================================================
+-- HELPER FUNCTIONS
+-- ============================================================================
+
+-- Update updated_at timestamp on feature flags
+CREATE TRIGGER trg_feature_flags_updated_at
+  BEFORE UPDATE ON feature_flags
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+-- Update updated_at timestamp on webhooks
+CREATE TRIGGER trg_feature_flag_webhooks_updated_at
+  BEFORE UPDATE ON feature_flag_webhooks
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+-- Auto-create audit log entry on feature flag changes
+CREATE OR REPLACE FUNCTION audit_feature_flag_changes()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    INSERT INTO feature_flag_audit (flag_id, flag_name, action, changed_by, changes)
+    VALUES (
+      NEW.id,
+      NEW.name,
+      'created',
+      NEW.created_by,
+      jsonb_build_object('new', row_to_json(NEW))
+    );
+  ELSIF TG_OP = 'UPDATE' THEN
+    -- Determine if this is a toggle or full update
+    DECLARE
+      action_type TEXT;
+    BEGIN
+      IF OLD.enabled != NEW.enabled AND 
+         OLD.name = NEW.name AND 
+         OLD.description IS NOT DISTINCT FROM NEW.description AND
+         OLD.scope = NEW.scope AND
+         OLD.target_id IS NOT DISTINCT FROM NEW.target_id THEN
+        action_type := 'toggled';
+      ELSE
+        action_type := 'updated';
+      END IF;
+
+      INSERT INTO feature_flag_audit (flag_id, flag_name, action, changed_by, changes)
+      VALUES (
+        NEW.id,
+        NEW.name,
+        action_type,
+        NEW.created_by, -- In real app, get from session
+        jsonb_build_object('old', row_to_json(OLD), 'new', row_to_json(NEW))
+      );
+    END;
+  ELSIF TG_OP = 'DELETE' THEN
+    INSERT INTO feature_flag_audit (flag_id, flag_name, action, changed_by, changes)
+    VALUES (
+      OLD.id,
+      OLD.name,
+      'deleted',
+      OLD.created_by,
+      jsonb_build_object('old', row_to_json(OLD))
+    );
+  END IF;
+  
+  RETURN COALESCE(NEW, OLD);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_audit_feature_flag_changes
+  AFTER INSERT OR UPDATE OR DELETE ON feature_flags
+  FOR EACH ROW
+  EXECUTE FUNCTION audit_feature_flag_changes();
+
+-- Function to check if a feature flag is enabled for a given context
+CREATE OR REPLACE FUNCTION check_feature_flag(
+  p_flag_name TEXT,
+  p_user_id UUID DEFAULT NULL,
+  p_site_id TEXT DEFAULT NULL
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_flag feature_flags%ROWTYPE;
+  v_rollout_percentage INT;
+  v_user_hash INT;
+BEGIN
+  -- Get the flag
+  SELECT * INTO v_flag
+  FROM feature_flags
+  WHERE name = p_flag_name
+  LIMIT 1;
+  
+  -- Flag doesn't exist or is disabled
+  IF NOT FOUND OR v_flag.enabled = false THEN
+    RETURN false;
+  END IF;
+  
+  -- Check scope
+  IF v_flag.scope = 'global' THEN
+    -- Check for percentage rollout
+    v_rollout_percentage := COALESCE((v_flag.config->>'percentage')::INT, 100);
+    
+    IF v_rollout_percentage = 100 THEN
+      RETURN true;
+    END IF;
+    
+    -- Percentage-based rollout using user_id hash
+    IF p_user_id IS NOT NULL THEN
+      v_user_hash := abs(hashtext(p_user_id::TEXT)) % 100;
+      RETURN v_user_hash < v_rollout_percentage;
+    END IF;
+    
+    -- No user context for percentage rollout, default to enabled
+    RETURN true;
+    
+  ELSIF v_flag.scope = 'site' THEN
+    -- Check if this site matches
+    RETURN v_flag.target_id = p_site_id;
+    
+  ELSIF v_flag.scope = 'user' THEN
+    -- Check if this user matches
+    RETURN v_flag.target_id::UUID = p_user_id;
+  END IF;
+  
+  -- Default fallback
+  RETURN false;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================================
+-- GRANTS
+-- ============================================================================
+
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT ON feature_flags TO anon, authenticated;
+GRANT ALL ON feature_flags TO authenticated;
+GRANT SELECT ON feature_flag_audit TO anon, authenticated;
+GRANT INSERT ON feature_flag_audit TO authenticated;
+GRANT ALL ON feature_flag_webhooks TO authenticated;
+GRANT SELECT ON feature_flag_webhooks TO authenticated;
+GRANT SELECT, INSERT ON feature_flag_webhook_logs TO authenticated;
+
+-- ============================================================================
+-- END OF MIGRATION
+-- ============================================================================
+
+-- Founders Pass: Feature flags, sites, OAuth tokens, action templates, audit log
+-- Migration: 20260215000001_founders_pass_schema.sql
+
+-- Sites table
+CREATE TABLE IF NOT EXISTS sites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  domain TEXT,
+  description TEXT,
+  config JSONB DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'preview')),
+  created_by UUID REFERENCES profiles(id),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Feature flags table
+CREATE TABLE IF NOT EXISTS feature_flags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  description TEXT,
+  flag_type TEXT NOT NULL DEFAULT 'boolean' CHECK (flag_type IN ('boolean', 'percentage', 'variant')),
+  default_value BOOLEAN NOT NULL DEFAULT false,
+  rollout_rules JSONB DEFAULT '{}',
+  required_scopes TEXT[] DEFAULT '{}',
+  metadata JSONB DEFAULT '{}',
+  created_by UUID REFERENCES profiles(id),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Flag overrides per-site or per-user
+CREATE TABLE IF NOT EXISTS flag_overrides (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  flag_id UUID NOT NULL REFERENCES feature_flags(id) ON DELETE CASCADE,
+  site_id UUID REFERENCES sites(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  enabled BOOLEAN NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(flag_id, site_id, user_id)
+);
+
+-- OAuth tokens (encrypted at rest)
+CREATE TABLE IF NOT EXISTS oauth_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,
+  access_token_encrypted TEXT NOT NULL,
+  refresh_token_encrypted TEXT,
+  token_type TEXT DEFAULT 'Bearer',
+  scopes TEXT[] DEFAULT '{}',
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, provider)
+);
+
+-- Action templates
+CREATE TABLE IF NOT EXISTS action_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  key TEXT NOT NULL UNIQUE,
+  description TEXT,
+  provider TEXT NOT NULL,
+  required_scopes TEXT[] DEFAULT '{}',
+  ui_schema JSONB DEFAULT '{}',
+  created_by UUID REFERENCES profiles(id),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Audit log
+CREATE TABLE IF NOT EXISTS audit_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor_id UUID REFERENCES profiles(id),
+  action TEXT NOT NULL,
+  resource_type TEXT NOT NULL,
+  resource_id TEXT,
+  details JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Feature events (analytics)
+CREATE TABLE IF NOT EXISTS feature_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id UUID REFERENCES sites(id),
+  user_id UUID REFERENCES profiles(id),
+  event_type TEXT NOT NULL,
+  event_data JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Integration configs
+CREATE TABLE IF NOT EXISTS integration_configs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id UUID REFERENCES sites(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,
+  client_id TEXT,
+  config JSONB DEFAULT '{}',
+  enabled BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(site_id, provider)
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_feature_flags_key ON feature_flags(key);
+CREATE INDEX IF NOT EXISTS idx_flag_overrides_flag ON flag_overrides(flag_id);
+CREATE INDEX IF NOT EXISTS idx_flag_overrides_site ON flag_overrides(site_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_tokens_user ON oauth_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_actor ON audit_log(actor_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_feature_events_site ON feature_events(site_id);
+CREATE INDEX IF NOT EXISTS idx_feature_events_type ON feature_events(event_type);
+
+-- RLS Policies
+ALTER TABLE sites ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feature_flags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE flag_overrides ENABLE ROW LEVEL SECURITY;
+ALTER TABLE oauth_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE action_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feature_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE integration_configs ENABLE ROW LEVEL SECURITY;
+
+-- Allow authenticated users to read feature flags and sites
+CREATE POLICY \"feature_flags_read\" ON feature_flags FOR SELECT TO authenticated USING (true);
+CREATE POLICY \"sites_read\" ON sites FOR SELECT TO authenticated USING (true);
+CREATE POLICY \"action_templates_read\" ON action_templates FOR SELECT TO authenticated USING (true);
+
+-- Users can read their own tokens
+CREATE POLICY \"oauth_tokens_own\" ON oauth_tokens FOR ALL TO authenticated
+  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
+-- Users can read their own events
+CREATE POLICY \"feature_events_own\" ON feature_events FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
+
+-- Service role has full access (for admin operations)
+CREATE POLICY \"service_full_flags\" ON feature_flags FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY \"service_full_sites\" ON sites FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY \"service_full_overrides\" ON flag_overrides FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY \"service_full_tokens\" ON oauth_tokens FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY \"service_full_templates\" ON action_templates FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY \"service_full_audit\" ON audit_log FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY \"service_full_events\" ON feature_events FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY \"service_full_integrations\" ON integration_configs FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- Daily Journal Feature - Database Schema
+-- Created: 2026-02-15
+-- Version: 1.0
+
+-- ============================================================================
+-- JOURNAL_ENTRIES TABLE
+-- Stores daily journal entries with once-per-day enforcement
+-- ============================================================================
+
+CREATE TABLE journal_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  
+  -- Journal content
+  content TEXT NOT NULL,
+  mood TEXT DEFAULT 'neutral',              -- neutral, positive, reflective, challenged
+  color_state TEXT DEFAULT 'ORANGE',        -- ORANGE (journal mode), RED, YELLOW, GREEN_BLUE
+  
+  -- Metadata
+  duration_seconds INT DEFAULT 0,           -- Time spent journaling
+  word_count INT DEFAULT 0,
+  
+  -- Email tracking
+  email_queued BOOLEAN DEFAULT false,
+  email_sent_at TIMESTAMPTZ,
+  
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_journal_entries_session_id ON journal_entries(session_id);
+CREATE INDEX idx_journal_entries_user_id ON journal_entries(user_id);
+CREATE INDEX idx_journal_entries_created_at ON journal_entries(created_at DESC);
+CREATE INDEX idx_journal_entries_email_queued ON journal_entries(email_queued) WHERE email_queued = false;
+
+-- Enforce one entry per user per day (UTC day)
+CREATE UNIQUE INDEX idx_journal_daily_user 
+  ON journal_entries(user_id, DATE(created_at))
+  WHERE user_id IS NOT NULL;
+
+-- For guest sessions (less strict, allow by session)
+CREATE UNIQUE INDEX idx_journal_daily_session 
+  ON journal_entries(session_id, DATE(created_at))
+  WHERE user_id IS NULL;
+
+-- ============================================================================
+-- JOURNAL_ANALYTICS TABLE
+-- Track engagement metrics for admin dashboard
+-- ============================================================================
+
+CREATE TABLE journal_analytics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  entry_id UUID REFERENCES journal_entries(id) ON DELETE CASCADE,
+  
+  -- Engagement metrics
+  prompts_completed INT DEFAULT 0,          -- Number of prompts answered
+  interruptions INT DEFAULT 0,               -- Times user paused/resumed
+  completion_rate DECIMAL(5,2),              -- 0.00 to 100.00
+  
+  -- Behavioral data
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  device_info JSONB DEFAULT '{}'::jsonb,
+  
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_journal_analytics_entry_id ON journal_analytics(entry_id);
+CREATE INDEX idx_journal_analytics_created_at ON journal_analytics(created_at DESC);
+
+-- ============================================================================
+-- EMAIL_QUEUE TABLE
+-- Queue for sending journal summary emails
+-- ============================================================================
+
+CREATE TABLE email_queue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  
+  -- Email details
+  type TEXT NOT NULL,                        -- journal_summary, journal_reminder, etc.
+  recipient_email TEXT NOT NULL,
+  subject TEXT,
+  
+  -- Payload
+  payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  
+  -- Status tracking
+  status TEXT DEFAULT 'pending',             -- pending, processing, sent, failed
+  attempts INT DEFAULT 0,
+  last_attempt_at TIMESTAMPTZ,
+  sent_at TIMESTAMPTZ,
+  error_message TEXT,
+  
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Status validation
+ALTER TABLE email_queue ADD CONSTRAINT status_valid
+  CHECK (status IN ('pending', 'processing', 'sent', 'failed'));
+
+-- Indexes for queue processing
+CREATE INDEX idx_email_queue_status ON email_queue(status);
+CREATE INDEX idx_email_queue_created_at ON email_queue(created_at DESC);
+CREATE INDEX idx_email_queue_pending ON email_queue(status, created_at) WHERE status = 'pending';
+
+-- ============================================================================
+-- FUNCTIONS AND TRIGGERS
+-- ============================================================================
+
+-- Update updated_at timestamp
+CREATE TRIGGER trg_journal_entries_updated_at
+  BEFORE UPDATE ON journal_entries
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+-- Auto-calculate word count on insert/update
+CREATE OR REPLACE FUNCTION calculate_word_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.word_count := array_length(regexp_split_to_array(trim(NEW.content), '\\s+'), 1);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_calculate_word_count
+  BEFORE INSERT OR UPDATE ON journal_entries
+  FOR EACH ROW
+  EXECUTE FUNCTION calculate_word_count();
+
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ============================================================================
+
+ALTER TABLE journal_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE journal_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_queue ENABLE ROW LEVEL SECURITY;
+
+-- Users can view their own journal entries
+CREATE POLICY \"Users can view own journal entries\"
+  ON journal_entries FOR SELECT
+  USING (
+    user_id = auth.uid() OR
+    session_id IN (
+      SELECT id FROM sessions
+      WHERE user_id = auth.uid() OR (user_id IS NULL AND is_guest = true)
+    )
+  );
+
+-- Users can create journal entries
+CREATE POLICY \"Users can create journal entries\"
+  ON journal_entries FOR INSERT
+  WITH CHECK (
+    user_id = auth.uid() OR
+    session_id IN (
+      SELECT id FROM sessions
+      WHERE user_id = auth.uid() OR (user_id IS NULL AND is_guest = true)
+    )
+  );
+
+-- Users can update their own entries (within same day)
+CREATE POLICY \"Users can update own journal entries\"
+  ON journal_entries FOR UPDATE
+  USING (
+    (user_id = auth.uid() OR
+    session_id IN (
+      SELECT id FROM sessions
+      WHERE user_id = auth.uid() OR (user_id IS NULL AND is_guest = true)
+    )) AND
+    DATE(created_at) = CURRENT_DATE
+  );
+
+-- Analytics policies (read-only for users)
+CREATE POLICY \"Users can view own analytics\"
+  ON journal_analytics FOR SELECT
+  USING (
+    entry_id IN (
+      SELECT id FROM journal_entries
+      WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY \"Service can manage analytics\"
+  ON journal_analytics FOR ALL
+  USING (true);
+
+-- Email queue policies (service role only)
+CREATE POLICY \"Service can manage email queue\"
+  ON email_queue FOR ALL
+  USING (true);
+
+-- ============================================================================
+-- HELPER FUNCTION - Check if user can journal today
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION can_journal_today(p_user_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  entry_exists BOOLEAN;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM journal_entries
+    WHERE user_id = p_user_id
+      AND DATE(created_at) = CURRENT_DATE
+  ) INTO entry_exists;
+  
+  RETURN NOT entry_exists;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================================
+-- GRANTS
+-- ============================================================================
+
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON journal_entries TO anon, authenticated;
+GRANT ALL ON journal_analytics TO anon, authenticated;
+GRANT ALL ON email_queue TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION can_journal_today TO anon, authenticated;
+
+-- ============================================================================
+-- END OF MIGRATION
+-- ============================================================================
+
+-- Journey Memory System - Database Schema
+-- Created: 2026-02-15
+-- Feature: Progressive memory storage with consent and privacy controls
+-- Status: Behind feature flag
+
+-- ============================================================================
+-- FEATURE FLAGS TABLE
+-- Control feature rollout and access
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS feature_flags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT UNIQUE NOT NULL,
+  enabled BOOLEAN DEFAULT false,
+  description TEXT,
+  config JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Index for feature flag lookups
+CREATE INDEX idx_feature_flags_name ON feature_flags(name);
+CREATE INDEX idx_feature_flags_enabled ON feature_flags(enabled);
+
+-- Insert journey memory feature flag (disabled by default)
+INSERT INTO feature_flags (name, enabled, description, config)
+VALUES (
+  'journey_memory',
+  false,
+  'Progressive memory system with consent and privacy controls',
+  '{\"version\": \"1.0\", \"max_memories_per_user\": 10000, \"retention_days_default\": 365}'::jsonb
+)
+ON CONFLICT (name) DO NOTHING;
+
+-- ============================================================================
+-- JOURNEY CONSENTS TABLE
+-- Track user opt-in and retention preferences
+-- ============================================================================
+
+CREATE TABLE journey_consents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
+  opted_in BOOLEAN DEFAULT false NOT NULL,
+  retention_days INT DEFAULT 365,          -- How long to keep memories (null = forever)
+  consent_version TEXT DEFAULT 'v1.0',
+  consented_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ,
+  metadata JSONB DEFAULT '{}'::jsonb,      -- Store consent details, IP, user agent, etc.
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Ensure one active consent per user
+CREATE UNIQUE INDEX idx_journey_consents_user_active 
+  ON journey_consents(user_id) 
+  WHERE revoked_at IS NULL;
+
+-- Indexes for consent lookups
+CREATE INDEX idx_journey_consents_user_id ON journey_consents(user_id);
+CREATE INDEX idx_journey_consents_opted_in ON journey_consents(opted_in);
+CREATE INDEX idx_journey_consents_session_id ON journey_consents(session_id);
+
+-- ============================================================================
+-- JOURNEY MEMORIES TABLE
+-- Progressive memory storage with embeddings for similarity search
+-- ============================================================================
+
+CREATE TABLE journey_memories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
+  conversation_id UUID REFERENCES conversations(id) ON DELETE SET NULL,
+  
+  -- Memory content
+  content TEXT NOT NULL,
+  summary TEXT,                            -- Auto-generated summary for fast access
+  category TEXT,                           -- green/yellow/red or custom categories
+  importance_score FLOAT DEFAULT 0.5,      -- 0-1 scale for memory importance
+  
+  -- Embeddings for similarity search
+  embedding vector(1536),                  -- OpenAI text-embedding-3-small dimension
+  
+  -- Metadata
+  metadata JSONB DEFAULT '{}'::jsonb,      -- Store context, entities, tags, etc.
+  source TEXT,                             -- chat/journal/voice/etc.
+  
+  -- Privacy and lifecycle
+  is_sensitive BOOLEAN DEFAULT false,
+  expires_at TIMESTAMPTZ,                  -- Auto-delete date based on retention
+  accessed_count INT DEFAULT 0,
+  last_accessed_at TIMESTAMPTZ,
+  
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for memory lookups and performance
+CREATE INDEX idx_journey_memories_user_id ON journey_memories(user_id);
+CREATE INDEX idx_journey_memories_session_id ON journey_memories(session_id);
+CREATE INDEX idx_journey_memories_conversation_id ON journey_memories(conversation_id);
+CREATE INDEX idx_journey_memories_category ON journey_memories(category);
+CREATE INDEX idx_journey_memories_importance ON journey_memories(importance_score DESC);
+CREATE INDEX idx_journey_memories_expires_at ON journey_memories(expires_at);
+CREATE INDEX idx_journey_memories_created_at ON journey_memories(created_at DESC);
+
+-- Enable pgvector extension for similarity search
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Vector similarity index (IVFFlat for fast approximate search)
+CREATE INDEX idx_journey_memories_embedding ON journey_memories 
+  USING ivfflat (embedding vector_cosine_ops)
+  WITH (lists = 100);
+
+-- ============================================================================
+-- JOURNEY ROLLBACK LOGS TABLE
+-- Track all memory deletions and modifications for audit trail
+-- ============================================================================
+
+CREATE TABLE journey_rollback_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  action_type TEXT NOT NULL,               -- delete_memory, delete_all, revoke_consent, etc.
+  affected_memory_id UUID,                 -- Reference to deleted memory (if applicable)
+  affected_count INT DEFAULT 0,            -- Number of memories affected
+  reason TEXT,                             -- User-provided or system reason
+  metadata JSONB DEFAULT '{}'::jsonb,      -- Store deleted memory snapshot, request details, etc.
+  performed_by TEXT DEFAULT 'user',        -- user/admin/system
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for audit trail
+CREATE INDEX idx_journey_rollback_logs_user_id ON journey_rollback_logs(user_id);
+CREATE INDEX idx_journey_rollback_logs_action_type ON journey_rollback_logs(action_type);
+CREATE INDEX idx_journey_rollback_logs_created_at ON journey_rollback_logs(created_at DESC);
+CREATE INDEX idx_journey_rollback_logs_memory_id ON journey_rollback_logs(affected_memory_id);
+
+-- ============================================================================
+-- JOURNEY METRICS TABLE (for monetization and analytics)
+-- Aggregate memory statistics for admin dashboard
+-- ============================================================================
+
+CREATE TABLE journey_metrics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  metric_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  
+  -- Memory stats
+  total_memories INT DEFAULT 0,
+  memories_added_today INT DEFAULT 0,
+  memories_accessed_today INT DEFAULT 0,
+  average_importance FLOAT DEFAULT 0,
+  
+  -- Completeness metrics
+  memory_completeness_score FLOAT DEFAULT 0,  -- 0-1 scale
+  profile_completeness_score FLOAT DEFAULT 0, -- 0-1 scale
+  
+  -- Engagement metrics
+  similarity_queries_count INT DEFAULT 0,
+  memory_quality_score FLOAT DEFAULT 0,       -- Based on richness, connections, etc.
+  
+  -- Monetization hooks
+  monetizable_interactions INT DEFAULT 0,
+  premium_feature_uses INT DEFAULT 0,
+  
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Unique constraint: one row per user per date
+CREATE UNIQUE INDEX idx_journey_metrics_user_date ON journey_metrics(user_id, metric_date);
+
+-- Indexes for analytics
+CREATE INDEX idx_journey_metrics_user_id ON journey_metrics(user_id);
+CREATE INDEX idx_journey_metrics_date ON journey_metrics(metric_date DESC);
+CREATE INDEX idx_journey_metrics_completeness ON journey_metrics(memory_completeness_score DESC);
+
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ============================================================================
+
+-- Enable RLS on all tables
+ALTER TABLE feature_flags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE journey_consents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE journey_memories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE journey_rollback_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE journey_metrics ENABLE ROW LEVEL SECURITY;
+
+-- Feature Flags Policies (read-only for all, admin-only write)
+CREATE POLICY \"Anyone can read feature flags\"
+  ON feature_flags FOR SELECT
+  USING (true);
+
+-- Journey Consents Policies
+CREATE POLICY \"Users can view own consents\"
+  ON journey_consents FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY \"Users can create own consents\"
+  ON journey_consents FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY \"Users can update own consents\"
+  ON journey_consents FOR UPDATE
+  USING (user_id = auth.uid());
+
+-- Journey Memories Policies
+CREATE POLICY \"Users can view own memories\"
+  ON journey_memories FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY \"Users can create own memories\"
+  ON journey_memories FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY \"Users can update own memories\"
+  ON journey_memories FOR UPDATE
+  USING (user_id = auth.uid());
+
+CREATE POLICY \"Users can delete own memories\"
+  ON journey_memories FOR DELETE
+  USING (user_id = auth.uid());
+
+-- Journey Rollback Logs Policies
+CREATE POLICY \"Users can view own rollback logs\"
+  ON journey_rollback_logs FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY \"Users can create rollback logs\"
+  ON journey_rollback_logs FOR INSERT
+  WITH CHECK (true);  -- System can create logs for any user
+
+-- Journey Metrics Policies
+CREATE POLICY \"Users can view own metrics\"
+  ON journey_metrics FOR SELECT
+  USING (user_id = auth.uid());
+
+-- ============================================================================
+-- HELPER FUNCTIONS
+-- ============================================================================
+
+-- Auto-set memory expiry based on user's retention preference
+CREATE OR REPLACE FUNCTION set_journey_memory_expiry()
+RETURNS TRIGGER AS $$
+DECLARE
+  retention_days INT;
+BEGIN
+  IF NEW.expires_at IS NULL THEN
+    -- Get user's retention preference
+    SELECT jc.retention_days INTO retention_days
+    FROM journey_consents jc
+    WHERE jc.user_id = NEW.user_id 
+      AND jc.opted_in = true
+      AND jc.revoked_at IS NULL
+    ORDER BY jc.created_at DESC
+    LIMIT 1;
+    
+    -- Set expiry if retention period is defined
+    IF retention_days IS NOT NULL THEN
+      NEW.expires_at := NOW() + (retention_days || ' days')::INTERVAL;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_set_journey_memory_expiry
+  BEFORE INSERT ON journey_memories
+  FOR EACH ROW
+  EXECUTE FUNCTION set_journey_memory_expiry();
+
+-- Update timestamps
+CREATE TRIGGER trg_journey_consents_updated_at
+  BEFORE UPDATE ON journey_consents
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER trg_journey_memories_updated_at
+  BEFORE UPDATE ON journey_memories
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER trg_journey_metrics_updated_at
+  BEFORE UPDATE ON journey_metrics
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER trg_feature_flags_updated_at
+  BEFORE UPDATE ON feature_flags
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+-- ============================================================================
+-- SIMILARITY SEARCH FUNCTION
+-- Find similar memories using vector embeddings
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION search_journey_memories(
+  query_embedding vector(1536),
+  query_user_id UUID,
+  match_threshold FLOAT DEFAULT 0.5,
+  match_count INT DEFAULT 10,
+  filter_category TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+  id UUID,
+  content TEXT,
+  summary TEXT,
+  category TEXT,
+  importance_score FLOAT,
+  similarity FLOAT,
+  metadata JSONB,
+  created_at TIMESTAMPTZ
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    jm.id,
+    jm.content,
+    jm.summary,
+    jm.category,
+    jm.importance_score,
+    1 - (jm.embedding <=> query_embedding) AS similarity,
+    jm.metadata,
+    jm.created_at
+  FROM journey_memories jm
+  WHERE jm.user_id = query_user_id
+    AND jm.embedding IS NOT NULL
+    AND (filter_category IS NULL OR jm.category = filter_category)
+    AND (jm.expires_at IS NULL OR jm.expires_at > NOW())
+    AND 1 - (jm.embedding <=> query_embedding) >= match_threshold
+  ORDER BY jm.embedding <=> query_embedding
+  LIMIT match_count;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- CLEANUP FUNCTIONS
+-- ============================================================================
+
+-- Function to clean up expired memories
+CREATE OR REPLACE FUNCTION cleanup_expired_journey_memories()
+RETURNS INT AS $$
+DECLARE
+  deleted_count INT;
+BEGIN
+  -- Log deletions before removing
+  INSERT INTO journey_rollback_logs (user_id, action_type, affected_count, reason, performed_by)
+  SELECT 
+    user_id,
+    'expired_deletion',
+    COUNT(*),
+    'Automatic deletion of expired memories',
+    'system'
+  FROM journey_memories
+  WHERE expires_at IS NOT NULL AND expires_at < NOW()
+  GROUP BY user_id;
+  
+  -- Delete expired memories
+  WITH deleted AS (
+    DELETE FROM journey_memories
+    WHERE expires_at IS NOT NULL AND expires_at < NOW()
+    RETURNING id
+  )
+  SELECT COUNT(*) INTO deleted_count FROM deleted;
+  
+  RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- GRANTS
+-- ============================================================================
+
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
+
+-- ============================================================================
+-- COMMENTS FOR DOCUMENTATION
+-- ============================================================================
+
+COMMENT ON TABLE journey_memories IS 'Progressive memory storage for Journey system with vector embeddings';
+COMMENT ON TABLE journey_consents IS 'User consent and retention preferences for Journey memory system';
+COMMENT ON TABLE journey_rollback_logs IS 'Audit trail for all memory deletions and modifications';
+COMMENT ON TABLE journey_metrics IS 'Aggregated metrics for admin dashboard and monetization';
+COMMENT ON TABLE feature_flags IS 'Feature flag management for gradual rollout';
+
+COMMENT ON COLUMN journey_memories.embedding IS 'OpenAI text-embedding-3-small (1536 dimensions) for similarity search';
+COMMENT ON COLUMN journey_memories.importance_score IS 'AI-computed importance score (0-1) for memory prioritization';
+COMMENT ON COLUMN journey_metrics.memory_completeness_score IS 'Score indicating how complete the user memory profile is (0-1)';
+
+-- ============================================================================
+-- END OF MIGRATION
+-- ============================================================================
+
+-- Self-Heal Reports System
+-- Created: 2026-02-15
+-- Tracks daily self-heal job execution and results
+
+-- Enable UUID extension (should already be enabled)
+CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
+
+-- ============================================================================
+-- SELF_HEAL_REPORTS TABLE
+-- Stores the results of each self-heal job execution
+-- ============================================================================
+
+CREATE TABLE self_heal_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_date TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  status TEXT NOT NULL,                     -- success/partial/failed
+  diagnostics JSONB DEFAULT '{}'::jsonb,    -- Diagnostic results
+  repairs JSONB DEFAULT '[]'::jsonb,        -- Array of repairs attempted
+  rollback_patch TEXT,                      -- SQL or commands to rollback changes
+  fixed_issues JSONB DEFAULT '[]'::jsonb,   -- Issues that were fixed
+  critical_issues JSONB DEFAULT '[]'::jsonb, -- Critical issues found
+  recommendations JSONB DEFAULT '[]'::jsonb, -- Recommendations for manual review
+  email_sent BOOLEAN DEFAULT false,
+  email_sent_at TIMESTAMPTZ,
+  email_from TEXT DEFAULT 'noreply@cubiqo.ai',
+  email_to TEXT DEFAULT 'aditya@cubiqo.ai',
+  execution_time_ms INTEGER,                -- Time taken to complete
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Status validation
+ALTER TABLE self_heal_reports ADD CONSTRAINT status_valid
+  CHECK (status IN ('success', 'partial', 'failed'));
+
+-- Index for date lookups
+CREATE INDEX idx_self_heal_reports_run_date ON self_heal_reports(run_date DESC);
+CREATE INDEX idx_self_heal_reports_status ON self_heal_reports(status);
+
+-- ============================================================================
+-- SELF_HEAL_AUDIT_LOGS TABLE
+-- Detailed audit trail for each repair action taken
+-- ============================================================================
+
+CREATE TABLE self_heal_audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_id UUID REFERENCES self_heal_reports(id) ON DELETE CASCADE NOT NULL,
+  action_type TEXT NOT NULL,                -- cache_clear/service_restart/migration_reapply/etc
+  action_details JSONB DEFAULT '{}'::jsonb, -- Specific details about the action
+  status TEXT NOT NULL,                     -- success/failed/skipped
+  error_message TEXT,
+  rollback_command TEXT,                    -- Command to undo this specific action
+  executed_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Status validation
+ALTER TABLE self_heal_audit_logs ADD CONSTRAINT audit_status_valid
+  CHECK (status IN ('success', 'failed', 'skipped'));
+
+-- Index for report lookups
+CREATE INDEX idx_self_heal_audit_logs_report_id ON self_heal_audit_logs(report_id);
+CREATE INDEX idx_self_heal_audit_logs_executed_at ON self_heal_audit_logs(executed_at DESC);
+
+-- ============================================================================
+-- COMMENTS
+-- ============================================================================
+
+COMMENT ON TABLE self_heal_reports IS 'Stores results of daily self-heal job executions';
+COMMENT ON TABLE self_heal_audit_logs IS 'Detailed audit trail for each repair action taken during self-heal jobs';
+
+-- CQ-to-CQ Communication System
+-- Created: 2026-02-15
+-- Version: 1.0
+-- 
+-- This migration:
+-- 1. Updates CQ number format from CQ#[0-9]{1,5} to CQ[A-Z0-9]{3}
+-- 2. Creates friends table for user connections
+-- 3. Creates direct_messages table for CQ-to-CQ messaging
+
+-- ============================================================================
+-- PART 1: Update CQ Number Format
+-- ============================================================================
+
+-- Drop old constraint
+ALTER TABLE profiles DROP CONSTRAINT IF EXISTS handle_format;
+
+-- Add new constraint: CQ followed by exactly 3 alphanumeric characters
+ALTER TABLE profiles ADD CONSTRAINT handle_format
+  CHECK (handle ~ '^CQ[A-Z0-9]{3}$');
+
+-- Update the generate_unique_handle function
+CREATE OR REPLACE FUNCTION generate_unique_handle()
+RETURNS TEXT AS $$
+DECLARE
+  new_handle TEXT;
+  chars TEXT := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  char1 TEXT;
+  char2 TEXT;
+  char3 TEXT;
+BEGIN
+  LOOP
+    -- Generate 3 random alphanumeric characters
+    char1 := substr(chars, floor(random() * 36 + 1)::int, 1);
+    char2 := substr(chars, floor(random() * 36 + 1)::int, 1);
+    char3 := substr(chars, floor(random() * 36 + 1)::int, 1);
+    new_handle := 'CQ' || char1 || char2 || char3;
+
+    -- Check if handle exists
+    IF NOT EXISTS (SELECT 1 FROM profiles WHERE handle = new_handle) THEN
+      RETURN new_handle;
+    END IF;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Note: Existing handles will remain unchanged. They will be updated on next profile update
+-- or users can manually update their handles through the UI
+
+-- ============================================================================
+-- PART 2: Friends System
+-- ============================================================================
+
+-- Friends/Contacts table
+CREATE TABLE IF NOT EXISTS friends (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  friend_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'blocked')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, friend_id)
+);
+
+-- RLS policies for friends
+ALTER TABLE friends ENABLE ROW LEVEL SECURITY;
+
+-- Users can see their own friend relationships
+CREATE POLICY \"Users can view own friends\"
+  ON friends FOR SELECT
+  USING (user_id = auth.uid() OR friend_id = auth.uid());
+
+-- Users can send friend requests
+CREATE POLICY \"Users can create friend requests\"
+  ON friends FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+-- Users can update friend status (accept/block)
+CREATE POLICY \"Users can update friend status\"
+  ON friends FOR UPDATE
+  USING (friend_id = auth.uid() OR user_id = auth.uid());
+
+-- Users can delete friendships
+CREATE POLICY \"Users can delete friendships\"
+  ON friends FOR DELETE
+  USING (user_id = auth.uid() OR friend_id = auth.uid());
+
+-- Indexes for fast lookups
+CREATE INDEX IF NOT EXISTS idx_friends_user_id ON friends(user_id);
+CREATE INDEX IF NOT EXISTS idx_friends_friend_id ON friends(friend_id);
+CREATE INDEX IF NOT EXISTS idx_friends_status ON friends(status);
+
+-- ============================================================================
+-- PART 3: Direct Messaging
+-- ============================================================================
+
+-- Direct messages between users
+CREATE TABLE IF NOT EXISTS direct_messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  sender_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  receiver_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  content TEXT NOT NULL,
+  is_read BOOLEAN DEFAULT false,
+  is_voice_delivered BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS
+ALTER TABLE direct_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY \"Users can view own messages\"
+  ON direct_messages FOR SELECT
+  USING (sender_id = auth.uid() OR receiver_id = auth.uid());
+
+CREATE POLICY \"Users can send messages to friends\"
+  ON direct_messages FOR INSERT
+  WITH CHECK (
+    sender_id = auth.uid()
+    AND EXISTS (
+      SELECT 1 FROM friends
+      WHERE status = 'accepted'
+      AND (
+        (user_id = auth.uid() AND friend_id = direct_messages.receiver_id)
+        OR (friend_id = auth.uid() AND user_id = direct_messages.receiver_id)
+      )
+    )
+  );
+
+CREATE POLICY \"Users can update own received messages\"
+  ON direct_messages FOR UPDATE
+  USING (receiver_id = auth.uid());
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_dm_sender ON direct_messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_dm_receiver ON direct_messages(receiver_id);
+CREATE INDEX IF NOT EXISTS idx_dm_created ON direct_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_dm_unread ON direct_messages(receiver_id, is_read) WHERE is_read = false;
+
+-- Design/Feature Toggles System
+-- Created: 2026-02-15
+-- Version: 1.0
+-- Purpose: Dedicated table for design and feature toggles, separate from feature_flags
+
+-- ============================================================================
+-- DESIGN TOGGLES TABLE
+-- Stores design and feature toggles with simpler structure than feature_flags
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS design_toggles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  display_name TEXT NOT NULL,
+  description TEXT,
+  category TEXT NOT NULL DEFAULT 'design', -- 'design', 'feature', 'experiment'
+  is_enabled BOOLEAN DEFAULT true,
+  config JSONB DEFAULT '{}'::jsonb,
+  updated_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Category validation
+ALTER TABLE design_toggles ADD CONSTRAINT category_valid
+  CHECK (category IN ('design', 'feature', 'experiment'));
+
+-- Indexes for toggle lookups
+CREATE INDEX idx_design_toggles_name ON design_toggles(name);
+CREATE INDEX idx_design_toggles_category ON design_toggles(category);
+CREATE INDEX idx_design_toggles_is_enabled ON design_toggles(is_enabled);
+
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ============================================================================
+
+ALTER TABLE design_toggles ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read design toggles (for checking in client)
+CREATE POLICY \"Anyone can read design toggles\"
+  ON design_toggles FOR SELECT
+  USING (true);
+
+-- Only admins can manage design toggles
+-- Admin check: user email must be in the admin list
+CREATE POLICY \"Admins can manage design toggles\"
+  ON design_toggles FOR ALL
+  USING (
+    auth.uid() IN (
+      SELECT id FROM profiles 
+      WHERE email IN ('aditya@cubiqo.ai')
+    )
+  );
+
+-- ============================================================================
+-- TRIGGER: Update updated_at timestamp
+-- ============================================================================
+
+CREATE TRIGGER trg_design_toggles_updated_at
+  BEFORE UPDATE ON design_toggles
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+-- ============================================================================
+-- SEED DATA: Default design toggles
+-- ============================================================================
+
+INSERT INTO design_toggles (name, display_name, description, category, is_enabled) VALUES
+  ('glassmorphic_cube', 'Glassmorphic Isometric Cube', 'Frosted glass cube with particle effects', 'design', false),
+  ('energy_wireframe_cube', 'Energy Wireframe Cube', 'Wireframe cube with energy flows', 'design', true),
+  ('classic_cube', 'Classic 3D Cube', 'Original CubiQo cube design', 'design', true),
+  ('particle_landing', 'Particle Scene Landing', 'Particle-based landing page', 'design', true),
+  ('fullscreen_app_landing', 'Fullscreen App Landing', 'Original fullscreen app as landing', 'design', false),
+  ('sidekick_mode', 'Sidekick Interaction Mode', 'AI acts as a sidekick companion', 'feature', false),
+  ('cope_mode', 'Cope Interaction Mode', 'AI helps with coping and wellness', 'feature', false),
+  ('founder_mode', 'Founder Mode', 'Special admin-only mode with elevated AI', 'feature', false),
+  ('policy_router', 'Policy Router', 'AI routing with founder escalation', 'feature', false),
+  ('ab_testing', 'A/B Testing Framework', 'Enable A/B test experiments', 'experiment', false),
+  ('journey_memory', 'Journey Memory System', 'User memory tracking across sessions', 'feature', true),
+  ('cq_messaging', 'CQ-to-CQ Messaging', 'Direct messaging between CQ users', 'feature', false),
+  ('dark_premium_theme', 'Apple-Grade Premium Theme', 'SF Pro fonts, glass materials, spring animations', 'design', true)
+ON CONFLICT (name) DO NOTHING;
+
+-- ============================================================================
+-- GRANTS
+-- ============================================================================
+
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT ON design_toggles TO anon, authenticated;
+GRANT ALL ON design_toggles TO authenticated;
+
+-- ============================================================================
+-- END OF MIGRATION
+-- ============================================================================
+
+-- Journey Memory System - Helper Functions for Admin Metrics
+-- Created: 2026-02-15
+
+-- ============================================================================
+-- GET TOP USERS BY MEMORY COUNT
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION get_top_journey_users(limit_count INT DEFAULT 10)
+RETURNS TABLE (
+  user_id UUID,
+  memory_count BIGINT,
+  avg_importance FLOAT,
+  last_memory_at TIMESTAMPTZ
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    jm.user_id,
+    COUNT(jm.id) as memory_count,
+    AVG(jm.importance_score) as avg_importance,
+    MAX(jm.created_at) as last_memory_at
+  FROM journey_memories jm
+  GROUP BY jm.user_id
+  ORDER BY memory_count DESC
+  LIMIT limit_count;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- GRANT PERMISSIONS
+-- ============================================================================
+
+GRANT EXECUTE ON FUNCTION get_top_journey_users TO anon, authenticated;
+
+-- ============================================================================
+-- END OF MIGRATION
+-- ============================================================================
+
+-- Features Catalog & User Toggles System
+-- Created: 2026-02-16
+-- Version: 1.0
+-- Purpose: Unified catalog for all features and designs with per-user toggle support
+
+-- ============================================================================
+-- FEATURES CATALOG TABLE
+-- Single source of truth for all features and design variants
+-- ============================================================================
+
+CREATE TABLE features_catalog (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  feature_key TEXT NOT NULL UNIQUE,              -- Unique key (e.g., \"ui.chat_assistant\", \"design.plasma_wave\")
+  label TEXT NOT NULL,                           -- Display name
+  description TEXT,                              -- Human-readable description
+  category TEXT NOT NULL,                        -- 'social', 'communication', 'utility', 'support', 'visuals', 'admin'
+  feature_type TEXT DEFAULT 'toggle',            -- 'toggle', 'design_variant', 'config'
+  default_enabled BOOLEAN DEFAULT false,         -- Global default state
+  risk_level TEXT DEFAULT 'safe',                -- 'safe', 'warning', 'dangerous'
+  config JSONB DEFAULT '{}'::jsonb,             -- Additional config (icon, order, etc.)
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Category validation
+ALTER TABLE features_catalog ADD CONSTRAINT category_valid
+  CHECK (category IN ('social', 'communication', 'utility', 'support', 'visuals', 'admin', 'general'));
+
+-- Feature type validation
+ALTER TABLE features_catalog ADD CONSTRAINT feature_type_valid
+  CHECK (feature_type IN ('toggle', 'design_variant', 'config'));
+
+-- Risk level validation
+ALTER TABLE features_catalog ADD CONSTRAINT risk_level_valid
+  CHECK (risk_level IN ('safe', 'warning', 'dangerous'));
+
+-- Indexes
+CREATE INDEX idx_features_catalog_category ON features_catalog(category);
+CREATE INDEX idx_features_catalog_feature_type ON features_catalog(feature_type);
+CREATE INDEX idx_features_catalog_key ON features_catalog(feature_key);
+
+-- ============================================================================
+-- USER FEATURE TOGGLES TABLE
+-- Per-user overrides for features and design preferences
+-- ============================================================================
+
+CREATE TABLE user_feature_toggles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  feature_key TEXT NOT NULL,                     -- References features_catalog.feature_key
+  enabled BOOLEAN NOT NULL,                      -- User's preference
+  metadata JSONB DEFAULT '{}'::jsonb,           -- Additional user-specific config
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  -- Ensure one row per user per feature
+  UNIQUE(user_id, feature_key)
+);
+
+-- Indexes
+CREATE INDEX idx_user_toggles_user_id ON user_feature_toggles(user_id);
+CREATE INDEX idx_user_toggles_feature_key ON user_feature_toggles(feature_key);
+CREATE INDEX idx_user_toggles_user_feature ON user_feature_toggles(user_id, feature_key);
+
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ============================================================================
+
+-- Enable RLS
+ALTER TABLE features_catalog ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_feature_toggles ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read the catalog
+CREATE POLICY \"Anyone can view features catalog\"
+  ON features_catalog FOR SELECT
+  TO authenticated, anon
+  USING (true);
+
+-- Only authenticated users can manage catalog (admin check in API layer)
+CREATE POLICY \"Authenticated users can manage catalog\"
+  ON features_catalog FOR ALL
+  USING (auth.uid() IS NOT NULL);
+
+-- Users can view their own toggles
+CREATE POLICY \"Users can view their own toggles\"
+  ON user_feature_toggles FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Users can manage their own toggles
+CREATE POLICY \"Users can manage their own toggles\"
+  ON user_feature_toggles FOR ALL
+  USING (auth.uid() = user_id);
+
+-- ============================================================================
+-- HELPER FUNCTIONS
+-- ============================================================================
+
+-- Update updated_at timestamp
+CREATE TRIGGER trg_features_catalog_updated_at
+  BEFORE UPDATE ON features_catalog
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER trg_user_toggles_updated_at
+  BEFORE UPDATE ON user_feature_toggles
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+-- Function to get effective feature state for a user (with user override)
+CREATE OR REPLACE FUNCTION get_effective_feature_state(
+  p_feature_key TEXT,
+  p_user_id UUID
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_catalog features_catalog%ROWTYPE;
+  v_user_toggle user_feature_toggles%ROWTYPE;
+BEGIN
+  -- Get catalog entry
+  SELECT * INTO v_catalog
+  FROM features_catalog
+  WHERE feature_key = p_feature_key
+  LIMIT 1;
+  
+  IF NOT FOUND THEN
+    RETURN false;
+  END IF;
+  
+  -- Check for user override
+  SELECT * INTO v_user_toggle
+  FROM user_feature_toggles
+  WHERE feature_key = p_feature_key
+    AND user_id = p_user_id
+  LIMIT 1;
+  
+  -- User override takes precedence
+  IF FOUND THEN
+    RETURN v_user_toggle.enabled;
+  END IF;
+  
+  -- Fall back to catalog default
+  RETURN v_catalog.default_enabled;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================================
+-- SEED DATA - Core Features and Design Variants
+-- ============================================================================
+
+-- Social Features
+INSERT INTO features_catalog (feature_key, label, description, category, feature_type, default_enabled, risk_level, config) VALUES
+  ('social.share_journey', 'Share Journey', 'Allow users to share their emotional journey on social media', 'social', 'toggle', false, 'safe', '{\"icon\": \"≡ƒô▒\"}'),
+  ('social.friend_connections', 'Friend Connections', 'Connect with friends and see their emotional states', 'social', 'toggle', false, 'warning', '{\"icon\": \"≡ƒæÑ\"}'),
+  ('social.community_board', 'Community Board', 'Access to community support and discussions', 'social', 'toggle', false, 'safe', '{\"icon\": \"≡ƒîÉ\"}');
+
+-- Communication Features
+INSERT INTO features_catalog (feature_key, label, description, category, feature_type, default_enabled, risk_level, config) VALUES
+  ('communication.voice_chat', 'Voice Chat', 'AI voice conversation capability', 'communication', 'toggle', true, 'safe', '{\"icon\": \"≡ƒÄñ\"}'),
+  ('communication.text_chat', 'Text Chat', 'AI text conversation capability', 'communication', 'toggle', true, 'safe', '{\"icon\": \"≡ƒÆ¼\"}'),
+  ('communication.email_integration', 'Email Integration', 'Read and respond to emails via AI', 'communication', 'toggle', false, 'dangerous', '{\"icon\": \"≡ƒôº\"}'),
+  ('communication.calendar_sync', 'Calendar Sync', 'Sync and manage calendar events', 'communication', 'toggle', false, 'warning', '{\"icon\": \"≡ƒôà\"}');
+
+-- Utility Features
+INSERT INTO features_catalog (feature_key, label, description, category, feature_type, default_enabled, risk_level, config) VALUES
+  ('utility.journal_entries', 'Journal Entries', 'Personal emotional journaling system', 'utility', 'toggle', true, 'safe', '{\"icon\": \"≡ƒôö\"}'),
+  ('utility.mood_tracking', 'Mood Tracking', 'Track emotional patterns over time', 'utility', 'toggle', true, 'safe', '{\"icon\": \"≡ƒôè\"}'),
+  ('utility.meditation_timer', 'Meditation Timer', 'Guided meditation and mindfulness', 'utility', 'toggle', true, 'safe', '{\"icon\": \"≡ƒºÿ\"}'),
+  ('utility.browser_automation', 'Browser Automation', 'AI-powered web browsing and task automation', 'utility', 'toggle', false, 'dangerous', '{\"icon\": \"≡ƒîÉ\"}');
+
+-- Support Features
+INSERT INTO features_catalog (feature_key, label, description, category, feature_type, default_enabled, risk_level, config) VALUES
+  ('support.crisis_detection', 'Crisis Detection', 'AI detects emotional distress and offers resources', 'support', 'toggle', true, 'safe', '{\"icon\": \"≡ƒåÿ\"}'),
+  ('support.therapist_matching', 'Therapist Matching', 'Connect with licensed mental health professionals', 'support', 'toggle', false, 'warning', '{\"icon\": \"≡ƒæ¿ΓÇìΓÜò∩╕Å\"}'),
+  ('support.emergency_contacts', 'Emergency Contacts', 'Quick access to emergency helplines', 'support', 'toggle', true, 'safe', '{\"icon\": \"≡ƒô₧\"}');
+
+-- Visual Design Variants
+INSERT INTO features_catalog (feature_key, label, description, category, feature_type, default_enabled, risk_level, config) VALUES
+  ('design.plasma_wave', 'Plasma Wave Field', 'HD plasma wave animation with soul particles (120k+ particles)', 'visuals', 'design_variant', true, 'safe', '{\"icon\": \"≡ƒîè\", \"preview\": \"/previews/plasma-wave.png\"}'),
+  ('design.tech_wireframe', 'Energy Wireframe Cube', 'Rotating isometric cube with energy grid overlay', 'visuals', 'design_variant', false, 'safe', '{\"icon\": \"≡ƒôª\", \"preview\": \"/previews/tech-wireframe.png\"}'),
+  ('design.classic_cube', 'Classic Cube', 'S...
+
+ Γ¥» src/__tests__/api-database-validation.test.ts:963:28
+    961|         );
+    962|         
+    963|         expect(allContent).toMatch(tableDefinitionRegex);
+       |                            ^
+    964|       });
+    965|     });
+ Γ¥» src/__tests__/api-database-validation.test.ts:957:24
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[3/3]ΓÄ»
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m64 passed[39m[22m[90m (67)[39m
+[2m   Start at [22m 06:15:52
+[2m   Duration [22m 5.23s[2m (transform 923ms, setup 376ms, import 201ms, tests 1.42s, environment 2.79s)[22m
+

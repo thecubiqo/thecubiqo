@@ -10,25 +10,25 @@ export async function GET(request: any) {
     // Require admin authentication
     const authResult = await requireAdmin(request)
     if (!authResult.authorized) {
-        return authResult.response
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    
+
     const agents = listAgents();
-    
+
     // Calculate stats
     const totalAgents = agents.length;
     const activeAgents = agents.filter(a => a.status === 'running').length;
-    
+
     // Count active sessions across all agents
     const allSessions = await Promise.all(
       agents.map(agent => agent.listSessions())
     );
     const sessions = allSessions.flat();
     const activeSessions = sessions.filter(s => s.status === 'active' || s.status === 'idle').length;
-    
+
     // Count total messages (memory)
     const totalMessages = sessions.reduce((sum, s) => sum + s.messageCount, 0);
-    
+
     // Get recent activity (last 10 session updates)
     const recentActivity = sessions
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
@@ -41,11 +41,11 @@ export async function GET(request: any) {
         messageCount: s.messageCount,
         updatedAt: s.updatedAt,
       }));
-    
+
     // System health metrics
     const memUsage = process.memoryUsage();
     const uptime = process.uptime();
-    
+
     const systemHealth = {
       status: 'healthy' as const,
       uptime: Math.floor(uptime),
@@ -56,7 +56,7 @@ export async function GET(request: any) {
       },
       cpu: process.cpuUsage(),
     };
-    
+
     // Agent details
     const agentDetails = agents.map(agent => ({
       id: agent.id,
@@ -82,9 +82,9 @@ export async function GET(request: any) {
       timestamp: new Date(),
     });
   } catch (error) {
-    
+
     return NextResponse.json(
-      { 
+      {
         error: error instanceof Error ? error.message : 'Failed to fetch stats',
         stats: {
           totalAgents: 0,

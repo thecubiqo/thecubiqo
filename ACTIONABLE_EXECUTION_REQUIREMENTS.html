@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUBIQO: Actionable Execution Requirements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #e2e8f0;
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+
+        .req-number {
+            font-size: 0.75rem;
+            font-weight: 900;
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.1);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .stage-pill {
+            display: inline-block;
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            margin-right: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .stage-local {
+            background: rgba(56, 189, 248, 0.15);
+            color: #7dd3fc;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .stage-staging {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fcd34d;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .stage-prod {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+    </style>
+</head>
+
+<body class="antialiased min-h-screen pb-20 p-6 lg:p-12">
+
+    <main class="max-w-4xl mx-auto">
+        <header class="mb-12 border-b border-slate-800 pb-8">
+            <h1 class="text-4xl lg:text-5xl font-black tracking-tighter text-white mb-4">CUBIQO <br><span
+                    class="gradient-text">Execution Requirements</span></h1>
+            <p class="text-lg text-slate-400">Total 10 Priority-ordered, actionable technical specifications formatted
+                for immediate development.</p>
+        </header>
+
+        <div class="space-y-8">
+
+            <!-- Requirement 1 -->
+            <div class="glass-panel p-6 border-l-4 border-red-500 hover:border-red-400 transition-colors">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="req-number">REQ-01</span>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Nuke Hardcoded Fallbacks (PIN Removal)</h2>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-sky-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Function /
+                            Type</span>
+                        <p class="text-slate-300 text-sm">Delete <code>/rescue/page.tsx</code> and legacy
+                            <code>/founderspass/page.tsx</code> routes which contain a hardcoded '2026' PIN. (Frontend
+                            Route Deletion / Security)</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-indigo-950/20 border border-indigo-900/50 p-3 rounded">
+                            <span
+                                class="text-indigo-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Database
+                                Requirement</span>
+                            <p class="text-indigo-200 text-sm">Ensure <code>profiles</code> table has a robust
+                                <code>is_admin</code> (BOOLEAN) or <code>role</code> (TEXT) column.</p>
+                        </div>
+                        <div class="bg-violet-950/20 border border-violet-900/50 p-3 rounded">
+                            <span class="text-violet-400 font-bold text-[11px] uppercase tracking-wider block mb-1">API
+                                Implementation</span>
+                            <p class="text-violet-200 text-sm">Existing admin endpoints (<code>/api/admin/*</code>) must
+                                drop PIN validation. Exclusively use <code>supabase.auth.getUser()</code>.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-black/40 p-4 rounded-lg border border-slate-700 mt-2">
+                        <span
+                            class="text-slate-400 font-bold text-[11px] uppercase tracking-wider block mb-3 border-b border-slate-800 pb-2">Deployment
+                            & Testing Lifecycle</span>
+                        <ul class="text-slate-300 text-sm space-y-2">
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-local mt-0.5 w-[110px] text-center shrink-0">Local
+                                    Test</span> Verify 404 on <code>localhost:3000/rescue</code>. Ensure actual
+                                <code>admin</code> role logs in.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Deploy</span> Merge PR to <code>staging</code> branch (auto-deploys to Vercel
+                                Staging).</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Test</span> Run Cypress auth bypass tests against Staging URL.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod
+                                    Deploy</span> Merge <code>staging</code> → <code>main</code> (auto-deploys to Vercel
+                                Prod).</li>
+                            <li class="flex items-start text-white font-medium"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod Test</span>
+                                Manually verify <code>/rescue</code> 404s on <code>cubiqo.com/rescue</code>.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requirement 2 -->
+            <div class="glass-panel p-6 border-l-4 border-emerald-500 hover:border-emerald-400 transition-colors">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="req-number">REQ-02</span>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Onboarding State DB Persistence</h2>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-sky-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Function /
+                            Type</span>
+                        <p class="text-slate-300 text-sm">Save user preferences from <code>/onboarding</code> directly
+                            to DB instead of just <code>localStorage</code>. (API Endpoint POST)</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-indigo-950/20 border border-indigo-900/50 p-3 rounded">
+                            <span
+                                class="text-indigo-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Database
+                                Requirement</span>
+                            <p class="text-indigo-200 text-sm">Create migration: add <code>onboarding_data</code>
+                                (JSONB) and <code>onboarding_completed</code> (BOOLEAN).</p>
+                        </div>
+                        <div class="bg-violet-950/20 border border-violet-900/50 p-3 rounded">
+                            <span class="text-violet-400 font-bold text-[11px] uppercase tracking-wider block mb-1">API
+                                Implementation</span>
+                            <p class="text-violet-200 text-sm">Create <code>POST /api/onboarding</code>. Validates
+                                session, executes: <code>supabase.from('profiles').update...</code>.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-black/40 p-4 rounded-lg border border-slate-700 mt-2">
+                        <span
+                            class="text-slate-400 font-bold text-[11px] uppercase tracking-wider block mb-3 border-b border-slate-800 pb-2">Deployment
+                            & Testing Lifecycle</span>
+                        <ul class="text-slate-300 text-sm space-y-2">
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-local mt-0.5 w-[110px] text-center shrink-0">Local
+                                    Test</span> Complete onboarding, verify profile row updates correctly in local
+                                Supabase Studio.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Deploy</span> Run DB migration in Staging via CLI. Merge PR to <code>staging</code>.
+                            </li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Test</span> Run E2E signup flow on Staging, verify settings stick after full cache
+                                wipe.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod
+                                    Deploy</span> Run schema migrations in Prod via CLI. Merge <code>staging</code> →
+                                <code>main</code>.</li>
+                            <li class="flex items-start text-white font-medium"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod Test</span>
+                                Live signup on <code>.com</code>, verify DB retention.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requirement 3 -->
+            <div class="glass-panel p-6 border-l-4 border-sky-500 hover:border-sky-400 transition-colors">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="req-number">REQ-03</span>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">New User Auth Redirect</h2>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-sky-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Function /
+                            Type</span>
+                        <p class="text-slate-300 text-sm">Modify <code>src/app/auth/callback/route.ts</code> to check
+                            onboarding status and redirect new users to <code>/onboarding</code> instead of
+                            <code>/chat</code>.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-indigo-950/20 border border-indigo-900/50 p-3 rounded">
+                            <span
+                                class="text-indigo-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Database
+                                Requirement</span>
+                            <p class="text-indigo-200 text-sm">Auth callback queries
+                                <code>SELECT onboarding_completed FROM profiles WHERE id = user.id</code>.</p>
+                        </div>
+                        <div class="bg-violet-950/20 border border-violet-900/50 p-3 rounded">
+                            <span class="text-violet-400 font-bold text-[11px] uppercase tracking-wider block mb-1">API
+                                Implementation</span>
+                            <p class="text-violet-200 text-sm">If DB flag is false, block chat route:
+                                <code>return NextResponse.redirect('/onboarding')</code>.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-black/40 p-4 rounded-lg border border-slate-700 mt-2">
+                        <span
+                            class="text-slate-400 font-bold text-[11px] uppercase tracking-wider block mb-3 border-b border-slate-800 pb-2">Deployment
+                            & Testing Lifecycle</span>
+                        <ul class="text-slate-300 text-sm space-y-2">
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-local mt-0.5 w-[110px] text-center shrink-0">Local
+                                    Test</span> Trigger magic link locally, step through callback manually, assert
+                                redirect location.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Deploy</span> Merge PR to <code>staging</code>.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Test</span> Sign up with fresh alias, click magic link, verify land on
+                                <code>/onboarding</code>.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod
+                                    Deploy</span> Merge <code>staging</code> → <code>main</code>.</li>
+                            <li class="flex items-start text-white font-medium"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod Test</span>
+                                Live signup, verify magic link routes correctly bypassing Chat.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requirement 4 -->
+            <div class="glass-panel p-6 border-l-4 border-amber-500 hover:border-amber-400 transition-colors">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="req-number">REQ-04</span>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Legal Armor & Data Consent</h2>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-sky-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Function /
+                            Type</span>
+                        <p class="text-slate-300 text-sm">Add a Cookie Banner, HTML pages for <code>/terms</code> and
+                            <code>/privacy</code>, and a GDPR "Delete Account" button.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-indigo-950/20 border border-indigo-900/50 p-3 rounded">
+                            <span
+                                class="text-indigo-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Database
+                                Requirement</span>
+                            <p class="text-indigo-200 text-sm">Hard-deletes must cascade effectively across
+                                <code>memories</code>, <code>messages</code>, and <code>sessions</code>.</p>
+                        </div>
+                        <div class="bg-violet-950/20 border border-violet-900/50 p-3 rounded">
+                            <span class="text-violet-400 font-bold text-[11px] uppercase tracking-wider block mb-1">API
+                                Implementation</span>
+                            <p class="text-violet-200 text-sm">Create <code>DELETE /api/users/me</code>. Deletes
+                                associated DB rows, then <code>supabase.auth.admin.deleteUser()</code>.</p>
+                        </div>
+                    </div>
+                    <div class="bg-black/40 p-4 rounded-lg border border-slate-700 mt-2">
+                        <span
+                            class="text-slate-400 font-bold text-[11px] uppercase tracking-wider block mb-3 border-b border-slate-800 pb-2">Deployment
+                            & Testing Lifecycle</span>
+                        <ul class="text-slate-300 text-sm space-y-2">
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-local mt-0.5 w-[110px] text-center shrink-0">Local
+                                    Test</span> Click "Delete Account", verify local DB wipes rows perfectly cascading.
+                            </li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Deploy</span> Merge PR to <code>staging</code>.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Test</span> Verify UI banner across devices. Run deletion API check via app UI.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod
+                                    Deploy</span> Merge <code>staging</code> → <code>main</code>.</li>
+                            <li class="flex items-start text-white font-medium"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod Test</span>
+                                Verify Cookie banner visible in Prod incognito.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requirement 5 -->
+            <div class="glass-panel p-6 border-l-4 border-indigo-500 hover:border-indigo-400 transition-colors">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="req-number">REQ-05</span>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Stripe Checkout UI</h2>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-sky-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Function /
+                            Type</span>
+                        <p class="text-slate-300 text-sm">Build Pricing (<code>/pricing</code>) that connects Stripe
+                            webhooks to actual Checkouts for Pro upgrades.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-indigo-950/20 border border-indigo-900/50 p-3 rounded">
+                            <span
+                                class="text-indigo-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Database
+                                Requirement</span>
+                            <p class="text-indigo-200 text-sm">Webhook must reliably update
+                                <code>profiles.tier_id</code> and <code>profiles.stripe_customer_id</code>.</p>
+                        </div>
+                        <div class="bg-violet-950/20 border border-violet-900/50 p-3 rounded">
+                            <span class="text-violet-400 font-bold text-[11px] uppercase tracking-wider block mb-1">API
+                                Implementation</span>
+                            <p class="text-violet-200 text-sm">Create <code>POST /api/stripe/checkout</code> using
+                                Stripe sessions API. Wire up webhook success events.</p>
+                        </div>
+                    </div>
+                    <div class="bg-black/40 p-4 rounded-lg border border-slate-700 mt-2">
+                        <span
+                            class="text-slate-400 font-bold text-[11px] uppercase tracking-wider block mb-3 border-b border-slate-800 pb-2">Deployment
+                            & Testing Lifecycle</span>
+                        <ul class="text-slate-300 text-sm space-y-2">
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-local mt-0.5 w-[110px] text-center shrink-0">Local
+                                    Test</span> Stripe CLI forwards webhooks locally. Test card <code>4242</code>.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Deploy</span> Configure Staging Stripe Secret. Merge PR to <code>staging</code>.
+                            </li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Test</span> E2E Checkout via Staging UI using Stripe Test Mode.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod
+                                    Deploy</span> Configure Prod Live Stripe keys. Merge <code>staging</code> →
+                                <code>main</code>.</li>
+                            <li class="flex items-start text-white font-medium"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod Test</span>
+                                Real $1 transaction test (auto-refund) to verify prod webhooks.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requirement 6 -->
+            <div class="glass-panel p-6 border-l-4 border-purple-500 hover:border-purple-400 transition-colors">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="req-number">REQ-06</span>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Persistent Adaptive User Model</h2>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-sky-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Function /
+                            Type</span>
+                        <p class="text-slate-300 text-sm">Persist the AI's active session context JSON directly to DB so
+                            it survives edge restarts.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-indigo-950/20 border border-indigo-900/50 p-3 rounded">
+                            <span
+                                class="text-indigo-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Database
+                                Requirement</span>
+                            <p class="text-indigo-200 text-sm">Add <code>adaptive_model_state</code> (JSONB) to the
+                                <code>sessions</code> table.</p>
+                        </div>
+                        <div class="bg-violet-950/20 border border-violet-900/50 p-3 rounded">
+                            <span class="text-violet-400 font-bold text-[11px] uppercase tracking-wider block mb-1">API
+                                Implementation</span>
+                            <p class="text-violet-200 text-sm">In <code>POST /api/chat</code>, fetch state from DB.
+                                Post-generation, asynchronously <code>PATCH</code> state back to DB.</p>
+                        </div>
+                    </div>
+                    <div class="bg-black/40 p-4 rounded-lg border border-slate-700 mt-2">
+                        <span
+                            class="text-slate-400 font-bold text-[11px] uppercase tracking-wider block mb-3 border-b border-slate-800 pb-2">Deployment
+                            & Testing Lifecycle</span>
+                        <ul class="text-slate-300 text-sm space-y-2">
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-local mt-0.5 w-[110px] text-center shrink-0">Local
+                                    Test</span> Set chat parameter, restart Next.js dev server, verify AI memory holds
+                                on boot.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Deploy</span> Run DB migration in Staging via CLI. Merge PR to <code>staging</code>.
+                            </li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Test</span> Run long chat session, verify async PATCH latency doesn't lag response
+                                output.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod
+                                    Deploy</span> DB Migation on Live. Merge <code>staging</code> → <code>main</code>.
+                            </li>
+                            <li class="flex items-start text-white font-medium"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod Test</span>
+                                Live test tracking via real text conversation.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requirement 7 -->
+            <div class="glass-panel p-6 border-l-4 border-pink-500 hover:border-pink-400 transition-colors">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="req-number">REQ-07</span>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Dashboard Journal Count</h2>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-sky-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Function /
+                            Type</span>
+                        <p class="text-slate-300 text-sm">Replace the hardcoded <code>journalEntriesCount: 0</code> stub
+                            with an SSR DB query.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-indigo-950/20 border border-indigo-900/50 p-3 rounded">
+                            <span
+                                class="text-indigo-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Database
+                                Requirement</span>
+                            <p class="text-indigo-200 text-sm">Execute SSR <code>COUNT()</code> on
+                                <code>journal_entries</code> filtered by user ID.</p>
+                        </div>
+                        <div class="bg-violet-950/20 border border-violet-900/50 p-3 rounded">
+                            <span class="text-violet-400 font-bold text-[11px] uppercase tracking-wider block mb-1">API
+                                Implementation</span>
+                            <p class="text-violet-200 text-sm">Next.js RSC <code>/dashboard/page.tsx</code> awaits
+                                <code>supabase.from...count</code>. Injects UI prop.</p>
+                        </div>
+                    </div>
+                    <div class="bg-black/40 p-4 rounded-lg border border-slate-700 mt-2">
+                        <span
+                            class="text-slate-400 font-bold text-[11px] uppercase tracking-wider block mb-3 border-b border-slate-800 pb-2">Deployment
+                            & Testing Lifecycle</span>
+                        <ul class="text-slate-300 text-sm space-y-2">
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-local mt-0.5 w-[110px] text-center shrink-0">Local
+                                    Test</span> Write local entry, refresh page, check SSR logs.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Deploy</span> Merge PR to <code>staging</code>.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Test</span> Compare UI tally directly against Staging DB rows.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod
+                                    Deploy</span> Merge <code>staging</code> → <code>main</code>.</li>
+                            <li class="flex items-start text-white font-medium"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod Test</span>
+                                Add journal entry in Live UI, assert changes accurately.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requirement 8 -->
+            <div class="glass-panel p-6 border-l-4 border-yellow-500 hover:border-yellow-400 transition-colors">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="req-number">REQ-08</span>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Vercel Spend Caps Tracker</h2>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-sky-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Function /
+                            Type</span>
+                        <p class="text-slate-300 text-sm">Enforce a firm $200/mo manual spend limit preventing API quota
+                            exhaustion attacks.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-indigo-950/20 border border-indigo-900/50 p-3 rounded">
+                            <span
+                                class="text-indigo-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Database
+                                Requirement</span>
+                            <p class="text-indigo-200 text-sm">Ensure <code>usage_tracking</code> table reliably records
+                                token/cash burn accurately per account.</p>
+                        </div>
+                        <div class="bg-violet-950/20 border border-violet-900/50 p-3 rounded">
+                            <span class="text-violet-400 font-bold text-[11px] uppercase tracking-wider block mb-1">API
+                                Implementation</span>
+                            <p class="text-violet-200 text-sm"><code>checkSpendingCap()</code> helper fetches threshold.
+                                Force <code>429 Too Many Requests</code> limit lock.</p>
+                        </div>
+                    </div>
+                    <div class="bg-black/40 p-4 rounded-lg border border-slate-700 mt-2">
+                        <span
+                            class="text-slate-400 font-bold text-[11px] uppercase tracking-wider block mb-3 border-b border-slate-800 pb-2">Deployment
+                            & Testing Lifecycle</span>
+                        <ul class="text-slate-300 text-sm space-y-2">
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-local mt-0.5 w-[110px] text-center shrink-0">Local
+                                    Test</span> Manually drop cap to zero, fire Postman request, trap 429 block.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Deploy</span> Merge PR to <code>staging</code>.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Test</span> QA hits API limit intentionally via loop, verifies UI catches it.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod
+                                    Deploy</span> Update Vercel Spend Limit UI manually. Merge <code>staging</code> →
+                                <code>main</code>.</li>
+                            <li class="flex items-start text-white font-medium"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod Test</span>
+                                Ping limits middleware directly to ensure edge execution holds.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requirement 9 -->
+            <div class="glass-panel p-6 border-l-4 border-teal-500 hover:border-teal-400 transition-colors">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="req-number">REQ-09</span>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Emergent Studio Vercel Deploy</h2>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-sky-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Function /
+                            Type</span>
+                        <p class="text-slate-300 text-sm">Wire the <code>deploy/route.ts</code> endpoint directly to
+                            Vercel REST API so AI generated apps get live URLs instantly.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-indigo-950/20 border border-indigo-900/50 p-3 rounded">
+                            <span
+                                class="text-indigo-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Database
+                                Requirement</span>
+                            <p class="text-indigo-200 text-sm">Add <code>vercel_project_id</code> and
+                                <code>deployment_url</code> fields to internal project table.</p>
+                        </div>
+                        <div class="bg-violet-950/20 border border-violet-900/50 p-3 rounded">
+                            <span class="text-violet-400 font-bold text-[11px] uppercase tracking-wider block mb-1">API
+                                Implementation</span>
+                            <p class="text-violet-200 text-sm">Package raw code and HTTP
+                                <code>POST api.vercel.com/v13/deployments</code>. PATCH url to DB.</p>
+                        </div>
+                    </div>
+                    <div class="bg-black/40 p-4 rounded-lg border border-slate-700 mt-2">
+                        <span
+                            class="text-slate-400 font-bold text-[11px] uppercase tracking-wider block mb-3 border-b border-slate-800 pb-2">Deployment
+                            & Testing Lifecycle</span>
+                        <ul class="text-slate-300 text-sm space-y-2">
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-local mt-0.5 w-[110px] text-center shrink-0">Local
+                                    Test</span> Trigger deploy endpoint with dummy token, verify json schema matches
+                                Vercel.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Deploy</span> Add API Token to Staging `env.local`. Merge PR to
+                                <code>staging</code>.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Test</span> Deploy Counter app from Studio, confirm Vercel builds standard preview
+                                link.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod
+                                    Deploy</span> Configure Prod Live Vercel Auth. Merge <code>staging</code> →
+                                <code>main</code>.</li>
+                            <li class="flex items-start text-white font-medium"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod Test</span>
+                                Click Studio deploy manually, view live `.vercel.app`.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requirement 10 -->
+            <div class="glass-panel p-6 border-l-4 border-orange-500 hover:border-orange-400 transition-colors">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="req-number">REQ-10</span>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Port BrowserPool to Railway Worker</h2>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-sky-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Function /
+                            Type</span>
+                        <p class="text-slate-300 text-sm">Vercel timeouts kill the Puppeteer bots. Port the
+                            <code>BrowserPool.ts</code> logic to a permanent Docker container connected via a message
+                            queue.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-indigo-950/20 border border-indigo-900/50 p-3 rounded">
+                            <span
+                                class="text-indigo-400 font-bold text-[11px] uppercase tracking-wider block mb-1">Database
+                                Requirement</span>
+                            <p class="text-indigo-200 text-sm">Create a robust <code>browser_jobs</code> queue table
+                                (status: pending, running, completed).</p>
+                        </div>
+                        <div class="bg-violet-950/20 border border-violet-900/50 p-3 rounded">
+                            <span class="text-violet-400 font-bold text-[11px] uppercase tracking-wider block mb-1">API
+                                Implementation</span>
+                            <p class="text-violet-200 text-sm"><code>POST /api/automation</code> hits DB. Railway worker
+                                polls DB, executes logic, NextJS monitors via Websockets.</p>
+                        </div>
+                    </div>
+                    <div class="bg-black/40 p-4 rounded-lg border border-slate-700 mt-2">
+                        <span
+                            class="text-slate-400 font-bold text-[11px] uppercase tracking-wider block mb-3 border-b border-slate-800 pb-2">Deployment
+                            & Testing Lifecycle</span>
+                        <ul class="text-slate-300 text-sm space-y-2">
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-local mt-0.5 w-[110px] text-center shrink-0">Local
+                                    Test</span> Spin up Node worker locally via script, hit Next endpoint, trace data
+                                path.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Deploy</span> Deploy Container to Railway using Staging DB. Merge PR to
+                                <code>staging</code>.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-staging mt-0.5 w-[110px] text-center shrink-0">Stg
+                                    Test</span> Run verbal command in Staging UI, read Railway logs remotely to verify
+                                queue pop.</li>
+                            <li class="flex items-start"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod
+                                    Deploy</span> Create Prod Server on Railway. Merge <code>staging</code> →
+                                <code>main</code>.</li>
+                            <li class="flex items-start text-white font-medium"><span
+                                    class="stage-pill stage-prod mt-0.5 w-[110px] text-center shrink-0">Prod Test</span>
+                                End-to-end full run ("Order Uber"). Trace from NLP voice to DB Queue to final execution.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</body>
+
+</html>

@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUBIQO: The Ultimate Master Document</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #e2e8f0;
+        }
+
+        .nav-link:hover {
+            color: #38bdf8;
+            text-decoration: underline;
+        }
+
+        .tag-mo {
+            background-color: #1e3a8a;
+            color: #bfdbfe;
+            font-size: 0.70rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border: 1px solid #3b82f6;
+        }
+
+        .tag-ag {
+            background-color: #064e3b;
+            color: #a7f3d0;
+            font-size: 0.70rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border: 1px solid #10b981;
+        }
+
+        .tag-tela {
+            background-color: #701a75;
+            color: #fbcfe8;
+            font-size: 0.70rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border: 1px solid #d946ef;
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+
+        .voice-section {
+            padding: 1.25rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .voice-tela {
+            background: linear-gradient(90deg, rgba(112, 26, 117, 0.15) 0%, rgba(0, 0, 0, 0) 100%);
+            border-left: 4px solid #d946ef;
+        }
+
+        .voice-mo {
+            background: linear-gradient(90deg, rgba(30, 58, 138, 0.15) 0%, rgba(0, 0, 0, 0) 100%);
+            border-left: 4px solid #3b82f6;
+        }
+
+        .voice-ag {
+            background: linear-gradient(90deg, rgba(6, 78, 59, 0.15) 0%, rgba(0, 0, 0, 0) 100%);
+            border-left: 4px solid #10b981;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+
+<body class="antialiased min-h-screen pb-20">
+
+    <!-- Header / TOC Sidebar -->
+    <div class="fixed top-0 left-0 w-72 h-full glass-panel border-r p-6 overflow-y-auto z-50 hidden xl:block">
+        <div class="mb-8">
+            <h2 class="text-3xl font-black text-white tracking-tight">CUBIQO</h2>
+            <p class="text-[10px] text-sky-400 font-bold tracking-widest uppercase mt-1">THE ULTIMATE MASTER DOC</p>
+        </div>
+
+        <div class="mb-6 p-4 rounded-lg bg-black/40 border border-slate-700/50">
+            <h3 class="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">The 3 Voices</h3>
+            <div class="space-y-3">
+                <div class="flex flex-col"><span class="tag-tela w-fit mb-1">Tela's Word</span><span
+                        class="text-[10px] text-slate-400">The Visionary Spec & Directives</span></div>
+                <div class="flex flex-col"><span class="tag-mo w-fit mb-1">MO's Word</span><span
+                        class="text-[10px] text-slate-400">The Pragmatic Business/Code Audit</span></div>
+                <div class="flex flex-col"><span class="tag-ag w-fit mb-1">AG's Advice</span><span
+                        class="text-[10px] text-slate-400">The Advanced Engineering Truth</span></div>
+            </div>
+        </div>
+
+        <nav class="flex flex-col space-y-3 text-sm font-medium text-slate-300">
+            <a href="#executive-summary" class="nav-link py-1">0. Executive Summary</a>
+            <a href="#dashboards" class="nav-link py-1">1. Dashboards & Control Rooms</a>
+            <a href="#seo" class="nav-link py-1">2. SEO & AI/Programmatic SEO</a>
+            <a href="#wechat" class="nav-link py-1">3. WeChat Super App & Affiliates</a>
+            <a href="#social-army" class="nav-link py-1">4. Social Army (10-10-10 POC)</a>
+            <a href="#emergent" class="nav-link py-1">5. Emergent Coding Studio</a>
+            <a href="#agents" class="nav-link py-1">6. In-App Agents & Browsers</a>
+            <a href="#empathy" class="nav-link py-1">7. RGY System & Empathy Moat</a>
+            <a href="#offline" class="nav-link py-1">8. True BYO & Local Computing</a>
+            <a href="#monetization" class="nav-link py-1">9. Monetization & Traction</a>
+            <a href="#patents" class="nav-link py-1">10. Patents & IP Defense</a>
+            <a href="#matrix" class="nav-link py-1 text-sky-400">11. P0 Launch Execute Matrix</a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <main class="xl:ml-72 max-w-5xl mx-auto p-6 lg:p-12">
+        <header class="mb-16 border-b border-slate-800 pb-10">
+            <div
+                class="inline-block px-3 py-1 bg-sky-900/30 border border-sky-500/30 text-sky-400 text-xs font-bold rounded-full mb-4 uppercase tracking-wider">
+                Complete Synthesis</div>
+            <h1 class="text-4xl lg:text-6xl font-black tracking-tighter text-white mb-6 leading-tight">CUBIQO: The Final
+                <br><span class="gradient-text">Unified Architecture</span></h1>
+            <p class="text-lg text-slate-400 max-w-3xl leading-relaxed">
+                Constructed strictly in the order of the Founder's assigned tasks. Every specific domain of the CubiQo
+                Flagship OS is broken down and cross-examined through the lenses of <strong>Tela</strong> (Vision),
+                <strong>MO</strong> (Audit), and <strong>AG</strong> (Engineering).
+            </p>
+        </header>
+
+        <!-- SEC 0: Executive -->
+        <section id="executive-summary" class="mb-20 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-white mb-6 border-b border-slate-700 pb-2">0. Executive Summary: The
+                "Home to Intelligence"</h2>
+            <div class="glass-panel p-2">
+                <div class="voice-section voice-tela">
+                    <span class="tag-tela mb-3 inline-block">Tela's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">The Universal Digital Passport</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">CubiQo is the "Home to Intelligence"—a universally
+                        connected, intensely private, and emotionally aware AI orchestrator. It bridges the gap between
+                        cold transactional AI tools and hyper-fragmented digital ecosystems. Its differentiators are the
+                        Empathy Moat (RGY), True BYO Offline Privacy, and the Universal Orchestrator.</p>
+                </div>
+                <div class="voice-section voice-mo">
+                    <span class="tag-mo mb-3 inline-block">MO's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">The "Launch Now" Mandate (40% Complete)</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">The foundational architecture is deployed and
+                        running (cubiqo.ai). The OpenRouter/Claude fallback chains work flawlessly. However, we are only
+                        at 40% specification compliance. <strong>Perfect is the enemy of good enough.</strong> Launch
+                        the MVP now, charge $29-$99/mo, and use the revenue to fund the remaining 60%. Success
+                        probability is 70-80%.</p>
+                </div>
+                <div class="voice-section voice-ag">
+                    <span class="tag-ag mb-3 inline-block">AG's Advice</span>
+                    <h3 class="text-white font-bold text-lg mb-2">The Phase 1 Code Freeze</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Before we unleash traffic, we must execute a Code
+                        Freeze to resolve lethal vulnerabilities. We must delete the hardcoded PINs in the codebase, put
+                        a Vercel spend cap strictly at $200/mo, and configure PostHog/Mixpanel to ensure we have the
+                        metrics to decide when to pivot.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEC 1: Dashboards -->
+        <section id="dashboards" class="mb-20 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-white mb-6 border-b border-slate-700 pb-2">1. Dashboards & Control Rooms
+            </h2>
+            <div class="glass-panel p-2">
+                <div class="voice-section voice-tela">
+                    <span class="tag-tela mb-3 inline-block">Tela's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">A Unified OS Interface</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">CubiQo's users require a sleek, "mission control"
+                        interface that unifies Recent Agents, Journal Entries, and System Health. B2B users require a
+                        white-labeled ecosystem interface for the Founders Pass.</p>
+                </div>
+                <div class="voice-section voice-mo">
+                    <span class="tag-mo mb-3 inline-block">MO's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Consolidate & Clean The Code</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Currently, there are four duplicate routes
+                        (<code>/founderspass</code>, <code>/founders-pass</code>, <code>/founderpass</code>, and
+                        <code>/founders</code>). This is technical debt. We must consolidate to a single
+                        <code>/admin</code> and a single <code>/founders-pass</code>. We must delete the security
+                        vulnerable <code>/rescue</code> routes entirely.</p>
+                </div>
+                <div class="voice-section voice-ag">
+                    <span class="tag-ag mb-3 inline-block">AG's Advice</span>
+                    <h3 class="text-white font-bold text-lg mb-2">JWT RBAC & Live Telemetry</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">All administrative UI routes must be strictly
+                        fenced behind Supabase JSON Web Tokens (JWT) Role-Based Access Control. Furthermore, the
+                        dashboard's static numbers must be replaced with live Node.js SDK pulls from PostHog (Daily
+                        Active Users) and Stripe (Live MRR).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEC 2: SEO -->
+        <section id="seo" class="mb-20 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-white mb-6 border-b border-slate-700 pb-2">2. SEO & Programmatic AI SEO
+            </h2>
+            <div class="glass-panel p-2">
+                <div class="voice-section voice-tela">
+                    <span class="tag-tela mb-3 inline-block">Tela's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Organic Audience Capture</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">CubiQo must be discoverable across major "How to"
+                        use-cases to capture organic bottom-of-funnel users before they resort to ChatGPT.</p>
+                </div>
+                <div class="voice-section voice-mo">
+                    <span class="tag-mo mb-3 inline-block">MO's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">The Two-Phased Approach</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Current SEO score is 40/100. <strong>Phase 1 (Week
+                            1):</strong> Add Schema.org markup, WebP optimization, and fix crawl errors. <strong>Phase 2
+                            (Month 1):</strong> AI-generated blogging targeting 50 specific keywords. Target outcome is
+                        1,000 organic hits/mo and Domain Authority 30+ within 6 months.</p>
+                </div>
+                <div class="voice-section voice-ag">
+                    <span class="tag-ag mb-3 inline-block">AG's Advice</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Dynamic SSR Landing Pages</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Because CubiQo is heavily client-side behind the
+                        auth wall, search engines see nothing. We must build dynamic Server-Side Rendered (SSR) routes
+                        at <code>/use-cases/[slug]</code>. We utilize CubiQo's internal LLMs to programmatically write
+                        high-quality pages (e.g., "AI for Copywriters") and deploy them instantly.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEC 3: WeChat -->
+        <section id="wechat" class="mb-20 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-white mb-6 border-b border-slate-700 pb-2">3. The WeChat Super App Vision
+                & Affiliates</h2>
+            <div class="glass-panel p-2">
+                <div class="voice-section voice-tela">
+                    <span class="tag-tela mb-3 inline-block">Tela's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">The Universal Digital Destination</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Like WeChat monopolized daily interactions in Asia
+                        by centralizing chat, payments, and micro-apps, CubiQo will be the orchestration gateway for
+                        Western productivity. "CubiKey" API access allows third parties to build directly into CubiQo's
+                        interface.</p>
+                </div>
+                <div class="voice-section voice-mo">
+                    <span class="tag-mo mb-3 inline-block">MO's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Affiliate Growth Engines</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">To kickstart the ecosystem, we launch a tiered
+                        affiliate system: 10% for creators, 15% for influencers, 20% for agencies. Payouts are automated
+                        via Stripe Connect. We must reach $50,000 MRR by Year 2 to prove the ecosystem to Series A
+                        investors.</p>
+                </div>
+                <div class="voice-section voice-ag">
+                    <span class="tag-ag mb-3 inline-block">AG's Advice</span>
+                    <h3 class="text-white font-bold text-lg mb-2">The Creator Agent Rev-Share</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">To incentivize third-party developers, influencers
+                        use Emergent Studio to build custom Agents (e.g., "Fitness Coach AI"). They publish it to the
+                        CubiQo marketplace. When followers subscribe to CubiQo via your app to use that Agent, the
+                        creator gets 30% of the MRR. We also build a Crypto Escrow QR system for gig payments.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEC 4: Social Army -->
+        <section id="social-army" class="mb-20 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-white mb-6 border-b border-slate-700 pb-2">4. The Social Army (10-10-10
+                POC)</h2>
+            <div class="glass-panel p-2">
+                <div class="voice-section voice-tela">
+                    <span class="tag-tela mb-3 inline-block">Tela's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Hands-Free Digital Presence</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">The 10-10-10 Goal: 10 platforms, 10 accounts,
+                        posting every 10 minutes. A total of 14,400 autonomous posts per day, creating unparalleled
+                        marketing leverage for solopreneurs.</p>
+                </div>
+                <div class="voice-section voice-mo">
+                    <span class="tag-mo mb-3 inline-block">MO's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">The Ban-Risk Reality Check</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">The POC exists, but we are missing a GFX pipeline
+                        and a Content Variation engine to prevent hallucination. <strong>Critical:</strong> We must
+                        install a Human-Review Gate. Allowing the AI to blast 14k posts unchecked will result in
+                        immediate IP bans from Meta and X. The ToS must shift liability entirely to the user.</p>
+                </div>
+                <div class="voice-section voice-ag">
+                    <span class="tag-ag mb-3 inline-block">AG's Advice</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Containerized Proxied Puppeteers</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Vercel Edge functions timeout at 10 seconds. We
+                        must offload the Social Army headless browsers to continuous Docker containers on Railway.
+                        Furthermore, we must implement Residential Proxies (BrightData) to disguise the origin, or the
+                        10-10-10 loop will be shadowbanned on day one.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEC 5: Emergent Coding -->
+        <section id="emergent" class="mb-20 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-white mb-6 border-b border-slate-700 pb-2">5. Emergent Coding Platform
+            </h2>
+            <div class="glass-panel p-2">
+                <div class="voice-section voice-tela">
+                    <span class="tag-tela mb-3 inline-block">Tela's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Speak to Build</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Users should be able to verbally instruct CubiQo
+                        to build software, debug errors, and deploy web applications seamlessly from within the OS.</p>
+                </div>
+                <div class="voice-section voice-mo">
+                    <span class="tag-mo mb-3 inline-block">MO's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">The $30K-$50K Professional Gap</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Right now, it's just a text editor with a TODO
+                        comment for deployments. Upgrading this to a professional-grade standard (estimated $30-$50k
+                        development phase) requires CI/CD integration, Git workflows, and automated testing frameworks
+                        to justify selling the "Builder" tier at $49/mo.</p>
+                </div>
+                <div class="voice-section voice-ag">
+                    <span class="tag-ag mb-3 inline-block">AG's Advice</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Execution Sandboxing</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Allowing user-generated code to compile on our
+                        servers is reckless. We must isolate the "Emergent API" inside ephemeral Docker containers (or
+                        Firecracker microVMs) to handle the <code>/api/emergent/terminal</code> actions securely, paired
+                        with step-through debugging.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEC 6: In-App Agents & Browser -->
+        <section id="agents" class="mb-20 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-white mb-6 border-b border-slate-700 pb-2">6. In-App Agents & Verbal
+                Browser Commands</h2>
+            <div class="glass-panel p-2">
+                <div class="voice-section voice-tela">
+                    <span class="tag-tela mb-3 inline-block">Tela's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">"Order an Uber while I type"</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">The integration of browser automation directly
+                        connected to the user's voice intent. Say it, and CubiQo does it in the background.</p>
+                </div>
+                <div class="voice-section voice-mo">
+                    <span class="tag-mo mb-3 inline-block">MO's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Do Not Market Until Finished</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Marketing "Verbal Commands" right now is false
+                        advertising. The 12 schemas are written, but `BrowserPool.ts` returns a stub. This is a Tier 3
+                        feature. Do not launch this until Month 2, after the core AI Chat is stabilized and monetized.
+                    </p>
+                </div>
+                <div class="voice-section voice-ag">
+                    <span class="tag-ag mb-3 inline-block">AG's Advice</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Decoupled Automation Queues</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">When we do wire the BrowserPool, it must run
+                        asynchronously via a Redis message queue. The frontend issues the verbal command, the intent
+                        orchestrator fires a job into Redis, and the background worker executes the Puppeteer script,
+                        replying to the UI via WebSockets upon completion.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEC 7: RGY Empathy Moat -->
+        <section id="empathy" class="mb-20 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-white mb-6 border-b border-slate-700 pb-2">7. The RGY System & Empathy
+                Moat (UI/Audio)</h2>
+            <div class="glass-panel p-2">
+                <div class="voice-section voice-tela">
+                    <span class="tag-tela mb-3 inline-block">Tela's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">The Defining Characteristic</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">The Empathy Moat monitors emotional burnout via
+                        the RGY system. It shifts from Teal (Professional goal execution) to Yellow (Empathetic
+                        reflection), entirely altering the 3D Cuboid's shape and voice simultaneously.</p>
+                </div>
+                <div class="voice-section voice-mo">
+                    <span class="tag-mo mb-3 inline-block">MO's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">The Golden Patent Opportunity</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">This is a highly defensible IP. A multi-signal
+                        route (Color × Intent × Keywords) that shifts the UI state and backend model is novel. We have a
+                        60% probability of patent success. <strong>Recommendation:</strong> File a provisional patent
+                        immediately ($2k) to stamp "Patent Pending" on the product.</p>
+                </div>
+                <div class="voice-section voice-ag">
+                    <span class="tag-ag mb-3 inline-block">AG's Advice</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Mathematical Audio Syncing & Self-Harm Guards</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">To make the UI feel alive, we bridge the Web Audio
+                        API's <code>AnalyserNode</code> into React Three Fiber to perfectly match the 3D visual pulse
+                        with ElevenLabs TTS syllables. <strong>CRITICAL:</strong> Implement a strict pre-LLM NLP layer
+                        to catch self-harm prompts, forcing a 'YELLOW' route and disabling all action executions to
+                        protect the user.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEC 8: Offline / BYO -->
+        <section id="offline" class="mb-20 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-white mb-6 border-b border-slate-700 pb-2">8. True BYO & Local Computing
+            </h2>
+            <div class="glass-panel p-2">
+                <div class="voice-section voice-tela">
+                    <span class="tag-tela mb-3 inline-block">Tela's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Zero-Retention Paranoia</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">The user must have absolute confidence that CubiQo
+                        is not stealing their data. They must be able to use their own models (Llama 3, Mistral) and run
+                        semantic searches completely offline.</p>
+                </div>
+                <div class="voice-section voice-mo">
+                    <span class="tag-mo mb-3 inline-block">MO's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Fix The Liability First</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Currently, marketing says "Zero Retention", but
+                        the database literally stores conversations in Supabase to make the Memory feature work. This is
+                        a severe GDPR exposure. We must update the Privacy Policy to state "Consent-Based Retention" and
+                        add an explicit "Delete All My Data" button.</p>
+                </div>
+                <div class="voice-section voice-ag">
+                    <span class="tag-ag mb-3 inline-block">AG's Advice</span>
+                    <h3 class="text-white font-bold text-lg mb-2">The True Offline Desktop Engine</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">To achieve true offline BYO, the web architecture
+                        is structurally inadequate. In Phase 2, we must wrap Next.js into a Tauri/Electron desktop
+                        container. We embed <code>llama.cpp</code> node bindings to leverage local GPUs, and utilize a
+                        local ChromaDB/SQLite store for semantic vision/file indexing without sending one byte to the
+                        cloud.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEC 9: Monetization -->
+        <section id="monetization" class="mb-20 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-white mb-6 border-b border-slate-700 pb-2">9. Monetization & Traction
+                Roadmap</h2>
+            <div class="glass-panel p-2">
+                <div class="voice-section voice-tela">
+                    <span class="tag-tela mb-3 inline-block">Tela's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Priced For The Doers</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">The tiers scale with ambition. Free access opens
+                        the door, while power features are gated for solopreneurs and developers building businesses
+                        utilizing CubiQo.</p>
+                </div>
+                <div class="voice-section voice-mo">
+                    <span class="tag-mo mb-3 inline-block">MO's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">The $10K MRR Goal & Pivots</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Target: Free, Pro ($29/mo), Team ($99/mo),
+                        Enterprise ($299/mo). Bootstrap to $10,000 MRR by Month 12 to fund independence before
+                        considering VCs. Monitor metrics ruthlessly: If Activation < 20% or NPS < 10, pivot immediately.
+                            DAU/MAU is the ultimate sign of life.</p>
+                </div>
+                <div class="voice-section voice-ag">
+                    <span class="tag-ag mb-3 inline-block">AG's Advice</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Wire The Infrastructure Today</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">The Stripe webhook is written, but the UI is
+                        missing. We must instantly connect Stripe Checkouts to the <code>user_subscriptions</code> table
+                        to lock features mechanically. Do not turn on billing until the LLC is registered and ToS is
+                        legal.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEC 10: Patents -->
+        <section id="patents" class="mb-20 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-white mb-6 border-b border-slate-700 pb-2">10. Patent Strategy & IP
+                Defense</h2>
+            <div class="glass-panel p-2">
+                <div class="voice-section voice-tela">
+                    <span class="tag-tela mb-3 inline-block">Tela's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Securing The Future</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Intellectual property ensures that when Apple or
+                        OpenAI introduces "memory" functionality, CubiQo's core UI and routing mechanism remains unique
+                        and legally protected.</p>
+                </div>
+                <div class="voice-section voice-mo">
+                    <span class="tag-mo mb-3 inline-block">MO's Word</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Top 3 Candidates</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Focus entirely on: 1) RGY Intent System (60%
+                        success probability). 2) Emergent Coding (55%). 3) Social Army (50%). Action: Hire an agent to
+                        file a Provisional Patent for RGY in Months 1-3. Total cost $2K-$5K.</p>
+                </div>
+                <div class="voice-section voice-ag">
+                    <span class="tag-ag mb-3 inline-block">AG's Advice</span>
+                    <h3 class="text-white font-bold text-lg mb-2">Protecting The Methods, Not The Cloud</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Patents protect processes. Ensure that our
+                        technical documentation focuses heavily on the <em>mathematical heuristics</em> of the RGY
+                        matching (how intent modifies the vector payload) rather than simply "using an LLM". That is how
+                        we defend against massive generic LLM suites.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEC 11: Priority Matrix -->
+        <section id="matrix" class="mb-20 scroll-mt-20">
+            <h2 class="text-4xl font-black text-sky-400 mb-6 border-b border-sky-400/30 pb-2">11. The P0 Launch Matrix
+                (Execution Now)</h2>
+            <p class="text-slate-400 mb-8 max-w-2xl">This is the final convergence. The absolute highest priority action
+                items required to safely push CubiQo onto the market this week.</p>
+
+            <div class="space-y-4">
+                <div class="bg-red-950/40 border-l-4 border-red-500 p-5 rounded-r">
+                    <h4 class="text-red-400 font-bold mb-1">[AG] Nuke Hardcoded Fallbacks</h4>
+                    <p class="text-sm text-slate-300">Delete <code>src/app/rescue/page.tsx</code> and
+                        <code>/founderspass</code>. The hardcoded 2026 PIN exposes the entire system.</p>
+                </div>
+                <div class="bg-amber-950/40 border-l-4 border-amber-500 p-5 rounded-r">
+                    <h4 class="text-amber-400 font-bold mb-1">[MO] Legal Armor & Disclosures</h4>
+                    <p class="text-sm text-slate-300">Deploy <code>/terms</code>, <code>/privacy</code>, and a Cookie
+                        Banner. Secure an 18+ Age Gate for explicit RED zone inquiries.</p>
+                </div>
+                <div class="bg-emerald-950/40 border-l-4 border-emerald-500 p-5 rounded-r">
+                    <h4 class="text-emerald-400 font-bold mb-1">[MO + Tela] Onboarding State DB Persistence</h4>
+                    <p class="text-sm text-slate-300">Ensure preferences set during the onboarding flow sync permanently
+                        to Supabase <code>profiles</code>, rather than disappearing when the browser refreshes.</p>
+                </div>
+                <div class="bg-sky-950/40 border-l-4 border-sky-500 p-5 rounded-r">
+                    <h4 class="text-sky-400 font-bold mb-1">[MO + AG] Stripe Integrations & Hard Caps</h4>
+                    <p class="text-sm text-slate-300">Connect the $29/$99 Stripe Checkouts to the UI. Enforce a hard
+                        $200/mo spending cap on Vercel to prevent catastrophic scaling bankruptcy.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+</body>
+
+</html>
