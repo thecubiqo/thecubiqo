@@ -1,49 +1,70 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
+// Button Component with variants
+'use client';
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | "success" | "warning" | "primary" | "neutral"
-  size?: "default" | "sm" | "lg" | "icon"
-  icon?: string | React.ReactNode
+export type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'ghost';
+
+export type ButtonSize = 'sm' | 'md' | 'lg';
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  icon?: string;
+  loading?: boolean;
+  children: React.ReactNode;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "default", ...props }, ref) => {
-    const variants = {
-      default: "bg-zinc-100 text-zinc-900 shadow hover:bg-zinc-200",
-      destructive: "bg-red-900 text-red-100 shadow-sm hover:bg-red-800",
-      outline: "border border-zinc-700 bg-transparent shadow-sm hover:bg-zinc-800 text-zinc-300",
-      secondary: "bg-zinc-800 text-zinc-100 shadow-sm hover:bg-zinc-700",
-      ghost: "hover:bg-zinc-800 text-zinc-300",
-      link: "text-zinc-300 underline-offset-4 hover:underline",
-      success: "bg-green-600 text-white shadow-sm hover:bg-green-700",
-      warning: "bg-yellow-600 text-white shadow-sm hover:bg-yellow-700",
-      primary: "bg-blue-600 text-white shadow-sm hover:bg-blue-700",
-      neutral: "bg-zinc-600 text-white shadow-sm hover:bg-zinc-700",
-    }
+const variantStyles = {
+  primary: 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-900/50',
+  secondary: 'bg-zinc-700 hover:bg-zinc-600 text-white',
+  success: 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/50',
+  warning: 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-900/50',
+  danger: 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/50',
+  ghost: 'bg-transparent hover:bg-zinc-800 text-zinc-300 border border-zinc-700',
+};
 
-    const sizes = {
-      default: "h-9 px-4 py-2",
-      sm: "h-8 rounded-md px-3 text-xs",
-      lg: "h-10 rounded-md px-8",
-      icon: "h-9 w-9",
-    }
+const sizeStyles = {
+  sm: 'px-3 py-1.5 text-xs',
+  md: 'px-4 py-2 text-sm',
+  lg: 'px-6 py-3 text-base',
+};
 
-    return (
-      <button
-        className={cn(
-          "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500 disabled:pointer-events-none disabled:opacity-50",
-          variants[variant],
-          sizes[size],
-          className
-        )}
-        ref={ref}
-        {...props}
-      />
-    )
-  }
-)
-Button.displayName = "Button"
-
-export { Button }
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  icon,
+  loading = false,
+  disabled,
+  className = '',
+  children,
+  ...props
+}: ButtonProps) {
+  return (
+    <button
+      className={`
+        inline-flex items-center justify-center gap-2 
+        rounded-lg font-medium 
+        transition-all duration-200
+        disabled:opacity-50 disabled:cursor-not-allowed
+        hover:scale-105 active:scale-95
+        ${variantStyles[variant]}
+        ${sizeStyles[size]}
+        ${className}
+      `}
+      disabled={disabled || loading}
+      {...props}
+    >
+      {loading ? (
+        <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+      ) : icon ? (
+        <span>{icon}</span>
+      ) : null}
+      {children}
+    </button>
+  );
+}

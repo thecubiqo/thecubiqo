@@ -1,34 +1,51 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
+// Badge Component
+'use client';
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "neutral" | "primary"
-  pulse?: boolean
-  icon?: string | React.ReactNode
+export type BadgeVariant =
+  | 'default'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'info'
+  | 'neutral'
+  | 'outline';
+
+export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+  children: React.ReactNode;
+  variant?: BadgeVariant;
+  className?: string;
+  icon?: string;
+  pulse?: boolean;
 }
 
-function Badge({ className, variant = "default", pulse, icon, ...props }: BadgeProps) {
-  const variants = {
-    default: "border-transparent bg-zinc-700 text-zinc-100",
-    secondary: "border-transparent bg-zinc-800 text-zinc-300",
-    destructive: "border-transparent bg-red-900 text-red-300",
-    outline: "border-zinc-700 text-zinc-300",
-    success: "border-transparent bg-green-900/50 text-green-300",
-    warning: "border-transparent bg-yellow-900/50 text-yellow-300",
-    neutral: "border-transparent bg-zinc-600 text-zinc-200",
-    primary: "border-transparent bg-indigo-900/50 text-indigo-300",
-  }
+const badgeStyles = {
+  default: 'bg-zinc-700 text-zinc-200',
+  success: 'bg-emerald-900 text-emerald-300 border border-emerald-700',
+  warning: 'bg-amber-900 text-amber-300 border border-amber-700',
+  error: 'bg-red-900 text-red-300 border border-red-700',
+  info: 'bg-indigo-900 text-indigo-300 border border-indigo-700',
+  neutral: 'bg-zinc-800 text-zinc-400 border border-zinc-700',
+  outline: 'bg-transparent text-zinc-400 border border-zinc-700',
+};
 
+export function Badge({
+  children,
+  variant = 'default',
+  className = '',
+  icon,
+  pulse = false,
+  ...props
+}: BadgeProps) {
   return (
-    <div
-      className={cn(
-        "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors",
-        variants[variant],
-        className
-      )}
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${badgeStyles[variant]} ${className}`}
       {...props}
-    />
-  )
+    >
+      {pulse && (
+        <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
+      )}
+      {icon && <span>{icon}</span>}
+      {children}
+    </span>
+  );
 }
-
-export { Badge }
