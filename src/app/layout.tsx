@@ -165,6 +165,7 @@ const organizationJsonLd = {
 
 import CodexoPanel from "@/components/codexo/CodexoPanel";
 import { SupportChatbot } from "@/components/support/SupportChatbot";
+import { CookieBanner } from "@/components/CookieBanner";
 
 export default function RootLayout({
   children,
@@ -199,6 +200,7 @@ export default function RootLayout({
         <ClientProviders>
           {children}
         </ClientProviders>
+        <CookieBanner />
         <CodexoPanel />
         <SupportChatbot />
         <ServiceWorkerRegistration />
