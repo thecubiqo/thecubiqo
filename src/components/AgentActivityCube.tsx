@@ -5,9 +5,10 @@
  * Beautiful isometric glassmorphic cube with code on faces and glowing particles
  */
 
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, Text, shaderMaterial } from '@react-three/drei'
+import { OrbitControls, Text, shaderMaterial, Environment, Float } from '@react-three/drei'
+import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import { extend } from '@react-three/fiber'
 
@@ -84,7 +85,7 @@ const registry = new Map<
 function Particles({ count = 100 }: { count?: number }) {
   const mesh = useRef<THREE.InstancedMesh>(null)
   const dummy = useMemo(() => new THREE.Object3D(), [])
-  
+
   const particles = useMemo(() => {
     const temp = []
     for (let i = 0; i < count; i++) {
@@ -109,7 +110,7 @@ function Particles({ count = 100 }: { count?: number }) {
   useFrame((state) => {
     if (!mesh.current) return
     const time = state.clock.elapsedTime
-    
+
     particles.forEach((particle, i) => {
       const t = time * particle.speed + particle.offset
       dummy.position.copy(particle.position)
@@ -134,7 +135,7 @@ function Particles({ count = 100 }: { count?: number }) {
 // Colored particles with different colors
 function ColoredParticles() {
   const colors = ['#ff6b9d', '#00d4ff', '#7c3aed', '#10b981', '#f59e0b']
-  
+
   return (
     <>
       {colors.map((color, i) => (
@@ -146,7 +147,7 @@ function ColoredParticles() {
 
 function ParticleGroup({ color, count, offset }: { color: string, count: number, offset: number }) {
   const groupRef = useRef<THREE.Group>(null)
-  
+
   const particles = useMemo(() => {
     const temp = []
     for (let i = 0; i < count; i++) {
@@ -185,12 +186,12 @@ function ParticleGroup({ color, count, offset }: { color: string, count: number,
 }
 
 // Glass cube face with code
-function CodeFace({ 
-  position, 
-  rotation, 
+function CodeFace({
+  position,
+  rotation,
   code,
   color = '#1e3a5f'
-}: { 
+}: {
   position: [number, number, number]
   rotation: [number, number, number]
   code: string
@@ -212,7 +213,7 @@ function CodeFace({
           envMapIntensity={1}
         />
       </mesh>
-      
+
       {/* Code text */}
       <Text
         position={[0, 0, 0.02]}
@@ -234,7 +235,7 @@ function CodeFace({
 // Main isometric cube
 function IsometricCodeCube() {
   const groupRef = useRef<THREE.Group>(null)
-  
+
   // Face positions and rotations for cube
   const faces = [
     { position: [0, 0, 1.01] as [number, number, number], rotation: [0, 0, 0] as [number, number, number] },
@@ -259,7 +260,7 @@ function IsometricCodeCube() {
         <boxGeometry args={[1.5, 1.5, 1.5]} />
         <meshBasicMaterial color="#1e40af" transparent opacity={0.3} />
       </mesh>
-      
+
       {/* Glass cube shell */}
       <mesh>
         <boxGeometry args={[2, 2, 2]} />
@@ -341,50 +342,68 @@ export function AgentActivityCubeApp() {
   return (
     <div className="h-screen w-screen bg-[#0a0f1a] overflow-hidden">
       <Canvas
-        camera={{ 
-          position: [4, 3, 4], 
+        camera={{
+          position: [4, 3, 4],
           fov: 45,
           near: 0.1,
           far: 100
         }}
-        gl={{ 
-          alpha: false, 
+        gl={{
+          alpha: true,
           antialias: true,
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.2
+          powerPreference: 'high-performance',
+          stencil: false,
+          depth: true
         }}
+        dpr={[1, 2]}
       >
-        {/* Dark blue gradient background */}
-        <color attach="background" args={['#0a0f1a']} />
-        <fog attach="fog" args={['#0a0f1a', 8, 20]} />
-        
-        {/* Ambient and directional lights */}
-        <ambientLight intensity={0.2} />
-        <directionalLight position={[5, 5, 5]} intensity={0.5} color="#ffffff" />
-        
-        {/* Colored moving point lights */}
-        <GlowLights />
+        <Suspense fallback={null}>
+          <Environment preset="city" blur={0.8} />
+          {/* Dark blue gradient background */}
+          <color attach="background" args={['#0a0f1a']} />
+          <fog attach="fog" args={['#0a0f1a', 8, 20]} />
 
-        {/* Main isometric cube with code */}
-        <IsometricCodeCube />
+          {/* Ambient and directional lights */}
+          <ambientLight intensity={0.2} />
+          <directionalLight position={[5, 5, 5]} intensity={0.5} color="#ffffff" />
 
-        {/* Floating colorful particles */}
-        <ColoredParticles />
+          {/* Colored moving point lights */}
+          <GlowLights />
 
-        {/* Camera controls */}
-        <OrbitControls 
-          enableZoom={true}
-          enablePan={false}
-          minDistance={5}
-          maxDistance={12}
-          autoRotate={false}
-          enableDamping
-          dampingFactor={0.05}
-        />
+          {/* Main isometric cube with code */}
+          <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
+            <IsometricCodeCube />
+          </Float>
+
+          {/* Floating colorful particles */}
+          <ColoredParticles />
+
+          <EffectComposer>
+            <Bloom
+              intensity={1.2}
+              luminanceThreshold={0.1}
+              luminanceSmoothing={0.9}
+              mipmapBlur
+            />
+            <Noise opacity={0.02} />
+            <Vignette eskil={false} offset={0.1} darkness={1.1} />
+          </EffectComposer>
+
+          {/* Camera controls */}
+          <OrbitControls
+            enableZoom={true}
+            enablePan={false}
+            minDistance={5}
+            maxDistance={12}
+            autoRotate={false}
+            enableDamping
+            dampingFactor={0.05}
+          />
+        </Suspense>
       </Canvas>
 
       {/* Subtle vignette overlay */}
-      <div 
+      <div
         className="fixed inset-0 pointer-events-none"
         style={{
           background: 'radial-gradient(ellipse at center, transparent 0%, rgba(10,15,26,0.4) 100%)'

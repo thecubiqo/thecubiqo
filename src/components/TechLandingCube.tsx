@@ -7,8 +7,10 @@
  * blue/purple/pink flows with orange accents, voice-reactive animations
  */
 
-import React, { useRef, useMemo, useEffect } from 'react'
+import React, { useRef, useMemo, useEffect, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
+import { Environment, Float } from '@react-three/drei'
+import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing'
 import * as THREE from 'three'
 
 // Energy wireframe shader
@@ -178,28 +180,28 @@ function TechCube({ voiceIntensity = 0 }: TechCubeProps) {
   const meshRef = useRef<THREE.Mesh>(null)
   const groupRef = useRef<THREE.Group>(null)
   const edgesRef = useRef<THREE.LineSegments>(null)
-  
+
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
     uVoiceIntensity: { value: voiceIntensity },
   }), [])
-  
+
   // Update voice intensity
   useEffect(() => {
     uniforms.uVoiceIntensity.value = voiceIntensity
   }, [voiceIntensity, uniforms])
-  
+
   // Create glowing edges
   const edges = useMemo(() => {
     const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5)
     const edges = new THREE.EdgesGeometry(geometry)
     return edges
   }, [])
-  
+
   useFrame((state) => {
     const time = state.clock.getElapsedTime()
     uniforms.uTime.value = time
-    
+
     if (groupRef.current) {
       // Elegant rotation
       groupRef.current.rotation.y = time * 0.15
@@ -208,14 +210,14 @@ function TechCube({ voiceIntensity = 0 }: TechCubeProps) {
       // Floating
       groupRef.current.position.y = Math.sin(time * 0.4) * 0.08
     }
-    
+
     // Pulse edges on voice
     if (edgesRef.current) {
       const material = edgesRef.current.material as THREE.LineBasicMaterial
       material.opacity = 0.4 + voiceIntensity * 0.4 + Math.sin(time * 2) * 0.1
     }
   })
-  
+
   return (
     <group ref={groupRef}>
       {/* Main energy cube */}
@@ -231,7 +233,7 @@ function TechCube({ voiceIntensity = 0 }: TechCubeProps) {
           blending={THREE.AdditiveBlending}
         />
       </mesh>
-      
+
       {/* Glowing edges */}
       <lineSegments ref={edgesRef} geometry={edges}>
         <lineBasicMaterial
@@ -241,18 +243,18 @@ function TechCube({ voiceIntensity = 0 }: TechCubeProps) {
           linewidth={2}
         />
       </lineSegments>
-      
+
       {/* Inner core sphere */}
       <mesh scale={0.3}>
         <sphereGeometry args={[1, 32, 32]} />
-        <meshBasicMaterial 
-          color="#ff6633" 
-          transparent 
+        <meshBasicMaterial
+          color="#ff6633"
+          transparent
           opacity={0.5 + voiceIntensity * 0.3}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
-      
+
       {/* Sparkle particles inside */}
       {[...Array(40)].map((_, i) => {
         const x = (Math.random() - 0.5) * 1.2
@@ -261,7 +263,7 @@ function TechCube({ voiceIntensity = 0 }: TechCubeProps) {
         return (
           <mesh key={i} position={[x, y, z]}>
             <sphereGeometry args={[0.01, 8, 8]} />
-            <meshBasicMaterial 
+            <meshBasicMaterial
               color={i % 3 === 0 ? "#ff9944" : "#66ccff"}
               transparent
               opacity={0.6}
@@ -279,9 +281,19 @@ interface TechLandingCubeProps {
   isVoiceActive?: boolean
 }
 
+function Lights() {
+  return (
+    <>
+      <ambientLight intensity={0.5} />
+      <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
+      <pointLight position={[-10, -10, -10]} intensity={0.5} color="#4444ff" />
+    </>
+  )
+}
+
 export function TechLandingCube({ onComplete, isVoiceActive = false }: TechLandingCubeProps) {
   const [voiceIntensity, setVoiceIntensity] = React.useState(0)
-  
+
   // Animate voice intensity
   useEffect(() => {
     if (isVoiceActive) {
@@ -299,9 +311,9 @@ export function TechLandingCube({ onComplete, isVoiceActive = false }: TechLandi
       setVoiceIntensity(prev => Math.max(prev - 0.02, 0))
     }
   }, [isVoiceActive])
-  
+
   return (
-    <div 
+    <div
       className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center cursor-pointer"
       onClick={onComplete}
       data-testid="tech-landing-cube"
@@ -309,23 +321,42 @@ export function TechLandingCube({ onComplete, isVoiceActive = false }: TechLandi
       {/* Deep space background */}
       <div className="absolute inset-0 bg-gradient-to-b from-indigo-950/30 via-black to-black" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(100,60,200,0.2)_0%,_transparent_70%)]" />
-      
+
       {/* 3D Canvas */}
       <div className="w-full h-[65vh] max-w-4xl relative z-10">
-        <Canvas 
+        <Canvas
           camera={{ position: [0, 0, 3.5], fov: 50 }}
-          gl={{ 
-            antialias: true, 
-            alpha: true, 
+          gl={{
+            antialias: true,
+            alpha: true,
             powerPreference: 'high-performance',
-            toneMapping: THREE.ACESFilmicToneMapping,
-            toneMappingExposure: 1.5,
+            stencil: false,
+            depth: true
           }}
+          dpr={[1, 2]}
         >
-          <TechCube voiceIntensity={voiceIntensity} />
+          <Suspense fallback={null}>
+            <Environment preset="city" blur={0.8} />
+            <Lights />
+
+            <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
+              <TechCube voiceIntensity={voiceIntensity} />
+            </Float>
+
+            <EffectComposer>
+              <Bloom
+                intensity={1.2}
+                luminanceThreshold={0.1}
+                luminanceSmoothing={0.9}
+                mipmapBlur
+              />
+              <Noise opacity={0.02} />
+              <Vignette eskil={false} offset={0.1} darkness={1.1} />
+            </EffectComposer>
+          </Suspense>
         </Canvas>
       </div>
-      
+
       {/* Welcome text */}
       <div className="text-center mt-6 relative z-10">
         <h1 className="text-white/95 text-4xl font-light tracking-[0.4em] mb-3">
@@ -338,7 +369,7 @@ export function TechLandingCube({ onComplete, isVoiceActive = false }: TechLandi
           Tap to begin
         </p>
       </div>
-      
+
       {/* Floating particles in background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {[...Array(25)].map((_, i) => (
@@ -348,8 +379,8 @@ export function TechLandingCube({ onComplete, isVoiceActive = false }: TechLandi
             style={{
               width: `${2 + Math.random() * 4}px`,
               height: `${2 + Math.random() * 4}px`,
-              background: i % 2 === 0 
-                ? `rgba(100, 180, 255, ${0.3 + Math.random() * 0.4})` 
+              background: i % 2 === 0
+                ? `rgba(100, 180, 255, ${0.3 + Math.random() * 0.4})`
                 : `rgba(255, 140, 80, ${0.3 + Math.random() * 0.4})`,
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -360,7 +391,7 @@ export function TechLandingCube({ onComplete, isVoiceActive = false }: TechLandi
           />
         ))}
       </div>
-      
+
       <style jsx>{`
         @keyframes float-particle {
           0%, 100% {
