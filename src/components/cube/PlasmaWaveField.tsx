@@ -227,6 +227,17 @@ export function PlasmaWaveField({
     targetMorph.current = isEnabled ? 1 : 0
   }, [isEnabled])
   
+  // Pre-compute cumulative ribbon offsets per layer (avoids per-particle loop)
+  const layerRibbonOffsets = useMemo(() => {
+    const offsets = new Array(WAVE_LAYERS)
+    let cumulative = 0
+    for (let l = 0; l < WAVE_LAYERS; l++) {
+      offsets[l] = cumulative
+      cumulative += (20 + l * 5)
+    }
+    return offsets
+  }, [])
+
   // Animation loop
   useFrame((state) => {
     const time = state.clock.elapsedTime
@@ -254,8 +265,6 @@ export function PlasmaWaveField({
       const positions = pointsRef.current.geometry.attributes.position.array as Float32Array
       const szArr = pointsRef.current.geometry.attributes.size.array as Float32Array
       
-      let ribbonOffset = 0
-      
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         const i3 = i * 3
         
@@ -269,11 +278,8 @@ export function PlasmaWaveField({
         const waveY = wavePositions[i3 + 1]
         const waveZ = wavePositions[i3 + 2]
         
-        // Compute ribbon phase offset for wave-like propagation
-        const ribbonCount = 20 + layer * 5
-        ribbonOffset = 0
-        for (let l = 0; l < layer; l++) ribbonOffset += (20 + l * 5)
-        const rPhase = ribbonPhases[ribbonOffset + ribbon] || 0
+        // Look up pre-computed ribbon phase offset for wave-like propagation
+        const rPhase = ribbonPhases[layerRibbonOffsets[layer] + ribbon] || 0
         
         // Wave propagation: travels left-to-right along the ribbon
         // Each ribbon has its own phase offset for organic stagger
