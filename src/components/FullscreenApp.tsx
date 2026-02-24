@@ -949,6 +949,59 @@ export function FullscreenApp({
                   </>
                 )
               }
+
+              {/* 4.5 Legal & Privacy */}
+              <div className={`h-px bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.06]' : 'via-gray-200'} to-transparent`} />
+              <div className="py-4">
+                <h3 className={`text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>Legal & Privacy</h3>
+                <div className="space-y-1">
+                  <a href="/tos" target="_blank" className={`block w-full py-2 px-4 rounded-lg transition-colors text-[13px] ${isDark ? 'text-white/50 hover:text-white/80 hover:bg-white/[0.03]' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}>Terms of Service</a>
+                  <a href="/privacy" target="_blank" className={`block w-full py-2 px-4 rounded-lg transition-colors text-[13px] ${isDark ? 'text-white/50 hover:text-white/80 hover:bg-white/[0.03]' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}>Privacy Policy</a>
+                  <button
+                    onClick={async () => {
+                      if (!isAuthenticated) return alert('Please sign in to download your data.');
+                      const res = await fetch('/api/privacy/export-data');
+                      if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `cubiqo-data-${new Date().toISOString().split('T')[0]}.json`;
+                        a.click();
+                      } else {
+                        alert('Failed to export data.');
+                      }
+                    }}
+                    className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'}`}
+                  >
+                    <span className={`text-[14px] ${isDark ? 'text-white/70' : 'text-gray-700'}`}>Download My Data</span>
+                    <svg className={`w-4 h-4 ${isDark ? 'text-white/30' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!isAuthenticated) return alert('Please sign in to delete your data.');
+                      if (confirm('CRITICAL: This will permanently delete all your memories, conversations, and account data. This cannot be undone. Are you sure?')) {
+                        const res = await fetch('/api/privacy/delete-account', {
+                          method: 'DELETE',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ confirm: true, immediate: true })
+                        });
+                        if (res.ok) {
+                          alert('Data deleted successfully. You will be signed out.');
+                          window.location.reload();
+                        } else {
+                          const err = await res.json();
+                          alert(`Deletion failed: ${err.error || 'Unknown error'}`);
+                        }
+                      }
+                    }}
+                    className={`w-full flex items-center justify-between py-3 px-4 rounded-xl transition-colors hover:bg-red-500/10 group`}
+                  >
+                    <span className={`text-[14px] text-red-400 group-hover:text-red-500`}>Delete My Data</span>
+                    <svg className="w-4 h-4 text-red-400/30 group-hover:text-red-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </div>
+              </div>
               {/* 5. Admin (only for admins) */}
               {isAuthenticated && (user?.email === 'aditya@cubiqo.ai' || user?.email === 'admin@cubiqo.ai' || process.env.NODE_ENV === 'development') && (
                 <>

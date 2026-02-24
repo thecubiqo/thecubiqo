@@ -1,0 +1,32 @@
+
+> cubiqo@2.0.0 build
+> next build
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\avloy\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\avloy\.gemini\antigravity\playground\thecubiqo\package-lock.json
+
+   ▲ Next.js 16.0.7 (Turbopack)
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully in 8.6s
+   Running TypeScript ...
+Failed to compile.
+
+./src/hooks/useChat.ts:256:11
+Type error: An object literal cannot have multiple properties with the same name.
+
+  254 |           sessionId,
+  255 |           region: regionId || undefined,
+> 256 |           region: regionId || undefined,
+      |           ^
+  257 |           duoMode: options?.duoMode,
+  258 |           context: options?.context, // Pass extension context (URL/Title)
+  259 |           userId: userId || undefined
+Next.js build worker exited with code: 1 and signal: null
