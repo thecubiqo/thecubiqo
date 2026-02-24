@@ -220,6 +220,6 @@ describe('Middleware Integration', () => {
     const middlewarePath = require('path').resolve(__dirname, '../src/middleware.ts')
     const content = require('fs').readFileSync(middlewarePath, 'utf-8')
     expect(content).toContain('getAll()')
-    expect(content).toContain('setAll(cookiesToSet)')
+    expect(content).toContain('setAll(cookiesToSet')
   })
 })

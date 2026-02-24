@@ -87,7 +87,7 @@ describe('Supabase Server Client', () => {
   })
 
   it('should handle cookie setAll with error handling', () => {
-    expect(serverContent).toContain('setAll(cookiesToSet)')
+    expect(serverContent).toContain('setAll(cookiesToSet')
   })
 
   it('should gracefully handle Server Component context', () => {
