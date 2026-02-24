@@ -1,3 +1,0 @@
-Testing /api/chat...
-Status: 200
-Body: {"color":"ORANGE","response":"Ah, hello there, sir. A lovely day, isn't it? How may I assist you today?","provider":"openrouter","byo":false}
