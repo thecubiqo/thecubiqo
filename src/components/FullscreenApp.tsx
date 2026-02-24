@@ -429,14 +429,12 @@ export function FullscreenApp({
       {/* Admin Controls */}
       <AdminControls />
 
-      {/* Energy Cube - Perfectly centered, industry standard */}
+      {/* Energy Cube - Full viewport background */}
       <div
-        className="fixed left-1/2 z-[1]"
+        className="fixed inset-0 z-[1]"
         style={{
-          top: '42%',
-          transform: `translate(-50%, -50%) scale(${cubeSize / 100})`,
-          width: '600px',
-          height: '600px'
+          transform: cubeSize !== 100 ? `scale(${cubeSize / 100})` : undefined,
+          transformOrigin: 'center center'
         }}
       >
         <EnergyCubeScene colorName={colorName} animationState={animationState} />
