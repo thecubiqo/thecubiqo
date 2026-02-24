@@ -4,14 +4,15 @@
  * EnergyCubeScene - Canvas wrapper for the Plasma Wave Field
  * 
  * Features HD plasma waves that morph into a rotating cube
- * when voice is enabled (listening/speaking states).
- * Tap anywhere on the scene to trigger "I am listening" speech.
+ * when voice is enabled (listening/speaking states)
  */
 
-import { Suspense, useCallback, useRef } from 'react'
+import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
+import { Environment, Float } from '@react-three/drei'
 import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing'
 import { PlasmaWaveField } from './PlasmaWaveField'
+import { EnergyCube } from './EnergyCube'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './EnergyCube'
 
@@ -19,7 +20,6 @@ interface EnergyCubeSceneProps {
   colorName?: ColorName
   animationState?: AnimationState
   className?: string
-  onTapListening?: () => void
 }
 
 // Map animation state to AI state for color palettes
@@ -49,49 +49,17 @@ function Lights() {
   )
 }
 
-/**
- * Speak "I am listening" using browser Web Speech API.
- * Safe to call in any environment — gracefully no-ops if unsupported.
- */
-function speakListening() {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
-  window.speechSynthesis.cancel()
-  const utterance = new SpeechSynthesisUtterance('I am listening')
-  utterance.rate = 0.95
-  utterance.pitch = 1.0
-  utterance.volume = 0.85
-  window.speechSynthesis.speak(utterance)
-}
-
 export function EnergyCubeScene({
   colorName = 'ORANGE',
   animationState = 'idle',
-  className = '',
-  onTapListening
+  className = ''
 }: EnergyCubeSceneProps) {
   // Voice is enabled when listening or speaking
   const isVoiceEnabled = animationState === 'listening' || animationState === 'speaking'
   const aiState = mapAIState(animationState)
-  // Prevent rapid re-triggers (debounce 2s)
-  const lastTapRef = useRef(0)
-
-  const handleSceneTap = useCallback(() => {
-    const now = Date.now()
-    if (now - lastTapRef.current < 2000) return
-    lastTapRef.current = now
-    speakListening()
-    onTapListening?.()
-  }, [onTapListening])
 
   return (
-    <div
-      className={`w-full h-full ${className}`}
-      onClick={handleSceneTap}
-      role="button"
-      tabIndex={0}
-      aria-label="Tap to activate listening"
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSceneTap() }}
-    >
+    <div className={`w-full h-full ${className}`}>
       <Canvas
         camera={{
           position: [0, 0, 5], // Front view for waves
@@ -114,7 +82,12 @@ export function EnergyCubeScene({
         <Suspense fallback={null}>
           <Lights />
 
-          <PlasmaWaveField isEnabled={isVoiceEnabled} aiState={aiState} />
+          <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
+            <EnergyCube
+              colorName={colorName}
+              animationState={animationState}
+            />
+          </Float>
 
           <EffectComposer>
             <Bloom

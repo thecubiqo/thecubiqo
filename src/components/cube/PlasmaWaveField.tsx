@@ -7,7 +7,7 @@
  * - Default: Flowing plasma waves with orange soul nodes
  * - Active: Smooth morph transition to isometric rotating plasma cube
  * - AI state color palette support
- * - 40,000 particles for production-safe HD effect
+ * - 120,000+ particles for HD effect
  */
 
 import { useRef, useMemo, useEffect } from 'react'
@@ -95,6 +95,7 @@ export function PlasmaWaveField({
     for (let layer = 0; layer < WAVE_LAYERS; layer++) {
       const layerOffset = layer * particlesPerLayer
       const layerDepth = (layer - WAVE_LAYERS / 2) * 0.4
+      const layerDensity = layer === 1 ? 1.2 : (layer === 2 ? 1.1 : 1.0)
 
       // Ribbon structure
       const ribbonCount = 20 + layer * 5
