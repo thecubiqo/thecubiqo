@@ -1,5 +1,5 @@
 -- Epic 1: Foundations - Complete Database Schema
--- Migration: 20260218_001_epic1_foundations.sql
+-- Migration: 20260218070000_epic1_foundations.sql
 -- Author: @guy (Database Administrator)
 -- Description: Organizations, Projects, Environments, Secrets, Audit Logs, RBAC
 

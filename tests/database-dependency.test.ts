@@ -25,29 +25,32 @@ describe('Supabase Browser Client', () => {
     expect(clientContent).toContain('if (!client)')
   })
 
-  it('should support NEXT_PUBLIC_SUPABASE_URL1 fallback', () => {
-    expect(clientContent).toContain('NEXT_PUBLIC_SUPABASE_URL1')
+  it('should support env var fallback via ENV config', () => {
+    const envPath = resolve(__dirname, '../src/lib/config/env.ts')
+    const envContent = readFileSync(envPath, 'utf-8')
+    expect(envContent).toContain('NEXT_PUBLIC_SUPABASE_URL1')
   })
 
-  it('should support NEXT_PUBLIC_SUPABASE_ANON_KEY1 fallback', () => {
-    expect(clientContent).toContain('NEXT_PUBLIC_SUPABASE_ANON_KEY1')
+  it('should support anon key fallback via ENV config', () => {
+    const envPath = resolve(__dirname, '../src/lib/config/env.ts')
+    const envContent = readFileSync(envPath, 'utf-8')
+    expect(envContent).toContain('NEXT_PUBLIC_SUPABASE_ANON_KEY1')
   })
 
-  it('should use placeholder URL as default', () => {
-    expect(clientContent).toContain('https://placeholder.supabase.co')
+  it('should detect placeholder credentials via ENV config', () => {
+    expect(clientContent).toContain("url.includes('placeholder')")
   })
 
-  it('should use placeholder anon key as default', () => {
-    expect(clientContent).toContain('placeholder-anon-key')
+  it('should use ENV.supabase for configuration', () => {
+    expect(clientContent).toContain('ENV.supabase')
   })
 
-  it('should detect placeholder credentials in isSupabaseConfigured', () => {
-    expect(clientContent).toContain("url !== 'https://placeholder.supabase.co'")
-    expect(clientContent).toContain("key !== 'placeholder-anon-key'")
+  it('should detect unconfigured state in isSupabaseConfigured', () => {
+    expect(clientContent).toContain("!url.includes('placeholder')")
   })
 
-  it('should verify URL contains supabase.co domain', () => {
-    expect(clientContent).toContain("url.includes('supabase.co')")
+  it('should verify URL is not a placeholder', () => {
+    expect(clientContent).toContain("includes('placeholder')")
   })
 
   it('should use @supabase/ssr createBrowserClient', () => {
@@ -84,7 +87,7 @@ describe('Supabase Server Client', () => {
   })
 
   it('should handle cookie setAll with error handling', () => {
-    expect(serverContent).toContain('setAll(cookiesToSet)')
+    expect(serverContent).toContain('setAll(cookiesToSet')
   })
 
   it('should gracefully handle Server Component context', () => {
@@ -92,8 +95,10 @@ describe('Supabase Server Client', () => {
     expect(serverContent).toContain('} catch {')
   })
 
-  it('should support env var fallback with _URL1 suffix', () => {
-    expect(serverContent).toContain('NEXT_PUBLIC_SUPABASE_URL1')
+  it('should support env var fallback via ENV config', () => {
+    const envPath = resolve(__dirname, '../src/lib/config/env.ts')
+    const envContent = readFileSync(envPath, 'utf-8')
+    expect(envContent).toContain('NEXT_PUBLIC_SUPABASE_URL1')
   })
 })
 
@@ -105,8 +110,8 @@ describe('Supabase Admin Client', () => {
     expect(adminContent).toContain('export const createAdminClient')
   })
 
-  it('should use service role key for elevated access', () => {
-    expect(adminContent).toContain('SUPABASE_SERVICE_ROLE_KEY')
+  it('should use service role key via ENV config', () => {
+    expect(adminContent).toContain('serviceRoleKey')
   })
 
   it('should disable auto refresh for admin client', () => {
@@ -117,9 +122,11 @@ describe('Supabase Admin Client', () => {
     expect(adminContent).toContain('persistSession: false')
   })
 
-  it('should support legacy env var suffixes', () => {
-    expect(adminContent).toContain('NEXT_PUBLIC_SUPABASE_URL1')
-    expect(adminContent).toContain('SUPABASE_SERVICE_ROLE_KEY1')
+  it('should support legacy env var suffixes via ENV config', () => {
+    const envPath = resolve(__dirname, '../src/lib/config/env.ts')
+    const envContent = readFileSync(envPath, 'utf-8')
+    expect(envContent).toContain('NEXT_PUBLIC_SUPABASE_URL1')
+    expect(envContent).toContain('SUPABASE_SERVICE_ROLE_KEY1')
   })
 })
 

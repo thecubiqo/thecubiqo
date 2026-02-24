@@ -65,8 +65,12 @@ export default async function proxy(request: NextRequest) {
   })
 
   // Prioritize URL1/ANON_KEY1 if set, else fallback to standard env vars
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL1 || process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY1 || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    return applySecurityHeaders(supabaseResponse)
+  }
 
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {

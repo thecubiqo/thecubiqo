@@ -3,6 +3,7 @@ import {
   PRIMARY_PROVIDER,
   FALLBACK_PROVIDERS,
   MINIMAX_CONFIG,
+  OPENAI_CONFIG,
   MIXTRAL_CONFIG,
   LLAMA_CONFIG,
   CLAUDE_CONFIG,
@@ -29,25 +30,27 @@ describe('AI Provider Configuration', () => {
   })
 
   describe('Fallback providers', () => {
-    it('should have exactly 3 fallbacks', () => {
-      expect(FALLBACK_PROVIDERS).toHaveLength(3)
+    it('should have exactly 4 fallbacks', () => {
+      expect(FALLBACK_PROVIDERS).toHaveLength(4)
     })
 
-    it('should follow correct fallback order: mixtral → llama → claude', () => {
-      expect(FALLBACK_PROVIDERS[0].name).toBe('mixtral')
-      expect(FALLBACK_PROVIDERS[1].name).toBe('llama')
-      expect(FALLBACK_PROVIDERS[2].name).toBe('claude')
+    it('should follow correct fallback order: openai → mixtral → llama → claude', () => {
+      expect(FALLBACK_PROVIDERS[0].name).toBe('openai')
+      expect(FALLBACK_PROVIDERS[1].name).toBe('mixtral')
+      expect(FALLBACK_PROVIDERS[2].name).toBe('llama')
+      expect(FALLBACK_PROVIDERS[3].name).toBe('claude')
     })
 
     it('should match individual config exports', () => {
-      expect(FALLBACK_PROVIDERS[0]).toEqual(MIXTRAL_CONFIG)
-      expect(FALLBACK_PROVIDERS[1]).toEqual(LLAMA_CONFIG)
-      expect(FALLBACK_PROVIDERS[2]).toEqual(CLAUDE_CONFIG)
+      expect(FALLBACK_PROVIDERS[0]).toEqual(OPENAI_CONFIG)
+      expect(FALLBACK_PROVIDERS[1]).toEqual(MIXTRAL_CONFIG)
+      expect(FALLBACK_PROVIDERS[2]).toEqual(LLAMA_CONFIG)
+      expect(FALLBACK_PROVIDERS[3]).toEqual(CLAUDE_CONFIG)
     })
   })
 
   describe('Provider configs', () => {
-    const allProviders = [MINIMAX_CONFIG, MIXTRAL_CONFIG, LLAMA_CONFIG, CLAUDE_CONFIG]
+    const allProviders = [MINIMAX_CONFIG, OPENAI_CONFIG, MIXTRAL_CONFIG, LLAMA_CONFIG, CLAUDE_CONFIG]
 
     it('should all have required fields', () => {
       allProviders.forEach(provider => {
@@ -69,9 +72,13 @@ describe('AI Provider Configuration', () => {
     })
 
     it('should have consistent maxTokens', () => {
-      allProviders.forEach(provider => {
-        expect(provider.maxTokens).toBe(200)
-      })
+      // Fallback providers (except Claude) share the same maxTokens
+      expect(OPENAI_CONFIG.maxTokens).toBe(200)
+      expect(MIXTRAL_CONFIG.maxTokens).toBe(200)
+      expect(LLAMA_CONFIG.maxTokens).toBe(200)
+      // Claude and MiniMax have higher limits
+      expect(CLAUDE_CONFIG.maxTokens).toBe(1024)
+      expect(MINIMAX_CONFIG.maxTokens).toBe(2048)
     })
   })
 })

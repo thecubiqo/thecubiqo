@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { TopRightCTA } from '@/components/TopRightCTA.client'
-import * as analytics from '@vercel/analytics'
 
 // Mock dependencies
 vi.mock('@vercel/analytics', () => ({
@@ -16,35 +15,35 @@ vi.mock('next/link', () => ({
     ),
 }))
 
+vi.mock('framer-motion', () => ({
+    motion: {
+        div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    },
+}))
+
 describe('TopRightCTA', () => {
     it('renders correctly with default props', () => {
         render(<TopRightCTA />)
-        const link = screen.getByRole('link', { name: /Open Welcome page/i })
+        const link = screen.getByRole('link', { name: /Enter Signal/i })
         expect(link).toBeDefined()
-        expect(link.getAttribute('href')).toBe('/welcome')
+        expect(link.getAttribute('href')).toBe('/auth')
     })
 
     it('renders with custom props', () => {
-        render(<TopRightCTA href="/custom" label="Custom" />)
-        const link = screen.getByRole('link', { name: /Open Custom page/i })
+        render(<TopRightCTA href="/custom" ariaLabel="Custom Label" />)
+        const link = screen.getByRole('link', { name: /Custom Label/i })
         expect(link.getAttribute('href')).toBe('/custom')
-        expect(screen.getByText('Custom')).toBeDefined()
     })
 
-    it('handles analytics on click', () => {
+    it('contains SIGNAL branding text', () => {
+        render(<TopRightCTA />)
+        expect(screen.getByText('S')).toBeDefined()
+        expect(screen.getByText('NAL')).toBeDefined()
+    })
+
+    it('renders with default aria-label', () => {
         render(<TopRightCTA />)
         const link = screen.getByRole('link')
-        fireEvent.click(link)
-        expect(analytics.track).toHaveBeenCalledWith('top_right_cta_click', expect.objectContaining({
-            pr: 'top-right',
-            label: 'Welcome'
-        }))
-    })
-
-    it('supports new tab opening', () => {
-        render(<TopRightCTA openInNewTab={true} />)
-        const link = screen.getByRole('link')
-        expect(link.getAttribute('target')).toBe('_blank')
-        expect(link.getAttribute('rel')).toContain('noopener noreferrer')
+        expect(link.getAttribute('aria-label')).toBe('Enter Signal')
     })
 })

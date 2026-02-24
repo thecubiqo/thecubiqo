@@ -6,7 +6,15 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 
-describe('Admin API - Integrations & Reports', () => {
+// These are integration tests that require a running server
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+// Skip integration tests when server is not available
+const describeIntegration = process.env.INTEGRATION_TESTS === 'true'
+  ? describe
+  : describe.skip;
+
+describeIntegration('Admin API - Integrations & Reports', () => {
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   
   // Admin credentials for testing (should be set in test environment)

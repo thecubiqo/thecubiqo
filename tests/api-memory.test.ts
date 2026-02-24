@@ -119,8 +119,9 @@ describe('Memory API: POST Validation', () => {
 })
 
 describe('Memory API: Error Handling', () => {
-  it('should catch and log errors', () => {
-    expect(memoryContent).toContain('console.error')
+  it('should catch and handle errors', () => {
+    expect(memoryContent).toContain('catch')
+    expect(memoryContent).toContain('Internal server error')
   })
 
   it('should return internal server error status', () => {
