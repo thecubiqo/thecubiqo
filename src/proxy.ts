@@ -30,7 +30,7 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
     "connect-src 'self' https://*.supabase.co https://vercel.live wss://*.supabase.co",
     "frame-src 'self' https://vercel.live",
     "worker-src 'self' blob:",
-    "media-src 'self' blob:",
+    "media-src 'self' blob: data:",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -43,8 +43,8 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   headers.set('X-Content-Type-Options', 'nosniff')
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   headers.set('Permissions-Policy', [
-    'camera=()',
-    'microphone=()',
+    'camera=(self)',
+    'microphone=(self)',
     'geolocation=()',
     'interest-cohort=()'
   ].join(', '))

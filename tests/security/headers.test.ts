@@ -19,7 +19,7 @@ describe('Security Headers', () => {
   describe('getSecurityHeaders', () => {
     it('should return all required security headers', () => {
       const headers = getSecurityHeaders();
-      
+
       expect(headers).toHaveProperty('X-Content-Type-Options', 'nosniff');
       expect(headers).toHaveProperty('X-Frame-Options', 'DENY');
       expect(headers).toHaveProperty('X-XSS-Protection', '1; mode=block');
@@ -30,7 +30,7 @@ describe('Security Headers', () => {
 
     it('should include HSTS with preload', () => {
       const headers = getSecurityHeaders();
-      
+
       expect(headers['Strict-Transport-Security']).toContain('max-age=31536000');
       expect(headers['Strict-Transport-Security']).toContain('includeSubDomains');
       expect(headers['Strict-Transport-Security']).toContain('preload');
@@ -38,7 +38,6 @@ describe('Security Headers', () => {
 
     it('should allow camera and microphone for same origin', () => {
       const headers = getSecurityHeaders();
-      
       expect(headers['Permissions-Policy']).toContain('camera=(self)');
       expect(headers['Permissions-Policy']).toContain('microphone=(self)');
     });
@@ -47,7 +46,7 @@ describe('Security Headers', () => {
   describe('getContentSecurityPolicy', () => {
     it('should return comprehensive CSP', () => {
       const csp = getContentSecurityPolicy();
-      
+
       expect(csp).toContain("default-src 'self'");
       expect(csp).toContain("frame-ancestors 'none'");
       expect(csp).toContain("object-src 'none'");
@@ -56,7 +55,7 @@ describe('Security Headers', () => {
 
     it('should allow blob and data URIs for media sources', () => {
       const csp = getContentSecurityPolicy();
-      
+
       expect(csp).toContain('media-src');
       expect(csp).toContain('blob:');
       expect(csp).toContain('data:');
@@ -64,7 +63,7 @@ describe('Security Headers', () => {
 
     it('should allow necessary external domains', () => {
       const csp = getContentSecurityPolicy();
-      
+
       expect(csp).toContain('supabase.co');
       expect(csp).toContain('api.openai.com');
       expect(csp).toContain('api.anthropic.com');
@@ -75,7 +74,7 @@ describe('Security Headers', () => {
     it('should allow whitelisted origins', () => {
       const origin = 'https://cubiqo.ai';
       const headers = getCORSHeaders(origin);
-      
+
       expect(headers['Access-Control-Allow-Origin']).toBe(origin);
       expect(headers['Access-Control-Allow-Credentials']).toBe('true');
     });
@@ -83,13 +82,13 @@ describe('Security Headers', () => {
     it('should reject non-whitelisted origins', () => {
       const origin = 'https://evil.com';
       const headers = getCORSHeaders(origin);
-      
+
       expect(headers['Access-Control-Allow-Origin']).not.toBe(origin);
     });
 
     it('should include allowed methods and headers', () => {
       const headers = getCORSHeaders();
-      
+
       expect(headers['Access-Control-Allow-Methods']).toContain('GET');
       expect(headers['Access-Control-Allow-Methods']).toContain('POST');
       expect(headers['Access-Control-Allow-Headers']).toContain('Authorization');
@@ -120,7 +119,7 @@ describe('Security Headers', () => {
     it('should escape HTML special characters', () => {
       const input = '<script>alert("XSS")</script>';
       const sanitized = sanitizeInput(input);
-      
+
       expect(sanitized).not.toContain('<');
       expect(sanitized).not.toContain('>');
       expect(sanitized).toContain('&lt;');
@@ -130,7 +129,7 @@ describe('Security Headers', () => {
     it('should escape quotes', () => {
       const input = 'He said "hello" and \'goodbye\'';
       const sanitized = sanitizeInput(input);
-      
+
       expect(sanitized).toContain('&quot;');
       expect(sanitized).toContain('&#x27;');
     });
@@ -138,7 +137,7 @@ describe('Security Headers', () => {
     it('should escape forward slashes', () => {
       const input = '</script>';
       const sanitized = sanitizeInput(input);
-      
+
       expect(sanitized).toContain('&#x2F;');
     });
   });
@@ -146,40 +145,40 @@ describe('Security Headers', () => {
   describe('validateUrl', () => {
     it('should validate safe URLs', () => {
       const result = validateUrl('https://google.com');
-      
+
       expect(result.valid).toBe(true);
       expect(result.threats).toHaveLength(0);
     });
 
     it('should detect javascript: protocol', () => {
       const result = validateUrl('javascript:alert("XSS")');
-      
+
       expect(result.valid).toBe(false);
       expect(result.threats).toContain('Invalid protocol');
     });
 
     it('should detect suspicious patterns', () => {
       const result = validateUrl('https://example.com/<script>alert(1)</script>');
-      
+
       expect(result.valid).toBe(false);
       expect(result.threats.length).toBeGreaterThan(0);
     });
 
     it('should detect potential phishing URLs', () => {
       const result = validateUrl('https://paypal-verify-account-login.com');
-      
+
       expect(result.threats.length).toBeGreaterThan(0);
     });
 
     it('should detect IP addresses in hostname', () => {
       const result = validateUrl('https://192.168.1.1/login');
-      
+
       expect(result.threats).toContain('Potential phishing URL');
     });
 
     it('should reject invalid URLs', () => {
       const result = validateUrl('not-a-url');
-      
+
       expect(result.valid).toBe(false);
       expect(result.threats).toContain('Invalid URL format');
     });
