@@ -183,42 +183,43 @@ describe('RegionConfig Type Structure', () => {
   })
 })
 
-describe('Middleware Integration', () => {
-  it('should have middleware.ts file at project root src/', () => {
-    const middlewarePath = require('path').resolve(__dirname, '../src/middleware.ts')
-    expect(require('fs').existsSync(middlewarePath)).toBe(true)
+describe('Proxy Integration', () => {
+  // Next.js 16 uses proxy.ts instead of middleware.ts
+  it('should have proxy.ts file at project root src/', () => {
+    const proxyPath = require('path').resolve(__dirname, '../src/proxy.ts')
+    expect(require('fs').existsSync(proxyPath)).toBe(true)
   })
 
-  it('middleware should use createServerClient from @supabase/ssr', () => {
-    const middlewarePath = require('path').resolve(__dirname, '../src/middleware.ts')
-    const content = require('fs').readFileSync(middlewarePath, 'utf-8')
+  it('proxy should use createServerClient from @supabase/ssr', () => {
+    const proxyPath = require('path').resolve(__dirname, '../src/proxy.ts')
+    const content = require('fs').readFileSync(proxyPath, 'utf-8')
     expect(content).toContain("import { createServerClient } from '@supabase/ssr'")
   })
 
-  it('middleware should refresh session on every request', () => {
-    const middlewarePath = require('path').resolve(__dirname, '../src/middleware.ts')
-    const content = require('fs').readFileSync(middlewarePath, 'utf-8')
+  it('proxy should refresh session on every request', () => {
+    const proxyPath = require('path').resolve(__dirname, '../src/proxy.ts')
+    const content = require('fs').readFileSync(proxyPath, 'utf-8')
     expect(content).toContain('await supabase.auth.getUser()')
   })
 
-  it('middleware should exclude static files from processing', () => {
-    const middlewarePath = require('path').resolve(__dirname, '../src/middleware.ts')
-    const content = require('fs').readFileSync(middlewarePath, 'utf-8')
+  it('proxy should exclude static files from processing', () => {
+    const proxyPath = require('path').resolve(__dirname, '../src/proxy.ts')
+    const content = require('fs').readFileSync(proxyPath, 'utf-8')
     expect(content).toContain('_next/static')
     expect(content).toContain('_next/image')
     expect(content).toContain('favicon.ico')
   })
 
-  it('middleware should support legacy env var names', () => {
-    const middlewarePath = require('path').resolve(__dirname, '../src/middleware.ts')
-    const content = require('fs').readFileSync(middlewarePath, 'utf-8')
+  it('proxy should support legacy env var names', () => {
+    const proxyPath = require('path').resolve(__dirname, '../src/proxy.ts')
+    const content = require('fs').readFileSync(proxyPath, 'utf-8')
     expect(content).toContain('NEXT_PUBLIC_SUPABASE_URL1')
     expect(content).toContain('NEXT_PUBLIC_SUPABASE_ANON_KEY1')
   })
 
-  it('middleware should handle cookies for session management', () => {
-    const middlewarePath = require('path').resolve(__dirname, '../src/middleware.ts')
-    const content = require('fs').readFileSync(middlewarePath, 'utf-8')
+  it('proxy should handle cookies for session management', () => {
+    const proxyPath = require('path').resolve(__dirname, '../src/proxy.ts')
+    const content = require('fs').readFileSync(proxyPath, 'utf-8')
     expect(content).toContain('getAll()')
     expect(content).toContain('setAll(cookiesToSet')
   })

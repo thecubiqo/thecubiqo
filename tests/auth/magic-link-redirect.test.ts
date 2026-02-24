@@ -9,43 +9,44 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
 
-describe('Middleware Session Refresh', () => {
-  const middlewarePath = resolve(__dirname, '../../src/middleware.ts')
+describe('Proxy Session Refresh', () => {
+  // Next.js 16 uses proxy.ts instead of middleware.ts
+  const proxyPath = resolve(__dirname, '../../src/proxy.ts')
 
-  it('should have middleware.ts file', () => {
-    expect(existsSync(middlewarePath)).toBe(true)
+  it('should have proxy.ts file', () => {
+    expect(existsSync(proxyPath)).toBe(true)
   })
 
-  const middlewareContent = readFileSync(middlewarePath, 'utf-8')
+  const proxyContent = readFileSync(proxyPath, 'utf-8')
 
-  it('should export middleware function', () => {
-    expect(middlewareContent).toContain('export async function middleware')
+  it('should export proxy function', () => {
+    expect(proxyContent).toContain('export default async function proxy')
   })
 
   it('should call getUser() to refresh session', () => {
-    expect(middlewareContent).toContain('await supabase.auth.getUser()')
+    expect(proxyContent).toContain('await supabase.auth.getUser()')
   })
 
   it('should use createServerClient from @supabase/ssr', () => {
-    expect(middlewareContent).toContain('createServerClient')
-    expect(middlewareContent).toContain('@supabase/ssr')
+    expect(proxyContent).toContain('createServerClient')
+    expect(proxyContent).toContain('@supabase/ssr')
   })
 
   it('should handle cookies properly', () => {
-    expect(middlewareContent).toContain('cookies')
-    expect(middlewareContent).toContain('getAll()')
-    expect(middlewareContent).toContain('setAll')
+    expect(proxyContent).toContain('cookies')
+    expect(proxyContent).toContain('getAll()')
+    expect(proxyContent).toContain('setAll')
   })
 
   it('should have matcher config to exclude static files', () => {
-    expect(middlewareContent).toContain('export const config')
-    expect(middlewareContent).toContain('matcher')
-    expect(middlewareContent).toContain('_next/static')
-    expect(middlewareContent).toContain('_next/image')
+    expect(proxyContent).toContain('export const config')
+    expect(proxyContent).toContain('matcher')
+    expect(proxyContent).toContain('_next/static')
+    expect(proxyContent).toContain('_next/image')
   })
 
-  it('should reference PR #12 in comments', () => {
-    expect(middlewareContent).toContain('#12')
+  it('should reference magic-link redirect in comments', () => {
+    expect(proxyContent).toContain('magic-link')
   })
 })
 
@@ -235,10 +236,10 @@ describe('Security and Session Management', () => {
   })
 
   it('should handle expired sessions', () => {
-    // getUser() in middleware automatically refreshes expired sessions
-    const middlewarePath = resolve(__dirname, '../../src/middleware.ts')
-    const middlewareContent = readFileSync(middlewarePath, 'utf-8')
+    // getUser() in proxy automatically refreshes expired sessions
+    const proxyPath = resolve(__dirname, '../../src/proxy.ts')
+    const proxyContent = readFileSync(proxyPath, 'utf-8')
     
-    expect(middlewareContent).toContain('getUser()')
+    expect(proxyContent).toContain('getUser()')
   })
 })

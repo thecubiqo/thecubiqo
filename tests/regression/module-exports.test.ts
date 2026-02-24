@@ -159,12 +159,13 @@ describe('Auth Context Module Exports', () => {
   })
 })
 
-describe('Middleware Module Structure', () => {
-  const filePath = resolve(__dirname, '../../src/middleware.ts')
+describe('Proxy Module Structure', () => {
+  // Next.js 16 uses proxy.ts instead of middleware.ts
+  const filePath = resolve(__dirname, '../../src/proxy.ts')
   const content = readFileSync(filePath, 'utf-8')
 
-  it('should export middleware function', () => {
-    expect(content).toContain('export async function middleware')
+  it('should export proxy function', () => {
+    expect(content).toContain('export default async function proxy')
   })
 
   it('should export config object', () => {

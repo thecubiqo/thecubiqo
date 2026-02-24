@@ -101,37 +101,38 @@ describe('Feature Flags Source File Structure', () => {
   })
 })
 
-describe('Middleware Config Integration', () => {
-  const middlewarePath = resolve(__dirname, '../../src/middleware.ts')
-  const middlewareContent = readFileSync(middlewarePath, 'utf-8')
+describe('Proxy Config Integration', () => {
+  // Next.js 16 uses proxy.ts instead of middleware.ts
+  const proxyPath = resolve(__dirname, '../../src/proxy.ts')
+  const proxyContent = readFileSync(proxyPath, 'utf-8')
 
-  it('should export middleware function', () => {
-    expect(middlewareContent).toContain('export async function middleware')
+  it('should export proxy function', () => {
+    expect(proxyContent).toContain('export default async function proxy')
   })
 
   it('should export config with matcher', () => {
-    expect(middlewareContent).toContain('export const config')
-    expect(middlewareContent).toContain('matcher')
+    expect(proxyContent).toContain('export const config')
+    expect(proxyContent).toContain('matcher')
   })
 
   it('should exclude static files from matcher', () => {
-    expect(middlewareContent).toContain('_next/static')
-    expect(middlewareContent).toContain('_next/image')
-    expect(middlewareContent).toContain('favicon.ico')
+    expect(proxyContent).toContain('_next/static')
+    expect(proxyContent).toContain('_next/image')
+    expect(proxyContent).toContain('favicon.ico')
   })
 
   it('should exclude image file extensions', () => {
-    expect(middlewareContent).toContain('svg')
-    expect(middlewareContent).toContain('png')
-    expect(middlewareContent).toContain('jpg')
+    expect(proxyContent).toContain('svg')
+    expect(proxyContent).toContain('png')
+    expect(proxyContent).toContain('jpg')
   })
 
   it('should use Supabase SSR for session management', () => {
-    expect(middlewareContent).toContain('createServerClient')
-    expect(middlewareContent).toContain('@supabase/ssr')
+    expect(proxyContent).toContain('createServerClient')
+    expect(proxyContent).toContain('@supabase/ssr')
   })
 
   it('should call getUser to refresh session', () => {
-    expect(middlewareContent).toContain('supabase.auth.getUser()')
+    expect(proxyContent).toContain('supabase.auth.getUser()')
   })
 })
