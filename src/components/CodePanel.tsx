@@ -1,10 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
+
+const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
+
+const LANGUAGE_MONACO_MAP: Record<string, string> = {
+  python: 'python',
+  javascript: 'javascript',
+  typescript: 'typescript',
+  bash: 'shell',
+};
 
 interface CodeExecution {
   id: string;
-  language: string;
+  language: 'python' | 'javascript' | 'typescript' | 'bash';
   code: string;
   stdout: string;
   stderr: string;
@@ -19,11 +29,13 @@ export default function CodePanel() {
   const [executing, setExecuting] = useState(false);
   const [history, setHistory] = useState<CodeExecution[]>([]);
   const [currentResult, setCurrentResult] = useState<CodeExecution | null>(null);
+  const [execError, setExecError] = useState<string | null>(null);
 
   const executeCode = async () => {
     if (!code.trim()) return;
 
     setExecuting(true);
+    setExecError(null);
     try {
       const response = await fetch('/api/code/execute', {
         method: 'POST',
@@ -32,7 +44,12 @@ export default function CodePanel() {
       });
 
       const result = await response.json();
-      
+
+      if (!response.ok) {
+        setExecError(result.error || `Request failed with status ${response.status}`);
+        return;
+      }
+
       const execution: CodeExecution = {
         id: Date.now().toString(),
         language,
@@ -44,7 +61,7 @@ export default function CodePanel() {
       setCurrentResult(execution);
       setHistory(prev => [execution, ...prev].slice(0, 10)); // Keep last 10
     } catch (error) {
-      
+      setExecError(error instanceof Error ? error.message : 'Unexpected error during execution');
     } finally {
       setExecuting(false);
     }
@@ -72,14 +89,28 @@ export default function CodePanel() {
       </div>
 
       <div className="flex-1 flex flex-col gap-4">
-        {/* Code Editor */}
-        <div className="flex-1">
-          <textarea
+        {/* Monaco Code Editor */}
+        <div className="flex-1 min-h-[200px] rounded overflow-hidden border border-gray-700">
+          <MonacoEditor
+            height="100%"
+            language={LANGUAGE_MONACO_MAP[language]}
             value={code}
-            onChange={(e) => setCode(e.target.value)}
-            className="w-full h-full bg-gray-800 text-white p-3 font-mono text-sm rounded"
-            placeholder={`Enter ${language} code here...`}
-            style={{ resize: 'none' }}
+            onChange={(value) => setCode(value || '')}
+            theme="vs-dark"
+            options={{
+              minimap: { enabled: false },
+              fontSize: 14,
+              lineNumbers: 'on',
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              tabSize: 2,
+              wordWrap: 'on',
+            }}
+            loading={
+              <div className="flex items-center justify-center h-full bg-gray-800 text-gray-400 text-sm">
+                Loading editor…
+              </div>
+            }
           />
         </div>
 
@@ -91,6 +122,13 @@ export default function CodePanel() {
         >
           {executing ? 'Executing...' : 'Run Code'}
         </button>
+
+        {/* Execution Error */}
+        {execError && (
+          <div className="bg-red-900/50 border border-red-700 p-3 rounded text-sm text-red-300">
+            <span className="font-semibold">Error: </span>{execError}
+          </div>
+        )}
 
         {/* Output */}
         {currentResult && (
@@ -140,8 +178,9 @@ export default function CodePanel() {
                   key={exec.id}
                   onClick={() => {
                     setCode(exec.code);
-                    setLanguage(exec.language as any);
+                    setLanguage(exec.language);
                     setCurrentResult(exec);
+                    setExecError(null);
                   }}
                   className="w-full text-left p-2 bg-gray-800 hover:bg-gray-700 rounded text-sm"
                 >
