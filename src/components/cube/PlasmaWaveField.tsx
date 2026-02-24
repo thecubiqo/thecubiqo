@@ -96,7 +96,6 @@ export function PlasmaWaveField({
       const layerOffset = layer * particlesPerLayer
       const layerDepth = (layer - WAVE_LAYERS / 2) * 0.4
 
-
       // Ribbon structure
       const ribbonCount = 20 + layer * 5
       const particlesPerRibbon = Math.floor(particlesPerLayer / ribbonCount)
