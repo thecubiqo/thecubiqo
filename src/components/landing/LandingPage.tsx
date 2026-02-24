@@ -52,10 +52,10 @@ export function LandingPage({ showTopRightCTA, onComplete }: LandingPageProps) {
                     }}
                 >
                     <Suspense fallback={null}>
-                        <Environment preset="city" blur={0.8} />
-                        <ambientLight intensity={0.5} />
-                        <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
-                        <pointLight position={[-10, -10, -10]} intensity={0.5} color="#4444ff" />
+                        <ambientLight intensity={1.5} />
+                        <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={2} castShadow />
+                        <pointLight position={[-10, -10, -10]} intensity={1.5} color="#4444ff" />
+                        <pointLight position={[0, 0, 5]} intensity={1} color="#ff00ff" />
 
                         <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
                             <PlasmaWaveField isEnabled={false} aiState="neutral" />

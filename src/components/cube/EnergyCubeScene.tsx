@@ -75,12 +75,11 @@ export function EnergyCubeScene({
         dpr={[1, 2]}
         style={{ background: 'transparent' }}
       >
-        <ambientLight intensity={0.2} />
-        <pointLight position={[5, 5, 5]} intensity={0.3} color="#00ffff" />
-        <pointLight position={[-5, -5, -5]} intensity={0.2} color="#ff00ff" />
+        <ambientLight intensity={1.5} />
+        <pointLight position={[5, 5, 5]} intensity={2} color="#00ffff" />
+        <pointLight position={[-5, -5, -5]} intensity={1.5} color="#ff00ff" />
 
         <Suspense fallback={null}>
-          <Environment preset="city" blur={0.8} />
           <Lights />
 
           <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
