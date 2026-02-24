@@ -12,7 +12,6 @@ import { Canvas } from '@react-three/fiber'
 import { Environment, Float } from '@react-three/drei'
 import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing'
 import { PlasmaWaveField } from './PlasmaWaveField'
-import { EnergyCube } from './EnergyCube'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './EnergyCube'
 
@@ -37,14 +36,12 @@ function mapAIState(animationState: AnimationState): 'neutral' | 'thinking' | 's
   }
 }
 
-// Local Lights component for standard EnergyCube illumination
 function Lights() {
   return (
     <>
-      <ambientLight intensity={0.2} />
-      <directionalLight position={[10, 10, 10]} intensity={0.5} color="#ffffff" />
-      <pointLight position={[-10, 5, -10]} intensity={0.4} color="#4488ff" />
-      <pointLight position={[5, -5, 5]} intensity={0.3} color="#ffffff" />
+      <ambientLight intensity={0.5} />
+      <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
+      <pointLight position={[-10, -10, -10]} intensity={0.5} color="#4444ff" />
     </>
   )
 }
@@ -62,7 +59,7 @@ export function EnergyCubeScene({
     <div className={`w-full h-full ${className}`}>
       <Canvas
         camera={{
-          position: [0, 0, 5], // Front view for waves
+          position: [0, 0, 5],
           fov: 50,
           near: 0.1,
           far: 1000
@@ -70,22 +67,21 @@ export function EnergyCubeScene({
         gl={{
           antialias: true,
           alpha: true,
-          powerPreference: 'high-performance'
+          powerPreference: 'high-performance',
+          stencil: false,
+          depth: true
         }}
         dpr={[1, 2]}
         style={{ background: 'transparent' }}
       >
-        <ambientLight intensity={1.5} />
-        <pointLight position={[5, 5, 5]} intensity={2} color="#00ffff" />
-        <pointLight position={[-5, -5, -5]} intensity={1.5} color="#ff00ff" />
-
         <Suspense fallback={null}>
+          <Environment preset="city" blur={0.8} />
           <Lights />
 
           <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
-            <EnergyCube
-              colorName={colorName}
-              animationState={animationState}
+            <PlasmaWaveField
+              isEnabled={isVoiceEnabled}
+              aiState={aiState}
             />
           </Float>
 
