@@ -1,7 +1,7 @@
-import PortfolioPage from './portfolio/page';
+import { FullscreenApp } from '@/components/FullscreenApp';
 
 export const dynamic = 'force-dynamic';
 
 export default function Home() {
-  return <PortfolioPage />;
+  return <FullscreenApp showTopRightCTA={true} showParticleLanding={true} />;
 }
