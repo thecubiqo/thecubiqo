@@ -19,9 +19,9 @@ export default async function Home() {
     flag_name: 'ui.useParticleLandingAsHome'
   });
 
-  // If authenticated, always show the FullscreenApp (the "signed-in version")
+  // If authenticated, show the FullscreenApp
   if (user) {
-    return <FullscreenApp showTopRightCTA={showTopRightCTA} />
+    return <FullscreenApp showTopRightCTA={showTopRightCTA} showParticleLanding={true} />
   }
 
   // If feature flag is enabled for guests, render LandingPage (with ParticleLanding)
@@ -29,6 +29,6 @@ export default async function Home() {
     return <LandingPage showTopRightCTA={showTopRightCTA} />
   }
 
-  // Default behavior for guests: render FullscreenApp
-  return <FullscreenApp showTopRightCTA={showTopRightCTA} />
+  // Default behavior: render the unified FullscreenApp with landing enabled
+  return <FullscreenApp showTopRightCTA={true} showParticleLanding={true} />
 }

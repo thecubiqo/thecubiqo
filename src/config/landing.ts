@@ -6,7 +6,7 @@
  * without breaking existing functionality.
  */
 
-export type LandingCubeVariant = 'plasma-wave' | 'tech-wireframe' | 'silver-wireframe'
+export type LandingCubeVariant = 'plasma-wave' | 'tech-wireframe' | 'silver-wireframe' | 'particle'
 
 export interface LandingConfig {
   /**
@@ -18,13 +18,13 @@ export interface LandingConfig {
    * - 'silver-wireframe': Chrome/silver wireframe cube with cube→sphere morph animation
    */
   defaultVariant: LandingCubeVariant
-  
+
   /**
    * Allow URL parameter override for testing/preview
    * Example: ?landing=tech-wireframe
    */
   allowUrlOverride: boolean
-  
+
   /**
    * Enable landing cube animation on app launch
    */
@@ -67,6 +67,6 @@ export function getLandingVariant(searchParams?: URLSearchParams): LandingCubeVa
       return urlVariant
     }
   }
-  
+
   return landingConfig.defaultVariant
 }
