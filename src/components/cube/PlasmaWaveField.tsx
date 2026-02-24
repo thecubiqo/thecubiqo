@@ -8,6 +8,9 @@
  * - Active: Smooth morph transition to isometric rotating plasma cube
  * - AI state color palette support
  * - 120,000+ particles for HD effect
+ * - Wave-like propagation (ripples from one end to another)
+ * - 3D depth with parallax and size variation
+ * - Cursor/pointer interactivity for premium feel
  */
 
 import { useRef, useMemo, useEffect } from 'react'
@@ -74,6 +77,8 @@ export function PlasmaWaveField({
   const soulNodesRef = useRef<THREE.Points>(null)
   const morphProgress = useRef(0)
   const targetMorph = useRef(0)
+  // Track pointer position for interactive cursor response
+  const pointerRef = useRef({ x: 0, y: 0 })
   
   // Configuration
   const PARTICLE_COUNT = 120000
@@ -81,12 +86,26 @@ export function PlasmaWaveField({
   const WAVE_LAYERS = 4
   const CUBE_SIZE = 1.2
   
+  // Per-ribbon random phase offsets for organic wave stagger (stable across frames)
+  const ribbonPhases = useMemo(() => {
+    const phases: number[] = []
+    for (let layer = 0; layer < WAVE_LAYERS; layer++) {
+      const ribbonCount = 20 + layer * 5
+      for (let r = 0; r < ribbonCount; r++) {
+        phases.push(Math.random() * Math.PI * 2)
+      }
+    }
+    return phases
+  }, [])
+
   // Generate wave positions
-  const { wavePositions, cubePositions, colors, sizes } = useMemo(() => {
+  const { wavePositions, cubePositions, colors, sizes, layerData } = useMemo(() => {
     const wavePos = new Float32Array(PARTICLE_COUNT * 3)
     const cubePos = new Float32Array(PARTICLE_COUNT * 3)
     const cols = new Float32Array(PARTICLE_COUNT * 3)
     const szs = new Float32Array(PARTICLE_COUNT)
+    // Store per-particle metadata for animation: [layer, ribbonIndex, t]
+    const lData = new Float32Array(PARTICLE_COUNT * 3)
     
     const palette = COLOR_PALETTES[aiState] || COLOR_PALETTES.neutral
     
@@ -94,8 +113,7 @@ export function PlasmaWaveField({
     
     for (let layer = 0; layer < WAVE_LAYERS; layer++) {
       const layerOffset = layer * particlesPerLayer
-      const layerDepth = (layer - WAVE_LAYERS / 2) * 0.4
-      const layerDensity = layer === 1 ? 1.2 : (layer === 2 ? 1.1 : 1.0)
+      const layerDepth = (layer - WAVE_LAYERS / 2) * 0.5
       
       // Ribbon structure
       const ribbonCount = 20 + layer * 5
@@ -115,14 +133,18 @@ export function PlasmaWaveField({
           const x = (t - 0.5) * 6.0
           const waveFreq = 2.0 + ribbon * 0.1
           const y = ribbonY + Math.sin(t * Math.PI * waveFreq) * 0.3
-          const z = layerDepth + Math.sin(t * Math.PI * 3 + ribbon) * 0.2
+          const z = layerDepth + Math.sin(t * Math.PI * 3 + ribbon) * 0.3
           
           wavePos[i3] = x
           wavePos[i3 + 1] = y
           wavePos[i3 + 2] = z
           
+          // Store per-particle metadata for wave animation
+          lData[i3] = layer
+          lData[i3 + 1] = ribbon
+          lData[i3 + 2] = t
+          
           // Cube position - distribute on cube surface and interior
-          const cubeT = idx / PARTICLE_COUNT
           const face = Math.floor(Math.random() * 6)
           const u = (Math.random() - 0.5) * CUBE_SIZE
           const v = (Math.random() - 0.5) * CUBE_SIZE
@@ -160,8 +182,9 @@ export function PlasmaWaveField({
           cols[i3 + 1] = color.g
           cols[i3 + 2] = color.b
           
-          // Size varies by layer
-          szs[idx] = 0.015 + Math.random() * 0.01 + (layer === 1 ? 0.005 : 0)
+          // Size varies by layer and depth for 3D effect
+          const depthScale = 1.0 + (layer / WAVE_LAYERS) * 0.5
+          szs[idx] = (0.018 + Math.random() * 0.012) * depthScale
         }
       }
     }
@@ -170,7 +193,8 @@ export function PlasmaWaveField({
       wavePositions: wavePos,
       cubePositions: cubePos,
       colors: cols,
-      sizes: szs
+      sizes: szs,
+      layerData: lData
     }
   }, [aiState])
   
@@ -207,6 +231,10 @@ export function PlasmaWaveField({
   useFrame((state) => {
     const time = state.clock.elapsedTime
     
+    // Track pointer for cursor interactivity
+    pointerRef.current.x = state.pointer.x
+    pointerRef.current.y = state.pointer.y
+    
     // Smooth morph transition
     const morphSpeed = 0.03
     if (morphProgress.current < targetMorph.current) {
@@ -217,22 +245,67 @@ export function PlasmaWaveField({
     
     const morph = morphProgress.current
     
+    // Pointer position in world space (approx) for cursor interaction
+    const ptrX = pointerRef.current.x * 3.5
+    const ptrY = pointerRef.current.y * 2.0
+    
     // Update main particles
     if (pointsRef.current) {
       const positions = pointsRef.current.geometry.attributes.position.array as Float32Array
+      const szArr = pointsRef.current.geometry.attributes.size.array as Float32Array
+      
+      let ribbonOffset = 0
       
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         const i3 = i * 3
+        
+        // Per-particle metadata
+        const layer = layerData[i3]
+        const ribbon = layerData[i3 + 1]
+        const t = layerData[i3 + 2]
         
         // Wave animation
         const waveX = wavePositions[i3]
         const waveY = wavePositions[i3 + 1]
         const waveZ = wavePositions[i3 + 2]
         
-        // Animate wave position
-        const waveOffset = Math.sin(time * 0.5 + waveX * 0.5) * 0.1
-        const animatedWaveY = waveY + waveOffset
-        const animatedWaveZ = waveZ + Math.sin(time * 0.3 + waveY) * 0.05
+        // Compute ribbon phase offset for wave-like propagation
+        const ribbonCount = 20 + layer * 5
+        ribbonOffset = 0
+        for (let l = 0; l < layer; l++) ribbonOffset += (20 + l * 5)
+        const rPhase = ribbonPhases[ribbonOffset + ribbon] || 0
+        
+        // Wave propagation: travels left-to-right along the ribbon
+        // Each ribbon has its own phase offset for organic stagger
+        const layerSpeed = 0.6 + layer * 0.15
+        const propagation = Math.sin(time * layerSpeed - t * Math.PI * 2.5 + rPhase)
+        const propagation2 = Math.sin(time * 0.4 - t * Math.PI * 1.8 + rPhase * 0.7 + layer)
+        
+        // Y wave: strong propagating wave with per-ribbon stagger
+        const waveOffsetY = propagation * 0.25 + propagation2 * 0.12
+        // Z wave: secondary depth undulation for 3D feel
+        const waveOffsetZ = Math.sin(time * 0.5 - t * Math.PI * 2.0 + rPhase + layer * 0.8) * 0.15
+          + Math.sin(time * 0.3 + waveY * 1.5) * 0.08
+        // X wave: subtle horizontal sway
+        const waveOffsetX = Math.sin(time * 0.35 + ribbon * 0.3 + t * Math.PI) * 0.06
+        
+        const animatedWaveX = waveX + waveOffsetX
+        const animatedWaveY = waveY + waveOffsetY
+        const animatedWaveZ = waveZ + waveOffsetZ
+        
+        // Cursor interactivity: particles near pointer repel slightly
+        const dx = animatedWaveX - ptrX
+        const dy = animatedWaveY - ptrY
+        const distSq = dx * dx + dy * dy
+        const interactRadius = 1.5
+        let cursorPushX = 0, cursorPushY = 0, cursorPushZ = 0
+        if (distSq < interactRadius * interactRadius && distSq > 0.001) {
+          const dist = Math.sqrt(distSq)
+          const strength = (1.0 - dist / interactRadius) * 0.3
+          cursorPushX = (dx / dist) * strength
+          cursorPushY = (dy / dist) * strength
+          cursorPushZ = strength * 0.2
+        }
         
         // Cube position with rotation
         const cubeX = cubePositions[i3]
@@ -248,12 +321,20 @@ export function PlasmaWaveField({
         const pulse = isEnabled ? Math.sin(time * 2) * 0.05 : 0
         
         // Lerp between wave and cube
-        positions[i3] = THREE.MathUtils.lerp(waveX, rotatedX * (1 + pulse), morph)
-        positions[i3 + 1] = THREE.MathUtils.lerp(animatedWaveY, cubeY * (1 + pulse), morph)
-        positions[i3 + 2] = THREE.MathUtils.lerp(animatedWaveZ, rotatedZ * (1 + pulse), morph)
+        positions[i3] = THREE.MathUtils.lerp(animatedWaveX + cursorPushX, rotatedX * (1 + pulse), morph)
+        positions[i3 + 1] = THREE.MathUtils.lerp(animatedWaveY + cursorPushY, cubeY * (1 + pulse), morph)
+        positions[i3 + 2] = THREE.MathUtils.lerp(animatedWaveZ + cursorPushZ, rotatedZ * (1 + pulse), morph)
+        
+        // Dynamic size: pulse near cursor for 3D interactive feel
+        const baseSz = sizes[i]
+        const cursorGlow = distSq < interactRadius * interactRadius
+          ? 1.0 + (1.0 - Math.sqrt(distSq) / interactRadius) * 0.8
+          : 1.0
+        szArr[i] = baseSz * cursorGlow
       }
       
       pointsRef.current.geometry.attributes.position.needsUpdate = true
+      pointsRef.current.geometry.attributes.size.needsUpdate = true
     }
     
     // Update soul nodes
@@ -311,14 +392,14 @@ export function PlasmaWaveField({
           />
           <bufferAttribute
             attach="attributes-size"
-            args={[sizes, 1]}
+            args={[sizes.slice(), 1]}
           />
         </bufferGeometry>
         <pointsMaterial
-          size={0.02}
+          size={0.025}
           vertexColors
           transparent
-          opacity={0.85}
+          opacity={0.9}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
           sizeAttenuation
