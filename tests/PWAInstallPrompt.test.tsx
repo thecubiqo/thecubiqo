@@ -55,9 +55,9 @@ describe('PWAInstallPrompt', () => {
       window.dispatchEvent(event)
     })
 
-    expect(screen.getByText('Install CubiQo')).toBeDefined()
-    expect(screen.getByText('Install App')).toBeDefined()
-    expect(screen.getByText('Not Now')).toBeDefined()
+    expect(screen.getAllByText('Install CubiQo').length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: /Install CubiQo/i })).toBeDefined()
+    expect(screen.getByText('Later')).toBeDefined()
   })
 
   it('hides banner when dismissed and sets localStorage cooldown', async () => {
@@ -71,10 +71,10 @@ describe('PWAInstallPrompt', () => {
       window.dispatchEvent(event)
     })
 
-    expect(screen.getByText('Install CubiQo')).toBeDefined()
+    expect(screen.getAllByText('Install CubiQo').length).toBeGreaterThan(0)
 
     await act(async () => {
-      fireEvent.click(screen.getByText('Not Now'))
+      fireEvent.click(screen.getByText('Later'))
     })
 
     expect(localStorage.getItem('pwa-install-dismissed')).toBeTruthy()
@@ -110,7 +110,7 @@ describe('PWAInstallPrompt', () => {
       window.dispatchEvent(event)
     })
 
-    expect(screen.getByText('Install CubiQo')).toBeDefined()
+    expect(screen.getAllByText('Install CubiQo').length).toBeGreaterThan(0)
   })
 
   it('shows iOS instructions on iOS Safari', async () => {

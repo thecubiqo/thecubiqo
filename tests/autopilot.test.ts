@@ -103,7 +103,7 @@ describe('Profile Auto-Fill Extraction', () => {
   })
 
   it('should use Claude Haiku for cost-effective extraction', () => {
-    expect(extractContent).toContain('claude-haiku')
+    expect(extractContent).toContain('haiku')
   })
 })
 

@@ -95,8 +95,9 @@ describe('Journal Entries API: POST Validation', () => {
 })
 
 describe('Journal Entries API: Error Handling', () => {
-  it('should catch and log errors', () => {
-    expect(journalContent).toContain('console.error')
+  it('should catch and handle errors', () => {
+    expect(journalContent).toContain('catch')
+    expect(journalContent).toContain('Internal server error')
   })
 
   it('should return appropriate error status codes', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { FOUNDER_ACCESS, USER_ACCESS, isFounder, hasFeature, FEATURE_METADATA } from '@/lib/auth/feature-gate-simple'
-import { PRIMARY_PROVIDER, FALLBACK_PROVIDERS, MINIMAX_CONFIG, MIXTRAL_CONFIG, LLAMA_CONFIG, CLAUDE_CONFIG } from '@/lib/ai/providers'
+import { PRIMARY_PROVIDER, FALLBACK_PROVIDERS, MINIMAX_CONFIG, OPENAI_CONFIG, MIXTRAL_CONFIG, LLAMA_CONFIG, CLAUDE_CONFIG } from '@/lib/ai/providers'
 
 describe('Data Integrity Regression Tests', () => {
   describe('Feature flag defaults never change', () => {
@@ -103,16 +103,17 @@ describe('Data Integrity Regression Tests', () => {
       expect(PRIMARY_PROVIDER.apiKeyEnv.length).toBeGreaterThan(0)
     })
 
-    it('should verify FALLBACK_PROVIDERS has exactly 3 entries', () => {
+    it('should verify FALLBACK_PROVIDERS has exactly 4 entries', () => {
       expect(FALLBACK_PROVIDERS).toBeDefined()
       expect(Array.isArray(FALLBACK_PROVIDERS)).toBe(true)
-      expect(FALLBACK_PROVIDERS.length).toBe(3)
+      expect(FALLBACK_PROVIDERS.length).toBe(4)
     })
 
-    it('should verify fallback order is mixtral → llama → claude', () => {
-      expect(FALLBACK_PROVIDERS[0]).toBe(MIXTRAL_CONFIG)
-      expect(FALLBACK_PROVIDERS[1]).toBe(LLAMA_CONFIG)
-      expect(FALLBACK_PROVIDERS[2]).toBe(CLAUDE_CONFIG)
+    it('should verify fallback order is openai → mixtral → llama → claude', () => {
+      expect(FALLBACK_PROVIDERS[0]).toBe(OPENAI_CONFIG)
+      expect(FALLBACK_PROVIDERS[1]).toBe(MIXTRAL_CONFIG)
+      expect(FALLBACK_PROVIDERS[2]).toBe(LLAMA_CONFIG)
+      expect(FALLBACK_PROVIDERS[3]).toBe(CLAUDE_CONFIG)
     })
 
     it('should verify all fallback providers are properly configured', () => {

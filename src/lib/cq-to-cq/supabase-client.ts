@@ -308,3 +308,47 @@ export async function updateCallStatus(
     .eq('id', callId);
   if (error) throw error;
 }
+
+// ==================== CONVERSATION UTILITIES ====================
+
+export async function markConversationAsRead(
+  conversationId: string,
+  userId: string
+): Promise<void> {
+  if (!supabase) {
+    console.warn('Supabase not configured - markConversationAsRead skipped');
+    return;
+  }
+  const { error } = await supabase
+    .from('cq_messages')
+    .update({ read: true })
+    .eq('conversation_id', conversationId)
+    .neq('sender_id', userId)
+    .eq('read', false);
+  if (error) throw error;
+}
+
+export async function getMessages(
+  conversationId: string,
+  limit = 50,
+  before?: string
+): Promise<CQMessage[]> {
+  if (!supabase) {
+    console.warn('Supabase not configured - getMessages skipped');
+    return [];
+  }
+  let query = supabase
+    .from('cq_messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (before) {
+    query = query.lt('created_at', before);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data || []) as unknown as CQMessage[];
+}

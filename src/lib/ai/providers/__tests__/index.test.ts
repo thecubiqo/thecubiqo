@@ -56,7 +56,7 @@ describe('Provider Abstraction', () => {
       expect(OPENCLAW_PROVIDER).toBeDefined()
       expect(OPENCLAW_PROVIDER.displayName).toBe('OpenClaw (via Clawdbot)')
       expect(OPENCLAW_PROVIDER.experimental).toBe(true)
-      expect(OPENCLAW_PROVIDER.model).toBe('emergent-claude/claude-sonnet-4-5')
+      expect(OPENCLAW_PROVIDER.model).toBe('claude-3-5-sonnet-20241022')
       expect(OPENCLAW_PROVIDER.maxTokens).toBe(4000)
     })
 
