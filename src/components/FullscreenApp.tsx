@@ -423,9 +423,27 @@ export function FullscreenApp({
 
   return (
     <div
-      className="fixed inset-0 overflow-hidden transition-colors duration-400"
-      style={{ background: bgColor, color: textColor }}
+      className="fixed inset-0 overflow-hidden transition-colors duration-1000"
+      style={{
+        background: showLandingCube ? 'transparent' : bgColor,
+        color: textColor
+      }}
     >
+      {/* Immersive Landing Background - Full Screen */}
+      {showLandingCube && (
+        <div className="fixed inset-0 z-[-2]">
+          <LandingCubeRouter
+            onComplete={handleLandingComplete}
+            showTopRightCTA={showTopRightCTA}
+            variant={showParticleLanding ? 'particle' : undefined}
+          />
+        </div>
+      )}
+
+      {/* Background layer for main app */}
+      {!showLandingCube && (
+        <div className="fixed inset-0 z-[-1]" style={{ background: bgColor }} />
+      )}
       {/* Admin Controls */}
       <AdminControls />
 
@@ -442,7 +460,7 @@ export function FullscreenApp({
 
       {/* Floating Questions - Slow Scroll */}
       {showFloatingQuestions && (
-        <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[400px] h-[300px] overflow-hidden">
+        <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[60] w-[400px] h-[300px] overflow-hidden">
           <button
             onClick={() => setShowFloatingQuestions(false)}
             className="absolute top-0 right-0 z-10 p-1.5 rounded-full text-white/30 hover:text-white/60 hover:bg-white/10 transition-all duration-200"
@@ -490,18 +508,20 @@ export function FullscreenApp({
 
       {/* Header */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4 backdrop-blur-[16px] transition-colors duration-400 ${isDark
-          ? 'bg-[rgba(10,10,15,0.75)] border-b border-white/[0.06]'
-          : 'bg-[rgba(250,250,250,0.85)] border-b border-black/[0.06]'
+        className={`fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4 transition-all duration-400 ${showLandingCube
+          ? 'bg-transparent border-none'
+          : (isDark
+            ? 'bg-[rgba(10,10,15,0.75)] border-b border-white/[0.06] backdrop-blur-[16px]'
+            : 'bg-[rgba(250,250,250,0.85)] border-b border-black/[0.06] backdrop-blur-[16px]')
           }`}
       >
-        <div className="flex justify-between items-center w-full">
-          {/* Left - CubiQo Logo Icon Only */}
-          <div className="flex items-center">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-orange-600/10 rounded-2xl border border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.15)] group transition-all duration-500 hover:scale-105">
+        <div className="flex justify-between items-center w-full relative">
+          {/* Left side - Branded Logo */}
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-orange-600/10 rounded-full border border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.15)] group transition-all duration-500 hover:scale-105">
               <svg
                 viewBox="0 0 24 24"
-                className="w-8 h-8 sm:w-10 sm:h-10 text-orange-500 drop-shadow-[0_0_10px_rgba(249,115,22,0.5)] transition-transform duration-700 group-hover:rotate-12"
+                className="w-7 h-7 sm:w-10 sm:h-10 text-orange-500 drop-shadow-[0_0_10px_rgba(249,115,22,0.5)]"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
@@ -516,41 +536,38 @@ export function FullscreenApp({
             </div>
           </div>
 
-          {/* Center - CubiQo Text */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-start">
-            <span className={`text-2xl sm:text-3xl font-semibold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'
-              }`}>
-              CubiQo
-            </span>
-            <span className={`text-[10px] sm:text-[12px] font-medium ml-0.5 -mt-0.5 ${isDark ? 'text-white/60' : 'text-gray-500'
-              }`}>
-              TM
-            </span>
-          </div>
-
-          {/* Right side - SIGNAL Logo - Clickable */}
-          <button
-            onClick={handleSignalClick}
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-          >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shadow-lg group-hover:border-white/20 transition-all">
-              <svg
-                viewBox="0 0 24 24"
-                className="w-6 h-6 sm:w-7 sm:h-7 text-white"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+          {/* Right side - Contextual Branding */}
+          <div className="flex items-center gap-6">
+            {!showLandingCube ? (
+              <button
+                onClick={handleSignalClick}
+                className="group flex flex-col items-end cursor-pointer no-underline"
               >
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" fill="currentColor" fillOpacity="0.8" />
-              </svg>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl sm:text-2xl font-semibold tracking-[0.08em] text-white leading-tight">SIGNAL</span>
-              <span className="text-[10px] sm:text-[11px] text-white/60 tracking-wide">One is enough.</span>
-            </div>
-          </button>
+                <div className="text-2xl sm:text-3xl font-black tracking-[-0.05em] flex select-none">
+                  <span className="text-[#E84343]">S</span>
+                  <span className="text-[#2D994E] ml-[1px]">I</span>
+                  <span className="text-[#F2C94C] ml-[1px]">G</span>
+                  <span className="text-white ml-[1px]">NAL</span>
+                </div>
+                <span className={`text-[10px] uppercase tracking-[0.2em] opacity-40 group-hover:opacity-70 transition-opacity ${isDark ? 'text-white' : 'text-black'}`}>
+                  One is enough
+                </span>
+              </button>
+            ) : (
+              <div className="flex items-start">
+                <span className={`text-2xl sm:text-3xl font-semibold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  CubiQo
+                </span>
+                <span className={`text-[10px] sm:text-[12px] font-medium ml-0.5 -mt-0.5 ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
+                  TM
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </header>
+
+
 
       {/* Bottom Left Stack: Settings above Sign In */}
       <div className="fixed left-6 bottom-6 z-[55] flex flex-col gap-3">
@@ -622,15 +639,17 @@ export function FullscreenApp({
             : 'text-gray-500 hover:text-gray-700'
             }`}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
-          </svg>
-          <span className="text-[11px] font-medium">Keywords</span>
+          <div className={`w-10 h-10 flex items-center justify-center rounded-xl ${isDark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'} border transition-all hover:scale-110`}>
+            <svg className="w-5 h-5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+            </svg>
+          </div>
+          <span className="text-[10px] font-medium tracking-widest uppercase opacity-40 group-hover:opacity-100">Keywords</span>
         </button>
       </div>
 
       {/* Voice Enable Control - As low as possible on screen */}
-      <div className="fixed bottom-[40px] left-1/2 -translate-x-1/2 z-[55] flex flex-col items-center">
+      <div className="fixed bottom-[40px] left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center">
         <button
           onClick={handleVoiceClick}
           disabled={!voiceSupported}
@@ -1174,16 +1193,8 @@ export function FullscreenApp({
       {/* Landing Cube - Shown once per day or after 4+ hours 
           Two designs available:
           1. LandingCube (current) - Plasma wave field
-          2. TechLandingCube - Wireframe energy cube
-          See LANDING_UI_GUIDE.md for switching instructions
-      */}
-      {showLandingCube && (
-        <div className="fixed inset-0 z-[100]">
-          <LandingCubeRouter
-            onComplete={handleLandingComplete}
-          />
-        </div>
-      )}
+      {/* Landing UI logic moved to background and overlay components */}
+
 
       {/* Journey Memory Prompt - Shown when feature enabled and user not opted in */}
       <JourneyMemoryPrompt position="bottom-left" />
@@ -1192,7 +1203,12 @@ export function FullscreenApp({
       <SidePanel isOpen={showCQPanel} onClose={() => setShowCQPanel(false)} />
 
       {/* Top Right CTA - Biometric Auth / Register */}
-      {showTopRightCTA && <TopRightCTA />}
+      {showTopRightCTA && (
+        <div className="absolute top-24 right-8 z-[60] pointer-events-auto">
+          <TopRightCTA />
+        </div>
+      )}
+
     </div >
   )
 }

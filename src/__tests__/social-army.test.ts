@@ -44,34 +44,57 @@ describe('GFXToolz', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const GFXToolz = require('../../social-army/src/gfxtoolz');
 
-  it('constructs with an API key', () => {
-    const gfx = new GFXToolz('test-key');
-    expect(gfx.apiKey).toBe('test-key');
+  it('constructs with user and pass', () => {
+    const gfx = new GFXToolz('test-user', 'test-pass');
+    expect(gfx.user).toBe('test-user');
+    expect(gfx.pass).toBe('test-pass');
+    // legacy accessor
+    expect(gfx.apiKey).toBe('test-user');
   });
 
-  it('login() sets authenticated flag', async () => {
-    const gfx = new GFXToolz('test-key');
-    await gfx.login();
-    expect(gfx.authenticated).toBe(true);
-  });
-
-  it('login() without key runs in dry-run mode', async () => {
-    const gfx = new GFXToolz(undefined);
-    await gfx.login();
+  it('login() without credentials returns false (dry-run)', async () => {
+    const gfx = new GFXToolz(undefined, undefined);
+    const result = await gfx.login();
+    expect(result).toBe(false);
     expect(gfx.authenticated).toBe(false);
   });
 
-  it('processVideo() returns a download URL string', async () => {
-    const gfx = new GFXToolz('test-key');
-    const url = await gfx.processVideo('/tmp/test.mp4', 'builder');
-    expect(typeof url).toBe('string');
-    expect(url).toContain('gfxtoolz.ai');
+  it('login() with invalid credentials returns false gracefully', async () => {
+    const gfx = new GFXToolz('bad-user', 'bad-pass');
+    // Will fail to connect to the API but should not throw
+    const result = await gfx.login();
+    expect(result).toBe(false);
+    expect(gfx.authenticated).toBe(false);
   });
 
   it('createProject() returns an object with id', async () => {
-    const gfx = new GFXToolz('key');
+    const gfx = new GFXToolz('key', 'pass');
     const result = await gfx.createProject('test');
     expect(result).toHaveProperty('id');
     expect(result.id).toMatch(/^proj_/);
+  });
+
+  it('processVideo() returns null in dry-run (unauthenticated)', async () => {
+    const gfx = new GFXToolz(undefined, undefined);
+    const url = await gfx.processVideo('/tmp/test.mp4', 'builder');
+    expect(url).toBeNull();
+  });
+
+  it('generateCaption() returns null in dry-run', async () => {
+    const gfx = new GFXToolz(undefined, undefined);
+    const result = await gfx.generateCaption('AI Topic', 'twitter');
+    expect(result).toBeNull();
+  });
+
+  it('generateImage() returns null in dry-run', async () => {
+    const gfx = new GFXToolz(undefined, undefined);
+    const result = await gfx.generateImage('A futuristic AI');
+    expect(result).toBeNull();
+  });
+
+  it('generateVideo() returns null in dry-run', async () => {
+    const gfx = new GFXToolz(undefined, undefined);
+    const result = await gfx.generateVideo('AI assistant demo');
+    expect(result).toBeNull();
   });
 });

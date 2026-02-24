@@ -189,7 +189,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className="antialiased"
+        className="font-sans antialiased"
       >
         <ClientProviders>
           {children}

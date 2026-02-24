@@ -165,6 +165,7 @@ async function generateWithGFXToolz(
 
     // 1. Generate caption using GFXToolz content writer
     const caption = await gfx.generateCaption(request.campaignTopic, request.platform);
+    if (!caption) return null; // API failed — let caller fall back
 
     // 2. Generate visual assets based on content type
     let imageUrl: string | undefined;
@@ -173,13 +174,10 @@ async function generateWithGFXToolz(
     if (request.contentType === 'image') {
         const imagePrompt = buildImagePrompt(request);
         const imagePath = await gfx.generateImage(imagePrompt);
-        if (imagePath) imageUrl = imagePath; // Local file path
+        if (imagePath) imageUrl = imagePath;
     }
 
     if (request.contentType === 'video') {
-        // Two paths for video:
-        // A) AI-generated video from prompt
-        // B) Screen-recorded CubiQo interaction + post-processing (commander pipeline)
         const videoPrompt = `${request.campaignTopic} - ${brandContext.brand.name} AI assistant demo, premium dark UI, futuristic`;
         const videoPath = await gfx.generateVideo(videoPrompt);
         if (videoPath) videoUrl = videoPath;

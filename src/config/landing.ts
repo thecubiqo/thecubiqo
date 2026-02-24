@@ -6,24 +6,25 @@
  * without breaking existing functionality.
  */
 
-export type LandingCubeVariant = 'plasma-wave' | 'tech-wireframe'
+export type LandingCubeVariant = 'plasma-wave' | 'tech-wireframe' | 'silver-wireframe' | 'particle'
 
 export interface LandingConfig {
   /**
    * The default landing cube variant to use.
-   * 
+   *
    * Options:
    * - 'plasma-wave': Beautiful flowing plasma waves with gradient colors (default)
    * - 'tech-wireframe': High-tech wireframe energy cube with voice-reactive animations
+   * - 'silver-wireframe': Chrome/silver wireframe cube with cube→sphere morph animation
    */
   defaultVariant: LandingCubeVariant
-  
+
   /**
    * Allow URL parameter override for testing/preview
    * Example: ?landing=tech-wireframe
    */
   allowUrlOverride: boolean
-  
+
   /**
    * Enable landing cube animation on app launch
    */
@@ -45,7 +46,7 @@ export const landingConfig: LandingConfig = {
   defaultVariant: (() => {
     const envVariant = process.env.NEXT_PUBLIC_LANDING_DEFAULT
     // Validate environment variable value
-    if (envVariant === 'plasma-wave' || envVariant === 'tech-wireframe') {
+    if (envVariant === 'plasma-wave' || envVariant === 'tech-wireframe' || envVariant === 'silver-wireframe') {
       return envVariant
     }
     // Default to plasma-wave if not set or invalid
@@ -62,10 +63,10 @@ export function getLandingVariant(searchParams?: URLSearchParams): LandingCubeVa
   // Check URL override if enabled
   if (landingConfig.allowUrlOverride && searchParams) {
     const urlVariant = searchParams.get('landing')
-    if (urlVariant === 'plasma-wave' || urlVariant === 'tech-wireframe') {
+    if (urlVariant === 'plasma-wave' || urlVariant === 'tech-wireframe' || urlVariant === 'silver-wireframe') {
       return urlVariant
     }
   }
-  
+
   return landingConfig.defaultVariant
 }

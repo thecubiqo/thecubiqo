@@ -1,0 +1,20 @@
+21ec755 fix: update CSP to allow external R3F assets and AI APIs
+aa96a17 chore: final P1 production hardening - visual polish, GDPR compliance, and build verification
+c381dc2 docs: update unified master plan and final P0 hardening
+fd6663e fix: resolve build-blocking duplicate property in useChat and update merge log
+171fd36 add: debug endpoint for env vars
+6eb326c trigger: Vercel redeployment for new Supabase keys
+0fdd4f2 Merge branch 'main' of https://github.com/thecubiqo/thecubiqo
+2df303d trigger: vercel redeployment for environment variables refresh
+4e0841a fix: resolve merge conflicts and make Supabase clients resilient
+702caeb fix: make Supabase clients resilient to missing environment variables
+0ce7922 fix: AI reliability enhancements
+ef74edf fix: critical middleware and AI reliability fixes
+eae1d4e fix: exhaustive AI reliability cleanup - fixed non-existent models and migrated all providers to sanitized ENV config
+bb73228 fix: exhaustive cleanup of non-existent models and migration to sanitized ENV config
+c8cb6cc fix: resolve All AI providers failed error by fixing typos and non-existent model names
+8449ece merge: resolved conflicts by prioritizing staging0217's robust environment sanitized fixes
+4c4fc68 fix: robust environment variable sanitization and AI/Auth reliability
+a226b28 fix: resolve Anthropic bindings and infinite init hang on staging0217
+2a17d3b fix: resolve infinite initialization hang for sessions, fix api fallback keys for supabase in vercel
+5eb4c2e fix: resolve Anthropic OPENROUTER_KEY bindings for vercel env

@@ -1,9 +1,11 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { ParticleLanding } from '@/components/landing/ParticleLanding'
+import { PlasmaWaveField } from '@/components/cube/PlasmaWaveField'
 import { LandingOverlay } from '@/components/landing/LandingOverlay'
 import { Suspense, useState, useEffect } from 'react'
+import { Environment, Float } from '@react-three/drei'
+import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing'
 
 interface LandingPageProps {
     showTopRightCTA: boolean
@@ -16,10 +18,10 @@ export function LandingPage({ showTopRightCTA, onComplete }: LandingPageProps) {
     const handleEnter = () => {
         if (isImploding) return
         setIsImploding(true)
-        // Play "enter" sound if possible or just wait for transition
+        // Duration of transition fade
         setTimeout(() => {
             onComplete?.()
-        }, 1200) // Duration of warp effect
+        }, 1000)
     }
 
     // Handle Keyboard "Enter"
@@ -36,19 +38,39 @@ export function LandingPage({ showTopRightCTA, onComplete }: LandingPageProps) {
             className={`relative w-full h-screen bg-black overflow-hidden cursor-pointer transition-opacity duration-1000 ${isImploding ? 'opacity-0' : 'opacity-100'}`}
             onClick={handleEnter}
         >
-            {/* 3D Scene */}
+            {/* 3D Scene - Purple Pipes (Plasma Wave Field) */}
             <div className="absolute inset-0 z-0">
                 <Canvas
-                    camera={{ position: [0, 0, 10], fov: 75 }}
-                    dpr={[1, 2]} // High Def scaling
+                    camera={{ position: [0, 0, 5], fov: 50 }}
+                    dpr={[1, 2]}
                     gl={{
                         powerPreference: "high-performance",
-                        antialias: false, // ToneMapping handles this usually with postprocessing
-                        alpha: false
+                        antialias: true,
+                        alpha: true,
+                        stencil: false,
+                        depth: true
                     }}
                 >
                     <Suspense fallback={null}>
-                        <ParticleLanding isImploding={isImploding} />
+                        <Environment preset="city" blur={0.8} />
+                        <ambientLight intensity={0.5} />
+                        <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
+                        <pointLight position={[-10, -10, -10]} intensity={0.5} color="#4444ff" />
+
+                        <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
+                            <PlasmaWaveField isEnabled={false} aiState="neutral" />
+                        </Float>
+
+                        <EffectComposer>
+                            <Bloom
+                                intensity={1.2}
+                                luminanceThreshold={0.1}
+                                luminanceSmoothing={0.9}
+                                mipmapBlur
+                            />
+                            <Noise opacity={0.02} />
+                            <Vignette eskil={false} offset={0.1} darkness={1.1} />
+                        </EffectComposer>
                     </Suspense>
                 </Canvas>
             </div>
@@ -60,3 +82,4 @@ export function LandingPage({ showTopRightCTA, onComplete }: LandingPageProps) {
         </div>
     )
 }
+

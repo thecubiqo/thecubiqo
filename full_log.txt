@@ -1,0 +1,50 @@
+e9b33ab fix: resolve CSS build error by moving @imports to top of globals.css
+168e43c feat: set new Vollebak portfolio as the landing page Experience
+b627292 build: trigger fresh vercel deployment
+3a2ef1c feat: implement Vollebak-level visual architecture and portfolio page
+403ce1a Merge staging0217 to main: AI fixes, auth redirect, build fixes, middleware cleanup
+21ec755 fix: update CSP to allow external R3F assets and AI APIs
+aa96a17 chore: final P1 production hardening - visual polish, GDPR compliance, and build verification
+c381dc2 docs: update unified master plan and final P0 hardening
+fd6663e fix: resolve build-blocking duplicate property in useChat and update merge log
+b167499 fix: correct MiniMax model to 'MiniMax-M2' based on tests/docs
+96c37b9 fix: redirect to /chat after auth instead of home
+8fa647d feat: add mock response when all AI providers fail
+08dcb9e fix: switch primary to OpenAI GPT-3.5-turbo, remove MiniMax
+d6c3e87 fix: update MiniMax model to abab6-chat
+f90eab7 fix: update MiniMax model name and API key env var
+dd7276e fix: remove middleware.ts to resolve Next.js build error (use proxy.ts only)
+10d6960 Merge build error fixes (resolve conflicts)
+83025f4 Merge proxy fix (keep fixed version)
+bb24c99 Merge button signal fixes
+b7bb27a Merge chat fixes
+8124d11 Merge audio/video fixes
+171fd36 add: debug endpoint for env vars
+08e24aa chore: restore lock files to match main (remove platform-specific noise)
+6eb326c trigger: Vercel redeployment for new Supabase keys
+0fdd4f2 Merge branch 'main' of https://github.com/thecubiqo/thecubiqo
+bd2badc fix: address code review feedback - improve mock then() handler, clean up font imports, remove non-null assertion
+d52b9b2 fix: resolve Supabase client null safety, complete mock chains, fix font loading, and add missing CQ-to-CQ exports
+e690660 fix: add RGYRoomView component and wire up showRoomChat render block in FullscreenApp
+9445182 fix: enable camera access and data URI media for audio/video functionality
+0041c21 Initial plan for fixing audio/video broken on cubiqo.ai
+298e9c5 chore: initial plan - add RGYRoomView to complete SIGNAL button flow
+7ecc9e1 Initial plan for fixing audio, chat, and related production issues
+57e4b90 Initial plan
+3269b85 Initial plan
+2636256 Initial plan
+2df303d trigger: vercel redeployment for environment variables refresh
+4e0841a fix: resolve merge conflicts and make Supabase clients resilient
+702caeb fix: make Supabase clients resilient to missing environment variables
+0ce7922 fix: AI reliability enhancements
+ef74edf fix: critical middleware and AI reliability fixes
+eae1d4e fix: exhaustive AI reliability cleanup - fixed non-existent models and migrated all providers to sanitized ENV config
+bb73228 fix: exhaustive cleanup of non-existent models and migration to sanitized ENV config
+c8cb6cc fix: resolve All AI providers failed error by fixing typos and non-existent model names
+8449ece merge: resolved conflicts by prioritizing staging0217's robust environment sanitized fixes
+4c4fc68 fix: robust environment variable sanitization and AI/Auth reliability
+a226b28 fix: resolve Anthropic bindings and infinite init hang on staging0217
+2a17d3b fix: resolve infinite initialization hang for sessions, fix api fallback keys for supabase in vercel
+5eb4c2e fix: resolve Anthropic OPENROUTER_KEY bindings for vercel env
+ebb4949 fix: update proxy.ts to use inline default export for Next.js 16 Turbopack compatibility
+3303f86 Initial plan: fix proxy.ts export format for Next.js 16 Turbopack compatibility
