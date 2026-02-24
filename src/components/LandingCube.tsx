@@ -7,12 +7,26 @@
  * User taps anywhere to enter the main app.
  */
 
+import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
+import { Environment, Float } from '@react-three/drei'
+import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing'
 import { PlasmaWaveField } from './cube/PlasmaWaveField'
 
 interface LandingCubeProps {
   onComplete: () => void
   detectedColor?: 'RED' | 'YELLOW' | 'TEAL' | 'ORANGE'
+}
+
+function Lights() {
+  return (
+    <>
+      <ambientLight intensity={0.5} />
+      <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
+      <pointLight position={[-10, -10, -10]} intensity={0.5} color="#4444ff" />
+      <pointLight position={[5, 5, 5]} intensity={0.3} color="#00ffff" />
+    </>
+  )
 }
 
 export function LandingCube({ onComplete }: LandingCubeProps) {
@@ -30,14 +44,34 @@ export function LandingCube({ onComplete }: LandingCubeProps) {
       <div className="w-full h-[70vh] max-w-5xl relative z-10">
         <Canvas
           camera={{ position: [0, 0, 5], fov: 50 }}
-          gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+          gl={{
+            antialias: true,
+            alpha: true,
+            powerPreference: 'high-performance',
+            stencil: false,
+            depth: true
+          }}
           dpr={[1, 2]}
         >
-          <ambientLight intensity={0.2} />
-          <pointLight position={[5, 5, 5]} intensity={0.3} color="#00ffff" />
-          <pointLight position={[-5, -5, -5]} intensity={0.2} color="#ff00ff" />
+          <Suspense fallback={null}>
+            <Environment preset="city" blur={0.8} />
+            <Lights />
 
-          <PlasmaWaveField isEnabled={false} aiState="neutral" />
+            <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
+              <PlasmaWaveField isEnabled={false} aiState="neutral" />
+            </Float>
+
+            <EffectComposer>
+              <Bloom
+                intensity={1.2}
+                luminanceThreshold={0.1}
+                luminanceSmoothing={0.9}
+                mipmapBlur
+              />
+              <Noise opacity={0.02} />
+              <Vignette eskil={false} offset={0.1} darkness={1.1} />
+            </EffectComposer>
+          </Suspense>
         </Canvas>
       </div>
 
