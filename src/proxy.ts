@@ -123,7 +123,7 @@ export default async function proxy(request: NextRequest) {
 
     if (!isFounder && path !== '/founderspass') {
       url.pathname = '/'
-      return NextResponse.redirect(url)
+      return applySecurityHeaders(NextResponse.redirect(url))
     }
   }
 
@@ -141,7 +141,7 @@ export default async function proxy(request: NextRequest) {
         url.pathname = regionalPath
         const redirectResponse = NextResponse.redirect(url, { status: 307 })
         redirectResponse.headers.set('x-user-country', country)
-        return redirectResponse
+        return applySecurityHeaders(redirectResponse)
       }
     }
   }
