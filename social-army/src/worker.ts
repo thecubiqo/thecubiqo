@@ -115,7 +115,6 @@ async function postReadyContent() {
         console.log(`   @${username}: "${(item.caption || '').substring(0, 60)}..."`);
 
         let posted = false;
-        let postUrl: string | null = null;
 
         // Attempt real posting if we have credentials
         if (account?.password_encrypted) {
@@ -135,10 +134,8 @@ async function postReadyContent() {
         }
 
         if (posted) {
-            postUrl = `https://${platform}.com/${username}/status/${Date.now()}`;
-            console.log(`   ✅ Posted! ${postUrl}`);
+            console.log(`   ✅ Posted successfully to ${platform}!`);
         } else {
-            postUrl = null;
             console.log(`   ⚠️ Post not delivered (no credentials or platform unsupported). Content saved.`);
         }
 
@@ -147,7 +144,7 @@ async function postReadyContent() {
             .update({
                 generation_status: 'posted',
                 posted_at: new Date().toISOString(),
-                asset_url: item.asset_url || postUrl || undefined
+                asset_url: item.asset_url || undefined
             } as any)
             .eq('id', item.id);
     }

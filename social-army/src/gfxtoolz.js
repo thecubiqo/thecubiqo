@@ -162,7 +162,7 @@ class GFXToolz {
      * @returns {Promise<string|null>} URL or local path to the image, or null
      */
     async generateImage(prompt) {
-        console.log(`[GFXToolz] Generating image: "${prompt.substring(0, 60)}..."`);
+        console.log(`[GFXToolz] Generating image: "${(prompt || '').substring(0, 60)}..."`);
         if (!this.authenticated) return null;
 
         try {
@@ -181,7 +181,7 @@ class GFXToolz {
      * @returns {Promise<string|null>} URL or local path to the video, or null
      */
     async generateVideo(prompt) {
-        console.log(`[GFXToolz] Generating video: "${prompt.substring(0, 60)}..."`);
+        console.log(`[GFXToolz] Generating video: "${(prompt || '').substring(0, 60)}..."`);
         if (!this.authenticated) return null;
 
         try {
