@@ -139,12 +139,11 @@ async function postToLinkedIn(page: Page, content: PostContent): Promise<boolean
 }
 
 async function postToInstagram(page: Page, content: PostContent): Promise<boolean> {
-    console.log('[Poster] 📸 Instagram automation starting (Skeleton)...');
-    // Implement mobile-emulation based posting
-    return true;
+    console.log('[Poster] 📸 Instagram automation not yet implemented — skipping.');
+    return false;
 }
 
 async function postToTikTok(page: Page, content: PostContent): Promise<boolean> {
-    console.log('[Poster] 🎵 TikTok automation starting (Skeleton)...');
-    return true;
+    console.log('[Poster] 🎵 TikTok automation not yet implemented — skipping.');
+    return false;
 }

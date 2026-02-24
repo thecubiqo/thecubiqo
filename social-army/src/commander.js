@@ -7,13 +7,33 @@
  * 2. Picks one account every 10 mins (Rotates through platforms).
  * 3. Triggers Content Engine (GFXToolz/Interactor).
  * 4. Posts using specific account proxy.
+ * 
+ * NOTE: Run with `npx tsx src/commander.js` (tsx handles TS imports).
  */
 
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-const { generateContent } = require('./content-engine');
-const { postToSocial } = require('./poster');
+
+// Dynamic import helpers — content-engine & poster are TypeScript modules,
+// so we need tsx at runtime.  When executed via `npx tsx` this works
+// natively; if executed via plain `node` the require will fail gracefully.
+let generateContent;
+let postToSocial;
+
+try {
+  ({ generateContent } = require('./content-engine'));
+} catch (_e) {
+  console.error('❌ Cannot load content-engine.ts — run with `npx tsx src/commander.js`');
+  process.exit(1);
+}
+
+try {
+  ({ postToSocial } = require('./poster'));
+} catch (_e) {
+  console.warn('⚠️ Cannot load poster.ts — posting will be skipped');
+  postToSocial = async () => false;
+}
 
 const CONFIG_PATH = path.join(__dirname, '../config/platforms.json');
 
@@ -40,16 +60,16 @@ async function runCycle(accountIndex) {
     // 1. Generate Content
     const content = await generateContent({
       campaignTopic: "Launch of CubiQo AI - The future of personal intelligence",
-      personaType: target.persona,
+      personaType: target.type,
       platform: target.platform,
-      contentType: Math.random() > 0.5 ? 'image' : 'video'
+      contentType: Math.random() > 0.5 ? 'image' : 'text'
     });
 
     // 2. Post to Social (Real automated login)
     const success = await postToSocial({
       platform: target.platform,
-      username: target.username,
-      password: target.password, // Hidden in logs
+      username: target.username || target.handle,
+      password: target.password,
       caption: content.caption,
       assetUrl: content.imageUrl || content.videoUrl
     });
