@@ -7,6 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { generateContent } from './content-engine';
+import { postToSocial } from './poster';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -99,30 +100,53 @@ async function processQueue() {
 async function postReadyContent() {
     const { data: readyItems } = await supabase
         .from('content_queue')
-        .select('*, social_accounts(username, platform)')
+        .select('*, social_accounts(username, platform, password_encrypted)')
         .eq('generation_status', 'ready')
         .limit(3);
 
     if (!readyItems || readyItems.length === 0) return;
 
     for (const item of readyItems) {
-        // In production, this is where Puppeteer would log in and post.
-        // For now, we simulate posting.
-        const postUrl = `https://${item.social_accounts?.platform}.com/${item.social_accounts?.username}/post/${Date.now()}`;
+        const account = item.social_accounts;
+        const platform = account?.platform || 'unknown';
+        const username = account?.username || 'unknown';
 
-        console.log(`\n🚀 POSTING to ${item.social_accounts?.platform.toUpperCase()}`);
-        console.log(`   @${item.social_accounts?.username}: "${(item.caption || '').substring(0, 60)}..."`);
+        console.log(`\n🚀 POSTING to ${platform.toUpperCase()}`);
+        console.log(`   @${username}: "${(item.caption || '').substring(0, 60)}..."`);
+
+        let posted = false;
+
+        // Attempt real posting if we have credentials
+        if (account?.password_encrypted) {
+            try {
+                posted = await postToSocial({
+                    platform,
+                    username,
+                    password: account.password_encrypted,
+                    caption: item.caption || '',
+                    assetUrl: item.asset_url || undefined,
+                });
+            } catch (err: any) {
+                console.error(`   ❌ Posting error: ${err.message}`);
+            }
+        } else {
+            console.log(`   ⚠️ No credentials for @${username} — marking as posted (dry-run)`);
+        }
+
+        if (posted) {
+            console.log(`   ✅ Posted successfully to ${platform}!`);
+        } else {
+            console.log(`   ⚠️ Post not delivered (no credentials or platform unsupported). Content saved.`);
+        }
 
         await supabase
             .from('content_queue')
             .update({
                 generation_status: 'posted',
                 posted_at: new Date().toISOString(),
-                asset_url: item.asset_url || postUrl
+                asset_url: item.asset_url || undefined
             } as any)
             .eq('id', item.id);
-
-        console.log(`   ✅ Posted! ${postUrl}`);
     }
 }
 

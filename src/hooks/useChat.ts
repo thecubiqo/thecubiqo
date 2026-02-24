@@ -55,7 +55,6 @@ interface UseChatOptions {
   isGuest?: boolean
   onColorChange?: (color: ColorName) => void
   regionId?: string | null
-  userId?: string
 }
 
 interface ChatState {
@@ -68,7 +67,7 @@ interface ChatState {
 }
 
 export function useChat(options: UseChatOptions) {
-  const { sessionId, isGuest = false, onColorChange, regionId, userId } = options
+  const { sessionId, isGuest = false, onColorChange, regionId } = options
   const supabase = createClient()
   const supabaseRef = useRef(supabase)
   const lastSessionIdRef = useRef<string | null>(null)
@@ -246,7 +245,7 @@ export function useChat(options: UseChatOptions) {
 
     initPromiseRef.current = init()
     return initPromiseRef.current
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabaseRef is stable, onColorChange used via ref pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- supabaseRef is stable, onColorChange used via ref pattern
   }, [isGuest])
 
 
@@ -303,10 +302,9 @@ export function useChat(options: UseChatOptions) {
           conversationHistory: currentHistory,
           currentColor,
           isGuest,
-          messageCount: state.conversationHistory.length + 1,
-          sessionId,
-          region: regionId || undefined,
-          userId: userId || undefined
+          messageCount: currentHistory.length + 1,
+          sessionId, // Use sessionId from prop/closure
+          region: regionId || undefined
         })
       })
 
@@ -386,7 +384,7 @@ export function useChat(options: UseChatOptions) {
       setState(prev => ({ ...prev, isLoading: false, error: errorMessage }))
       return null
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs used for conversationId, conversationHistory, onColorChange
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refs used for conversationId, conversationHistory, onColorChange
   }, [sessionId, isGuest, ensureConversation, regionId])
 
   const clearHistory = useCallback(async () => {
