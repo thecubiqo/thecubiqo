@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
     Globe,
@@ -32,11 +32,18 @@ interface Campaign {
     progress: number;
 }
 
+/** Retrieve the current user's bearer token for admin API calls. */
+async function getAuthToken(): Promise<string | null> {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
+}
+
 export default function SocialArmyConsole() {
     const [isDeploying, setIsDeploying] = useState(false);
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [queueItems, setQueueItems] = useState<any[]>([]);
-    const [personas, setPersonas] = useState<PersonaGroup[]>([
+    const [personas] = useState<PersonaGroup[]>([
         { id: 'builders', name: 'The Builders', count: 20, status: 'active', icon: Code, description: 'Coding tutorials, GitHub commits, architecture diagrams' },
         { id: 'gurus', name: 'Productivity Gurus', count: 30, status: 'active', icon: Zap, description: 'Workflow hacks, time-saving tips, tool comparisons' },
         { id: 'skeptics', name: 'The Philosophers', count: 15, status: 'active', icon: MessageSquare, description: 'AI ethics debates, deep threads, controversy' },
@@ -46,84 +53,67 @@ export default function SocialArmyConsole() {
 
     const supabase = createClient();
 
+    const fetchData = useCallback(async () => {
+        try {
+            const token = await getAuthToken();
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch('/api/admin/social-army', { headers });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+
+            setCampaigns(json.campaigns ?? []);
+            setQueueItems(json.queue?.recent ?? []);
+        } catch (err) {
+            console.error('[SocialArmy] fetchData error:', err);
+        }
+    }, []);
+
     useEffect(() => {
-        const fetchData = async () => {
-            // Fetch active campaigns
-            const { data: campaignsData } = await supabase
-                .from('social_campaigns')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(5);
-
-            if (campaignsData) {
-                // Calculate real progress: count posted items vs total_posts_target per campaign
-                const progressResults = await Promise.all(
-                    campaignsData.map(async (c) => {
-                        const { count } = await supabase
-                            .from('content_queue')
-                            .select('id', { count: 'exact', head: true })
-                            .eq('campaign_id', c.id)
-                            .eq('generation_status', 'posted');
-                        const posted = count ?? 0;
-                        const target = c.total_posts_target ?? 0;
-                        return {
-                            id: c.id,
-                            name: c.name,
-                            status: c.status || 'draft',
-                            progress: target > 0 ? Math.min(Math.round((posted / target) * 100), 100) : 0,
-                        };
-                    })
-                );
-                setCampaigns(progressResults);
-            }
-
-            // Fetch content queue
-            const { data: queueData } = await supabase
-                .from('content_queue')
-                .select('*, social_campaigns(name)')
-                .order('created_at', { ascending: false })
-                .limit(10);
-
-            if (queueData) {
-                setQueueItems(queueData);
-            }
-        };
-
         fetchData();
 
-        // Realtime subscription
+        // Realtime subscription to re-fetch on content_queue changes
         const channel = supabase
             .channel('social-army')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'content_queue' }, (payload) => {
-                console.log('Realtime update:', payload);
-                fetchData(); // Refresh on change
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'content_queue' }, () => {
+                fetchData();
             })
             .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, []);
+    }, [fetchData]);
 
     const handleLaunch = async () => {
         setIsDeploying(true);
-        // Create a new campaign
-        const { error } = await supabase.from('social_campaigns').insert({
-            name: `Auto-Campaign ${new Date().toLocaleTimeString()}`,
-            seed_topic: 'AI Revolution',
-            status: 'running',
-            total_posts_target: 100
-        });
+        try {
+            const token = await getAuthToken();
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        if (error) {
-            console.error('Failed to launch campaign:', error);
-        } else {
-            // Refresh
-            const { data } = await supabase.from('social_campaigns').select('*').order('created_at', { ascending: false }).limit(5);
-            if (data) setCampaigns(data.map(c => ({ id: c.id, name: c.name, status: c.status || 'draft', progress: 0 })));
+            const res = await fetch('/api/admin/social-army', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    name: `Auto-Campaign ${new Date().toLocaleTimeString()}`,
+                    seed_topic: 'AI Revolution',
+                    total_posts_target: 100,
+                }),
+            });
+
+            if (!res.ok) {
+                const json = await res.json();
+                console.error('Failed to launch campaign:', json.error);
+            } else {
+                await fetchData();
+            }
+        } catch (err) {
+            console.error('Failed to launch campaign:', err);
+        } finally {
+            setIsDeploying(false);
         }
-
-        setTimeout(() => setIsDeploying(false), 1000);
     };
 
     return (

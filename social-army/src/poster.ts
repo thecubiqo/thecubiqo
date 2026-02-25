@@ -140,10 +140,10 @@ async function postToLinkedIn(page: Page, content: PostContent): Promise<boolean
 
 async function postToInstagram(page: Page, content: PostContent): Promise<boolean> {
     console.log('[Poster] 📸 Instagram automation not yet implemented — skipping.');
-    return false;
+    throw new Error('instagram_not_supported: automated posting via Instagram is not yet implemented')
 }
 
 async function postToTikTok(page: Page, content: PostContent): Promise<boolean> {
     console.log('[Poster] 🎵 TikTok automation not yet implemented — skipping.');
-    return false;
+    throw new Error('tiktok_not_supported: automated posting via TikTok is not yet implemented')
 }
