@@ -55,6 +55,23 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(url);
   }
 
+  // Wildcard *.cubiqo.dev → project preview routing
+  if (host.endsWith('.cubiqo.dev') && !DOMAIN_ROUTES[host]) {
+    const subdomain = host.replace('.cubiqo.dev', '');
+    const { pathname, search } = request.nextUrl;
+
+    // API routes and static assets pass through unchanged
+    if (pathname.startsWith('/api/') || pathname.startsWith('/_next/') || pathname.startsWith('/favicon')) {
+      return updateSession(request);
+    }
+
+    const url = request.nextUrl.clone();
+    url.pathname = `/coder/preview/${subdomain}${pathname === '/' ? '' : pathname}`;
+    if (search) url.search = search;
+
+    return NextResponse.rewrite(url);
+  }
+
   // Default: pass through with Supabase session refresh
   return updateSession(request);
 }
