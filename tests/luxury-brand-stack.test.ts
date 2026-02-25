@@ -23,6 +23,13 @@ import {
   TripleWhaleClient,
   LoopReturnsClient,
   FigmaClient,
+  AlgoliaClient,
+  AkeneoClient,
+  SegmentClient,
+  HubSpotClient,
+  SalesforceClient,
+  CloudflareClient,
+  SnykClient,
 } from '@/integrations/luxury-brand/clients';
 
 // ── Types (compile-time validation — import succeeds = types are valid) ──
@@ -35,6 +42,13 @@ import type {
   GorgiasConfig,
   NotionConfig,
   SlackConfig,
+  AlgoliaConfig,
+  AkeneoConfig,
+  SegmentConfig,
+  HubSpotConfig,
+  SalesforceConfig,
+  CloudflareConfig,
+  SnykConfig,
 } from '@/integrations/luxury-brand/types';
 
 // ── Barrel re-exports ────────────────────────────────────────────────────
@@ -50,6 +64,10 @@ import {
   GorgiasClient as BarrelGorgias,
   NotionClient as BarrelNotion,
   SlackClient as BarrelSlack,
+  AlgoliaClient as BarrelAlgolia,
+  HubSpotClient as BarrelHubSpot,
+  CloudflareClient as BarrelCloudflare,
+  SnykClient as BarrelSnyk,
 } from '@/integrations/luxury-brand';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -60,7 +78,7 @@ describe('Luxury Brand Stack Definition', () => {
   // ── Structure ──────────────────────────────────────────────────────────
 
   it('has exactly 11 layers', () => {
-    expect(LUXURY_BRAND_STACK).toHaveLength(11);
+    expect(LUXURY_BRAND_STACK).toHaveLength(15);
   });
 
   it('each layer has id, layer number, name, icon, description, and integrations array', () => {
@@ -77,7 +95,7 @@ describe('Luxury Brand Stack Definition', () => {
 
   it('layer numbers are 1–11, sequential', () => {
     const layerNumbers = LUXURY_BRAND_STACK.map(l => l.layer);
-    expect(layerNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    expect(layerNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
   });
 
   it('layer IDs are unique', () => {
@@ -116,7 +134,7 @@ describe('Luxury Brand Stack Definition', () => {
   it('getAllIntegrations() returns a flat list with correct count', () => {
     const all = getAllIntegrations();
     expect(Array.isArray(all)).toBe(true);
-    expect(all.length).toBe(30);
+    expect(all.length).toBe(39);
   });
 
   it('getLayerIntegrations("payments") returns 5 payment integrations', () => {
@@ -136,7 +154,7 @@ describe('Luxury Brand Stack Definition', () => {
   });
 
   it('getTotalIntegrationCount() returns 30', () => {
-    expect(getTotalIntegrationCount()).toBe(30);
+    expect(getTotalIntegrationCount()).toBe(39);
   });
 
   it('getAllRequiredEnvKeys() returns unique env keys (no duplicates)', () => {
@@ -203,6 +221,37 @@ describe('Luxury Brand Stack Definition', () => {
     const names = l11.map(i => i.name);
     expect(names).toContain('USPTO');
     expect(names).toContain('Madrid Protocol');
+  });
+
+  // ── Enterprise Upgrade Layers (L12–L15) ─────────────────────────────
+
+  it('Experience & Personalization layer (L12) has Algolia, Dynamic Yield, LivePerson', () => {
+    const l12 = getLayerIntegrations('experience-personalization');
+    const names = l12.map(i => i.name);
+    expect(names).toContain('Algolia');
+    expect(names).toContain('Dynamic Yield');
+    expect(names).toContain('LivePerson');
+  });
+
+  it('Product & Data Platform layer (L13) has Akeneo PIM and Segment', () => {
+    const l13 = getLayerIntegrations('product-data-platform');
+    const names = l13.map(i => i.name);
+    expect(names).toContain('Akeneo PIM');
+    expect(names).toContain('Segment');
+  });
+
+  it('Enterprise CRM & Sales layer (L14) has HubSpot and Salesforce', () => {
+    const l14 = getLayerIntegrations('enterprise-crm-sales');
+    const names = l14.map(i => i.name);
+    expect(names).toContain('HubSpot');
+    expect(names).toContain('Salesforce');
+  });
+
+  it('Trust & Security layer (L15) has Snyk and Cloudflare Enterprise', () => {
+    const l15 = getLayerIntegrations('trust-security');
+    const names = l15.map(i => i.name);
+    expect(names).toContain('Snyk');
+    expect(names).toContain('Cloudflare Enterprise');
   });
 });
 
@@ -529,6 +578,172 @@ describe('API Clients', () => {
       await expect(client.getOrders()).rejects.toThrow('ShipHero API error');
     });
   });
+
+  // ── AlgoliaClient (L12) ──────────────────────────────────────────────
+
+  describe('AlgoliaClient', () => {
+    const client = new AlgoliaClient({ appId: 'APP123', apiKey: 'algolia_key' });
+
+    it('can be instantiated', () => {
+      expect(client).toBeDefined();
+    });
+
+    it('has expected methods', () => {
+      expect(typeof client.search).toBe('function');
+      expect(typeof client.indexObjects).toBe('function');
+      expect(typeof client.deleteObject).toBe('function');
+      expect(typeof client.getSettings).toBe('function');
+    });
+
+    it('throws when API call fails', async () => {
+      mockFetchFail(403, 'Invalid API key');
+      await expect(client.search('luxury watch')).rejects.toThrow('Algolia API error');
+    });
+  });
+
+  // ── AkeneoClient (L13) ───────────────────────────────────────────────
+
+  describe('AkeneoClient', () => {
+    const client = new AkeneoClient({
+      baseUrl: 'https://pim.example.com',
+      clientId: 'id',
+      clientSecret: 'secret',
+      username: 'admin',
+      password: 'pass',
+    });
+
+    it('can be instantiated', () => {
+      expect(client).toBeDefined();
+    });
+
+    it('has expected methods', () => {
+      expect(typeof client.getProducts).toBe('function');
+      expect(typeof client.getProduct).toBe('function');
+      expect(typeof client.createProduct).toBe('function');
+      expect(typeof client.getFamilies).toBe('function');
+    });
+
+    it('throws when authentication fails', async () => {
+      mockFetchFail(401, 'Invalid credentials');
+      await expect(client.getProducts()).rejects.toThrow('Akeneo auth error');
+    });
+  });
+
+  // ── SegmentClient (L13) ──────────────────────────────────────────────
+
+  describe('SegmentClient', () => {
+    const client = new SegmentClient({ writeKey: 'seg_write_key' });
+
+    it('can be instantiated', () => {
+      expect(client).toBeDefined();
+    });
+
+    it('has expected methods', () => {
+      expect(typeof client.identify).toBe('function');
+      expect(typeof client.track).toBe('function');
+      expect(typeof client.page).toBe('function');
+    });
+
+    it('throws when API call fails', async () => {
+      mockFetchFail(400, 'Bad write key');
+      await expect(client.track('user1', 'Purchase', { value: 500 })).rejects.toThrow('Segment API error');
+    });
+  });
+
+  // ── HubSpotClient (L14) ──────────────────────────────────────────────
+
+  describe('HubSpotClient', () => {
+    const client = new HubSpotClient({ accessToken: 'hs_token' });
+
+    it('can be instantiated', () => {
+      expect(client).toBeDefined();
+    });
+
+    it('has expected methods', () => {
+      expect(typeof client.getContacts).toBe('function');
+      expect(typeof client.createContact).toBe('function');
+      expect(typeof client.getDeals).toBe('function');
+      expect(typeof client.createDeal).toBe('function');
+    });
+
+    it('throws when API call fails', async () => {
+      mockFetchFail(401, 'Invalid token');
+      await expect(client.getContacts()).rejects.toThrow('HubSpot API error');
+    });
+  });
+
+  // ── SalesforceClient (L14) ───────────────────────────────────────────
+
+  describe('SalesforceClient', () => {
+    const client = new SalesforceClient({ instanceUrl: 'https://myorg.salesforce.com', accessToken: 'sf_token' });
+
+    it('can be instantiated', () => {
+      expect(client).toBeDefined();
+    });
+
+    it('has expected methods', () => {
+      expect(typeof client.query).toBe('function');
+      expect(typeof client.getRecord).toBe('function');
+      expect(typeof client.createRecord).toBe('function');
+    });
+
+    it('throws when API call fails', async () => {
+      mockFetchFail(401, 'Session expired');
+      await expect(client.query('SELECT Id FROM Account')).rejects.toThrow('Salesforce API error');
+    });
+  });
+
+  // ── CloudflareClient (L15) ───────────────────────────────────────────
+
+  describe('CloudflareClient', () => {
+    const client = new CloudflareClient({ apiToken: 'cf_token', zoneId: 'zone123' });
+
+    it('can be instantiated', () => {
+      expect(client).toBeDefined();
+    });
+
+    it('has expected methods', () => {
+      expect(typeof client.getZone).toBe('function');
+      expect(typeof client.getWaitingRooms).toBe('function');
+      expect(typeof client.createWaitingRoom).toBe('function');
+      expect(typeof client.purgeCache).toBe('function');
+    });
+
+    it('throws when API call fails', async () => {
+      mockFetchFail(403, 'Invalid token');
+      await expect(client.getZone()).rejects.toThrow('Cloudflare API error');
+    });
+
+    it('throws when Cloudflare returns success: false', async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: false, errors: [{ message: 'Zone not found' }] }),
+        text: async () => '',
+      });
+      await expect(client.getZone()).rejects.toThrow('Cloudflare API error: Zone not found');
+    });
+  });
+
+  // ── SnykClient (L15) ─────────────────────────────────────────────────
+
+  describe('SnykClient', () => {
+    const client = new SnykClient({ apiToken: 'snyk_token', orgId: 'org123' });
+
+    it('can be instantiated', () => {
+      expect(client).toBeDefined();
+    });
+
+    it('has expected methods', () => {
+      expect(typeof client.getProjects).toBe('function');
+      expect(typeof client.getVulnerabilities).toBe('function');
+      expect(typeof client.testPackage).toBe('function');
+    });
+
+    it('throws when API call fails', async () => {
+      mockFetchFail(401, 'Invalid token');
+      await expect(client.getProjects()).rejects.toThrow('Snyk API error');
+    });
+  });
 });
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -561,6 +776,13 @@ describe('Types validation', () => {
     const gorgiasCfg: GorgiasConfig = { domain: 'd', apiKey: 'g', email: 'e@e.com' };
     const notionCfg: NotionConfig = { apiKey: 'n' };
     const slackCfg: SlackConfig = { botToken: 'xoxb' };
+    const algoliaCfg: AlgoliaConfig = { appId: 'a', apiKey: 'k' };
+    const akeneoCfg: AkeneoConfig = { baseUrl: 'https://pim.test', clientId: 'c', clientSecret: 's', username: 'u', password: 'p' };
+    const segmentCfg: SegmentConfig = { writeKey: 'wk' };
+    const hubspotCfg: HubSpotConfig = { accessToken: 'hs' };
+    const salesforceCfg: SalesforceConfig = { instanceUrl: 'https://sf.test', accessToken: 'sf' };
+    const cloudflareCfg: CloudflareConfig = { apiToken: 'cf', zoneId: 'z' };
+    const snykCfg: SnykConfig = { apiToken: 'snyk', orgId: 'o' };
 
     // Constructors should not throw
     expect(() => new PayPalClient(paypalCfg)).not.toThrow();
@@ -569,6 +791,13 @@ describe('Types validation', () => {
     expect(() => new GorgiasClient(gorgiasCfg)).not.toThrow();
     expect(() => new NotionClient(notionCfg)).not.toThrow();
     expect(() => new SlackClient(slackCfg)).not.toThrow();
+    expect(() => new AlgoliaClient(algoliaCfg)).not.toThrow();
+    expect(() => new AkeneoClient(akeneoCfg)).not.toThrow();
+    expect(() => new SegmentClient(segmentCfg)).not.toThrow();
+    expect(() => new HubSpotClient(hubspotCfg)).not.toThrow();
+    expect(() => new SalesforceClient(salesforceCfg)).not.toThrow();
+    expect(() => new CloudflareClient(cloudflareCfg)).not.toThrow();
+    expect(() => new SnykClient(snykCfg)).not.toThrow();
   });
 });
 
@@ -611,6 +840,22 @@ describe('Barrel index re-exports', () => {
 
   it('SlackClient is accessible from barrel', () => {
     expect(BarrelSlack).toBe(SlackClient);
+  });
+
+  it('AlgoliaClient is accessible from barrel', () => {
+    expect(BarrelAlgolia).toBe(AlgoliaClient);
+  });
+
+  it('HubSpotClient is accessible from barrel', () => {
+    expect(BarrelHubSpot).toBe(HubSpotClient);
+  });
+
+  it('CloudflareClient is accessible from barrel', () => {
+    expect(BarrelCloudflare).toBe(CloudflareClient);
+  });
+
+  it('SnykClient is accessible from barrel', () => {
+    expect(BarrelSnyk).toBe(SnykClient);
   });
 
   it('barrel helpers return the same results as direct imports', () => {

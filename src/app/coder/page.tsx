@@ -104,9 +104,26 @@ const LUXURY_LAYERS = [
     { name: 'USPTO', status: 'ready' as const, icon: '🏛️' },
     { name: 'Madrid Protocol', status: 'ready' as const, icon: '🌐' },
   ]},
+  { label: 'L12 — Experience & Personalization', icon: '✨', items: [
+    { name: 'Algolia', status: 'ready' as const, icon: '🔎' },
+    { name: 'Dynamic Yield', status: 'ready' as const, icon: '🎯' },
+    { name: 'LivePerson', status: 'ready' as const, icon: '💁' },
+  ]},
+  { label: 'L13 — Product & Data', icon: '🗂️', items: [
+    { name: 'Akeneo PIM', status: 'ready' as const, icon: '📋' },
+    { name: 'Segment CDP', status: 'ready' as const, icon: '📡' },
+  ]},
+  { label: 'L14 — CRM & Sales', icon: '🤝', items: [
+    { name: 'HubSpot', status: 'ready' as const, icon: '🟠' },
+    { name: 'Salesforce', status: 'ready' as const, icon: '☁️' },
+  ]},
+  { label: 'L15 — Trust & Security', icon: '🛡️', items: [
+    { name: 'Snyk', status: 'ready' as const, icon: '🔒' },
+    { name: 'Cloudflare Enterprise', status: 'ready' as const, icon: '🛡️' },
+  ]},
 ] as const;
 
-const ALL_LUXURY_ITEMS = LUXURY_LAYERS.flatMap(l => l.items);
+const ALL_LUXURY_ITEMS = LUXURY_LAYERS.flatMap(l => [...l.items]);
 const TOTAL_INTEGRATIONS = PLATFORM_INTEGRATIONS.length + ALL_LUXURY_ITEMS.length;
 
 const STATUS_COLORS = {
@@ -189,7 +206,7 @@ export default function CoderPage() {
               Luxury Brand Commerce Stack
             </span>
             <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">
-              11 layers
+              15 layers
             </span>
           </div>
           <div className="space-y-3">

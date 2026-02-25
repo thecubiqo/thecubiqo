@@ -21,6 +21,13 @@ import type {
   NotionConfig, NotionPage,
   FigmaConfig, FigmaFile,
   SlackConfig,
+  AlgoliaConfig, AlgoliaSearchResult,
+  AkeneoConfig, AkeneoProduct,
+  SegmentConfig,
+  HubSpotConfig, HubSpotContact, HubSpotDeal,
+  SalesforceConfig, SalesforceRecord,
+  CloudflareConfig, CloudflareZone, CloudflareWaitingRoom,
+  SnykConfig, SnykVulnerability,
 } from './types';
 
 // =============================================================================
@@ -700,5 +707,422 @@ export class FigmaClient {
 
   async getTeamProjects(teamId: string): Promise<{ projects: Array<{ id: string; name: string }> }> {
     return this.request(`/teams/${teamId}/projects`);
+  }
+}
+
+// =============================================================================
+// LAYER 12 — EXPERIENCE & PERSONALIZATION
+// =============================================================================
+
+/**
+ * Algolia Search API Client
+ * Docs: https://www.algolia.com/doc/api-reference/
+ */
+export class AlgoliaClient {
+  private appId: string;
+  private apiKey: string;
+  private defaultIndex: string;
+
+  constructor(config: AlgoliaConfig) {
+    this.appId = config.appId;
+    this.apiKey = config.apiKey;
+    this.defaultIndex = config.indexName || 'products';
+  }
+
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `https://${this.appId}-dsn.algolia.net${endpoint}`;
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'X-Algolia-Application-Id': this.appId,
+        'X-Algolia-API-Key': this.apiKey,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Algolia API error (${response.status}): ${await response.text()}`);
+    }
+
+    return response.json() as Promise<T>;
+  }
+
+  async search(query: string, params?: { hitsPerPage?: number; page?: number; filters?: string }): Promise<AlgoliaSearchResult> {
+    return this.request<AlgoliaSearchResult>(`/1/indexes/${this.defaultIndex}/query`, {
+      method: 'POST',
+      body: JSON.stringify({ query, ...params }),
+    });
+  }
+
+  async indexObjects(objects: Array<{ objectID: string; [key: string]: unknown }>): Promise<{ taskID: number; objectIDs: string[] }> {
+    return this.request(`/1/indexes/${this.defaultIndex}/batch`, {
+      method: 'POST',
+      body: JSON.stringify({ requests: objects.map(obj => ({ action: 'addObject', body: obj })) }),
+    });
+  }
+
+  async deleteObject(objectID: string): Promise<{ taskID: number }> {
+    return this.request(`/1/indexes/${this.defaultIndex}/${objectID}`, { method: 'DELETE' });
+  }
+
+  async getSettings(): Promise<Record<string, unknown>> {
+    return this.request(`/1/indexes/${this.defaultIndex}/settings`);
+  }
+}
+
+// =============================================================================
+// LAYER 13 — PRODUCT & DATA PLATFORM
+// =============================================================================
+
+/**
+ * Akeneo PIM API Client
+ * Docs: https://api.akeneo.com/
+ */
+export class AkeneoClient {
+  private baseUrl: string;
+  private clientId: string;
+  private clientSecret: string;
+  private username: string;
+  private password: string;
+  private accessToken: string | null = null;
+
+  constructor(config: AkeneoConfig) {
+    this.baseUrl = config.baseUrl.replace(/\/$/, '');
+    this.clientId = config.clientId;
+    this.clientSecret = config.clientSecret;
+    this.username = config.username;
+    this.password = config.password;
+  }
+
+  private async authenticate(): Promise<string> {
+    if (this.accessToken) return this.accessToken;
+
+    const response = await fetch(`${this.baseUrl}/api/oauth/v1/token`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${btoa(`${this.clientId}:${this.clientSecret}`)}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ grant_type: 'password', username: this.username, password: this.password }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Akeneo auth error (${response.status}): ${await response.text()}`);
+    }
+
+    const data = await response.json();
+    this.accessToken = data.access_token;
+    return this.accessToken!;
+  }
+
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const token = await this.authenticate();
+    const url = `${this.baseUrl}/api/rest/v1${endpoint}`;
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Akeneo API error (${response.status}): ${await response.text()}`);
+    }
+
+    return response.json() as Promise<T>;
+  }
+
+  async getProducts(params?: { limit?: number; page?: number }): Promise<{ _embedded: { items: AkeneoProduct[] } }> {
+    const query = new URLSearchParams(params as Record<string, string>).toString();
+    return this.request(`/products${query ? `?${query}` : ''}`);
+  }
+
+  async getProduct(identifier: string): Promise<AkeneoProduct> {
+    return this.request<AkeneoProduct>(`/products/${identifier}`);
+  }
+
+  async createProduct(product: Partial<AkeneoProduct>): Promise<void> {
+    await this.request('/products', { method: 'POST', body: JSON.stringify(product) });
+  }
+
+  async getFamilies(): Promise<{ _embedded: { items: Array<{ code: string; labels: Record<string, string> }> } }> {
+    return this.request('/families');
+  }
+}
+
+/**
+ * Segment Analytics API Client (Track API)
+ * Docs: https://segment.com/docs/connections/sources/catalog/libraries/server/http-api/
+ */
+export class SegmentClient {
+  private writeKey: string;
+  private baseUrl = 'https://api.segment.io/v1';
+
+  constructor(config: SegmentConfig) {
+    this.writeKey = config.writeKey;
+  }
+
+  private async request<T>(endpoint: string, body: Record<string, unknown>): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${btoa(`${this.writeKey}:`)}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Segment API error (${response.status}): ${await response.text()}`);
+    }
+
+    return response.json() as Promise<T>;
+  }
+
+  async identify(userId: string, traits: Record<string, unknown>): Promise<{ success: boolean }> {
+    return this.request('/identify', { userId, traits });
+  }
+
+  async track(userId: string, event: string, properties: Record<string, unknown>): Promise<{ success: boolean }> {
+    return this.request('/track', { userId, event, properties });
+  }
+
+  async page(userId: string, name: string, properties?: Record<string, unknown>): Promise<{ success: boolean }> {
+    return this.request('/page', { userId, name, properties });
+  }
+}
+
+// =============================================================================
+// LAYER 14 — ENTERPRISE CRM & SALES
+// =============================================================================
+
+/**
+ * HubSpot CRM API v3 Client
+ * Docs: https://developers.hubspot.com/docs/api
+ */
+export class HubSpotClient {
+  private baseUrl = 'https://api.hubapi.com';
+  private accessToken: string;
+
+  constructor(config: HubSpotConfig) {
+    this.accessToken = config.accessToken;
+  }
+
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HubSpot API error (${response.status}): ${await response.text()}`);
+    }
+
+    return response.json() as Promise<T>;
+  }
+
+  async getContacts(params?: { limit?: number; after?: string }): Promise<{ results: HubSpotContact[]; paging?: { next: { after: string } } }> {
+    const query = new URLSearchParams(params as Record<string, string>).toString();
+    return this.request(`/crm/v3/objects/contacts${query ? `?${query}` : ''}`);
+  }
+
+  async createContact(properties: Record<string, string>): Promise<HubSpotContact> {
+    return this.request<HubSpotContact>('/crm/v3/objects/contacts', {
+      method: 'POST',
+      body: JSON.stringify({ properties }),
+    });
+  }
+
+  async getDeals(params?: { limit?: number }): Promise<{ results: HubSpotDeal[] }> {
+    const query = new URLSearchParams(params as Record<string, string>).toString();
+    return this.request(`/crm/v3/objects/deals${query ? `?${query}` : ''}`);
+  }
+
+  async createDeal(properties: Record<string, string>): Promise<HubSpotDeal> {
+    return this.request<HubSpotDeal>('/crm/v3/objects/deals', {
+      method: 'POST',
+      body: JSON.stringify({ properties }),
+    });
+  }
+}
+
+/**
+ * Salesforce REST API Client
+ * Docs: https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta
+ */
+export class SalesforceClient {
+  private instanceUrl: string;
+  private accessToken: string;
+
+  constructor(config: SalesforceConfig) {
+    this.instanceUrl = config.instanceUrl.replace(/\/$/, '');
+    this.accessToken = config.accessToken;
+  }
+
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${this.instanceUrl}/services/data/v59.0${endpoint}`;
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Salesforce API error (${response.status}): ${await response.text()}`);
+    }
+
+    return response.json() as Promise<T>;
+  }
+
+  async query(soql: string): Promise<{ totalSize: number; done: boolean; records: SalesforceRecord[] }> {
+    return this.request(`/query?q=${encodeURIComponent(soql)}`);
+  }
+
+  async getRecord(sobjectType: string, id: string): Promise<SalesforceRecord> {
+    return this.request<SalesforceRecord>(`/sobjects/${sobjectType}/${id}`);
+  }
+
+  async createRecord(sobjectType: string, data: Record<string, unknown>): Promise<{ id: string; success: boolean }> {
+    return this.request(`/sobjects/${sobjectType}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+}
+
+// =============================================================================
+// LAYER 15 — TRUST & SECURITY
+// =============================================================================
+
+/**
+ * Cloudflare API v4 Client
+ * Docs: https://developers.cloudflare.com/api/
+ */
+export class CloudflareClient {
+  private baseUrl = 'https://api.cloudflare.com/client/v4';
+  private apiToken: string;
+  private zoneId: string;
+
+  constructor(config: CloudflareConfig) {
+    this.apiToken = config.apiToken;
+    this.zoneId = config.zoneId;
+  }
+
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${this.apiToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Cloudflare API error (${response.status}): ${await response.text()}`);
+    }
+
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(`Cloudflare API error: ${data.errors?.[0]?.message || 'Unknown error'}`);
+    }
+
+    return data.result as T;
+  }
+
+  async getZone(): Promise<CloudflareZone> {
+    return this.request<CloudflareZone>(`/zones/${this.zoneId}`);
+  }
+
+  async getWaitingRooms(): Promise<CloudflareWaitingRoom[]> {
+    return this.request<CloudflareWaitingRoom[]>(`/zones/${this.zoneId}/waiting_rooms`);
+  }
+
+  async createWaitingRoom(config: {
+    name: string;
+    host: string;
+    path: string;
+    new_users_per_minute: number;
+    total_active_users: number;
+    session_duration: number;
+  }): Promise<CloudflareWaitingRoom> {
+    return this.request<CloudflareWaitingRoom>(`/zones/${this.zoneId}/waiting_rooms`, {
+      method: 'POST',
+      body: JSON.stringify(config),
+    });
+  }
+
+  async purgeCache(files?: string[]): Promise<{ id: string }> {
+    const body = files ? { files } : { purge_everything: true };
+    return this.request(`/zones/${this.zoneId}/purge_cache`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+}
+
+/**
+ * Snyk REST API Client
+ * Docs: https://snyk.docs.apiary.io/
+ */
+export class SnykClient {
+  private baseUrl = 'https://api.snyk.io/v1';
+  private apiToken: string;
+  private orgId: string;
+
+  constructor(config: SnykConfig) {
+    this.apiToken = config.apiToken;
+    this.orgId = config.orgId;
+  }
+
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        Authorization: `token ${this.apiToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Snyk API error (${response.status}): ${await response.text()}`);
+    }
+
+    return response.json() as Promise<T>;
+  }
+
+  async getProjects(): Promise<{ projects: Array<{ id: string; name: string; type: string; issueCountsBySeverity: Record<string, number> }> }> {
+    return this.request(`/org/${this.orgId}/projects`);
+  }
+
+  async getVulnerabilities(projectId: string): Promise<{ issues: { vulnerabilities: SnykVulnerability[] } }> {
+    return this.request(`/org/${this.orgId}/project/${projectId}/aggregated-issues`, {
+      method: 'POST',
+      body: JSON.stringify({ filters: {} }),
+    });
+  }
+
+  async testPackage(packageName: string, version: string): Promise<{ ok: boolean; issues: { vulnerabilities: SnykVulnerability[] } }> {
+    return this.request(`/test/npm/${packageName}/${version}`);
   }
 }

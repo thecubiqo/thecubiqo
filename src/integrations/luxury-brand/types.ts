@@ -330,3 +330,172 @@ export interface SlackConfig {
   botToken: string;
   channelId?: string;
 }
+
+// =============================================================================
+// LAYER 12 — EXPERIENCE & PERSONALIZATION TYPES
+// =============================================================================
+
+export interface AlgoliaConfig {
+  appId: string;
+  apiKey: string;
+  indexName?: string;
+}
+
+export interface AlgoliaSearchResult {
+  hits: Array<{
+    objectID: string;
+    [key: string]: unknown;
+  }>;
+  nbHits: number;
+  page: number;
+  nbPages: number;
+  hitsPerPage: number;
+  processingTimeMS: number;
+  query: string;
+}
+
+export interface AlgoliaIndex {
+  name: string;
+  entries: number;
+  lastBuildTimeS: number;
+  updatedAt: string;
+}
+
+export interface DynamicYieldConfig {
+  apiKey: string;
+  sectionId: string;
+}
+
+export interface LivePersonConfig {
+  accountId: string;
+  apiKey: string;
+  apiSecret: string;
+}
+
+// =============================================================================
+// LAYER 13 — PRODUCT & DATA PLATFORM TYPES
+// =============================================================================
+
+export interface AkeneoConfig {
+  baseUrl: string;
+  clientId: string;
+  clientSecret: string;
+  username: string;
+  password: string;
+}
+
+export interface AkeneoProduct {
+  identifier: string;
+  family: string;
+  categories: string[];
+  values: Record<string, Array<{
+    data: unknown;
+    locale: string | null;
+    scope: string | null;
+  }>>;
+  created: string;
+  updated: string;
+}
+
+export interface SegmentConfig {
+  writeKey: string;
+}
+
+export interface SegmentEvent {
+  userId?: string;
+  anonymousId?: string;
+  event: string;
+  properties: Record<string, unknown>;
+  timestamp?: string;
+  context?: Record<string, unknown>;
+}
+
+// =============================================================================
+// LAYER 14 — ENTERPRISE CRM & SALES TYPES
+// =============================================================================
+
+export interface HubSpotConfig {
+  accessToken: string;
+}
+
+export interface HubSpotContact {
+  id: string;
+  properties: {
+    email: string;
+    firstname?: string;
+    lastname?: string;
+    company?: string;
+    phone?: string;
+    lifecyclestage?: string;
+    [key: string]: unknown;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HubSpotDeal {
+  id: string;
+  properties: {
+    dealname: string;
+    amount?: string;
+    dealstage: string;
+    pipeline?: string;
+    closedate?: string;
+    [key: string]: unknown;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SalesforceConfig {
+  instanceUrl: string;
+  accessToken: string;
+}
+
+export interface SalesforceRecord {
+  Id: string;
+  attributes: { type: string; url: string };
+  [key: string]: unknown;
+}
+
+// =============================================================================
+// LAYER 15 — TRUST & SECURITY TYPES
+// =============================================================================
+
+export interface CloudflareConfig {
+  apiToken: string;
+  zoneId: string;
+}
+
+export interface CloudflareZone {
+  id: string;
+  name: string;
+  status: 'active' | 'pending' | 'initializing' | 'moved' | 'deleted' | 'deactivated';
+  plan: { id: string; name: string };
+}
+
+export interface CloudflareWaitingRoom {
+  id: string;
+  name: string;
+  host: string;
+  path: string;
+  total_active_users: number;
+  new_users_per_minute: number;
+  session_duration: number;
+}
+
+export interface SnykConfig {
+  apiToken: string;
+  orgId: string;
+}
+
+export interface SnykVulnerability {
+  id: string;
+  title: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  packageName: string;
+  version: string;
+  fixedIn: string[];
+  isUpgradable: boolean;
+  isPatchable: boolean;
+}

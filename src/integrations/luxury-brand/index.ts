@@ -47,6 +47,25 @@ export type {
   FigmaConfig,
   FigmaFile,
   SlackConfig,
+  AlgoliaConfig,
+  AlgoliaSearchResult,
+  AlgoliaIndex,
+  DynamicYieldConfig,
+  LivePersonConfig,
+  AkeneoConfig,
+  AkeneoProduct,
+  SegmentConfig,
+  SegmentEvent,
+  HubSpotConfig,
+  HubSpotContact,
+  HubSpotDeal,
+  SalesforceConfig,
+  SalesforceRecord,
+  CloudflareConfig,
+  CloudflareZone,
+  CloudflareWaitingRoom,
+  SnykConfig,
+  SnykVulnerability,
 } from './types';
 
 // API Clients (Layer 2 — Payments)
@@ -66,3 +85,15 @@ export { GorgiasClient, LoopReturnsClient } from './clients';
 
 // API Clients (Layer 10 — Enterprise Control)
 export { NotionClient, SlackClient, FigmaClient } from './clients';
+
+// API Clients (Layer 12 — Experience & Personalization)
+export { AlgoliaClient } from './clients';
+
+// API Clients (Layer 13 — Product & Data Platform)
+export { AkeneoClient, SegmentClient } from './clients';
+
+// API Clients (Layer 14 — Enterprise CRM & Sales)
+export { HubSpotClient, SalesforceClient } from './clients';
+
+// API Clients (Layer 15 — Trust & Security)
+export { CloudflareClient, SnykClient } from './clients';

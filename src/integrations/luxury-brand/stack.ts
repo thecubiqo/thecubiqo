@@ -1,11 +1,14 @@
 /**
- * Luxury Brand Commerce Stack — 11-Layer Definition
+ * Luxury Brand Commerce Stack — 15-Layer Definition
  *
  * Pure data definition of the enterprise commerce infrastructure.
  * NO dependency on emergent, supabase, or any CubiQo internal system.
  *
  * Each layer maps to real API clients in ./clients.ts and
  * typed interfaces in ./types.ts
+ *
+ * Layers 1–11:  Core Luxury Brand Stack
+ * Layers 12–15: Enterprise Luxury Upgrade
  */
 
 import type { LuxuryBrandLayer } from './types';
@@ -337,6 +340,119 @@ export const LUXURY_BRAND_STACK: LuxuryBrandLayer[] = [
         icon: '🌐',
         status: 'ready',
         description: 'International trademark expansion — file in 130+ countries',
+      },
+    ],
+  },
+
+  // =========================================================================
+  // ENTERPRISE LUXURY UPGRADE LAYERS (L12–L15)
+  // =========================================================================
+
+  {
+    id: 'experience-personalization',
+    layer: 12,
+    name: 'Experience & Personalization',
+    icon: '✨',
+    description: 'Conversion boost — premium search, AI personalization, digital concierge',
+    integrations: [
+      {
+        name: 'Algolia',
+        icon: '🔎',
+        status: 'ready',
+        description: 'Search-as-you-type with AI re-ranking — luxury product discovery',
+        docsUrl: 'https://www.algolia.com/doc/',
+        envKeys: ['ALGOLIA_APP_ID', 'ALGOLIA_API_KEY'],
+      },
+      {
+        name: 'Dynamic Yield',
+        icon: '🎯',
+        status: 'ready',
+        description: 'Deep personalization — site UI shifts based on user behavior and intent',
+        docsUrl: 'https://dy.dev/',
+        envKeys: ['DYNAMIC_YIELD_API_KEY', 'DYNAMIC_YIELD_SECTION_ID'],
+      },
+      {
+        name: 'LivePerson',
+        icon: '💁',
+        status: 'ready',
+        description: 'White-glove digital concierge — AI-assisted human chat with order visibility',
+        docsUrl: 'https://developers.liveperson.com/',
+        envKeys: ['LIVEPERSON_ACCOUNT_ID', 'LIVEPERSON_API_KEY'],
+      },
+    ],
+  },
+  {
+    id: 'product-data-platform',
+    layer: 13,
+    name: 'Product & Data Platform',
+    icon: '🗂️',
+    description: 'Operations & inventory scale — PIM and customer data platform',
+    integrations: [
+      {
+        name: 'Akeneo PIM',
+        icon: '📋',
+        status: 'ready',
+        description: 'Product Information Management — materials, origin, artisan bios across channels',
+        docsUrl: 'https://api.akeneo.com/',
+        envKeys: ['AKENEO_BASE_URL', 'AKENEO_CLIENT_ID', 'AKENEO_CLIENT_SECRET'],
+      },
+      {
+        name: 'Segment',
+        icon: '📡',
+        status: 'ready',
+        description: 'Customer Data Platform — sync data across 20+ tools without breaking performance',
+        docsUrl: 'https://segment.com/docs/',
+        envKeys: ['SEGMENT_WRITE_KEY'],
+      },
+    ],
+  },
+  {
+    id: 'enterprise-crm-sales',
+    layer: 14,
+    name: 'Enterprise CRM & Sales',
+    icon: '🤝',
+    description: 'Enterprise reach — relationship managers close high-end sales',
+    integrations: [
+      {
+        name: 'HubSpot',
+        icon: '🟠',
+        status: 'ready',
+        description: 'CRM — bridge sales leads into relationship management pipeline',
+        docsUrl: 'https://developers.hubspot.com/',
+        envKeys: ['HUBSPOT_ACCESS_TOKEN'],
+      },
+      {
+        name: 'Salesforce',
+        icon: '☁️',
+        status: 'ready',
+        description: 'Enterprise CRM — high-value leads, opportunity tracking, sales forecasting',
+        docsUrl: 'https://developer.salesforce.com/',
+        envKeys: ['SALESFORCE_INSTANCE_URL', 'SALESFORCE_ACCESS_TOKEN'],
+      },
+    ],
+  },
+  {
+    id: 'trust-security',
+    layer: 15,
+    name: 'Trust & Security',
+    icon: '🛡️',
+    description: 'Elite protection — code scanning, DDoS protection, limited-edition drop control',
+    integrations: [
+      {
+        name: 'Snyk',
+        icon: '🔒',
+        status: 'ready',
+        description: 'Automated vulnerability scanning — enterprise audit-ready code',
+        docsUrl: 'https://docs.snyk.io/',
+        envKeys: ['SNYK_API_TOKEN', 'SNYK_ORG_ID'],
+      },
+      {
+        name: 'Cloudflare Enterprise',
+        icon: '🛡️',
+        status: 'ready',
+        description: 'DDoS protection + Waiting Room for limited-edition luxury drops',
+        docsUrl: 'https://developers.cloudflare.com/',
+        envKeys: ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ZONE_ID'],
       },
     ],
   },
