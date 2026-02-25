@@ -70,6 +70,10 @@ export default async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone()
   const path = url.pathname.toLowerCase()
 
+  // === Hostname-Based Routing (cubiqo.dev domain) ===
+  const hostname = request.headers.get('host') || ''
+  const host = hostname.split(':')[0] // Strip port for local dev
+
   // 1. Path Normalization
   if (path.startsWith('/found') && path !== '/founderspass' && !path.startsWith('/founderspass/')) {
     if (path === '/founder' || path === '/founders' || path === '/found') {
@@ -115,6 +119,16 @@ export default async function proxy(request: NextRequest) {
 
   // 4. Apply Security Headers
   response = applySecurityHeaders(response)
+
+  // 4b. Hostname-Based Routing (cubiqo.dev domain)
+  // Main cubiqo.dev domain → serve Studio/Landing (handled by middleware.ts rewrite)
+  // Wildcard *.cubiqo.dev → project preview routing
+  if (host.endsWith('.cubiqo.dev') && host !== 'cubiqo.dev' && host !== 'www.cubiqo.dev') {
+    const subdomain = host.replace('.cubiqo.dev', '')
+    // Set header so downstream pages can read the project slug
+    response.headers.set('x-cubiqo-project-slug', subdomain)
+    response.headers.set('x-cubiqo-domain', host)
+  }
 
   // 5. Founder Gate
   if (path.startsWith('/admin') || path.startsWith('/founderspass')) {

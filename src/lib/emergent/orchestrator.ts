@@ -32,6 +32,7 @@ import { executeTestAgent } from './subagents/testing-agent'
 import { executeImageAgent } from './subagents/image-agent'
 import { executeIntegrationAgent } from './subagents/integration-agent'
 import { executeMediaAgent } from './subagents/media-agent'
+import { executeCodeAgent } from './subagents/code-agent'
 
 /**
  * Tool cost configuration (in credits)
@@ -250,6 +251,9 @@ async function routeToSubAgent(
         break
 
       case 'code':
+        result = await executeCodeAgent(request)
+        break
+
       case 'human':
       case 'migration':
         // TODO: Implement these subagents
