@@ -104,24 +104,43 @@ export default function ConversationPanel({ onCodeGenerated }: ConversationPanel
             <p className="text-sm text-gray-400 mb-4">
               Describe your app and I'll help you build it. Try:
             </p>
+            {/* ── Luxury Brand Startup Templates ─── */}
             <div className="space-y-2 text-left">
               <button
-                onClick={() => setInput("Create a Next.js blog with Tailwind CSS")}
+                onClick={() => setInput("Build a luxury brand e-commerce storefront with Shopify Plus, product gallery, and Stripe checkout")}
                 className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
               >
-                💡 "Create a Next.js blog with Tailwind CSS"
+                🏛️ "Build a luxury brand storefront with Shopify Plus"
               </button>
               <button
-                onClick={() => setInput("Build a todo app with React")}
+                onClick={() => setInput("Create a product page for a luxury apparel brand with size selector, multiple images, and buy-now-pay-later via Affirm and Klarna")}
                 className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
               >
-                ✅ "Build a todo app with React"
+                👕 "Luxury product page with BNPL (Affirm + Klarna)"
               </button>
               <button
-                onClick={() => setInput("Create a landing page for a startup")}
+                onClick={() => setInput("Build a Klaviyo email flow for a luxury brand launch — welcome series, abandoned cart, VIP segment, and post-purchase upsell")}
                 className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
               >
-                🚀 "Create a landing page for a startup"
+                📧 "Klaviyo email flows for luxury brand launch"
+              </button>
+              <button
+                onClick={() => setInput("Create a luxury brand admin dashboard showing Triple Whale attribution, Shopify orders, ShipBob fulfillment status, and Gorgias support tickets")}
+                className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
+              >
+                📊 "Luxury brand admin dashboard (orders + analytics)"
+              </button>
+              <button
+                onClick={() => setInput("Build a Next.js landing page for a luxury fragrance brand with hero video, product showcase, Stripe payments, and waitlist capture via Resend")}
+                className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
+              >
+                🧴 "Luxury fragrance brand landing page"
+              </button>
+              <button
+                onClick={() => setInput("Create a REST API for luxury brand order management — integrate Shopify orders, Printful production, ShipBob fulfillment, and Gorgias support")}
+                className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
+              >
+                ⚡ "Order management API (Shopify → Printful → ShipBob)"
               </button>
             </div>
           </div>
@@ -182,7 +201,7 @@ export default function ConversationPanel({ onCodeGenerated }: ConversationPanel
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSend()}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !isLoading) { e.preventDefault(); handleSend(); } }}
             placeholder={isLoading ? "AI is thinking..." : "Describe what you want to build..."}
             disabled={isLoading}
             className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:opacity-50 transition-all placeholder-gray-500"

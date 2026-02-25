@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ConversationPanel from './ConversationPanel';
 import CodeEditor from './CodeEditor';
 import TerminalPanel from './TerminalPanel';
@@ -129,6 +129,33 @@ export default function StudioLayout() {
   const currentCode = fileContents.get(activeTabId) || '';
 
   const [showAnalytics, setShowAnalytics] = useState(false);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+S / Cmd+S — Save current file
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (activeTabId && openTabs.length > 0) {
+          setOpenTabs(prev => prev.map(tab =>
+            tab.id === activeTabId ? { ...tab, isDirty: false } : tab
+          ));
+          setToast({ message: `Saved ${activeTab?.name || 'file'}`, type: 'success' });
+        }
+      }
+      // Ctrl+N / Cmd+N — New file
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        const name = prompt('New file name (e.g. components/Header.tsx):');
+        if (name?.trim()) {
+          handleFileOpen(name.trim());
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTabId, openTabs, activeTab]);
 
   const handleDeploy = async () => {
     if (isDeploying) return;
@@ -320,7 +347,7 @@ export default function StudioLayout() {
       </div>
 
       {/* Status Bar */}
-      <StatusBar />
+      <StatusBar language={activeTab?.language || 'typescript'} />
     </div>
   );
 }

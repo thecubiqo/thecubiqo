@@ -170,15 +170,30 @@ export default function FileExplorer({
       {/* Header */}
       <div className="p-3 border-b border-gray-700 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-300">📁 Files</h3>
-        <button
-          onClick={loadRoot}
-          disabled={loading}
-          className="text-xs text-gray-400 hover:text-teal-300 disabled:opacity-40 transition-colors"
-          aria-label="Refresh file tree"
-          title="Refresh"
-        >
-          🔄
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const name = prompt('New file name (e.g. components/Header.tsx):');
+              if (name?.trim()) {
+                onFileSelect(name.trim());
+              }
+            }}
+            className="text-xs text-gray-400 hover:text-teal-300 transition-colors"
+            aria-label="Create new file"
+            title="New File"
+          >
+            ➕
+          </button>
+          <button
+            onClick={loadRoot}
+            disabled={loading}
+            className="text-xs text-gray-400 hover:text-teal-300 disabled:opacity-40 transition-colors"
+            aria-label="Refresh file tree"
+            title="Refresh"
+          >
+            🔄
+          </button>
+        </div>
       </div>
 
       {/* File Tree */}
