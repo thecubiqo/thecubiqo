@@ -122,7 +122,6 @@ export function PlasmaWaveField({
           wavePos[i3 + 2] = z
 
           // Cube position - distribute on cube surface and interior
-          const cubeT = idx / PARTICLE_COUNT
           const face = Math.floor(Math.random() * 6)
           const u = (Math.random() - 0.5) * CUBE_SIZE
           const v = (Math.random() - 0.5) * CUBE_SIZE
