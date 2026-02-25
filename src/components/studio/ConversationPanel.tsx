@@ -104,36 +104,43 @@ export default function ConversationPanel({ onCodeGenerated }: ConversationPanel
             <p className="text-sm text-gray-400 mb-4">
               Describe your app and I'll help you build it. Try:
             </p>
+            {/* ── Luxury Brand Startup Templates ─── */}
             <div className="space-y-2 text-left">
               <button
-                onClick={() => setInput("Create a SaaS landing page with pricing tiers and Stripe integration")}
+                onClick={() => setInput("Build a luxury brand e-commerce storefront with Shopify Plus, product gallery, and Stripe checkout")}
                 className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
               >
-                🚀 "Create a SaaS landing page with pricing tiers"
+                🏛️ "Build a luxury brand storefront with Shopify Plus"
               </button>
               <button
-                onClick={() => setInput("Build a user dashboard with authentication and Supabase")}
+                onClick={() => setInput("Create a product page for a luxury apparel brand with size selector, multiple images, and buy-now-pay-later via Affirm and Klarna")}
                 className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
               >
-                📊 "Build a user dashboard with auth & Supabase"
+                👕 "Luxury product page with BNPL (Affirm + Klarna)"
               </button>
               <button
-                onClick={() => setInput("Create a REST API with CRUD endpoints for a startup MVP")}
+                onClick={() => setInput("Build a Klaviyo email flow for a luxury brand launch — welcome series, abandoned cart, VIP segment, and post-purchase upsell")}
                 className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
               >
-                ⚡ "Create a REST API with CRUD endpoints"
+                📧 "Klaviyo email flows for luxury brand launch"
               </button>
               <button
-                onClick={() => setInput("Build an e-commerce product page with Shopify integration")}
+                onClick={() => setInput("Create a luxury brand admin dashboard showing Triple Whale attribution, Shopify orders, ShipBob fulfillment status, and Gorgias support tickets")}
                 className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
               >
-                🛍️ "Build an e-commerce product page"
+                📊 "Luxury brand admin dashboard (orders + analytics)"
               </button>
               <button
-                onClick={() => setInput("Create a waitlist page with email capture using Resend")}
+                onClick={() => setInput("Build a Next.js landing page for a luxury fragrance brand with hero video, product showcase, Stripe payments, and waitlist capture via Resend")}
                 className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
               >
-                📧 "Create a waitlist page with email capture"
+                🧴 "Luxury fragrance brand landing page"
+              </button>
+              <button
+                onClick={() => setInput("Create a REST API for luxury brand order management — integrate Shopify orders, Printful production, ShipBob fulfillment, and Gorgias support")}
+                className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
+              >
+                ⚡ "Order management API (Shopify → Printful → ShipBob)"
               </button>
             </div>
           </div>
