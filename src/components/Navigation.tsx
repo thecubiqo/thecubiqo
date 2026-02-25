@@ -109,6 +109,11 @@ export function Navigation() {
           </div>
         </div>
       )}
+      {/* Footer Links */}
+      <div className="p-4 pb-6 border-t border-gray-800 flex items-center justify-center gap-6 text-xs text-gray-500">
+        <Link href="/terms" className="hover:text-gray-300 transition-colors">Terms</Link>
+        <Link href="/privacy" className="hover:text-gray-300 transition-colors">Privacy Policy</Link>
+      </div>
     </nav>
   )
 }

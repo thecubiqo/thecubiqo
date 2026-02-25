@@ -192,7 +192,7 @@ export function MagicLinkEmailTemplate({
             fontSize: '11px',
             color: COLORS.TEXT_GRAY_DARK,
           }}>
-            Zero-Retention. Private. Orchestrated by Intent.
+            Your conversation routing is private and not logged. Your conscious memories are stored with your consent and deletable any time.
           </p>
           <div style={{
             margin: '16px 0 0',

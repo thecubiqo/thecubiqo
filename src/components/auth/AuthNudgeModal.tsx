@@ -12,6 +12,7 @@ interface AuthNudgeModalProps {
 
 export function AuthNudgeModal({ isOpen, onClose, cta }: AuthNudgeModalProps) {
   const [email, setEmail] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +30,11 @@ export function AuthNudgeModal({ isOpen, onClose, cta }: AuthNudgeModalProps) {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            terms_accepted_at: new Date().toISOString(),
+            terms_version: '1.0'
+          }
         }
       })
 
@@ -106,13 +111,32 @@ export function AuthNudgeModal({ isOpen, onClose, cta }: AuthNudgeModalProps) {
                   />
                 </div>
 
+                <div className="flex items-start gap-2 pt-2 pb-1">
+                  <div className="flex items-center h-5">
+                    <input
+                      id="terms"
+                      type="checkbox"
+                      checked={acceptedTerms}
+                      onChange={(e) => setAcceptedTerms(e.target.checked)}
+                      className="w-4 h-4 rounded-md border-zinc-700 bg-zinc-800/50 text-orange-500 focus:ring-orange-500/50 focus:ring-2"
+                      required
+                    />
+                  </div>
+                  <label htmlFor="terms" className="text-xs text-zinc-400 leading-tight">
+                    I agree to the{' '}
+                    <a href="/terms" target="_blank" className="text-orange-400 hover:text-orange-300 transition-colors">Terms of Service</a>
+                    {' '}and{' '}
+                    <a href="/privacy" target="_blank" className="text-orange-400 hover:text-orange-300 transition-colors">Privacy Policy</a>
+                  </label>
+                </div>
+
                 {error && (
                   <p className="text-red-400 text-sm">{error}</p>
                 )}
 
                 <button
                   type="submit"
-                  disabled={isLoading || !email}
+                  disabled={isLoading || !email || !acceptedTerms}
                   className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange-500/20"
                 >
                   {isLoading ? (

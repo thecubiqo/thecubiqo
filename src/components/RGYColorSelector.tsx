@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import { Briefcase, Users, Heart, Zap, TrendingUp, Sparkles, LucideIcon } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { AgeVerificationModal } from "@/components/auth/AgeVerificationModal";
 
 type ColorType = "green" | "yellow" | "red";
 
@@ -72,8 +74,24 @@ export const RGYColorSelector = ({
 }: RGYColorSelectorProps) => {
   const [hoveredColor, setHoveredColor] = useState<ColorType | null>(null);
   const [selectedColor, setSelectedColor] = useState<ColorType | null>(null);
+  const [showAgeModal, setShowAgeModal] = useState(false);
+  const { profile } = useAuth();
 
   const handleSelect = (colorId: ColorType) => {
+    // Intercept RED zone
+    if (colorId === "red") {
+      // Allow if we explicitly know they are verified, otherwise show modal
+      // We check profile directly. If no profile, they are guest and it will prompt them to sign in within the modal.
+      if (!profile || !(profile as any).age_verified) {
+        setShowAgeModal(true);
+        return;
+      }
+    }
+
+    proceedRefColorSelect(colorId);
+  };
+
+  const proceedRefColorSelect = (colorId: ColorType) => {
     setSelectedColor(colorId);
     // Small delay for visual feedback before transition
     setTimeout(() => {
@@ -206,6 +224,15 @@ export const RGYColorSelector = ({
       <p className="mt-10 text-muted-foreground/60 text-sm font-mono animate-fade-in" style={{ animationDelay: '400ms' }}>
         Select a context to browse available rooms
       </p>
+
+      <AgeVerificationModal
+        isOpen={showAgeModal}
+        onClose={() => setShowAgeModal(false)}
+        onSuccess={() => {
+          setShowAgeModal(false);
+          proceedRefColorSelect("red");
+        }}
+      />
     </div>
   );
 };
