@@ -7,6 +7,7 @@
  * @module emergent/subagents/image-agent
  */
 
+import OpenAI from 'openai'
 import type { SubAgentRequest, ToolResponse, GenerateImageParams } from '../agent-types'
 import { ValidationError } from '../agent-types'
 
@@ -41,27 +42,57 @@ export async function executeImageAgent(
       throw new ValidationError(`Style must be one of: ${validStyles.join(', ')}`)
     }
 
-    // TODO: Implement actual image generation
-    // This would:
-    // 1. Call OpenAI DALL-E API or Stable Diffusion
-    // 2. Upload generated image to Supabase Storage
-    // 3. Return public URL
+    // Check for OpenAI API key — gracefully degrade to placeholder if not configured
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) {
+      // Graceful fallback: return placeholder when DALL-E is not configured
+      const imageUrl = `https://placehold.co/${params.size || '512x512'}/png?text=${encodeURIComponent(params.prompt.slice(0, 50))}`
+      return {
+        success: true,
+        data: {
+          url: imageUrl,
+          prompt: params.prompt,
+          size: params.size || '512x512',
+          style: params.style || 'natural'
+        },
+        error: null,
+        metadata: {
+          model: 'placeholder',
+          note: 'OPENAI_API_KEY not configured — using placeholder image'
+        }
+      }
+    }
 
-    // Mock implementation for now
-    const imageUrl = `https://placehold.co/${params.size || '512x512'}/png?text=${encodeURIComponent(params.prompt.slice(0, 50))}`
+    // Call OpenAI DALL-E 3 API
+    const openai = new OpenAI({ apiKey })
+
+    const response = await openai.images.generate({
+      model: 'dall-e-3',
+      prompt: params.prompt,
+      n: 1,
+      size: (params.size as '256x256' | '512x512' | '1024x1024') || '1024x1024',
+      style: params.style || 'natural',
+      response_format: 'url',
+    })
+
+    const imageUrl = response.data[0]?.url
+    if (!imageUrl) {
+      throw new Error('No image URL returned from DALL-E')
+    }
 
     return {
       success: true,
       data: {
         url: imageUrl,
         prompt: params.prompt,
-        size: params.size || '512x512',
-        style: params.style || 'natural'
+        size: params.size || '1024x1024',
+        style: params.style || 'natural',
+        revisedPrompt: response.data[0]?.revised_prompt
       },
       error: null,
       metadata: {
         model: 'dall-e-3',
-        revisedPrompt: params.prompt
+        revisedPrompt: response.data[0]?.revised_prompt
       }
     }
   } catch (error) {
