@@ -33,11 +33,12 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 WORKDIR /app
 
 # Copy package files first (for layer caching)
-COPY package.json package-lock.json* ./
+# Use social-army/ prefix so the build works when Railway uses the repo root as build context
+COPY social-army/package.json social-army/package-lock.json* ./
 RUN npm install --production --legacy-peer-deps
 
-# Copy source code
-COPY . .
+# Copy source code from the social-army subdirectory
+COPY social-army/ .
 
 # Health check (optional: curl a status endpoint)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s \
