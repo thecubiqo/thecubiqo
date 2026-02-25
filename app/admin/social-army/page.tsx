@@ -615,6 +615,21 @@ function CampaignsTab({ campaigns, onRefresh }: { campaigns: Campaign[]; onRefre
                                 </div>
 
                                 <div className="flex items-center gap-2 shrink-0">
+                                    {c.status === 'running' && (
+                                        <button
+                                            onClick={async () => {
+                                                const res = await fetch('/api/admin/social-army/generate', {
+                                                    method: 'POST',
+                                                    headers: await authHeaders(),
+                                                    body: JSON.stringify({ campaignId: c.id }),
+                                                });
+                                                if (res.ok) onRefresh();
+                                            }}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs font-medium transition-colors"
+                                        >
+                                            <Zap size={12} /> Generate
+                                        </button>
+                                    )}
                                     {c.status === 'running' ? (
                                         <button
                                             onClick={() => handleStatus(c.id, 'paused')}
@@ -691,12 +706,29 @@ function LiveQueueTab({ items, summary, onRefresh }: {
                         </button>
                     ))}
                 </div>
-                <button
-                    onClick={onRefresh}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg text-xs transition-colors"
-                >
-                    <RefreshCw size={12} /> Refresh
-                </button>
+                <div className="flex items-center gap-2">
+                    {summary.failed > 0 && (
+                        <button
+                            onClick={async () => {
+                                await fetch('/api/admin/social-army/retry', {
+                                    method: 'POST',
+                                    headers: await authHeaders(),
+                                    body: JSON.stringify({}),
+                                });
+                                onRefresh();
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-xs font-medium transition-colors"
+                        >
+                            <RefreshCw size={12} /> Retry Failed ({summary.failed})
+                        </button>
+                    )}
+                    <button
+                        onClick={onRefresh}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg text-xs transition-colors"
+                    >
+                        <RefreshCw size={12} /> Refresh
+                    </button>
+                </div>
             </div>
 
             <div
@@ -765,6 +797,8 @@ export default function SocialArmyConsole() {
     const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
     const [summary, setSummary] = useState<QueueSummary>({ pending: 0, processing: 0, ready: 0, posted: 0, failed: 0 });
     const [launching, setLaunching] = useState(false);
+    const [generatingSamples, setGeneratingSamples] = useState(false);
+    const [sampleResults, setSampleResults] = useState<any>(null);
 
     const supabase = createClient();
 
@@ -819,11 +853,43 @@ export default function SocialArmyConsole() {
                 }),
             });
             if (res.ok) {
+                const { campaign } = await res.json();
+                // Seed content queue for the new campaign
+                if (campaign?.id) {
+                    await fetch('/api/admin/social-army/generate', {
+                        method: 'POST',
+                        headers: await authHeaders(),
+                        body: JSON.stringify({ campaignId: campaign.id }),
+                    });
+                }
                 await fetchAll();
                 setTab('queue');
             }
         } finally {
             setLaunching(false);
+        }
+    };
+
+    // Generate 1 sample post per platform (10 total) — shows the user what would be posted
+    const handleSamplePost = async () => {
+        setGeneratingSamples(true);
+        setSampleResults(null);
+        try {
+            const res = await fetch('/api/admin/social-army/sample-post', {
+                method: 'POST',
+                headers: await authHeaders(),
+                body: JSON.stringify({
+                    topic: 'CubiQo AI — Your intelligent life companion',
+                }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSampleResults(data);
+                await fetchAll();
+                setTab('queue');
+            }
+        } finally {
+            setGeneratingSamples(false);
         }
     };
 
@@ -865,6 +931,14 @@ export default function SocialArmyConsole() {
                             : 'Idle'}
                     </div>
                     <button
+                        onClick={handleSamplePost}
+                        disabled={generatingSamples}
+                        className="flex items-center gap-2 px-5 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-lg text-sm font-bold transition-all hover:shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                    >
+                        {generatingSamples ? <Loader2 size={15} className="animate-spin" /> : <MessageSquare size={15} />}
+                        {generatingSamples ? 'Generating…' : '📮 Sample Post'}
+                    </button>
+                    <button
                         onClick={handlePOCLaunch}
                         disabled={launching}
                         className="flex items-center gap-2 px-5 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-lg text-sm font-bold transition-all hover:shadow-[0_0_20px_rgba(168,85,247,0.4)]"
@@ -892,6 +966,38 @@ export default function SocialArmyConsole() {
                     ))}
                 </div>
             </div>
+
+            {/* Sample Post Results Banner */}
+            {sampleResults && (
+                <div className="bg-cyan-900/20 border border-cyan-500/20 rounded-xl p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-cyan-400 flex items-center gap-2">
+                            <CheckCircle size={14} />
+                            {sampleResults.message}
+                        </h3>
+                        <button onClick={() => setSampleResults(null)} className="text-gray-500 hover:text-gray-300">
+                            <X size={14} />
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                        {sampleResults.posts?.map((post: any) => (
+                            <div key={post.platform} className={`bg-black/30 border rounded-lg p-3 ${post.status === 'ready' ? 'border-cyan-500/20' : 'border-white/5'}`}>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-lg">{PLATFORM_ICONS[post.platform]}</span>
+                                    <span className="text-xs font-bold capitalize text-white">{post.platform}</span>
+                                </div>
+                                <div className="text-xs text-gray-400 truncate">{post.username}</div>
+                                <div className={`text-[10px] mt-1 font-bold uppercase ${post.status === 'ready' ? 'text-cyan-400' : 'text-gray-500'}`}>
+                                    {post.status}
+                                </div>
+                                {post.caption && (
+                                    <div className="text-[10px] text-gray-500 mt-1 line-clamp-2">{post.caption.substring(0, 80)}…</div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Tab Content */}
             {tab === 'dashboard' && (

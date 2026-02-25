@@ -3,7 +3,11 @@
 import { useState, useRef, useEffect } from 'react';
 import LoadingSpinner from './LoadingSpinner';
 
-export default function ConversationPanel() {
+interface ConversationPanelProps {
+  onCodeGenerated?: (code: string, language: string) => void;
+}
+
+export default function ConversationPanel({ onCodeGenerated }: ConversationPanelProps) {
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -46,11 +50,27 @@ export default function ConversationPanel() {
 
       const data = await response.json();
       
+      const aiContent = data.response || 'I apologize, I couldn\'t process that request. Please try again.';
+      
       // Add AI response
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: data.response || 'I apologize, I couldn\'t process that request. Please try again.' 
+        content: aiContent,
       }]);
+
+      // Extract code blocks and push to editor
+      if (onCodeGenerated) {
+        const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
+        let match;
+        while ((match = codeBlockRegex.exec(aiContent)) !== null) {
+          const lang = match[1] || 'typescript';
+          const code = match[2].trim();
+          if (code) {
+            onCodeGenerated(code, lang);
+            break; // Only apply first code block
+          }
+        }
+      }
     } catch (error) {
       console.error('AI API error:', error);
       setMessages(prev => [...prev, { 
@@ -114,7 +134,32 @@ export default function ConversationPanel() {
                     ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white' 
                     : 'bg-gray-800 text-gray-100 border border-gray-700'
                 }`}>
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <div className="text-sm whitespace-pre-wrap">
+                    {message.content.split(/(```\w*\n[\s\S]*?```)/g).map((part, j) => {
+                      const codeMatch = part.match(/```(\w*)\n([\s\S]*?)```/);
+                      if (codeMatch) {
+                        return (
+                          <div key={j} className="my-2">
+                            <div className="flex items-center justify-between bg-gray-900/50 px-3 py-1 rounded-t text-xs text-gray-400">
+                              <span>{codeMatch[1] || 'code'}</span>
+                              {onCodeGenerated && (
+                                <button
+                                  onClick={() => onCodeGenerated(codeMatch[2].trim(), codeMatch[1] || 'typescript')}
+                                  className="text-teal-400 hover:text-teal-300 transition-colors"
+                                >
+                                  Apply to Editor →
+                                </button>
+                              )}
+                            </div>
+                            <pre className="bg-gray-900/80 px-3 py-2 rounded-b text-xs overflow-x-auto">
+                              <code>{codeMatch[2].trim()}</code>
+                            </pre>
+                          </div>
+                        );
+                      }
+                      return <span key={j}>{part}</span>;
+                    })}
+                  </div>
                 </div>
               </div>
             ))}
