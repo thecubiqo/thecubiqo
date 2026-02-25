@@ -10,6 +10,7 @@ import EditorTabs, { EditorTab } from './EditorTabs';
 import StatusBar from './StatusBar';
 import EmptyState from './EmptyState';
 import Toast, { ToastType } from './Toast';
+import AnalyticsPanel from './AnalyticsPanel';
 
 export default function StudioLayout() {
   // Multi-file tab management
@@ -95,25 +96,72 @@ export default function StudioLayout() {
     ));
   };
 
+  const handleCodeFromAI = (code: string, language: string) => {
+    // If there's an active tab, replace its content
+    if (activeTabId && openTabs.length > 0) {
+      const newContents = new Map(fileContents);
+      newContents.set(activeTabId, code);
+      setFileContents(newContents);
+      setOpenTabs(openTabs.map(tab =>
+        tab.id === activeTabId ? { ...tab, isDirty: true, language: language === 'tsx' || language === 'typescript' ? 'tsx' : language } : tab
+      ));
+      setToast({ message: 'Code applied to editor from AI', type: 'success' });
+    } else {
+      // Create a new tab with the AI-generated code
+      const ext = language === 'typescript' || language === 'tsx' ? 'tsx' : language === 'javascript' || language === 'jsx' ? 'jsx' : language || 'tsx';
+      const newTab: EditorTab = {
+        id: Date.now().toString(),
+        path: `ai-generated.${ext}`,
+        name: `ai-generated.${ext}`,
+        isDirty: true,
+        language: ext,
+      };
+      setOpenTabs(prev => [...prev, newTab]);
+      setActiveTabId(newTab.id);
+      const newContents = new Map(fileContents);
+      newContents.set(newTab.id, code);
+      setFileContents(newContents);
+      setToast({ message: 'AI-generated code opened in new tab', type: 'success' });
+    }
+  };
+
   const activeTab = openTabs.find(t => t.id === activeTabId);
   const currentCode = fileContents.get(activeTabId) || '';
+
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   const handleDeploy = async () => {
     if (isDeploying) return;
 
     setIsDeploying(true);
+    const timestamp = new Date().toLocaleString();
     try {
       const response = await fetch('/api/emergent/deploy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          projectId: 'demo-project',
+          projectId: activeTab?.path || 'demo-project',
           environment: 'production',
           platform: 'vercel',
         }),
       });
 
       const data = await response.json();
+
+      // Track in analytics
+      const analytics = (window as any).__cubiqoAnalytics;
+      if (analytics?.addDeployment) {
+        analytics.addDeployment({
+          id: data.deployment?.id || `deploy-${Date.now()}`,
+          projectId: activeTab?.path || 'demo-project',
+          environment: 'production',
+          platform: 'vercel',
+          status: data.success ? 'queued' : 'failed',
+          url: data.deployment?.url || null,
+          message: data.deployment?.message || data.error || 'Deployment triggered',
+          timestamp,
+        });
+      }
 
       if (data.success) {
         setToast({
@@ -187,7 +235,7 @@ export default function StudioLayout() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Conversation */}
         <div className="w-80 border-r border-gray-700 flex flex-col">
-          <ConversationPanel />
+          <ConversationPanel onCodeGenerated={handleCodeFromAI} />
         </div>
 
         {/* Center Panel - Editor + Terminal */}
@@ -245,9 +293,29 @@ export default function StudioLayout() {
           </div>
         </div>
 
-        {/* Right Panel - Preview */}
-        <div className="w-1/3 border-l border-gray-700">
-          <PreviewPanel />
+        {/* Right Panel - Preview / Analytics */}
+        <div className="w-1/3 border-l border-gray-700 flex flex-col">
+          <div className="flex border-b border-gray-700 shrink-0">
+            <button
+              onClick={() => setShowAnalytics(false)}
+              className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
+                !showAnalytics ? 'bg-gray-800 text-white border-b-2 border-teal-500' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              👁️ Preview
+            </button>
+            <button
+              onClick={() => setShowAnalytics(true)}
+              className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
+                showAnalytics ? 'bg-gray-800 text-white border-b-2 border-teal-500' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              📊 Analytics
+            </button>
+          </div>
+          <div className="flex-1 min-h-0">
+            {showAnalytics ? <AnalyticsPanel /> : <PreviewPanel code={currentCode} language={activeTab?.language} />}
+          </div>
         </div>
       </div>
 

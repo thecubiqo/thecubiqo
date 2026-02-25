@@ -615,6 +615,21 @@ function CampaignsTab({ campaigns, onRefresh }: { campaigns: Campaign[]; onRefre
                                 </div>
 
                                 <div className="flex items-center gap-2 shrink-0">
+                                    {c.status === 'running' && (
+                                        <button
+                                            onClick={async () => {
+                                                const res = await fetch('/api/admin/social-army/generate', {
+                                                    method: 'POST',
+                                                    headers: await authHeaders(),
+                                                    body: JSON.stringify({ campaignId: c.id }),
+                                                });
+                                                if (res.ok) onRefresh();
+                                            }}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs font-medium transition-colors"
+                                        >
+                                            <Zap size={12} /> Generate
+                                        </button>
+                                    )}
                                     {c.status === 'running' ? (
                                         <button
                                             onClick={() => handleStatus(c.id, 'paused')}
@@ -691,12 +706,29 @@ function LiveQueueTab({ items, summary, onRefresh }: {
                         </button>
                     ))}
                 </div>
-                <button
-                    onClick={onRefresh}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg text-xs transition-colors"
-                >
-                    <RefreshCw size={12} /> Refresh
-                </button>
+                <div className="flex items-center gap-2">
+                    {summary.failed > 0 && (
+                        <button
+                            onClick={async () => {
+                                await fetch('/api/admin/social-army/retry', {
+                                    method: 'POST',
+                                    headers: await authHeaders(),
+                                    body: JSON.stringify({}),
+                                });
+                                onRefresh();
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-xs font-medium transition-colors"
+                        >
+                            <RefreshCw size={12} /> Retry Failed ({summary.failed})
+                        </button>
+                    )}
+                    <button
+                        onClick={onRefresh}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg text-xs transition-colors"
+                    >
+                        <RefreshCw size={12} /> Refresh
+                    </button>
+                </div>
             </div>
 
             <div
@@ -819,6 +851,15 @@ export default function SocialArmyConsole() {
                 }),
             });
             if (res.ok) {
+                const { campaign } = await res.json();
+                // Seed content queue for the new campaign
+                if (campaign?.id) {
+                    await fetch('/api/admin/social-army/generate', {
+                        method: 'POST',
+                        headers: await authHeaders(),
+                        body: JSON.stringify({ campaignId: campaign.id }),
+                    });
+                }
                 await fetchAll();
                 setTab('queue');
             }
