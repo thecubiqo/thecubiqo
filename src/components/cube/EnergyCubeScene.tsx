@@ -9,7 +9,6 @@
 
 import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { Environment } from '@react-three/drei'
 import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing'
 import { PlasmaWaveField } from './PlasmaWaveField'
 import type { ColorName } from '@/config/colors'
@@ -39,9 +38,11 @@ function mapAIState(animationState: AnimationState): 'neutral' | 'thinking' | 's
 function Lights() {
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
-      <pointLight position={[-10, -10, -10]} intensity={0.5} color="#4444ff" />
+      <ambientLight intensity={0.8} />
+      <directionalLight position={[5, 5, 5]} intensity={1.5} color="#ffffff" />
+      <pointLight position={[10, 10, 10]} intensity={1.2} color="#ffffff" />
+      <pointLight position={[-10, -10, -10]} intensity={0.6} color="#4444ff" />
+      <pointLight position={[0, 10, 0]} intensity={0.4} color="#00ffff" />
     </>
   )
 }
@@ -75,7 +76,6 @@ export function EnergyCubeScene({
         style={{ background: 'transparent' }}
       >
         <Suspense fallback={null}>
-          <Environment preset="city" blur={0.8} />
           <Lights />
 
           <group>
