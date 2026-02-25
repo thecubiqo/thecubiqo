@@ -6,7 +6,7 @@ import { getAllIntegrations, getIntegration } from '@/lib/notifications/integrat
 export default function RegistryDemoPage() {
   const [selectedIntegration, setSelectedIntegration] = useState<string | null>(null)
   const allIntegrations = getAllIntegrations()
-  
+
   const chatIntegrations = allIntegrations.filter(i => i.type === 'chat')
   const socialIntegrations = allIntegrations.filter(i => i.type === 'social')
   const smartHomeIntegrations = allIntegrations.filter(i => i.type === 'smart_home')
@@ -136,16 +136,26 @@ export default function RegistryDemoPage() {
 }
 
 function IntegrationCard({ integration, onClick }: any) {
+  const isAvailable = integration.available !== false
+
   return (
     <button
-      onClick={onClick}
-      className="p-4 rounded-xl border-2 transition-all hover:scale-105"
+      onClick={isAvailable ? onClick : undefined}
+      className={`p-4 rounded-xl border-2 transition-all text-left flex flex-col items-start ${isAvailable ? 'hover:scale-105 cursor-pointer' : 'opacity-60 grayscale cursor-not-allowed'
+        }`}
       style={{
         backgroundColor: integration.color + '10',
         borderColor: integration.color + '40'
       }}
     >
-      <div className="text-4xl mb-2">{integration.icon}</div>
+      <div className="flex w-full items-start justify-between mb-2">
+        <div className="text-4xl">{integration.icon}</div>
+        {!isAvailable && (
+          <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded bg-black/50 text-gray-300 border border-white/20">
+            Coming Soon
+          </span>
+        )}
+      </div>
       <div className="font-semibold text-white text-sm">{integration.displayName}</div>
       <div
         className="text-xs mt-1 font-medium"

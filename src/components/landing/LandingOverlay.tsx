@@ -39,9 +39,13 @@ export function LandingOverlay({ showTopRightCTA = false }: LandingOverlayProps)
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.4 }}
                 transition={{ delay: 1, duration: 2 }}
-                className="absolute bottom-24 w-full text-center"
+                className="absolute bottom-12 w-full flex flex-col items-center gap-4 pointer-events-auto"
             >
-                <p className="text-[0.7rem] md:text-xs font-light tracking-[0.3em] text-gray-400 uppercase">
+                <div className="flex gap-6 text-[0.7rem] md:text-xs text-gray-400 font-light tracking-wider uppercase z-20">
+                    <a href="/terms" className="hover:text-white transition-colors cursor-pointer focus:outline-none">TERMS</a>
+                    <a href="/privacy" className="hover:text-white transition-colors cursor-pointer focus:outline-none">PRIVACY POLICY</a>
+                </div>
+                <p className="text-[0.7rem] md:text-xs font-light tracking-[0.3em] text-gray-400 uppercase pointer-events-none">
                     Unveiling AGI
                 </p>
             </motion.div>

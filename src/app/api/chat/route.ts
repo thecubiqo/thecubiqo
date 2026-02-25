@@ -464,6 +464,37 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 🔴 AGE GATE: Block RED zone requests for unverified users
+    if (currentColor === 'RED') {
+      let isVerified = false;
+
+      const authHeader = request.headers.get('Authorization')
+      if (authHeader) {
+        // Authenticate user
+        const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''))
+
+        if (user && !authError) {
+          // Check profile for age verification
+          const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('age_verified')
+            .eq('id', user.id)
+            .single()
+
+          if (profile && (profile as any).age_verified) {
+            isVerified = true;
+          }
+        }
+      }
+
+      if (!isVerified) {
+        return NextResponse.json(
+          { error: 'You must be 18 or older and verify your age to access the RED zone.' },
+          { status: 403 }
+        )
+      }
+    }
+
     // Load memories for this session (if sessionId provided)
     let memoryContext = ''
     if (sessionId) {
@@ -588,7 +619,7 @@ export async function POST(request: NextRequest) {
                   } catch (openRouterError) {
                     console.error('All providers exhausted including OpenRouter:', openRouterError)
                     errors.push(`OpenRouter: ${openRouterError instanceof Error ? openRouterError.message : String(openRouterError)}`)
-                    
+
                     // Mock response when all AI providers fail
                     console.log('All AI providers failed, returning mock response')
                     return NextResponse.json({

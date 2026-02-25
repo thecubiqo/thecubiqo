@@ -12,6 +12,7 @@ export interface Integration {
   description: string
   requiresOAuth: boolean
   capabilities: string[]
+  available?: boolean
 }
 
 export const INTEGRATIONS: Record<string, Integration> = {
@@ -168,7 +169,8 @@ export const INTEGRATIONS: Record<string, Integration> = {
     color: '#FF6000',
     description: 'Control Philips Hue lights',
     requiresOAuth: true,
-    capabilities: ['turn_on', 'turn_off', 'set_brightness', 'set_color']
+    capabilities: ['turn_on', 'turn_off', 'set_brightness', 'set_color'],
+    available: false
   },
   nest: {
     name: 'nest',
@@ -178,7 +180,8 @@ export const INTEGRATIONS: Record<string, Integration> = {
     color: '#00AFD8',
     description: 'Nest thermostat and cameras',
     requiresOAuth: true,
-    capabilities: ['set_temperature', 'get_temperature', 'view_camera']
+    capabilities: ['set_temperature', 'get_temperature', 'view_camera'],
+    available: false
   },
   ring: {
     name: 'ring',
@@ -188,7 +191,8 @@ export const INTEGRATIONS: Record<string, Integration> = {
     color: '#0066FF',
     description: 'Ring doorbell and security cameras',
     requiresOAuth: true,
-    capabilities: ['view_camera', 'doorbell_alert', 'two_way_talk']
+    capabilities: ['view_camera', 'doorbell_alert', 'two_way_talk'],
+    available: false
   },
   august: {
     name: 'august',
@@ -198,7 +202,8 @@ export const INTEGRATIONS: Record<string, Integration> = {
     color: '#FF0040',
     description: 'Smart door lock control',
     requiresOAuth: true,
-    capabilities: ['lock', 'unlock', 'get_status']
+    capabilities: ['lock', 'unlock', 'get_status'],
+    available: false
   },
   sonos: {
     name: 'sonos',
@@ -208,7 +213,8 @@ export const INTEGRATIONS: Record<string, Integration> = {
     color: '#000000',
     description: 'Sonos speaker control',
     requiresOAuth: true,
-    capabilities: ['play', 'pause', 'volume', 'next_track']
+    capabilities: ['play', 'pause', 'volume', 'next_track'],
+    available: false
   },
   ecobee: {
     name: 'ecobee',
@@ -218,7 +224,8 @@ export const INTEGRATIONS: Record<string, Integration> = {
     color: '#6ABD45',
     description: 'Ecobee smart thermostat',
     requiresOAuth: true,
-    capabilities: ['set_temperature', 'get_temperature', 'set_mode']
+    capabilities: ['set_temperature', 'get_temperature', 'set_mode'],
+    available: false
   },
   home_assistant: {
     name: 'home_assistant',
@@ -228,7 +235,8 @@ export const INTEGRATIONS: Record<string, Integration> = {
     color: '#41BDF5',
     description: 'Connect 2,000+ devices via Home Assistant',
     requiresOAuth: false,
-    capabilities: ['control_any_device', 'get_device_state', 'automation']
+    capabilities: ['control_any_device', 'get_device_state', 'automation'],
+    available: false
   },
 
   // ===== PRODUCTIVITY =====

@@ -1,50 +1,37 @@
-import React from 'react';
+import { AppLayout } from '@/components/AppLayout'
 
-export default function PrivacyPolicy() {
+export default function PrivacyPage() {
     return (
-        <div className="max-w-4xl mx-auto px-6 py-20 font-sans text-gray-800 dark:text-gray-200">
-            <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
-            <p className="text-sm text-gray-500 mb-8">Last Updated: February 23, 2026</p>
+        <AppLayout>
+            <div className="max-w-4xl mx-auto p-8 text-white/80 space-y-8">
+                <h1 className="text-4xl font-bold text-white mb-2">Privacy Policy</h1>
+                <p className="text-sm text-white/50">Last Updated: February 2026</p>
 
-            <section className="mb-8">
-                <h2 className="text-2xl font-semibold mb-4">1. Information We Collect</h2>
-                <p className="mb-4">
-                    CubiQo collects information you provide directly (such as email, preferences, and journal entries)
-                    and information generated through AI interaction (memories, personality traits).
-                </p>
-            </section>
+                <section className="space-y-4">
+                    <h2 className="text-2xl font-semibold text-white">1. Data Collection & Storage</h2>
+                    <p>Your conversation routing is private and not logged. Your conscious memories are stored with your consent and deletable any time.</p>
+                </section>
 
-            <section className="mb-8">
-                <h2 className="text-2xl font-semibold mb-4">2. How We Use Information</h2>
-                <p className="mb-4">
-                    We use your data to power the personal AI experience, suggest relevant connections in the RGY network,
-                    and improve our machine learning models. We do NOT sell your personal data to third parties.
-                </p>
-            </section>
+                <section className="space-y-4">
+                    <h2 className="text-2xl font-semibold text-white">2. AI Processing via Third-Parties</h2>
+                    <p>Requests may be processed by OpenAI, Anthropic, ElevenLabs, and other LLM providers. In BYO Mode, requests are processed using your own API keys which are encrypted client-side using AES-256-GCM.</p>
+                </section>
 
-            <section className="mb-8">
-                <h2 className="text-2xl font-semibold mb-4">3. Data Retention and Erasure</h2>
-                <p className="mb-4">
-                    We retain your data as long as your account is active. You have the right to request a full export
-                    of your data or the permanent deletion of your account at any time via the Settings panel.
-                </p>
-                <p className="mb-4 text-sm bg-blue-500/10 p-4 rounded-lg border border-blue-500/20">
-                    <strong>GDPR Compliance:</strong> CubiQo adheres to GDPR principles including the Right to Access,
-                    the Right to Erasure, and Data Portability.
-                </p>
-            </section>
+                <section className="space-y-4">
+                    <h2 className="text-2xl font-semibold text-white">3. Third-party Platforms & Social Army</h2>
+                    <p>Integration with platforms like LinkedIn, Instagram, and Twitter using Social Army may share content directly with those platforms pursuant to their respective terms.</p>
+                </section>
 
-            <section className="mb-8">
-                <h2 className="text-2xl font-semibold mb-4">4. Security</h2>
-                <p className="mb-4">
-                    We use industry-standard security measures including SSL/TLS encryption and secure hashing
-                    to protect your personal information.
-                </p>
-            </section>
+                <section className="space-y-4">
+                    <h2 className="text-2xl font-semibold text-white">4. Your Rights (GDPR & CCPA)</h2>
+                    <p>You have the right to access, rectify, or delete your personal data. You can exercise these options in your account settings or contact support.</p>
+                </section>
 
-            <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800">
-                <a href="/" className="text-blue-500 hover:underline">Return to App</a>
+                <section className="space-y-4">
+                    <h2 className="text-2xl font-semibold text-white">5. Age Restrictions</h2>
+                    <p>Users under 13 are prohibited. Uses of explicit capabilities (RED Zone) require age verification (18+).</p>
+                </section>
             </div>
-        </div>
-    );
+        </AppLayout>
+    )
 }
