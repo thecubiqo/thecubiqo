@@ -8,12 +8,23 @@ export const dynamic = 'force-dynamic'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
-// Lazy-initialize supabase admin client to avoid module-level errors when env vars are absent at build time
+/**
+ * Lazy-initialize supabase admin client.
+ * Uses fallback to URL1/KEY1 if standard env vars are missing.
+ */
 function getSupabaseAdmin() {
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL1
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY1
+
+    if (!supabaseUrl || !supabaseKey) {
+        console.warn('[Stripe Webhook] Supabase credentials not configured — webhook will fail')
+        return createClient(
+            'https://placeholder.supabase.co',
+            'placeholder-key'
+        )
+    }
+
+    return createClient(supabaseUrl, supabaseKey)
 }
 
 export async function POST(req: Request) {

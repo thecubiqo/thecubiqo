@@ -32,12 +32,12 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   // Content Security Policy - Prevent XSS attacks
   const cspDirectives = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.supabase.co https://*.vercel.app https://vercel.live https://va.vercel-scripts.com",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.supabase.co https://*.vercel.app https://vercel.live https://va.vercel-scripts.com https://js.stripe.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' blob: data: https://*.supabase.co https://*.vercel.app https://raw.githack.com",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://*.supabase.co https://vercel.live wss://*.supabase.co https://raw.githack.com",
-    "frame-src 'self' https://vercel.live",
+    "connect-src 'self' https://*.supabase.co https://vercel.live wss://*.supabase.co https://raw.githack.com https://api.stripe.com",
+    "frame-src 'self' https://vercel.live https://js.stripe.com https://hooks.stripe.com",
     "worker-src 'self' blob:",
     "media-src 'self' blob: data:",
     "object-src 'none'",
