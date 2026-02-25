@@ -7,11 +7,14 @@ import { createClient } from '@supabase/supabase-js'
 export const dynamic = 'force-dynamic'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
-// Use admin client for webhook since it needs to bypass RLS
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
-)
+
+// Lazy-initialize supabase admin client to avoid module-level errors when env vars are absent at build time
+function getSupabaseAdmin() {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+}
 
 export async function POST(req: Request) {
     const body = await req.text()
@@ -27,6 +30,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: err.message }, { status: 400 })
     }
 
+    const supabaseAdmin = getSupabaseAdmin()
     const session = event.data.object as Stripe.Checkout.Session
 
     switch (event.type) {

@@ -119,7 +119,7 @@ export async function runCommerceAgent(projectId: string, action: 'sync_inventor
         throw new Error('Missing commerce API keys. Please add them to your secure vault.');
     }
 
-    const shopify = new ShopifyManager({ storeName: 'my-volbak-store', accessToken: shopifyKey });
+    const shopify = new ShopifyManager({ storeName: 'my-store', accessToken: shopifyKey });
     const printify = new PrintifyManager({ shopId: '12345', accessToken: printifyKey });
 
     if (action === 'fulfill_orders') {
