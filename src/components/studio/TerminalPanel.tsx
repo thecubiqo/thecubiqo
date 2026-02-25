@@ -12,6 +12,8 @@ export default function TerminalPanel() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const historyIndex = useRef(-1);
   const [streamMode, setStreamMode] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -149,6 +151,8 @@ export default function TerminalPanel() {
 
     setIsRunning(true);
     setInput('');
+    setCommandHistory(prev => [command.trim(), ...prev]);
+    historyIndex.current = -1;
 
     try {
       if (streamMode) {
@@ -166,6 +170,23 @@ export default function TerminalPanel() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       executeCommand(input);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (commandHistory.length > 0) {
+        const newIndex = Math.min(historyIndex.current + 1, commandHistory.length - 1);
+        historyIndex.current = newIndex;
+        setInput(commandHistory[newIndex]);
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (historyIndex.current > 0) {
+        const newIndex = historyIndex.current - 1;
+        historyIndex.current = newIndex;
+        setInput(commandHistory[newIndex]);
+      } else {
+        historyIndex.current = -1;
+        setInput('');
+      }
     }
   };
 

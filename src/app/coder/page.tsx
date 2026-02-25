@@ -43,8 +43,15 @@ const INTEGRATIONS = [
   { name: 'Anthropic Claude', status: 'ready' as const, icon: '🧠' },
   { name: 'OpenAI GPT', status: 'ready' as const, icon: '✨' },
   { name: 'Google Gemini', status: 'ready' as const, icon: '💎' },
+  { name: 'Ollama (Local AI)', status: 'ready' as const, icon: '🦙' },
+  { name: 'OpenRouter', status: 'ready' as const, icon: '🔀' },
   { name: 'Vercel Deploy', status: 'ready' as const, icon: '▲' },
   { name: 'Docker Sandbox', status: 'ready' as const, icon: '🐳' },
+  { name: 'Stripe Payments', status: 'ready' as const, icon: '💳' },
+  { name: 'Resend Email', status: 'ready' as const, icon: '📧' },
+  { name: 'Shopify Store', status: 'ready' as const, icon: '🛍️' },
+  { name: 'Printify Merch', status: 'ready' as const, icon: '👕' },
+  { name: 'Telegram Bot', status: 'ready' as const, icon: '📱' },
 ] as const;
 
 const STATUS_COLORS = {

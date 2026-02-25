@@ -106,22 +106,34 @@ export default function ConversationPanel({ onCodeGenerated }: ConversationPanel
             </p>
             <div className="space-y-2 text-left">
               <button
-                onClick={() => setInput("Create a Next.js blog with Tailwind CSS")}
+                onClick={() => setInput("Create a SaaS landing page with pricing tiers and Stripe integration")}
                 className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
               >
-                💡 "Create a Next.js blog with Tailwind CSS"
+                🚀 "Create a SaaS landing page with pricing tiers"
               </button>
               <button
-                onClick={() => setInput("Build a todo app with React")}
+                onClick={() => setInput("Build a user dashboard with authentication and Supabase")}
                 className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
               >
-                ✅ "Build a todo app with React"
+                📊 "Build a user dashboard with auth & Supabase"
               </button>
               <button
-                onClick={() => setInput("Create a landing page for a startup")}
+                onClick={() => setInput("Create a REST API with CRUD endpoints for a startup MVP")}
                 className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
               >
-                🚀 "Create a landing page for a startup"
+                ⚡ "Create a REST API with CRUD endpoints"
+              </button>
+              <button
+                onClick={() => setInput("Build an e-commerce product page with Shopify integration")}
+                className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
+              >
+                🛍️ "Build an e-commerce product page"
+              </button>
+              <button
+                onClick={() => setInput("Create a waitlist page with email capture using Resend")}
+                className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
+              >
+                📧 "Create a waitlist page with email capture"
               </button>
             </div>
           </div>
@@ -182,7 +194,7 @@ export default function ConversationPanel({ onCodeGenerated }: ConversationPanel
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSend()}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !isLoading) { e.preventDefault(); handleSend(); } }}
             placeholder={isLoading ? "AI is thinking..." : "Describe what you want to build..."}
             disabled={isLoading}
             className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:opacity-50 transition-all placeholder-gray-500"
