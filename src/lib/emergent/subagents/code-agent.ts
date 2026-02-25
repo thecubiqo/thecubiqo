@@ -1,244 +1,299 @@
 /**
- * Code Agent - Code Operations Subagent
- * 
- * Handles bulk file writes, edits, reading, and deployment
- * triggers for the Emergent orchestrator.
- * 
+ * Code Agent - File System Subagent
+ *
+ * Provides the AI's "hands" inside the workspace. Handles reading and
+ * writing project files (bulk-write, bulk-edit, view-files) and
+ * orchestrates deployment (deploy). All file operations are sandboxed to
+ * a per-project workspace directory so the agent can never escape its
+ * container.
+ *
  * @module emergent/subagents/code-agent
  */
 
 import { readFile, writeFile, mkdir } from 'fs/promises'
-import { join, dirname } from 'path'
+import { dirname } from 'path'
 
-import type { SubAgentRequest, ToolResponse, BulkWriteParams, BulkEditParams, ViewFilesParams, DeployParams } from '../agent-types'
+import type {
+  SubAgentRequest,
+  ToolResponse,
+  BulkWriteParams,
+  BulkEditParams,
+  ViewFilesParams,
+  DeployParams,
+} from '../agent-types'
 import { ValidationError } from '../agent-types'
-import { getWorkspaceDir, ensureWorkspace, validatePath } from '@/lib/code-execution/sandbox'
+import { ensureWorkspace, validatePath } from '@/lib/code-execution/sandbox'
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Resolve and validate a relative path against the workspace root. */
+function resolveSafe(
+  filePath: string,
+  workspaceDir: string
+): { allowed: false; reason: string } | { allowed: true; resolved: string } {
+  const result = validatePath(filePath, workspaceDir)
+  if (!result.allowed) {
+    return { allowed: false, reason: result.reason ?? 'Invalid path' }
+  }
+  return { allowed: true, resolved: result.sanitizedCommand as string }
+}
+
+// ---------------------------------------------------------------------------
+// Tool implementations
+// ---------------------------------------------------------------------------
 
 /**
- * Execute code agent
- * 
- * @param request - Subagent request
- * @returns Tool response with operation results
+ * Write one or more files to the workspace in a single operation.
+ * Creates parent directories as needed.
+ */
+async function bulkWrite(
+  projectId: string,
+  params: BulkWriteParams
+): Promise<ToolResponse> {
+  if (!Array.isArray(params.files) || params.files.length === 0) {
+    throw new ValidationError('bulk-write requires at least one file')
+  }
+
+  const workspaceDir = await ensureWorkspace(projectId)
+  const written: string[] = []
+  const errors: Array<{ path: string; error: string }> = []
+
+  for (const { path: filePath, content } of params.files) {
+    const check = resolveSafe(filePath, workspaceDir)
+    if (!check.allowed) {
+      errors.push({ path: filePath, error: check.reason })
+      continue
+    }
+
+    try {
+      await mkdir(dirname(check.resolved), { recursive: true })
+      await writeFile(check.resolved, content, 'utf-8')
+      written.push(filePath)
+    } catch (err) {
+      errors.push({
+        path: filePath,
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+
+  const success = errors.length === 0
+  return {
+    success,
+    data: { written, errors, workspaceDir },
+    error: success
+      ? null
+      : `${errors.length} file(s) failed to write: ${errors.map((e) => e.path).join(', ')}`,
+    metadata: {
+      filesWritten: written.length,
+      filesFailed: errors.length,
+    },
+  }
+}
+
+/**
+ * Apply find-and-replace edits to existing workspace files.
+ * Each edit must supply the exact `oldContent` to be replaced by `newContent`.
+ */
+async function bulkEdit(
+  projectId: string,
+  params: BulkEditParams
+): Promise<ToolResponse> {
+  if (!Array.isArray(params.edits) || params.edits.length === 0) {
+    throw new ValidationError('bulk-edit requires at least one edit')
+  }
+
+  const workspaceDir = await ensureWorkspace(projectId)
+  const applied: string[] = []
+  const errors: Array<{ path: string; error: string }> = []
+
+  for (const { path: filePath, oldContent, newContent } of params.edits) {
+    const check = resolveSafe(filePath, workspaceDir)
+    if (!check.allowed) {
+      errors.push({ path: filePath, error: check.reason })
+      continue
+    }
+
+    try {
+      const original = await readFile(check.resolved, 'utf-8')
+
+      if (!original.includes(oldContent)) {
+        errors.push({
+          path: filePath,
+          error: `oldContent not found in ${filePath}`,
+        })
+        continue
+      }
+
+      // Replace ALL occurrences of oldContent with newContent
+      const updated = original.split(oldContent).join(newContent)
+      await writeFile(check.resolved, updated, 'utf-8')
+      applied.push(filePath)
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code
+      errors.push({
+        path: filePath,
+        error: code === 'ENOENT' ? `File not found: ${filePath}` : (err instanceof Error ? err.message : String(err)),
+      })
+    }
+  }
+
+  const success = errors.length === 0
+  return {
+    success,
+    data: { applied, errors, workspaceDir },
+    error: success
+      ? null
+      : `${errors.length} edit(s) failed: ${errors.map((e) => e.path).join(', ')}`,
+    metadata: {
+      editsApplied: applied.length,
+      editsFailed: errors.length,
+    },
+  }
+}
+
+/**
+ * Read one or more files from the workspace and return their contents.
+ */
+async function viewFiles(
+  projectId: string,
+  params: ViewFilesParams
+): Promise<ToolResponse> {
+  if (!Array.isArray(params.paths) || params.paths.length === 0) {
+    throw new ValidationError('view-files requires at least one path')
+  }
+
+  const workspaceDir = await ensureWorkspace(projectId)
+  const files: Record<string, string> = {}
+  const errors: Array<{ path: string; error: string }> = []
+
+  for (const filePath of params.paths) {
+    const check = resolveSafe(filePath, workspaceDir)
+    if (!check.allowed) {
+      errors.push({ path: filePath, error: check.reason })
+      continue
+    }
+
+    try {
+      files[filePath] = await readFile(check.resolved, 'utf-8')
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code
+      errors.push({
+        path: filePath,
+        error: code === 'ENOENT' ? `File not found: ${filePath}` : (err instanceof Error ? err.message : String(err)),
+      })
+    }
+  }
+
+  return {
+    success: errors.length === 0,
+    data: { files, errors, workspaceDir },
+    error:
+      errors.length > 0
+        ? `${errors.length} file(s) could not be read: ${errors.map((e) => e.path).join(', ')}`
+        : null,
+    metadata: { filesRead: Object.keys(files).length, filesFailed: errors.length },
+  }
+}
+
+/**
+ * Initiate a deployment for the project.
+ *
+ * If a VERCEL_TOKEN is present, the internal deploy API is called.
+ * Otherwise the agent returns actionable instructions so a human (or the
+ * deploy route) can complete the step.
+ */
+async function deployProject(
+  projectId: string,
+  params: DeployParams
+): Promise<ToolResponse> {
+  const environment = params.environment ?? 'production'
+  const vercelToken = process.env.VERCEL_TOKEN
+
+  if (!vercelToken) {
+    return {
+      success: false,
+      data: null,
+      error:
+        'VERCEL_TOKEN is not configured. Set the VERCEL_TOKEN environment variable to enable deployments.',
+      metadata: { projectId, environment, action: 'deploy' },
+    }
+  }
+
+  // Delegate to the deploy API route (reuse the same Vercel integration)
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000'
+
+  try {
+    const res = await fetch(`${baseUrl}/api/emergent/deploy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId, environment }),
+    })
+
+    const data = (await res.json()) as any
+
+    return {
+      success: res.ok && data.success,
+      data: data.deployment ?? null,
+      error: res.ok ? null : data.error ?? `Deploy API returned ${res.status}`,
+      metadata: { projectId, environment },
+    }
+  } catch (err) {
+    return {
+      success: false,
+      data: null,
+      error: err instanceof Error ? err.message : 'Deploy request failed',
+      metadata: { projectId, environment },
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+/**
+ * Execute the code agent for a given tool request.
+ *
+ * Supported tools (via `request.type`): bulk-write, bulk-edit, view-files, deploy.
  */
 export async function executeCodeAgent(
   request: SubAgentRequest
 ): Promise<ToolResponse> {
-  const tool = request.params.tool as string
-
   try {
-    switch (tool) {
+    const tool = (request.params as any).__tool as string | undefined
+
+    switch (tool ?? request.type) {
       case 'bulk-write':
-        return await handleBulkWrite(request)
+        return await bulkWrite(request.projectId, request.params as unknown as BulkWriteParams)
+
       case 'bulk-edit':
-        return await handleBulkEdit(request)
+        return await bulkEdit(request.projectId, request.params as unknown as BulkEditParams)
+
       case 'view-files':
-        return await handleViewFiles(request)
+        return await viewFiles(request.projectId, request.params as unknown as ViewFilesParams)
+
       case 'deploy':
-        return await handleDeploy(request)
+        return await deployProject(request.projectId, request.params as unknown as DeployParams)
+
       default:
-        throw new ValidationError(`Unknown code tool: ${tool}`)
+        return {
+          success: false,
+          data: null,
+          error: `Code agent does not handle tool: ${tool ?? request.type}`,
+        }
     }
   } catch (error) {
     return {
       success: false,
       data: null,
       error: error instanceof Error ? error.message : 'Code agent execution failed',
-    }
-  }
-}
-
-// ============================================================================
-// Tool Handlers
-// ============================================================================
-
-/**
- * Write multiple files to the workspace
- */
-async function handleBulkWrite(request: SubAgentRequest): Promise<ToolResponse> {
-  const params = request.params as unknown as BulkWriteParams
-
-  if (!params.files || !Array.isArray(params.files) || params.files.length === 0) {
-    throw new ValidationError('files array is required and must not be empty')
-  }
-
-  const workspaceDir = await ensureWorkspace(request.projectId)
-  const written: string[] = []
-
-  for (const file of params.files) {
-    if (!file.path || typeof file.path !== 'string') {
-      throw new ValidationError('Each file must have a valid path')
-    }
-    if (typeof file.content !== 'string') {
-      throw new ValidationError(`Content must be a string for file: ${file.path}`)
-    }
-
-    const pathCheck = validatePath(file.path, workspaceDir)
-    if (!pathCheck.allowed) {
-      throw new ValidationError(pathCheck.reason || 'Invalid file path')
-    }
-
-    const fullPath = join(workspaceDir, file.path)
-    await mkdir(dirname(fullPath), { recursive: true })
-    await writeFile(fullPath, file.content, 'utf-8')
-    written.push(file.path)
-  }
-
-  return {
-    success: true,
-    data: { filesWritten: written, count: written.length },
-    error: null,
-    metadata: { projectId: request.projectId },
-  }
-}
-
-/**
- * Edit multiple files via find & replace
- */
-async function handleBulkEdit(request: SubAgentRequest): Promise<ToolResponse> {
-  const params = request.params as unknown as BulkEditParams
-
-  if (!params.edits || !Array.isArray(params.edits) || params.edits.length === 0) {
-    throw new ValidationError('edits array is required and must not be empty')
-  }
-
-  const workspaceDir = getWorkspaceDir(request.projectId)
-  const results: Array<{ path: string; applied: boolean; reason?: string }> = []
-
-  for (const edit of params.edits) {
-    if (!edit.path || typeof edit.path !== 'string') {
-      throw new ValidationError('Each edit must have a valid path')
-    }
-
-    const pathCheck = validatePath(edit.path, workspaceDir)
-    if (!pathCheck.allowed) {
-      throw new ValidationError(pathCheck.reason || 'Invalid file path')
-    }
-
-    const fullPath = join(workspaceDir, edit.path)
-
-    try {
-      const content = await readFile(fullPath, 'utf-8')
-
-      if (!content.includes(edit.oldContent)) {
-        results.push({ path: edit.path, applied: false, reason: 'oldContent not found' })
-        continue
-      }
-
-      const updated = content.replace(edit.oldContent, edit.newContent)
-      await writeFile(fullPath, updated, 'utf-8')
-      results.push({ path: edit.path, applied: true })
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error'
-      results.push({ path: edit.path, applied: false, reason: msg })
-    }
-  }
-
-  const appliedCount = results.filter(r => r.applied).length
-
-  return {
-    success: appliedCount > 0,
-    data: { edits: results, applied: appliedCount, total: params.edits.length },
-    error: appliedCount === 0 ? 'No edits were applied' : null,
-    metadata: { projectId: request.projectId },
-  }
-}
-
-/**
- * Read file contents from the workspace
- */
-async function handleViewFiles(request: SubAgentRequest): Promise<ToolResponse> {
-  const params = request.params as unknown as ViewFilesParams
-
-  if (!params.paths || !Array.isArray(params.paths) || params.paths.length === 0) {
-    throw new ValidationError('paths array is required and must not be empty')
-  }
-
-  const workspaceDir = getWorkspaceDir(request.projectId)
-  const files: Array<{ path: string; content: string | null; error?: string }> = []
-
-  for (const filePath of params.paths) {
-    if (!filePath || typeof filePath !== 'string') {
-      files.push({ path: filePath, content: null, error: 'Invalid path' })
-      continue
-    }
-
-    const pathCheck = validatePath(filePath, workspaceDir)
-    if (!pathCheck.allowed) {
-      files.push({ path: filePath, content: null, error: pathCheck.reason })
-      continue
-    }
-
-    const fullPath = join(workspaceDir, filePath)
-
-    try {
-      const content = await readFile(fullPath, 'utf-8')
-      files.push({ path: filePath, content })
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'File not found'
-      files.push({ path: filePath, content: null, error: msg })
-    }
-  }
-
-  const readCount = files.filter(f => f.content !== null).length
-
-  return {
-    success: readCount > 0,
-    data: { files, read: readCount, total: params.paths.length },
-    error: readCount === 0 ? 'No files could be read' : null,
-    metadata: { projectId: request.projectId },
-  }
-}
-
-/**
- * Trigger a deployment via the internal deploy API
- */
-async function handleDeploy(request: SubAgentRequest): Promise<ToolResponse> {
-  const params = request.params as unknown as DeployParams
-
-  const validEnvironments = ['preview', 'production']
-  if (!params.environment || !validEnvironments.includes(params.environment)) {
-    throw new ValidationError(`environment must be one of: ${validEnvironments.join(', ')}`)
-  }
-
-  try {
-    const response = await fetch('http://localhost:3000/api/emergent/deploy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        projectId: request.projectId,
-        environment: params.environment,
-        version: params.version || null,
-      }),
-    })
-
-    const body = await response.json()
-
-    if (!response.ok) {
-      return {
-        success: false,
-        data: null,
-        error: body.error || `Deploy API returned ${response.status}`,
-        metadata: { statusCode: response.status, projectId: request.projectId },
-      }
-    }
-
-    return {
-      success: true,
-      data: body.data || body,
-      error: null,
-      metadata: {
-        environment: params.environment,
-        version: params.version || null,
-        projectId: request.projectId,
-      },
-    }
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Deploy request failed'
-    return {
-      success: false,
-      data: null,
-      error: `Deploy failed: ${msg}`,
-      metadata: { projectId: request.projectId, environment: params.environment },
     }
   }
 }

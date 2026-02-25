@@ -394,7 +394,7 @@ export async function executeTool(
     const response = await routeToSubAgent(agentType, {
       type: agentType,
       projectId: request.projectId,
-      params: request.params
+      params: { ...request.params, __tool: request.tool }
     })
 
     // 8. Deduct credits
