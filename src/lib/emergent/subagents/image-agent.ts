@@ -75,7 +75,8 @@ export async function executeImageAgent(
       response_format: 'url',
     })
 
-    const imageUrl = response.data[0]?.url
+    const firstImage = response.data?.[0]
+    const imageUrl = firstImage?.url
     if (!imageUrl) {
       throw new Error('No image URL returned from DALL-E')
     }
@@ -87,12 +88,12 @@ export async function executeImageAgent(
         prompt: params.prompt,
         size: params.size || '1024x1024',
         style: params.style || 'natural',
-        revisedPrompt: response.data[0]?.revised_prompt
+        revisedPrompt: firstImage?.revised_prompt
       },
       error: null,
       metadata: {
         model: 'dall-e-3',
-        revisedPrompt: response.data[0]?.revised_prompt
+        revisedPrompt: firstImage?.revised_prompt
       }
     }
   } catch (error) {
