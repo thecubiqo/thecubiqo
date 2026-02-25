@@ -195,3 +195,37 @@ export async function PATCH(request: NextRequest) {
     )
   }
 }
+
+// ─── DELETE ───────────────────────────────────────────────────────────────────
+export async function DELETE(request: NextRequest) {
+  const authResult = await requireAdmin(request)
+  if (!authResult.authorized) return authResult.response!
+
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) {
+      return NextResponse.json({ error: 'Campaign id is required' }, { status: 400 })
+    }
+
+    const supabase = createAdminClient()
+
+    // Delete queue items first (FK constraint)
+    await (supabase as any).from('content_queue').delete().eq('campaign_id', id)
+
+    const { error } = await (supabase as any)
+      .from('social_campaigns')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw new Error(error.message)
+
+    return NextResponse.json({ deleted: true })
+  } catch (error) {
+    console.error('[Admin Social Army] DELETE error:', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
