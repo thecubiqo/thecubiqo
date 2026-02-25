@@ -9,7 +9,7 @@
 
 import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { Environment, Float } from '@react-three/drei'
+import { Environment } from '@react-three/drei'
 import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing'
 import { PlasmaWaveField } from './PlasmaWaveField'
 import type { ColorName } from '@/config/colors'
@@ -78,12 +78,12 @@ export function EnergyCubeScene({
           <Environment preset="city" blur={0.8} />
           <Lights />
 
-          <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
+          <group>
             <PlasmaWaveField
               isEnabled={isVoiceEnabled}
               aiState={aiState}
             />
-          </Float>
+          </group>
 
           <EffectComposer>
             <Bloom

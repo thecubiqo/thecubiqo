@@ -4,10 +4,10 @@
  * PlasmaWaveField - HD Plasma Wave Animation with Morph to Cube
  * 
  * Features:
- * - Default: Flowing plasma waves with orange soul nodes
+ * - Default: Flowing 3D plasma pipes with interactive waves
  * - Active: Smooth morph transition to isometric rotating plasma cube
  * - AI state color palette support
- * - 120,000+ particles for HD effect
+ * - 3D Instanced rendering for performance
  */
 
 import { useRef, useMemo, useEffect } from 'react'
@@ -66,148 +66,171 @@ interface PlasmaWaveFieldProps {
   aiState?: AIState
 }
 
+// Pre-allocate objects outside render loop for performance
+const _m = new THREE.Matrix4()
+const _p0 = new THREE.Vector3()
+const _p1 = new THREE.Vector3()
+const _center = new THREE.Vector3()
+const _q = new THREE.Quaternion()
+const _up = new THREE.Vector3(0, 1, 0)
+const _vec = new THREE.Vector3()
+
+// Single shared temp array for faster point computation
+const tempPos = new Float32Array(500 * 3)
+
 export function PlasmaWaveField({
   isEnabled = false,
   aiState = 'neutral'
 }: PlasmaWaveFieldProps) {
-  const pointsRef = useRef<THREE.Points>(null)
-  const soulNodesRef = useRef<THREE.Points>(null)
+  const cylinderInstancedRef = useRef<THREE.InstancedMesh>(null)
+  const sphereInstancedRef = useRef<THREE.InstancedMesh>(null)
+  const soulNodesRef = useRef<THREE.InstancedMesh>(null)
+
   const morphProgress = useRef(0)
   const targetMorph = useRef(0)
 
   // Configuration
-  const PARTICLE_COUNT = 40000
-  const SOUL_NODE_COUNT = 100
-  const WAVE_LAYERS = 4
-  const CUBE_SIZE = 1.2
+  const RIBBON_COUNT = 30
+  const POINTS_PER_RIBBON = 50
+  const TOTAL_POINTS = RIBBON_COUNT * POINTS_PER_RIBBON
+  const TOTAL_SEGMENTS = RIBBON_COUNT * (POINTS_PER_RIBBON - 1)
+  const CUBE_SIZE = 1.4
+  const PIPE_RADIUS = 0.012
+  const SOUL_NODE_COUNT = 50
 
-  // Generate wave positions
-  const { wavePositions, cubePositions, colors, sizes } = useMemo(() => {
-    const wavePos = new Float32Array(PARTICLE_COUNT * 3)
-    const cubePos = new Float32Array(PARTICLE_COUNT * 3)
-    const cols = new Float32Array(PARTICLE_COUNT * 3)
-    const szs = new Float32Array(PARTICLE_COUNT)
-
+  // Generate wave data
+  const { ribbonsData, pointColors, segmentColors } = useMemo(() => {
     const palette = COLOR_PALETTES[aiState] || COLOR_PALETTES.neutral
 
-    const particlesPerLayer = Math.floor(PARTICLE_COUNT / WAVE_LAYERS)
+    const data = []
+    const pCols = new Float32Array(TOTAL_POINTS * 3)
+    const sCols = new Float32Array(TOTAL_SEGMENTS * 3)
 
-    for (let layer = 0; layer < WAVE_LAYERS; layer++) {
-      const layerOffset = layer * particlesPerLayer
-      const layerDepth = (layer - WAVE_LAYERS / 2) * 0.4
-      const layerDensity = layer === 1 ? 1.2 : (layer === 2 ? 1.1 : 1.0)
+    let pIdx = 0
+    let sIdx = 0
 
-      // Ribbon structure
-      const ribbonCount = 20 + layer * 5
-      const particlesPerRibbon = Math.floor(particlesPerLayer / ribbonCount)
+    for (let r = 0; r < RIBBON_COUNT; r++) {
+      const ribbonY = (r / RIBBON_COUNT - 0.5) * 4.0
+      const layerDepth = (Math.random() - 0.5) * 2.0
+      const waveFreq = 1.2 + r * 0.04
 
-      for (let ribbon = 0; ribbon < ribbonCount; ribbon++) {
-        const ribbonY = (ribbon / ribbonCount - 0.5) * 3.0
+      const ribbon = []
+      for (let p = 0; p < POINTS_PER_RIBBON; p++) {
+        const t = p / (POINTS_PER_RIBBON - 1)
+        const x = (t - 0.5) * 9.0
+        const y = ribbonY
+        const z = layerDepth
 
-        for (let p = 0; p < particlesPerRibbon; p++) {
-          const idx = layerOffset + ribbon * particlesPerRibbon + p
-          if (idx >= PARTICLE_COUNT) break
-
-          const i3 = idx * 3
-
-          // Wave position - flowing ribbon
-          const t = p / particlesPerRibbon
-          const x = (t - 0.5) * 6.0
-          const waveFreq = 2.0 + ribbon * 0.1
-          const y = ribbonY + Math.sin(t * Math.PI * waveFreq) * 0.3
-          const z = layerDepth + Math.sin(t * Math.PI * 3 + ribbon) * 0.2
-
-          wavePos[i3] = x
-          wavePos[i3 + 1] = y
-          wavePos[i3 + 2] = z
-
-          // Cube position - distribute on cube surface and interior
+        // Cube position - mix surface and interior
+        const isInterior = Math.random() < 0.2
+        let cx = 0, cy = 0, cz = 0
+        if (isInterior) {
+          cx = (Math.random() - 0.5) * CUBE_SIZE
+          cy = (Math.random() - 0.5) * CUBE_SIZE
+          cz = (Math.random() - 0.5) * CUBE_SIZE
+        } else {
           const face = Math.floor(Math.random() * 6)
           const u = (Math.random() - 0.5) * CUBE_SIZE
           const v = (Math.random() - 0.5) * CUBE_SIZE
           const half = CUBE_SIZE / 2
-
-          // Mix surface and interior particles
-          const isInterior = Math.random() < 0.3
-          if (isInterior) {
-            cubePos[i3] = (Math.random() - 0.5) * CUBE_SIZE
-            cubePos[i3 + 1] = (Math.random() - 0.5) * CUBE_SIZE
-            cubePos[i3 + 2] = (Math.random() - 0.5) * CUBE_SIZE
-          } else {
-            switch (face) {
-              case 0: cubePos[i3] = half; cubePos[i3 + 1] = u; cubePos[i3 + 2] = v; break
-              case 1: cubePos[i3] = -half; cubePos[i3 + 1] = u; cubePos[i3 + 2] = v; break
-              case 2: cubePos[i3] = u; cubePos[i3 + 1] = half; cubePos[i3 + 2] = v; break
-              case 3: cubePos[i3] = u; cubePos[i3 + 1] = -half; cubePos[i3 + 2] = v; break
-              case 4: cubePos[i3] = u; cubePos[i3 + 1] = v; cubePos[i3 + 2] = half; break
-              case 5: cubePos[i3] = u; cubePos[i3 + 1] = v; cubePos[i3 + 2] = -half; break
-            }
+          switch (face) {
+            case 0: cx = half; cy = u; cz = v; break
+            case 1: cx = -half; cy = u; cz = v; break
+            case 2: cx = u; cy = half; cz = v; break
+            case 3: cx = u; cy = -half; cz = v; break
+            case 4: cx = u; cy = v; cz = half; break
+            case 5: cx = u; cy = v; cz = -half; break
           }
-
-          // Color based on position in wave
-          const colorIdx = Math.floor(t * (palette.length - 1))
-          const nextColorIdx = Math.min(colorIdx + 1, palette.length - 1)
-          const colorT = (t * (palette.length - 1)) % 1
-
-          const color = new THREE.Color().lerpColors(
-            palette[colorIdx],
-            palette[nextColorIdx],
-            colorT
-          )
-
-          cols[i3] = color.r
-          cols[i3 + 1] = color.g
-          cols[i3 + 2] = color.b
-
-          // Size varies by layer
-          szs[idx] = 0.015 + Math.random() * 0.01 + (layer === 1 ? 0.005 : 0)
         }
+
+        ribbon.push({ wX: x, wY: y, wZ: z, cX: cx, cY: cy, cZ: cz, freq: waveFreq, phase: r })
+
+        // Assign colors based on position in ribbon
+        const colorIdx = Math.floor(t * (palette.length - 1))
+        const nextColorIdx = Math.min(colorIdx + 1, palette.length - 1)
+        const colorT = (t * (palette.length - 1)) % 1
+
+        const c = new THREE.Color().lerpColors(palette[colorIdx], palette[nextColorIdx], colorT)
+        // Depth-based brightness
+        const depthFactor = 0.5 + ((layerDepth + 1.0) / 2.0) * 0.5
+        c.multiplyScalar(depthFactor)
+
+        pCols[pIdx * 3] = c.r
+        pCols[pIdx * 3 + 1] = c.g
+        pCols[pIdx * 3 + 2] = c.b
+
+        if (p < POINTS_PER_RIBBON - 1) {
+          sCols[sIdx * 3] = c.r
+          sCols[sIdx * 3 + 1] = c.g
+          sCols[sIdx * 3 + 2] = c.b
+          sIdx++
+        }
+        pIdx++
+      }
+      data.push(ribbon)
+    }
+
+    return { ribbonsData: data, pointColors: pCols, segmentColors: sCols }
+  }, [aiState])
+
+  // Efficiently push colors to Instances
+  useEffect(() => {
+    if (cylinderInstancedRef.current && segmentColors) {
+      const color = new THREE.Color()
+      for (let i = 0; i < TOTAL_SEGMENTS; i++) {
+        color.setRGB(segmentColors[i * 3], segmentColors[i * 3 + 1], segmentColors[i * 3 + 2])
+        cylinderInstancedRef.current.setColorAt(i, color)
+      }
+      if (cylinderInstancedRef.current.instanceColor) {
+        cylinderInstancedRef.current.instanceColor.needsUpdate = true
       }
     }
 
-    return {
-      wavePositions: wavePos,
-      cubePositions: cubePos,
-      colors: cols,
-      sizes: szs
+    if (sphereInstancedRef.current && pointColors) {
+      const color = new THREE.Color()
+      for (let i = 0; i < TOTAL_POINTS; i++) {
+        color.setRGB(pointColors[i * 3], pointColors[i * 3 + 1], pointColors[i * 3 + 2])
+        sphereInstancedRef.current.setColorAt(i, color)
+      }
+      if (sphereInstancedRef.current.instanceColor) {
+        sphereInstancedRef.current.instanceColor.needsUpdate = true
+      }
     }
-  }, [aiState])
+  }, [segmentColors, pointColors])
 
-  // Soul nodes (orange floating particles)
+  // Soul nodes (orange floating interactive elements)
   const soulNodeData = useMemo(() => {
-    const positions = new Float32Array(SOUL_NODE_COUNT * 3)
-    const velocities = new Float32Array(SOUL_NODE_COUNT * 3)
-
+    const data = []
     for (let i = 0; i < SOUL_NODE_COUNT; i++) {
-      const i3 = i * 3
-      // Start within a sphere
       const theta = Math.random() * Math.PI * 2
       const phi = Math.acos(2 * Math.random() - 1)
       const r = Math.random() * 1.5
 
-      positions[i3] = r * Math.sin(phi) * Math.cos(theta)
-      positions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta)
-      positions[i3 + 2] = r * Math.cos(phi)
-
-      velocities[i3] = (Math.random() - 0.5) * 0.02
-      velocities[i3 + 1] = (Math.random() - 0.5) * 0.02
-      velocities[i3 + 2] = (Math.random() - 0.5) * 0.02
+      data.push({
+        x: r * Math.sin(phi) * Math.cos(theta),
+        y: r * Math.sin(phi) * Math.sin(theta),
+        z: r * Math.cos(phi),
+        vx: (Math.random() - 0.5) * 0.02,
+        vy: (Math.random() - 0.5) * 0.02,
+        vz: (Math.random() - 0.5) * 0.02,
+      })
     }
-
-    return { positions, velocities }
+    return data
   }, [])
 
-  // Update morph target
+  // Update morph target smoothly
   useEffect(() => {
     targetMorph.current = isEnabled ? 1 : 0
   }, [isEnabled])
 
-  // Animation loop
   useFrame((state) => {
     const time = state.clock.elapsedTime
+    // Subtle mouse interaction
+    const mouseX = (state.pointer.x * state.viewport.width) / 2
+    const mouseY = (state.pointer.y * state.viewport.height) / 2
 
-    // Smooth morph transition
-    const morphSpeed = 0.03
+    // Morph interpolation
+    const morphSpeed = 0.015
     if (morphProgress.current < targetMorph.current) {
       morphProgress.current = Math.min(morphProgress.current + morphSpeed, 1)
     } else if (morphProgress.current > targetMorph.current) {
@@ -215,143 +238,148 @@ export function PlasmaWaveField({
     }
 
     const morph = morphProgress.current
+    let segIdx = 0
+    let ptIdx = 0
 
-    // Update main particles
-    if (pointsRef.current) {
-      const positions = pointsRef.current.geometry.attributes.position.array as Float32Array
+    // Core rotation and breathing pulse for cube mode
+    const pulse = isEnabled ? Math.sin(time * 3) * 0.06 : 0
+    const rotY = time * 0.25
+    const cosY = Math.cos(rotY)
+    const sinY = Math.sin(rotY)
 
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
-        const i3 = i * 3
+    for (let r = 0; r < RIBBON_COUNT; r++) {
+      const ribbon = ribbonsData[r]
 
-        // Wave animation
-        const waveX = wavePositions[i3]
-        const waveY = wavePositions[i3 + 1]
-        const waveZ = wavePositions[i3 + 2]
+      for (let p = 0; p < POINTS_PER_RIBBON; p++) {
+        const pt = ribbon[p]
 
-        // Animate wave position
-        const waveOffset = Math.sin(time * 0.5 + waveX * 0.5) * 0.1
-        const animatedWaveY = waveY + waveOffset
-        const animatedWaveZ = waveZ + Math.sin(time * 0.3 + waveY) * 0.05
+        // Influence field near cursor
+        const dx = pt.wX - mouseX
+        const dy = pt.wY - mouseY
+        const distSq = dx * dx + dy * dy
+        const influence = Math.max(0, 1 - distSq / 9) * 0.4
 
-        // Cube position with rotation
-        const cubeX = cubePositions[i3]
-        const cubeY = cubePositions[i3 + 1]
-        const cubeZ = cubePositions[i3 + 2]
+        // Fluid wave formula (interactive)
+        const animatedWaveY = pt.wY + Math.sin(time * pt.freq + pt.wX * 0.6) * (0.35 + influence) + dy * influence * 0.15
+        const animatedWaveZ = pt.wZ + Math.sin(time * 0.5 + pt.phase) * (0.2 + influence)
 
-        // Rotate cube
-        const rotY = time * 0.3
-        const rotatedX = cubeX * Math.cos(rotY) - cubeZ * Math.sin(rotY)
-        const rotatedZ = cubeX * Math.sin(rotY) + cubeZ * Math.cos(rotY)
+        // Cube position with Y-axis rotation
+        const cx = pt.cX * cosY - pt.cZ * sinY
+        const cz = pt.cX * sinY + pt.cZ * cosY
 
-        // Add pulse effect when active
-        const pulse = isEnabled ? Math.sin(time * 2) * 0.05 : 0
+        // Interpolate between flowing wave layout and rotating cube layout
+        const curX = THREE.MathUtils.lerp(pt.wX, cx * (1 + pulse), morph)
+        const curY = THREE.MathUtils.lerp(animatedWaveY, pt.cY * (1 + pulse), morph)
+        const curZ = THREE.MathUtils.lerp(animatedWaveZ, cz * (1 + pulse), morph)
 
-        // Lerp between wave and cube
-        positions[i3] = THREE.MathUtils.lerp(waveX, rotatedX * (1 + pulse), morph)
-        positions[i3 + 1] = THREE.MathUtils.lerp(animatedWaveY, cubeY * (1 + pulse), morph)
-        positions[i3 + 2] = THREE.MathUtils.lerp(animatedWaveZ, rotatedZ * (1 + pulse), morph)
+        tempPos[p * 3] = curX
+        tempPos[p * 3 + 1] = curY
+        tempPos[p * 3 + 2] = curZ
+
+        // Apply position to Sphere joint
+        if (sphereInstancedRef.current) {
+          _m.makeTranslation(curX, curY, curZ)
+          // Add a subtle wave-driven scale pulse to the joints
+          const scale = 1.0 + Math.sin(time * 4.0 + pt.wX) * 0.15
+          _m.scale(new THREE.Vector3(scale, scale, scale))
+          sphereInstancedRef.current.setMatrixAt(ptIdx++, _m)
+        }
       }
 
-      pointsRef.current.geometry.attributes.position.needsUpdate = true
-    }
+      // Apply positions to Connecting Cylinders
+      if (cylinderInstancedRef.current) {
+        for (let p = 0; p < POINTS_PER_RIBBON - 1; p++) {
+          _p0.set(tempPos[p * 3], tempPos[p * 3 + 1], tempPos[p * 3 + 2])
+          _p1.set(tempPos[(p + 1) * 3], tempPos[(p + 1) * 3 + 1], tempPos[(p + 1) * 3 + 2])
 
-    // Update soul nodes
-    if (soulNodesRef.current) {
-      const positions = soulNodesRef.current.geometry.attributes.position.array as Float32Array
-      const velocities = soulNodeData.velocities
+          const dist = _p0.distanceTo(_p1)
+          if (dist > 0.0001) {
+            _center.addVectors(_p0, _p1).multiplyScalar(0.5)
+            _vec.subVectors(_p1, _p0).normalize()
 
-      for (let i = 0; i < SOUL_NODE_COUNT; i++) {
-        const i3 = i * 3
+            _q.setFromUnitVectors(_up, _vec)
+            _m.compose(_center, _q, new THREE.Vector3(1, dist, 1))
 
-        // Update position with velocity
-        positions[i3] += velocities[i3]
-        positions[i3 + 1] += velocities[i3 + 1]
-        positions[i3 + 2] += velocities[i3 + 2]
-
-        // Contain within bounds (tighter when cube mode)
-        const bounds = isEnabled ? CUBE_SIZE * 0.4 : 1.8
-
-        for (let j = 0; j < 3; j++) {
-          if (Math.abs(positions[i3 + j]) > bounds) {
-            velocities[i3 + j] *= -0.8
-            positions[i3 + j] = Math.sign(positions[i3 + j]) * bounds
+            cylinderInstancedRef.current.setMatrixAt(segIdx++, _m)
+          } else {
+            // Collapse segment completely if dist is somehow 0
+            _m.makeScale(0, 0, 0)
+            cylinderInstancedRef.current.setMatrixAt(segIdx++, _m)
           }
         }
-
-        // Add slight attraction to center
-        velocities[i3] += -positions[i3] * 0.001
-        velocities[i3 + 1] += -positions[i3 + 1] * 0.001
-        velocities[i3 + 2] += -positions[i3 + 2] * 0.001
-
-        // Add orbital motion when in cube mode
-        if (isEnabled) {
-          const orbitSpeed = 0.01
-          velocities[i3] += -positions[i3 + 2] * orbitSpeed
-          velocities[i3 + 2] += positions[i3] * orbitSpeed
-        }
       }
+    } // End ribbon loop
 
-      soulNodesRef.current.geometry.attributes.position.needsUpdate = true
+    if (cylinderInstancedRef.current) cylinderInstancedRef.current.instanceMatrix.needsUpdate = true
+    if (sphereInstancedRef.current) sphereInstancedRef.current.instanceMatrix.needsUpdate = true
+
+    // Animate Soul Nodes
+    if (soulNodesRef.current) {
+      for (let i = 0; i < SOUL_NODE_COUNT; i++) {
+        const node = soulNodeData[i]
+        node.x += node.vx
+        node.y += node.vy
+        node.z += node.vz
+
+        // Bounding box limits (tighter during cube mode)
+        const bounds = isEnabled ? CUBE_SIZE * 0.45 : 2.5
+        if (Math.abs(node.x) > bounds) { node.vx *= -0.7; node.x = Math.sign(node.x) * bounds }
+        if (Math.abs(node.y) > bounds) { node.vy *= -0.7; node.y = Math.sign(node.y) * bounds }
+        if (Math.abs(node.z) > bounds) { node.vz *= -0.7; node.z = Math.sign(node.z) * bounds }
+
+        // Spring attraction to center
+        node.vx += -node.x * 0.0005
+        node.vy += -node.y * 0.0005
+        node.vz += -node.z * 0.0005
+
+        // Vortex spin in cube mode
+        if (isEnabled) {
+          const orbitSpeed = 0.03
+          node.vx += -node.z * orbitSpeed
+          node.vz += node.x * orbitSpeed
+        }
+
+        _m.makeTranslation(node.x, node.y, node.z)
+        soulNodesRef.current.setMatrixAt(i, _m)
+      }
+      soulNodesRef.current.instanceMatrix.needsUpdate = true
     }
   })
 
   return (
     <group>
-      {/* Main plasma particles */}
-      <points ref={pointsRef}>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            args={[wavePositions.slice(), 3]}
-          />
-          <bufferAttribute
-            attach="attributes-color"
-            args={[colors, 3]}
-          />
-          <bufferAttribute
-            attach="attributes-size"
-            args={[sizes, 1]}
-          />
-        </bufferGeometry>
-        <pointsMaterial
-          size={0.02}
-          vertexColors
+      {/* 3D Connecting Pipes using InstancedMesh */}
+      <instancedMesh ref={cylinderInstancedRef} args={[undefined, undefined, TOTAL_SEGMENTS]}>
+        <cylinderGeometry args={[PIPE_RADIUS, PIPE_RADIUS, 1.0, 5]} />
+        <meshStandardMaterial
+          metalness={0.7}
+          roughness={0.2}
           transparent
           opacity={0.85}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          sizeAttenuation
         />
-      </points>
+      </instancedMesh>
 
-      {/* Soul nodes (orange floating particles) */}
-      <points ref={soulNodesRef}>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            args={[soulNodeData.positions.slice(), 3]}
-          />
-        </bufferGeometry>
-        <pointsMaterial
-          size={0.06}
-          color="#ff8844"
+      {/* 3D Joints using InstancedMesh (Spheres for smooth continuous pipes) */}
+      <instancedMesh ref={sphereInstancedRef} args={[undefined, undefined, TOTAL_POINTS]}>
+        <sphereGeometry args={[PIPE_RADIUS * 1.1, 8, 8]} />
+        <meshStandardMaterial
+          metalness={0.7}
+          roughness={0.2}
           transparent
-          opacity={0.9}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          sizeAttenuation
+          opacity={0.85}
         />
-      </points>
+      </instancedMesh>
 
-      {/* Glow core */}
-      <mesh scale={isEnabled ? 0.3 : 0.15}>
-        <sphereGeometry args={[1, 16, 16]} />
-        <meshBasicMaterial
-          color="#ff6633"
-          transparent
-          opacity={0.4}
-          blending={THREE.AdditiveBlending}
-        />
+      {/* Soul nodes (orange plasma particles) */}
+      <instancedMesh ref={soulNodesRef} args={[undefined, undefined, SOUL_NODE_COUNT]}>
+        <sphereGeometry args={[0.045, 12, 12]} />
+        <meshStandardMaterial color="#ff8844" emissive="#ff6600" emissiveIntensity={2} />
+      </instancedMesh>
+
+      {/* Core glow behind the structure */}
+      <mesh scale={isEnabled ? 0.35 : 0.1}>
+        <sphereGeometry args={[1, 32, 32]} />
+        <meshBasicMaterial color="#ff4400" transparent opacity={0.3} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
   )
