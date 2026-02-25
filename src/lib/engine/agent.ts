@@ -31,10 +31,11 @@ export class AgentInstance implements Agent {
     this.model = config.model;
     this.tools = config.tools || [];
     this.maxConcurrent = config.maxConcurrent || 2;
-    // Use /tmp for workspace in production environment (Vercel)
-    const os = require('os');
-    const baseDir = process.env.NODE_ENV === 'production' ? os.tmpdir() : process.cwd();
-    this.workspace = join(baseDir, 'data', 'workspaces', this.id);
+    // WORKSPACE_ROOT → persistent volume (Railway/Docker/S3-mount)
+    // fallback: cwd/data in dev, /tmp/cubiqo-workspaces in prod (ephemeral but consistent with sandbox.ts)
+    const baseDir = process.env.WORKSPACE_ROOT
+      || (process.env.NODE_ENV === 'production' ? '/tmp/cubiqo-workspaces' : join(process.cwd(), 'data'));
+    this.workspace = join(baseDir, 'workspaces', this.id);
     this.createdAt = new Date();
     this.updatedAt = new Date();
 
