@@ -144,6 +144,7 @@ async function executeCommand(
     const child = spawn(command, [], {
       cwd: workspaceDir,
       shell: '/bin/bash',
+      stdio: ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
         PATH: '/usr/local/bin:/usr/bin:/bin',
