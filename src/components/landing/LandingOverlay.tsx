@@ -29,7 +29,7 @@ export function LandingOverlay({ showTopRightCTA = false }: LandingOverlayProps)
                 <motion.p
                     animate={{ opacity: [0.4, 0.8, 0.4], scale: [1, 1.05, 1] }}
                     transition={{ duration: 3, repeat: Infinity }}
-                    className="text-xl tracking-[0.3em] font-light text-cyan-400 drop-shadow-[0_0_15px_rgba(0,255,255,0.6)] cursor-pointer pointer-events-auto hover:text-white transition-colors uppercase"
+                    className="text-xl tracking-[0.3em] font-light text-cyan-400 cursor-pointer pointer-events-auto hover:text-white transition-colors uppercase"
                 >
                     CLICK TO COMMENCE
                 </motion.p>
