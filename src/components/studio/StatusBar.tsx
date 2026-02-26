@@ -1,21 +1,60 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-export default function StatusBar() {
+interface StatusBarProps {
+  language?: string;
+  fileName?: string;
+}
+
+export default function StatusBar({ language = 'TypeScript React', fileName }: StatusBarProps) {
   const [isConnected, setIsConnected] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [buildStatus, setBuildStatus] = useState<'idle' | 'building' | 'success' | 'error'>('idle');
 
-  // Simulate connection status
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // In production, check actual WebSocket connection
-      setIsConnected(Math.random() > 0.1); // 90% connected
-    }, 5000);
-    return () => clearInterval(interval);
+  // Real connection detection via navigator.onLine + periodic health check
+  const checkConnection = useCallback(async () => {
+    // Start with browser online status as baseline
+    if (!navigator.onLine) {
+      setIsConnected(false);
+      return;
+    }
+    // Optionally verify with a lightweight API ping
+    try {
+      const res = await fetch('/api/health', {
+        method: 'HEAD',
+        cache: 'no-store',
+        signal: AbortSignal.timeout(3000),
+      });
+      setIsConnected(res.ok);
+    } catch {
+      // Network request failed but browser says online — trust navigator
+      // (API might not exist yet in dev, so don't flash Disconnected)
+      setIsConnected(navigator.onLine);
+    }
   }, []);
+
+  useEffect(() => {
+    // Set initial state from browser
+    setIsConnected(navigator.onLine);
+
+    // Listen for browser online/offline events (instant feedback)
+    const handleOnline = () => setIsConnected(true);
+    const handleOffline = () => setIsConnected(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Periodic health check every 30s (non-aggressive)
+    checkConnection();
+    const interval = setInterval(checkConnection, 30000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(interval);
+    };
+  }, [checkConnection]);
 
   const getConnectionStatus = () => {
     if (isConnected) {
@@ -101,7 +140,7 @@ export default function StatusBar() {
           UTF-8
         </div>
         <div className="text-gray-400">
-          TypeScript React
+          {language}
         </div>
       </div>
     </div>

@@ -1,47 +1,70 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LineChart, MessageSquare, BookOpen, Brain } from 'lucide-react';
+import { LineChart, MessageSquare, BookOpen, Brain, Users, Activity } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
-interface ConversationRow {
-    id: string;
-    color_state: string;
-    created_at: string;
+interface AnalyticsData {
+    totalUsers: number;
+    activeUsers7d: number;
+    activeUsers30d: number;
+    totalSessions: number;
+    activeSessions: number;
+    avgSessionDurationMinutes: number;
+    totalConversations: number;
+    totalMessages: number;
 }
 
-interface AnalyticsData {
-    totalConversations: number;
-    totalJournalEntries: number;
-    totalMemories: number;
-    recentConversations: ConversationRow[];
+async function getAuthHeaders(): Promise<Record<string, string>> {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+    return headers;
 }
 
 export default function AnalyticsPage() {
     const [data, setData] = useState<AnalyticsData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const supabase = createClient();
-        Promise.all([
-            (supabase as any).from('conversations').select('id, color_state, created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(10),
-            (supabase as any).from('journal_entries').select('id', { count: 'exact' }).limit(1),
-            (supabase as any).from('journey_memory').select('id', { count: 'exact' }).limit(1),
-        ]).then(([convRes, journalRes, memRes]: any[]) => {
-            setData({
-                totalConversations: convRes.count ?? 0,
-                totalJournalEntries: journalRes.count ?? 0,
-                totalMemories: memRes.count ?? 0,
-                recentConversations: (convRes.data as ConversationRow[]) ?? [],
-            });
-            setLoading(false);
-        });
+        async function fetchAnalytics() {
+            try {
+                const headers = await getAuthHeaders();
+                const res = await fetch('/api/admin/analytics/overview', { headers });
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    throw new Error(body.error || `HTTP ${res.status}`);
+                }
+                const json = await res.json();
+                const d = json.data ?? {};
+                setData({
+                    totalUsers: d.users?.total ?? 0,
+                    activeUsers7d: d.users?.active7d ?? 0,
+                    activeUsers30d: d.users?.active30d ?? 0,
+                    totalSessions: d.sessions?.total ?? 0,
+                    activeSessions: d.sessions?.activeNow ?? 0,
+                    avgSessionDurationMinutes: d.sessions?.avgDurationMinutes ?? 0,
+                    totalConversations: d.content?.totalConversations ?? 0,
+                    totalMessages: d.content?.totalMessages ?? 0,
+                });
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to load analytics');
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchAnalytics();
     }, []);
 
     const statCards = [
-        { label: 'Conversations', value: data?.totalConversations ?? 0, icon: MessageSquare, color: 'text-blue-400' },
-        { label: 'Journal Entries', value: data?.totalJournalEntries ?? 0, icon: BookOpen, color: 'text-green-400' },
-        { label: 'Memories', value: data?.totalMemories ?? 0, icon: Brain, color: 'text-purple-400' },
+        { label: 'Total Users', value: data?.totalUsers ?? 0, icon: Users, color: 'text-blue-400' },
+        { label: 'Active (7d)', value: data?.activeUsers7d ?? 0, icon: Activity, color: 'text-green-400' },
+        { label: 'Active (30d)', value: data?.activeUsers30d ?? 0, icon: Activity, color: 'text-teal-400' },
+        { label: 'Total Sessions', value: data?.totalSessions ?? 0, icon: LineChart, color: 'text-purple-400' },
+        { label: 'Conversations', value: data?.totalConversations ?? 0, icon: MessageSquare, color: 'text-yellow-400' },
+        { label: 'Total Messages', value: data?.totalMessages ?? 0, icon: Brain, color: 'text-pink-400' },
     ];
 
     return (
@@ -53,6 +76,8 @@ export default function AnalyticsPage() {
 
             {loading ? (
                 <p className="text-sm text-gray-500">Loading analytics…</p>
+            ) : error ? (
+                <p className="text-sm text-red-400">Error: {error}</p>
             ) : (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -68,24 +93,25 @@ export default function AnalyticsPage() {
                     </div>
 
                     <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                        <h2 className="text-lg font-bold mb-4">Recent Conversations</h2>
-                        {data?.recentConversations.length === 0 ? (
-                            <p className="text-sm text-gray-500">No conversations yet.</p>
-                        ) : (
-                            <div className="space-y-2">
-                                {data?.recentConversations.map((c) => (
-                                    <div key={c.id} className="flex items-center justify-between py-2 border-b border-white/5 text-sm">
-                                        <span className="font-mono text-gray-400">{c.id.slice(0, 12)}…</span>
-                                        <span className={`px-2 py-0.5 rounded text-xs ${c.color_state === 'green' ? 'bg-green-500/10 text-green-400' :
-                                                c.color_state === 'yellow' ? 'bg-yellow-500/10 text-yellow-400' :
-                                                    c.color_state === 'red' ? 'bg-red-500/10 text-red-400' :
-                                                        'bg-gray-500/10 text-gray-400'
-                                            }`}>{c.color_state}</span>
-                                        <span className="text-gray-500">{new Date(c.created_at).toLocaleDateString()}</span>
-                                    </div>
-                                ))}
+                        <h2 className="text-lg font-bold mb-4">Session Summary</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                                <p className="text-gray-400">Active Now</p>
+                                <p className="text-2xl font-bold text-green-400">{data?.activeSessions ?? 0}</p>
                             </div>
-                        )}
+                            <div>
+                                <p className="text-gray-400">Avg Session Duration</p>
+                                <p className="text-2xl font-bold">{(data?.avgSessionDurationMinutes ?? 0).toFixed(1)} min</p>
+                            </div>
+                            <div>
+                                <p className="text-gray-400">Avg Messages / Conversation</p>
+                                <p className="text-2xl font-bold">
+                                    {data && data.totalConversations > 0
+                                        ? (data.totalMessages / data.totalConversations).toFixed(1)
+                                        : '0.0'}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </>
             )}

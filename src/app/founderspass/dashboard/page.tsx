@@ -47,16 +47,12 @@ export default function FoundersDashboard() {
     // Check auth and load features
     useEffect(() => {
         const checkAuth = async () => {
-            const founderAuth = sessionStorage.getItem('founders_pass_auth')
+            // Clear any legacy PIN-based auth tokens (security fix)
+            try {
+                sessionStorage.removeItem('founders_pass_auth')
+            } catch { }
 
-            // 1. Immediate Bypass if PIN was used
-            if (founderAuth === 'true') {
-                setIsAuthed(true)
-                loadFeaturesWithTimeout()
-                return
-            }
-
-            // 2. Fallback to Supabase Auth
+            // Use real Supabase Authentication only
             try {
                 const { data: { user } } = await supabase.auth.getUser()
                 const isFounderUser = checkIsFounder(user?.email)
@@ -66,18 +62,13 @@ export default function FoundersDashboard() {
                     loadFeaturesWithTimeout()
                     return
                 }
-
-                // If not founder user but session is valid, what then?
-                // Currently, if session PIN is valid, we already returned.
-                // If Supabase user is not founder, we should NOT grant access.
-                // So falling through to redirect is correct behavior here.
             } catch (e) {
                 console.error("Auth check error", e)
             }
 
-            // 3. Failed
+            // Failed — redirect to proper auth
             console.log('[Dashboard] Auth failed, redirecting...')
-            router.push('/founderspass')
+            router.push('/founders-pass')
         }
 
         const loadFeaturesWithTimeout = async () => {
@@ -413,7 +404,7 @@ export default function FoundersDashboard() {
                             <button
                                 onClick={() => {
                                     sessionStorage.removeItem('founders_pass_auth')
-                                    router.push('/founderspass')
+                                    router.push('/founders-pass')
                                 }}
                                 className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
                             >

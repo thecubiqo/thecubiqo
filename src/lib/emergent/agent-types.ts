@@ -230,7 +230,7 @@ export interface CreditTransaction {
 // Agent Orchestrator Types
 // ============================================================================
 
-export type SubAgentType = 'code' | 'test' | 'image' | 'integration' | 'human' | 'migration' | 'media'
+export type SubAgentType = 'code' | 'test' | 'image' | 'integration' | 'human' | 'migration' | 'media' | 'marketing' | 'sales'
 
 export interface SubAgentRequest {
   type: SubAgentType
@@ -339,6 +339,28 @@ export interface AskHumanParams {
 export interface DeployParams {
   environment: 'preview' | 'production'
   version?: string
+}
+
+export interface MarketingParams {
+  action: 'create-campaign' | 'schedule-post' | 'get-metrics'
+  campaign?: {
+    name: string
+    platform: 'twitter' | 'linkedin' | 'instagram' | 'email'
+    content: Record<string, unknown>
+    scheduledAt?: string
+  }
+}
+
+export interface SalesParams {
+  action: 'add-lead' | 'update-status' | 'log-outreach'
+  lead?: {
+    id?: string
+    name: string
+    email?: string
+    company?: string
+    status?: string
+    notes?: string
+  }
 }
 
 // ============================================================================

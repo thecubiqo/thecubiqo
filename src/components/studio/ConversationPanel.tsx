@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import LoadingSpinner from './LoadingSpinner';
+import { Zap, Activity } from 'lucide-react';
 
 interface ConversationPanelProps {
   onCodeGenerated?: (code: string, language: string) => void;
@@ -23,16 +24,14 @@ export default function ConversationPanel({ onCodeGenerated }: ConversationPanel
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-    
+
     const userMessage = input;
     setInput('');
-    
-    // Add user message
+
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
-    
+
     try {
-      // Call real AI API
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -40,133 +39,134 @@ export default function ConversationPanel({ onCodeGenerated }: ConversationPanel
           message: userMessage,
           sessionId: 'studio-session',
           context: 'studio-builder',
-          history: messages.slice(-10), // Last 10 messages for context
+          history: messages.slice(-10),
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get AI response');
-      }
-
+      if (!response.ok) throw new Error('Failed to get AI response');
       const data = await response.json();
-      
       const aiContent = data.response || 'I apologize, I couldn\'t process that request. Please try again.';
-      
-      // Add AI response
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: aiContent,
-      }]);
 
-      // Extract code blocks and push to editor
+      setMessages(prev => [...prev, { role: 'assistant', content: aiContent }]);
+
       if (onCodeGenerated) {
         const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
         let match;
         while ((match = codeBlockRegex.exec(aiContent)) !== null) {
-          const lang = match[1] || 'typescript';
-          const code = match[2].trim();
-          if (code) {
-            onCodeGenerated(code, lang);
-            break; // Only apply first code block
-          }
+          onCodeGenerated(match[2].trim(), match[1] || 'typescript');
+          break;
         }
       }
     } catch (error) {
-      console.error('AI API error:', error);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Sorry, I encountered an error. Please try again.' 
-      }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'SYSTEM_ERROR: Connection to LLM kernel interrupted.' }]);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-900">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-700 bg-gray-800">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="text-2xl">💬</div>
-          <h2 className="text-lg font-semibold bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent">
-            AI Assistant
-          </h2>
+    <div className="flex flex-col h-full bg-black/20">
+      {/* HUD Header */}
+      <div className="p-5 border-b border-white/10 bg-white/5 backdrop-blur-md">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_cyan]" />
+            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-cyan-400">
+              Brain Core <span className="text-white/20">//</span> Uplink
+            </h2>
+          </div>
+          <span className="text-[10px] text-white/30 font-bold uppercase tracking-widest">v4.0.2</span>
         </div>
-        <p className="text-xs text-gray-400">Build with conversation</p>
+        <div className="flex gap-4">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1 h-1 rounded-full bg-green-500" />
+            <span className="text-[9px] text-green-500 font-bold uppercase italic">Ready</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-1 h-1 rounded-full bg-cyan-500 animate-pulse" />
+            <span className="text-[9px] text-cyan-500 font-bold uppercase italic">Syncing</span>
+          </div>
+        </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Messages Window */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center px-6">
-            <div className="text-6xl mb-4">🤖</div>
-            <h3 className="text-lg font-semibold text-white mb-2">Start Building with AI</h3>
-            <p className="text-sm text-gray-400 mb-4">
-              Describe your app and I'll help you build it. Try:
-            </p>
-            <div className="space-y-2 text-left">
-              <button
-                onClick={() => setInput("Create a Next.js blog with Tailwind CSS")}
-                className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
-              >
-                💡 "Create a Next.js blog with Tailwind CSS"
-              </button>
-              <button
-                onClick={() => setInput("Build a todo app with React")}
-                className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
-              >
-                ✅ "Build a todo app with React"
-              </button>
-              <button
-                onClick={() => setInput("Create a landing page for a startup")}
-                className="w-full text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 rounded-lg text-sm text-gray-300 transition-colors border border-gray-700 hover:border-teal-500"
-              >
-                🚀 "Create a landing page for a startup"
-              </button>
+          <div className="h-full flex flex-col items-center justify-center text-center px-6 py-12">
+            <div className="p-6 rounded-full bg-cyan-500/10 border border-cyan-500/20 mb-8 group relative overflow-hidden">
+              <div className="absolute inset-0 bg-cyan-400/5 animate-pulse" />
+              <Zap className="w-12 h-12 text-cyan-400 group-hover:scale-110 transition-transform relative z-10" />
             </div>
+
+            <h3 className="text-xl font-black uppercase tracking-[0.2em] text-white mb-4">Initialize Neutral_Kernel</h3>
+
+            {/* ── Luxury Brand Startup Templates ─── */}
+            <div className="grid grid-cols-1 gap-3 w-full max-w-sm mb-12">
+              {[
+                { label: '🏛️ Luxury Brand Storefront', intent: 'Build a luxury brand e-commerce storefront with Shopify Plus, product gallery, and Stripe checkout' },
+                { label: '👕 Product Page + BNPL', intent: 'Create a product page for a luxury apparel brand with size selector, multiple images, and buy-now-pay-later via Affirm and Klarna' },
+                { label: '📧 VIP Email Flows', intent: 'Build a Klaviyo email flow for a luxury brand launch — welcome series, abandoned cart, VIP segment, and post-purchase upsell' },
+                { label: '📊 Admin Analytics', intent: 'Create a luxury brand admin dashboard showing Triple Whale attribution, Shopify orders, ShipBob fulfillment status, and Gorgias support tickets' },
+                { label: '🧴 Fragrance Landing', intent: 'Build a Next.js landing page for a luxury fragrance brand with hero video, product showcase, Stripe payments, and waitlist capture via Resend' }
+              ].map((template, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setInput(template.intent)}
+                  className="w-full text-left px-4 py-3 bg-white/5 hover:bg-cyan-500/10 rounded-xl text-[11px] font-bold text-white/70 transition-all border border-white/5 hover:border-cyan-500/40 uppercase tracking-widest group"
+                >
+                  <span className="group-hover:text-cyan-400 transition-colors">{template.label}</span>
+                </button>
+              ))}
+            </div>
+            <h3 className="text-sm font-black uppercase tracking-widest text-white mb-2 underline underline-offset-8 decoration-cyan-500/50">Describe Intent</h3>
+            <p className="text-[10px] text-white/40 leading-relaxed max-w-[200px] uppercase">Initialize neural construction by inputting a high-level architectural descriptor below.</p>
           </div>
         ) : (
           <>
             {messages.map((message, i) => (
-              <div key={i} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                <div className={`max-w-[85%] rounded-lg p-3 shadow-lg ${
-                  message.role === 'user' 
-                    ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white' 
-                    : 'bg-gray-800 text-gray-100 border border-gray-700'
-                }`}>
-                  <div className="text-sm whitespace-pre-wrap">
-                    {message.content.split(/(```\w*\n[\s\S]*?```)/g).map((part, j) => {
-                      const codeMatch = part.match(/```(\w*)\n([\s\S]*?)```/);
-                      if (codeMatch) {
-                        return (
-                          <div key={j} className="my-2">
-                            <div className="flex items-center justify-between bg-gray-900/50 px-3 py-1 rounded-t text-xs text-gray-400">
-                              <span>{codeMatch[1] || 'code'}</span>
-                              {onCodeGenerated && (
-                                <button
-                                  onClick={() => onCodeGenerated(codeMatch[2].trim(), codeMatch[1] || 'typescript')}
-                                  className="text-teal-400 hover:text-teal-300 transition-colors"
-                                >
-                                  Apply to Editor →
-                                </button>
-                              )}
+              <div key={i} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+                <div className={`max-w-[90%] relative group ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
+                  <div className={`text-[8px] font-black uppercase tracking-widest mb-1.5 ${message.role === 'user' ? 'text-white/40' : 'text-cyan-400/80'}`}>
+                    {message.role === 'user' ? 'Local_User_ID_07' : 'Emergent_AI_Agent'}
+                  </div>
+                  <div className={`p-4 rounded-2xl backdrop-blur-xl border transition-all ${message.role === 'user'
+                    ? 'bg-white/5 border-white/10 text-white rounded-tr-none shadow-xl'
+                    : 'bg-cyan-500/5 border-cyan-500/20 text-cyan-50 border-tl-none shadow-[0_0_30px_rgba(0,255,255,0.05)]'
+                    }`}>
+                    <div className="text-sm leading-relaxed whitespace-pre-wrap font-sans tracking-wide">
+                      {message.content.split(/(```\w*\n[\s\S]*?```)/g).map((part, j) => {
+                        const codeMatch = part.match(/```(\w*)\n([\s\S]*?)```/);
+                        if (codeMatch) {
+                          return (
+                            <div key={j} className="my-4 border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+                              <div className="flex items-center justify-between bg-white/5 px-4 py-2 border-b border-white/10">
+                                <span className="text-[10px] uppercase font-black tracking-widest text-white/40">{codeMatch[1] || 'code_block'}</span>
+                                {onCodeGenerated && (
+                                  <button
+                                    onClick={() => onCodeGenerated(codeMatch[2].trim(), codeMatch[1] || 'typescript')}
+                                    className="text-[10px] font-black uppercase tracking-widest text-cyan-400 hover:text-white transition-colors flex items-center gap-1"
+                                  >
+                                    <Activity className="w-3 h-3" /> Mount System
+                                  </button>
+                                )}
+                              </div>
+                              <pre className="bg-black/40 p-4 text-xs overflow-x-auto selection:bg-cyan-500/30">
+                                <code className="text-cyan-200/90">{codeMatch[2].trim()}</code>
+                              </pre>
                             </div>
-                            <pre className="bg-gray-900/80 px-3 py-2 rounded-b text-xs overflow-x-auto">
-                              <code>{codeMatch[2].trim()}</code>
-                            </pre>
-                          </div>
-                        );
-                      }
-                      return <span key={j}>{part}</span>;
-                    })}
+                          );
+                        }
+                        return <span key={j}>{part}</span>;
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
             {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                  <LoadingSpinner size="sm" />
+              <div className="flex justify-start animate-pulse">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400 p-4 bg-cyan-400/5 border border-cyan-400/20 rounded-2xl">
+                  Deciphering Intent...
                 </div>
               </div>
             )}
@@ -175,31 +175,28 @@ export default function ConversationPanel({ onCodeGenerated }: ConversationPanel
         )}
       </div>
 
-      {/* Input */}
-      <div className="p-4 border-t border-gray-700 bg-gray-800">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSend()}
-            placeholder={isLoading ? "AI is thinking..." : "Describe what you want to build..."}
-            disabled={isLoading}
-            className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:opacity-50 transition-all placeholder-gray-500"
-          />
-          <button
-            onClick={handleSend}
-            disabled={isLoading || !input.trim()}
-            className="px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-teal-500/50"
-          >
-            {isLoading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            )}
-          </button>
+      {/* Input Terminal */}
+      <div className="p-6 border-t border-white/10 bg-white/5 backdrop-blur-xl">
+        <div className="relative group">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl blur opacity-10 group-focus-within:opacity-40 transition-opacity" />
+          <div className="relative flex gap-1 bg-black/60 rounded-2xl border border-white/10 overflow-hidden p-1">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !isLoading) { e.preventDefault(); handleSend(); } }}
+              placeholder={isLoading ? "SYSTEM_BUSY..." : "CMD > ENTER INSTRUCTION..."}
+              disabled={isLoading}
+              className="flex-1 bg-transparent border-none px-5 py-4 text-xs font-bold tracking-widest focus:outline-none disabled:opacity-50 placeholder-white/20 text-white selection:bg-cyan-500/30"
+            />
+            <button
+              onClick={handleSend}
+              disabled={isLoading || !input.trim()}
+              className={`px-6 bg-white text-black rounded-xl font-black uppercase tracking-tighter transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:transform-none flex items-center justify-center ${isLoading ? 'animate-pulse' : ''}`}
+            >
+              Uplink
+            </button>
+          </div>
         </div>
       </div>
     </div>

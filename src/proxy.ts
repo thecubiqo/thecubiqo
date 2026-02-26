@@ -32,12 +32,12 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   // Content Security Policy - Prevent XSS attacks
   const cspDirectives = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.supabase.co https://*.vercel.app https://vercel.live https://va.vercel-scripts.com",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.supabase.co https://*.vercel.app https://vercel.live https://va.vercel-scripts.com https://js.stripe.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' blob: data: https://*.supabase.co https://*.vercel.app https://raw.githack.com",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://*.supabase.co https://vercel.live wss://*.supabase.co https://raw.githack.com",
-    "frame-src 'self' https://vercel.live",
+    "connect-src 'self' https://*.supabase.co https://vercel.live wss://*.supabase.co https://raw.githack.com https://api.stripe.com",
+    "frame-src 'self' https://vercel.live https://js.stripe.com https://hooks.stripe.com",
     "worker-src 'self' blob:",
     "media-src 'self' blob: data:",
     "object-src 'none'",
@@ -69,6 +69,10 @@ export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const url = request.nextUrl.clone()
   const path = url.pathname.toLowerCase()
+
+  // === Hostname-Based Routing (cubiqo.dev domain) ===
+  const hostname = request.headers.get('host') || ''
+  const host = hostname.split(':')[0] // Strip port for local dev
 
   // 1. Path Normalization
   if (path.startsWith('/found') && path !== '/founderspass' && !path.startsWith('/founderspass/')) {
@@ -115,6 +119,16 @@ export default async function proxy(request: NextRequest) {
 
   // 4. Apply Security Headers
   response = applySecurityHeaders(response)
+
+  // 4b. Hostname-Based Routing (cubiqo.dev domain)
+  // Main cubiqo.dev domain → serve Studio/Landing (handled by middleware.ts rewrite)
+  // Wildcard *.cubiqo.dev → project preview routing
+  if (host.endsWith('.cubiqo.dev') && host !== 'cubiqo.dev' && host !== 'www.cubiqo.dev') {
+    const subdomain = host.replace('.cubiqo.dev', '')
+    // Set header so downstream pages can read the project slug
+    response.headers.set('x-cubiqo-project-slug', subdomain)
+    response.headers.set('x-cubiqo-domain', host)
+  }
 
   // 5. Founder Gate
   if (path.startsWith('/admin') || path.startsWith('/founderspass')) {

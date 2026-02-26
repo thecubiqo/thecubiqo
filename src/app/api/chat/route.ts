@@ -530,8 +530,56 @@ export async function POST(request: NextRequest) {
 
     // Adaptive Learning: Get or create user model for this session
     let userModel: UserAdaptiveModel | null = null
-    if (sessionId) {
-      userModel = userModelStore.get(sessionId) || createUserModel(sessionId)
+    const authHeader = request.headers.get('Authorization')
+    let userId: string | null = null
+
+    if (authHeader) {
+      try {
+        const { data: { user } } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''))
+        if (user) userId = user.id
+      } catch (e) {
+        console.error('[Adaptive Learning] Auth error:', e)
+      }
+    }
+
+    if (sessionId || userId) {
+      try {
+        // Try loading from memory first (cache)
+        userModel = userModelStore.get(userId || sessionId!) || null
+
+        if (!userModel) {
+          // Fallback to Supabase if not in memory
+          const query = supabaseAdmin.from('user_adaptive_models').select('*')
+
+          if (userId) {
+            query.eq('user_id', userId)
+          } else {
+            query.eq('session_id', sessionId)
+          }
+
+          const { data, error } = await query.single()
+
+          if (data && !error) {
+            userModel = {
+              userId: data.user_id || 'guest',
+              weights: data.weights,
+              totalInteractions: data.total_interactions,
+              firstSeenAt: data.first_seen_at,
+              lastSeenAt: data.last_seen_at,
+              learningRate: Number(data.learning_rate),
+              version: data.version
+            }
+            // Populate cache
+            userModelStore.set(userId || sessionId!, userModel)
+          } else {
+            // Create new model if not found
+            userModel = createUserModel(userId || 'guest')
+          }
+        }
+      } catch (e) {
+        console.error('[Adaptive Learning] Load error:', e)
+        userModel = createUserModel(userId || 'guest')
+      }
     }
 
     // Get the last AI response for conversion trigger detection
@@ -642,9 +690,6 @@ export async function POST(request: NextRequest) {
           provider = 'openai'
         } catch (openaiError) {
           console.warn('OpenAI failed, falling back to fallback chain...')
-          // ... (this part could also be refactored but let's keep it simple and just use the same logic if needed)
-          // For brevity, I'll ensure the above chain is robust enough.
-          // Let's actually just make it fallback to the common chain if MiniMax is skipped
           try {
             content = await callOpenRouter(fullSystemPrompt, messages)
             provider = 'openrouter'
@@ -659,7 +704,7 @@ export async function POST(request: NextRequest) {
     const aiResponse: AIResponse = parseResponse(content)
 
     // Adaptive Learning: Update user model with this interaction signal
-    if (sessionId && userModel) {
+    if (userModel) {
       const engagement = classifyEngagement(
         message.length,
         message.includes('?'),
@@ -675,7 +720,35 @@ export async function POST(request: NextRequest) {
         usedVoice: usedVoice,
       }
       const updatedModel = updateUserModel(userModel, signal)
-      userModelStore.set(sessionId, updatedModel)
+
+      // Update memory (cache)
+      userModelStore.set(userId || sessionId!, updatedModel)
+
+      // Persist to Supabase asynchronously (don't block the response)
+      const upsertPromise = (async () => {
+        try {
+          const { error } = await supabaseAdmin
+            .from('user_adaptive_models')
+            .upsert({
+              user_id: userId,
+              session_id: userId ? null : sessionId,
+              weights: updatedModel.weights,
+              total_interactions: updatedModel.totalInteractions,
+              last_seen_at: updatedModel.lastSeenAt,
+              learning_rate: updatedModel.learningRate,
+              version: updatedModel.version,
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: userId ? 'user_id' : 'session_id'
+            })
+
+          if (error) console.error('[Adaptive Learning] Persist error:', error)
+        } catch (e) {
+          console.error('[Adaptive Learning] Persist exception:', e)
+        }
+      })()
+
+      // We don't await the upsertPromise to keep response fast
     }
 
     return NextResponse.json({
@@ -697,13 +770,24 @@ export async function POST(request: NextRequest) {
 }
 
 // Handle OPTIONS for CORS
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin') || ''
+  const allowedOrigins = [
+    'https://cubiqo.ai',
+    'https://www.cubiqo.ai',
+    'http://localhost:3000',
+    'http://localhost:3001',
+  ]
+  // Also allow Vercel preview deployments
+  const isAllowed = allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')
+
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': isAllowed ? origin : 'https://cubiqo.ai',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, x-byo-claude-key'
+      'Access-Control-Allow-Headers': 'Content-Type, x-byo-claude-key, Authorization',
+      'Access-Control-Max-Age': '86400',
     }
   })
 }

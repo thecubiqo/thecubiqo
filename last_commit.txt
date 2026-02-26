@@ -1,0 +1,5 @@
+47185c1 Merge branch 'main' of https://github.com/thecubiqo/thecubiqo
+97c5541 EMERGENCY FIX: Move app to root, add Supabase env vars, fix Next.js config
+1393e92 Merge pull request #198 from thecubiqo/copilot/fix-main-branch-issue
+e25e9f4 Merge branch 'main' of https://github.com/thecubiqo/thecubiqo
+8ff3f1f fix: Update next.config.js to use src directory for App Router

@@ -78,7 +78,7 @@ export default function PreviewPanel({ code, language }: PreviewPanelProps = {})
   const [previewHtml, setPreviewHtml] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'mobile' | 'tablet'>('desktop');
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const debounceRef = useRef<NodeJS.Timeout>(undefined);
 

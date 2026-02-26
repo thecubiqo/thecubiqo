@@ -36,6 +36,9 @@ import { useBYO } from '@/hooks/useBYO'
 import { useDirectMessages } from '@/hooks/useDirectMessages'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './cube/Cube'
+import Link from 'next/link'
+import { Eye, EyeOff, Code2, Monitor, Zap } from 'lucide-react'
+import { useMultimodalAI } from '@/hooks/useMultimodalAI'
 
 // App states matching legacy
 type AppState = 'idle' | 'listening' | 'thinking' | 'speaking'
@@ -90,6 +93,30 @@ export function FullscreenApp({
   const [proMatchEnabled, setProMatchEnabled] = useState(false)
   const [proMatchCount, setProMatchCount] = useState(0)
 
+  // Biometric / Emergent HUD state
+  const [isWatching, setIsWatching] = useState(false)
+  const { context: aiContext, initialize: initAI, stop: stopAI } = useMultimodalAI({
+    enableVision: true,
+    autoStart: false
+  })
+
+  const toggleWatch = async () => {
+    if (!isWatching) {
+      await initAI()
+      setIsWatching(true)
+    } else {
+      stopAI()
+      setIsWatching(false)
+    }
+  }
+
+  const facePos = (isWatching && aiContext?.vision?.faces && aiContext.vision.faces.length > 0)
+    ? {
+      x: (aiContext.vision.faces[0].bbox.x + aiContext.vision.faces[0].bbox.width / 2 - 0.5) * 2,
+      y: -(aiContext.vision.faces[0].bbox.y + aiContext.vision.faces[0].bbox.height / 2 - 0.5) * 2
+    }
+    : { x: 0, y: 0 }
+
   // Simulate ProMatch working in background (for demo)
   useEffect(() => {
     // Check if ProMatch is enabled
@@ -115,6 +142,8 @@ export function FullscreenApp({
     const interval = setInterval(checkProMatch, 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [isAuthenticated, user])
+
+  // Simulate ProMatch working in background (for demo)
 
   // Early access signup
   const [earlyAccessEmail, setEarlyAccessEmail] = useState('')
@@ -455,7 +484,13 @@ export function FullscreenApp({
           transformOrigin: 'center center'
         }}
       >
-        <EnergyCubeScene colorName={colorName} animationState={animationState} />
+        <EnergyCubeScene
+          colorName={colorName}
+          animationState={animationState}
+          isWatching={isWatching}
+          facePosition={facePos}
+          engagement={aiContext?.userState?.engagement || 'medium'}
+        />
       </div>
 
       {/* Floating Questions - Slow Scroll */}
@@ -517,8 +552,13 @@ export function FullscreenApp({
       >
         <div className="flex justify-between items-center w-full relative">
           {/* Left side - Branded Logo */}
+          {/* Left side - Branded Logo + Dynamic HUD Toggles */}
           <div className="flex items-center gap-4">
+<<<<<<< HEAD
             <div className="w-14 h-14 sm:w-20 sm:h-20 flex items-center justify-center bg-gradient-to-br from-orange-500/30 to-orange-600/20 rounded-2xl border-2 border-orange-500/40 shadow-[0_0_30px_rgba(249,115,22,0.3)] group transition-all duration-500 hover:scale-110 hover:shadow-[0_0_40px_rgba(249,115,22,0.5)]">
+=======
+            <Link href="/" className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-orange-600/10 rounded-full border border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.15)] group transition-all duration-500 hover:scale-105">
+>>>>>>> cd17d274a3da6c8bd0507a7f490d80c1ab98df69
               <svg
                 viewBox="0 0 24 24"
                 className="w-8 h-8 sm:w-12 sm:h-12 text-orange-400 drop-shadow-[0_0_15px_rgba(249,115,22,0.7)]"
@@ -533,7 +573,51 @@ export function FullscreenApp({
                 <path d="M12 12l-8-5" strokeLinecap="round" strokeLinejoin="round" />
                 <circle cx="12" cy="12" r="2" className="fill-orange-500/20" />
               </svg>
-            </div>
+            </Link>
+
+            {!showLandingCube && (
+              <div className="flex items-center gap-2 ml-4">
+                {/* BIG EYE TOGGLE (UPLINK) */}
+                <div className="flex flex-col items-center gap-1 group">
+                  <button
+                    onClick={toggleWatch}
+                    className={`relative h-12 w-12 rounded-xl border transition-all duration-700 flex items-center justify-center overflow-hidden
+                      ${isWatching
+                        ? 'bg-orange-500/20 border-orange-500/60 shadow-[0_0_20px_rgba(255,165,0,0.3)]'
+                        : 'bg-white/5 border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 hover:scale-105'}`}
+                    title={isWatching ? 'Disable Biometric Uplink' : 'Enable Biometric Uplink'}
+                  >
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div className={`absolute inset-0 bg-orange-500/5 ${isWatching ? 'animate-pulse' : 'opacity-0'}`} />
+                    </div>
+                    {isWatching ? (
+                      <Eye className="w-6 h-6 text-orange-400 relative z-10 animate-pulse" />
+                    ) : (
+                      <EyeOff className="w-6 h-6 text-white/30 group-hover:text-orange-400/60 transition-colors relative z-10" />
+                    )}
+                    {isWatching && <div className="absolute top-0 left-0 w-full h-[1px] bg-orange-400/50 animate-scan z-20" />}
+                  </button>
+                  <span className={`text-[8px] font-black uppercase tracking-widest ${isWatching ? 'text-orange-400' : 'text-white/20'}`}>
+                    UPLINK
+                  </span>
+                </div>
+
+                {/* CODER / STUDIO LINK */}
+                <div className="flex flex-col items-center gap-1 group">
+                  <Link
+                    href="/coder"
+                    className="relative h-12 w-12 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-cyan-500/40 flex items-center justify-center transition-all hover:scale-105"
+                    title="Open CubiQo Studio"
+                  >
+                    <Code2 className="w-6 h-6 text-white/30 group-hover:text-cyan-400 transition-colors" />
+                    <div className="absolute top-0 right-0 w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan] translate-x-1/2 -translate-y-1/2" />
+                  </Link>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-white/20 group-hover:text-cyan-400/80 transition-colors">
+                    STUDIO
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right side - Contextual Branding */}
@@ -622,6 +706,29 @@ export function FullscreenApp({
           </svg>
           <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_lime]"></div>
         </button>
+        {/* Coding Panel Access Button */}
+        <a
+          href="/coder"
+          className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isDark
+            ? 'bg-emerald-900/60 hover:bg-emerald-800/80 text-emerald-300 hover:text-emerald-200'
+            : 'bg-emerald-100/80 hover:bg-emerald-200 text-emerald-600 hover:text-emerald-700'
+            } backdrop-blur-md shadow-[0_0_15px_rgba(16,185,129,0.2)] border border-emerald-500/30 hover:scale-110`}
+          title="CubiQo Coding Panel"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="w-6 h-6 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="m18 16 4-4-4-4" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="m6 8-4 4 4 4" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="m14.5 4-5 16" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_5px_yellow]"></div>
+        </a>
+    
     {isAuthenticated && (
           <button
             onClick={() => setShowCQPanel(true)}

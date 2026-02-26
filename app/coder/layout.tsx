@@ -25,10 +25,8 @@ export default function CoderLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-[#0a0a0f] text-white min-h-screen antialiased">
-        {children}
-      </body>
-    </html>
+    <div className="bg-[#0a0a0f] text-white min-h-screen antialiased">
+      {children}
+    </div>
   );
 }

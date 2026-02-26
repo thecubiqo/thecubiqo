@@ -89,8 +89,11 @@ export function validatePath(path: string, workspaceRoot: string): SanitizationR
     };
   }
 
-  // Additional check for absolute paths outside workspace
-  if (!resolvedPath.startsWith(workspaceRoot)) {
+  // Case-insensitive check for Windows, or normalization for Linux
+  const normalizedPath = resolvedPath.toLowerCase()
+  const normalizedRoot = resolve(workspaceRoot).toLowerCase()
+
+  if (!normalizedPath.startsWith(normalizedRoot)) {
     return {
       allowed: false,
       reason: 'Absolute path outside workspace not allowed',
@@ -125,7 +128,7 @@ export function checkBlockedPatterns(command: string): SanitizationResult {
 export function validateCommand(command: string): SanitizationResult {
   // Extract the base command (first word)
   const baseCommand = command.trim().split(/\s+/)[0];
-  
+
   // Remove any path prefix to get just the command name
   const commandName = baseCommand.split('/').pop() || '';
 
@@ -172,7 +175,7 @@ export function sanitizeCommand(
   // and || for error fallbacks, but block pipes and other dangerous operators
   const dangerousPipePattern = /(?<!\|)\|(?!\|)/; // Single pipe, but not || (with negative lookbehind and lookahead)
   const dangerousRedirects = [/>\s*\/dev\//, />\s*\/etc\//];
-  
+
   if (dangerousPipePattern.test(command)) {
     return {
       allowed: false,
@@ -199,7 +202,7 @@ export function sanitizeCommand(
  * Get execution options for sandboxed command
  */
 export function getSandboxExecOptions(config: SandboxConfig = {}) {
-  const workspaceDir = config.sessionId 
+  const workspaceDir = config.sessionId
     ? getWorkspaceDir(config.sessionId, config.workspaceRoot)
     : config.workspaceRoot || '/tmp/cubiqo-workspace';
 
@@ -228,9 +231,9 @@ export function getSandboxExecOptions(config: SandboxConfig = {}) {
 export async function ensureWorkspace(sessionId: string, workspaceRoot?: string): Promise<string> {
   const { mkdir } = await import('fs/promises');
   const workspaceDir = getWorkspaceDir(sessionId, workspaceRoot);
-  
+
   await mkdir(workspaceDir, { recursive: true });
-  
+
   return workspaceDir;
 }
 
@@ -240,10 +243,10 @@ export async function ensureWorkspace(sessionId: string, workspaceRoot?: string)
 export async function cleanupWorkspace(sessionId: string, workspaceRoot?: string): Promise<void> {
   const { rm } = await import('fs/promises');
   const workspaceDir = getWorkspaceDir(sessionId, workspaceRoot);
-  
+
   try {
     await rm(workspaceDir, { recursive: true, force: true });
   } catch (error) {
-    
+
   }
 }

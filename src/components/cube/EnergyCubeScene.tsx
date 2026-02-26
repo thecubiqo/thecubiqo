@@ -11,12 +11,16 @@ import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing'
 import { PlasmaWaveField } from './PlasmaWaveField'
+import { BiometricWatcher } from '../studio/BiometricWatcher'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './EnergyCube'
 
 interface EnergyCubeSceneProps {
   colorName?: ColorName
   animationState?: AnimationState
+  isWatching?: boolean
+  facePosition?: { x: number; y: number }
+  engagement?: 'low' | 'medium' | 'high'
   className?: string
 }
 
@@ -50,6 +54,9 @@ function Lights() {
 export function EnergyCubeScene({
   colorName = 'ORANGE',
   animationState = 'idle',
+  isWatching = false,
+  facePosition = { x: 0, y: 0 },
+  engagement = 'medium',
   className = ''
 }: EnergyCubeSceneProps) {
   // Voice is enabled when listening or speaking
@@ -82,6 +89,11 @@ export function EnergyCubeScene({
             <PlasmaWaveField
               isEnabled={isVoiceEnabled}
               aiState={aiState}
+            />
+            <BiometricWatcher
+              isActive={isWatching}
+              facePosition={facePosition}
+              engagement={engagement}
             />
           </group>
 

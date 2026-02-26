@@ -24,12 +24,36 @@ vi.mock('@react-three/fiber', () => ({
 
 vi.mock('three', () => ({
   Color: class Color {
-    constructor(public value: string) {}
+    constructor(public value: string) { }
   },
   MathUtils: {
     lerp: (a: number, b: number, t: number) => a + (b - a) * t,
   },
   AdditiveBlending: 2,
+  DoubleSide: 2,
+  MeshStandardMaterial: class { },
+  LineBasicMaterial: class { },
+  MeshBasicMaterial: class { },
+  BoxGeometry: class {
+    getAttribute() { return { array: new Float32Array() } }
+    computeVertexNormals() { }
+  },
+  EdgesGeometry: class { },
+  TorusGeometry: class { },
+  SphereGeometry: class { },
+  BufferAttribute: class { },
+  Mesh: class {
+    material = {}
+    geometry = { computeVertexNormals: () => { } }
+  },
+  LineSegments: class {
+    material = {}
+  },
+  Group: class { },
+  Matrix4: class { },
+  Vector3: class { },
+  Quaternion: class { },
+  Euler: class { },
 }))
 
 // Mock the landing cube components
@@ -61,21 +85,21 @@ describe('LandingCubeRouter Integration', () => {
   describe('Default Variant Routing', () => {
     it('should render plasma-wave variant by default', () => {
       render(<LandingCubeRouter onComplete={mockOnComplete} />)
-      
+
       const plasmaLanding = screen.getByTestId('landing-cube-plasma')
       expect(plasmaLanding).toBeDefined()
     })
 
     it('should render tech-wireframe variant when specified', () => {
       render(<LandingCubeRouter onComplete={mockOnComplete} variant="tech-wireframe" />)
-      
+
       const techLanding = screen.getByTestId('landing-cube-tech')
       expect(techLanding).toBeDefined()
     })
 
     it('should render plasma-wave variant when explicitly specified', () => {
       render(<LandingCubeRouter onComplete={mockOnComplete} variant="plasma-wave" />)
-      
+
       const plasmaLanding = screen.getByTestId('landing-cube-plasma')
       expect(plasmaLanding).toBeDefined()
     })
@@ -86,7 +110,7 @@ describe('LandingCubeRouter Integration', () => {
       mockUseSearchParams.mockReturnValue(new URLSearchParams('landing=plasma-wave'))
 
       render(<LandingCubeRouter onComplete={mockOnComplete} />)
-      
+
       const plasmaLanding = screen.getByTestId('landing-cube-plasma')
       expect(plasmaLanding).toBeDefined()
     })
@@ -95,7 +119,7 @@ describe('LandingCubeRouter Integration', () => {
       mockUseSearchParams.mockReturnValue(new URLSearchParams('landing=tech-wireframe'))
 
       render(<LandingCubeRouter onComplete={mockOnComplete} />)
-      
+
       const techLanding = screen.getByTestId('landing-cube-tech')
       expect(techLanding).toBeDefined()
     })
@@ -104,7 +128,7 @@ describe('LandingCubeRouter Integration', () => {
       mockUseSearchParams.mockReturnValue(new URLSearchParams('landing=invalid-variant'))
 
       render(<LandingCubeRouter onComplete={mockOnComplete} />)
-      
+
       // Should fall back to default (plasma-wave)
       const plasmaLanding = screen.getByTestId('landing-cube-plasma')
       expect(plasmaLanding).toBeDefined()
@@ -114,25 +138,25 @@ describe('LandingCubeRouter Integration', () => {
   describe('Voice Activity Props', () => {
     it('should pass isVoiceActive prop to tech-wireframe variant', () => {
       render(
-        <LandingCubeRouter 
-          onComplete={mockOnComplete} 
+        <LandingCubeRouter
+          onComplete={mockOnComplete}
           variant="tech-wireframe"
           isVoiceActive={true}
         />
       )
-      
+
       const voiceStatus = screen.getByTestId('voice-active')
       expect(voiceStatus.textContent).toBe('active')
     })
 
     it('should default isVoiceActive to false', () => {
       render(
-        <LandingCubeRouter 
-          onComplete={mockOnComplete} 
+        <LandingCubeRouter
+          onComplete={mockOnComplete}
           variant="tech-wireframe"
         />
       )
-      
+
       const voiceStatus = screen.getByTestId('voice-active')
       expect(voiceStatus.textContent).toBe('inactive')
     })
@@ -141,19 +165,19 @@ describe('LandingCubeRouter Integration', () => {
   describe('Completion Callback', () => {
     it('should call onComplete when plasma variant completes', () => {
       render(<LandingCubeRouter onComplete={mockOnComplete} variant="plasma-wave" />)
-      
+
       const completeButton = screen.getByText('Complete Plasma Landing')
       completeButton.click()
-      
+
       expect(mockOnComplete).toHaveBeenCalledTimes(1)
     })
 
     it('should call onComplete when tech variant completes', () => {
       render(<LandingCubeRouter onComplete={mockOnComplete} variant="tech-wireframe" />)
-      
+
       const completeButton = screen.getByText('Complete Tech Landing')
       completeButton.click()
-      
+
       expect(mockOnComplete).toHaveBeenCalledTimes(1)
     })
   })
@@ -161,17 +185,17 @@ describe('LandingCubeRouter Integration', () => {
   describe('Configuration Integration', () => {
     it('should use getLandingVariant from config when no variant prop', () => {
       const getLandingVariantSpy = vi.spyOn(landingConfig, 'getLandingVariant')
-      
+
       render(<LandingCubeRouter onComplete={mockOnComplete} />)
-      
+
       expect(getLandingVariantSpy).toHaveBeenCalled()
     })
 
     it('should prioritize variant prop over config', () => {
       const getLandingVariantSpy = vi.spyOn(landingConfig, 'getLandingVariant')
-      
+
       render(<LandingCubeRouter onComplete={mockOnComplete} variant="tech-wireframe" />)
-      
+
       // Should render tech variant regardless of config
       const techLanding = screen.getByTestId('landing-cube-tech')
       expect(techLanding).toBeDefined()
@@ -189,10 +213,10 @@ describe('LandingCubeRouter Integration', () => {
 
     it('should handle multiple re-renders without issues', () => {
       const { rerender } = render(<LandingCubeRouter onComplete={mockOnComplete} />)
-      
+
       rerender(<LandingCubeRouter onComplete={mockOnComplete} variant="tech-wireframe" />)
       rerender(<LandingCubeRouter onComplete={mockOnComplete} variant="plasma-wave" />)
-      
+
       const plasmaLanding = screen.getByTestId('landing-cube-plasma')
       expect(plasmaLanding).toBeDefined()
     })

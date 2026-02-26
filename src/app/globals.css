@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import '@fontsource/inter/latin.css';
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 /* ================================================================== */
 /*  CubiQo — Apple-Grade Premium Global Styles                       */
@@ -574,4 +573,13 @@ button,
   font-family: 'Space Grotesk', var(--font-sans);
   font-weight: 600;
   letter-spacing: -0.02em;
+}
+
+@keyframes scan {
+  from { top: 0; }
+  to { top: 100%; }
+}
+
+.animate-scan {
+  animation: scan 2s linear infinite;
 }

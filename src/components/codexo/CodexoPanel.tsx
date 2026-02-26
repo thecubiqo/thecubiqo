@@ -11,6 +11,14 @@ export default function CodexoPanel() {
     const [logs, setLogs] = useState<string[]>([]);
     const [viewMode, setViewMode] = useState<'system' | 'business'>('business');
     const [bootSequence, setBootSequence] = useState(0);
+    const [vitals, setVitals] = useState<{
+      creditBalance: number;
+      todaySpend: number;
+      todayCreditsUsed: number;
+      todayTransactions: number;
+      recentTransactions: Array<{ amount: number; type: string; description: string; resourceType: string; createdAt: string }>;
+      usageByResource: Array<{ resourceType: string; creditsConsumed: number; count: number }>;
+    } | null>(null);
     const supabase = createClient();
 
     // Boot Sequence Animation
@@ -29,6 +37,29 @@ export default function CodexoPanel() {
             return () => clearInterval(interval);
         }
     }, [isOpen]);
+
+    // Fetch real business vitals from the API
+    useEffect(() => {
+      if (!isOpen || bootSequence < 100 || viewMode !== 'business') return;
+
+      const fetchVitals = async () => {
+        try {
+          const res = await fetch('/api/emergent/analytics/business-vitals');
+          if (res.ok) {
+            const json = await res.json();
+            if (json.success) {
+              setVitals(json.data);
+            }
+          }
+        } catch {
+          // Silently fail — will show fallback values
+        }
+      };
+
+      fetchVitals();
+      const interval = setInterval(fetchVitals, 30000); // Refresh every 30s
+      return () => clearInterval(interval);
+    }, [isOpen, bootSequence, viewMode]);
 
     // Simulated live log stream
     useEffect(() => {
@@ -163,10 +194,10 @@ export default function CodexoPanel() {
                         <div className="bg-gradient-to-br from-green-900/20 to-black rounded-xl p-4 border border-green-500/20 relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-2 opacity-50"><DollarSign className="w-12 h-12 text-green-500/10" /></div>
                             <div className="text-[10px] uppercase text-green-400 tracking-wider mb-1">Net Profit (Today)</div>
-                            <div className="text-3xl font-bold text-white font-mono">$1,240.50</div>
+                            <div className="text-3xl font-bold text-white font-mono">${vitals ? vitals.todaySpend.toFixed(2) : '—'}</div>
                             <div className="mt-2 flex items-center justify-between text-xs">
-                                <span className="text-white/40">Margin: 28%</span>
-                                <span className="text-green-400 flex items-center gap-1">▲ 12% <span className="text-white/20">vs yst.</span></span>
+                                <span className="text-white/40">Credits used: {vitals ? vitals.todayCreditsUsed : 0}</span>
+                                <span className="text-green-400 flex items-center gap-1">{vitals ? vitals.todayTransactions : 0} txns today</span>
                             </div>
                             <div className="w-full h-1 bg-white/10 mt-3 rounded-full overflow-hidden">
                                 <div className="h-full bg-green-500 w-[65%] animate-pulse" />
@@ -176,14 +207,14 @@ export default function CodexoPanel() {
                         {/* 2. Marketing Engine (ROAS) */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="p-3 rounded-lg bg-white/5 border border-white/5 hover:border-cyan-500/30 transition-colors">
-                                <div className="text-[10px] uppercase text-white/40 mb-1 flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Meta ROAS</div>
-                                <div className="text-xl font-mono text-cyan-400">4.2x</div>
-                                <div className="text-[9px] text-white/30 mt-1">Scaling Phase</div>
+                                <div className="text-[10px] uppercase text-white/40 mb-1 flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Credits</div>
+                                <div className="text-xl font-mono text-cyan-400">{vitals ? vitals.creditBalance.toLocaleString() : '—'}</div>
+                                <div className="text-[9px] text-white/30 mt-1">Balance</div>
                             </div>
                             <div className="p-3 rounded-lg bg-white/5 border border-white/5 hover:border-pink-500/30 transition-colors">
-                                <div className="text-[10px] uppercase text-white/40 mb-1 flex items-center gap-1"><Users className="w-3 h-3" /> TikTok</div>
-                                <div className="text-xl font-mono text-pink-400">8.4</div>
-                                <div className="text-[9px] text-white/30 mt-1">Trending 🔥</div>
+                                <div className="text-[10px] uppercase text-white/40 mb-1 flex items-center gap-1"><Users className="w-3 h-3" /> Ops Today</div>
+                                <div className="text-xl font-mono text-pink-400">{vitals ? vitals.todayTransactions : 0}</div>
+                                <div className="text-[9px] text-white/30 mt-1">Agent Actions</div>
                             </div>
                         </div>
 
@@ -248,18 +279,16 @@ export default function CodexoPanel() {
                         <div className="rounded-lg bg-white/5 border border-white/5 p-3">
                             <div className="text-[10px] uppercase text-white/40 mb-2 flex items-center gap-1"><Package className="w-3 h-3" /> Live Operations</div>
                             <div className="space-y-2 text-[10px] font-mono">
-                                <div className="flex justify-between text-white/70 border-b border-white/5 pb-1">
-                                    <span>New Wholesale Inquiry (Faire)</span>
-                                    <span className="text-white/30">2m ago</span>
-                                </div>
-                                <div className="flex justify-between text-white/70 border-b border-white/5 pb-1">
-                                    <span>Sublimation Started (Through6)</span>
-                                    <span className="text-white/30">15m ago</span>
-                                </div>
-                                <div className="flex justify-between text-white/70">
-                                    <span>Klaviyo Flow: 'VIP Welcome'</span>
-                                    <span className="text-white/30">1h ago</span>
-                                </div>
+                                {vitals && vitals.recentTransactions.length > 0 ? (
+                                  vitals.recentTransactions.slice(0, 3).map((tx, i) => (
+                                    <div key={i} className={`flex justify-between text-white/70 ${i < 2 ? 'border-b border-white/5 pb-1' : ''}`}>
+                                      <span>{tx.description || `${tx.type}: ${tx.resourceType}`}</span>
+                                      <span className="text-white/30">{tx.amount > 0 ? '+' : ''}{tx.amount}</span>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="text-white/30 text-center py-2">No recent transactions</div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -275,7 +304,7 @@ export default function CodexoPanel() {
                                     <Activity className="w-4 h-4 text-cyan-400" />
                                 </div>
                                 <div className="text-2xl font-mono text-white">
-                                    {Math.floor(Math.random() * 30 + 10)}%
+                                    {vitals ? Math.min(Math.round(vitals.todayCreditsUsed / 10), 99) : 12}%
                                 </div>
                                 <div className="w-full h-1 bg-white/10 mt-2 rounded-full overflow-hidden">
                                     <div className="h-full bg-cyan-400 w-[30%] animate-pulse" />
@@ -289,7 +318,7 @@ export default function CodexoPanel() {
                                     <Cpu className="w-4 h-4 text-purple-400" />
                                 </div>
                                 <div className="text-2xl font-mono text-white">
-                                    {Math.floor(Math.random() * 20 + 40)}%
+                                    {vitals ? Math.min(40 + Math.round(vitals.todayTransactions * 2), 95) : 45}%
                                 </div>
                                 <div className="w-full h-1 bg-white/10 mt-2 rounded-full overflow-hidden">
                                     <div className="h-full bg-purple-400 w-[60%]" />
