@@ -2,7 +2,7 @@
     { "id": "twitter_main", "platform": "twitter", "type": "builder", "handle": "@CubiQo_Dev" },
     { "id": "linkedin_main", "platform": "linkedin", "type": "builder", "handle": "CubiQo Inc" },
     { "id": "instagram_art", "platform": "instagram", "type": "artist", "handle": "@cubiqo.art" },
-    { "id": "tiktok_trends", "platform": "tiktok", "type": "meme", "handle": "@cubiqo_official" },
+    { "id": "tiktok_trends", "platform": "tiktok", "type": "memer", "handle": "@cubiqo_official" },
     { "id": "youtube_shorts", "platform": "youtube", "type": "guru", "handle": "CubiQo Tutorials" },
     { "id": "reddit_main", "platform": "reddit", "type": "philosopher", "handle": "u/cubiqo_ai" },
     { "id": "pinterest_inspo", "platform": "pinterest", "type": "artist", "handle": "CubiQo Design" },
