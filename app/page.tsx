@@ -1,6 +1,8 @@
 import { checkFeatureFlag } from '@/lib/feature-flags/server'
-import { FullscreenApp } from '@/components/FullscreenApp'
-import { LandingPage } from '@/components/landing/LandingPage'
+import dynamic from 'next/dynamic';
+
+const FullscreenApp = dynamic(() => import('@/components/FullscreenApp'), { ssr: false });
+const LandingPage = dynamic(() => import('@/components/landing/LandingPage'), { ssr: false });
 import { createClient } from '@/lib/supabase/server'
 
 // Force dynamic rendering to ensure auth/flag state updates are reflected immediately

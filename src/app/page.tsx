@@ -1,5 +1,7 @@
 import { checkFeatureFlag } from '@/lib/feature-flags/server'
-import { FullscreenApp } from '@/components/FullscreenApp'
+import dynamic from 'next/dynamic';
+
+const FullscreenApp = dynamic(() => import('@/components/FullscreenApp'), { ssr: false });
 import { LandingPage } from '@/components/landing/LandingPage'
 import { createClient } from '@/lib/supabase/server'
 
