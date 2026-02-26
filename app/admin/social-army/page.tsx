@@ -86,6 +86,10 @@ const QUEUE_STATUS_COLORS: Record<string, string> = {
     failed: 'text-red-400',
 };
 
+// ─── Project Branding ────────────────────────────────────
+
+const PROJECT_NAME = process.env.NEXT_PUBLIC_SOCIAL_ARMY_PROJECT ?? 'CubiQo';
+
 // ─── Auth Helper ─────────────────────────────────────────
 
 async function authHeaders(): Promise<Record<string, string>> {
@@ -94,6 +98,36 @@ async function authHeaders(): Promise<Record<string, string>> {
     const h: Record<string, string> = { 'Content-Type': 'application/json' };
     if (session?.access_token) h['Authorization'] = `Bearer ${session.access_token}`;
     return h;
+}
+
+// ─── Platform Profile URL Helper ─────────────────────────
+
+function platformProfileUrl(platform: string, username: string): string {
+    const clean = username.replace(/^@/, '');
+    switch (platform.toLowerCase()) {
+        case 'twitter':
+        case 'x':
+            return `https://twitter.com/${clean}`;
+        case 'linkedin':
+            return `https://linkedin.com/in/${encodeURIComponent(username.replace(/\s+/g, '-'))}`;
+        case 'instagram':
+            return `https://instagram.com/${clean}`;
+        case 'tiktok':
+            return `https://tiktok.com/@${clean}`;
+        case 'youtube':
+            return `https://youtube.com/@${clean}`;
+        case 'reddit':
+            return `https://reddit.com/user/${username.replace(/^\/?u\//, '')}`;
+        case 'pinterest':
+            return `https://pinterest.com/${username}`;
+        case 'threads':
+            return `https://threads.net/@${clean}`;
+        case 'facebook':
+            return `https://facebook.com/${username}`;
+        case 'discord':
+        default:
+            return '#';
+    }
 }
 
 // ─── Sub-components ──────────────────────────────────────
@@ -407,8 +441,19 @@ function AccountsTab({ accounts, onRefresh }: { accounts: Account[]; onRefresh: 
                                             <span className="text-lg mr-1">{PLATFORM_ICONS[acc.platform]}</span>
                                             <span className="text-gray-300 capitalize">{acc.platform}</span>
                                         </td>
-                                        <td className="px-4 py-3 font-mono text-gray-200">
-                                            @{acc.username}
+                                        <td className="px-4 py-3">
+                                            {acc.platform === 'discord' ? (
+                                                <span className="font-mono text-gray-200">@{acc.username}</span>
+                                            ) : (
+                                                <a
+                                                    href={platformProfileUrl(acc.platform, acc.username)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="font-mono text-gray-200 hover:text-purple-400 flex items-center gap-1"
+                                                >
+                                                    @{acc.username} <ExternalLink size={10} />
+                                                </a>
+                                            )}
                                         </td>
                                         <td className="px-4 py-3">
                                             <Badge label={acc.persona_type} colorClass={PERSONA_COLORS[acc.persona_type] || 'text-gray-400 bg-gray-500/10'} />
@@ -459,16 +504,18 @@ function AccountsTab({ accounts, onRefresh }: { accounts: Account[]; onRefresh: 
 
 // ─── Campaigns Tab ───────────────────────────────────────
 
-function CampaignsTab({ campaigns, onRefresh }: { campaigns: Campaign[]; onRefresh: () => void }) {
+function CampaignsTab({ campaigns, onRefresh, onLaunched }: { campaigns: Campaign[]; onRefresh: () => void; onLaunched: () => void }) {
     const [showNew, setShowNew] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [genWarning, setGenWarning] = useState<string | null>(null);
     const [form, setForm] = useState({ name: '', seed_topic: 'CubiQo AI Revolution', total_posts_target: 100 });
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
         setError(null);
+        setGenWarning(null);
         try {
             const res = await fetch('/api/admin/social-army', {
                 method: 'POST',
@@ -477,9 +524,25 @@ function CampaignsTab({ campaigns, onRefresh }: { campaigns: Campaign[]; onRefre
             });
             const json = await res.json();
             if (!res.ok) throw new Error(json.error);
+            // Auto-trigger content generation for the new campaign
+            if (json.campaign?.id) {
+                const genRes = await fetch('/api/admin/social-army/generate', {
+                    method: 'POST',
+                    headers: await authHeaders(),
+                    body: JSON.stringify({ campaignId: json.campaign.id }),
+                });
+                if (!genRes.ok) {
+                    const genJson = await genRes.json().catch(() => ({}));
+                    setGenWarning(genJson.error || 'Content generation could not start — add active accounts first.');
+                    setSaving(false);
+                    onRefresh();
+                    return;
+                }
+            }
             setShowNew(false);
             setForm({ name: '', seed_topic: 'CubiQo AI Revolution', total_posts_target: 100 });
             onRefresh();
+            onLaunched();
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -564,6 +627,14 @@ function CampaignsTab({ campaigns, onRefresh }: { campaigns: Campaign[]; onRefre
                             </div>
 
                             {error && <p className="text-xs text-red-400 bg-red-500/10 rounded p-2">{error}</p>}
+                            {genWarning && (
+                                <div className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded p-2">
+                                    <span className="font-bold">Campaign created.</span> Content generation could not start: {genWarning}
+                                    <button type="button" onClick={() => { setShowNew(false); onRefresh(); }} className="block mt-1 text-yellow-300 underline">
+                                        Go to Campaigns to generate content manually.
+                                    </button>
+                                </div>
+                            )}
 
                             <div className="flex gap-3 pt-2">
                                 <button type="button" onClick={() => setShowNew(false)}
@@ -787,10 +858,120 @@ function LiveQueueTab({ items, summary, onRefresh }: {
     );
 }
 
+// ─── Analytics Tab ───────────────────────────────────────
+
+function AnalyticsTab({ accounts, campaigns, summary }: {
+    accounts: Account[];
+    campaigns: Campaign[];
+    summary: QueueSummary;
+}) {
+    const totalPosts = Object.values(summary).reduce((a, b) => a + b, 0);
+
+    const platformBreakdown = PLATFORMS.map(p => ({
+        platform: p,
+        total: accounts.filter(a => a.platform === p).length,
+        active: accounts.filter(a => a.platform === p && a.status === 'active').length,
+    })).filter(pb => pb.total > 0);
+
+    return (
+        <div className="space-y-6">
+            {/* Post Engagement Overview */}
+            <div>
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">
+                    Post Engagement Overview ({totalPosts.toLocaleString()} total items)
+                </h3>
+                <div className="grid grid-cols-5 gap-3">
+                    <StatCard label="Posted" value={summary.posted} color="text-green-400" />
+                    <StatCard label="Ready" value={summary.ready} color="text-cyan-400" />
+                    <StatCard label="Pending" value={summary.pending} color="text-yellow-400" />
+                    <StatCard label="Generating" value={summary.processing} color="text-blue-400" />
+                    <StatCard label="Failed" value={summary.failed} color="text-red-400" />
+                </div>
+            </div>
+
+            {/* Campaign Performance */}
+            <div>
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Campaign Performance</h3>
+                {campaigns.length === 0 ? (
+                    <div className="bg-black/20 border border-white/5 rounded-xl p-8 text-center text-gray-600 text-sm">
+                        No campaigns yet. Launch a campaign to see performance data.
+                    </div>
+                ) : (
+                    <div className="bg-black/20 border border-white/5 rounded-xl overflow-hidden">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-white/5 text-gray-500 text-xs uppercase tracking-wider">
+                                    <th className="text-left px-4 py-3">Campaign</th>
+                                    <th className="text-left px-4 py-3">Status</th>
+                                    <th className="text-left px-4 py-3">Posts</th>
+                                    <th className="text-left px-4 py-3 w-40">Progress</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {campaigns.map(c => (
+                                    <tr key={c.id} className="hover:bg-white/2 transition-colors">
+                                        <td className="px-4 py-3">
+                                            <div className="font-medium text-white truncate max-w-[200px]">{c.name}</div>
+                                            <div className="text-xs text-gray-500 truncate max-w-[200px]">{c.seed_topic}</div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <Badge label={c.status} colorClass={STATUS_COLORS[c.status] || 'text-gray-400 bg-gray-500/10'} />
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-300 font-mono text-xs">
+                                            {c.posted_count.toLocaleString()} / {c.total_posts_target.toLocaleString()}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 bg-white/5 rounded-full h-1.5">
+                                                    <div
+                                                        className="bg-gradient-to-r from-purple-600 to-blue-500 h-1.5 rounded-full transition-all duration-500"
+                                                        style={{ width: `${c.progress}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-xs text-gray-500 tabular-nums w-8 text-right">{c.progress}%</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            {/* Platform Breakdown */}
+            {platformBreakdown.length > 0 && (
+                <div>
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Platform Breakdown</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                        {platformBreakdown.map(({ platform, total, active }) => (
+                            <div key={platform} className="bg-black/30 border border-white/5 rounded-lg p-4 text-center">
+                                <div className="text-2xl mb-1">{PLATFORM_ICONS[platform]}</div>
+                                <div className="text-xs font-bold capitalize text-white mb-2">{platform}</div>
+                                <div className="text-lg font-mono font-bold text-white">{active}</div>
+                                <div className="text-xs text-gray-500">active / {total} total</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Real-time Metrics Note */}
+            <div className="bg-white/2 border border-white/5 rounded-xl p-4 flex items-start gap-3">
+                <AlertTriangle size={14} className="text-gray-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-gray-600 leading-relaxed">
+                    Connect platform API keys via environment variables or the admin settings panel to see real-time engagement metrics (likes, shares, comments).
+                    Current data reflects internal queue state only.
+                </p>
+            </div>
+        </div>
+    );
+}
+
 // ─── Main Page ───────────────────────────────────────────
 
 export default function SocialArmyConsole() {
-    const [tab, setTab] = useState<'dashboard' | 'accounts' | 'campaigns' | 'queue'>('dashboard');
+    const [tab, setTab] = useState<'dashboard' | 'accounts' | 'campaigns' | 'queue' | 'analytics'>('dashboard');
     const [loading, setLoading] = useState(true);
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [accounts, setAccounts] = useState<Account[]>([]);
@@ -894,10 +1075,11 @@ export default function SocialArmyConsole() {
     };
 
     const TABS = [
-        { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+        { id: 'dashboard', label: 'Dashboard', icon: Activity },
         { id: 'accounts', label: `Accounts (${accounts.length})`, icon: Users },
         { id: 'campaigns', label: `Campaigns (${campaigns.length})`, icon: Target },
         { id: 'queue', label: 'Live Queue', icon: Radio },
+        { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     ] as const;
 
     if (loading) {
@@ -916,6 +1098,9 @@ export default function SocialArmyConsole() {
                     <h1 className="text-2xl font-bold flex items-center gap-2">
                         <Globe className="text-purple-500" />
                         Social Army Command Center
+                        <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-400 rounded border border-purple-500/20">
+                            {PROJECT_NAME}
+                        </span>
                     </h1>
                     <p className="text-gray-400 mt-1 text-sm">
                         10 platforms · 10 accounts each · post in 10 minutes
@@ -1007,10 +1192,13 @@ export default function SocialArmyConsole() {
                 <AccountsTab accounts={accounts} onRefresh={fetchAll} />
             )}
             {tab === 'campaigns' && (
-                <CampaignsTab campaigns={campaigns} onRefresh={fetchAll} />
+                <CampaignsTab campaigns={campaigns} onRefresh={fetchAll} onLaunched={() => setTab('queue')} />
             )}
             {tab === 'queue' && (
                 <LiveQueueTab items={queueItems} summary={summary} onRefresh={fetchAll} />
+            )}
+            {tab === 'analytics' && (
+                <AnalyticsTab accounts={accounts} campaigns={campaigns} summary={summary} />
             )}
         </div>
     );
