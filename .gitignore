@@ -66,3 +66,8 @@ self-heal-artifacts/
 storybook-static/
 .env.local
 .next
+
+
+# Backup directories from route conflict fixes
+backup-old-routes/
+src/app/*-old/
