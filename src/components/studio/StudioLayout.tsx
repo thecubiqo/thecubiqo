@@ -7,6 +7,7 @@ import CodeEditor from './CodeEditor';
 import TerminalPanel from './TerminalPanel';
 import PreviewPanel from './PreviewPanel';
 import FileExplorer from './FileExplorer';
+import AssetUpload from './AssetUpload';
 import EditorTabs, { EditorTab } from './EditorTabs';
 import StatusBar from './StatusBar';
 import EmptyState from './EmptyState';
@@ -15,7 +16,7 @@ import AnalyticsPanel from './AnalyticsPanel';
 import GrowthPanel from './GrowthPanel';
 import { BiometricWatcher } from './BiometricWatcher';
 import { PlasmaWaveField } from '../cube/PlasmaWaveField';
-import { Zap, Activity, Monitor, Shield, Cpu, Eye, EyeOff, Scan } from 'lucide-react';
+import { Zap, Activity, Monitor, Shield, Cpu, Eye, EyeOff, Scan, MessageSquare, Upload } from 'lucide-react';
 import { useMultimodalAI } from '../../hooks/useMultimodalAI';
 
 export default function StudioLayout() {
@@ -29,6 +30,7 @@ export default function StudioLayout() {
     : 'studio-default';
 
   const [fileExplorerKey, setFileExplorerKey] = useState(0);
+  const [leftPanelTab, setLeftPanelTab] = useState<'agent' | 'assets'>('agent');
 
   // Multi-file tab management
   const [openTabs, setOpenTabs] = useState<EditorTab[]>([]);
@@ -371,13 +373,43 @@ export default function StudioLayout() {
 
       {/* Main HUD Interaction Space */}
       <div className="relative z-20 h-full w-full pt-24 pb-8 px-4 flex gap-4 pointer-events-none">
-        {/* Left Module - Brain / Conversation */}
+        {/* Left Module - Brain / Conversation + Assets */}
         <div className="w-[400px] pointer-events-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl transition-all duration-500 hover:border-cyan-500/30">
-          <ConversationPanel
-            onCodeGenerated={handleCodeFromAI}
-            onFilesWritten={() => setFileExplorerKey(k => k + 1)}
-            workspaceId={workspaceId}
-          />
+          {/* Tab switcher */}
+          <div className="flex shrink-0 border-b border-white/10 bg-white/[0.02]">
+            <button
+              onClick={() => setLeftPanelTab('agent')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all ${leftPanelTab === 'agent'
+                  ? 'text-cyan-400 border-b-2 border-cyan-400 bg-cyan-500/5'
+                  : 'text-white/20 hover:text-white/40'
+                }`}
+            >
+              <MessageSquare className="w-3 h-3" />
+              AI Agent
+            </button>
+            <button
+              onClick={() => setLeftPanelTab('assets')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all ${leftPanelTab === 'assets'
+                  ? 'text-purple-400 border-b-2 border-purple-400 bg-purple-500/5'
+                  : 'text-white/20 hover:text-white/40'
+                }`}
+            >
+              <Upload className="w-3 h-3" />
+              Assets
+            </button>
+          </div>
+
+          {leftPanelTab === 'agent' ? (
+            <ConversationPanel
+              onCodeGenerated={handleCodeFromAI}
+              onFilesWritten={() => setFileExplorerKey(k => k + 1)}
+              workspaceId={workspaceId}
+            />
+          ) : (
+            <AssetUpload
+              workspaceId={workspaceId}
+            />
+          )}
         </div>
 
         {/* Center Module - Core / Editor */}
