@@ -9,40 +9,12 @@ interface FileNode {
   children?: FileNode[];
 }
 
-// ── Fallback mock data (used when the API is unavailable) ──────────────
-const mockFiles: FileNode[] = [
-  {
-    name: 'app',
-    type: 'folder',
-    path: 'app',
-    children: [
-      { name: 'page.tsx', type: 'file', path: 'app/page.tsx' },
-      { name: 'layout.tsx', type: 'file', path: 'app/layout.tsx' },
-      { name: 'globals.css', type: 'file', path: 'app/globals.css' },
-    ]
-  },
-  {
-    name: 'components',
-    type: 'folder',
-    path: 'components',
-    children: [
-      { name: 'Button.tsx', type: 'file', path: 'components/Button.tsx' },
-      { name: 'Card.tsx', type: 'file', path: 'components/Card.tsx' },
-    ]
-  },
-  {
-    name: 'package.json',
-    type: 'file',
-    path: 'package.json'
-  },
-  {
-    name: 'README.md',
-    type: 'file',
-    path: 'README.md'
-  }
-];
-
-// ── API helpers ────────────────────────────────────────────────────────
+const loadRoot = useCallback(async () => {
+  setLoading(true);
+  const result = await fetchDirectory(workspaceId, '/');
+  setFiles(result ?? []);
+  setLoading(false);
+}, [workspaceId]);
 
 /** Map the API's `'directory'` type to our internal `'folder'` type. */
 function apiTypeToNodeType(apiType: string): 'file' | 'folder' {
@@ -130,11 +102,11 @@ export default function FileExplorer({
   // Set of folder paths that are currently being fetched (for per-folder spinners)
   const [loadingPaths, setLoadingPaths] = useState<Set<string>>(new Set());
 
-  /** Fetch the root directory listing (or fall back to mock data). */
+  /** Fetch the root directory listing. */
   const loadRoot = useCallback(async () => {
     setLoading(true);
     const result = await fetchDirectory(workspaceId, '/');
-    setFiles(result ?? mockFiles);
+    setFiles(result ?? []);
     setLoading(false);
   }, [workspaceId]);
 
@@ -200,7 +172,13 @@ export default function FileExplorer({
       <div className="flex-1 overflow-y-auto p-2">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <span className="text-gray-400 text-sm animate-pulse">Loading files…</span>
+            <span className="text-white/30 text-xs font-bold uppercase tracking-widest animate-pulse">Scanning workspace…</span>
+          </div>
+        ) : files.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-3">
+            <div className="text-3xl opacity-20">📂</div>
+            <p className="text-white/20 text-xs font-bold uppercase tracking-widest">No files yet</p>
+            <p className="text-white/10 text-[10px]">Describe what to build in the AI panel to generate your first project</p>
           </div>
         ) : (
           files.map((node) => (
@@ -294,9 +272,8 @@ function FileTreeNode({
   return (
     <div
       onClick={() => onSelect(node.path)}
-      className={`flex items-center gap-1 py-1 px-2 hover:bg-gray-700 rounded cursor-pointer text-sm ${
-        isSelected ? 'bg-teal-900/30 text-teal-300' : 'text-gray-300'
-      }`}
+      className={`flex items-center gap-1 py-1 px-2 hover:bg-gray-700 rounded cursor-pointer text-sm ${isSelected ? 'bg-teal-900/30 text-teal-300' : 'text-gray-300'
+        }`}
       style={{ paddingLeft: `${level * 12 + 8}px` }}
     >
       <span className="text-gray-400">📄</span>
