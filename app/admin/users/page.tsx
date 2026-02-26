@@ -7,35 +7,51 @@ import { createClient } from '@/lib/supabase/client';
 interface UserProfile {
     id: string;
     email: string | null;
-    is_admin: boolean | null;
+    display_name: string | null;
+    is_admin: boolean;
     created_at: string;
-    cq_number: number | null;
+}
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+    return headers;
 }
 
 export default function UsersPage() {
     const [users, setUsers] = useState<UserProfile[]>([]);
+    const [total, setTotal] = useState<number>(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const supabase = createClient();
-        (supabase as any)
-            .from('profiles')
-            .select('id, email, is_admin, created_at, cq_number')
-            .order('created_at', { ascending: false })
-            .limit(50)
-            .then(({ data, error: err }: { data: UserProfile[] | null; error: { message: string } | null }) => {
-                if (err) setError(err.message);
-                else setUsers(data ?? []);
+        async function fetchUsers() {
+            try {
+                const headers = await getAuthHeaders();
+                const res = await fetch('/api/admin/users', { headers });
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    throw new Error(body.error || `HTTP ${res.status}`);
+                }
+                const json = await res.json();
+                setUsers(json.users ?? []);
+                setTotal(json.total ?? 0);
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to load users');
+            } finally {
                 setLoading(false);
-            });
+            }
+        }
+        fetchUsers();
     }, []);
 
     return (
         <div className="space-y-6">
             <h1 className="text-2xl font-bold flex items-center gap-2">
                 <Users className="text-purple-500" />
-                Users
+                Users {!loading && !error && <span className="text-base font-normal text-gray-400">({total.toLocaleString()})</span>}
             </h1>
 
             <div className="bg-white/5 border border-white/10 rounded-xl p-6">
@@ -51,7 +67,7 @@ export default function UsersPage() {
                             <thead>
                                 <tr className="border-b border-white/10 text-gray-400">
                                     <th className="py-3 px-4"><Mail size={14} className="inline mr-1" />Email</th>
-                                    <th className="py-3 px-4">CQ#</th>
+                                    <th className="py-3 px-4">Display Name</th>
                                     <th className="py-3 px-4"><Shield size={14} className="inline mr-1" />Role</th>
                                     <th className="py-3 px-4"><Clock size={14} className="inline mr-1" />Joined</th>
                                 </tr>
@@ -60,7 +76,7 @@ export default function UsersPage() {
                                 {users.map((u) => (
                                     <tr key={u.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                                         <td className="py-3 px-4 font-mono text-gray-300">{u.email ?? '—'}</td>
-                                        <td className="py-3 px-4 text-gray-400">{u.cq_number ? `CQ#${u.cq_number}` : '—'}</td>
+                                        <td className="py-3 px-4 text-gray-400">{u.display_name ?? '—'}</td>
                                         <td className="py-3 px-4">
                                             {u.is_admin ? (
                                                 <span className="text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded text-xs">Admin</span>

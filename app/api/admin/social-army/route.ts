@@ -10,7 +10,7 @@
  * ──────
  * GET  /api/admin/social-army          — overview (campaigns + queue stats + accounts)
  * POST /api/admin/social-army          — create a new campaign
- * PATCH /api/admin/social-army?id=…   — update campaign status (running / paused / stopped)
+ * PATCH /api/admin/social-army?id=…   — update campaign status (running / paused / completed / draft)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -161,7 +161,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { status } = body
 
-    const VALID_STATUSES = ['running', 'paused', 'stopped', 'draft']
+    const VALID_STATUSES = ['running', 'paused', 'completed', 'draft']
     if (!status || !VALID_STATUSES.includes(status)) {
       return NextResponse.json(
         { error: `status must be one of: ${VALID_STATUSES.join(', ')}` },
