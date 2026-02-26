@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: '/', label: 'Home', icon: '🏠', feature: 'home' as const },
   { href: '/chat', label: 'Chat', icon: '💬', feature: 'chat' as const },
   { href: '/agents', label: 'Agents', icon: '🤖', feature: 'agents' as const },
+  { href: '/coder', label: 'Coder', icon: '💻', feature: 'coder' as const },
   { href: '/files', label: 'Files', icon: '📁', feature: 'files' as const },
   { href: '/memory', label: 'Memory', icon: '🧠', feature: 'memory' as const },
   { href: '/integrations', label: 'Integrations', icon: '🔗', feature: 'integrations' as const },
