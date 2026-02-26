@@ -52,6 +52,7 @@ export default function SystemHealthPage() {
     issues: [],
   });
   const [quarantine, setQuarantine] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchHealth = useCallback(async () => {
     try {
@@ -130,6 +131,7 @@ export default function SystemHealthPage() {
 
   const runManualScan = async () => {
     setScanning(true);
+    setError(null);
 
     try {
       const response = await fetch('/api/admin/self-heal/run', {
@@ -139,9 +141,14 @@ export default function SystemHealthPage() {
       if (response.ok) {
         const data = await response.json();
         setQuarantine(data.issues || []);
+      } else {
+        const err = await response.json().catch(() => ({}));
+        console.error('Scan failed:', err);
+        setError(`Scan failed: ${err.error ?? response.statusText}`);
       }
     } catch (error) {
       console.error('Scan failed:', error);
+      setError('Scan failed: network error');
     }
 
     await fetchHealth();
@@ -218,6 +225,11 @@ export default function SystemHealthPage() {
         </div>
 
         {/* Threat Level Indicator */}
+        {error && (
+          <div className="mb-4 bg-red-900/20 border border-red-500 rounded-lg p-4">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
         <div className={`mb-8 p-8 rounded-lg border-2 ${getThreatBg(threatLevel.level)}`}>
           <div className="flex items-center justify-between">
             <div>
