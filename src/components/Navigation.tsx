@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { href: '/coder', label: 'Coder', icon: '💻', feature: 'coder' as const },
   { href: '/files', label: 'Files', icon: '📁', feature: 'files' as const },
   { href: '/memory', label: 'Memory', icon: '🧠', feature: 'memory' as const },
+  { href: '/coder', label: 'Coder', icon: '💻', feature: 'coder' as const },
   { href: '/integrations', label: 'Integrations', icon: '🔗', feature: 'integrations' as const },
   { href: '/cubikey', label: 'CubiKey', icon: '🔑', feature: 'cubikey' as const },
   { href: '/settings', label: 'Settings', icon: '⚙️', feature: 'settings' as const },
