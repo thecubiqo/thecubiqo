@@ -19,6 +19,7 @@ export interface FeatureAccess {
   slack: boolean
   discord: boolean
   github: boolean
+  coder: boolean
   cubikey: boolean
   settings: boolean
   admin: boolean
@@ -50,6 +51,7 @@ export const FOUNDER_ACCESS: FeatureAccess = {
   slack: true,
   discord: true,
   github: true,
+  coder: true,
   cubikey: true,
   settings: true,
   admin: true,
@@ -78,6 +80,7 @@ export let USER_ACCESS: FeatureAccess = {
   slack: false,
   discord: false,
   github: false,
+  coder: false,
   cubikey: false,
   settings: true,
   admin: false,
@@ -153,6 +156,7 @@ export const FEATURE_METADATA: FeatureMetadata[] = [
   { id: 'agents', name: 'Agents', description: 'Agent dashboard', category: 'Navigation' },
   { id: 'files', name: 'Files', description: 'File browser', category: 'Navigation' },
   { id: 'memory', name: 'Memory', description: 'Memory search', category: 'Navigation' },
+  { id: 'coder', name: 'Coder', description: 'Code editor & execution', category: 'Navigation' },
   { id: 'integrations', name: 'Integrations', description: 'Integration settings', category: 'Navigation' },
   { id: 'cubikey', name: 'CubiKey', description: 'API key management', category: 'Navigation' },
   { id: 'settings', name: 'Settings', description: 'User settings', category: 'Navigation' },
