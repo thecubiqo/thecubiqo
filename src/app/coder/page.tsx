@@ -167,9 +167,6 @@ export default function CoderPage() {
 
   useEffect(() => {
     try {
-      if (typeof window === 'undefined') {
-        throw new Error('Coder requires browser environment');
-      }
       if (!window.localStorage) {
         console.warn('localStorage not available — some features may be limited');
       }
