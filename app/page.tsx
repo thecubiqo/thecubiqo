@@ -1,36 +1,86 @@
-import { checkFeatureFlag } from '@/lib/feature-flags/server'
+'use client';
+
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 
-const FullscreenApp = dynamic(() => import('@/components/FullscreenApp'), { ssr: false });
-const LandingPage = dynamic(() => import('@/components/landing/LandingPage'), { ssr: false });
-import { createClient } from '@/lib/supabase/server'
+// Dynamic imports to avoid hydration errors
+const FullscreenApp = dynamic(() => import('@/components/FullscreenApp'), { 
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+      <div className="text-center">
+        <div className="text-6xl mb-4 animate-pulse">⚡</div>
+        <h3 className="text-xl font-semibold text-white mb-2">Loading CubiQo</h3>
+        <p className="text-gray-400">Initializing your AI assistant...</p>
+        <div className="mt-6 w-64 h-1 bg-gray-800 rounded-full overflow-hidden">
+          <div className="h-full bg-cyan-500 animate-pulse" style={{ width: '60%' }}></div>
+        </div>
+      </div>
+    </div>
+  )
+});
 
-// Force dynamic rendering to ensure auth/flag state updates are reflected immediately
-export const dynamic = 'force-dynamic';
+const LandingPage = dynamic(() => import('@/components/landing/LandingPage'), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+      <div className="text-center">
+        <div className="text-6xl mb-4 animate-pulse">🎨</div>
+        <h3 className="text-xl font-semibold text-white mb-2">Loading Landing Page</h3>
+        <p className="text-gray-400">Preparing your experience...</p>
+      </div>
+    </div>
+  )
+});
 
-export default async function Home() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export default function Home() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showTopRightCTA, setShowTopRightCTA] = useState(false);
+  const [useParticleLanding, setUseParticleLanding] = useState(true);
 
-  // Check feature flags
-  const { enabled: showTopRightCTA } = await checkFeatureFlag({
-    flag_name: 'ui.topRightCTA.v1'
-  });
+  useEffect(() => {
+    // Check authentication on client side only
+    const checkAuth = async () => {
+      try {
+        // This runs only on client
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        setIsAuthenticated(!!user);
+        
+        // Default feature flags for now
+        setShowTopRightCTA(true);
+        setUseParticleLanding(true);
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Auth check error:', error);
+        setIsLoading(false);
+      }
+    };
 
-  const { enabled: useParticleLandingAsHome } = await checkFeatureFlag({
-    flag_name: 'ui.useParticleLandingAsHome'
-  });
+    checkAuth();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4 animate-pulse">🌀</div>
+          <h3 className="text-xl font-semibold text-white mb-2">Checking Authentication</h3>
+          <p className="text-gray-400">Verifying your session...</p>
+        </div>
+      </div>
+    );
+  }
 
   // If authenticated, show the FullscreenApp
-  if (user) {
-    return <FullscreenApp showTopRightCTA={showTopRightCTA} showParticleLanding={true} />
+  if (isAuthenticated) {
+    return <FullscreenApp showTopRightCTA={showTopRightCTA} showParticleLanding={useParticleLanding} />;
   }
 
-  // If feature flag is enabled for guests, render LandingPage (with ParticleLanding)
-  if (useParticleLandingAsHome) {
-    return <LandingPage showTopRightCTA={showTopRightCTA} />
-  }
-
-  // Default behavior: render the unified FullscreenApp with landing enabled
-  return <FullscreenApp showTopRightCTA={true} showParticleLanding={true} />
+  // Show LandingPage for guests
+  return <LandingPage showTopRightCTA={showTopRightCTA} />;
 }
