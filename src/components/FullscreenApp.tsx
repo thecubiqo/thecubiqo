@@ -5,6 +5,7 @@
  * With proper state machine: idle → listening → thinking → speaking → idle
  */
 
+import React from 'react';
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CubeScene, EnergyCubeScene } from './cube'

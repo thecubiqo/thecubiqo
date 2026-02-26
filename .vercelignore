@@ -1,0 +1,30 @@
+# Ignore files that cause build issues
+*.log
+*.tmp
+*.temp
+node_modules/.cache
+.next/cache
+.DS_Store
+Thumbs.db
+
+# Ignore test and development files
+__tests__
+__mocks__
+*.test.*
+*.spec.*
+coverage
+
+# Ignore lockfiles from parent directories (fixes workspace warning)
+../package-lock.json
+../../package-lock.json
+
+# Ignore large files
+*.zip
+*.tar.gz
+*.mp4
+*.mov
+*.avi
+
+# Ignore environment files (Vercel manages these)
+.env*
+!.env.example

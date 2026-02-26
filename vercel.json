@@ -1,15 +1,25 @@
 {
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
-  "installCommand": "npm install",
+  "installCommand": "npm install --legacy-peer-deps",
   "framework": "nextjs",
+  "outputDirectory": ".next",
   "regions": [
     "iad1"
   ],
-  "crons": [
+  "builds": [
     {
-      "path": "/api/cron/self-heal",
-      "schedule": "0 15 * * *"
+      "src": "package.json",
+      "use": "@vercel/next"
     }
-  ]
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
