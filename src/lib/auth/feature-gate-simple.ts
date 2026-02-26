@@ -9,6 +9,7 @@ export interface FeatureAccess {
   agents: boolean
   files: boolean
   memory: boolean
+  coder: boolean
   codeExecution: boolean
   browser: boolean
   integrations: boolean
@@ -40,6 +41,7 @@ export const FOUNDER_ACCESS: FeatureAccess = {
   agents: true,
   files: true,
   memory: true,
+  coder: true,
   codeExecution: true,
   browser: true,
   integrations: true,
@@ -68,6 +70,7 @@ export let USER_ACCESS: FeatureAccess = {
   agents: false,
   files: false,
   memory: false,
+  coder: true,
   codeExecution: false,
   browser: false,
   integrations: false,
@@ -151,6 +154,7 @@ export const FEATURE_METADATA: FeatureMetadata[] = [
   { id: 'home', name: 'Home', description: 'Landing page', category: 'Navigation' },
   { id: 'chat', name: 'Chat', description: 'Chat interface', category: 'Navigation' },
   { id: 'agents', name: 'Agents', description: 'Agent dashboard', category: 'Navigation' },
+  { id: 'coder', name: 'Coder', description: 'Coding IDE with editor, terminal, and AI chat', category: 'Navigation' },
   { id: 'files', name: 'Files', description: 'File browser', category: 'Navigation' },
   { id: 'memory', name: 'Memory', description: 'Memory search', category: 'Navigation' },
   { id: 'integrations', name: 'Integrations', description: 'Integration settings', category: 'Navigation' },
