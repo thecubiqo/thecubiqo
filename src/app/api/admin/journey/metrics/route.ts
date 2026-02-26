@@ -16,10 +16,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Initialize Supabase admin client
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-    ) as any;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL1
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY1
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 503 })
+    }
+    const supabaseAdmin = createClient(supabaseUrl, supabaseKey) as any;
 
     // Get feature flag status
     const { data: featureFlag } = await supabaseAdmin
