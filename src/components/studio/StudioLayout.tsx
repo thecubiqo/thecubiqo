@@ -380,8 +380,8 @@ export default function StudioLayout() {
             <button
               onClick={() => setLeftPanelTab('agent')}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all ${leftPanelTab === 'agent'
-                  ? 'text-cyan-400 border-b-2 border-cyan-400 bg-cyan-500/5'
-                  : 'text-white/20 hover:text-white/40'
+                ? 'text-cyan-400 border-b-2 border-cyan-400 bg-cyan-500/5'
+                : 'text-white/20 hover:text-white/40'
                 }`}
             >
               <MessageSquare className="w-3 h-3" />
@@ -390,8 +390,8 @@ export default function StudioLayout() {
             <button
               onClick={() => setLeftPanelTab('assets')}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all ${leftPanelTab === 'assets'
-                  ? 'text-purple-400 border-b-2 border-purple-400 bg-purple-500/5'
-                  : 'text-white/20 hover:text-white/40'
+                ? 'text-purple-400 border-b-2 border-purple-400 bg-purple-500/5'
+                : 'text-white/20 hover:text-white/40'
                 }`}
             >
               <Upload className="w-3 h-3" />
@@ -461,7 +461,7 @@ export default function StudioLayout() {
 
           {/* Bottom Module - Output / Terminal */}
           <div className="h-64 pointer-events-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-xl transition-all duration-500 hover:border-cyan-500/30">
-            <TerminalPanel />
+            <TerminalPanel workspaceId={workspaceId} />
           </div>
         </div>
 

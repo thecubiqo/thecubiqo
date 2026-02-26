@@ -11,48 +11,51 @@ interface PreviewPanelProps {
 
 /** Build sandboxed preview HTML for code */
 function buildPreviewHtml(code: string, language: string): string {
-  // For TSX/JSX/HTML, try to render it
+  // For TSX/JSX/HTML, try to render it with Babel for JSX support
   if (['tsx', 'jsx', 'html'].includes(language)) {
     return `<!DOCTYPE html>
 <html>
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, sans-serif; background: #1a1a2e; color: #e4e4e7; padding: 16px; }
-  .error { color: #f87171; font-family: monospace; white-space: pre-wrap; padding: 12px; background: #1e1e2e; border-radius: 8px; border: 1px solid #f8717133; }
-  .output { padding: 12px; background: #16213e; border-radius: 8px; border: 1px solid #ffffff11; }
-  h1 { font-size: 24px; margin-bottom: 8px; }
-  h2 { font-size: 18px; margin-bottom: 6px; }
-  p { margin-bottom: 8px; line-height: 1.5; }
-  button { padding: 8px 16px; background: #0f3460; color: white; border: none; border-radius: 6px; cursor: pointer; }
-  button:hover { background: #1a4a7a; }
-  input { padding: 8px 12px; background: #16213e; border: 1px solid #ffffff22; border-radius: 6px; color: white; outline: none; }
-  input:focus { border-color: #0f3460; }
-</style>
+  <meta charset="UTF-8">
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0a0a0a; color: white; margin: 0; font-family: sans-serif; }
+    .preview-error { color: #ff4444; background: #221111; padding: 1rem; border-radius: 8px; border: 1px solid #442222; font-family: monospace; }
+  </style>
 </head>
 <body>
-<div id="root"></div>
-<script>
-try {
-  const root = document.getElementById('root');
-  // Try to execute the code
-  const result = (function() {
-    ${code}
-  })();
-  if (result !== undefined) {
-    if (typeof result === 'string') {
-      root.innerHTML = result;
-    } else if (typeof result === 'object') {
-      root.innerHTML = '<div class="output"><pre>' + JSON.stringify(result, null, 2) + '</pre></div>';
-    } else {
-      root.textContent = String(result);
+  <div id="root"></div>
+  <script type="text/babel">
+    try {
+      // Mock React if not available
+      if (typeof React === 'undefined') {
+        window.React = { createElement: (type, props, ...children) => ({ type, props, children }) };
+      }
+
+      // Execute code
+      const Component = () => {
+        ${code}
+      };
+
+      // Basic render simulation
+      const root = document.getElementById('root');
+      
+      // If code looks like it exports something or just has a return
+      const result = (function() {
+        ${code.includes('return') ? code : `return (${code})`}
+      })();
+
+      if (typeof result === 'string') {
+        root.innerHTML = result;
+      } else if (result && typeof result === 'object') {
+        // Fallback for objects/JSON
+        root.innerHTML = '<pre class="p-4 bg-black/50 text-cyan-400">' + JSON.stringify(result, null, 2) + '</pre>';
+      }
+    } catch (e) {
+      document.getElementById('root').innerHTML = '<div class="preview-error"><strong>Build Error:</strong><br/>' + e.message + '</div>';
     }
-  }
-} catch(e) {
-  document.getElementById('root').innerHTML = '<div class="error"><strong>Preview Error:</strong>\\n' + e.message + '</div>';
-}
-</script>
+  </script>
 </body>
 </html>`;
   }
@@ -85,7 +88,7 @@ export default function PreviewPanel({ code, language }: PreviewPanelProps = {})
   // Auto-refresh preview when code changes
   useEffect(() => {
     if (!code || !autoRefresh) return;
-    
+
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setIsLoading(true);
@@ -125,9 +128,8 @@ export default function PreviewPanel({ code, language }: PreviewPanelProps = {})
           <div className="flex gap-2">
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`p-2 rounded transition-all text-xs ${
-                autoRefresh ? 'text-teal-400 bg-teal-500/10' : 'text-gray-400 hover:text-white hover:bg-gray-700'
-              }`}
+              className={`p-2 rounded transition-all text-xs ${autoRefresh ? 'text-teal-400 bg-teal-500/10' : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                }`}
               title={autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
             >
               {autoRefresh ? '🔄 Auto' : '🔄'}
@@ -149,8 +151,8 @@ export default function PreviewPanel({ code, language }: PreviewPanelProps = {})
           <button
             onClick={() => setDeviceMode('desktop')}
             className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${deviceMode === 'desktop'
-                ? 'bg-teal-500 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              ? 'bg-teal-500 text-white'
+              : 'text-gray-400 hover:text-white hover:bg-gray-800'
               }`}
           >
             🖥️ Desktop
@@ -158,8 +160,8 @@ export default function PreviewPanel({ code, language }: PreviewPanelProps = {})
           <button
             onClick={() => setDeviceMode('tablet')}
             className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${deviceMode === 'tablet'
-                ? 'bg-teal-500 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              ? 'bg-teal-500 text-white'
+              : 'text-gray-400 hover:text-white hover:bg-gray-800'
               }`}
           >
             📱 Tablet
@@ -167,8 +169,8 @@ export default function PreviewPanel({ code, language }: PreviewPanelProps = {})
           <button
             onClick={() => setDeviceMode('mobile')}
             className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${deviceMode === 'mobile'
-                ? 'bg-teal-500 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              ? 'bg-teal-500 text-white'
+              : 'text-gray-400 hover:text-white hover:bg-gray-800'
               }`}
           >
             📱 Mobile

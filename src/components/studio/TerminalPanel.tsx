@@ -5,11 +5,12 @@ import { Terminal as TerminalIcon, Zap, Play, Trash2, Box, Cpu } from 'lucide-re
 
 type HistoryEntry = { command: string; stdout: string; stderr: string; exitCode: number | null };
 
-const WORKSPACE_ID = typeof crypto !== 'undefined' && crypto.randomUUID
-  ? crypto.randomUUID()
-  : 'studio-default';
 
-export default function TerminalPanel() {
+interface TerminalPanelProps {
+  workspaceId?: string;
+}
+
+export default function TerminalPanel({ workspaceId = 'studio-default' }: TerminalPanelProps) {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -76,7 +77,7 @@ export default function TerminalPanel() {
       const response = await fetch('/api/emergent/terminal/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workspaceId: WORKSPACE_ID, command: command.trim(), timeout: 60 }),
+        body: JSON.stringify({ workspaceId, command: command.trim(), timeout: 60 }),
         signal: controller.signal,
       });
 

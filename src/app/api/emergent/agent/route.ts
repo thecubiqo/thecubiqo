@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { writeFile, mkdir } from 'fs/promises';
+import { readFile, writeFile, readdir, mkdir } from 'fs/promises';
 import { dirname } from 'path';
 import { ensureWorkspace, validatePath } from '@/lib/code-execution/sandbox';
 
@@ -142,10 +142,28 @@ export async function POST(request: NextRequest) {
             .slice(-12)
             .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
+        // SCAN WORKSPACE - Give the agent "eyes"
+        let workspaceContext = "";
+        try {
+            const workspaceDir = await ensureWorkspace(workspaceId);
+            const entries = await readdir(workspaceDir, { recursive: true, withFileTypes: true });
+            const files = entries
+                .filter(e => e.isFile())
+                .map(e => e.name); // Simplified, ideally relative path
+
+            if (files.length > 0) {
+                workspaceContext = `\n\n═══ CURRENT WORKSPACE FILES ═══\n${files.join('\n')}\n\nYou can see these files already exist. If the user asks to modify one, use its existing logic as a base.`;
+            }
+        } catch (err) {
+            console.error('[Agent] Workspace scan failed:', err);
+        }
+
         const allMessages = [
             ...historyMessages,
             { role: 'user' as const, content: message },
         ];
+
+        const systemPromptWithContext = CODING_SYSTEM_PROMPT + workspaceContext;
 
         // Try Anthropic Claude (best for code)
         let aiResponse = '';
@@ -163,7 +181,7 @@ export async function POST(request: NextRequest) {
                     body: JSON.stringify({
                         model: 'claude-3-5-sonnet-20241022',
                         max_tokens: 8192,
-                        system: CODING_SYSTEM_PROMPT,
+                        system: systemPromptWithContext,
                         messages: allMessages,
                     }),
                 });
@@ -193,7 +211,7 @@ export async function POST(request: NextRequest) {
                             model: 'anthropic/claude-3.5-sonnet',
                             max_tokens: 8192,
                             messages: [
-                                { role: 'system', content: CODING_SYSTEM_PROMPT },
+                                { role: 'system', content: systemPromptWithContext },
                                 ...allMessages,
                             ],
                         }),
@@ -224,7 +242,7 @@ export async function POST(request: NextRequest) {
                             model: 'gpt-4o',
                             max_tokens: 8192,
                             messages: [
-                                { role: 'system', content: CODING_SYSTEM_PROMPT },
+                                { role: 'system', content: systemPromptWithContext },
                                 ...allMessages,
                             ],
                         }),
