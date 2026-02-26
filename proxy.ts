@@ -1,5 +1,5 @@
 /**
- * CubiQo Middleware — Domain-Based Routing
+ * CubiQo Proxy — Domain-Based Routing
  *
  * Routes requests based on the incoming hostname so that each
  * sub-product can be served from its own domain while living
@@ -26,7 +26,7 @@ const DOMAIN_ROUTES: Record<string, string> = {
   'www.cubiqo.marketing': '/marketing',
 };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
   // Strip port for local development
   const host = hostname.split(':')[0];
