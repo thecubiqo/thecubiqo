@@ -29,6 +29,13 @@ describe('platforms.json', () => {
     }
   });
 
+  it('every entry has a valid persona type', () => {
+    const VALID_PERSONAS = ['builder', 'guru', 'philosopher', 'artist', 'memer'];
+    for (const p of platforms) {
+      expect(VALID_PERSONAS).toContain(p.type);
+    }
+  });
+
   it('contains all expected platforms', () => {
     const names = platforms.map((p: { platform: string }) => p.platform);
     const expected = ['twitter', 'linkedin', 'instagram', 'tiktok', 'youtube', 'reddit', 'pinterest', 'threads', 'facebook', 'discord'];
