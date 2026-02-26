@@ -554,32 +554,6 @@ export function FullscreenApp({
           {/* Left side - Branded Logo */}
           {/* Left side - Branded Logo + Dynamic HUD Toggles */}
           <div className="flex items-center gap-4">
-<<<<<<< HEAD
-            <div className="w-14 h-14 sm:w-20 sm:h-20 flex items-center justify-center bg-gradient-to-br from-orange-500/30 to-orange-600/20 rounded-2xl border-2 border-orange-500/40 shadow-[0_0_30px_rgba(249,115,22,0.3)] group transition-all duration-500 hover:scale-110 hover:shadow-[0_0_40px_rgba(249,115,22,0.5)]">
- cd17d274a3da6c8bd0507a7f490d80c1ab98df69
-              <svg
-                viewBox="0 0 24 24"
-                className="w-8 h-8 sm:w-12 sm:h-12 text-orange-400 drop-shadow-[0_0_15px_rgba(249,115,22,0.7)]"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path d="M12 2L4 7v10l8 5 8-5V7l-8-5z" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M12 22V12" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M20 7l-8 5-8-5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M12 12l8-5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M12 12l-8-5" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="12" cy="12" r="2" className="fill-orange-500/20" />
-              </svg>
-            </Link>
-            <div className="flex items-start">
-              <span className={`text-2xl sm:text-3xl font-semibold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                CubiQo
-              </span>
-              <span className={`text-[10px] sm:text-[12px] font-medium ml-0.5 -mt-0.5 ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
-                TM
-              </span>
-            </div>
 
             {!showLandingCube && (
               <div className="flex items-center gap-2 ml-4">
@@ -702,88 +676,9 @@ export function FullscreenApp({
 
       {/* Right side - CQ Connect + RGY Signal + Keywords underneath */}
       <div className="fixed right-[4.5rem] top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
-<<<<<<< HEAD
-        {/* CQ Connect Button - Only shown when authenticated */}
-        
         {/* Eye Icon for AI Visual Interaction */}
-        <button
-          onClick={() => {
-            // TODO: Implement AI visual interaction
             console.log('AI Visual Interaction activated');
-          }}
-          className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isDark
-            ? 'bg-purple-800/60 hover:bg-purple-700/80 text-purple-300 hover:text-purple-200'
-            : 'bg-purple-100/80 hover:bg-purple-200 text-purple-600 hover:text-purple-700'
-            } backdrop-blur-md shadow-[0_0_15px_rgba(168,85,247,0.2)] border border-purple-500/30 hover:scale-110`}
           title="AI Visual Interaction"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="w-6 h-6 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-            <path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-          </svg>
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_lime]"></div>
-        </button>
         {/* Coding Panel Access Button */}
-        <a
           href="/coder"
-          className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isDark
-            ? 'bg-emerald-900/60 hover:bg-emerald-800/80 text-emerald-300 hover:text-emerald-200'
-            : 'bg-emerald-100/80 hover:bg-emerald-200 text-emerald-600 hover:text-emerald-700'
-            } backdrop-blur-md shadow-[0_0_15px_rgba(16,185,129,0.2)] border border-emerald-500/30 hover:scale-110`}
           title="CubiQo Coding Panel"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="w-6 h-6 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="m18 16 4-4-4-4" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="m6 8-4 4 4 4" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="m14.5 4-5 16" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_5px_yellow]"></div>
-        </a>
-    
-    {isAuthenticated && (
-          <button
-            onClick={() => setShowCQPanel(true)}
-            className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isDark
-              ? 'bg-zinc-800/80 hover:bg-zinc-700/80 text-orange-500 hover:text-orange-400'
-              : 'bg-white/80 hover:bg-white text-orange-600 hover:text-orange-500'
-              } backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.1)] border border-orange-500/20 hover:scale-110`}
-            title="CQ Connect"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="w-6 h-6 drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]"
-              fill="none
-            <svg
-              viewBox="0 0 24 24"
-              className="w-6 h-6 drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M8 10h.01" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M12 10h.01" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M16 10h.01" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-  
-            {unreadCount > 0 && (
-              <div className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#FF6F00] text-white text-[11px] font-bold">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </div>
-            )}
-          </button>
-        )}
-
-=======
