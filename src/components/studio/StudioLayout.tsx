@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import ConversationPanel from './ConversationPanel';
 import CodeEditor from './CodeEditor';
@@ -161,6 +161,33 @@ export default function StudioLayout() {
       y: -(aiContext.vision.faces[0].bbox.y + aiContext.vision.faces[0].bbox.height / 2 - 0.5) * 2
     }
     : { x: 0, y: 0 };
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+S / Cmd+S — Save current file
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (activeTabId && openTabs.length > 0) {
+          setOpenTabs(prev => prev.map(tab =>
+            tab.id === activeTabId ? { ...tab, isDirty: false } : tab
+          ));
+          setToast({ message: `Saved ${activeTab?.name || 'file'}`, type: 'success' });
+        }
+      }
+      // Ctrl+N / Cmd+N — New file
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        const name = prompt('New file name (e.g. components/Header.tsx):');
+        if (name?.trim()) {
+          handleFileOpen(name.trim());
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTabId, openTabs, activeTab]);
 
   const handleDeploy = async () => {
     if (isDeploying) return;
@@ -413,9 +440,9 @@ export default function StudioLayout() {
               <span className="text-[10px] text-green-400/80 uppercase font-bold">Tunnel Stable</span>
             </div>
           </div>
-          <StatusBar />
+          <StatusBar language={activeTab?.language} />
         </div>
       </div>
-    </div>
+    </div >
   );
 }

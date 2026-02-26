@@ -92,9 +92,31 @@ export default function ConversationPanel({ onCodeGenerated }: ConversationPanel
       {/* Messages Window */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
-            <div className="p-6 rounded-full bg-cyan-500/10 border border-cyan-500/20 mb-6 group">
-              <Zap className="w-12 h-12 text-cyan-400 group-hover:scale-110 transition-transform" />
+          <div className="h-full flex flex-col items-center justify-center text-center px-6 py-12">
+            <div className="p-6 rounded-full bg-cyan-500/10 border border-cyan-500/20 mb-8 group relative overflow-hidden">
+              <div className="absolute inset-0 bg-cyan-400/5 animate-pulse" />
+              <Zap className="w-12 h-12 text-cyan-400 group-hover:scale-110 transition-transform relative z-10" />
+            </div>
+
+            <h3 className="text-xl font-black uppercase tracking-[0.2em] text-white mb-4">Initialize Neutral_Kernel</h3>
+
+            {/* ── Luxury Brand Startup Templates ─── */}
+            <div className="grid grid-cols-1 gap-3 w-full max-w-sm mb-12">
+              {[
+                { label: '🏛️ Luxury Brand Storefront', intent: 'Build a luxury brand e-commerce storefront with Shopify Plus, product gallery, and Stripe checkout' },
+                { label: '👕 Product Page + BNPL', intent: 'Create a product page for a luxury apparel brand with size selector, multiple images, and buy-now-pay-later via Affirm and Klarna' },
+                { label: '📧 VIP Email Flows', intent: 'Build a Klaviyo email flow for a luxury brand launch — welcome series, abandoned cart, VIP segment, and post-purchase upsell' },
+                { label: '📊 Admin Analytics', intent: 'Create a luxury brand admin dashboard showing Triple Whale attribution, Shopify orders, ShipBob fulfillment status, and Gorgias support tickets' },
+                { label: '🧴 Fragrance Landing', intent: 'Build a Next.js landing page for a luxury fragrance brand with hero video, product showcase, Stripe payments, and waitlist capture via Resend' }
+              ].map((template, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setInput(template.intent)}
+                  className="w-full text-left px-4 py-3 bg-white/5 hover:bg-cyan-500/10 rounded-xl text-[11px] font-bold text-white/70 transition-all border border-white/5 hover:border-cyan-500/40 uppercase tracking-widest group"
+                >
+                  <span className="group-hover:text-cyan-400 transition-colors">{template.label}</span>
+                </button>
+              ))}
             </div>
             <h3 className="text-sm font-black uppercase tracking-widest text-white mb-2 underline underline-offset-8 decoration-cyan-500/50">Describe Intent</h3>
             <p className="text-[10px] text-white/40 leading-relaxed max-w-[200px] uppercase">Initialize neural construction by inputting a high-level architectural descriptor below.</p>
@@ -103,10 +125,7 @@ export default function ConversationPanel({ onCodeGenerated }: ConversationPanel
           <>
             {messages.map((message, i) => (
               <div key={i} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
-                <div className={`max-w-[90%] relative group ${message.role === 'user'
-                  ? 'text-right'
-                  : 'text-left'
-                  }`}>
+                <div className={`max-w-[90%] relative group ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
                   <div className={`text-[8px] font-black uppercase tracking-widest mb-1.5 ${message.role === 'user' ? 'text-white/40' : 'text-cyan-400/80'}`}>
                     {message.role === 'user' ? 'Local_User_ID_07' : 'Emergent_AI_Agent'}
                   </div>
@@ -165,7 +184,7 @@ export default function ConversationPanel({ onCodeGenerated }: ConversationPanel
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSend()}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !isLoading) { e.preventDefault(); handleSend(); } }}
               placeholder={isLoading ? "SYSTEM_BUSY..." : "CMD > ENTER INSTRUCTION..."}
               disabled={isLoading}
               className="flex-1 bg-transparent border-none px-5 py-4 text-xs font-bold tracking-widest focus:outline-none disabled:opacity-50 placeholder-white/20 text-white selection:bg-cyan-500/30"
