@@ -1,204 +1,380 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import LoadingSpinner from './LoadingSpinner';
-import { Zap, Activity } from 'lucide-react';
+import { Zap, ChevronRight, FileCode2, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react';
+
+// ─── Starter Templates ──────────────────────────────────────────────────────
+
+const TEMPLATES = [
+  {
+    id: 'volbak',
+    name: 'Volbak-Style Brand Site',
+    icon: '🌑',
+    description: 'Full-screen cinematic hero, bold typography, dark luxury aesthetic',
+    prompt: `Build me a premium Next.js brand website inspired by Volbak.com design language.
+
+Requirements:
+- Full-screen hero section with massive bold headline text, dark near-black background (#0a0a0a)
+- Cinematic product video/image area with overlay text
+- Navigation: minimal, fixed top, logo left + 3 links right
+- Products section: 2-3 cards with hover zoom effect
+- Footer: minimal, dark
+- Typography: very large (text-7xl to text-9xl for hero), font-black, tracking ultra-tight
+- Animation: subtle fade-in on scroll, smooth transitions
+- Color palette: near-black bg, white text, no bright colors
+- Tailwind CSS + framer-motion for animations
+- Mobile responsive
+
+Files to create:
+- app/page.tsx (main page with all sections)
+- app/layout.tsx (metadata, font imports)  
+- app/globals.css (font-face, base styles, custom scrollbar)
+- components/Hero.tsx (full-screen hero component)
+- components/Nav.tsx (minimal sticky nav)
+- components/ProductCard.tsx (product card with hover effects)`,
+  },
+  {
+    id: 'dashboard',
+    name: 'Analytics Dashboard',
+    icon: '📊',
+    description: 'Dark glassmorphism dashboard with charts and metrics',
+    prompt: `Build a premium analytics dashboard in Next.js.
+
+Dark glassmorphism design. Include:
+- Sidebar navigation with icons
+- KPI cards (revenue, users, conversion, growth) with trend indicators
+- Line chart area (use recharts or simple SVG)
+- Recent activity feed
+- Top performing items table
+
+Files: app/page.tsx, app/layout.tsx, app/globals.css, components/Sidebar.tsx, components/KPICard.tsx, components/ActivityFeed.tsx`,
+  },
+  {
+    id: 'saas',
+    name: 'SaaS Landing Page',
+    icon: '🚀',
+    description: 'Modern SaaS with hero, features, pricing, CTA',
+    prompt: `Build a high-converting SaaS landing page in Next.js.
+
+Include: hero with headline + CTA, features grid (6 features), pricing table (3 tiers), FAQ, footer.
+Dark mode. Premium feel. Gradient accents on orange/purple.
+
+Files: app/page.tsx, app/layout.tsx, app/globals.css, components/Hero.tsx, components/Features.tsx, components/Pricing.tsx`,
+  },
+];
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+interface Message {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  filesWritten?: { path: string; preview: string }[];
+  isLoading?: boolean;
+  error?: boolean;
+}
 
 interface ConversationPanelProps {
   onCodeGenerated?: (code: string, language: string) => void;
+  onFilesWritten?: () => void;
+  workspaceId?: string;
 }
 
-export default function ConversationPanel({ onCodeGenerated }: ConversationPanelProps) {
-  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+// ─── Quick prompts ───────────────────────────────────────────────────────────
+
+const QUICK_PROMPTS = [
+  'Build a Volbak.com inspired brand site',
+  'Create a dark SaaS landing page',
+  'Make a full e-commerce product page',
+  'Build a portfolio site with animations',
+];
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
+export default function ConversationPanel({
+  onCodeGenerated,
+  onFilesWritten,
+  workspaceId = 'studio-default',
+}: ConversationPanelProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const [showTemplates, setShowTemplates] = useState(true);
+  const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    scrollToBottom();
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const sendMessage = async (content: string) => {
+    if (!content.trim() || isLoading) return;
 
-    const userMessage = input;
+    const userMessage: Message = { role: 'user', content };
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
-
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setShowTemplates(false);
     setIsLoading(true);
 
+    // Add loading placeholder
+    const loadingId = Date.now();
+    setMessages(prev => [...prev, { role: 'assistant', content: '', isLoading: true }]);
+
     try {
-      const response = await fetch('/api/chat', {
+      const history = messages
+        .filter(m => !m.isLoading)
+        .slice(-10)
+        .map(m => ({ role: m.role, content: m.content }));
+
+      const res = await fetch('/api/emergent/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: userMessage,
-          sessionId: 'studio-session',
+          message: content,
+          workspaceId,
+          history,
           context: 'studio-builder',
-          history: messages.slice(-10),
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to get AI response');
-      const data = await response.json();
-      const aiContent = data.response || 'I apologize, I couldn\'t process that request. Please try again.';
+      const data = await res.json();
 
-      setMessages(prev => [...prev, { role: 'assistant', content: aiContent }]);
+      if (!res.ok) throw new Error(data.error || 'Agent failed');
 
-      if (onCodeGenerated) {
-        const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
-        let match;
-        while ((match = codeBlockRegex.exec(aiContent)) !== null) {
-          onCodeGenerated(match[2].trim(), match[1] || 'typescript');
-          break;
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: data.reply,
+        filesWritten: data.files_written || [],
+      };
+
+      setMessages(prev => [...prev.filter(m => !m.isLoading), assistantMessage]);
+
+      // Notify parent about written files so it refreshes the file tree
+      if (data.files_written?.length > 0) {
+        onFilesWritten?.();
+
+        // Extract first code block for editor
+        if (onCodeGenerated) {
+          const match = data.reply.match(/```(?:tsx?|jsx?|css)?\n(?:\/\/ [^\n]+\n)?([\s\S]*?)```/);
+          if (match) {
+            onCodeGenerated(match[1].trim(), 'typescript');
+          }
         }
       }
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'SYSTEM_ERROR: Connection to LLM kernel interrupted.' }]);
+
+    } catch (err) {
+      setMessages(prev => [
+        ...prev.filter(m => !m.isLoading),
+        {
+          role: 'assistant',
+          content: err instanceof Error ? err.message : 'Unknown error from agent.',
+          error: true,
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(input);
+    }
+  };
+
+  const loadTemplate = (template: typeof TEMPLATES[0]) => {
+    setInput(template.prompt);
+    setShowTemplates(false);
+    inputRef.current?.focus();
+  };
+
   return (
-    <div className="flex flex-col h-full bg-black/20">
-      {/* HUD Header */}
-      <div className="p-5 border-b border-white/10 bg-white/5 backdrop-blur-md">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_cyan]" />
+    <div className="flex flex-col h-full bg-black/20 overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-white/10 bg-white/[0.03] backdrop-blur-md shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_cyan]" />
             <h2 className="text-xs font-black uppercase tracking-[0.3em] text-cyan-400">
-              Brain Core <span className="text-white/20">//</span> Uplink
+              EMERGENT <span className="text-white/20">AI</span>
             </h2>
           </div>
-          <span className="text-[10px] text-white/30 font-bold uppercase tracking-widest">v4.0.2</span>
-        </div>
-        <div className="flex gap-4">
-          <div className="flex items-center gap-1.5">
-            <div className="w-1 h-1 rounded-full bg-green-500" />
-            <span className="text-[9px] text-green-500 font-bold uppercase italic">Ready</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowTemplates(v => !v)}
+              className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/70 transition-all border border-white/10"
+            >
+              Templates
+            </button>
+            {messages.length > 0 && (
+              <button
+                onClick={() => { setMessages([]); setShowTemplates(true); }}
+                className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-white/30 hover:text-red-400 transition-all border border-white/10"
+              >
+                Clear
+              </button>
+            )}
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-1 h-1 rounded-full bg-cyan-500 animate-pulse" />
-            <span className="text-[9px] text-cyan-500 font-bold uppercase italic">Syncing</span>
-          </div>
         </div>
+        <p className="text-[10px] text-white/20 mt-1 uppercase tracking-widest font-bold">
+          Describe what to build → agent writes real files
+        </p>
       </div>
 
-      {/* Messages Window */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center px-6 py-12">
-            <div className="p-6 rounded-full bg-cyan-500/10 border border-cyan-500/20 mb-8 group relative overflow-hidden">
-              <div className="absolute inset-0 bg-cyan-400/5 animate-pulse" />
-              <Zap className="w-12 h-12 text-cyan-400 group-hover:scale-110 transition-transform relative z-10" />
-            </div>
+      {/* Messages / Templates */}
+      <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar">
+        {showTemplates && messages.length === 0 ? (
+          /* Templates Panel */
+          <div className="p-4 space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/20 px-1">
+              Starter Templates
+            </p>
+            {TEMPLATES.map(t => (
+              <button
+                key={t.id}
+                onClick={() => loadTemplate(t)}
+                className="w-full text-left p-3.5 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] hover:border-cyan-500/30 transition-all group"
+              >
+                <div className="flex items-center gap-2.5 mb-1">
+                  <span className="text-lg">{t.icon}</span>
+                  <span className="text-xs font-black text-white/70 group-hover:text-white transition-colors uppercase tracking-wide">{t.name}</span>
+                  <ChevronRight className="w-3 h-3 text-white/20 group-hover:text-cyan-400 ml-auto transition-colors" />
+                </div>
+                <p className="text-[10px] text-white/30 pl-8">{t.description}</p>
+              </button>
+            ))}
 
-            <h3 className="text-xl font-black uppercase tracking-[0.2em] text-white mb-4">Initialize Neutral_Kernel</h3>
-
-            {/* ── Luxury Brand Startup Templates ─── */}
-            <div className="grid grid-cols-1 gap-3 w-full max-w-sm mb-12">
-              {[
-                { label: '🏛️ Luxury Brand Storefront', intent: 'Build a luxury brand e-commerce storefront with Shopify Plus, product gallery, and Stripe checkout' },
-                { label: '👕 Product Page + BNPL', intent: 'Create a product page for a luxury apparel brand with size selector, multiple images, and buy-now-pay-later via Affirm and Klarna' },
-                { label: '📧 VIP Email Flows', intent: 'Build a Klaviyo email flow for a luxury brand launch — welcome series, abandoned cart, VIP segment, and post-purchase upsell' },
-                { label: '📊 Admin Analytics', intent: 'Create a luxury brand admin dashboard showing Triple Whale attribution, Shopify orders, ShipBob fulfillment status, and Gorgias support tickets' },
-                { label: '🧴 Fragrance Landing', intent: 'Build a Next.js landing page for a luxury fragrance brand with hero video, product showcase, Stripe payments, and waitlist capture via Resend' }
-              ].map((template, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setInput(template.intent)}
-                  className="w-full text-left px-4 py-3 bg-white/5 hover:bg-cyan-500/10 rounded-xl text-[11px] font-bold text-white/70 transition-all border border-white/5 hover:border-cyan-500/40 uppercase tracking-widest group"
-                >
-                  <span className="group-hover:text-cyan-400 transition-colors">{template.label}</span>
-                </button>
-              ))}
-            </div>
-            <h3 className="text-sm font-black uppercase tracking-widest text-white mb-2 underline underline-offset-8 decoration-cyan-500/50">Describe Intent</h3>
-            <p className="text-[10px] text-white/40 leading-relaxed max-w-[200px] uppercase">Initialize neural construction by inputting a high-level architectural descriptor below.</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/20 px-1 pt-2">
+              Quick Start
+            </p>
+            {QUICK_PROMPTS.map(p => (
+              <button
+                key={p}
+                onClick={() => sendMessage(p)}
+                className="w-full text-left px-3 py-2 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.06] hover:border-white/15 transition-all text-[11px] text-white/30 hover:text-white/60 flex items-center gap-2"
+              >
+                <Sparkles className="w-3 h-3 shrink-0 text-cyan-500/40" />
+                {p}
+              </button>
+            ))}
           </div>
         ) : (
-          <>
-            {messages.map((message, i) => (
-              <div key={i} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
-                <div className={`max-w-[90%] relative group ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
-                  <div className={`text-[8px] font-black uppercase tracking-widest mb-1.5 ${message.role === 'user' ? 'text-white/40' : 'text-cyan-400/80'}`}>
-                    {message.role === 'user' ? 'Local_User_ID_07' : 'Emergent_AI_Agent'}
+          /* Conversation */
+          <div className="p-4 space-y-4">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                {msg.role === 'user' ? (
+                  <div className="max-w-[90%] px-3 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-white/80 font-medium leading-relaxed">
+                    {msg.content}
                   </div>
-                  <div className={`p-4 rounded-2xl backdrop-blur-xl border transition-all ${message.role === 'user'
-                    ? 'bg-white/5 border-white/10 text-white rounded-tr-none shadow-xl'
-                    : 'bg-cyan-500/5 border-cyan-500/20 text-cyan-50 border-tl-none shadow-[0_0_30px_rgba(0,255,255,0.05)]'
-                    }`}>
-                    <div className="text-sm leading-relaxed whitespace-pre-wrap font-sans tracking-wide">
-                      {message.content.split(/(```\w*\n[\s\S]*?```)/g).map((part, j) => {
-                        const codeMatch = part.match(/```(\w*)\n([\s\S]*?)```/);
-                        if (codeMatch) {
-                          return (
-                            <div key={j} className="my-4 border border-white/10 rounded-xl overflow-hidden shadow-2xl">
-                              <div className="flex items-center justify-between bg-white/5 px-4 py-2 border-b border-white/10">
-                                <span className="text-[10px] uppercase font-black tracking-widest text-white/40">{codeMatch[1] || 'code_block'}</span>
-                                {onCodeGenerated && (
-                                  <button
-                                    onClick={() => onCodeGenerated(codeMatch[2].trim(), codeMatch[1] || 'typescript')}
-                                    className="text-[10px] font-black uppercase tracking-widest text-cyan-400 hover:text-white transition-colors flex items-center gap-1"
-                                  >
-                                    <Activity className="w-3 h-3" /> Mount System
-                                  </button>
-                                )}
-                              </div>
-                              <pre className="bg-black/40 p-4 text-xs overflow-x-auto selection:bg-cyan-500/30">
-                                <code className="text-cyan-200/90">{codeMatch[2].trim()}</code>
-                              </pre>
-                            </div>
-                          );
-                        }
-                        return <span key={j}>{part}</span>;
-                      })}
+                ) : msg.isLoading ? (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
+                    <Loader2 className="w-3 h-3 text-cyan-400 animate-spin" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400/60 animate-pulse">
+                      Agent building…
+                    </span>
+                  </div>
+                ) : (
+                  <div className={`w-full space-y-2`}>
+                    {/* Agent reply — render code blocks cleanly */}
+                    <div className={`text-[11px] leading-relaxed text-white/60 whitespace-pre-wrap break-words px-1 ${msg.error ? 'text-red-400' : ''}`}>
+                      {renderMessageContent(msg.content)}
                     </div>
+
+                    {/* Files written indicator */}
+                    {msg.filesWritten && msg.filesWritten.length > 0 && (
+                      <div className="mt-2 p-2.5 rounded-lg bg-green-500/5 border border-green-500/20 space-y-1">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <CheckCircle2 className="w-3 h-3 text-green-400" />
+                          <span className="text-[9px] font-black uppercase tracking-widest text-green-400">
+                            {msg.filesWritten.length} file{msg.filesWritten.length > 1 ? 's' : ''} written
+                          </span>
+                        </div>
+                        {msg.filesWritten.map(f => (
+                          <div key={f.path} className="flex items-center gap-1.5">
+                            <FileCode2 className="w-2.5 h-2.5 text-green-400/60 shrink-0" />
+                            <span className="text-[10px] text-green-400/70 font-mono truncate">{f.path}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {msg.error && (
+                      <div className="flex items-center gap-1.5 text-red-400/60">
+                        <AlertCircle className="w-3 h-3" />
+                        <span className="text-[9px] uppercase tracking-widest font-bold">Agent error</span>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
               </div>
             ))}
-            {isLoading && (
-              <div className="flex justify-start animate-pulse">
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400 p-4 bg-cyan-400/5 border border-cyan-400/20 rounded-2xl">
-                  Deciphering Intent...
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </>
+            <div ref={endRef} />
+          </div>
         )}
       </div>
 
-      {/* Input Terminal */}
-      <div className="p-6 border-t border-white/10 bg-white/5 backdrop-blur-xl">
-        <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl blur opacity-10 group-focus-within:opacity-40 transition-opacity" />
-          <div className="relative flex gap-1 bg-black/60 rounded-2xl border border-white/10 overflow-hidden p-1">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !isLoading) { e.preventDefault(); handleSend(); } }}
-              placeholder={isLoading ? "SYSTEM_BUSY..." : "CMD > ENTER INSTRUCTION..."}
-              disabled={isLoading}
-              className="flex-1 bg-transparent border-none px-5 py-4 text-xs font-bold tracking-widest focus:outline-none disabled:opacity-50 placeholder-white/20 text-white selection:bg-cyan-500/30"
-            />
-            <button
-              onClick={handleSend}
-              disabled={isLoading || !input.trim()}
-              className={`px-6 bg-white text-black rounded-xl font-black uppercase tracking-tighter transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:transform-none flex items-center justify-center ${isLoading ? 'animate-pulse' : ''}`}
-            >
-              Uplink
-            </button>
+      {/* Input */}
+      <div className="p-3 border-t border-white/10 bg-black/30 backdrop-blur-md shrink-0">
+        <div className="relative group rounded-xl overflow-hidden border border-white/10 focus-within:border-cyan-500/30 transition-colors">
+          <div className="absolute inset-0 bg-white/[0.02] group-focus-within:bg-cyan-500/5 transition-colors pointer-events-none" />
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={isLoading ? 'Agent is building…' : 'Describe what to build… (Enter to send, Shift+Enter for new line)'}
+            disabled={isLoading}
+            rows={3}
+            className="relative w-full bg-transparent text-xs text-white/70 placeholder-white/15 outline-none resize-none px-3 py-2.5 font-mono leading-relaxed disabled:opacity-40"
+          />
+          <div className="absolute bottom-2 right-2 flex items-center gap-2">
+            {isLoading ? (
+              <Loader2 className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+            ) : input.trim() ? (
+              <button
+                onClick={() => sendMessage(input)}
+                className="p-1 rounded-md bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 transition-all"
+              >
+                <Zap className="w-3 h-3 text-cyan-400" />
+              </button>
+            ) : null}
           </div>
         </div>
+        <p className="text-[9px] text-white/15 mt-1.5 text-center uppercase tracking-widest font-bold">
+          Agent writes files directly to your workspace
+        </p>
       </div>
     </div>
   );
+}
+
+// ─── Render message with code block formatting ────────────────────────────
+
+function renderMessageContent(content: string) {
+  const parts = content.split(/(```[\s\S]*?```)/g);
+
+  return parts.map((part, i) => {
+    if (part.startsWith('```')) {
+      const lines = part.slice(3, -3).split('\n');
+      const lang = lines[0];
+      // Check if second line is a filename comment
+      const isFilename = lines[1]?.match(/^(?:\/\/ |# )(.+\.[a-z]+)/);
+      const displayName = isFilename ? isFilename[1] : lang;
+      const code = (isFilename ? lines.slice(2) : lines.slice(1)).join('\n');
+
+      return (
+        <div key={i} className="my-2 rounded-lg overflow-hidden border border-white/10">
+          <div className="px-3 py-1.5 bg-white/5 border-b border-white/10 flex items-center gap-1.5">
+            <FileCode2 className="w-3 h-3 text-cyan-400/60" />
+            <span className="text-[10px] font-mono text-white/40">{displayName}</span>
+          </div>
+          <pre className="text-[10px] font-mono text-cyan-200/50 p-3 overflow-x-auto leading-relaxed whitespace-pre-wrap break-words">
+            {code}
+          </pre>
+        </div>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
 }
