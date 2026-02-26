@@ -7,31 +7,128 @@ import { Zap, ChevronRight, FileCode2, CheckCircle2, AlertCircle, Loader2, Spark
 
 const TEMPLATES = [
   {
-    id: 'volbak',
-    name: 'Volbak-Style Brand Site',
+    id: 'volbak-store',
+    name: 'Volbak Brand Store (Full E-commerce)',
     icon: '🌑',
-    description: 'Full-screen cinematic hero, bold typography, dark luxury aesthetic',
-    prompt: `Build me a premium Next.js brand website inspired by Volbak.com design language.
+    description: 'Cinematic brand + product variants + cart + Stripe checkout + Printful fulfillment',
+    prompt: `Build a COMPLETE working e-commerce brand store in Next.js, inspired by Volbak.com design language. This must include real shopping functionality — not just a pretty page.
+
+DESIGN: Volbak aesthetic
+- Near-black background (#0a0a0a), white text
+- Massive bold typography (tracking-tighter, font-black, text-7xl+ for hero)
+- Cinematic full-screen hero with product imagery
+- Minimal fixed navigation
+- Premium product cards with smooth hover effects
+
+E-COMMERCE FUNCTIONALITY (fully working):
+1. Product catalog with 3 products (hoodie, t-shirt, cap)
+2. Product detail: color selector (Black, White, Olive), size selector (XS/S/M/L/XL/XXL) with stock display
+3. Cart: add/remove/quantity, persisted in localStorage, slide-out drawer
+4. Checkout: Stripe Checkout Session via /api/checkout route
+5. Success page: /app/success/page.tsx - shows order confirmation
+
+PRINTFUL INTEGRATION (fulfillment):
+- /api/printful/webhook route - receives Printful order events
+- /api/printful/order route - creates order in Printful when Stripe payment succeeds
+- Products map to Printful variant IDs
+
+STRIPE INTEGRATION:
+- /api/checkout/route.ts - creates Stripe Checkout Session with line items
+- Uses STRIPE_SECRET_KEY env var
+- Redirect to /success on completion
+
+FILES TO CREATE:
+\`\`\`tsx
+// app/page.tsx
+\`\`\`
+\`\`\`tsx
+// app/layout.tsx
+\`\`\`
+\`\`\`css
+// app/globals.css
+\`\`\`
+\`\`\`tsx
+// app/success/page.tsx
+\`\`\`
+\`\`\`tsx
+// components/Nav.tsx
+\`\`\`
+\`\`\`tsx
+// components/Hero.tsx
+\`\`\`
+\`\`\`tsx
+// components/ProductCard.tsx
+\`\`\`
+\`\`\`tsx
+// components/ProductDetail.tsx
+\`\`\`
+\`\`\`tsx
+// components/Cart.tsx
+\`\`\`
+\`\`\`tsx
+// components/CartDrawer.tsx
+\`\`\`
+\`\`\`tsx
+// lib/cart.ts
+\`\`\`
+\`\`\`tsx
+// lib/products.ts
+\`\`\`
+\`\`\`ts
+// app/api/checkout/route.ts
+\`\`\`
+\`\`\`ts
+// app/api/printful/order/route.ts
+\`\`\`
+
+Make every file complete and production-ready. The cart must actually work. Stripe checkout must actually redirect. Colors and sizes must update price/availability.`,
+  },
+  {
+    id: 'volbak-brand',
+    name: 'Volbak Brand Site (No Ecomm)',
+    icon: '🎨',
+    description: 'Pure cinematic brand experience — hero, lookbook, editorial',
+    prompt: `Build a premium brand/editorial website in Next.js, inspired by Volbak.com.
 
 Requirements:
 - Full-screen hero section with massive bold headline text, dark near-black background (#0a0a0a)
 - Cinematic product video/image area with overlay text
 - Navigation: minimal, fixed top, logo left + 3 links right
-- Products section: 2-3 cards with hover zoom effect
+- Products section: 2-3 cards with hover zoom effect on image
+- Full-width editorial section with large text + image split layout
 - Footer: minimal, dark
-- Typography: very large (text-7xl to text-9xl for hero), font-black, tracking ultra-tight
-- Animation: subtle fade-in on scroll, smooth transitions
+- Typography: very large (text-7xl to text-9xl for hero), font-black, tracking-tighter
+- Animation: fade-in on scroll, smooth hover transitions
 - Color palette: near-black bg, white text, no bright colors
-- Tailwind CSS + framer-motion for animations
+- Tailwind CSS with custom animations
 - Mobile responsive
 
-Files to create:
-- app/page.tsx (main page with all sections)
-- app/layout.tsx (metadata, font imports)  
-- app/globals.css (font-face, base styles, custom scrollbar)
-- components/Hero.tsx (full-screen hero component)
-- components/Nav.tsx (minimal sticky nav)
-- components/ProductCard.tsx (product card with hover effects)`,
+Files: app/page.tsx, app/layout.tsx, app/globals.css, components/Hero.tsx, components/Nav.tsx, components/ProductCard.tsx, components/Editorial.tsx`,
+  },
+  {
+    id: 'shopify-headless',
+    name: 'Headless Shopify + Printful',
+    icon: '🛍️',
+    description: 'Next.js storefront connected to Shopify Storefront API + Printful POD',
+    prompt: `Build a headless Next.js storefront connected to Shopify Storefront API with Printful print-on-demand fulfillment.
+
+SHOPIFY INTEGRATION:
+- lib/shopify.ts — Storefront API client with fetch helper, uses SHOPIFY_STOREFRONT_TOKEN + SHOPIFY_STORE_DOMAIN env vars
+- Fetch products with variants, images, prices using GraphQL
+- app/page.tsx — product grid from Shopify
+- app/products/[handle]/page.tsx — product detail with variant selector (size/color)
+
+CART (Shopify native):
+- lib/cart.ts — createCart, addToCart, updateCart, removeFromCart using Shopify Cart API
+- components/CartDrawer.tsx — slide-out cart with live totals
+- Checkout redirects to Shopify checkout URL
+
+PRINTFUL:
+- lib/printful.ts — API client using PRINTFUL_API_KEY
+- Map Shopify product variants to Printful variant IDs
+- app/api/printful/webhook/route.ts — handle fulfillment events
+
+Files: lib/shopify.ts, lib/cart.ts, lib/printful.ts, app/page.tsx, app/layout.tsx, app/globals.css, app/products/[handle]/page.tsx, components/Nav.tsx, components/ProductGrid.tsx, components/ProductDetail.tsx, components/CartDrawer.tsx, app/api/printful/webhook/route.ts`,
   },
   {
     id: 'dashboard',
@@ -82,10 +179,11 @@ interface ConversationPanelProps {
 // ─── Quick prompts ───────────────────────────────────────────────────────────
 
 const QUICK_PROMPTS = [
-  'Build a Volbak.com inspired brand site',
-  'Create a dark SaaS landing page',
-  'Make a full e-commerce product page',
-  'Build a portfolio site with animations',
+  'Build a full Volbak-style store with Stripe + Printful',
+  'Add size/color variant selector to existing product page',
+  'Create a cart drawer with localStorage persistence',
+  'Build a Stripe checkout API route with webhooks',
+  'Add Shopify Storefront API product fetch to page.tsx',
 ];
 
 // ─── Component ───────────────────────────────────────────────────────────────
