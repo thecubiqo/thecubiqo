@@ -33,6 +33,8 @@ import { executeImageAgent } from './subagents/image-agent'
 import { executeIntegrationAgent } from './subagents/integration-agent'
 import { executeMediaAgent } from './subagents/media-agent'
 import { executeCodeAgent } from './subagents/code-agent'
+import { executeMarketingAgent } from './subagents/marketing-agent'
+import { executeSalesAgent } from './subagents/sales-agent'
 
 /**
  * Tool cost configuration (in credits)
@@ -47,7 +49,9 @@ const TOOL_COSTS: Record<string, number> = {
   'ask-human': 0,
   'database-migration': 50,
   'deploy': 100,
-  'monitoring': 5
+  'monitoring': 5,
+  'marketing': 30,
+  'sales': 20
 }
 
 /**
@@ -63,7 +67,9 @@ const RATE_LIMITS: Record<string, number> = {
   'ask-human': 20,
   'database-migration': 2,
   'deploy': 5,
-  'monitoring': 50
+  'monitoring': 50,
+  'marketing': 5,
+  'sales': 10
 }
 
 /**
@@ -252,6 +258,14 @@ async function routeToSubAgent(
 
       case 'code':
         result = await executeCodeAgent(request)
+        break
+
+      case 'marketing':
+        result = await executeMarketingAgent(request)
+        break
+
+      case 'sales':
+        result = await executeSalesAgent(request)
         break
 
       case 'human':
@@ -480,7 +494,9 @@ function mapToolToAgent(tool: string): SubAgentType {
     'ask-human': 'human',
     'database-migration': 'migration',
     'deploy': 'code',
-    'monitoring': 'integration'
+    'monitoring': 'integration',
+    'marketing': 'marketing',
+    'sales': 'sales'
   }
 
   return mapping[tool] || 'code'

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Terminal as TerminalIcon, Zap, Play, Trash2, Box, Cpu } from 'lucide-react';
 
 type HistoryEntry = { command: string; stdout: string; stderr: string; exitCode: number | null };
 
@@ -12,7 +13,7 @@ export default function TerminalPanel() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
-  const [streamMode, setStreamMode] = useState(false);
+  const [streamMode, setStreamMode] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -58,7 +59,6 @@ export default function TerminalPanel() {
 
   // Stream mode: POST then read SSE events in real-time
   const executeStream = useCallback(async (command: string) => {
-    // Push a live entry we'll update as chunks arrive
     const entryIndex = history.length;
     setHistory(prev => [...prev, { command, stdout: '', stderr: '', exitCode: null }]);
 
@@ -127,7 +127,6 @@ export default function TerminalPanel() {
         }
       }
 
-      // If we never got an exit event, mark as completed
       setHistory(prev => prev.map((e, i) =>
         i === entryIndex && e.exitCode === null ? { ...e, exitCode: 0 } : e
       ));
@@ -170,79 +169,106 @@ export default function TerminalPanel() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-800">
-      {/* Header */}
-      <div className="p-2 border-b border-gray-700 flex items-center justify-between shrink-0">
-        <h3 className="text-sm font-semibold text-gray-300">💻 Terminal</h3>
-        <div className="flex items-center gap-2">
+    <div className="h-full flex flex-col bg-black/40 backdrop-blur-2xl font-mono relative overflow-hidden">
+      {/* HUD Status Bar */}
+      <div className="p-3 border-b border-white/10 flex items-center justify-between shrink-0 bg-white/5">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <TerminalIcon className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">Bash Uplink</span>
+          </div>
+          <div className="h-3 w-px bg-white/10" />
+          <div className="flex items-center gap-2">
+            <Cpu className="w-3 h-3 text-white/20" />
+            <span className="text-[9px] font-bold text-white/20 uppercase">Core: Stable</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setStreamMode(m => !m)}
             disabled={isRunning}
-            className={`text-xs px-1.5 py-0.5 rounded transition-colors disabled:opacity-50 ${
-              streamMode
-                ? 'bg-cyan-600/30 text-cyan-300 hover:bg-cyan-600/50'
-                : 'text-gray-400 hover:text-gray-200'
-            }`}
-            title={streamMode ? 'Streaming mode (SSE)' : 'Batch mode (POST)'}
+            className={`text-[9px] font-black uppercase px-2 py-1 rounded-md transition-all flex items-center gap-1.5 ${streamMode
+              ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-[0_0_10px_rgba(0,255,255,0.1)]'
+              : 'bg-white/5 text-white/30 hover:text-white border border-transparent'
+              }`}
           >
-            {streamMode ? '⚡ Stream' : '📦 Batch'}
+            {streamMode ? <Zap className="w-2.5 h-2.5" /> : <Box className="w-2.5 h-2.5" />}
+            {streamMode ? 'Stream' : 'Batch'}
           </button>
           <button
             onClick={() => setHistory([])}
-            className="text-xs text-gray-400 hover:text-gray-200 transition-colors"
+            className="p-1 text-white/20 hover:text-red-400 transition-colors"
+            title="Purge History"
           >
-            Clear
+            <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Output */}
-      <div className="flex-1 overflow-auto p-3 font-mono text-sm space-y-2 min-h-0">
+      {/* Output HUD */}
+      <div className="flex-1 overflow-auto p-5 space-y-3 min-h-0 custom-scrollbar selection:bg-cyan-500/30">
         {history.length === 0 && (
-          <div className="text-gray-500 text-xs">
-            Welcome to CubiQo Studio Terminal. Type a command below.
+          <div className="space-y-2 opacity-30">
+            <div className="text-[10px] font-black uppercase tracking-widest text-cyan-400">{'>>'} CubiQo Studio Terminal OS [v1.0.4]</div>
+            <div className="text-[10px] font-bold uppercase text-white/60 font-sans">Awaiting command input for kernel execution...</div>
           </div>
         )}
         {history.map((entry, i) => (
-          <div key={i}>
-            <div className="flex items-center gap-2">
-              <span className="text-green-400 shrink-0">$</span>
-              <span className="text-gray-200">{entry.command}</span>
+          <div key={i} className="animate-in fade-in slide-in-from-left-2 duration-300">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-cyan-500 font-black tracking-tighter shrink-0 cursor-default">{'λ'}</span>
+              <span className="text-white font-bold tracking-tight">{entry.command}</span>
             </div>
             {entry.stdout && (
-              <pre className="text-gray-300 whitespace-pre-wrap text-xs mt-1 ml-4">{entry.stdout}</pre>
+              <pre className="text-cyan-200/60 whitespace-pre-wrap text-[11px] mt-1.5 pl-4 border-l border-white/5 font-mono leading-relaxed">{entry.stdout}</pre>
             )}
             {entry.stderr && (
-              <pre className="text-red-400 whitespace-pre-wrap text-xs mt-1 ml-4">{entry.stderr}</pre>
+              <pre className="text-red-400/80 whitespace-pre-wrap text-[11px] mt-1.5 pl-4 border-l border-red-500/20 font-mono leading-relaxed">{entry.stderr}</pre>
             )}
             {entry.exitCode !== null && entry.exitCode !== 0 && (
-              <div className="text-red-500 text-xs mt-0.5 ml-4">exit code: {entry.exitCode}</div>
+              <div className="text-[9px] font-black uppercase text-red-500/60 mt-1 pl-4 tracking-widest italic">Return Code: {entry.exitCode}</div>
             )}
           </div>
         ))}
         {isRunning && (
-          <div className="flex items-center gap-2 text-gray-400">
-            <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-            <span className="text-xs">{streamMode ? 'Streaming...' : 'Running...'}</span>
+          <div className="flex items-center gap-3 pl-4">
+            <div className="flex gap-1">
+              <div className="w-1 h-1 bg-cyan-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+              <div className="w-1 h-1 bg-cyan-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+              <div className="w-1 h-1 bg-cyan-400 rounded-full animate-bounce" />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400/60 italic">Processing...</span>
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="p-2 border-t border-gray-700 shrink-0">
-        <div className="flex items-center gap-2 bg-gray-900 rounded px-3 py-2">
-          <span className="text-green-400 text-sm font-mono shrink-0">$</span>
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={isRunning ? 'Running...' : 'Enter command...'}
-            disabled={isRunning}
-            className="flex-1 bg-transparent text-sm text-gray-200 font-mono outline-none placeholder-gray-600 disabled:opacity-50"
-            autoFocus
-          />
+      {/* Input Module */}
+      <div className="p-4 border-t border-white/10 bg-black/40 backdrop-blur-md">
+        <div className="relative group overflow-hidden rounded-xl">
+          <div className="absolute inset-0 bg-cyan-500/5 group-focus-within:bg-cyan-500/10 transition-colors" />
+          <div className="relative flex items-center gap-3 px-4 py-3">
+            <span className="text-cyan-500 text-xs font-black select-none shrink-0 italic">{isRunning ? '??' : '>_'}</span>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={isRunning ? 'SYSTEM_LOCKED_PENDING_RESPONSE...' : 'EXECUTE_CMD...'}
+              disabled={isRunning}
+              className="flex-1 bg-transparent text-xs text-white font-bold tracking-widest outline-none placeholder-white/10 disabled:opacity-50 uppercase"
+              autoFocus
+            />
+            {!isRunning && input.trim() && (
+              <button
+                onClick={() => executeCommand(input)}
+                className="text-cyan-400 hover:text-white transition-colors animate-in zoom-in-95"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

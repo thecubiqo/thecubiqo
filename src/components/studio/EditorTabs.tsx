@@ -24,35 +24,40 @@ export default function EditorTabs({
   onTabClose,
 }: EditorTabsProps) {
   return (
-    <div className="flex bg-gray-800 border-b border-gray-700 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600">
+    <div className="flex bg-black/40 border-b border-white/10 overflow-x-auto custom-scrollbar backdrop-blur-xl shrink-0">
       {tabs.map((tab) => {
         const isActive = activeTabId === tab.id;
-        
+
         return (
           <div
             key={tab.id}
             className={`
-              flex items-center gap-2 px-4 py-2 min-w-0 cursor-pointer
-              border-r border-gray-700 hover:bg-gray-700 transition-colors
-              ${isActive ? 'bg-gray-900 border-b-2 border-teal-500' : 'bg-gray-800'}
+              flex items-center gap-3 px-6 py-3 min-w-[120px] cursor-pointer
+              border-r border-white/5 transition-all relative group
+              ${isActive ? 'bg-cyan-500/5' : 'hover:bg-white/5'}
             `}
             onClick={() => onTabChange(tab.id)}
           >
             {/* File icon based on language */}
-            <span className="text-sm flex-shrink-0">
+            <span className="text-[10px] flex-shrink-0 grayscale group-hover:grayscale-0 transition-all opacity-40 group-hover:opacity-100">
               {getFileIcon(tab.language || getLanguageFromPath(tab.path))}
             </span>
-            
+
             {/* File name */}
-            <span className={`text-sm truncate ${isActive ? 'text-white' : 'text-gray-300'}`}>
+            <span className={`text-[10px] font-black uppercase tracking-widest truncate ${isActive ? 'text-white' : 'text-white/30 group-hover:text-white/60'}`}>
               {tab.name}
             </span>
-            
+
+            {/* Active Indicator Line */}
+            {isActive && (
+              <div className="absolute bottom-0 left-0 w-full h-[3px] bg-cyan-400 shadow-[0_0_10px_cyan]" />
+            )}
+
             {/* Dirty indicator */}
             {tab.isDirty && (
-              <span className="text-teal-400 font-bold flex-shrink-0">●</span>
+              <span className="text-cyan-400 font-bold flex-shrink-0 animate-pulse text-[10px]">●</span>
             )}
-            
+
             {/* Close button */}
             <button
               onClick={(e) => {
@@ -60,22 +65,22 @@ export default function EditorTabs({
                 onTabClose(tab.id);
               }}
               className={`
-                p-1 rounded hover:bg-gray-600 flex-shrink-0 transition-colors
-                ${isActive ? 'text-gray-300' : 'text-gray-500'}
-                hover:text-white
+                p-1.5 rounded-lg hover:bg-white/10 flex-shrink-0 transition-all
+                ${isActive ? 'text-white/40' : 'text-white/10'}
+                hover:text-red-400
               `}
               aria-label={`Close ${tab.name}`}
             >
-              <X size={14} />
+              <X size={12} />
             </button>
           </div>
         );
       })}
-      
+
       {/* Empty state */}
       {tabs.length === 0 && (
-        <div className="px-4 py-2 text-sm text-gray-500">
-          No files open
+        <div className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white/20 italic">
+          Awaiting_Mount_Request...
         </div>
       )}
     </div>
@@ -107,7 +112,7 @@ function getFileIcon(language: string): string {
     bash: '🐚',
     shell: '🐚',
   };
-  
+
   return iconMap[language.toLowerCase()] || '📄';
 }
 
@@ -116,7 +121,7 @@ function getFileIcon(language: string): string {
  */
 function getLanguageFromPath(path: string): string {
   const ext = path.split('.').pop()?.toLowerCase();
-  
+
   const extMap: Record<string, string> = {
     ts: 'typescript',
     tsx: 'tsx',
@@ -138,6 +143,6 @@ function getLanguageFromPath(path: string): string {
     sql: 'sql',
     sh: 'bash',
   };
-  
+
   return extMap[ext || ''] || 'plaintext';
 }

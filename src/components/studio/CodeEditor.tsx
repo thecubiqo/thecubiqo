@@ -9,14 +9,14 @@ interface CodeEditorProps {
   theme?: string;
 }
 
-export default function CodeEditor({ 
-  value, 
-  onChange, 
+export default function CodeEditor({
+  value,
+  onChange,
   language = 'typescript',
-  theme = 'vs-dark' 
+  theme = 'vs-dark'
 }: CodeEditorProps) {
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full bg-black/20 backdrop-blur-sm">
       <Editor
         height="100%"
         language={language}
@@ -33,8 +33,8 @@ export default function CodeEditor({
           wordWrap: 'on',
         }}
         loading={
-          <div className="flex items-center justify-center h-full bg-gray-900">
-            <div className="text-gray-400">Loading editor...</div>
+          <div className="flex items-center justify-center h-full bg-transparent">
+            <div className="text-cyan-400 font-black uppercase tracking-[0.3em] animate-pulse">Initializing Buffer...</div>
           </div>
         }
       />
