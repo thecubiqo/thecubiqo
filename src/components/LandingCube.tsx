@@ -18,14 +18,10 @@ interface LandingCubeProps {
 export function LandingCube({ onComplete }: LandingCubeProps) {
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center cursor-pointer"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center cursor-pointer"
       onClick={onComplete}
       data-testid="landing-cube-screen"
     >
-      {/* Deep space background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-purple-950/20 via-black to-black" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(100,50,180,0.1)_0%,_transparent_70%)]" />
-
       {/* 3D Canvas with Plasma Waves */}
       <div className="w-full h-[70vh] max-w-5xl relative z-10">
         <Canvas

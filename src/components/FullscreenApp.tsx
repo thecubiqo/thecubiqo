@@ -534,6 +534,14 @@ export function FullscreenApp({
                 <circle cx="12" cy="12" r="2" className="fill-orange-500/20" />
               </svg>
             </div>
+            <div className="flex items-start">
+              <span className={`text-2xl sm:text-3xl font-semibold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                CubiQo
+              </span>
+              <span className={`text-[10px] sm:text-[12px] font-medium ml-0.5 -mt-0.5 ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
+                TM
+              </span>
+            </div>
           </div>
 
           {/* Right side - Contextual Branding */}
@@ -553,16 +561,7 @@ export function FullscreenApp({
                   One is enough
                 </span>
               </button>
-            ) : (
-              <div className="flex items-start">
-                <span className={`text-2xl sm:text-3xl font-semibold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  CubiQo
-                </span>
-                <span className={`text-[10px] sm:text-[12px] font-medium ml-0.5 -mt-0.5 ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
-                  TM
-                </span>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
       </header>
@@ -571,6 +570,31 @@ export function FullscreenApp({
 
       {/* Bottom Left Stack: Settings above Sign In */}
       <div className="fixed left-6 bottom-6 z-[55] flex flex-col gap-3">
+        {/* CQ Connect Button */}
+        <button
+          onClick={() => setShowCQPanel(true)}
+          className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isDark
+            ? 'bg-zinc-800/80 hover:bg-zinc-700/80 text-orange-500 hover:text-orange-400'
+            : 'bg-white/80 hover:bg-white text-orange-600 hover:text-orange-500'
+            } backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.1)] border border-orange-500/20 hover:scale-110`}
+          title="CQ Connect"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="w-6 h-6 drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.38 8.38 0 0 1 3.8.9L22 4l-1.5 6.5Z" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {unreadCount > 0 && (
+            <div className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#FF6F00] text-white text-[11px] font-bold">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </div>
+          )}
+        </button>
+
         {/* Settings */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
@@ -596,33 +620,6 @@ export function FullscreenApp({
 
       {/* Right side - CQ Connect + RGY Signal + Keywords underneath */}
       <div className="fixed right-[4.5rem] top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
-        {/* CQ Connect Button - Only shown when authenticated */}
-        {isAuthenticated && (
-          <button
-            onClick={() => setShowCQPanel(true)}
-            className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isDark
-              ? 'bg-zinc-800/80 hover:bg-zinc-700/80 text-orange-500 hover:text-orange-400'
-              : 'bg-white/80 hover:bg-white text-orange-600 hover:text-orange-500'
-              } backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.1)] border border-orange-500/20 hover:scale-110`}
-            title="CQ Connect"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="w-6 h-6 drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.38 8.38 0 0 1 3.8.9L22 4l-1.5 6.5Z" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            {unreadCount > 0 && (
-              <div className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#FF6F00] text-white text-[11px] font-bold">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </div>
-            )}
-          </button>
-        )}
-
         {/* RGY Traffic Light - Opens Keywords Panel */}
         <RGYSignalButton
           onClick={() => setShowKeywordPanel(true)}
