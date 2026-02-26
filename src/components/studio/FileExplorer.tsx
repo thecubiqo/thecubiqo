@@ -9,12 +9,6 @@ interface FileNode {
   children?: FileNode[];
 }
 
-const loadRoot = useCallback(async () => {
-  setLoading(true);
-  const result = await fetchDirectory(workspaceId, '/');
-  setFiles(result ?? []);
-  setLoading(false);
-}, [workspaceId]);
 
 /** Map the API's `'directory'` type to our internal `'folder'` type. */
 function apiTypeToNodeType(apiType: string): 'file' | 'folder' {

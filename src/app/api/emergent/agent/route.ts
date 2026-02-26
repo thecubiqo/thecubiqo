@@ -15,33 +15,55 @@ import { createClient } from '@/lib/supabase/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { dirname } from 'path';
 import { ensureWorkspace, validatePath } from '@/lib/code-execution/sandbox';
-import { ENV } from '@/lib/config/env';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const CODING_SYSTEM_PROMPT = `You are Emergent, an elite AI coding agent embedded in the CubiQo Studio IDE.
+const CODING_SYSTEM_PROMPT = `You are Emergent, an elite AI coding agent embedded in the CubiQo Studio IDE. You build luxury digital products.
 
-MISSION: When asked to build something, you SCAFFOLD ENTIRE PROJECTS — real, working code with proper file structure.
+MISSION: Scaffold complete, production-ready code. But first — UNDERSTAND what to build.
 
-RULES:
-1. ALWAYS output complete file contents, never truncate with "..." or "// rest of code here"
+═══ INTENT DETECTION — DO THIS FIRST ═══
+If the user mentions ANY of these keywords without enough detail:
+- "luxury brand", "clothing", "fashion", "store", "ecomm", "shop", "apparel", "brand site"
+
+Then ask 3-5 SHORT, targeted questions to gather requirements before building:
+Example questions for a luxury brand:
+  "What's your brand name?"
+  "Color palette? (e.g. all black, cream + black, etc.)"
+  "Products? (hoodies, tees, caps, jewelry, accessories?)"
+  "Do you have a hero image or logo to use?"
+  "Style reference? (Volbak, Zara, Acne Studios, etc.)"
+
+Once you have the answers, BUILD the full thing immediately — don't ask more questions.
+
+═══ CODING RULES ═══
+1. ALWAYS output complete file contents — never truncate with "..." or "// rest of code here"
 2. Output MULTIPLE files when building apps (layout, page, components, styles, config)
-3. Use fenced code blocks with the filename as the first line comment: \`\`\`tsx\n// app/page.tsx\n...\`\`\`
-4. For Next.js projects: always include app/page.tsx, app/layout.tsx, app/globals.css minimum
-5. Use TypeScript, Tailwind CSS, and modern React 19 patterns
-6. Make designs PREMIUM — dark themes, cinematic typography, bold aesthetics
-7. Code must ACTUALLY WORK — no placeholders, no TODOs in critical logic
-8. After writing files, give a brief 1-2 sentence summary of what was built
+3. Use fenced code blocks with the filename as the first line comment:
+   \`\`\`tsx
+   // app/page.tsx
+   ...code...
+   \`\`\`
+4. For Next.js: always include app/page.tsx, app/layout.tsx, app/globals.css minimum
+5. Use TypeScript + Tailwind CSS + React 19
+6. Make designs PREMIUM — dark cinematic aesthetic, massive typography
+7. Code must ACTUALLY WORK — no placeholder logic, no TODOs in critical paths
+8. After building, give a 2-line summary of what was created and what to do next
 
-DESIGN LANGUAGE for premium/luxury builds:
-- Background: near-black (#0a0a0a or similar)
-- Typography: massive, bold, tracking-tight headlines
-- Animations: subtle but impactful (framer-motion or CSS)
-- No generic Bootstrap look — think Volbak, Vercel, Linear aesthetics
+═══ LUXURY ECOMM STACK (use when building stores) ═══
+- Stripe Checkout for payments (via /api/checkout route)
+- Apliiq or Printful for fulfillment (via /api/printful/order)
+- Product variants: color + size selectors (XS-XXL)
+- Cart: localStorage-persisted slide-out drawer
+- Pages: /, /shop, /shop/[slug], /success
 
-When the user asks to "build X like Y", you fully scaffold a production-ready version.`;
+═══ DESIGN LANGUAGE ═══
+- Background: near-black (#0a0a0a)
+- Typography: massive, font-black, tracking-tighter (text-7xl+ for heroes)
+- No generic Bootstrap — think Volbak, Acne Studios, A-Cold-Wall aesthetics
+- Solid colors, soft luxurious fabric descriptions (not synthetic, not cheap)`;
 
 interface FileWritten {
     path: string;
@@ -96,10 +118,13 @@ function extractFilesFromResponse(content: string): FileWritten[] {
 
 export async function POST(request: NextRequest) {
     try {
-        const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        // Allow unauthenticated for now (guest mode)
-        const userId = user?.id ?? 'guest';
+        // Allow guest access — auth is optional for the coding agent
+        let userId = 'guest';
+        try {
+            const supabase = await createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) userId = user.id;
+        } catch { /* guest mode */ }
 
         const body = await request.json();
         const { message, workspaceId, history = [], context = 'studio' } = body;
@@ -124,7 +149,7 @@ export async function POST(request: NextRequest) {
 
         // Try Anthropic Claude (best for code)
         let aiResponse = '';
-        const anthropicKey = ENV.anthropic?.apiKey;
+        const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
         if (anthropicKey) {
             try {
