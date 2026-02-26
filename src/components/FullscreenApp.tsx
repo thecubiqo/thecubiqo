@@ -518,10 +518,10 @@ export function FullscreenApp({
         <div className="flex justify-between items-center w-full relative">
           {/* Left side - Branded Logo */}
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-orange-600/10 rounded-full border border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.15)] group transition-all duration-500 hover:scale-105">
+            <div className="w-14 h-14 sm:w-20 sm:h-20 flex items-center justify-center bg-gradient-to-br from-orange-500/30 to-orange-600/20 rounded-2xl border-2 border-orange-500/40 shadow-[0_0_30px_rgba(249,115,22,0.3)] group transition-all duration-500 hover:scale-110 hover:shadow-[0_0_40px_rgba(249,115,22,0.5)]">
               <svg
                 viewBox="0 0 24 24"
-                className="w-7 h-7 sm:w-10 sm:h-10 text-orange-500 drop-shadow-[0_0_10px_rgba(249,115,22,0.5)]"
+                className="w-8 h-8 sm:w-12 sm:h-12 text-orange-400 drop-shadow-[0_0_15px_rgba(249,115,22,0.7)]"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
@@ -597,7 +597,32 @@ export function FullscreenApp({
       {/* Right side - CQ Connect + RGY Signal + Keywords underneath */}
       <div className="fixed right-[4.5rem] top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
         {/* CQ Connect Button - Only shown when authenticated */}
-        {isAuthenticated && (
+        
+        {/* Eye Icon for AI Visual Interaction */}
+        <button
+          onClick={() => {
+            // TODO: Implement AI visual interaction
+            console.log('AI Visual Interaction activated');
+          }}
+          className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isDark
+            ? 'bg-purple-800/60 hover:bg-purple-700/80 text-purple-300 hover:text-purple-200'
+            : 'bg-purple-100/80 hover:bg-purple-200 text-purple-600 hover:text-purple-700'
+            } backdrop-blur-md shadow-[0_0_15px_rgba(168,85,247,0.2)] border border-purple-500/30 hover:scale-110`}
+          title="AI Visual Interaction"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="w-6 h-6 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+            <path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          </svg>
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_lime]"></div>
+        </button>
+    {isAuthenticated && (
           <button
             onClick={() => setShowCQPanel(true)}
             className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isDark
@@ -609,12 +634,20 @@ export function FullscreenApp({
             <svg
               viewBox="0 0 24 24"
               className="w-6 h-6 drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]"
+              fill="none
+            <svg
+              viewBox="0 0 24 24"
+              className="w-6 h-6 drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
             >
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.38 8.38 0 0 1 3.8.9L22 4l-1.5 6.5Z" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M8 10h.01" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M12 10h.01" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M16 10h.01" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
+  
             {unreadCount > 0 && (
               <div className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#FF6F00] text-white text-[11px] font-bold">
                 {unreadCount > 99 ? '99+' : unreadCount}
