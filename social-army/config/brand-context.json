@@ -1,6 +1,7 @@
 {
     "brand": {
         "name": "CubiQo",
+        "project_name": "CubiQo",
         "tagline": "Your AI Life Companion",
         "description": "CubiQo is a premium AI assistant that combines emotional intelligence, voice interaction, and personal memory to help users navigate life. It features biometric-level security, a rotating CQ number system for private messaging, and an extensible agent framework.",
         "core_values": [

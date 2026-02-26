@@ -18,7 +18,7 @@
  *   cubiqo.dev   — standalone domain
  */
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import StudioLayout from '@/components/studio/StudioLayout';
 import {
   Code2,
@@ -54,9 +54,66 @@ const STATUS_COLORS = {
 };
 
 export default function CoderPage() {
-  const [showIntegrations, setShowIntegrations] = useState(false);
+  const [showIntegrations, setShowIntegrations] = 
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Check if required APIs are available
+    try {
+      if (typeof window === 'undefined') {
+        throw new Error('Coder requires browser environment');
+      }
+      
+      // Check for required Web APIs
+      if (!window.localStorage) {
+        console.warn('localStorage not available - some features may be limited');
+      }
+      
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      console.error('Coder initialization error:', err);
+    }
+  }, []);
+      useState(false);
 
-  return (
+  
+    // Display error if initialization failed
+    if (error) {
+      return (
+        <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center p-8">
+          <div className="max-w-md text-center">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h1 className="text-2xl font-bold mb-2">Coder Initialization Error</h1>
+            <p className="text-gray-400 mb-6">{error}</p>
+            <div className="space-y-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Reload Page
+              </button>
+              <a
+                href="/"
+                className="block w-full py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors text-center"
+              >
+                Back to CubiQo
+              </a>
+            </div>
+            <div className="mt-8 p-4 bg-gray-900/50 rounded-lg text-left">
+              <p className="text-sm text-gray-400 mb-2">Debug info:</p>
+              <code className="text-xs text-gray-500">
+                URL: {typeof window !== 'undefined' ? window.location.href : 'N/A'}<br/>
+                User Agent: {typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'}<br/>
+                Time: 2026-02-26T08:33:52.780Z
+              </code>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    return (
     <div className="flex flex-col h-screen">
       {/* ─── Header bar ──────────────────────────── */}
       <header className="flex items-center justify-between px-4 py-2 bg-[#111118] border-b border-white/10 shrink-0">
@@ -123,7 +180,22 @@ export default function CoderPage() {
 
       {/* ─── Main IDE ────────────────────────────── */}
       <div className="flex-1 overflow-hidden">
-        <StudioLayout />
+        
+        <Suspense fallback={
+          <div className="flex-1 flex items-center justify-center bg-[#0a0a0f]">
+            <div className="text-center">
+              <div className="text-6xl mb-4 animate-pulse">💻</div>
+              <h3 className="text-xl font-semibold text-white mb-2">Loading CubiQo Studio</h3>
+              <p className="text-gray-400">Initializing code editor, terminal, and AI...</p>
+              <div className="mt-6 w-64 h-1 bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-full bg-cyan-500 animate-pulse" style={{ width: '60%' }}></div>
+              </div>
+            </div>
+          </div>
+        }>
+          <StudioLayout />
+        </Suspense>
+  >
       </div>
     </div>
   );

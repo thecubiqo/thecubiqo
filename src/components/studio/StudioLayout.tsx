@@ -282,17 +282,42 @@ export default function StudioLayout() {
       {/* Header HUD */}
       <header className="fixed top-0 left-0 right-0 z-50 p-4 flex items-center justify-between pointer-events-auto">
         <div className="flex items-center gap-4">
-          <button
-            onClick={toggleWatch}
-            className={`p-3 rounded-2xl border transition-all duration-500 group relative overflow-hidden ${isWatching ? 'bg-orange-500/20 border-orange-500/50 text-orange-400 shadow-[0_0_20px_rgba(255,165,0,0.3)]' : 'bg-white/5 border-white/10 text-white/20 hover:border-white/30'}`}
-            title={isWatching ? 'Disable Biometric Uplink' : 'Enable Biometric Uplink'}
-          >
-            <div className={`absolute inset-0 bg-orange-500/5 ${isWatching ? 'animate-pulse' : ''}`} />
-            {isWatching ? <Eye className="w-5 h-5 relative z-10" /> : <EyeOff className="w-5 h-5 relative z-10" />}
+          {/* BIG EYE TOGGLE */}
+          <div className="flex flex-col items-center gap-1 group">
+            <button
+              onClick={toggleWatch}
+              className={`relative h-16 w-16 rounded-2xl border transition-all duration-700 flex items-center justify-center overflow-hidden
+                ${isWatching
+                  ? 'bg-orange-500/20 border-orange-500/60 shadow-[0_0_30px_rgba(255,165,0,0.4)]'
+                  : 'bg-white/5 border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 group-hover:scale-110'}`}
+              title={isWatching ? 'Disable Biometric Uplink' : 'Enable Biometric Uplink'}
+            >
+              {/* Internal HUD elements */}
+              <div className="absolute inset-0 pointer-events-none">
+                <div className={`absolute inset-0 bg-orange-500/5 ${isWatching ? 'animate-pulse' : 'opacity-0'}`} />
+                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/20" />
+                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-white/20" />
+                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-white/20" />
+                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/20" />
+              </div>
 
-            {/* HUD Scanline effect on button */}
-            {isWatching && <div className="absolute top-0 left-0 w-full h-[1px] bg-orange-400/50 animate-scan z-20" />}
-          </button>
+              {isWatching ? (
+                <div className="relative z-10 flex flex-col items-center">
+                  <Eye className="w-8 h-8 text-orange-400 animate-pulse" />
+                  <div className="absolute -inset-4 bg-orange-500/20 blur-xl animate-pulse" />
+                </div>
+              ) : (
+                <EyeOff className="w-8 h-8 text-white/40 group-hover:text-orange-400/60 transition-colors" />
+              )}
+
+              {/* HUD Scanline */}
+              {isWatching && <div className="absolute top-0 left-0 w-full h-[2px] bg-orange-400/60 animate-scan z-20" />}
+              {!isWatching && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-[1px] bg-white/20 group-hover:bg-orange-500/40 transition-colors" />}
+            </button>
+            <span className={`text-[9px] font-black uppercase tracking-[0.3em] transition-colors ${isWatching ? 'text-orange-400' : 'text-white/20'}`}>
+              {isWatching ? 'Uplink Live' : 'Uplink Idle'}
+            </span>
+          </div>
 
           <div className="flex items-center gap-6 bg-black/40 backdrop-blur-xl border border-white/10 px-6 py-2 rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.5)]">
             <div className="flex items-center gap-3">

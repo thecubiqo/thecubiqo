@@ -487,7 +487,7 @@ export default function DashboardPage() {
           {/* Quick Actions */}
           <div className="mb-8">
             <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
               <Link
                 href="/chat"
                 className="p-4 rounded-xl bg-zinc-900/50 border border-white/10 hover:border-orange-500/50 transition-all group"
@@ -498,6 +498,18 @@ export default function DashboardPage() {
                   </svg>
                 </div>
                 <div className="text-sm font-medium text-center">Chat</div>
+              </Link>
+
+              <Link
+                href="/coder"
+                className="p-4 rounded-xl bg-zinc-900/50 border border-cyan-500/30 hover:border-cyan-500/70 transition-all group"
+              >
+                <div className="w-12 h-12 mx-auto mb-3 rounded-lg bg-cyan-500/20 group-hover:bg-cyan-500/30 flex items-center justify-center transition-colors">
+                  <svg className="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                </div>
+                <div className="text-sm font-medium text-center text-cyan-300">Emergent Coder</div>
               </Link>
 
               <Link
