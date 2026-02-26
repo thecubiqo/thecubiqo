@@ -19,22 +19,23 @@ import { Zap, Activity, Monitor, Shield, Cpu, Eye, EyeOff, Scan } from 'lucide-r
 import { useMultimodalAI } from '../../hooks/useMultimodalAI';
 
 export default function StudioLayout() {
+  // Stable workspace ID per browser session
+  const workspaceId = typeof window !== 'undefined'
+    ? (sessionStorage.getItem('studio-workspace-id') || (() => {
+      const id = `ws-${Date.now()}`;
+      sessionStorage.setItem('studio-workspace-id', id);
+      return id;
+    })())
+    : 'studio-default';
+
+  const [fileExplorerKey, setFileExplorerKey] = useState(0);
+
   // Multi-file tab management
-  const [openTabs, setOpenTabs] = useState<EditorTab[]>([
-    {
-      id: '1',
-      path: 'app/page.tsx',
-      name: 'page.tsx',
-      isDirty: false,
-      language: 'tsx',
-    },
-  ]);
-  const [activeTabId, setActiveTabId] = useState<string>('1');
+  const [openTabs, setOpenTabs] = useState<EditorTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string>('');
 
   const [fileContents, setFileContents] = useState<Map<string, string>>(
-    new Map([
-      ['1', '// Welcome to CubiQo Studio\n// Start building with AI\n\nexport default function Home() {\n  return (\n    <div>\n      <h1>Hello from Studio!</h1>\n    </div>\n  );\n}'],
-    ])
+    new Map()
   );
 
   const [isDeploying, setIsDeploying] = useState(false);
@@ -372,7 +373,11 @@ export default function StudioLayout() {
       <div className="relative z-20 h-full w-full pt-24 pb-8 px-4 flex gap-4 pointer-events-none">
         {/* Left Module - Brain / Conversation */}
         <div className="w-[400px] pointer-events-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl transition-all duration-500 hover:border-cyan-500/30">
-          <ConversationPanel onCodeGenerated={handleCodeFromAI} />
+          <ConversationPanel
+            onCodeGenerated={handleCodeFromAI}
+            onFilesWritten={() => setFileExplorerKey(k => k + 1)}
+            workspaceId={workspaceId}
+          />
         </div>
 
         {/* Center Module - Core / Editor */}
@@ -382,8 +387,10 @@ export default function StudioLayout() {
             {/* File Explorer Module */}
             <div className="w-64 pointer-events-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-xl transition-all duration-500 hover:border-purple-500/30">
               <FileExplorer
+                key={fileExplorerKey}
                 onFileSelect={handleFileOpen}
                 currentFile={activeTab?.path || ''}
+                workspaceId={workspaceId}
               />
             </div>
 
