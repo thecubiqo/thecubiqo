@@ -1,14 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 
+interface HealthApiResponse {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  services: {
+    supabase: { status: string; latency?: number };
+    agents: { status: string; totalAgents?: number; activeAgents?: number };
+    memory: { status: string; heapUsedMB?: number; heapTotalMB?: number; rssMB?: number };
+    uptime: { status: string; uptimeSeconds?: number; uptimeHuman?: string };
+  };
+  timestamp: string;
+}
+
 interface SystemMetrics {
-  cpu: number;
-  memory: number;
-  disk: number;
-  activeSessions: number;
-  errorRate: number;
+  memoryPercent: number;
+  heapUsedMB: number;
+  heapTotalMB: number;
+  activeAgents: number;
+  totalAgents: number;
+  responseTimeMs: number;
+  uptimeSeconds: number;
+  supabaseStatus: string;
+  agentsStatus: string;
 }
 
 interface ThreatLevel {
@@ -21,11 +36,15 @@ export default function SystemHealthPage() {
   const [scanning, setScanning] = useState(false);
   const [lastScan, setLastScan] = useState<Date | null>(null);
   const [metrics, setMetrics] = useState<SystemMetrics>({
-    cpu: 0,
-    memory: 0,
-    disk: 0,
-    activeSessions: 0,
-    errorRate: 0,
+    memoryPercent: 0,
+    heapUsedMB: 0,
+    heapTotalMB: 0,
+    activeAgents: 0,
+    totalAgents: 0,
+    responseTimeMs: 0,
+    uptimeSeconds: 0,
+    supabaseStatus: 'unknown',
+    agentsStatus: 'unknown',
   });
   const [threatLevel, setThreatLevel] = useState<ThreatLevel>({
     level: 'safe',
@@ -33,81 +52,108 @@ export default function SystemHealthPage() {
     issues: [],
   });
   const [quarantine, setQuarantine] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  // Simulate real-time metrics updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!scanning) {
-        updateMetrics();
+  const fetchHealth = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/health');
+      if (!res.ok) return;
+      const data: HealthApiResponse = await res.json();
+
+      const heapUsed = data.services.memory?.heapUsedMB ?? 0;
+      const heapTotal = data.services.memory?.heapTotalMB ?? 1;
+      const memPct = heapTotal > 0 ? (heapUsed / heapTotal) * 100 : 0;
+      const latency = data.services.supabase?.latency ?? 0;
+      const activeAgents = data.services.agents?.activeAgents ?? 0;
+      const totalAgents = data.services.agents?.totalAgents ?? 0;
+      const uptimeSec = data.services.uptime?.uptimeSeconds ?? 0;
+
+      const updated: SystemMetrics = {
+        memoryPercent: memPct,
+        heapUsedMB: heapUsed,
+        heapTotalMB: heapTotal,
+        activeAgents,
+        totalAgents,
+        responseTimeMs: latency,
+        uptimeSeconds: uptimeSec,
+        supabaseStatus: data.services.supabase?.status ?? 'unknown',
+        agentsStatus: data.services.agents?.status ?? 'unknown',
+      };
+      setMetrics(updated);
+
+      // Compute threat level from real data
+      const issues: string[] = [];
+      let score = 100;
+
+      if (memPct > 85) {
+        issues.push('Memory usage critical');
+        score -= 25;
+      } else if (memPct > 70) {
+        issues.push('Memory usage elevated');
+        score -= 10;
       }
-    }, 3000);
+      if (data.services.supabase?.status !== 'healthy') {
+        issues.push('Database connectivity degraded');
+        score -= 30;
+      }
+      if (data.services.agents?.status === 'degraded') {
+        issues.push('Agent services degraded');
+        score -= 15;
+      } else if (data.services.agents?.status !== 'healthy') {
+        issues.push('Agent services unhealthy');
+        score -= 25;
+      }
+      if (latency > 500) {
+        issues.push('High database response time');
+        score -= 15;
+      }
 
+      const level: ThreatLevel['level'] =
+        score >= 90 ? 'safe' :
+        score >= 70 ? 'caution' :
+        score >= 50 ? 'warning' :
+        'critical';
+
+      setThreatLevel({ level, score: Math.max(score, 0), issues });
+    } catch (err) {
+      console.error('Failed to fetch health data:', err);
+    }
+  }, []);
+
+  // Fetch on mount and every 10 seconds
+  useEffect(() => {
+    fetchHealth();
+    const interval = setInterval(() => {
+      if (!scanning) fetchHealth();
+    }, 10000);
     return () => clearInterval(interval);
-  }, [scanning]);
-
-  const updateMetrics = () => {
-    // Simulate metric updates (in production, fetch from actual APIs)
-    setMetrics({
-      cpu: Math.random() * 100,
-      memory: Math.random() * 100,
-      disk: Math.random() * 100,
-      activeSessions: Math.floor(Math.random() * 50),
-      errorRate: Math.random() * 5,
-    });
-
-    // Calculate threat level based on metrics
-    const issues: string[] = [];
-    let score = 100;
-
-    if (metrics.cpu > 80) {
-      issues.push('High CPU usage detected');
-      score -= 20;
-    }
-    if (metrics.memory > 85) {
-      issues.push('Memory usage critical');
-      score -= 25;
-    }
-    if (metrics.disk > 90) {
-      issues.push('Disk space low');
-      score -= 15;
-    }
-    if (metrics.errorRate > 3) {
-      issues.push('Elevated error rate');
-      score -= 20;
-    }
-
-    const level: ThreatLevel['level'] = 
-      score >= 90 ? 'safe' :
-      score >= 70 ? 'caution' :
-      score >= 50 ? 'warning' :
-      'critical';
-
-    setThreatLevel({ level, score, issues });
-  };
+  }, [fetchHealth, scanning]);
 
   const runManualScan = async () => {
     setScanning(true);
-    
-    // Simulate scanning animation
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // Fetch actual diagnostics
+    setError(null);
+
     try {
-      const response = await fetch('/api/admin/system-health/scan', {
+      const response = await fetch('/api/admin/self-heal/run', {
         method: 'POST',
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setQuarantine(data.issues || []);
+      } else {
+        const err = await response.json().catch(() => ({}));
+        console.error('Scan failed:', err);
+        setError(`Scan failed: ${err.error ?? response.statusText}`);
       }
     } catch (error) {
       console.error('Scan failed:', error);
+      setError('Scan failed: network error');
     }
-    
+
+    await fetchHealth();
     setScanning(false);
     setLastScan(new Date());
-    updateMetrics();
   };
 
   const getThreatColor = (level: ThreatLevel['level']) => {
@@ -179,6 +225,11 @@ export default function SystemHealthPage() {
         </div>
 
         {/* Threat Level Indicator */}
+        {error && (
+          <div className="mb-4 bg-red-900/20 border border-red-500 rounded-lg p-4">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
         <div className={`mb-8 p-8 rounded-lg border-2 ${getThreatBg(threatLevel.level)}`}>
           <div className="flex items-center justify-between">
             <div>
@@ -210,47 +261,51 @@ export default function SystemHealthPage() {
         {/* Real-time Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <MetricCard
-            title="CPU Usage"
-            value={`${metrics.cpu.toFixed(1)}%`}
-            icon="⚙️"
-            threshold={80}
-            current={metrics.cpu}
-          />
-          <MetricCard
-            title="Memory"
-            value={`${metrics.memory.toFixed(1)}%`}
+            title="Memory (Heap)"
+            value={`${metrics.memoryPercent.toFixed(1)}%`}
             icon="💾"
             threshold={85}
-            current={metrics.memory}
+            current={metrics.memoryPercent}
+            subtitle={`${metrics.heapUsedMB} / ${metrics.heapTotalMB} MB`}
           />
           <MetricCard
-            title="Disk Space"
-            value={`${metrics.disk.toFixed(1)}%`}
-            icon="💿"
-            threshold={90}
-            current={metrics.disk}
-          />
-          <MetricCard
-            title="Active Sessions"
-            value={metrics.activeSessions.toString()}
-            icon="👥"
-            threshold={100}
-            current={metrics.activeSessions}
+            title="Active Agents"
+            value={`${metrics.activeAgents} / ${metrics.totalAgents}`}
+            icon="🤖"
+            threshold={metrics.totalAgents}
+            current={metrics.activeAgents}
             isCount
           />
           <MetricCard
-            title="Error Rate"
-            value={`${metrics.errorRate.toFixed(2)}%`}
-            icon="⚠️"
-            threshold={3}
-            current={metrics.errorRate}
+            title="DB Response Time"
+            value={metrics.responseTimeMs > 0 ? `${metrics.responseTimeMs}ms` : 'N/A'}
+            icon="⚡"
+            threshold={500}
+            current={metrics.responseTimeMs}
           />
           <MetricCard
-            title="Response Time"
-            value={`${(Math.random() * 200).toFixed(0)}ms`}
-            icon="⚡"
-            threshold={200}
-            current={Math.random() * 200}
+            title="Supabase"
+            value={metrics.supabaseStatus.charAt(0).toUpperCase() + metrics.supabaseStatus.slice(1)}
+            icon="🗄️"
+            threshold={1}
+            current={metrics.supabaseStatus === 'healthy' ? 0 : 1}
+            isStatus
+          />
+          <MetricCard
+            title="Agent Services"
+            value={metrics.agentsStatus.charAt(0).toUpperCase() + metrics.agentsStatus.slice(1)}
+            icon="⚙️"
+            threshold={1}
+            current={metrics.agentsStatus === 'healthy' ? 0 : 1}
+            isStatus
+          />
+          <MetricCard
+            title="CPU Usage"
+            value="N/A"
+            icon="🖥️"
+            threshold={80}
+            current={0}
+            subtitle="Not available server-side"
           />
         </div>
 
@@ -342,6 +397,8 @@ function MetricCard({
   threshold,
   current,
   isCount = false,
+  isStatus = false,
+  subtitle,
 }: {
   title: string;
   value: string;
@@ -349,24 +406,31 @@ function MetricCard({
   threshold: number;
   current: number;
   isCount?: boolean;
+  isStatus?: boolean;
+  subtitle?: string;
 }) {
-  const isWarning = !isCount && current > threshold;
-  const percentage = isCount ? (current / threshold) * 100 : current;
+  const isWarning = !isCount && !isStatus && current > threshold;
+  const isStatusWarning = isStatus && current > 0;
+  const showWarning = isWarning || isStatusWarning;
+  const percentage = isCount ? (threshold > 0 ? (current / threshold) * 100 : 0) : current;
 
   return (
     <div className={`bg-gray-900 rounded-lg p-6 border-2 ${
-      isWarning ? 'border-red-500/50' : 'border-gray-800'
+      showWarning ? 'border-red-500/50' : 'border-gray-800'
     }`}>
       <div className="flex items-start justify-between mb-4">
         <p className="text-gray-400 text-sm">{title}</p>
         <span className="text-2xl">{icon}</span>
       </div>
       <p className={`text-3xl font-bold ${
-        isWarning ? 'text-red-400' : 'text-white'
+        showWarning ? 'text-red-400' : 'text-white'
       }`}>
         {value}
       </p>
-      {!isCount && (
+      {subtitle && (
+        <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+      )}
+      {!isCount && !isStatus && (
         <div className="mt-3 w-full bg-gray-800 rounded-full h-2 overflow-hidden">
           <div
             className={`h-full transition-all duration-500 ${
