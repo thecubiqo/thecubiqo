@@ -678,8 +678,23 @@ export function FullscreenApp({
       {/* Right side - CQ Connect + RGY Signal + Keywords underneath */}
       <div className="fixed right-[4.5rem] top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
         {/* Eye Icon for AI Visual Interaction */}
-            console.log('AI Visual Interaction activated');
+        <button
+          onClick={toggleWatch}
+          className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isWatching ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-black/40 text-white/50 border border-white/10 hover:text-white hover:bg-black/60 hover:border-white/20'}`}
           title="AI Visual Interaction"
+        >
+          {isWatching ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+        </button>
+
         {/* Coding Panel Access Button */}
+        <Link
           href="/coder"
+          className="relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 bg-black/40 text-cyan-400 border border-white/10 hover:border-cyan-500/50 hover:bg-black/60 shadow-[0_0_10px_rgba(34,211,238,0.2)]"
           title="CubiQo Coding Panel"
+        >
+          <Code2 className="w-5 h-5" />
+        </Link>
+      </div>
+    </div>
+  )
+}
