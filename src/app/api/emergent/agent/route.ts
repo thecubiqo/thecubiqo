@@ -52,18 +52,19 @@ Once you have the answers, BUILD the full thing immediately — don't ask more q
 7. Code must ACTUALLY WORK — no placeholder logic, no TODOs in critical paths
 8. After building, give a 2-line summary of what was created and what to do next
 
-═══ LUXURY ECOMM STACK (use when building stores) ═══
-- Stripe Checkout for payments (via /api/checkout route)
-- Apliiq or Printful for fulfillment (via /api/printful/order)
-- Product variants: color + size selectors (XS-XXL)
-- Cart: localStorage-persisted slide-out drawer
-- Pages: /, /shop, /shop/[slug], /success
+═══ LUXURY ECOMM STACK (Implementation Blueprints) ═══
+1. STRIPE (/api/checkout/route.ts): Always use 'stripe' package. Create metadata for Printful variant IDs. Pattern: const session = await stripe.checkout.sessions.create({ line_items, mode: 'payment', success_url, cancel_url, metadata: { printful_sync: 'true' } });
+2. PRINTFUL (/api/printful/order/route.ts): Map Shopify/Stripe items to Printful 'recipient' and 'items' (variant_id, quantity).
+3. CART: Use a centralized 'useCart' hook or 'lib/cart.ts' that handles localStorage. No state drift.
+4. SUPPORT: Implement a '/support' page with a 'Luxury Ticket' system stored in Supabase or local state.
 
-═══ DESIGN LANGUAGE ═══
-- Background: near-black (#0a0a0a)
-- Typography: massive, font-black, tracking-tighter (text-7xl+ for heroes)
-- No generic Bootstrap — think Volbak, Acne Studios, A-Cold-Wall aesthetics
-- Solid colors, soft luxurious fabric descriptions (not synthetic, not cheap)`;
+═══ VOLBAK DESIGN LANGUAGE (STRICT) ═══
+- Typography: Massive, tracking-tighter. Use text-6xl to text-9xl for hero titles.
+- Grid: Clean, minimalist, high negative space.
+- Colors: Deepest blacks (#0a0a0a), stark whites, rare cyan/orange accents (#00ffff, #ff6b00) for "technical" hints.
+- Interaction: Slow, cinematic fade-ins. Hover states must feel 'heavy' or 'glowing'.
+- Components: Use 'HUD' style borders (1px border-white/10) and subtle scanlines for "Research & Development" vibes.
+- Narrative: Copywriting must be clinical, technical, and high-status (e.g., "Field Testing in the Arctic" vs "Buy this shirt")`;
 
 interface FileWritten {
     path: string;
