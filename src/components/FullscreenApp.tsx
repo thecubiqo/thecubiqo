@@ -480,21 +480,31 @@ export function FullscreenApp({
       {/* Admin Controls */}
       <AdminControls />
 
-      {/* Energy Cube - Full viewport background */}
-      <div
-        className="fixed inset-0 z-[1]"
-        style={{
-          transform: cubeSize !== 100 ? `scale(${cubeSize / 100})` : undefined,
-          transformOrigin: 'center center'
-        }}
-      >
-        <EnergyCubeScene
-          colorName={colorName}
-          animationState={animationState}
-          isWatching={isWatching}
-          facePosition={facePos}
-          engagement={aiContext?.userState?.engagement || 'medium'}
-        />
+      {/* Visual Hero Assets from User Requirements */}
+      <div className="fixed inset-0 z-[1] pointer-events-none flex items-center justify-center overflow-hidden">
+        {/* Idle Wave State */}
+        <div
+          className={`absolute inset-0 transition-opacity duration-1000 flex items-center justify-center
+            ${(appState === 'idle' || appState === 'speaking') ? 'opacity-100' : 'opacity-0 scale-105'}`}
+        >
+          <img
+            src="/hero-wave.jpg"
+            alt="Plasma Wave"
+            className="w-full h-full object-cover mix-blend-screen opacity-70 animate-pulse-slow"
+          />
+        </div>
+
+        {/* Listening / Thinking Cube State */}
+        <div
+          className={`absolute inset-0 transition-all duration-1000 flex items-center justify-center
+            ${(appState === 'listening' || appState === 'thinking') ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+        >
+          <img
+            src="/hero-cube.png"
+            alt="Intelligent Cuboid"
+            className="w-full h-full object-contain max-h-[80vh] mix-blend-screen animate-pulse-fast"
+          />
+        </div>
       </div>
 
       {/* Main interactive layer - click anywhere to morph into listening cube */}
@@ -557,8 +567,13 @@ export function FullscreenApp({
           }`}
       >
         <div className="flex justify-between items-center w-full relative">
-          <div className="flex items-center gap-4 hidden">
-            {/* Removed Uplink and Studio to clear clutter */}
+          <div className="flex items-center gap-4">
+            {/* Use the specific logo attached by the user */}
+            <img
+              src="/cubiqo-logo.jpg"
+              alt="CubiQo"
+              className="h-10 w-auto object-contain rounded-lg"
+            />
           </div>
 
           {/* Right side - Contextual Branding */}
@@ -585,7 +600,7 @@ export function FullscreenApp({
 
       {/* Center Speaker Morph Target */}
       {!showLandingCube && appState !== 'listening' && appState !== 'speaking' && appState !== 'thinking' && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[55]">
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[100]">
           <button
             onClick={handleVoiceClick}
             className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:scale-110 hover:border-orange-500/50 transition-all duration-500 shadow-[0_0_30px_rgba(255,165,0,0)] hover:shadow-[0_0_30px_rgba(255,165,0,0.3)] group"
@@ -598,7 +613,7 @@ export function FullscreenApp({
       )}
 
       {/* Bottom Left Stack: Settings above Sign In */}
-      <div className="fixed left-6 bottom-6 z-[55] flex flex-col gap-3">
+      <div className="fixed left-6 bottom-6 z-[100] flex flex-col gap-3">
         {/* CQ Connect Button */}
         <button
           onClick={() => setShowCQPanel(true)}
@@ -663,7 +678,7 @@ export function FullscreenApp({
       </div>
 
       {/* Right side - RGY Window / Keywords */}
-      <div className="fixed right-6 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
+      <div className="fixed right-6 top-1/2 -translate-y-1/2 z-[100] flex flex-col items-center gap-4">
         {/* RGY Signal Traffic Lights */}
         <button
           onClick={() => setShowRGYChats(true)}
@@ -686,10 +701,22 @@ export function FullscreenApp({
       </div>
 
       {/* RENDER MODALS */}
-      {showAuthForm && <LoginForm onClose={() => setShowAuthForm(false)} />}
+      {showAuthForm && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-md">
+          <div className="relative bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-sm">
+            <button
+              onClick={() => setShowAuthForm(false)}
+              className="absolute top-4 right-4 text-white/50 hover:text-white"
+            >
+              ✕
+            </button>
+            <LoginForm />
+          </div>
+        </div>
+      )}
       <SidePanel isOpen={showCQPanel} onClose={() => setShowCQPanel(false)} />
-      {showKeywordPanel && <KeywordPanel />}
-      {showRGYChats && <RGYChatsModal />}
+      {showKeywordPanel && <KeywordPanel isOpen={showKeywordPanel} onClose={() => setShowKeywordPanel(false)} />}
+      {showRGYChats && <RGYChatsModal isOpen={showRGYChats} onClose={() => setShowRGYChats(false)} />}
       <AuthNudgeModal isOpen={showNudgeModal} onClose={() => setShowNudgeModal(false)} cta={nudgeCta} />
     </div>
   )
