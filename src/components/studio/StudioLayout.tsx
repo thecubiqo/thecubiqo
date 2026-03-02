@@ -412,78 +412,80 @@ export default function StudioLayout() {
           )}
         </div>
 
-        {/* Center Module - Core / Editor */}
-        <div className="flex-1 flex flex-col gap-4 pointer-events-none">
-          {/* Top - Editor & Explorer */}
-          <div className="flex-1 flex gap-4 pointer-events-none">
-            {/* File Explorer Module */}
-            <div className="w-64 pointer-events-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-xl transition-all duration-500 hover:border-purple-500/30">
-              <FileExplorer
-                key={fileExplorerKey}
-                onFileSelect={handleFileOpen}
-                currentFile={activeTab?.path || ''}
-                workspaceId={workspaceId}
-              />
-            </div>
+        {/* Center Module - Core / Editor (Hidden in Emergent Mode) */}
+        {!isEmergentMode && (
+          <div className="flex-1 flex flex-col gap-4 pointer-events-none transition-all duration-500">
+            {/* Top - Editor & Explorer */}
+            <div className="flex-1 flex gap-4 pointer-events-none">
+              {/* File Explorer Module */}
+              <div className="w-64 pointer-events-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-xl transition-all duration-500 hover:border-purple-500/30">
+                <FileExplorer
+                  key={fileExplorerKey}
+                  onFileSelect={handleFileOpen}
+                  currentFile={activeTab?.path || ''}
+                  workspaceId={workspaceId}
+                />
+              </div>
 
-            {/* Code Editor Module */}
-            <div className="flex-1 pointer-events-auto bg-black/60 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl transition-all duration-500 hover:border-cyan-500/20">
-              <EditorTabs
-                tabs={openTabs}
-                activeTabId={activeTabId}
-                onTabChange={handleTabChange}
-                onTabClose={handleTabClose}
-              />
-              <div className="flex-1">
-                {openTabs.length === 0 ? (
-                  <EmptyState
-                    icon="⚡"
-                    title="System Idle"
-                    description="Awaiting instruction. Interface with the AI to mount code modules."
-                    action={{
-                      label: "Start Uplink",
-                      onClick: () => document.querySelector<HTMLTextAreaElement>('textarea')?.focus()
-                    }}
-                  />
-                ) : (
-                  <div className="h-full relative opa-80">
-                    <CodeEditor
-                      value={currentCode}
-                      onChange={handleCodeChange}
-                      language={activeTab?.language || 'typescript'}
-                      theme="vs-dark"
+              {/* Code Editor Module */}
+              <div className="flex-1 pointer-events-auto bg-black/60 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl transition-all duration-500 hover:border-cyan-500/20">
+                <EditorTabs
+                  tabs={openTabs}
+                  activeTabId={activeTabId}
+                  onTabChange={handleTabChange}
+                  onTabClose={handleTabClose}
+                />
+                <div className="flex-1 relative">
+                  {openTabs.length === 0 ? (
+                    <EmptyState
+                      icon="⚡"
+                      title="System Idle"
+                      description="Awaiting instruction. Interface with the AI to mount code modules."
+                      action={{
+                        label: "Start Uplink",
+                        onClick: () => document.querySelector<HTMLTextAreaElement>('textarea')?.focus()
+                      }}
                     />
-                  </div>
-                )}
+                  ) : (
+                    <div className="absolute inset-0 opacity-80">
+                      <CodeEditor
+                        value={currentCode}
+                        onChange={handleCodeChange}
+                        language={activeTab?.language || 'typescript'}
+                        theme="vs-dark"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Bottom Module - Output / Terminal */}
-          <div className="h-64 pointer-events-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-xl transition-all duration-500 hover:border-cyan-500/30">
-            <TerminalPanel workspaceId={workspaceId} />
+            {/* Bottom Module - Output / Terminal */}
+            <div className="h-64 pointer-events-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-xl transition-all duration-500 hover:border-cyan-500/30">
+              <TerminalPanel workspaceId={workspaceId} />
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Right Module - Intelligence / Growth */}
-        <div className="w-[450px] pointer-events-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl transition-all duration-500 hover:border-purple-500/30">
+        {/* Right Module - Intelligence / Growth / App Preview */}
+        <div className={`${isEmergentMode ? 'flex-1' : 'w-[450px] shrink-0'} pointer-events-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl transition-all duration-500 hover:border-purple-500/30`}>
           <div className="flex bg-white/5 border-b border-white/10 shrink-0">
             <button
               onClick={() => setRightPanel('preview')}
               className={`flex-1 flex items-center justify-center gap-2 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${rightPanel === 'preview' ? 'text-cyan-400 bg-cyan-500/5' : 'text-white/40 hover:text-white'}`}
             >
-              <Activity className="w-3 h-3" /> Preview
+              <Activity className="w-3 h-3" /> App Preview
               {rightPanel === 'preview' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 shadow-[0_0_10px_cyan]" />}
             </button>
             <button
               onClick={() => setRightPanel('growth')}
               className={`flex-1 flex items-center justify-center gap-2 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${rightPanel === 'growth' ? 'text-purple-400 bg-purple-500/5' : 'text-white/40 hover:text-white'}`}
             >
-              <Zap className="w-3 h-3" /> Growth
+              <Zap className="w-3 h-3" /> Intelligence
               {rightPanel === 'growth' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-400 shadow-[0_0_10px_purple]" />}
             </button>
           </div>
-          <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
+          <div className="flex-1 relative overflow-auto custom-scrollbar">
             {rightPanel === 'growth' ? <GrowthPanel /> :
               rightPanel === 'analytics' ? <AnalyticsPanel /> :
                 <PreviewPanel code={currentCode} language={activeTab?.language} />}

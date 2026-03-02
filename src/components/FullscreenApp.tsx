@@ -436,7 +436,10 @@ export function FullscreenApp({
       setAppState('listening')
       setAnimationState('listening')
       if (chatInitialized) {
-        startListening()
+        speak("I am listening.")
+        // Note: the TTS 'onEnd' handler automatically cascades into startListeningRef.current()
+        // if voiceEnabledRef.current is true, which gives a seamless transition from speaking 
+        // "I am listening" right into transcription listening state.
       }
     } else {
       // Turn OFF - Stop everything and go to idle
@@ -446,7 +449,7 @@ export function FullscreenApp({
       stopListening()
       stopSpeaking()
     }
-  }, [chatInitialized, voiceEnabled, startListening, stopListening, stopSpeaking, unlockAudio])
+  }, [chatInitialized, voiceEnabled, startListening, stopListening, stopSpeaking, unlockAudio, speak])
 
   const bgColor = isDark ? '#0a0a0f' : '#fafafa'
   const textColor = isDark ? '#ffffff' : '#111111'
@@ -494,19 +497,22 @@ export function FullscreenApp({
         />
       </div>
 
+      {/* Main interactive layer - click anywhere to morph into listening cube */}
+      {showFloatingQuestions && <div onClick={handleVoiceClick} className="absolute inset-0 z-[2] cursor-pointer" title="Tap to wake" />}
+
       {/* Floating Questions - Slow Scroll */}
       {showFloatingQuestions && (
-        <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[60] w-[400px] h-[300px] overflow-hidden">
+        <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[8] w-[400px] h-[300px] overflow-hidden pointer-events-none">
           <button
             onClick={() => setShowFloatingQuestions(false)}
-            className="absolute top-0 right-0 z-10 p-1.5 rounded-full text-white/30 hover:text-white/60 hover:bg-white/10 transition-all duration-200"
+            className="absolute top-0 right-0 z-10 p-1.5 rounded-full text-white/30 hover:text-white/60 hover:bg-white/10 transition-all duration-200 pointer-events-auto"
             aria-label="Dismiss questions"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div className="animate-float-questions space-y-8 pointer-events-none">
+          <div className="animate-float-questions space-y-8">
             {[
               "What's a good book for understanding psychology?",
               "Help me plan a weekend trip to Paris",
@@ -541,7 +547,6 @@ export function FullscreenApp({
         }
       `}} />
 
-
       {/* Header */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4 transition-all duration-400 ${showLandingCube
@@ -552,57 +557,12 @@ export function FullscreenApp({
           }`}
       >
         <div className="flex justify-between items-center w-full relative">
-          {/* Left side - Branded Logo */}
-          {/* Left side - Branded Logo + Dynamic HUD Toggles */}
-          <div className="flex items-center gap-4">
-
-            {!showLandingCube && (
-              <div className="flex items-center gap-2 ml-4">
-                {/* BIG EYE TOGGLE (UPLINK) */}
-                <div className="flex flex-col items-center gap-1 group">
-                  <button
-                    onClick={toggleWatch}
-                    className={`relative h-12 w-12 rounded-xl border transition-all duration-700 flex items-center justify-center overflow-hidden
-                      ${isWatching
-                        ? 'bg-orange-500/20 border-orange-500/60 shadow-[0_0_20px_rgba(255,165,0,0.3)]'
-                        : 'bg-white/5 border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 hover:scale-105'}`}
-                    title={isWatching ? 'Disable Biometric Uplink' : 'Enable Biometric Uplink'}
-                  >
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className={`absolute inset-0 bg-orange-500/5 ${isWatching ? 'animate-pulse' : 'opacity-0'}`} />
-                    </div>
-                    {isWatching ? (
-                      <Eye className="w-6 h-6 text-orange-400 relative z-10 animate-pulse" />
-                    ) : (
-                      <EyeOff className="w-6 h-6 text-white/30 group-hover:text-orange-400/60 transition-colors relative z-10" />
-                    )}
-                    {isWatching && <div className="absolute top-0 left-0 w-full h-[1px] bg-orange-400/50 animate-scan z-20" />}
-                  </button>
-                  <span className={`text-[8px] font-black uppercase tracking-widest ${isWatching ? 'text-orange-400' : 'text-white/20'}`}>
-                    UPLINK
-                  </span>
-                </div>
-
-                {/* CODER / STUDIO LINK */}
-                <div className="flex flex-col items-center gap-1 group">
-                  <Link
-                    href="/coder"
-                    className="relative h-12 w-12 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-cyan-500/40 flex items-center justify-center transition-all hover:scale-105"
-                    title="Open CubiQo Studio"
-                  >
-                    <Code2 className="w-6 h-6 text-white/30 group-hover:text-cyan-400 transition-colors" />
-                    <div className="absolute top-0 right-0 w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan] translate-x-1/2 -translate-y-1/2" />
-                  </Link>
-                  <span className="text-[8px] font-black uppercase tracking-widest text-white/20 group-hover:text-cyan-400/80 transition-colors">
-                    STUDIO
-                  </span>
-                </div>
-              </div>
-            )}
+          <div className="flex items-center gap-4 hidden">
+            {/* Removed Uplink and Studio to clear clutter */}
           </div>
 
           {/* Right side - Contextual Branding */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 ml-auto">
             {!showLandingCube ? (
               <button
                 onClick={handleSignalClick}
@@ -623,22 +583,31 @@ export function FullscreenApp({
         </div>
       </header>
 
-
+      {/* Center Speaker Morph Target */}
+      {!showLandingCube && appState !== 'listening' && appState !== 'speaking' && appState !== 'thinking' && (
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[55]">
+          <button
+            onClick={handleVoiceClick}
+            className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:scale-110 hover:border-orange-500/50 transition-all duration-500 shadow-[0_0_30px_rgba(255,165,0,0)] hover:shadow-[0_0_30px_rgba(255,165,0,0.3)] group"
+          >
+            <svg className="w-8 h-8 text-white/50 group-hover:text-orange-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Bottom Left Stack: Settings above Sign In */}
       <div className="fixed left-6 bottom-6 z-[55] flex flex-col gap-3">
         {/* CQ Connect Button */}
         <button
           onClick={() => setShowCQPanel(true)}
-          className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isDark
-            ? 'bg-zinc-800/80 hover:bg-zinc-700/80 text-orange-500 hover:text-orange-400'
-            : 'bg-white/80 hover:bg-white text-orange-600 hover:text-orange-500'
-            } backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.1)] border border-orange-500/20 hover:scale-110`}
+          className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 bg-zinc-800/80 hover:bg-zinc-700/80 text-purple-500 hover:text-purple-400 backdrop-blur-md shadow-[0_0_15px_rgba(168,85,247,0.2)] border border-purple-500/30 hover:scale-110`}
           title="CQ Connect"
         >
           <svg
             viewBox="0 0 24 24"
-            className="w-6 h-6 drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]"
+            className="w-6 h-6 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]"
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
@@ -656,45 +625,72 @@ export function FullscreenApp({
         <button
           onClick={() => setMenuOpen(!menuOpen)}
           data-testid="settings-gear-button"
-          className={`flex items-center gap-2 text-[13px] transition-colors ${isDark
-            ? 'text-white/40 hover:text-white/60'
-            : 'text-gray-500 hover:text-gray-700'
-            }`}
+          className="flex items-center gap-2 text-[13px] transition-colors text-white/40 hover:text-white/60"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          <svg className="w-5 h-5 bg-black/50 p-1 rounded-full border border-white/10" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
           </svg>
-          <span className="font-medium">Settings</span>
+          <span className="font-medium">Menu</span>
         </button>
 
-        {/* Sign In with profile icon */}
-        <AuthButton
-          onSignInClick={() => setShowAuthForm(true)}
-          onUserClick={() => setMenuOpen(true)}
-        />
+        {/* User Menu Panel */}
+        {menuOpen && (
+          <div className="absolute bottom-full left-0 mb-4 w-64 bg-zinc-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col gap-2">
+            <Link href="/journal" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+              <span>📓</span> Daily Journal
+            </Link>
+            <Link href="/journey" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+              <span>✨</span> The Journey Program
+            </Link>
+            <Link href="/job-hunt" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+              <span>🎯</span> Job Hunt Tracker
+            </Link>
+            <Link href="/agents" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+              <span>🤖</span> AI Agents
+            </Link>
+            <Link href="/admin/ecomm" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+              <span>🛍️</span> Merchandise / Ecomm
+            </Link>
+            <div className="h-px bg-white/10 my-2" />
+            <div className="px-3 py-2">
+              <AuthButton
+                onSignInClick={() => { setShowAuthForm(true); setMenuOpen(false); }}
+                onUserClick={() => { }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Right side - CQ Connect + RGY Signal + Keywords underneath */}
-      <div className="fixed right-[4.5rem] top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
-        {/* Eye Icon for AI Visual Interaction */}
+      {/* Right side - RGY Window / Keywords */}
+      <div className="fixed right-6 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
+        {/* RGY Signal Traffic Lights */}
         <button
-          onClick={toggleWatch}
-          className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isWatching ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-black/40 text-white/50 border border-white/10 hover:text-white hover:bg-black/60 hover:border-white/20'}`}
-          title="AI Visual Interaction"
+          onClick={() => setShowRGYChats(true)}
+          className="flex flex-col gap-1.5 p-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:border-white/30 transition-all hover:scale-105"
         >
-          {isWatching ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+          <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
+          <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
         </button>
 
-        {/* Coding Panel Access Button */}
-        <Link
-          href="/coder"
-          className="relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 bg-black/40 text-cyan-400 border border-white/10 hover:border-cyan-500/50 hover:bg-black/60 shadow-[0_0_10px_rgba(34,211,238,0.2)]"
-          title="CubiQo Coding Panel"
+        <button
+          onClick={() => setShowKeywordPanel(!showKeywordPanel)}
+          className="flex flex-col items-center gap-1 group mt-4"
         >
-          <Code2 className="w-5 h-5" />
-        </Link>
+          <div className="w-10 h-10 rounded-full border border-white/10 bg-black/40 flex items-center justify-center hover:bg-black/60 hover:border-white/30 transition-all">
+            <span className="text-white/50 group-hover:text-white transition-colors text-lg font-bold">#</span>
+          </div>
+          <span className="text-[9px] uppercase tracking-widest text-white/30 group-hover:text-white/60">Keywords</span>
+        </button>
       </div>
+
+      {/* RENDER MODALS */}
+      {showAuthForm && <LoginForm onClose={() => setShowAuthForm(false)} />}
+      <SidePanel isOpen={showCQPanel} onClose={() => setShowCQPanel(false)} />
+      {showKeywordPanel && <KeywordPanel />}
+      {showRGYChats && <RGYChatsModal />}
+      <AuthNudgeModal isOpen={showNudgeModal} onClose={() => setShowNudgeModal(false)} cta={nudgeCta} />
     </div>
   )
 }
