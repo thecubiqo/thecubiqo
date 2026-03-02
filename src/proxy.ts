@@ -120,14 +120,40 @@ export default async function proxy(request: NextRequest) {
   // 4. Apply Security Headers
   response = applySecurityHeaders(response)
 
-  // 4b. Hostname-Based Routing (cubiqo.dev domain)
-  // Main cubiqo.dev domain → serve Studio/Landing (handled by middleware.ts rewrite)
+  // 4b. Hostname-Based Routing
+  const DOMAIN_ROUTES: Record<string, string> = {
+    'cubiqo.dev': '/coder',
+    'www.cubiqo.dev': '/coder',
+    'cubiqo.marketing': '/marketing',
+    'www.cubiqo.marketing': '/marketing',
+  };
+
+  const targetPrefix = DOMAIN_ROUTES[host];
+
+  if (targetPrefix && !pathname.startsWith('/api/') && !pathname.startsWith('/_next/') && !pathname.startsWith('/favicon')) {
+    if (!pathname.startsWith(targetPrefix)) {
+      url.pathname = `${targetPrefix}${pathname === '/' ? '' : pathname}`;
+      response = NextResponse.rewrite(url);
+      response = applySecurityHeaders(response);
+      return response;
+    }
+  }
+
   // Wildcard *.cubiqo.dev → project preview routing
   if (host.endsWith('.cubiqo.dev') && host !== 'cubiqo.dev' && host !== 'www.cubiqo.dev') {
     const subdomain = host.replace('.cubiqo.dev', '')
-    // Set header so downstream pages can read the project slug
+
+    if (!pathname.startsWith('/api/') && !pathname.startsWith('/_next/') && !pathname.startsWith('/favicon')) {
+      url.pathname = `/coder/preview/${subdomain}${pathname === '/' ? '' : pathname}`;
+      response = NextResponse.rewrite(url);
+      response = applySecurityHeaders(response);
+    }
+
+    // Set headers
     response.headers.set('x-cubiqo-project-slug', subdomain)
     response.headers.set('x-cubiqo-domain', host)
+
+    return response;
   }
 
   // 5. Founder Gate

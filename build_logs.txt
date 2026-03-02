@@ -1,0 +1,78 @@
+npm warn config global-style This option has been deprecated in favor of `--install-strategy=shallow`
+
+> cubiqo@2.0.0 build
+> next build
+
+ΓÜá Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\avloy\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\avloy\.gemini\antigravity\playground\scalar-nebula\my-cubiqo\package-lock.json
+   * C:\Users\avloy\.gemini\antigravity\playground\scalar-nebula\package-lock.json
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 3 errors:
+./.gemini/antigravity/playground/scalar-nebula/my-cubiqo/src/app/page.tsx:4:23
+Ecmascript file had an error
+  2 | import dynamic from 'next/dynamic';
+  3 |
+> 4 | const FullscreenApp = dynamic(() => import('@/components/FullscreenApp'), { ssr: false });
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 | import { LandingPage } from '@/components/landing/LandingPage'
+  6 | import { createClient } from '@/lib/supabase/server'
+  7 |
+
+`ssr: false` is not allowed with `next/dynamic` in Server Components. Please move it into a Client Component.
+
+Import trace:
+  App Route:
+    ./.gemini/antigravity/playground/scalar-nebula/my-cubiqo/src/app/page.tsx
+    ./.gemini/antigravity/playground/scalar-nebula/my-cubiqo/src/app/api/code/terminal/route.ts
+
+
+./.gemini/antigravity/playground/scalar-nebula/my-cubiqo/src/app/page.tsx:9:14
+Ecmascript file had an error
+   7 |
+   8 | // Force dynamic rendering to ensure auth/flag state updates are reflected immediately
+>  9 | export const dynamic = 'force-dynamic';
+     |              ^^^^^^^
+  10 |
+  11 | export default async function Home() {
+  12 |   const supabase = await createClient();
+
+the name `dynamic` is defined multiple times
+
+Import trace:
+  App Route:
+    ./.gemini/antigravity/playground/scalar-nebula/my-cubiqo/src/app/page.tsx
+    ./.gemini/antigravity/playground/scalar-nebula/my-cubiqo/src/app/api/code/terminal/route.ts
+
+
+./.gemini/antigravity/playground/scalar-nebula/my-cubiqo/src/components/FullscreenApp.tsx:686:1
+Parsing ecmascript source code failed
+  684 |           href="/coder"
+  685 |           title="CubiQo Coding Panel"
+> 686 |
+      | ^
+
+Expected '</', got '<eof>'
+
+Import traces:
+  App Route:
+    ./.gemini/antigravity/playground/scalar-nebula/my-cubiqo/src/components/FullscreenApp.tsx
+    ./.gemini/antigravity/playground/scalar-nebula/my-cubiqo/src/app/api/code/terminal/route.ts
+
+  Server Component:
+    ./.gemini/antigravity/playground/scalar-nebula/my-cubiqo/src/components/FullscreenApp.tsx
+    ./.gemini/antigravity/playground/scalar-nebula/my-cubiqo/src/app/[region]/page.tsx
+
+
+    at <unknown> (./.gemini/antigravity/playground/scalar-nebula/my-cubiqo/src/app/page.tsx:4:23)
+    at <unknown> (./.gemini/antigravity/playground/scalar-nebula/my-cubiqo/src/app/page.tsx:9:14)
+    at <unknown> (./.gemini/antigravity/playground/scalar-nebula/my-cubiqo/src/components/FullscreenApp.tsx:686:1)

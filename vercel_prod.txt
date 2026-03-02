@@ -1,0 +1,48 @@
+npm warn config global-style This option has been deprecated in favor of `--install-strategy=shallow`
+Vercel CLI 50.9.6
+Fetching deployments in cubiqo-projects-d7156840
+> Production deployments for cubiqo-projects-d7156840/cubiqo-repo [344ms]
+
+  Age     Deployment                                                            Status      Environment     Duration     Username        
+  42m     https://cubiqo-repo-dxv21ffjf-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      2m           aditya-7307     
+  2h      https://cubiqo-repo-jsnd59y25-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      2m           aditya-7307     
+  2h      https://cubiqo-repo-ol5osw628-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      1m           aditya-7307     
+  2h      https://cubiqo-repo-m3hjjv31w-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      1m           aditya-7307     
+  2h      https://cubiqo-repo-18abgttca-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      1m           aditya-7307     
+  3d      https://cubiqo-repo-6um1jn9f4-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      2m           aditya-7307     
+https://cubiqo-repo-dxv21ffjf-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-jsnd59y25-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-ol5osw628-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-m3hjjv31w-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-18abgttca-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-6um1jn9f4-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-kie5dd62c-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-fh49cf44p-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-nspfs1q0e-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-r439p77w2-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-4bjevemql-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-fptiimgt7-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-9s5ci3ujv-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-80q6uvuvq-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-nrvcfew9a-cubiqo-projects-d7156840.vercel.app
+  3d      https://cubiqo-repo-kie5dd62c-cubiqo-projects-d7156840.vercel.app     ΓùÅ Ready     Production      6s           aditya-7307     
+  3d      https://cubiqo-repo-fh49cf44p-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      2m           aditya-7307     
+  3d      https://cubiqo-repo-nspfs1q0e-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      1m           aditya-7307     
+  3d      https://cubiqo-repo-r439p77w2-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      2m           aditya-7307     
+  3d      https://cubiqo-repo-4bjevemql-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      2m           aditya-7307     
+  3d      https://cubiqo-repo-fptiimgt7-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      2m           aditya-7307     
+  3d      https://cubiqo-repo-9s5ci3ujv-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      1m           aditya-7307     
+https://cubiqo-repo-jyo5dw4bo-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-g152fly0n-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-ma0gfqp40-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-mkglthjwv-cubiqo-projects-d7156840.vercel.app
+https://cubiqo-repo-mwnci3wsc-cubiqo-projects-d7156840.vercel.app
+  3d      https://cubiqo-repo-80q6uvuvq-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      2m           aditya-7307     
+  3d      https://cubiqo-repo-nrvcfew9a-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      2m           aditya-7307     
+  3d      https://cubiqo-repo-jyo5dw4bo-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      37s          aditya-7307     
+  3d      https://cubiqo-repo-g152fly0n-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      34s          aditya-7307     
+  3d      https://cubiqo-repo-ma0gfqp40-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      33s          aditya-7307     
+  3d      https://cubiqo-repo-mkglthjwv-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      36s          aditya-7307     
+  3d      https://cubiqo-repo-mwnci3wsc-cubiqo-projects-d7156840.vercel.app     ΓùÅ Error     Production      34s          aditya-7307     
+
+> To display the next page, run `vercel ls cubiqo-repo --prod --yes --next 1772094451995`

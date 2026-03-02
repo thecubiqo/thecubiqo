@@ -1,0 +1,4 @@
+npm warn config global-style This option has been deprecated in favor of `--install-strategy=shallow`
+Vercel CLI 50.9.6
+Fetching deployment "cubiqo-repo-dxv21ffjf-cubiqo-projects-d7156840.vercel.app" in cubiqo-projects-d7156840
+Error: Deployment not ready. Currently: ΓùÅ Error.
