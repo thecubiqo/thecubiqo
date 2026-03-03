@@ -557,46 +557,18 @@ export function FullscreenApp({
         }
       `}} />
 
-      {/* Header */}
-      <header
-        className={`fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4 transition-all duration-400 ${showLandingCube
-          ? 'bg-transparent border-none'
-          : (isDark
-            ? 'bg-[rgba(10,10,15,0.75)] border-b border-white/[0.06] backdrop-blur-[16px]'
-            : 'bg-[rgba(250,250,250,0.85)] border-b border-black/[0.06] backdrop-blur-[16px]')
-          }`}
-      >
-        <div className="flex justify-between items-center w-full relative">
-          <div className="flex items-center gap-4">
-            {/* Use the specific logo attached by the user */}
-            <img
-              src="/cubiqo-logo.jpg"
-              alt="CubiQo"
-              className="h-10 w-auto object-contain rounded-lg"
-            />
-          </div>
-
-          {/* Right side - Contextual Branding */}
-          <div className="flex items-center gap-6 ml-auto">
-            {!showLandingCube ? (
-              <button
-                onClick={handleSignalClick}
-                className="group flex flex-col items-end cursor-pointer no-underline"
-              >
-                <div className="text-2xl sm:text-3xl font-black tracking-[-0.05em] flex select-none">
-                  <span className="text-[#E84343]">S</span>
-                  <span className="text-[#2D994E] ml-[1px]">I</span>
-                  <span className="text-[#F2C94C] ml-[1px]">G</span>
-                  <span className="text-white ml-[1px]">NAL</span>
-                </div>
-                <span className={`text-[10px] uppercase tracking-[0.2em] opacity-40 group-hover:opacity-70 transition-opacity ${isDark ? 'text-white' : 'text-black'}`}>
-                  One is enough
-                </span>
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </header>
+      {/* Top Left Close Button for Floating Questions */}
+      {showFloatingQuestions && (
+        <button
+          onClick={() => setShowFloatingQuestions(false)}
+          className="fixed top-8 left-8 z-[100] w-10 h-10 rounded-full flex items-center justify-center bg-transparent border border-white/10 text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200"
+          aria-label="Dismiss questions"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      )}
 
       {/* Center Speaker Morph Target */}
       {!showLandingCube && appState !== 'listening' && appState !== 'speaking' && appState !== 'thinking' && (
@@ -612,9 +584,65 @@ export function FullscreenApp({
         </div>
       )}
 
-      {/* Bottom Left Stack: Settings above Sign In */}
-      <div className="fixed left-6 bottom-6 z-[100] flex flex-col gap-3">
-        {/* CQ Connect Button */}
+      {/* Bottom Left Stack: Settings & Sign In */}
+      <div className="fixed left-8 bottom-8 z-[100] flex flex-col gap-4">
+        {/* Settings Button */}
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="flex items-center gap-3 text-[13px] font-medium transition-colors text-white/50 hover:text-white"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          </svg>
+          Settings
+        </button>
+
+        {/* Sign In Button / User */}
+        <button
+          onClick={() => {
+            if (!isAuthenticated) setShowAuthForm(true)
+          }}
+          className="flex items-center gap-3 text-[13px] font-medium transition-colors text-white/50 hover:text-white"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+          </svg>
+          {isAuthenticated && user ? user.email?.split('@')[0] : 'Sign In'}
+        </button>
+
+        {/* User Menu Dialog (Settings) */}
+        {menuOpen && (
+          <div className="absolute bottom-full left-0 mb-4 w-64 bg-zinc-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col gap-2">
+            <Link href="/journal" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+              <span>📓</span> Daily Journal
+            </Link>
+            <Link href="/journey" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+              <span>✨</span> The Journey Program
+            </Link>
+            <Link href="/job-hunt" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+              <span>🎯</span> Job Hunt Tracker
+            </Link>
+            <Link href="/agents" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+              <span>🤖</span> AI Agents
+            </Link>
+            <Link href="/admin/ecomm" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+              <span>🛍️</span> Merchandise / Ecomm
+            </Link>
+            {isAuthenticated && (
+              <>
+                <div className="h-px bg-white/10 my-2" />
+                <button onClick={() => { signOut(); setMenuOpen(false) }} className="w-full text-left px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 rounded-lg transition-colors">
+                  Sign Out
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Right Stack: CQ Connect */}
+      <div className="fixed right-8 bottom-8 z-[100]">
         <button
           onClick={() => setShowCQPanel(true)}
           className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 bg-zinc-800/80 hover:bg-zinc-700/80 text-purple-500 hover:text-purple-400 backdrop-blur-md shadow-[0_0_15px_rgba(168,85,247,0.2)] border border-purple-500/30 hover:scale-110`}
@@ -635,46 +663,6 @@ export function FullscreenApp({
             </div>
           )}
         </button>
-
-        {/* Settings */}
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          data-testid="settings-gear-button"
-          className="flex items-center gap-2 text-[13px] transition-colors text-white/40 hover:text-white/60"
-        >
-          <svg className="w-5 h-5 bg-black/50 p-1 rounded-full border border-white/10" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-          </svg>
-          <span className="font-medium">Menu</span>
-        </button>
-
-        {/* User Menu Panel */}
-        {menuOpen && (
-          <div className="absolute bottom-full left-0 mb-4 w-64 bg-zinc-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col gap-2">
-            <Link href="/journal" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-              <span>📓</span> Daily Journal
-            </Link>
-            <Link href="/journey" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-              <span>✨</span> The Journey Program
-            </Link>
-            <Link href="/job-hunt" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-              <span>🎯</span> Job Hunt Tracker
-            </Link>
-            <Link href="/agents" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-              <span>🤖</span> AI Agents
-            </Link>
-            <Link href="/admin/ecomm" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-              <span>🛍️</span> Merchandise / Ecomm
-            </Link>
-            <div className="h-px bg-white/10 my-2" />
-            <div className="px-3 py-2">
-              <AuthButton
-                onSignInClick={() => { setShowAuthForm(true); setMenuOpen(false); }}
-                onUserClick={() => { }}
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Right side - RGY Window / Keywords */}
@@ -701,23 +689,25 @@ export function FullscreenApp({
       </div>
 
       {/* RENDER MODALS */}
-      {showAuthForm && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-md">
-          <div className="relative bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-sm">
-            <button
-              onClick={() => setShowAuthForm(false)}
-              className="absolute top-4 right-4 text-white/50 hover:text-white"
-            >
-              ✕
-            </button>
-            <LoginForm />
+      {
+        showAuthForm && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-md">
+            <div className="relative bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-sm">
+              <button
+                onClick={() => setShowAuthForm(false)}
+                className="absolute top-4 right-4 text-white/50 hover:text-white"
+              >
+                ✕
+              </button>
+              <LoginForm />
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
       <SidePanel isOpen={showCQPanel} onClose={() => setShowCQPanel(false)} />
       {showKeywordPanel && <KeywordPanel isOpen={showKeywordPanel} onClose={() => setShowKeywordPanel(false)} />}
       {showRGYChats && <RGYChatsModal isOpen={showRGYChats} onClose={() => setShowRGYChats(false)} />}
       <AuthNudgeModal isOpen={showNudgeModal} onClose={() => setShowNudgeModal(false)} cta={nudgeCta} />
-    </div>
+    </div >
   )
 }
