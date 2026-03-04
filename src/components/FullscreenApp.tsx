@@ -480,14 +480,12 @@ export function FullscreenApp({
       {/* Admin Controls */}
       <AdminControls />
 
-      {/* Energy Cube - Centered Hero Section */}
+      {/* Energy Cube - Full viewport background */}
       <div
-        className="fixed top-1/2 left-1/2 z-[1] flex items-center justify-center w-[90vw] max-w-6xl h-[65vh]"
+        className="fixed inset-0 z-[1]"
         style={{
-          transform: `translate(-50%, -50%) ${cubeSize !== 100 ? `scale(${cubeSize / 100})` : ''}`,
-          transformOrigin: 'center center',
-          maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
-          WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)'
+          transform: cubeSize !== 100 ? `scale(${cubeSize / 100})` : undefined,
+          transformOrigin: 'center center'
         }}
         onClick={handleVoiceClick}
       >
