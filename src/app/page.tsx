@@ -10,25 +10,11 @@ export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Check feature flags
+  // Check landing flag (though we're forcing FullscreenApp for now)
   const { enabled: showTopRightCTA } = await checkFeatureFlag({
     flag_name: 'ui.topRightCTA.v1'
   });
 
-  const { enabled: useParticleLandingAsHome } = await checkFeatureFlag({
-    flag_name: 'ui.useParticleLandingAsHome'
-  });
-
-  // If authenticated, always show the FullscreenApp (the "signed-in version")
-  if (user) {
-    return <FullscreenApp showTopRightCTA={showTopRightCTA} />
-  }
-
-  // If feature flag is enabled for guests, render LandingPage (with ParticleLanding)
-  if (useParticleLandingAsHome) {
-    return <LandingPage showTopRightCTA={showTopRightCTA} />
-  }
-
-  // Default behavior for guests: render FullscreenApp
+  // Force-render FullscreenApp for now so the user can see the new design immediately
   return <FullscreenApp showTopRightCTA={showTopRightCTA} />
 }

@@ -453,34 +453,21 @@ export function FullscreenApp({
         <EnergyCubeScene colorName={colorName} animationState={animationState} />
       </div>
 
-      {/* Floating Questions - Slow Scroll */}
+      {/* Floating Questions */}
       {showFloatingQuestions && (
-        <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[40] w-[400px] h-[300px] overflow-hidden">
-          <button
-            onClick={() => setShowFloatingQuestions(false)}
-            className="absolute top-0 right-0 z-10 p-1.5 rounded-full text-white/30 hover:text-white/60 hover:bg-white/10 transition-all duration-200"
-            aria-label="Dismiss questions"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          <div className="animate-float-questions space-y-8 pointer-events-none">
+        <div className="fixed left-12 top-1/2 -translate-y-1/2 z-[40] w-[400px]">
+          <div className="space-y-10">
             {[
-              "What's a good book for understanding psychology?",
               "Help me plan a weekend trip to Paris",
               "I need motivation to start working out",
               "Explain quantum computing like I'm five",
               "Best restaurants in Brooklyn?",
               "How do I learn Spanish fast?",
               "What's the meaning of life?",
-              "Recommend a morning routine",
-              "What's a good book for understanding psychology?",
-              "Help me plan a weekend trip to Paris",
             ].map((question, i) => (
               <div
                 key={i}
-                className="text-white/30 text-sm leading-relaxed"
+                className="text-white/30 text-[15px] font-light tracking-wide hover:text-white/60 transition-colors cursor-default"
               >
                 {"\u201C"}{question}{"\u201D"}
               </div>
@@ -503,203 +490,137 @@ export function FullscreenApp({
 
       {/* Header */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4 backdrop-blur-[16px] transition-colors duration-400 ${isDark
-          ? 'bg-[rgba(10,10,15,0.75)] border-b border-white/[0.06]'
-          : 'bg-[rgba(250,250,250,0.85)] border-b border-black/[0.06]'
-          }`}
+        className="fixed top-0 left-0 right-0 z-50 px-8 py-6 pointer-events-none"
       >
-        <div className="flex justify-between items-center w-full">
-          {/* Left - CubiQo Logo Icon - Premium local SVG */}
+        <div className="flex justify-between items-start w-full pointer-events-auto">
+          {/* Left - CubiQo Logo Icon */}
           <div className="flex items-center">
-            <img
-              src="/icons/cubiqo-logo.svg"
-              alt="CubiQo"
-              className="w-10 h-10 sm:w-12 sm:h-12 object-contain rounded-xl shadow-lg"
-            />
+            <div className="relative group">
+              <div className="absolute inset-0 bg-orange-500/20 blur-xl rounded-full transition-all duration-500 group-hover:bg-orange-500/40"></div>
+              <img
+                src="/icons/cubiqo-logo.svg"
+                alt="CubiQo"
+                className="relative w-12 h-12 object-contain rounded-xl"
+              />
+            </div>
           </div>
 
-          {/* Center - CubiQo Text */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-start">
-            <span className={`text-2xl sm:text-3xl font-semibold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'
-              }`}>
-              CubiQo
-            </span>
-            <span className={`text-[10px] sm:text-[12px] font-medium ml-0.5 -mt-0.5 ${isDark ? 'text-white/60' : 'text-gray-500'
-              }`}>
-              TM
-            </span>
-          </div>
-
-          {/* Right side - SIGNAL Logo - Clickable */}
+          {/* Right side - SIGNAL Logo */}
           <button
             onClick={handleSignalClick}
-            className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
+            className="flex flex-col items-end gap-0.5 hover:opacity-80 transition-opacity"
           >
-            <div className="flex flex-col gap-[3px]">
-              <div className="w-6 h-[3px] rounded-full bg-[#ef4444]"></div>
-              <div className="w-6 h-[3px] rounded-full bg-[#eab308]"></div>
-              <div className="w-6 h-[3px] rounded-full bg-[#22c55e]"></div>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-lg sm:text-xl font-semibold tracking-[0.08em] text-white leading-tight">SIGNAL</span>
-              <span className="text-[9px] sm:text-[10px] text-white/50 tracking-wide">One is enough.</span>
-            </div>
+            <span className="text-2xl font-bold tracking-[0.1em] text-white leading-tight">SIGNAL</span>
+            <span className="text-[10px] text-white/40 tracking-[0.2em] font-medium uppercase">One is enough.</span>
           </button>
         </div>
       </header>
 
       {/* Bottom Left Stack: Settings above Sign In */}
-      <div className="fixed left-6 bottom-6 z-[55] flex flex-col gap-3">
-        {/* Integrations */}
-        <button
-          onClick={() => setShowIntegrationsPanel(true)}
-          className={`flex items-center gap-2 text-[13px] transition-colors ${isDark
-            ? 'text-white/40 hover:text-white/60'
-            : 'text-gray-500 hover:text-gray-700'
-            }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
-          </svg>
-          <span className="font-medium">Integrations</span>
-        </button>
-
+      <div className="fixed left-12 bottom-12 z-[55] flex flex-col gap-6">
         {/* Settings */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          data-testid="settings-gear-button"
-          className={`flex items-center gap-2 text-[13px] transition-colors ${isDark
-            ? 'text-white/40 hover:text-white/60'
-            : 'text-gray-500 hover:text-gray-700'
-            }`}
+          className="flex items-center gap-3 group"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-          </svg>
-          <span className="font-medium">Settings</span>
+          <div className="w-5 h-5 text-white/40 group-hover:text-white/70 transition-colors">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            </svg>
+          </div>
+          <span className="text-[14px] text-white/40 group-hover:text-white/70 transition-colors font-light">Settings</span>
         </button>
 
-        {/* Sign In with profile icon */}
-        <AuthButton
-          onSignInClick={() => setShowAuthForm(true)}
-          onUserClick={() => setMenuOpen(true)}
-        />
+        {/* Sign In */}
+        <button
+          onClick={() => setShowAuthForm(true)}
+          className="flex items-center gap-3 group"
+        >
+          <div className="w-5 h-5 text-white/40 group-hover:text-white/70 transition-colors">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+            </svg>
+          </div>
+          <span className="text-[14px] text-white/40 group-hover:text-white/70 transition-colors font-light">Sign In</span>
+        </button>
       </div>
 
-      {/* CQ Messenger - Fixed bottom-right (standard chat icon position) */}
-      {isAuthenticated && (
-        <div className="fixed right-6 bottom-6 z-[55]">
-          <button
-            onClick={() => setShowCQPanel(true)}
-            className={`relative flex items-center justify-center w-14 h-14 rounded-full transition-all duration-200 ${isDark
-              ? 'bg-[#FF6F00] hover:bg-[#FF8C33] text-white shadow-lg shadow-orange-500/30'
-              : 'bg-[#FF6F00] hover:bg-[#FF8C33] text-white shadow-lg shadow-orange-500/30'
-              }`}
-            title="CQ Messenger"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
-            </svg>
-            {unreadCount > 0 && (
-              <div className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold ring-2 ring-black">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </div>
-            )}
-          </button>
-        </div>
-      )}
+      {/* CQ Messenger */}
+      <div className="fixed right-8 bottom-12 z-[55]">
+        <button
+          onClick={() => setShowCQPanel(true)}
+          className="w-14 h-14 rounded-full bg-violet-600 flex items-center justify-center text-white shadow-lg shadow-violet-500/20 hover:bg-violet-500 transition-all transform active:scale-95"
+          title="CQ Messenger"
+        >
+          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+          </svg>
+        </button>
+      </div>
 
       {/* Right side - RGY Signal + Keywords */}
-      <div className="fixed right-6 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-4">
+      <div className="fixed right-8 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center gap-6">
         <RGYSignalButton
           onClick={() => setShowKeywordPanel(true)}
           isDark={isDark}
           pulseColor={rgyPulseColor}
         />
 
-        {/* Keywords text underneath */}
+        {/* Keywords icon button */}
         <button
           onClick={() => setShowKeywordPanel(true)}
           data-testid="keywords-button"
-          className={`flex flex-col items-center gap-1 transition-all duration-200 ${isDark
-            ? 'text-white/40 hover:text-white/60'
-            : 'text-gray-500 hover:text-gray-700'
-            }`}
+          className="flex flex-col items-center gap-2 group"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
-          </svg>
-          <span className="text-[11px] font-medium">Keywords</span>
+          <div className="w-12 h-12 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-white/30 group-hover:text-white/60 group-hover:bg-white/[0.07] transition-all">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 8.25h15m-16.5 7.5h15m-1.8-13.5l-3.9 19.5m-2.1-19.5l-3.9 19.5" />
+            </svg>
+          </div>
+          <span className="text-[10px] font-bold tracking-[0.15em] text-white/30 uppercase">Keywords</span>
         </button>
       </div>
 
-      {/* Voice Enable Control - As low as possible on screen */}
-      <div className="fixed bottom-[40px] left-1/2 -translate-x-1/2 z-[55] flex flex-col items-center">
+      {/* Voice Enable Control */}
+      <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[55]">
         <button
           onClick={handleVoiceClick}
           disabled={!voiceSupported}
           data-testid="voice-control-button"
-          className={`group flex flex-col items-center gap-3 px-6 py-4 rounded-2xl transition-all duration-300 ${voiceSupported
-            ? 'hover:bg-white/[0.04] cursor-pointer'
-            : 'cursor-default'
-            }`}
+          className="relative group p-2 transition-all duration-300 transform active:scale-95"
         >
-          {/* Speaker Icon */}
-          <div className={`relative p-3.5 rounded-full transition-all duration-300 ${voiceEnabled
-            ? 'bg-white/[0.12] shadow-[0_0_20px_rgba(255,255,255,0.06)]'
-            : 'bg-white/[0.04] group-hover:bg-white/[0.07] border border-white/[0.06]'
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${voiceEnabled
+            ? 'bg-white/10 shadow-[0_0_30px_rgba(255,255,255,0.1)]'
+            : 'bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08]'
             }`}>
             <svg
-              className={`w-6 h-6 transition-all duration-200 ${voiceEnabled
-                ? 'text-white'
-                : 'text-white/50 group-hover:text-white/70'
-                }`}
+              className={`w-7 h-7 transition-all duration-200 ${voiceEnabled ? 'text-white' : 'text-white/40'}`}
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.5"
             >
-              {/* Speaker/Audio waveform icon */}
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
             </svg>
-
-            {/* Light pulse rings when voice is ON */}
-            {voiceEnabled && (
-              <>
-                <div className="absolute inset-0 rounded-full border border-white/20 animate-ping" style={{ animationDuration: '2s' }} />
-                <div className="absolute inset-[-4px] rounded-full border border-white/10 animate-pulse" />
-              </>
-            )}
           </div>
-
-          {/* Label - Only show browser unsupported message */}
-          {!voiceSupported && (
-            <span
-              className="text-[13px] tracking-wide text-white/40"
-            >
-              Voice access is controlled by your browser.
-            </span>
+          {voiceEnabled && (
+            <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping opacity-40"></div>
           )}
         </button>
       </div>
 
       {/* Footer */}
-      <footer className="fixed bottom-2 left-0 right-0 z-50">
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-[10px] text-white/20 tracking-wider text-center font-light">
+      <footer className="fixed bottom-4 left-0 right-0 z-50">
+        <div className="flex flex-col items-center">
+          <p className="text-[11px] text-white/10 tracking-wider text-center font-light">
             All conversations are confidential. CubiQo never retains user voice by policy.
             <span className="mx-2">·</span>
-            <button
-              onClick={() => setMenuOpen(true)}
-              className="text-white/30 hover:text-white/50 transition-colors"
-            >
-              Try BYO Mode
-            </button>
+            <button onClick={() => setMenuOpen(true)} className="hover:text-white/30 transition-colors">Try BYO Mode</button>
             <span className="mx-1">—</span>
-            <span className="text-white/20">Your data · Your storage · Your API key</span>
+            <span>Your data · Your storage · Your API key</span>
             <span className="mx-2">·</span>
-            <span className="text-white/15">© 2026 Cubiqo United Inc.</span>
+            <span>© 2025 Cubiqo United Inc.</span>
           </p>
         </div>
       </footer>
