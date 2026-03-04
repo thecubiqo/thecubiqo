@@ -480,6 +480,129 @@ export function FullscreenApp({
       {/* Admin Controls */}
       <AdminControls />
 
+      {/* Apple-Style Comprehensive Side Panel */}
+      {/* Invisible backdrop for closing when clicking outside */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-[110]"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
+      {/* Sliding Glass Tray */}
+      <div
+        className={`fixed top-0 left-0 bottom-0 w-80 z-[120] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col
+          bg-black/30 backdrop-blur-[40px] border-r border-white/10 shadow-[20px_0_40px_rgba(0,0,0,0.5)]
+          ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        {/* Panel Header */}
+        <div className="flex items-center justify-between px-6 pt-10 pb-6 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full border border-orange-500/30 bg-black/40 flex items-center justify-center shadow-[0_0_10px_rgba(255,102,0,0.2)]">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                <line x1="12" y1="22.08" x2="12" y2="12" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-white font-semibold tracking-wide text-sm">CubiQo Hub</h2>
+              <p className="text-white/40 text-[10px] uppercase tracking-wider">All Systems</p>
+            </div>
+          </div>
+          <button onClick={() => setMenuOpen(false)} className="text-white/40 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors">
+            ✕
+          </button>
+        </div>
+
+        {/* Navigation Links */}
+        <div className="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-8 custom-scrollbar">
+
+          {/* Section: Core */}
+          <div className="flex flex-col gap-1">
+            <div className="px-3 text-[10px] uppercase tracking-widest text-white/30 font-bold mb-2">Core OS</div>
+            <Link href="/" className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+              <span className="opacity-80">🏠</span> Home
+            </Link>
+            <Link href="/chat" className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+              <span className="opacity-80">💬</span> Chat Interface
+            </Link>
+            <Link href="/agents" className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+              <span className="opacity-80">🤖</span> AI Agents
+            </Link>
+            <Link href="/coder" className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+              <span className="opacity-80">💻</span> CubiQo Studio (Coder)
+            </Link>
+          </div>
+
+          {/* Section: Programs */}
+          <div className="flex flex-col gap-1">
+            <div className="px-3 text-[10px] uppercase tracking-widest text-white/30 font-bold mb-2">Programs & Tracking</div>
+            <Link href="/journal" className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+              <span className="opacity-80">📓</span> Daily Journal
+            </Link>
+            <Link href="/journey" className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+              <span className="opacity-80">✨</span> The Journey Program
+            </Link>
+            <Link href="/job-hunt" className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+              <span className="opacity-80">🎯</span> Job Hunt Tracker
+            </Link>
+          </div>
+
+          {/* Section: Commerce & Tools */}
+          <div className="flex flex-col gap-1">
+            <div className="px-3 text-[10px] uppercase tracking-widest text-white/30 font-bold mb-2">Ecosystem</div>
+            <Link href="/admin/ecomm" className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+              <span className="opacity-80">🛍️</span> Merchandise & Ecomm
+            </Link>
+            <Link href="/files" className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+              <span className="opacity-80">📁</span> Files & Storage
+            </Link>
+            <Link href="/memory" className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+              <span className="opacity-80">🧠</span> Memory & Graph
+            </Link>
+            <Link href="/integrations" className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+              <span className="opacity-80">🔗</span> Integrations
+            </Link>
+            <Link href="/cubikey" className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+              <span className="opacity-80">🔑</span> CubiKey Access
+            </Link>
+          </div>
+
+          {/* Section: Admin */}
+          <div className="flex flex-col gap-1 pb-10">
+            <div className="px-3 text-[10px] uppercase tracking-widest text-white/30 font-bold mb-2">Admin Tools</div>
+            <Link href="/admin/experiments" className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+              <span className="opacity-80">🧪</span> Experiments Toggle
+            </Link>
+            <Link href="/admin" className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+              <span className="opacity-80">👑</span> Super Admin Console
+            </Link>
+          </div>
+        </div>
+
+        {/* Panel Footer / Account */}
+        <div className="p-6 border-t border-white/5 bg-black/20">
+          <div className="flex flex-col gap-4">
+            <button className="flex items-center gap-3 text-sm text-white/60 hover:text-white transition-colors px-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm0 0H4.5m0 12h9.75M10.5 18a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm0 0H4.5m0-6h15" /></svg>
+              Standard Settings
+            </button>
+            {isAuthenticated && user ? (
+              <button onClick={() => { signOut(); setMenuOpen(false) }} className="flex items-center gap-3 text-sm text-red-500/80 hover:text-red-400 transition-colors px-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" /></svg>
+                Sign Out ({user.email?.split('@')[0]})
+              </button>
+            ) : (
+              <button onClick={() => { setShowAuthForm(true); setMenuOpen(false); }} className="flex items-center gap-3 text-sm text-green-500/80 hover:text-green-400 transition-colors px-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" /></svg>
+                Sign In
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Energy Cube - Full viewport background */}
       <div
         className="fixed inset-0 z-[1]"
@@ -613,10 +736,9 @@ export function FullscreenApp({
           className="flex items-center gap-3 text-[13px] font-medium transition-colors text-white/50 hover:text-white"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
           </svg>
-          Settings
+          Menu
         </button>
 
         {/* Sign In Button / User */}
@@ -632,34 +754,7 @@ export function FullscreenApp({
           {isAuthenticated && user ? user.email?.split('@')[0] : 'Sign In'}
         </button>
 
-        {/* User Menu Dialog (Settings) */}
-        {menuOpen && (
-          <div className="absolute bottom-full left-0 mb-4 w-64 bg-zinc-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col gap-2">
-            <Link href="/journal" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-              <span>📓</span> Daily Journal
-            </Link>
-            <Link href="/journey" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-              <span>✨</span> The Journey Program
-            </Link>
-            <Link href="/job-hunt" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-              <span>🎯</span> Job Hunt Tracker
-            </Link>
-            <Link href="/agents" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-              <span>🤖</span> AI Agents
-            </Link>
-            <Link href="/admin/ecomm" className="flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-              <span>🛍️</span> Merchandise / Ecomm
-            </Link>
-            {isAuthenticated && (
-              <>
-                <div className="h-px bg-white/10 my-2" />
-                <button onClick={() => { signOut(); setMenuOpen(false) }} className="w-full text-left px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 rounded-lg transition-colors">
-                  Sign Out
-                </button>
-              </>
-            )}
-          </div>
-        )}
+
       </div>
 
       {/* Bottom Right Stack: CQ Connect */}
