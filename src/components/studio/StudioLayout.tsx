@@ -152,10 +152,13 @@ export default function StudioLayout() {
   const activeEditorTab = openTabs.find(t => t.id === activeTabId);
   const currentCode = fileContents.get(activeTabId) || '';
 
+  // "Latest ref" pattern: keep a ref up-to-date with the latest state so the
+  // keyboard handler (registered once) always reads current values without
+  // needing to be re-registered on every render.
   const keyboardStateRef = useRef({ activeTabId, openTabs, activeEditorTab, handleFileOpen });
   useEffect(() => {
     keyboardStateRef.current = { activeTabId, openTabs, activeEditorTab, handleFileOpen };
-  });
+  }, [activeTabId, openTabs, activeEditorTab, handleFileOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

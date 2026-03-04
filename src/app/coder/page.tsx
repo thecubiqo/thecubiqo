@@ -67,9 +67,8 @@ export default function CoderPage() {
 
   useEffect(() => {
     try {
-      if (!window.localStorage) {
-        console.warn('localStorage not available — some features may be limited');
-      }
+      // localStorage.getItem throws a SecurityError in restricted contexts (e.g. sandboxed iframes)
+      window.localStorage.getItem('__cubiqo_check__');
       setError(null);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown initialization error';
