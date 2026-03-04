@@ -95,8 +95,8 @@ export function PlasmaWaveField({
   const TOTAL_POINTS = RIBBON_COUNT * POINTS_PER_RIBBON
   const TOTAL_SEGMENTS = RIBBON_COUNT * (POINTS_PER_RIBBON - 1)
   const CUBE_SIZE = 1.4
-  const PIPE_RADIUS = 0.012
-  const SOUL_NODE_COUNT = 50
+  const PIPE_RADIUS = 0.024
+  const SOUL_NODE_COUNT = 100
 
   // Generate wave data
   const { ribbonsData, pointColors, segmentColors } = useMemo(() => {
@@ -280,7 +280,7 @@ export function PlasmaWaveField({
         if (sphereInstancedRef.current) {
           _m.makeTranslation(curX, curY, curZ)
           // Add a subtle wave-driven scale pulse to the joints
-          const scale = 1.0 + Math.sin(time * 4.0 + pt.wX) * 0.15
+          const scale = 1.0 + Math.sin(time * 3.0 + pt.wX) * 0.2
           _m.scale(new THREE.Vector3(scale, scale, scale))
           sphereInstancedRef.current.setMatrixAt(ptIdx++, _m)
         }
@@ -372,15 +372,36 @@ export function PlasmaWaveField({
 
       {/* Soul nodes (orange plasma particles) */}
       <instancedMesh ref={soulNodesRef} args={[undefined, undefined, SOUL_NODE_COUNT]}>
-        <sphereGeometry args={[0.045, 12, 12]} />
-        <meshStandardMaterial color="#ff8844" emissive="#ff6600" emissiveIntensity={2} />
+        <sphereGeometry args={[0.065, 16, 16]} />
+        <meshStandardMaterial color="#ffaa00" emissive="#ff6600" emissiveIntensity={6} />
       </instancedMesh>
 
-      {/* Core glow behind the structure */}
-      <mesh scale={isEnabled ? 0.35 : 0.1}>
-        <sphereGeometry args={[1, 32, 32]} />
-        <meshBasicMaterial color="#ff4400" transparent opacity={0.3} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
+      {/* Premium Soul Core - The focal point */}
+      <group scale={isEnabled ? 1.0 : 1.2}>
+        {/* Outer Glow */}
+        <mesh>
+          <sphereGeometry args={[1.1, 64, 64]} />
+          <meshBasicMaterial color="#ff4400" transparent opacity={0.15} blending={THREE.AdditiveBlending} depthWrite={false} />
+        </mesh>
+
+        {/* Main Radiant Core */}
+        <mesh scale={isEnabled ? 0.9 : 1.0}>
+          <sphereGeometry args={[1.0, 64, 64]} />
+          <meshStandardMaterial
+            color="#ff6600"
+            emissive="#ff3300"
+            emissiveIntensity={isEnabled ? 6 : 10}
+            transparent
+            opacity={0.8}
+          />
+        </mesh>
+
+        {/* Inner Hot Core */}
+        <mesh scale={0.4}>
+          <sphereGeometry args={[1.0, 32, 32]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
+        </mesh>
+      </group>
     </group>
   )
 }

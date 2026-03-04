@@ -38,7 +38,7 @@ import { useDirectMessages } from '@/hooks/useDirectMessages'
 import type { ColorName } from '@/config/colors'
 import type { AnimationState } from './cube/Cube'
 import Link from 'next/link'
-import { Eye, EyeOff, Code2, Monitor, Zap } from 'lucide-react'
+import { LandingOverlay } from './landing/LandingOverlay'
 import { useMultimodalAI } from '@/hooks/useMultimodalAI'
 
 // App states matching legacy
@@ -70,7 +70,7 @@ export function FullscreenApp({
   // UI panels
   const [showKeywordPanel, setShowKeywordPanel] = useState(false)
   const [showRGYChats, setShowRGYChats] = useState(false)
-  const [showLandingCube, setShowLandingCube] = useState(false)
+  const [showLandingCube, setShowLandingCube] = useState(true)
   const [showGettingStarted, setShowGettingStarted] = useState(false)
   const [showCQPanel, setShowCQPanel] = useState(false)
   const [showFloatingQuestions, setShowFloatingQuestions] = useState(true)
@@ -247,17 +247,14 @@ export function FullscreenApp({
 
   // Check if we should show landing cube (respecting feature flag and local storage)
   const searchParams = useSearchParams()
-  const forceLanding = searchParams.get('landing') === 'true'
+  const forceLanding = true // FORCED FOR PREMIUM UI
 
   useEffect(() => {
-    // If explicitly forced via URL, show it
+    // If explicitly forced via URL or code, show it
     if (forceLanding) {
       setShowLandingCube(true)
       return
     }
-
-    // If feature flag is disabled (and not forced), don't show
-    if (!showParticleLanding) return;
 
     const LANDING_STORAGE_KEY = 'cubiqo_last_landing'
     const HOURS_THRESHOLD = 4
@@ -603,29 +600,47 @@ export function FullscreenApp({
         </div>
       </div>
 
+      {/* Landing Overlay - Controls the commencement */}
+      {showLandingCube && (
+        <LandingOverlay onStart={handleLandingComplete} />
+      )}
+
+      {/* Immersive Landing Background - Full Screen */}
+      {showLandingCube && (
+        <div className="fixed inset-0 z-[-2]">
+          <LandingCubeRouter
+            onComplete={handleLandingComplete}
+            showTopRightCTA={showTopRightCTA}
+            variant={showParticleLanding ? 'particle' : undefined}
+          />
+        </div>
+      )}
+
       {/* Energy Cube - Full viewport background */}
-      <div
-        className="fixed inset-0 z-[1]"
-        style={{
-          transform: cubeSize !== 100 ? `scale(${cubeSize / 100})` : undefined,
-          transformOrigin: 'center center'
-        }}
-        onClick={handleVoiceClick}
-      >
-        <EnergyCubeScene
-          colorName={colorName}
-          animationState={animationState}
-          isWatching={isWatching}
-          facePosition={facePos}
-          engagement={aiContext?.userState?.engagement || 'medium'}
-        />
-      </div>
+      {!showLandingCube && (
+        <div
+          className="fixed inset-0 z-[1]"
+          style={{
+            transform: cubeSize !== 100 ? `scale(${cubeSize / 100})` : undefined,
+            transformOrigin: 'center center'
+          }}
+          onClick={handleVoiceClick}
+        >
+          <EnergyCubeScene
+            colorName={colorName}
+            animationState={animationState}
+            isWatching={isWatching}
+            facePosition={facePos}
+            engagement={aiContext?.userState?.engagement || 'medium'}
+          />
+        </div>
+      )}
 
       {/* Background click layer to wake */}
       {showFloatingQuestions && <div onClick={handleVoiceClick} className="absolute inset-0 z-[0] cursor-pointer" title="Tap to wake" />}
 
       {/* Floating Questions - Slow Scroll */}
-      {showFloatingQuestions && (
+      {showFloatingQuestions && !showLandingCube && (
         <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[8] w-[400px] h-[300px] overflow-hidden pointer-events-none">
           <button
             onClick={() => setShowFloatingQuestions(false)}
@@ -681,16 +696,18 @@ export function FullscreenApp({
           }`}
       >
         <div className="flex justify-between items-center w-full relative">
-          <div className="flex items-center gap-4">
-            {/* The orange logo SVG */}
-            <div className="flex justify-center items-center w-12 h-12 rounded-full border border-[#FF6600]/30 bg-black/40 shadow-[0_0_15px_rgba(255,102,0,0.2)]">
-              <svg viewBox="0 0 24 24" className="w-6 h-6 text-[#FF6600]" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                <line x1="12" y1="22.08" x2="12" y2="12" />
-              </svg>
+          {!showLandingCube && (
+            <div className="flex items-center gap-4">
+              {/* The orange logo SVG */}
+              <div className="flex justify-center items-center w-12 h-12 rounded-full border border-[#FF6600]/30 bg-black/40 shadow-[0_0_15px_rgba(255,102,0,0.2)]">
+                <svg viewBox="0 0 24 24" className="w-6 h-6 text-[#FF6600]" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                  <line x1="12" y1="22.08" x2="12" y2="12" />
+                </svg>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Right side - Contextual Branding */}
           <div className="flex items-center gap-6 ml-auto">
@@ -729,80 +746,84 @@ export function FullscreenApp({
       )}
 
       {/* Bottom Left Stack: Settings & Sign In */}
-      <div className="fixed left-8 bottom-8 z-[100] flex flex-col gap-4">
-        {/* Settings Button */}
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="flex items-center gap-3 text-[13px] font-medium transition-colors text-white/50 hover:text-white"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-          </svg>
-          Menu
-        </button>
+      {!showLandingCube && (
+        <div className="fixed left-8 bottom-8 z-[100] flex flex-col gap-4">
+          {/* Settings Button */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="flex items-center gap-3 text-[13px] font-medium transition-colors text-white/50 hover:text-white"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+            Menu
+          </button>
 
-        {/* Sign In Button / User */}
-        <button
-          onClick={() => {
-            if (!isAuthenticated) setShowAuthForm(true)
-          }}
-          className="flex items-center gap-3 text-[13px] font-medium transition-colors text-white/50 hover:text-white"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-          </svg>
-          {isAuthenticated && user ? user.email?.split('@')[0] : 'Sign In'}
-        </button>
-
-
-      </div>
+          {/* Sign In Button / User */}
+          <button
+            onClick={() => {
+              if (!isAuthenticated) setShowAuthForm(true)
+            }}
+            className="flex items-center gap-3 text-[13px] font-medium transition-colors text-white/50 hover:text-white"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+            </svg>
+            {isAuthenticated && user ? user.email?.split('@')[0] : 'Sign In'}
+          </button>
+        </div>
+      )}
 
       {/* Bottom Right Stack: CQ Connect */}
-      <div className="fixed right-8 bottom-8 z-[100]">
-        <button
-          onClick={() => setShowCQPanel(true)}
-          className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 bg-zinc-800/80 hover:bg-zinc-700/80 text-purple-500 hover:text-purple-400 backdrop-blur-md shadow-[0_0_15px_rgba(168,85,247,0.2)] border border-purple-500/30 hover:scale-110`}
-          title="CQ Connect"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="w-6 h-6 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
+      {!showLandingCube && (
+        <div className="fixed right-8 bottom-8 z-[100]">
+          <button
+            onClick={() => setShowCQPanel(true)}
+            className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 bg-zinc-800/80 hover:bg-zinc-700/80 text-purple-500 hover:text-purple-400 backdrop-blur-md shadow-[0_0_15px_rgba(168,85,247,0.2)] border border-purple-500/30 hover:scale-110`}
+            title="CQ Connect"
           >
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.38 8.38 0 0 1 3.8.9L22 4l-1.5 6.5Z" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          {unreadCount > 0 && (
-            <div className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#FF6F00] text-white text-[11px] font-bold">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </div>
-          )}
-        </button>
-      </div>
+            <svg
+              viewBox="0 0 24 24"
+              className="w-6 h-6 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.38 8.38 0 0 1 3.8.9L22 4l-1.5 6.5Z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {unreadCount > 0 && (
+              <div className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#FF6F00] text-white text-[11px] font-bold">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </div>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Right side - RGY Window / Keywords */}
-      <div className="fixed right-6 top-1/2 -translate-y-1/2 z-[100] flex flex-col items-center gap-4">
-        {/* RGY Signal Traffic Lights */}
-        <button
-          onClick={() => setShowRGYChats(true)}
-          className="flex flex-col gap-1.5 p-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:border-white/30 transition-all hover:scale-105"
-        >
-          <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
-          <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-        </button>
+      {!showLandingCube && (
+        <div className="fixed right-6 top-1/2 -translate-y-1/2 z-[100] flex flex-col items-center gap-4">
+          {/* RGY Signal Traffic Lights */}
+          <button
+            onClick={() => setShowRGYChats(true)}
+            className="flex flex-col gap-1.5 p-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:border-white/30 transition-all hover:scale-105"
+          >
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+          </button>
 
-        <button
-          onClick={() => setShowKeywordPanel(!showKeywordPanel)}
-          className="flex flex-col items-center gap-1 group mt-4"
-        >
-          <div className="w-10 h-10 rounded-full border border-white/10 bg-black/40 flex items-center justify-center hover:bg-black/60 hover:border-white/30 transition-all">
-            <span className="text-white/50 group-hover:text-white transition-colors text-lg font-bold">#</span>
-          </div>
-          <span className="text-[9px] uppercase tracking-widest text-white/30 group-hover:text-white/60">Keywords</span>
-        </button>
-      </div>
+          <button
+            onClick={() => setShowKeywordPanel(!showKeywordPanel)}
+            className="flex flex-col items-center gap-1 group mt-4"
+          >
+            <div className="w-10 h-10 rounded-full border border-white/10 bg-black/40 flex items-center justify-center hover:bg-black/60 hover:border-white/30 transition-all">
+              <span className="text-white/50 group-hover:text-white transition-colors text-lg font-bold">#</span>
+            </div>
+            <span className="text-[9px] uppercase tracking-widest text-white/30 group-hover:text-white/60">Keywords</span>
+          </button>
+        </div>
+      )}
 
       {/* RENDER MODALS */}
       {
