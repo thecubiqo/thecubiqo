@@ -600,20 +600,9 @@ export function FullscreenApp({
         </div>
       </div>
 
-      {/* Landing Overlay - Controls the commencement */}
-      {showLandingCube && (
+      {/* Landing Overlay - Only needed for non-particle variants (particle variant's LandingPage includes its own) */}
+      {showLandingCube && !showParticleLanding && (
         <LandingOverlay onStart={handleLandingComplete} />
-      )}
-
-      {/* Immersive Landing Background - Full Screen */}
-      {showLandingCube && (
-        <div className="fixed inset-0 z-[-2]">
-          <LandingCubeRouter
-            onComplete={handleLandingComplete}
-            showTopRightCTA={showTopRightCTA}
-            variant={showParticleLanding ? 'particle' : undefined}
-          />
-        </div>
       )}
 
       {/* Energy Cube - Full viewport background */}
