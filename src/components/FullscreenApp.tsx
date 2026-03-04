@@ -480,13 +480,16 @@ export function FullscreenApp({
       {/* Admin Controls */}
       <AdminControls />
 
-      {/* Energy Cube - Full viewport background */}
+      {/* Energy Cube - Centered Hero Section */}
       <div
-        className="fixed inset-0 z-[1]"
+        className="fixed top-1/2 left-1/2 z-[1] flex items-center justify-center w-[90vw] max-w-6xl h-[65vh]"
         style={{
-          transform: cubeSize !== 100 ? `scale(${cubeSize / 100})` : undefined,
-          transformOrigin: 'center center'
+          transform: `translate(-50%, -50%) ${cubeSize !== 100 ? `scale(${cubeSize / 100})` : ''}`,
+          transformOrigin: 'center center',
+          maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)'
         }}
+        onClick={handleVoiceClick}
       >
         <EnergyCubeScene
           colorName={colorName}
@@ -497,8 +500,8 @@ export function FullscreenApp({
         />
       </div>
 
-      {/* Main interactive layer - click anywhere to morph into listening cube */}
-      {showFloatingQuestions && <div onClick={handleVoiceClick} className="absolute inset-0 z-[2] cursor-pointer" title="Tap to wake" />}
+      {/* Background click layer to wake */}
+      {showFloatingQuestions && <div onClick={handleVoiceClick} className="absolute inset-0 z-[0] cursor-pointer" title="Tap to wake" />}
 
       {/* Floating Questions - Slow Scroll */}
       {showFloatingQuestions && (
