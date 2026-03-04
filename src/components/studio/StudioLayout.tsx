@@ -1,48 +1,71 @@
 'use client';
 
-import { useState, Suspense, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { useState, useEffect, useRef } from 'react';
+import {
+  MessageSquare,
+  Eye,
+  Plug,
+  BarChart2,
+  FolderOpen,
+  Terminal as TerminalIcon,
+  ChevronRight,
+  Upload as UploadIcon,
+} from 'lucide-react';
 import ConversationPanel from './ConversationPanel';
 import CodeEditor from './CodeEditor';
-import TerminalPanel from './TerminalPanel';
-import PreviewPanel from './PreviewPanel';
 import FileExplorer from './FileExplorer';
-import AssetUpload from './AssetUpload';
 import EditorTabs, { EditorTab } from './EditorTabs';
 import StatusBar from './StatusBar';
-import EmptyState from './EmptyState';
-import Toast, { ToastType } from './Toast';
+import TerminalPanel from './TerminalPanel';
+import PreviewPanel from './PreviewPanel';
 import AnalyticsPanel from './AnalyticsPanel';
-import GrowthPanel from './GrowthPanel';
-import { BiometricWatcher } from './BiometricWatcher';
-import { PlasmaWaveField } from '../cube/PlasmaWaveField';
-import { Zap, Activity, Monitor, Shield, Cpu, Eye, EyeOff, Scan, MessageSquare, Upload } from 'lucide-react';
-import { useMultimodalAI } from '../../hooks/useMultimodalAI';
+import Toast, { ToastType } from './Toast';
+import EmptyState from './EmptyState';
+import EcommerceIntegrationsPanel from './EcommerceIntegrationsPanel';
 
+/* ─── Sidebar tab definitions ─────────────────────────────── */
+type SidebarTab = 'build' | 'preview' | 'integrations' | 'analytics' | 'files' | 'terminal';
+
+interface TabDef {
+  id: SidebarTab;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const SIDEBAR_TABS: TabDef[] = [
+  { id: 'build',        label: 'Build',        icon: <MessageSquare size={18} /> },
+  { id: 'preview',      label: 'Preview',      icon: <Eye size={18} /> },
+  { id: 'integrations', label: 'Integrations', icon: <Plug size={18} /> },
+  { id: 'analytics',    label: 'Analytics',    icon: <BarChart2 size={18} /> },
+  { id: 'files',        label: 'Files',        icon: <FolderOpen size={18} /> },
+  { id: 'terminal',     label: 'Terminal',     icon: <TerminalIcon size={18} /> },
+];
+
+/* ─── Main Component ─────────────────────────────────────── */
 export default function StudioLayout() {
-  // Stable workspace ID per browser session
-  const workspaceId = typeof window !== 'undefined'
-    ? (sessionStorage.getItem('studio-workspace-id') || (() => {
-      const id = `ws-${Date.now()}`;
-      sessionStorage.setItem('studio-workspace-id', id);
-      return id;
-    })())
-    : 'studio-default';
+  /* ── Workspace ID (stable per session) ──── */
+  const workspaceId =
+    typeof window !== 'undefined'
+      ? sessionStorage.getItem('studio-workspace-id') ??
+        (() => {
+          const id = `ws-${Date.now()}`;
+          sessionStorage.setItem('studio-workspace-id', id);
+          return id;
+        })()
+      : 'studio-default';
 
-  const [fileExplorerKey, setFileExplorerKey] = useState(0);
-  const [leftPanelTab, setLeftPanelTab] = useState<'agent' | 'assets'>('agent');
-
-  // Multi-file tab management
+  /* ── File / tab state ─────────────────── */
   const [openTabs, setOpenTabs] = useState<EditorTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string>('');
+  const [fileContents, setFileContents] = useState<Map<string, string>>(new Map());
+  const [fileExplorerKey, setFileExplorerKey] = useState(0);
 
-  const [fileContents, setFileContents] = useState<Map<string, string>>(
-    new Map()
-  );
-
+  /* ── UI state ─────────────────────────── */
+  const [activeTab, setActiveTab] = useState<SidebarTab>('build');
   const [isDeploying, setIsDeploying] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
+  /* ── Tab helpers ──────────────────────── */
   const handleTabChange = (tabId: string) => {
     setActiveTabId(tabId);
   };
@@ -50,74 +73,67 @@ export default function StudioLayout() {
   const handleTabClose = (tabId: string) => {
     const tab = openTabs.find(t => t.id === tabId);
     if (tab?.isDirty) {
-      if (!confirm(`${tab.name} has unsaved changes. Close anyway?`)) {
-        return;
-      }
+      if (!confirm(`${tab.name} has unsaved changes. Close anyway?`)) return;
     }
-
     const newTabs = openTabs.filter(t => t.id !== tabId);
     setOpenTabs(newTabs);
-
-    // Remove file content
     const newContents = new Map(fileContents);
     newContents.delete(tabId);
     setFileContents(newContents);
-
-    // Switch to another tab if this was active
-    if (activeTabId === tabId && newTabs.length > 0) {
-      setActiveTabId(newTabs[0].id);
+    if (activeTabId === tabId) {
+      setActiveTabId(newTabs.length > 0 ? newTabs[0].id : '');
     }
   };
 
   const handleFileOpen = (path: string) => {
-    // Check if file is already open
-    const existingTab = openTabs.find(t => t.path === path);
-    if (existingTab) {
-      setActiveTabId(existingTab.id);
+    const existing = openTabs.find(t => t.path === path);
+    if (existing) {
+      setActiveTabId(existing.id);
+      setActiveTab('build');
       return;
     }
-
-    // Create new tab
     const newTab: EditorTab = {
       id: Date.now().toString(),
       path,
       name: path.split('/').pop() || path,
       isDirty: false,
     };
-
-    setOpenTabs([...openTabs, newTab]);
+    setOpenTabs(prev => [...prev, newTab]);
     setActiveTabId(newTab.id);
-
-    // Load file content (mock for now)
-    const newContents = new Map(fileContents);
-    newContents.set(newTab.id, `// File: ${path}\n// Content loaded...`);
-    setFileContents(newContents);
+    setActiveTab('build');
+    setFileContents(prev => new Map(prev).set(newTab.id, `// File: ${path}\n`));
   };
 
   const handleCodeChange = (newCode: string) => {
-    const newContents = new Map(fileContents);
-    newContents.set(activeTabId, newCode);
-    setFileContents(newContents);
-
-    // Mark tab as dirty
-    setOpenTabs(openTabs.map(tab =>
-      tab.id === activeTabId ? { ...tab, isDirty: true } : tab
-    ));
+    setFileContents(prev => new Map(prev).set(activeTabId, newCode));
+    setOpenTabs(prev =>
+      prev.map(tab => (tab.id === activeTabId ? { ...tab, isDirty: true } : tab))
+    );
   };
 
   const handleCodeFromAI = (code: string, language: string) => {
-    // If there's an active tab, replace its content
     if (activeTabId && openTabs.length > 0) {
-      const newContents = new Map(fileContents);
-      newContents.set(activeTabId, code);
-      setFileContents(newContents);
-      setOpenTabs(openTabs.map(tab =>
-        tab.id === activeTabId ? { ...tab, isDirty: true, language: language === 'tsx' || language === 'typescript' ? 'tsx' : language } : tab
-      ));
+      setFileContents(prev => new Map(prev).set(activeTabId, code));
+      setOpenTabs(prev =>
+        prev.map(tab =>
+          tab.id === activeTabId
+            ? {
+                ...tab,
+                isDirty: true,
+                language:
+                  language === 'tsx' || language === 'typescript' ? 'tsx' : language,
+              }
+            : tab
+        )
+      );
       setToast({ message: 'Code applied to editor from AI', type: 'success' });
     } else {
-      // Create a new tab with the AI-generated code
-      const ext = language === 'typescript' || language === 'tsx' ? 'tsx' : language === 'javascript' || language === 'jsx' ? 'jsx' : language || 'tsx';
+      const ext =
+        language === 'typescript' || language === 'tsx'
+          ? 'tsx'
+          : language === 'javascript' || language === 'jsx'
+          ? 'jsx'
+          : language || 'tsx';
       const newTab: EditorTab = {
         id: Date.now().toString(),
         path: `ai-generated.${ext}`,
@@ -127,74 +143,58 @@ export default function StudioLayout() {
       };
       setOpenTabs(prev => [...prev, newTab]);
       setActiveTabId(newTab.id);
-      const newContents = new Map(fileContents);
-      newContents.set(newTab.id, code);
-      setFileContents(newContents);
+      setFileContents(prev => new Map(prev).set(newTab.id, code));
       setToast({ message: 'AI-generated code opened in new tab', type: 'success' });
     }
   };
 
-  const activeTab = openTabs.find(t => t.id === activeTabId);
+  /* ── Keyboard shortcuts ───────────────── */
+  const activeEditorTab = openTabs.find(t => t.id === activeTabId);
   const currentCode = fileContents.get(activeTabId) || '';
 
-  const [rightPanel, setRightPanel] = useState<'preview' | 'analytics' | 'growth'>('preview');
-  const [isEmergentMode, setIsEmergentMode] = useState(true);
-  const [isWatching, setIsWatching] = useState(false);
-
-  // Multimodal AI for facial tracking
-  const { context: aiContext, initialize: initAI, stop: stopAI } = useMultimodalAI({
-    enableVision: true,
-    autoStart: false
+  const keyboardStateRef = useRef({ activeTabId, openTabs, activeEditorTab, handleFileOpen });
+  useEffect(() => {
+    keyboardStateRef.current = { activeTabId, openTabs, activeEditorTab, handleFileOpen };
   });
 
-  const toggleWatch = async () => {
-    if (!isWatching) {
-      await initAI();
-      setIsWatching(true);
-    } else {
-      stopAI();
-      setIsWatching(false);
-    }
-  };
-
-  // Extract face position for the watcher
-  const facePos = (isWatching && aiContext?.vision?.faces && aiContext.vision.faces.length > 0)
-    ? {
-      x: (aiContext.vision.faces[0].bbox.x + aiContext.vision.faces[0].bbox.width / 2 - 0.5) * 2,
-      y: -(aiContext.vision.faces[0].bbox.y + aiContext.vision.faces[0].bbox.height / 2 - 0.5) * 2
-    }
-    : { x: 0, y: 0 };
-
-  // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+S / Cmd+S — Save current file
+      const { activeTabId: tabId, openTabs: tabs, activeEditorTab: editorTab, handleFileOpen: openFile } =
+        keyboardStateRef.current;
+
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        if (activeTabId && openTabs.length > 0) {
-          setOpenTabs(prev => prev.map(tab =>
-            tab.id === activeTabId ? { ...tab, isDirty: false } : tab
-          ));
-          setToast({ message: `Saved ${activeTab?.name || 'file'}`, type: 'success' });
+        if (tabId && tabs.length > 0) {
+          setOpenTabs(prev =>
+            prev.map(tab => (tab.id === tabId ? { ...tab, isDirty: false } : tab))
+          );
+          setToast({ message: `Saved ${editorTab?.name || 'file'}`, type: 'success' });
         }
       }
-      // Ctrl+N / Cmd+N — New file
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault();
         const name = prompt('New file name (e.g. components/Header.tsx):');
-        if (name?.trim()) {
-          handleFileOpen(name.trim());
-        }
+        if (name?.trim()) openFile(name.trim());
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeTabId, openTabs, activeTab]);
+  }, []);
+
+  /* ── Deploy ───────────────────────────── */
+  type DeployResponse = {
+    success?: boolean;
+    deployment?: { id?: string; url?: string; message?: string };
+    error?: string;
+  };
+
+  function getCubiqoAnalytics(): { addDeployment?: (d: unknown) => void } | undefined {
+    return (window as Record<string, unknown>)
+      .__cubiqoAnalytics as { addDeployment?: (d: unknown) => void } | undefined;
+  }
 
   const handleDeploy = async () => {
     if (isDeploying) return;
-
     setIsDeploying(true);
     const timestamp = new Date().toLocaleString();
     try {
@@ -202,256 +202,89 @@ export default function StudioLayout() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          projectId: activeTab?.path || 'demo-project',
+          projectId: activeEditorTab?.path || 'demo-project',
           environment: 'production',
           platform: 'vercel',
         }),
       });
+      const data = (await response.json()) as DeployResponse;
 
-      const data = await response.json();
-
-      // Track in analytics
-      const analytics = (window as any).__cubiqoAnalytics;
-      if (analytics?.addDeployment) {
-        analytics.addDeployment({
-          id: data.deployment?.id || `deploy-${Date.now()}`,
-          projectId: activeTab?.path || 'demo-project',
-          environment: 'production',
-          platform: 'vercel',
-          status: data.success ? 'queued' : 'failed',
-          url: data.deployment?.url || null,
-          message: data.deployment?.message || data.error || 'Deployment triggered',
-          timestamp,
-        });
-      }
+      getCubiqoAnalytics()?.addDeployment?.({
+        id: data.deployment?.id || `deploy-${Date.now()}`,
+        projectId: activeEditorTab?.path || 'demo-project',
+        environment: 'production',
+        platform: 'vercel',
+        status: data.success ? 'queued' : 'failed',
+        url: data.deployment?.url,
+        message: data.deployment?.message ?? data.error ?? 'Deployment triggered',
+        timestamp,
+      });
 
       if (data.success) {
-        setToast({
-          message: `Deployment started! ID: ${data.deployment.id}`,
-          type: 'success',
-        });
+        setToast({ message: `Deployment started! ID: ${data.deployment?.id}`, type: 'success' });
       } else {
-        setToast({
-          message: 'Deployment failed: ' + (data.error || 'Unknown error'),
-          type: 'error',
-        });
+        setToast({ message: 'Deployment failed: ' + (data.error || 'Unknown error'), type: 'error' });
       }
-    } catch (error) {
-      console.error('Deploy error:', error);
-      setToast({
-        message: 'Failed to trigger deployment',
-        type: 'error',
-      });
+    } catch {
+      setToast({ message: 'Failed to trigger deployment', type: 'error' });
     } finally {
       setIsDeploying(false);
     }
   };
 
-  return (
-    <div className="h-screen w-screen overflow-hidden bg-black text-white relative font-mono">
-      {/* 1. LAYER ZERO: PLASMA WAVE BACKGROUND */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
-        <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
-          <Suspense fallback={null}>
-            <ambientLight intensity={0.5} />
-            <pointLight position={[10, 10, 10]} />
-            <PlasmaWaveField isEnabled={isEmergentMode} aiState="neutral" />
-            <BiometricWatcher
-              isActive={isWatching}
-              facePosition={facePos}
-              engagement={aiContext?.userState?.engagement || 'medium'}
-            />
-          </Suspense>
-        </Canvas>
-      </div>
-
-      {/* 2. LAYER ONE: HUD SCANLINES & OVERLAYS */}
-      <div className="absolute inset-0 z-10 pointer-events-none" style={{
-        backgroundImage: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03))',
-        backgroundSize: '100% 4px, 4px 100%'
-      }}></div>
-
-      {/* Toast Notifications */}
-      {toast && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[100]">
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        </div>
-      )}
-
-      {/* Header HUD */}
-      <header className="fixed top-0 left-0 right-0 z-50 p-4 flex items-center justify-between pointer-events-auto">
-        <div className="flex items-center gap-4">
-          {/* BIG EYE TOGGLE */}
-          <div className="flex flex-col items-center gap-1 group">
-            <button
-              onClick={toggleWatch}
-              className={`relative h-16 w-16 rounded-2xl border transition-all duration-700 flex items-center justify-center overflow-hidden
-                ${isWatching
-                  ? 'bg-orange-500/20 border-orange-500/60 shadow-[0_0_30px_rgba(255,165,0,0.4)]'
-                  : 'bg-white/5 border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 group-hover:scale-110'}`}
-              title={isWatching ? 'Disable Biometric Uplink' : 'Enable Biometric Uplink'}
-            >
-              {/* Internal HUD elements */}
-              <div className="absolute inset-0 pointer-events-none">
-                <div className={`absolute inset-0 bg-orange-500/5 ${isWatching ? 'animate-pulse' : 'opacity-0'}`} />
-                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/20" />
-                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-white/20" />
-                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-white/20" />
-                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/20" />
-              </div>
-
-              {isWatching ? (
-                <div className="relative z-10 flex flex-col items-center">
-                  <Eye className="w-8 h-8 text-orange-400 animate-pulse" />
-                  <div className="absolute -inset-4 bg-orange-500/20 blur-xl animate-pulse" />
-                </div>
-              ) : (
-                <EyeOff className="w-8 h-8 text-white/40 group-hover:text-orange-400/60 transition-colors" />
-              )}
-
-              {/* HUD Scanline */}
-              {isWatching && <div className="absolute top-0 left-0 w-full h-[2px] bg-orange-400/60 animate-scan z-20" />}
-              {!isWatching && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-[1px] bg-white/20 group-hover:bg-orange-500/40 transition-colors" />}
-            </button>
-            <span className={`text-[9px] font-black uppercase tracking-[0.3em] transition-colors ${isWatching ? 'text-orange-400' : 'text-white/20'}`}>
-              {isWatching ? 'Uplink Live' : 'Uplink Idle'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-6 bg-black/40 backdrop-blur-xl border border-white/10 px-6 py-2 rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.5)]">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 ${isEmergentMode ? 'bg-cyan-500/20 shadow-[0_0_15px_rgba(0,255,255,0.4)]' : 'bg-gray-800'} rounded-xl flex items-center justify-center border border-cyan-400/30`}>
-                <Zap className={`w-6 h-6 ${isEmergentMode ? 'text-cyan-400 animate-pulse' : 'text-gray-400'}`} />
-              </div>
-              <div>
-                <h1 className="text-xl font-black tracking-tighter bg-gradient-to-r from-cyan-400 via-white to-purple-400 bg-clip-text text-transparent uppercase">
-                  CubiQo <span className="text-white/20">//</span> Emergent
-                </h1>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-cyan-400/60 font-bold uppercase tracking-widest">System Secure</span>
-                  <div className="w-1 h-1 rounded-full bg-green-500 animate-ping" />
-                </div>
-              </div>
+  /* ── Main content per tab ─────────────── */
+  const renderMainContent = () => {
+    switch (activeTab) {
+      case 'build':
+        return (
+          <div className="flex h-full overflow-hidden">
+            {/* AI Conversation */}
+            <div className="w-[340px] shrink-0 border-r border-gray-800 flex flex-col overflow-hidden">
+              <ConversationPanel
+                onCodeGenerated={handleCodeFromAI}
+                onFilesWritten={() => setFileExplorerKey(k => k + 1)}
+                workspaceId={workspaceId}
+              />
             </div>
 
-            <div className="h-10 w-px bg-white/10"></div>
-
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col">
-                <span className="text-[10px] text-white/30 uppercase tracking-widest">Active File</span>
-                <span className="text-xs font-bold text-cyan-200">{activeTab?.name || 'idle_kernel.log'}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setIsEmergentMode(!isEmergentMode)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${isEmergentMode ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(0,255,255,0.2)]' : 'bg-white/5 border-white/10 text-white/40'}`}
-          >
-            <Monitor className="w-4 h-4" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">{isEmergentMode ? 'Emergent Mode Active' : 'Standard View'}</span>
-          </button>
-
-          <button
-            onClick={handleDeploy}
-            disabled={isDeploying}
-            className="group relative overflow-hidden px-8 py-3 bg-white text-black font-black uppercase tracking-tighter rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 shadow-[0_0_20px_rgba(255,255,255,0.3)]"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <span className="relative flex items-center gap-2">
-              {isDeploying ? 'Syncing...' : 'Deploy System'}
-            </span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main HUD Interaction Space */}
-      <div className="relative z-20 h-full w-full pt-24 pb-8 px-4 flex gap-4 pointer-events-none">
-        {/* Left Module - Brain / Conversation + Assets */}
-        <div className="w-[400px] pointer-events-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl transition-all duration-500 hover:border-cyan-500/30">
-          {/* Tab switcher */}
-          <div className="flex shrink-0 border-b border-white/10 bg-white/[0.02]">
-            <button
-              onClick={() => setLeftPanelTab('agent')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all ${leftPanelTab === 'agent'
-                ? 'text-cyan-400 border-b-2 border-cyan-400 bg-cyan-500/5'
-                : 'text-white/20 hover:text-white/40'
-                }`}
-            >
-              <MessageSquare className="w-3 h-3" />
-              AI Agent
-            </button>
-            <button
-              onClick={() => setLeftPanelTab('assets')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all ${leftPanelTab === 'assets'
-                ? 'text-purple-400 border-b-2 border-purple-400 bg-purple-500/5'
-                : 'text-white/20 hover:text-white/40'
-                }`}
-            >
-              <Upload className="w-3 h-3" />
-              Assets
-            </button>
-          </div>
-
-          {leftPanelTab === 'agent' ? (
-            <ConversationPanel
-              onCodeGenerated={handleCodeFromAI}
-              onFilesWritten={() => setFileExplorerKey(k => k + 1)}
-              workspaceId={workspaceId}
-            />
-          ) : (
-            <AssetUpload
-              workspaceId={workspaceId}
-            />
-          )}
-        </div>
-
-        {/* Center Module - Core / Editor (Hidden in Emergent Mode) */}
-        {!isEmergentMode && (
-          <div className="flex-1 flex flex-col gap-4 pointer-events-none transition-all duration-500">
-            {/* Top - Editor & Explorer */}
-            <div className="flex-1 flex gap-4 pointer-events-none">
-              {/* File Explorer Module */}
-              <div className="w-64 pointer-events-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-xl transition-all duration-500 hover:border-purple-500/30">
+            {/* Editor area */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* File explorer strip */}
+              <div className="h-48 shrink-0 border-b border-gray-800 overflow-hidden">
                 <FileExplorer
                   key={fileExplorerKey}
                   onFileSelect={handleFileOpen}
-                  currentFile={activeTab?.path || ''}
+                  currentFile={activeEditorTab?.path || ''}
                   workspaceId={workspaceId}
                 />
               </div>
 
-              {/* Code Editor Module */}
-              <div className="flex-1 pointer-events-auto bg-black/60 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl transition-all duration-500 hover:border-cyan-500/20">
+              {/* Editor tabs + code editor */}
+              <div className="flex-1 flex flex-col overflow-hidden">
                 <EditorTabs
                   tabs={openTabs}
                   activeTabId={activeTabId}
                   onTabChange={handleTabChange}
                   onTabClose={handleTabClose}
                 />
-                <div className="flex-1 relative">
+                <div className="flex-1 relative overflow-hidden">
                   {openTabs.length === 0 ? (
                     <EmptyState
-                      icon="⚡"
-                      title="System Idle"
-                      description="Awaiting instruction. Interface with the AI to mount code modules."
+                      icon="✦"
+                      title="No files open"
+                      description="Ask the AI builder to generate code, or open a file from the explorer."
                       action={{
-                        label: "Start Uplink",
-                        onClick: () => document.querySelector<HTMLTextAreaElement>('textarea')?.focus()
+                        label: 'Start building',
+                        onClick: () =>
+                          document.querySelector<HTMLTextAreaElement>('textarea')?.focus(),
                       }}
                     />
                   ) : (
-                    <div className="absolute inset-0 opacity-80">
+                    <div className="absolute inset-0">
                       <CodeEditor
                         value={currentCode}
                         onChange={handleCodeChange}
-                        language={activeTab?.language || 'typescript'}
+                        language={activeEditorTab?.language || 'typescript'}
                         theme="vs-dark"
                       />
                     </div>
@@ -459,56 +292,156 @@ export default function StudioLayout() {
                 </div>
               </div>
             </div>
+          </div>
+        );
 
-            {/* Bottom Module - Output / Terminal */}
-            <div className="h-64 pointer-events-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-xl transition-all duration-500 hover:border-cyan-500/30">
-              <TerminalPanel workspaceId={workspaceId} />
-            </div>
+      case 'preview':
+        return (
+          <div className="h-full overflow-hidden">
+            <PreviewPanel code={currentCode} language={activeEditorTab?.language} />
           </div>
-        )}
+        );
 
-        {/* Right Module - Intelligence / Growth / App Preview */}
-        <div className={`${isEmergentMode ? 'flex-1' : 'w-[450px] shrink-0'} pointer-events-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl transition-all duration-500 hover:border-purple-500/30`}>
-          <div className="flex bg-white/5 border-b border-white/10 shrink-0">
-            <button
-              onClick={() => setRightPanel('preview')}
-              className={`flex-1 flex items-center justify-center gap-2 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${rightPanel === 'preview' ? 'text-cyan-400 bg-cyan-500/5' : 'text-white/40 hover:text-white'}`}
-            >
-              <Activity className="w-3 h-3" /> App Preview
-              {rightPanel === 'preview' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 shadow-[0_0_10px_cyan]" />}
-            </button>
-            <button
-              onClick={() => setRightPanel('growth')}
-              className={`flex-1 flex items-center justify-center gap-2 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${rightPanel === 'growth' ? 'text-purple-400 bg-purple-500/5' : 'text-white/40 hover:text-white'}`}
-            >
-              <Zap className="w-3 h-3" /> Intelligence
-              {rightPanel === 'growth' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-400 shadow-[0_0_10px_purple]" />}
-            </button>
+      case 'integrations':
+        return (
+          <div className="h-full overflow-hidden">
+            <EcommerceIntegrationsPanel />
           </div>
-          <div className="flex-1 relative overflow-auto custom-scrollbar">
-            {rightPanel === 'growth' ? <GrowthPanel /> :
-              rightPanel === 'analytics' ? <AnalyticsPanel /> :
-                <PreviewPanel code={currentCode} language={activeTab?.language} />}
+        );
+
+      case 'analytics':
+        return (
+          <div className="h-full overflow-hidden">
+            <AnalyticsPanel />
           </div>
+        );
+
+      case 'files':
+        return (
+          <div className="h-full overflow-hidden">
+            <FileExplorer
+              key={`files-${fileExplorerKey}`}
+              onFileSelect={handleFileOpen}
+              currentFile={activeEditorTab?.path || ''}
+              workspaceId={workspaceId}
+            />
+          </div>
+        );
+
+      case 'terminal':
+        return (
+          <div className="h-full overflow-hidden">
+            <TerminalPanel workspaceId={workspaceId} />
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  /* ── JSX ──────────────────────────────── */
+  return (
+    <div className="h-screen w-full flex flex-col overflow-hidden bg-[#0f0f11] text-white">
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[100]">
+          <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
         </div>
+      )}
+
+      {/* Top Header */}
+      <header className="h-12 shrink-0 flex items-center justify-between px-4 bg-[#111114] border-b border-gray-800 z-40">
+        {/* Left: logo + active file breadcrumb */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-md bg-indigo-500 flex items-center justify-center text-[10px] font-black text-white leading-none shrink-0">
+              C
+            </span>
+            <span className="text-sm font-semibold text-white">Store Builder</span>
+          </div>
+
+          {activeEditorTab && (
+            <>
+              <ChevronRight size={13} className="text-gray-600 shrink-0" />
+              <span className="text-sm text-gray-400 truncate max-w-[220px]">
+                {activeEditorTab.name}
+                {activeEditorTab.isDirty && (
+                  <span className="ml-1 text-indigo-400">•</span>
+                )}
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Right: deploy button */}
+        <button
+          onClick={handleDeploy}
+          disabled={isDeploying}
+          className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors shrink-0"
+          aria-label="Deploy project to Vercel"
+        >
+          <span className="text-xs font-bold">▲</span>
+          {isDeploying ? 'Deploying…' : 'Deploy'}
+        </button>
+      </header>
+
+      {/* Body: sidebar + main */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* Icon sidebar */}
+        <nav
+          className="w-12 shrink-0 flex flex-col items-center py-2 gap-1 bg-[#111114] border-r border-gray-800"
+          aria-label="Studio navigation"
+        >
+          {SIDEBAR_TABS.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`
+                  w-8 h-8 rounded-lg flex items-center justify-center transition-colors
+                  ${isActive
+                    ? 'bg-indigo-500/15 text-indigo-400'
+                    : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]'}
+                `}
+                title={tab.label}
+                aria-label={tab.label}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {tab.icon}
+              </button>
+            );
+          })}
+
+          {/* Upload shortcut at the bottom */}
+          <div className="mt-auto">
+            <button
+              onClick={() => setActiveTab('files')}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 hover:text-gray-400 hover:bg-white/[0.04] transition-colors"
+              title="Upload assets"
+              aria-label="Upload assets"
+            >
+              <UploadIcon size={15} />
+            </button>
+          </div>
+        </nav>
+
+        {/* Main content */}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {renderMainContent()}
+        </main>
       </div>
 
-      {/* Floating Status Bar HUD */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 p-2 pointer-events-none">
-        <div className="max-w-4xl mx-auto flex items-center justify-between bg-black/60 backdrop-blur-xl border border-white/10 px-6 py-1.5 rounded-full pointer-events-auto">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Cpu className="w-3 h-3 text-cyan-400" />
-              <span className="text-[10px] text-cyan-400/80 uppercase font-bold">Heuristic Load: 38%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Shield className="w-3 h-3 text-green-400" />
-              <span className="text-[10px] text-green-400/80 uppercase font-bold">Tunnel Stable</span>
-            </div>
-          </div>
-          <StatusBar language={activeTab?.language} />
-        </div>
-      </div>
-    </div >
+      {/* Status bar */}
+      <footer className="shrink-0 border-t border-gray-800 bg-[#111114]">
+        <StatusBar
+          language={activeEditorTab?.language || 'TypeScript React'}
+          fileName={activeEditorTab?.name}
+        />
+      </footer>
+    </div>
   );
 }
