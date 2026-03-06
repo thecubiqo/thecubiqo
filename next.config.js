@@ -6,6 +6,7 @@ const nextConfig = {
   },
   // Turbopack configuration (Next.js 16 default bundler)
   turbopack: {
+    root: '.',
     resolveAlias: {
       // Stub out optional packages that are not installed
       // These are used in code paths that gracefully handle their absence at runtime

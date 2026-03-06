@@ -1,0 +1,597 @@
+npm warn config global-style This option has been deprecated in favor of `--install-strategy=shallow`
+
+> cubiqo@2.0.0 build
+> next build
+
+ΓÜá turbopack.root should be absolute, using: C:\Users\avloy\.gemini\antigravity\scratch\thecubiqo\repo_temp
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Found 1 warning while optimizing generated CSS:
+
+Γöé   }
+Γöé }
+Γöé @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+Γöå        ^-- @import rules must precede all rules aside from @charset and @layer statements
+Γöå
+Γöé :root {
+Γöé   --background: #ffffff;
+
+
+> Build error occurred
+Error: Turbopack build failed with 18 errors:
+./src/app/founders-pass/page.tsx:8:1
+Module not found: Can't resolve '@/components/ui/Badge'
+   6 | import type { FeatureFlag, Site, AuditLogEntry } from '@/lib/founders-pass/types';
+   7 | import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
+>  8 | import { Badge } from '@/components/ui/Badge';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   9 | import { Button } from '@/components/ui/Button';
+  10 | import { SkeletonCard } from '@/components/ui/LoadingSkeleton';
+  11 |
+
+Import map: aliased to relative './src/components/ui/Badge' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/app/founders-pass/page.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./src/app/founders-pass/page.tsx [Client Component Browser]
+    ./src/app/founders-pass/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/founders-pass/page.tsx [Client Component SSR]
+    ./src/app/founders-pass/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/founders-pass/security/page.tsx:7:1
+Module not found: Can't resolve '@/components/ui/Badge'
+   5 | import Link from 'next/link';
+   6 | import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
+>  7 | import { Badge } from '@/components/ui/Badge';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   8 | import { Button } from '@/components/ui/Button';
+   9 | import { SkeletonMetricCard } from '@/components/ui/LoadingSkeleton';
+  10 |
+
+Import map: aliased to relative './src/components/ui/Badge' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/app/founders-pass/security/page.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./src/app/founders-pass/security/page.tsx [Client Component Browser]
+    ./src/app/founders-pass/security/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/founders-pass/security/page.tsx [Client Component SSR]
+    ./src/app/founders-pass/security/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/settings/privacy/page.tsx:6:1
+Module not found: Can't resolve '@/components/ui/Badge'
+  4 | import { useEffect, useState } from 'react';
+  5 | import { useRouter } from 'next/navigation';
+> 6 | import { Badge } from '@/components/ui/Badge';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import { Button } from '@/components/ui/Button';
+  8 | import { ToastContainer, ToastMessage } from '@/components/ui/Toast';
+  9 |
+
+Import map: aliased to relative './src/components/ui/Badge' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/app/settings/privacy/page.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./src/app/settings/privacy/page.tsx [Client Component Browser]
+    ./src/app/settings/privacy/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/settings/privacy/page.tsx [Client Component SSR]
+    ./src/app/settings/privacy/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/RGYIntentKeywordList.tsx:5:1
+Module not found: Can't resolve '@/components/ui/Badge'
+  3 | import { useState, useMemo } from "react";
+  4 | import { Card } from "@/components/ui/Card";
+> 5 | import { Badge } from "@/components/ui/Badge";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { Input } from "@/components/ui/Input";
+  7 | import { ScrollArea } from "@/components/ui/ScrollArea";
+  8 | import { Button } from "@/components/ui/Button";
+
+Import map: aliased to relative './src/components/ui/Badge' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/components/RGYIntentKeywordList.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./src/components/RGYIntentKeywordList.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/RGYIntentKeywordList.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/RGYRoomView.tsx:5:1
+Module not found: Can't resolve '@/components/ui/Badge'
+  3 | import { useState, useRef, useEffect } from "react";
+  4 | import { Card } from "@/components/ui/Card";
+> 5 | import { Badge } from "@/components/ui/Badge";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { Input } from "@/components/ui/Input";
+  7 | import { ScrollArea } from "@/components/ui/ScrollArea";
+  8 | import { cn } from "@/lib/utils";
+
+Import map: aliased to relative './src/components/ui/Badge' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/components/RGYRoomView.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./src/components/RGYRoomView.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/RGYRoomView.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/founders-pass/page.tsx:9:1
+Module not found: Can't resolve '@/components/ui/Button'
+   7 | import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
+   8 | import { Badge } from '@/components/ui/Badge';
+>  9 | import { Button } from '@/components/ui/Button';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 | import { SkeletonCard } from '@/components/ui/LoadingSkeleton';
+  11 |
+  12 | export default function FoundersPassDashboard() {
+
+Import map: aliased to relative './src/components/ui/Button' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/app/founders-pass/page.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./src/app/founders-pass/page.tsx [Client Component Browser]
+    ./src/app/founders-pass/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/founders-pass/page.tsx [Client Component SSR]
+    ./src/app/founders-pass/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/founders-pass/security/page.tsx:8:1
+Module not found: Can't resolve '@/components/ui/Button'
+   6 | import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
+   7 | import { Badge } from '@/components/ui/Badge';
+>  8 | import { Button } from '@/components/ui/Button';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   9 | import { SkeletonMetricCard } from '@/components/ui/LoadingSkeleton';
+  10 |
+  11 | interface SecurityMetrics {
+
+Import map: aliased to relative './src/components/ui/Button' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/app/founders-pass/security/page.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./src/app/founders-pass/security/page.tsx [Client Component Browser]
+    ./src/app/founders-pass/security/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/founders-pass/security/page.tsx [Client Component SSR]
+    ./src/app/founders-pass/security/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/settings/privacy/page.tsx:7:1
+Module not found: Can't resolve '@/components/ui/Button'
+   5 | import { useRouter } from 'next/navigation';
+   6 | import { Badge } from '@/components/ui/Badge';
+>  7 | import { Button } from '@/components/ui/Button';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   8 | import { ToastContainer, ToastMessage } from '@/components/ui/Toast';
+   9 |
+  10 | interface UserConsent {
+
+Import map: aliased to relative './src/components/ui/Button' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/app/settings/privacy/page.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./src/app/settings/privacy/page.tsx [Client Component Browser]
+    ./src/app/settings/privacy/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/settings/privacy/page.tsx [Client Component SSR]
+    ./src/app/settings/privacy/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/CookieBanner.tsx:4:1
+Module not found: Can't resolve '@/components/ui/Button'
+  2 |
+  3 | import { useState, useEffect } from 'react';
+> 4 | import { Button } from '@/components/ui/Button';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export function CookieBanner() {
+  7 |     const [isVisible, setIsVisible] = useState(false);
+
+Import map: aliased to relative './src/components/ui/Button' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/components/CookieBanner.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Server Component:
+    ./src/components/CookieBanner.tsx
+    ./src/app/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/RGYIntentKeywordList.tsx:8:1
+Module not found: Can't resolve '@/components/ui/Button'
+   6 | import { Input } from "@/components/ui/Input";
+   7 | import { ScrollArea } from "@/components/ui/ScrollArea";
+>  8 | import { Button } from "@/components/ui/Button";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   9 | import { cn } from "@/lib/utils";
+  10 | import {
+  11 |   Search,
+
+Import map: aliased to relative './src/components/ui/Button' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/components/RGYIntentKeywordList.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./src/components/RGYIntentKeywordList.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/RGYIntentKeywordList.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/support/SupportChatbot.tsx:7:1
+Module not found: Can't resolve '@/components/ui/Button'
+   5 | import { MessageCircle, X, Send, Navigation, ShieldCheck, HelpCircle } from 'lucide-react';
+   6 | import { Card } from '@/components/ui/Card';
+>  7 | import { Button } from '@/components/ui/Button';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   8 | import { Input } from '@/components/ui/Input';
+   9 | import { ScrollArea } from '@/components/ui/ScrollArea';
+  10 |
+
+Import map: aliased to relative './src/components/ui/Button' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/components/support/SupportChatbot.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Server Component:
+    ./src/components/support/SupportChatbot.tsx
+    ./src/app/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/RGYColorSelector.tsx:4:1
+Module not found: Can't resolve '@/components/ui/Card'
+  2 |
+  3 | import { useState } from "react";
+> 4 | import { Card } from "@/components/ui/Card";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 | import { cn } from "@/lib/utils";
+  6 | import { Briefcase, Users, Heart, Zap, TrendingUp, Sparkles, LucideIcon } from "lucide-react";
+  7 |
+
+Import map: aliased to relative './src/components/ui/Card' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/components/RGYColorSelector.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./src/components/RGYColorSelector.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/RGYColorSelector.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/RGYIntentKeywordList.tsx:4:1
+Module not found: Can't resolve '@/components/ui/Card'
+  2 |
+  3 | import { useState, useMemo } from "react";
+> 4 | import { Card } from "@/components/ui/Card";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 | import { Badge } from "@/components/ui/Badge";
+  6 | import { Input } from "@/components/ui/Input";
+  7 | import { ScrollArea } from "@/components/ui/ScrollArea";
+
+Import map: aliased to relative './src/components/ui/Card' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/components/RGYIntentKeywordList.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./src/components/RGYIntentKeywordList.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/RGYIntentKeywordList.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/RGYRoomView.tsx:4:1
+Module not found: Can't resolve '@/components/ui/Card'
+  2 |
+  3 | import { useState, useRef, useEffect } from "react";
+> 4 | import { Card } from "@/components/ui/Card";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 | import { Badge } from "@/components/ui/Badge";
+  6 | import { Input } from "@/components/ui/Input";
+  7 | import { ScrollArea } from "@/components/ui/ScrollArea";
+
+Import map: aliased to relative './src/components/ui/Card' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/components/RGYRoomView.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./src/components/RGYRoomView.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/RGYRoomView.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/support/SupportChatbot.tsx:6:1
+Module not found: Can't resolve '@/components/ui/Card'
+  4 | import { motion, AnimatePresence } from 'framer-motion';
+  5 | import { MessageCircle, X, Send, Navigation, ShieldCheck, HelpCircle } from 'lucide-react';
+> 6 | import { Card } from '@/components/ui/Card';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import { Button } from '@/components/ui/Button';
+  8 | import { Input } from '@/components/ui/Input';
+  9 | import { ScrollArea } from '@/components/ui/ScrollArea';
+
+Import map: aliased to relative './src/components/ui/Card' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/components/support/SupportChatbot.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Server Component:
+    ./src/components/support/SupportChatbot.tsx
+    ./src/app/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/RGYIntentKeywordList.tsx:6:1
+Module not found: Can't resolve '@/components/ui/Input'
+  4 | import { Card } from "@/components/ui/Card";
+  5 | import { Badge } from "@/components/ui/Badge";
+> 6 | import { Input } from "@/components/ui/Input";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import { ScrollArea } from "@/components/ui/ScrollArea";
+  8 | import { Button } from "@/components/ui/Button";
+  9 | import { cn } from "@/lib/utils";
+
+Import map: aliased to relative './src/components/ui/Input' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/components/RGYIntentKeywordList.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./src/components/RGYIntentKeywordList.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/RGYIntentKeywordList.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/RGYRoomView.tsx:6:1
+Module not found: Can't resolve '@/components/ui/Input'
+  4 | import { Card } from "@/components/ui/Card";
+  5 | import { Badge } from "@/components/ui/Badge";
+> 6 | import { Input } from "@/components/ui/Input";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import { ScrollArea } from "@/components/ui/ScrollArea";
+  8 | import { cn } from "@/lib/utils";
+  9 | import {
+
+Import map: aliased to relative './src/components/ui/Input' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/components/RGYRoomView.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Client Component Browser:
+    ./src/components/RGYRoomView.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Client Component Browser]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/RGYRoomView.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Client Component SSR]
+    ./src/components/FullscreenApp.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/support/SupportChatbot.tsx:8:1
+Module not found: Can't resolve '@/components/ui/Input'
+   6 | import { Card } from '@/components/ui/Card';
+   7 | import { Button } from '@/components/ui/Button';
+>  8 | import { Input } from '@/components/ui/Input';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   9 | import { ScrollArea } from '@/components/ui/ScrollArea';
+  10 |
+  11 | export function SupportChatbot() {
+
+Import map: aliased to relative './src/components/ui/Input' inside of [project]/
+
+
+Import traces:
+  App Route:
+    ./src/components/support/SupportChatbot.tsx
+    ./src/app/api/code/terminal/route.ts
+
+  Server Component:
+    ./src/components/support/SupportChatbot.tsx
+    ./src/app/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (./src/app/founders-pass/page.tsx:8:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/founders-pass/security/page.tsx:7:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/settings/privacy/page.tsx:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/RGYIntentKeywordList.tsx:5:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/RGYRoomView.tsx:5:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/founders-pass/page.tsx:9:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/founders-pass/security/page.tsx:8:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/settings/privacy/page.tsx:7:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/CookieBanner.tsx:4:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/RGYIntentKeywordList.tsx:8:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/support/SupportChatbot.tsx:7:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/RGYColorSelector.tsx:4:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/RGYIntentKeywordList.tsx:4:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/RGYRoomView.tsx:4:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/support/SupportChatbot.tsx:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/RGYIntentKeywordList.tsx:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/RGYRoomView.tsx:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/support/SupportChatbot.tsx:8:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
