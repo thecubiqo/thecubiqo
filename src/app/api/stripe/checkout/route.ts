@@ -4,12 +4,13 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { ENV } from '@/lib/config/env'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY || '', {
     apiVersion: '2025-01-27.acacia' as any
 })
 
 export async function POST(req: NextRequest) {
     try {
+        const stripe = getStripe()
         const { tier } = await req.json()
         const cookieStore = await cookies()
 

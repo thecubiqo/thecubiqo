@@ -2,12 +2,16 @@
 'use client';
 
 export type ButtonVariant =
+  | 'default'
   | 'primary'
   | 'secondary'
   | 'success'
   | 'warning'
   | 'danger'
-  | 'ghost';
+  | 'destructive'
+  | 'ghost'
+  | 'outline'
+  | 'neutral';
 
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
@@ -19,13 +23,17 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   children: React.ReactNode;
 }
 
-const variantStyles = {
+const variantStyles: Record<ButtonVariant, string> = {
+  default: 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700',
   primary: 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-900/50',
   secondary: 'bg-zinc-700 hover:bg-zinc-600 text-white',
   success: 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/50',
   warning: 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-900/50',
   danger: 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/50',
+  destructive: 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/50',
   ghost: 'bg-transparent hover:bg-zinc-800 text-zinc-300 border border-zinc-700',
+  outline: 'bg-transparent border border-zinc-600 text-zinc-200 hover:bg-zinc-800',
+  neutral: 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800',
 };
 
 const sizeStyles = {

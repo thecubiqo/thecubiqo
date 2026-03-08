@@ -1,7 +1,5 @@
-@import "tailwindcss";
-
-/* Import Inter and Space Grotesk fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
 
 /* ================================================================== */
 /*  CubiQo — Apple-Grade Premium Global Styles                       */
@@ -19,10 +17,13 @@
 :root {
   /* Palette */
   --background: #ffffff;
-  --foreground: #1d1d1f;           /* Apple dark-text tone */
-  --muted: #86868b;                /* Apple secondary text */
-  --accent: #ff6f00;               /* CubiQo brand orange */
-  --surface: rgba(255,255,255,0.72);
+  --foreground: #1d1d1f;
+  /* Apple dark-text tone */
+  --muted: #86868b;
+  /* Apple secondary text */
+  --accent: #ff6f00;
+  /* CubiQo brand orange */
+  --surface: rgba(255, 255, 255, 0.72);
   --surface-elevated: #ffffff;
 
   /* Typography — SF Pro first, Inter fallback */
@@ -46,12 +47,12 @@
   --radius-2xl: 1.5rem;
 
   /* Shadows — Apple-style layered depth */
-  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,0.04), 0 1px 2px -1px rgba(0,0,0,0.03);
-  --shadow-md: 0 4px 12px -2px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.04);
-  --shadow-lg: 0 12px 32px -4px rgba(0,0,0,0.15), 0 4px 8px -2px rgba(0,0,0,0.06);
-  --shadow-xl: 0 24px 64px -8px rgba(0,0,0,0.22), 0 8px 20px -4px rgba(0,0,0,0.1);
-  --shadow-glow: 0 0 0 3px rgba(255,111,0,0.35);
-  --shadow-glass-rim: inset 0 0 0 0.5px rgba(255,255,255,0.08);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 32px -4px rgba(0, 0, 0, 0.15), 0 4px 8px -2px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 24px 64px -8px rgba(0, 0, 0, 0.22), 0 8px 20px -4px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 0 3px rgba(255, 111, 0, 0.35);
+  --shadow-glass-rim: inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
 
   /* Motion — Apple-style spring & ease */
   --duration-fast: 100ms;
@@ -69,21 +70,30 @@
   --blur-lg: 40px;
 
   /* Focus ring (a11y) */
-  --focus-ring: 0 0 0 2px var(--background), 0 0 0 4px rgba(255,111,0,0.7);
+  --focus-ring: 0 0 0 2px var(--background), 0 0 0 4px rgba(255, 111, 0, 0.7);
 
   /* ---- RGY (Emergent Design) Color System ---- */
   /* Neon accent colors for RGY contexts */
-  --rgy-red: 350 85% 58%;          /* Neon pink-red for Dating/Adult */
-  --rgy-green: 160 80% 45%;        /* Teal-green for Work/Trade/Wellness */
-  --rgy-yellow: 45 95% 55%;        /* Bright yellow for Social/Friends */
-  --rgy-blue: 210 90% 55%;         /* Sky blue (alternative) */
+  --rgy-red: 350 85% 58%;
+  /* Neon pink-red for Dating/Adult */
+  --rgy-green: 160 80% 45%;
+  /* Teal-green for Work/Trade/Wellness */
+  --rgy-yellow: 45 95% 55%;
+  /* Bright yellow for Social/Friends */
+  --rgy-blue: 210 90% 55%;
+  /* Sky blue (alternative) */
 
   /* Surface levels for depth hierarchy (0 = background, 4 = elevated) */
-  --surface-0: 220 20% 4%;         /* Deep background */
-  --surface-1: 220 18% 7%;         /* Card surface */
-  --surface-2: 220 16% 10%;        /* Hover state */
-  --surface-3: 220 15% 14%;        /* Active state */
-  --surface-4: 220 14% 18%;        /* Elevated elements */
+  --surface-0: 220 20% 4%;
+  /* Deep background */
+  --surface-1: 220 18% 7%;
+  /* Card surface */
+  --surface-2: 220 16% 10%;
+  /* Hover state */
+  --surface-3: 220 15% 14%;
+  /* Active state */
+  --surface-4: 220 14% 18%;
+  /* Elevated elements */
 
   /* Glow shadows for RGY colors */
   --glow-red: 0 8px 32px hsla(350, 85%, 58%, 0.35);
@@ -103,16 +113,18 @@
 /* ---- Dark mode overrides ---- */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #000000;         /* Pure black — OLED-friendly like apple.com */
-    --foreground: #f5f5f7;         /* Apple light-on-dark tone */
+    --background: #000000;
+    /* Pure black — OLED-friendly like apple.com */
+    --foreground: #f5f5f7;
+    /* Apple light-on-dark tone */
     --muted: #86868b;
-    --surface: rgba(28,28,30,0.72);
+    --surface: rgba(28, 28, 30, 0.72);
     --surface-elevated: #1c1c1e;
 
-    --shadow-sm: 0 1px 3px 0 rgba(0,0,0,0.35), 0 1px 2px -1px rgba(0,0,0,0.2);
-    --shadow-md: 0 4px 12px -2px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.2);
-    --shadow-lg: 0 12px 32px -4px rgba(0,0,0,0.55), 0 4px 8px -2px rgba(0,0,0,0.25);
-    --shadow-xl: 0 24px 64px -8px rgba(0,0,0,0.7), 0 8px 20px -4px rgba(0,0,0,0.35);
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.35), 0 1px 2px -1px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.45), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 12px 32px -4px rgba(0, 0, 0, 0.55), 0 4px 8px -2px rgba(0, 0, 0, 0.25);
+    --shadow-xl: 0 24px 64px -8px rgba(0, 0, 0, 0.7), 0 8px 20px -4px rgba(0, 0, 0, 0.35);
 
     /* RGY colors remain vibrant in dark mode */
     --rgy-red: 350 85% 58%;
@@ -152,7 +164,7 @@ body {
 
 /* Premium text selection */
 ::selection {
-  background: rgba(255,111,0,0.25);
+  background: rgba(255, 111, 0, 0.25);
   color: inherit;
 }
 
@@ -171,6 +183,7 @@ body {
 /* ------------------------------------------------------------------ */
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -195,18 +208,18 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(128,128,128,0.25);
+  background: rgba(128, 128, 128, 0.25);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(128,128,128,0.4);
+  background: rgba(128, 128, 128, 0.4);
 }
 
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(128,128,128,0.25) transparent;
+  scrollbar-color: rgba(128, 128, 128, 0.25) transparent;
 }
 
 /* ------------------------------------------------------------------ */
@@ -221,7 +234,7 @@ body {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   transition: box-shadow var(--duration-normal) var(--ease-out),
-              transform var(--duration-normal) var(--ease-out);
+    transform var(--duration-normal) var(--ease-out);
 }
 
 .premium-card:hover {
@@ -234,7 +247,7 @@ body {
  */
 .transition-premium {
   transition-property: color, background-color, border-color, box-shadow,
-                       opacity, transform;
+    opacity, transform;
   transition-duration: var(--duration-normal);
   transition-timing-function: var(--ease-out);
 }
@@ -288,7 +301,7 @@ input[type="range"] {
 input[type="range"]::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 9999px;
-  background: rgba(128,128,128,0.2);
+  background: rgba(128, 128, 128, 0.2);
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -298,7 +311,7 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 50%;
   background: var(--foreground);
   border: 2px solid var(--background);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
   margin-top: -6px;
   transition: transform var(--duration-fast) var(--ease-spring);
 }
@@ -310,7 +323,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 input[type="range"]::-moz-range-track {
   height: 4px;
   border-radius: 9999px;
-  background: rgba(128,128,128,0.2);
+  background: rgba(128, 128, 128, 0.2);
 }
 
 input[type="range"]::-moz-range-thumb {
@@ -319,7 +332,7 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 50%;
   background: var(--foreground);
   border: 2px solid var(--background);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
   transition: transform var(--duration-fast) var(--ease-spring);
 }
 
@@ -511,6 +524,7 @@ button,
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -522,9 +536,12 @@ button,
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.6;
   }
