@@ -29,6 +29,7 @@ export type AuthState = {
 type AuthContextValue = AuthState & {
   signInWithEmail: (email: string) => Promise<{ success: boolean }>
   signInWithPassword: (email: string, password: string) => Promise<{ success: boolean }>
+  signInWithProvider: (provider: 'google' | 'github') => Promise<{ success: boolean }>
   signUp: (email: string, password: string, metadata?: Record<string, any>) => Promise<{ success: boolean }>
   signInAsDeveloper: (email: string) => Promise<{ success: boolean }>
   signOut: () => Promise<void>
@@ -231,6 +232,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return { success: true }
   }, [supabase])
 
+  // SSO / Provider Sign In
+  const signInWithProvider = useCallback(async (provider: 'google' | 'github') => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      throw error
+    }
+
+    return { success: true }
+  }, [supabase])
+
   // Sign in as developer (bypass OTP/magic link) - ONLY IN DEVELOPMENT
   const signInAsDeveloper = useCallback(async (email: string) => {
     if (process.env.NODE_ENV !== 'development') {
@@ -289,12 +306,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       ...state,
       signInWithEmail,
       signInWithPassword,
+      signInWithProvider,
       signUp,
       signInAsDeveloper,
       signOut,
       refreshProfile,
     }),
-    [state, signInWithEmail, signInWithPassword, signUp, signInAsDeveloper, signOut, refreshProfile]
+    [state, signInWithEmail, signInWithPassword, signInWithProvider, signUp, signInAsDeveloper, signOut, refreshProfile]
   )
 
   return (
