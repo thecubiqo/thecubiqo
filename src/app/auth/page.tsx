@@ -23,12 +23,18 @@ export default function AuthPage() {
   }, [])
 
   // Redirect if already authenticated
+  const { profile } = useAuth()
   useEffect(() => {
     if (mounted && isAuthenticated && !isLoading) {
-      console.log('[Auth Page] User already authenticated, redirecting to chat')
-      router.push('/chat')
+      if (profile && !profile.onboarding_completed) {
+        console.log('[Auth Page] User authenticated but onboarding incomplete, redirecting')
+        router.push('/onboarding')
+      } else {
+        console.log('[Auth Page] User already authenticated, redirecting to chat')
+        router.push('/chat')
+      }
     }
-  }, [isAuthenticated, isLoading, mounted, router])
+  }, [isAuthenticated, isLoading, mounted, router, profile])
 
   // Show loading while checking auth state
   if (!mounted || isLoading) {
@@ -98,7 +104,7 @@ export default function AuthPage() {
 
         {/* Back to Home */}
         <div className="mt-8 text-center">
-          <Link 
+          <Link
             href="/"
             className="text-sm text-white/50 hover:text-white/80 transition-colors inline-flex items-center gap-2"
           >

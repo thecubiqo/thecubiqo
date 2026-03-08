@@ -1,56 +1,49 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import OnboardingFlow, { OnboardingConfig } from '@/components/OnboardingFlow';
+import BranchedOnboarding, { OnboardingData } from '@/components/BranchedOnboarding';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { refreshProfile } = useAuth();
 
-  const handleComplete = async (config: OnboardingConfig) => {
-    // Save onboarding config to localStorage as local fast-cache
-    localStorage.setItem('cubiqo-onboarding', JSON.stringify({
-      completed: true,
-      timestamp: new Date().toISOString(),
-      config,
-    }));
-
+  const handleComplete = async (data: OnboardingData) => {
     // Save to Postgres
     try {
-      await fetch('/api/onboarding', {
+      const response = await fetch('/api/onboarding', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ config, skipped: false }),
+        body: JSON.stringify({ config: data, skipped: false }),
       });
+
+      if (response.ok) {
+        await refreshProfile();
+        router.push('/chat');
+      }
     } catch (e) {
       console.error('Failed to save onboarding to DB', e);
+      // Fallback redirect
+      router.push('/chat');
     }
-
-    // Redirect to main app
-    router.push('/');
   };
 
   const handleSkip = async () => {
-    // Mark as skipped but still save a basic config
-    localStorage.setItem('cubiqo-onboarding', JSON.stringify({
-      completed: true,
-      skipped: true,
-      timestamp: new Date().toISOString(),
-    }));
-
     try {
       await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ skipped: true }),
       });
+      await refreshProfile();
     } catch (e) {
       console.error('Failed to save onboarding (skip) to DB', e);
     }
 
-    router.push('/');
+    router.push('/chat');
   };
 
-  return <OnboardingFlow onComplete={handleComplete} onSkip={handleSkip} />;
+  return <BranchedOnboarding onComplete={handleComplete} onSkip={handleSkip} />;
 }

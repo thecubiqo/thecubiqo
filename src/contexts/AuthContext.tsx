@@ -28,6 +28,8 @@ export type AuthState = {
 
 type AuthContextValue = AuthState & {
   signInWithEmail: (email: string) => Promise<{ success: boolean }>
+  signInWithPassword: (email: string, password: string) => Promise<{ success: boolean }>
+  signUp: (email: string, password: string, metadata?: Record<string, any>) => Promise<{ success: boolean }>
   signInAsDeveloper: (email: string) => Promise<{ success: boolean }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
@@ -182,11 +184,42 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [supabase, fetchProfile])
 
-  // Sign in with magic link
   const signInWithEmail = useCallback(async (email: string) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      throw error
+    }
+
+    return { success: true }
+  }, [supabase])
+
+  // Sign in with password
+  const signInWithPassword = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      throw error
+    }
+
+    return { success: true }
+  }, [supabase])
+
+  // Sign up with password
+  const signUp = useCallback(async (email: string, password: string, metadata?: Record<string, any>) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: metadata,
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     })
@@ -255,11 +288,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     () => ({
       ...state,
       signInWithEmail,
+      signInWithPassword,
+      signUp,
       signInAsDeveloper,
       signOut,
       refreshProfile,
     }),
-    [state, signInWithEmail, signInAsDeveloper, signOut, refreshProfile]
+    [state, signInWithEmail, signInWithPassword, signUp, signInAsDeveloper, signOut, refreshProfile]
   )
 
   return (

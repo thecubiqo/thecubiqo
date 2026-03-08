@@ -202,7 +202,6 @@ export default function RootLayout({
         </ClientProviders>
         <CookieBanner />
         <CodexoPanel />
-        <SupportChatbot />
         <ServiceWorkerRegistration />
         <PWAInstallPrompt />
         <Analytics />
