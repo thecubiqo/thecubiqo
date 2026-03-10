@@ -15,10 +15,6 @@ const meta: Meta<typeof FullscreenApp> = {
   },
   tags: ['autodocs'],
   argTypes: {
-    showTopRightCTA: {
-      control: 'boolean',
-      description: 'Whether to show the top-right CTA button',
-    },
     showParticleLanding: {
       control: 'boolean',
       description: 'Whether to show the particle landing screen',
@@ -31,28 +27,18 @@ type Story = StoryObj<typeof FullscreenApp>
 
 export const Default: Story = {
   args: {
-    showTopRightCTA: false,
-    showParticleLanding: false,
-  },
-}
-
-export const WithTopRightCTA: Story = {
-  args: {
-    showTopRightCTA: true,
     showParticleLanding: false,
   },
 }
 
 export const WithParticleLanding: Story = {
   args: {
-    showTopRightCTA: false,
     showParticleLanding: true,
   },
 }
 
 export const FullExperience: Story = {
   args: {
-    showTopRightCTA: true,
     showParticleLanding: true,
   },
 }

@@ -10,5 +10,5 @@ export default function WelcomePage() {
         router.push('/')
     }
 
-    return <LandingPage showTopRightCTA={true} onComplete={handleComplete} />
+    return <LandingPage onComplete={handleComplete} />
 }
