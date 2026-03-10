@@ -20,5 +20,5 @@ const LandingPage = dynamic(
 )
 
 export default function PreviewPage() {
-  return <LandingPage showTopRightCTA={true} />
+  return <LandingPage />
 }

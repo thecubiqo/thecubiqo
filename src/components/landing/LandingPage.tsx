@@ -6,11 +6,10 @@ import { LandingOverlay } from '@/components/landing/LandingOverlay'
 import { Suspense, useState, useEffect } from 'react'
 
 interface LandingPageProps {
-    showTopRightCTA: boolean
     onComplete?: () => void
 }
 
-export function LandingPage({ showTopRightCTA, onComplete }: LandingPageProps) {
+export function LandingPage({ onComplete }: LandingPageProps) {
     const [isImploding, setIsImploding] = useState(false)
 
     const handleEnter = () => {
@@ -55,7 +54,7 @@ export function LandingPage({ showTopRightCTA, onComplete }: LandingPageProps) {
 
             {/* UI Overlay */}
             <div className="absolute inset-0 z-10 pointer-events-none">
-                <LandingOverlay showTopRightCTA={showTopRightCTA} />
+                <LandingOverlay />
             </div>
         </div>
     )

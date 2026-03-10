@@ -3,13 +3,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 
-import { TopRightCTA } from '@/components/TopRightCTA.client'
-
-interface LandingOverlayProps {
-    showTopRightCTA?: boolean
-}
-
-export function LandingOverlay({ showTopRightCTA = false }: LandingOverlayProps) {
+export function LandingOverlay() {
     const integrations = [
         "Stripe", "HubSpot", "Salesforce", "Brave", "Runway",
         "Luma", "Minimax", "Github", "Railway", "Vercel", "Resend"
@@ -28,11 +22,7 @@ export function LandingOverlay({ showTopRightCTA = false }: LandingOverlayProps)
                     animation: marquee 30s linear infinite;
                 }
             `}</style>
-            {showTopRightCTA && (
-                <div className="absolute top-8 right-8 z-50 pointer-events-auto">
-                    <TopRightCTA />
-                </div>
-            )}
+
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

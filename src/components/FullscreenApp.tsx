@@ -26,7 +26,6 @@ import { JourneyMemoryPrompt } from './journey'
 import { AdminControls } from './admin'
 import { SidePanel } from './cq'
 import { IntegrationsSidePanel } from './IntegrationsSidePanel'
-import { TopRightCTA } from '@/components/TopRightCTA.client'
 import type { RGYContext } from '@/types/rgy-matching'
 import { useSession } from '@/hooks/useSession'
 import { useAuth } from '@/hooks/useAuth'
@@ -42,12 +41,10 @@ import type { AnimationState } from './cube/Cube'
 type AppState = 'idle' | 'listening' | 'thinking' | 'speaking'
 
 interface FullscreenAppProps {
-  showTopRightCTA?: boolean
   showParticleLanding?: boolean
 }
 
 export function FullscreenApp({
-  showTopRightCTA = false,
   showParticleLanding = false
 }: FullscreenAppProps) {
   const { session, isGuest, isLoading: sessionLoading } = useSession()
@@ -505,14 +502,7 @@ export function FullscreenApp({
             </div>
           </div>
 
-          {/* Right side - SIGNAL Logo */}
-          <button
-            onClick={handleSignalClick}
-            className="flex flex-col items-end gap-0.5 hover:opacity-80 transition-opacity"
-          >
-            <span className="text-2xl font-bold tracking-[0.1em] text-white leading-tight">SIGNAL</span>
-            <span className="text-[10px] text-white/40 tracking-[0.2em] font-medium uppercase">One is enough.</span>
-          </button>
+
         </div>
       </header>
 
@@ -1120,8 +1110,6 @@ export function FullscreenApp({
       {/* Integrations Side Panel */}
       <IntegrationsSidePanel isOpen={showIntegrationsPanel} onClose={() => setShowIntegrationsPanel(false)} isDark={isDark} />
 
-      {/* Top Right CTA - Biometric Auth / Register */}
-      {showTopRightCTA && <TopRightCTA />}
     </div >
   )
 }
