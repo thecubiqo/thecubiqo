@@ -135,3 +135,7 @@ frontend/node_modules/.cache/default-development/0.pack
 *.env.*
 cubiqo_integration/node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
 cubiqo_integration/node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
+-e 
+# Environment files
+*.env
+*.env.*
