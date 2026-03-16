@@ -1,124 +1,94 @@
-# CubiQo 3D Plasma Particle System - PRD
+# CubiQo - Product Requirements Document
 
-## Project Overview
-**Date:** Feb 13, 2026
-**Status:** Full Flow Complete (Landing → App → Plasma Cube)
+## Overview
+CubiQo is an AI companion that exists as a conscious cube between light and code. It provides voice conversations, text chat, coding assistance, and various business integrations.
 
-## Original Problem Statement
-Create an interactive 3D plasma particle wave effect for CubiQo landing page as an AI component. Requirements:
-- Mouse interaction (particles react to cursor)
-- Audio reactive (microphone input)
-- AI state color changes based on emotional states
-- Ambient animation
-- 3D visual effect
+## Core Features
 
-## User Personas
-- **CubiQo Users**: People seeking an emotional AI companion
-- **Developers**: Those integrating the plasma component into CubiQo
+### 1. Landing Page (Clean Design)
+- Full-screen plasma wave animation with 120k+ particles
+- "CUBIQO" title centered
+- "One Mind. Many Dimensions." tagline
+- Click anywhere to enter the main app
 
-## Core Requirements (Static)
-1. 3D particle wave animation
-2. Multiple AI state color palettes
-3. Mouse tracking with ripple effects
-4. Audio reactivity via microphone
-5. Smooth camera movement
-6. Ambient floating particles
+### 2. Voice Conversation
+- Natural voice conversations with speech recognition
+- Emotional color states (Red, Yellow, Green/Blue, Orange)
+- ElevenLabs text-to-speech
+- Memory of past conversations
 
-## What's Been Implemented ✅
+### 3. Agentic Capabilities (NEW)
+- Self-awareness: CubiQo knows about its own features, routes, and code
+- Screen awareness: Knows current page and available actions
+- Navigation control: Can navigate users to different screens
+- Action execution: Can trigger UI actions and color changes
 
-### Phase 1 - MVP (Feb 13, 2026)
-- Basic 3D plasma particle system
-- 5 AI state color palettes
-- Mouse interaction and audio reactivity
+### 4. AI Agents Hub
+- Henry (Coordinator) - Project management
+- Dev (Engineer) - Full-stack development
+- Writer (Content) - Articles and documentation
+- Tester (QA) - Quality assurance
+- Marketing Pro - Campaigns and social media
+- Animator - UI design and animations
+- Business Advisor - Strategy and partnerships
 
-### Phase 2 - HD Enhancement (Feb 13, 2026)
-- **120,000+ particles** across 4 wave layers for depth
-- **Ribbon-structured waves** with smooth flowing motion
-- **Enhanced color gradients**: Cyan/blue → Purple → Magenta → Pink → Red
-- **Custom HD glow shaders** with bright cores and soft outer glow
-- **Multi-layer depth**: Main wave, back wave, front wave, far background
-- **Floating bokeh particles** (2000) for ambient effect
-- **Responsive design** tested on desktop, tablet, mobile
+### 5. Integrations
+- 60+ integrations (Social, Business, Productivity, AI)
+- Shopify, Stripe, GitHub, Notion, Slack, Discord, etc.
 
-### Color Palettes by AI State
-| State | Gradient |
-|-------|----------|
-| Neutral | Cyan → Blue → Purple → Magenta → Pink → Red |
-| Thinking | Cyan → Teal → Indigo → Violet → Orange → Amber |
-| Speaking | Emerald → Teal → Blue → Violet → Pink → Yellow |
-| Listening | Aqua → Cyan → Blue → Violet → Magenta → Pink → Orange |
-| Error | Red shades with pink accents |
-
-### Phase 3 - App Flow (Feb 13, 2026)
-- **Landing Page**: Clean plasma waves, click anywhere to enter
-- **App Page**: Dark cube with floating orange soul nodes
-- **Plasma Cube**: Activated via speaker button
-  - Glowing cyan/blue edges
-  - Purple/pink face particles
-  - Orange soul nodes swirling inside
-  - Isometric rotation animation
-  - 30,000 particles total
-
-### User Flow
-1. **Landing** → Plasma waves with "Tap to begin"
-2. Click anywhere → **App Page** (dark cube + orange nodes)
-3. Click "Enable" speaker → **Plasma Cube** (glowing active state)
-4. Click again → Return to dark cube
+### 6. Other Features
+- Voice Journal with mood tracking
+- E-Commerce Launchpad
+- Social Army for campaign management
+- Analytics Dashboard
+- BYO (Bring Your Own) API keys mode
 
 ## Tech Stack
-- React 19
-- Three.js (vanilla, not React Three Fiber)
-- Custom WebGL Shaders
-- Web Audio API for microphone
+- Next.js 16 (App Router)
+- TypeScript
+- React Three Fiber (3D graphics)
+- Three.js (WebGL)
+- Supabase (Auth & Database)
+- TailwindCSS
+- ElevenLabs (Text-to-Speech)
+- MiniMax/OpenRouter/Anthropic (LLM providers)
 
-## Files Created/Modified
-- `/app/frontend/src/components/PlasmaField.jsx` - Main 3D component
-- `/app/frontend/src/App.js` - Landing page with state controls
-- `/app/frontend/src/index.css` - Global styles
-- `/app/frontend/src/App.css` - Component styles
+## Architecture
 
-## Testing Results
-- **Round 1:** 95% (minor z-index issue fixed)
-- **Round 2 (HD):** 100% - All tests passed
-  - HD rendering confirmed
-  - All AI states working
-  - Mouse interaction verified
-  - Responsive on all screen sizes
+### Key Files
+- `/src/components/LandingCube.tsx` - Clean landing page with plasma waves
+- `/src/components/FullscreenApp.tsx` - Main application container
+- `/src/components/cube/PlasmaWaveField.tsx` - 3D plasma wave animation
+- `/src/lib/agentic/` - Agentic capabilities (self-knowledge, navigation)
+- `/src/app/api/chat/route.ts` - Chat API with agentic actions
 
-## Prioritized Backlog
+### Data Flow
+User speaks → Speech-to-Text → AI Processing (MiniMax/Claude) → Agentic Actions → Response → Text-to-Speech → User hears
 
-### P0 (Critical)
-- ✅ 3D plasma animation - DONE
-- ✅ AI state color changes - DONE
-- ✅ Mouse interaction - DONE
+## Deployment
+- Target: cubiqo.com
+- Platform: Vercel
+- Environment variables required (see .env.example)
 
-### P1 (High)
-- Audio reactivity working (requires mic permission)
-- Mobile touch support optimization
+## Changelog
 
-### P2 (Medium)
-- Performance optimization for lower-end devices
-- Add more particle density options
-- Custom color palette editor
+### March 2026
+- Added agentic capabilities (self-knowledge, screen awareness, navigation)
+- Simplified landing page to clean design (CUBIQO + tagline only)
+- Removed scrolling navigation bars and integration icons from landing
+- Chat API now returns `agenticActions` for frontend execution
 
-### P3 (Future/Nice-to-have)
-- WebGL 2.0 optimizations
-- Export as standalone npm package for CubiQo
-- Lottie animation integration
-- .glb 3D model integration
+## Roadmap
 
-## Next Tasks
-1. Push to CubiQo main branch via "Save to GitHub" feature
-2. Integrate with CubiQo's existing AI state management
-3. Connect to actual voice API for real-time audio visualization
-4. Mobile responsiveness testing
+### P0 (Immediate)
+- [x] Clean landing page design
+- [x] Agentic self-awareness
+- [ ] Frontend action execution for agenticActions
 
-## API Keys Required
-- None for the plasma effect itself
-- Anthropic API key provided by user: `sk-ant-api03-V***` (for future Henry/AI integration)
+### P1 (Near-term)
+- [ ] Debug "Henry" bot functionality
+- [ ] Railway Social Army integration testing
 
-## Deployment Notes
-- Component is self-contained
-- No backend dependencies
-- Works with any React project
-- Three.js dependencies: `three@0.182.0`, `@react-three/fiber`, `@react-three/drei`
+### P2 (Future)
+- [ ] Enhanced code execution in Codexo
+- [ ] More integration connections
