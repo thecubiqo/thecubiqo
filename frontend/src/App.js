@@ -234,9 +234,9 @@ const DemoPage = () => {
         }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 0, fontFamily: "'SF Pro Display','Inter',sans-serif" }}>
             <span style={{ fontSize: '1.8rem', fontWeight: 600, color: '#ff6b35', letterSpacing: -1 }}>C</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 500, color: '#fff', letterSpacing: -1 }}>ub</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 600, color: '#ff6b35', letterSpacing: -1 }}>i</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 500, color: '#fff', letterSpacing: -1 }}>Qo</span>
+            <span style={{ fontSize: '1.8rem', fontWeight: 500, color: '#fff', letterSpacing: -1 }}>ubi</span>
+            <span style={{ fontSize: '1.8rem', fontWeight: 600, color: '#ff6b35', letterSpacing: -1 }}>Q</span>
+            <span style={{ fontSize: '1.8rem', fontWeight: 500, color: '#fff', letterSpacing: -1 }}>o</span>
             <sup style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', marginLeft: 2 }}>TM</sup>
           </div>
           <div style={{ 

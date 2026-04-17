@@ -98,41 +98,35 @@ const CubiQoVisual = ({
     
     const palette = colorPalettes.neutral;
     
-    // Create a horizontal "Nebula Belt"
+    // Create two states: "Structured Wave" and "Spread Nebula"
     const ribbonCount = 20;
     const perRibbon = Math.floor(particleCount / ribbonCount);
     
     let idx = 0;
     for (let r = 0; r < ribbonCount; r++) {
-      const ribbonY = (r / (ribbonCount - 1) - 0.5) * 4; // Centered vertical spread
+      const ribbonY = (r / (ribbonCount - 1) - 0.5) * 3;
       
       for (let p = 0; p < perRibbon; p++) {
         const i3 = idx * 3;
         const xNorm = p / perRibbon;
-        const x = (xNorm - 0.5) * 30; // Horizontal belt
+        const x = (xNorm - 0.5) * 32;
         
-        // Nebula "Mist" spread with a curved S-spine
-        const spineCurve = Math.sin(xNorm * Math.PI * 2) * 3;
-        const mistX = (Math.random() - 0.5) * 0.5;
-        const mistY = (Math.random() - 0.5) * 3.5;
-        const mistZ = (Math.random() - 0.5) * 5;
+        const spineCurve = Math.sin(xNorm * Math.PI * 2) * 2.5;
         
-        wavePositions[i3] = x + mistX;
-        wavePositions[i3 + 1] = ribbonY + spineCurve + mistY;
-        wavePositions[i3 + 2] = mistZ;
+        // Target A: Structured Wave (misty but tight)
+        wavePositions[i3] = x + (Math.random() - 0.5) * 0.2;
+        wavePositions[i3 + 1] = ribbonY + spineCurve + (Math.random() - 0.5) * 1.5;
+        wavePositions[i3 + 2] = (Math.random() - 0.5) * 2.0;
         
-        // "Active" state condensation
-        const radius = 1 + Math.random() * 3;
-        const angle = Math.random() * Math.PI * 2;
-        cubePositions[i3] = radius * Math.cos(angle);
-        cubePositions[i3 + 1] = radius * Math.sin(angle);
-        cubePositions[i3 + 2] = (Math.random() - 0.5) * 4;
+        // Target B: Spread Nebula (more amorphous)
+        cubePositions[i3] = x + (Math.random() - 0.5) * 1.5;
+        cubePositions[i3 + 1] = ribbonY * 1.5 + spineCurve * 1.2 + (Math.random() - 0.5) * 4.0;
+        cubePositions[i3 + 2] = (Math.random() - 0.5) * 6.0;
         
         positions[i3] = wavePositions[i3];
         positions[i3 + 1] = wavePositions[i3 + 1];
         positions[i3 + 2] = wavePositions[i3 + 2];
         
-        // Color gradient based on X (Teal -> Purple -> Red)
         const cIdx = Math.min(Math.floor(xNorm * (palette.length - 1)), palette.length - 2);
         const cBlend = (xNorm * (palette.length - 1)) % 1;
         const c1 = new THREE.Color(palette[cIdx]);
@@ -142,16 +136,16 @@ const CubiQoVisual = ({
         colors[i3 + 1] = THREE.MathUtils.lerp(c1.g, c2.g, cBlend);
         colors[i3 + 2] = THREE.MathUtils.lerp(c1.b, c2.b, cBlend);
         
-        sizes[idx] = 0.04 + Math.random() * 0.06;
-        phases[idx] = xNorm * Math.PI * 6 + r * 0.8 + Math.random() * 1.0;
+        sizes[idx] = 0.03 + Math.random() * 0.04;
+        phases[idx] = xNorm * Math.PI * 4 + r * 0.5 + Math.random();
         ribbonIndex[idx] = r;
-        isSoulNode[idx] = Math.random() < 0.1 ? 1 : 0; // 10% are soul nodes
+        isSoulNode[idx] = Math.random() < 0.08 ? 1 : 0;
         
         if (isSoulNode[idx]) {
           colors[i3] = orangeSoulColor.r;
           colors[i3 + 1] = orangeSoulColor.g;
           colors[i3 + 2] = orangeSoulColor.b;
-          sizes[idx] *= 1.5;
+          sizes[idx] *= 1.4;
         }
         
         idx++;
@@ -267,34 +261,37 @@ const CubiQoVisual = ({
           const cycleTime = time * 0.5;
           const oscillationFactor = Math.sin(cycleTime) * 0.5 + 0.5; // Smoothly moves between 0 and 1
           
-          // Wave animation
-          let waveX = wavePositions[i3];
-          let waveY = wavePositions[i3 + 1];
-          let waveZ = wavePositions[i3 + 2];
+          // Breathing morph between Structured Wave (wavePositions) and Spread Nebula (cubePositions)
+          const breath = (Math.sin(time * 0.3) + 1) / 2;
+          const targetX = THREE.MathUtils.lerp(wavePositions[i3], cubePositions[i3], breath);
+          const targetY = THREE.MathUtils.lerp(wavePositions[i3 + 1], cubePositions[i3 + 1], breath);
+          const targetZ = THREE.MathUtils.lerp(wavePositions[i3 + 2], cubePositions[i3 + 2], breath);
+          
+          let waveX = targetX;
+          let waveY = targetY;
+          let waveZ = targetZ;
           
           if (ribbon >= 0) {
-            // Ribbon nebula movement
-            const xNorm = (waveX / 30) + 0.5;
-            const wave1 = Math.sin(phase + time * 0.8) * 1.5;
-            const wave2 = Math.sin(phase * 0.4 + time * 1.2) * 1.0;
-            const wave3 = Math.cos(phase * 0.6 + time * 0.5) * 0.8;
+            // Subtle nebula movement
+            const wave1 = Math.sin(phase + time * 0.4) * 0.6;
+            const wave2 = Math.sin(phase * 0.3 + time * 0.6) * 0.4;
+            const wave3 = Math.cos(phase * 0.5 + time * 0.3) * 0.3;
             
             // Mouse influence
             const dx = waveX - mouseRef.current.x * 12;
             const dz = waveZ - mouseRef.current.y * 8;
             const mDist = Math.sqrt(dx * dx + dz * dz);
-            const mouseWave = Math.max(0, 1 - mDist / 10) * 2 * Math.sin(time * 4 + mDist * 0.3);
+            const mouseWave = Math.max(0, 1 - mDist / 12) * 1.5 * Math.sin(time * 3 + mDist * 0.3);
             
-            waveY = wavePositions[i3 + 1] + (wave1 + wave2 + wave3) * audioMult * 0.8 * oscillationFactor + mouseWave;
-            waveZ = wavePositions[i3 + 2] + Math.sin(phase * 0.5 + time) * 1.5 * oscillationFactor;
+            waveY += (wave1 + wave2 + wave3) * audioMult * 0.6 * oscillationFactor + mouseWave;
+            waveZ += Math.sin(phase * 0.4 + time * 0.5) * 0.8 * oscillationFactor;
           } else if (isSoul > 0) {
-            // Soul node floating (multiplied by 1 - oscillationFactor)
-            // Focused "soul" core movement
+            // Focused "soul" core movement - very subtle
             const soulMovement = 1.0 - oscillationFactor;
-            const coreBreathing = 1.0 + 0.1 * Math.sin(time * 0.5);
-            waveX = wavePositions[i3] * coreBreathing + Math.sin(time * 0.7 + phase) * 0.6 * soulMovement;
-            waveY = wavePositions[i3 + 1] * coreBreathing + Math.cos(time * 0.5 + phase) * 0.5 * soulMovement;
-            waveZ = wavePositions[i3 + 2] * coreBreathing + Math.sin(time * 0.9 + phase) * 0.4 * soulMovement;
+            const coreBreathing = 1.0 + 0.05 * Math.sin(time * 0.3);
+            waveX = targetX * coreBreathing + Math.sin(time * 0.4 + phase) * 0.3 * soulMovement;
+            waveY = targetY * coreBreathing + Math.cos(time * 0.3 + phase) * 0.2 * soulMovement;
+            waveZ = targetZ * coreBreathing + Math.sin(time * 0.5 + phase) * 0.2 * soulMovement;
           }
           
           // Cube animation
