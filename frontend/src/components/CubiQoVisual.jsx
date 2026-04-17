@@ -185,15 +185,23 @@ const CubiQoVisual = ({
     for (let i = 0; i < soulNodeCount && idx < particleCount; i++) {
       const i3 = idx * 3;
       
-      // Wave position - scattered among waves
-      wavePositions[i3] = (Math.random() - 0.5) * 20;
-      wavePositions[i3 + 1] = (Math.random() - 0.5) * 6;
-      wavePositions[i3 + 2] = (Math.random() - 0.5) * 4;
+      // Dense sphere in the center for "Orange Soul"
+      const r = Math.pow(Math.random(), 1/3) * 3.5; // Radius 3.5 for a visible orb
+      const theta = Math.random() * 2 * Math.PI;
+      const phi = Math.acos(2 * Math.random() - 1);
       
-      // Cube position - inside the cube
-      cubePositions[i3] = (Math.random() - 0.5) * cubeSize * 0.7;
-      cubePositions[i3 + 1] = (Math.random() - 0.5) * cubeSize * 0.7;
-      cubePositions[i3 + 2] = (Math.random() - 0.5) * cubeSize * 0.7;
+      const cx = r * Math.sin(phi) * Math.cos(theta);
+      const cy = r * Math.sin(phi) * Math.sin(theta);
+      const cz = r * Math.cos(phi);
+      
+      // Keep it tightly clustered in both wave and cube states
+      wavePositions[i3] = cx;
+      wavePositions[i3 + 1] = cy;
+      wavePositions[i3 + 2] = cz;
+      
+      cubePositions[i3] = cx * 0.8;
+      cubePositions[i3 + 1] = cy * 0.8;
+      cubePositions[i3 + 2] = cz * 0.8;
       
       // Initial position
       positions[i3] = wavePositions[i3];
@@ -205,7 +213,7 @@ const CubiQoVisual = ({
       colors[i3 + 1] = orangeSoulColor.g;
       colors[i3 + 2] = orangeSoulColor.b;
       
-      sizes[idx] = 0.08 + Math.random() * 0.06;
+      sizes[idx] = 0.2 + Math.random() * 0.15; // Much larger sizes for soul nodes
       phases[idx] = Math.random() * Math.PI * 2;
       ribbonIndex[idx] = -1;
       isSoulNode[idx] = 1;
@@ -252,8 +260,14 @@ const CubiQoVisual = ({
           float outerGlow = exp(-dist * 2.5) * 0.5;
           
           float intensity = core * 0.5 + innerGlow + outerGlow;
-          vec3 finalColor = vColor * intensity * 1.4;
-          finalColor += vec3(1.0) * core * 0.3;
+          vec3 finalColor = vColor * intensity * 1.8; // Boost color multiplier
+          finalColor += vec3(1.0) * core * 0.4; // Add more white to the core
+          
+          // Extra brightness for orange soul nodes based on color
+          if (vColor.r > 0.9 && vColor.g > 0.3 && vColor.b < 0.3) {
+            finalColor *= 1.5;
+            intensity *= 1.2;
+          }
           
           gl_FragColor = vec4(finalColor, intensity * 0.9);
         }
@@ -319,10 +333,13 @@ const CubiQoVisual = ({
             
             waveY = wavePositions[i3 + 1] + (wave1 + wave2 + wave3) * audioMult * 0.4 + mouseWave;
           } else if (isSoul > 0) {
-            // Soul node floating
-            waveX = wavePositions[i3] + Math.sin(time * 0.5 + phase) * 0.5;
-            waveY = wavePositions[i3 + 1] + Math.cos(time * 0.3 + phase) * 0.4;
-            waveZ = wavePositions[i3 + 2] + Math.sin(time * 0.4 + phase) * 0.3;
+            // Soul node rotating tightly in center orb
+            const r = Math.sqrt(wavePositions[i3]*wavePositions[i3] + wavePositions[i3+2]*wavePositions[i3+2]);
+            const angle = Math.atan2(wavePositions[i3+2], wavePositions[i3]) + time * 0.5;
+            
+            waveX = r * Math.cos(angle) + Math.sin(time * 2.0 + phase) * 0.1;
+            waveY = wavePositions[i3 + 1] + Math.cos(time * 1.5 + phase) * 0.1;
+            waveZ = r * Math.sin(angle) + Math.sin(time * 1.8 + phase) * 0.1;
           }
           
           // Cube animation
