@@ -1,13 +1,12 @@
 {
-  "name": "cubiqo-root",
-  "version": "1.0.0",
+  "name": "cubiqo-v2",
+  "version": "2.0.0",
   "private": true,
   "engines": {
     "node": ">=18.x"
   },
   "scripts": {
-    "install": "cd frontend && yarn install",
-    "build": "cd frontend && yarn build",
-    "start": "cd frontend && npm start"
+    "build": "cd frontend && yarn install && CI=false yarn build",
+    "start": "cd frontend && yarn start"
   }
 }
