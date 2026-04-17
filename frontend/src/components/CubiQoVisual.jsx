@@ -97,122 +97,54 @@ const CubiQoVisual = ({
     const isSoulNode = new Float32Array(particleCount);
     
     const palette = colorPalettes.neutral;
-    const cubeSize = 3;
-    const half = cubeSize / 2;
     
-    // Cube vertices and edges for target positions
-    const cubeVertices = [
-      [-half, -half, -half], [half, -half, -half], [half, half, -half], [-half, half, -half],
-      [-half, -half, half], [half, -half, half], [half, half, half], [-half, half, half]
-    ];
-    const cubeEdges = [[0,1], [1,2], [2,3], [3,0], [4,5], [5,6], [6,7], [7,4], [0,4], [1,5], [2,6], [3,7]];
-    const cubeFaces = [[0,1,2,3], [4,5,6,7], [0,1,5,4], [2,3,7,6], [0,3,7,4], [1,2,6,5]];
-    
-    // Create particles
-    const ribbonCount = 15;
-    const perRibbon = Math.floor(particleCount * 0.85 / ribbonCount);
-    const soulNodeCount = Math.floor(particleCount * 0.1);
-    const cubeEdgeCount = Math.floor(particleCount * 0.05);
-    
+    // Create particles in a misty, amorphous pattern
     let idx = 0;
-    
-    // Wave ribbons (main particles)
-    for (let r = 0; r < ribbonCount && idx < particleCount - soulNodeCount; r++) {
-      const ribbonY = (r / (ribbonCount - 1) - 0.5) * 8;
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
       
-      for (let p = 0; p < perRibbon && idx < particleCount - soulNodeCount; p++) {
-        const i3 = idx * 3;
-        
-        const xNorm = p / perRibbon;
-        const x = (xNorm - 0.5) * 25;
-        const thickness = 0.3 + Math.random() * 0.3;
-        const yVar = (Math.random() - 0.5) * thickness;
-        const zVar = (Math.random() - 0.5) * thickness * 2;
-        
-        // Wave position
-        wavePositions[i3] = x;
-        wavePositions[i3 + 1] = ribbonY + yVar;
-        wavePositions[i3 + 2] = zVar;
-        
-        // Cube target position (on surface or inside)
-        const isEdge = Math.random() < 0.2;
-        if (isEdge) {
-          // Edge particle
-          const edgeIdx = Math.floor(Math.random() * cubeEdges.length);
-          const edge = cubeEdges[edgeIdx];
-          const t = Math.random();
-          const v1 = cubeVertices[edge[0]];
-          const v2 = cubeVertices[edge[1]];
-          cubePositions[i3] = v1[0] + (v2[0] - v1[0]) * t + (Math.random() - 0.5) * 0.1;
-          cubePositions[i3 + 1] = v1[1] + (v2[1] - v1[1]) * t + (Math.random() - 0.5) * 0.1;
-          cubePositions[i3 + 2] = v1[2] + (v2[2] - v1[2]) * t + (Math.random() - 0.5) * 0.1;
-        } else {
-          // Face particle
-          const faceIdx = Math.floor(Math.random() * cubeFaces.length);
-          const face = cubeFaces[faceIdx];
-          const u = Math.random(), v = Math.random();
-          const v0 = cubeVertices[face[0]], v1 = cubeVertices[face[1]];
-          const v2 = cubeVertices[face[2]], v3 = cubeVertices[face[3]];
-          const inset = 0.9 + Math.random() * 0.2;
-          cubePositions[i3] = ((1-u)*(1-v)*v0[0] + u*(1-v)*v1[0] + u*v*v2[0] + (1-u)*v*v3[0]) * inset;
-          cubePositions[i3 + 1] = ((1-u)*(1-v)*v0[1] + u*(1-v)*v1[1] + u*v*v2[1] + (1-u)*v*v3[1]) * inset;
-          cubePositions[i3 + 2] = ((1-u)*(1-v)*v0[2] + u*(1-v)*v1[2] + u*v*v2[2] + (1-u)*v*v3[2]) * inset;
-        }
-        
-        // Initial position = wave
-        positions[i3] = wavePositions[i3];
-        positions[i3 + 1] = wavePositions[i3 + 1];
-        positions[i3 + 2] = wavePositions[i3 + 2];
-        
-        // Color based on x position
-        const cIdx = Math.min(Math.floor(xNorm * (palette.length - 1)), palette.length - 2);
-        const cBlend = (xNorm * (palette.length - 1)) % 1;
-        const c1 = new THREE.Color(palette[cIdx]);
-        const c2 = new THREE.Color(palette[cIdx + 1]);
-        colors[i3] = THREE.MathUtils.lerp(c1.r, c2.r, cBlend);
-        colors[i3 + 1] = THREE.MathUtils.lerp(c1.g, c2.g, cBlend);
-        colors[i3 + 2] = THREE.MathUtils.lerp(c1.b, c2.b, cBlend);
-        
-        sizes[idx] = 0.03 + Math.random() * 0.03;
-        phases[idx] = xNorm * Math.PI * 4 + r * 0.5 + Math.random() * 0.5;
-        ribbonIndex[idx] = r;
-        isSoulNode[idx] = 0;
-        
-        idx++;
-      }
-    }
-    
-    // Orange soul nodes (scattered in both states)
-    for (let i = 0; i < soulNodeCount && idx < particleCount; i++) {
-      const i3 = idx * 3;
+      const xNorm = Math.random();
+      const x = (xNorm - 0.5) * 40;
+      const spread = 8 + Math.random() * 6;
+      const y = (Math.random() - 0.5) * spread;
+      const z = (Math.random() - 0.5) * spread;
       
-      // Wave position - Centered "soul" core
-      wavePositions[i3] = (Math.random() - 0.5) * 6; // Narrower X
-      wavePositions[i3 + 1] = (Math.random() - 0.5) * 4; // Narrower Y
-      wavePositions[i3 + 2] = (Math.random() - 0.5) * 4; // Narrower Z
+      wavePositions[i3] = x;
+      wavePositions[i3 + 1] = y;
+      wavePositions[i3 + 2] = z;
       
-      // Cube position - inside the cube
-      cubePositions[i3] = (Math.random() - 0.5) * cubeSize * 0.7;
-      cubePositions[i3 + 1] = (Math.random() - 0.5) * cubeSize * 0.7;
-      cubePositions[i3 + 2] = (Math.random() - 0.5) * cubeSize * 0.7;
+      // Target position (condensed soul center)
+      const radius = 2 + Math.random() * 4;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      cubePositions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+      cubePositions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      cubePositions[i3 + 2] = radius * Math.cos(phi);
       
       // Initial position
-      positions[i3] = wavePositions[i3];
-      positions[i3 + 1] = wavePositions[i3 + 1];
-      positions[i3 + 2] = wavePositions[i3 + 2];
+      positions[i3] = x;
+      positions[i3 + 1] = y;
+      positions[i3 + 2] = z;
       
-      // Orange color
-      colors[i3] = orangeSoulColor.r;
-      colors[i3 + 1] = orangeSoulColor.g;
-      colors[i3 + 2] = orangeSoulColor.b;
+      // Color gradient (Teal -> Purple -> Red)
+      const cIdx = Math.min(Math.floor(xNorm * (palette.length - 1)), palette.length - 2);
+      const cBlend = (xNorm * (palette.length - 1)) % 1;
+      const c1 = new THREE.Color(palette[cIdx]);
+      const c2 = new THREE.Color(palette[cIdx + 1]);
       
-      sizes[idx] = 0.05 + Math.random() * 0.04;
+      colors[i3] = THREE.MathUtils.lerp(c1.r, c2.r, cBlend);
+      colors[i3 + 1] = THREE.MathUtils.lerp(c1.g, c2.g, cBlend);
+      colors[i3 + 2] = THREE.MathUtils.lerp(c1.b, c2.b, cBlend);
+      
+      sizes[idx] = 0.02 + Math.random() * 0.03;
       phases[idx] = Math.random() * Math.PI * 2;
-      ribbonIndex[idx] = -1;
-      isSoulNode[idx] = 1;
+      ribbonIndex[idx] = Math.random() < 0.8 ? 1 : -1; // 80% nebula, 20% soul
+      isSoulNode[idx] = ribbonIndex[idx] === -1 ? 1 : 0;
       
       idx++;
     }
+    
+    // Removed soul node separate loop as it's merged into the main misty creation loop above
     
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
