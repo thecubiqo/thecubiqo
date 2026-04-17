@@ -276,17 +276,38 @@ const DemoPage = () => {
             <CubiQoVisual isEnabled={speakerEnabled || isProcessing} aiState={aiState} />
           </div>
 
-          <div style={{ position: 'absolute', bottom: '8%', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', textAlign: 'center', gap: 10, transition: 'opacity 0.8s ease', opacity: uiVisible ? 1 : 0 }}>
-            {speakerEnabled && (
-              <>
-                <div style={{ color: '#ff6b35', fontSize: '0.8rem', letterSpacing: 4, textTransform: 'uppercase', animation: 'pulse 1.5s ease-in-out infinite', textShadow: '0 0 20px rgba(255,107,53,0.8)', fontWeight: 600 }}>Listening</div>
-                {transcript && <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '1rem', fontStyle: 'italic', maxWidth: 300 }}>"{transcript}"</div>}
-              </>
+          <div style={{ position: 'absolute', bottom: '8%', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', textAlign: 'center', gap: 16, transition: 'opacity 0.8s ease', opacity: uiVisible ? 1 : 0 }}>
+            <div style={{
+              background: 'rgba(20,20,25,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+              border: '1px solid rgba(255,255,255,0.08)', borderRadius: '40px',
+              padding: '14px 32px', display: 'flex', alignItems: 'center', gap: 12,
+              boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+              transition: 'all 0.4s ease'
+            }}>
+              {speakerEnabled ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff6b35', boxShadow: '0 0 12px #ff6b35', animation: 'pulse 1s infinite' }} />
+                  <div style={{ color: '#fff', fontSize: '0.85rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 500 }}>Listening</div>
+                </div>
+              ) : isProcessing ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00d4ff', boxShadow: '0 0 12px #00d4ff', animation: 'pulse 1s infinite' }} />
+                  <div style={{ color: '#fff', fontSize: '0.85rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 500 }}>Processing</div>
+                </div>
+              ) : (
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 400 }}>
+                  Tap to speak
+                </div>
+              )}
+            </div>
+
+            {speakerEnabled && transcript && (
+              <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '1.05rem', fontStyle: 'italic', maxWidth: 360, textShadow: '0 2px 10px rgba(0,0,0,0.5)', fontWeight: 300 }}>
+                "{transcript}"
+              </div>
             )}
-            {!speakerEnabled && isProcessing && <div style={{ color: '#00d4ff', fontSize: '0.8rem', letterSpacing: 4, textTransform: 'uppercase', animation: 'pulse 1s ease-in-out infinite', textShadow: '0 0 20px rgba(0,212,255,0.8)', fontWeight: 600 }}>Processing</div>}
-            {!speakerEnabled && !isProcessing && <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.75rem', letterSpacing: 4, textTransform: 'uppercase', fontWeight: 400 }}>Tap to speak</div>}
             {aiResponse && !isProcessing && (
-              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', lineHeight: 1.6, maxWidth: 320, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(10px)', padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', marginTop: 8 }}>
+              <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.95rem', lineHeight: 1.6, maxWidth: 380, background: 'rgba(10,10,15,0.5)', backdropFilter: 'blur(20px)', padding: '16px 20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', marginTop: 8, fontWeight: 300, boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
                 {aiResponse}
               </div>
             )}
@@ -363,9 +384,9 @@ const DemoPage = () => {
 
         {/* RIGHT PANEL */}
         <div style={{ ...panelBase, right: '28px', transform: rightPanelOpen ? 'translateX(0)' : 'translateX(130%)', opacity: rightPanelOpen ? 1 : 0, pointerEvents: rightPanelOpen ? 'auto' : 'none', padding: '32px 24px' }}>
-          <div style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: '1.4rem', fontWeight: 200, color: '#fff', letterSpacing: 1, fontFamily: "'SF Pro Display','Inter',sans-serif" }}>Signal</div>
-            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', letterSpacing: 2, marginTop: 4, textTransform: 'uppercase' }}>Real-time awareness</div>
+          <div style={{ marginBottom: 32, textAlign: 'center' }}>
+            <div style={{ fontSize: '1.6rem', fontWeight: 300, color: '#fff', letterSpacing: 2, fontFamily: "'SF Pro Display','Inter',sans-serif", textShadow: '0 0 20px rgba(255,255,255,0.2)' }}>Signal</div>
+            <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', letterSpacing: 4, marginTop: 6, textTransform: 'uppercase', fontWeight: 600 }}>Real-time awareness</div>
           </div>
 
           {/* Signal Aura Indicator (Replaces Tabs) */}
@@ -392,7 +413,7 @@ const DemoPage = () => {
 
           {/* Keywords */}
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 14 }}>Keywords Detected</div>
+            <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 16, fontWeight: 600, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 8 }}>Detected Keywords</div>
             {keywords[selectedKeywordColor]?.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {keywords[selectedKeywordColor].map((k, i) => (
