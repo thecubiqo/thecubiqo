@@ -179,22 +179,23 @@ const DemoPage = () => {
   };
 
   const colorMap = {
-    green: { label: 'Potential', desc: 'Growth and future wishes', hex: '#34d399', rgb: '52,211,153' },
-    yellow: { label: 'Activity', desc: 'Current drives and actions', hex: '#fbbf24', rgb: '251,191,36' },
-    red: { label: 'Wish', desc: 'Deep desires and goals', hex: '#f87171', rgb: '248,113,113' }
+    green: { label: 'Potential', desc: 'Future Growth', hex: '#10b981', rgb: '16,185,129', aura: 'rgba(16,185,129,0.15)' },
+    yellow: { label: 'Activity', desc: 'Active Energy', hex: '#f59e0b', rgb: '245,158,11', aura: 'rgba(245,158,11,0.15)' },
+    red: { label: 'Wish', desc: 'Deep Desire', hex: '#ef4444', rgb: '239,68,68', aura: 'rgba(239,68,68,0.15)' }
   };
   const active = colorMap[selectedKeywordColor];
 
   const panelBase = {
-    position: 'absolute', top: '90px', bottom: '30px', width: '300px',
-    display: 'flex', flexDirection: 'column', borderRadius: '20px',
-    background: 'rgba(10,10,18,0.75)',
-    backdropFilter: 'blur(40px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    boxShadow: '0 30px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)',
+    position: 'absolute', top: '100px', bottom: '40px', width: '320px',
+    display: 'flex', flexDirection: 'column', borderRadius: '32px',
+    background: 'rgba(8,8,12,0.5)',
+    backdropFilter: 'blur(50px) saturate(200%)',
+    WebkitBackdropFilter: 'blur(50px) saturate(200%)',
+    border: '1px solid rgba(255,255,255,0.05)',
+    boxShadow: '0 40px 100px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.05)',
     zIndex: 10,
-    transition: 'transform 0.5s cubic-bezier(0.16,1,0.3,1), opacity 0.4s ease',
+    transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+    overflow: 'hidden'
   };
 
   const navItems = [
@@ -210,19 +211,19 @@ const DemoPage = () => {
 
         {/* Toggle buttons */}
         {[
-          { side: 'left', open: leftPanelOpen, toggle: () => setLeftPanelOpen(v => !v), Icon: Menu },
-          { side: 'right', open: rightPanelOpen, toggle: () => setRightPanelOpen(v => !v), Icon: Activity }
-        ].map(({ side, open, toggle, Icon }) => (
+          { side: 'left', open: leftPanelOpen, toggle: () => setLeftPanelOpen(v => !v), Icon: Menu, offset: 28 },
+          { side: 'right', open: rightPanelOpen, toggle: () => setRightPanelOpen(v => !v), Icon: Activity, offset: 42 }
+        ].map(({ side, open, toggle, Icon, offset }) => (
           <button key={side} onClick={toggle} style={{
-            position: 'absolute', top: 28, [side]: 28, zIndex: 100,
+            position: 'absolute', top: 28, [side]: offset, zIndex: 100,
             background: open ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)',
             border: '1px solid rgba(255,255,255,0.1)',
-            backdropFilter: 'blur(20px)', color: '#fff', borderRadius: '14px',
-            width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(20px)', color: '#fff', borderRadius: '16px',
+            width: 48, height: 58, display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', transition: 'all 0.25s ease',
             boxShadow: open ? '0 0 0 1px rgba(255,255,255,0.15)' : 'none'
           }}>
-            {open ? <X size={18} /> : (Icon === Activity ? <SignalIcon size={18} /> : <Icon size={18} />)}
+            {open ? <X size={20} /> : (Icon === Activity ? <SignalIcon size={24} /> : <Icon size={20} />)}
           </button>
         ))}
 
@@ -347,17 +348,23 @@ const DemoPage = () => {
             <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', letterSpacing: 2, marginTop: 4, textTransform: 'uppercase' }}>Real-time awareness</div>
           </div>
 
-          {/* Category tabs */}
-          <div style={{ display: 'flex', gap: 12, marginBottom: 24, justifyContent: 'center' }}>
-            {Object.entries(colorMap).map(([id, { hex }]) => (
-              <button key={id} onClick={() => setSelectedKeywordColor(id)} style={{
-                width: 48, height: 12, borderRadius: 6, cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                background: selectedKeywordColor === id ? hex : 'rgba(255,255,255,0.06)',
-                border: 'none',
-                boxShadow: selectedKeywordColor === id ? `0 0 20px ${hex}40` : 'none',
-                transform: selectedKeywordColor === id ? 'scaleY(1.2)' : 'scaleY(1)'
-              }} />
-            ))}
+          {/* Signal Aura Indicator (Replaces Tabs) */}
+          <div style={{ position: 'relative', height: '60px', marginBottom: 20, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{ 
+              position: 'absolute', inset: 0, 
+              background: `radial-gradient(circle, ${active.aura} 0%, transparent 70%)`,
+              filter: 'blur(10px)', transition: 'all 0.5s ease'
+            }} />
+            <div style={{ display: 'flex', gap: 16, zIndex: 1 }}>
+              {Object.entries(colorMap).map(([id, { hex }]) => (
+                <div key={id} onClick={() => setSelectedKeywordColor(id)} style={{
+                  width: selectedKeywordColor === id ? 32 : 10,
+                  height: 10, borderRadius: 5, cursor: 'pointer', transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+                  background: selectedKeywordColor === id ? hex : 'rgba(255,255,255,0.1)',
+                  boxShadow: selectedKeywordColor === id ? `0 0 15px ${hex}80` : 'none'
+                }} />
+              ))}
+            </div>
           </div>
 
           {/* Category detail removed - no literal explanation needed */}

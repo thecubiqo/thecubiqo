@@ -186,10 +186,10 @@ const CubiQoVisual = ({
     for (let i = 0; i < soulNodeCount && idx < particleCount; i++) {
       const i3 = idx * 3;
       
-      // Wave position - scattered among waves
-      wavePositions[i3] = (Math.random() - 0.5) * 20;
-      wavePositions[i3 + 1] = (Math.random() - 0.5) * 6;
-      wavePositions[i3 + 2] = (Math.random() - 0.5) * 4;
+      // Wave position - Centered "soul" core
+      wavePositions[i3] = (Math.random() - 0.5) * 6; // Narrower X
+      wavePositions[i3 + 1] = (Math.random() - 0.5) * 4; // Narrower Y
+      wavePositions[i3 + 2] = (Math.random() - 0.5) * 4; // Narrower Z
       
       // Cube position - inside the cube
       cubePositions[i3] = (Math.random() - 0.5) * cubeSize * 0.7;
@@ -222,41 +222,56 @@ const CubiQoVisual = ({
     // Shader material
     const material = new THREE.ShaderMaterial({
       uniforms: {
-        uMorph: { value: 0 }
+        uMorph: { value: 0 },
+        uTime: { value: 0 }
       },
       vertexShader: `
         attribute float size;
         uniform float uMorph;
+        uniform float uTime;
         varying vec3 vColor;
         varying float vMorph;
+        varying float vDepth;
         
         void main() {
           vColor = color;
           vMorph = uMorph;
+          
+          // Subtle shimmer based on time
+          float shimmer = 1.0 + 0.3 * sin(uTime * 2.0 + position.x * 0.1);
+          
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = size * (350.0 / -mvPosition.z);
+          vDepth = -mvPosition.z;
+          gl_PointSize = size * shimmer * (500.0 / -mvPosition.z);
           gl_Position = projectionMatrix * mvPosition;
         }
       `,
       fragmentShader: `
         varying vec3 vColor;
         varying float vMorph;
+        varying float vDepth;
         
         void main() {
           vec2 uv = gl_PointCoord - vec2(0.5);
           float dist = length(uv);
           if (dist > 0.5) discard;
           
-          // Soft glow with bright center
-          float core = 1.0 - smoothstep(0.0, 0.12, dist);
-          float innerGlow = exp(-dist * 5.0);
-          float outerGlow = exp(-dist * 2.5) * 0.5;
+          // Ultra-soft nebula glow
+          float core = 1.0 - smoothstep(0.0, 0.15, dist);
+          float glow = exp(-dist * 4.0) * 0.8;
+          float outer = exp(-dist * 2.0) * 0.3;
           
-          float intensity = core * 0.8 + innerGlow * 1.5 + outerGlow;
-          vec3 finalColor = vColor * intensity * 2.0;
-          finalColor += vec3(1.0) * core * 0.5;
+          float intensity = core * 1.2 + glow + outer;
           
-          gl_FragColor = vec4(finalColor, intensity * 0.95);
+          // Chromatic aberration feel - shift colors based on depth
+          vec3 shiftColor = vColor;
+          if (vDepth > 15.0) shiftColor.r *= 1.1;
+          else if (vDepth < 8.0) shiftColor.b *= 1.1;
+          
+          vec3 finalColor = shiftColor * intensity * 2.2;
+          finalColor += vec3(1.0) * core * 0.6; // Brighter core
+          
+          gl_FragColor = vec4(finalColor, intensity * 0.85);
         }
       `,
       transparent: true,
@@ -291,8 +306,9 @@ const CubiQoVisual = ({
         const colorAttr = geom.attributes.color;
         const { wavePositions, cubePositions, phases, ribbonIndex, isSoulNode } = geom.userData;
         
-        // Update material uniform
+        // Update material uniforms
         particlesRef.current.material.uniforms.uMorph.value = morph;
+        particlesRef.current.material.uniforms.uTime.value = time;
         
         for (let i = 0; i < posAttr.count; i++) {
           const i3 = i * 3;
@@ -326,10 +342,12 @@ const CubiQoVisual = ({
             waveY = wavePositions[i3 + 1] + (wave1 + wave2 + wave3) * audioMult * 0.4 * oscillationFactor + mouseWave;
           } else if (isSoul > 0) {
             // Soul node floating (multiplied by 1 - oscillationFactor)
+            // Focused "soul" core movement
             const soulMovement = 1.0 - oscillationFactor;
-            waveX = wavePositions[i3] + Math.sin(time * 0.5 + phase) * 0.8 * soulMovement;
-            waveY = wavePositions[i3 + 1] + Math.cos(time * 0.3 + phase) * 0.7 * soulMovement;
-            waveZ = wavePositions[i3 + 2] + Math.sin(time * 0.4 + phase) * 0.6 * soulMovement;
+            const coreBreathing = 1.0 + 0.1 * Math.sin(time * 0.5);
+            waveX = wavePositions[i3] * coreBreathing + Math.sin(time * 0.7 + phase) * 0.6 * soulMovement;
+            waveY = wavePositions[i3 + 1] * coreBreathing + Math.cos(time * 0.5 + phase) * 0.5 * soulMovement;
+            waveZ = wavePositions[i3 + 2] * coreBreathing + Math.sin(time * 0.9 + phase) * 0.4 * soulMovement;
           }
           
           // Cube animation
