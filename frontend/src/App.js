@@ -49,6 +49,15 @@ const DemoPage = () => {
   const [authPassword, setAuthPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [uiVisible, setUiVisible] = useState(true);
+
+  // Periodic UI Breathing (Back and Forth between functional and cinematic)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setUiVisible(prev => !prev);
+    }, 15000); // 15s cycle
+    return () => clearInterval(interval);
+  }, []);
 
   const aiState = speakerEnabled ? 'listening' : (isProcessing ? 'thinking' : 'neutral');
 
@@ -207,7 +216,11 @@ const DemoPage = () => {
 
   return (
     <>
-      <div data-testid="demo-page" style={{ width: '100%', height: '100vh', background: '#08080f', position: 'relative', overflow: 'hidden' }}>
+      <div 
+        data-testid="demo-page" 
+        onClick={() => setUiVisible(true)}
+        style={{ width: '100%', height: '100vh', background: '#08080f', position: 'relative', overflow: 'hidden', cursor: uiVisible ? 'default' : 'pointer' }}
+      >
 
         {/* Toggle buttons */}
         {[
@@ -220,8 +233,10 @@ const DemoPage = () => {
             border: '1px solid rgba(255,255,255,0.1)',
             backdropFilter: 'blur(20px)', color: '#fff', borderRadius: '16px',
             width: 48, height: 58, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', transition: 'all 0.25s ease',
-            boxShadow: open ? '0 0 0 1px rgba(255,255,255,0.15)' : 'none'
+            cursor: 'pointer', transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+            boxShadow: open ? '0 0 0 1px rgba(255,255,255,0.15)' : 'none',
+            opacity: uiVisible || open ? 1 : 0,
+            pointerEvents: uiVisible || open ? 'auto' : 'none'
           }}>
             {open ? <X size={20} /> : (Icon === Activity ? <SignalIcon size={24} /> : <Icon size={20} />)}
           </button>
@@ -230,7 +245,9 @@ const DemoPage = () => {
         {/* PERSISTENT BRAND LOCKUP (Top Left) */}
         <div style={{ 
           position: 'absolute', top: 26, left: 100, zIndex: 100,
-          pointerEvents: 'none', transition: 'all 0.5s ease'
+          pointerEvents: 'none', transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+          opacity: uiVisible ? 1 : 0,
+          transform: uiVisible ? 'translateX(0)' : 'translateX(-20px)'
         }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 0, fontFamily: "'SF Pro Display','Inter',sans-serif" }}>
             <span style={{ fontSize: '1.8rem', fontWeight: 600, color: '#ff6b35', letterSpacing: -1 }}>C</span>
@@ -259,7 +276,7 @@ const DemoPage = () => {
             <CubiQoVisual isEnabled={speakerEnabled || isProcessing} aiState={aiState} />
           </div>
 
-          <div style={{ position: 'absolute', bottom: '8%', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', textAlign: 'center', gap: 10 }}>
+          <div style={{ position: 'absolute', bottom: '8%', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', textAlign: 'center', gap: 10, transition: 'opacity 0.8s ease', opacity: uiVisible ? 1 : 0 }}>
             {speakerEnabled && (
               <>
                 <div style={{ color: '#ff6b35', fontSize: '0.8rem', letterSpacing: 4, textTransform: 'uppercase', animation: 'pulse 1.5s ease-in-out infinite', textShadow: '0 0 20px rgba(255,107,53,0.8)', fontWeight: 600 }}>Listening</div>
@@ -277,7 +294,7 @@ const DemoPage = () => {
         </div>
 
         {/* LEFT PANEL */}
-        <div style={{ ...panelBase, left: '28px', transform: leftPanelOpen ? 'translateX(0)' : 'translateX(-130%)', opacity: leftPanelOpen ? 1 : 0, pointerEvents: leftPanelOpen ? 'auto' : 'none', padding: '40px 24px' }}>
+        <div style={{ ...panelBase, left: '28px', transform: leftPanelOpen ? 'translateX(0)' : (uiVisible ? 'translateX(-130%)' : 'translateX(-130%)'), opacity: leftPanelOpen ? 1 : 0, pointerEvents: leftPanelOpen ? 'auto' : 'none', padding: '40px 24px' }}>
           {/* Nav */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {navItems.map(({ id, label, icon: Icon, sub }) => (
