@@ -227,6 +227,27 @@ const DemoPage = () => {
           </button>
         ))}
 
+        {/* PERSISTENT BRAND LOCKUP (Top Left) */}
+        <div style={{ 
+          position: 'absolute', top: 26, left: 100, zIndex: 100,
+          pointerEvents: 'none', transition: 'all 0.5s ease'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 0, fontFamily: "'SF Pro Display','Inter',sans-serif" }}>
+            <span style={{ fontSize: '1.8rem', fontWeight: 600, color: '#ff6b35', letterSpacing: -1 }}>C</span>
+            <span style={{ fontSize: '1.8rem', fontWeight: 500, color: '#fff', letterSpacing: -1 }}>ub</span>
+            <span style={{ fontSize: '1.8rem', fontWeight: 600, color: '#ff6b35', letterSpacing: -1 }}>i</span>
+            <span style={{ fontSize: '1.8rem', fontWeight: 500, color: '#fff', letterSpacing: -1 }}>Qo</span>
+            <sup style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', marginLeft: 2 }}>TM</sup>
+          </div>
+          <div style={{ 
+            fontSize: '0.58rem', color: '#ff6b35', letterSpacing: 3.5, 
+            marginTop: 6, textTransform: 'uppercase', fontWeight: 600,
+            opacity: 0.9, whiteSpace: 'nowrap', textShadow: '0 0 20px rgba(255,107,53,0.3)'
+          }}>
+            Home to General Intelligence
+          </div>
+        </div>
+
         {/* Hero — centered with 25% margins each side */}
         <div onClick={toggleListening} style={{
           position: 'absolute', top: 0, bottom: 0,
@@ -256,25 +277,7 @@ const DemoPage = () => {
         </div>
 
         {/* LEFT PANEL */}
-        <div style={{ ...panelBase, left: '28px', transform: leftPanelOpen ? 'translateX(0)' : 'translateX(-130%)', opacity: leftPanelOpen ? 1 : 0, pointerEvents: leftPanelOpen ? 'auto' : 'none', padding: '32px 24px' }}>
-          {/* Logo Brand Lockup */}
-          <div style={{ marginBottom: 40 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 0, fontFamily: "'SF Pro Display','Inter',sans-serif" }}>
-              <span style={{ fontSize: '1.8rem', fontWeight: 600, color: '#ff6b35', letterSpacing: -1 }}>C</span>
-              <span style={{ fontSize: '1.8rem', fontWeight: 500, color: '#fff', letterSpacing: -1 }}>ub</span>
-              <span style={{ fontSize: '1.8rem', fontWeight: 600, color: '#ff6b35', letterSpacing: -1 }}>i</span>
-              <span style={{ fontSize: '1.8rem', fontWeight: 500, color: '#fff', letterSpacing: -1 }}>Qo</span>
-              <sup style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', marginLeft: 2 }}>TM</sup>
-            </div>
-            <div style={{ 
-              fontSize: '0.58rem', color: '#ff6b35', letterSpacing: 3.5, 
-              marginTop: 6, textTransform: 'uppercase', fontWeight: 600,
-              opacity: 0.9, whiteSpace: 'nowrap'
-            }}>
-              Home to General Intelligence
-            </div>
-          </div>
-
+        <div style={{ ...panelBase, left: '28px', transform: leftPanelOpen ? 'translateX(0)' : 'translateX(-130%)', opacity: leftPanelOpen ? 1 : 0, pointerEvents: leftPanelOpen ? 'auto' : 'none', padding: '40px 24px' }}>
           {/* Nav */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {navItems.map(({ id, label, icon: Icon, sub }) => (
