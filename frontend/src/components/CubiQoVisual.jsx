@@ -199,7 +199,6 @@ const CubiQoVisual = ({
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-    geometry.userData = { wavePositions, cubePositions, phases, ribbonIndex, isSoulNode };
     
     // Shader material
     const material = new THREE.ShaderMaterial({
