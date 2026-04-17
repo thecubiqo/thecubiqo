@@ -3,9 +3,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import PlasmaField from "./components/PlasmaField";
 import CubiQoVisual from "./components/CubiQoVisual";
-import { Menu, Activity, X, Settings, Database, Shield, User, Mic, MicOff } from "lucide-react";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://cubiqo-backend.onrender.com";
+import { Menu, Activity, X, Settings, Database, Shield, User } from "lucide-react";
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -65,7 +63,7 @@ const DemoPage = () => {
 
   const callBackend = async (text) => {
     try {
-      const res = await fetch(`${BACKEND_URL}/api/converse`, {
+      const res = await fetch('/api/converse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text })
