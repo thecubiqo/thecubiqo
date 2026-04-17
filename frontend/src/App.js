@@ -6,6 +6,18 @@ import CubiQoVisual from "./components/CubiQoVisual";
 import { Menu, Activity, X, Settings, Database, Shield, User, LogOut, Mail, Lock } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
+const SignalIcon = ({ size = 18 }) => (
+  <div style={{
+    width: size * 0.9, height: size * 1.8, background: 'rgba(255,255,255,0.08)',
+    borderRadius: '100px', display: 'flex', flexDirection: 'column',
+    alignItems: 'center', justifyContent: 'center', gap: size * 0.2, border: '1px solid rgba(255,255,255,0.1)'
+  }}>
+    <div style={{ width: size * 0.35, height: size * 0.35, borderRadius: '50%', background: '#f87171', boxShadow: '0 0 8px rgba(248,113,113,0.4)' }} />
+    <div style={{ width: size * 0.35, height: size * 0.35, borderRadius: '50%', background: '#fbbf24', boxShadow: '0 0 8px rgba(251,191,36,0.4)' }} />
+    <div style={{ width: size * 0.35, height: size * 0.35, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 8px rgba(52,211,153,0.4)' }} />
+  </div>
+);
+
 const LandingPage = () => {
   const navigate = useNavigate();
   return (
@@ -210,7 +222,7 @@ const DemoPage = () => {
             cursor: 'pointer', transition: 'all 0.25s ease',
             boxShadow: open ? '0 0 0 1px rgba(255,255,255,0.15)' : 'none'
           }}>
-            {open ? <X size={18} /> : <Icon size={18} />}
+            {open ? <X size={18} /> : (Icon === Activity ? <SignalIcon size={18} /> : <Icon size={18} />)}
           </button>
         ))}
 
@@ -244,10 +256,22 @@ const DemoPage = () => {
 
         {/* LEFT PANEL */}
         <div style={{ ...panelBase, left: '28px', transform: leftPanelOpen ? 'translateX(0)' : 'translateX(-130%)', opacity: leftPanelOpen ? 1 : 0, pointerEvents: leftPanelOpen ? 'auto' : 'none', padding: '32px 24px' }}>
-          {/* Logo */}
-          <div style={{ marginBottom: 36 }}>
-            <div style={{ fontSize: '1.4rem', fontWeight: 200, color: '#fff', letterSpacing: 5, fontFamily: "'SF Pro Display','Inter',sans-serif" }}>CubiQo<sup style={{ fontSize: '0.55rem', opacity: 0.4, letterSpacing: 1 }}>™</sup></div>
-            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', letterSpacing: 2, marginTop: 4, textTransform: 'uppercase' }}>One Mind. Many Dimensions.</div>
+          {/* Logo Brand Lockup */}
+          <div style={{ marginBottom: 40 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 0, fontFamily: "'SF Pro Display','Inter',sans-serif" }}>
+              <span style={{ fontSize: '1.8rem', fontWeight: 600, color: '#ff6b35', letterSpacing: -1 }}>C</span>
+              <span style={{ fontSize: '1.8rem', fontWeight: 500, color: '#fff', letterSpacing: -1 }}>ub</span>
+              <span style={{ fontSize: '1.8rem', fontWeight: 600, color: '#ff6b35', letterSpacing: -1 }}>i</span>
+              <span style={{ fontSize: '1.8rem', fontWeight: 500, color: '#fff', letterSpacing: -1 }}>Qo</span>
+              <sup style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', marginLeft: 2 }}>TM</sup>
+            </div>
+            <div style={{ 
+              fontSize: '0.58rem', color: '#ff6b35', letterSpacing: 3.5, 
+              marginTop: 6, textTransform: 'uppercase', fontWeight: 600,
+              opacity: 0.9, whiteSpace: 'nowrap'
+            }}>
+              Home to General Intelligence
+            </div>
           </div>
 
           {/* Nav */}
@@ -336,11 +360,8 @@ const DemoPage = () => {
             ))}
           </div>
 
-          {/* Active category detail */}
-          <div style={{ marginBottom: 24, textAlign: 'center' }}>
-            <div style={{ color: active.hex, fontSize: '0.9rem', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>{active.label}</div>
-            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', marginTop: 4 }}>{active.desc}</div>
-          </div>
+          {/* Category detail removed - no literal explanation needed */}
+          <div style={{ marginBottom: 24 }} />
 
           {/* Keywords */}
           <div style={{ flex: 1, overflowY: 'auto' }}>

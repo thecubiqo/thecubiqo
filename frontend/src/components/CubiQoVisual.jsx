@@ -40,16 +40,17 @@ const CubiQoVisual = ({
   useEffect(() => { isEnabledRef.current = isEnabled; }, [isEnabled]);
   useEffect(() => { aiStateRef.current = aiState; }, [aiState]);
   
-  // Color palettes
+  // Color palettes matching the reference images (Teal/Blue -> Purple -> Magenta)
   const colorPalettes = {
-    neutral: ['#00ffff', '#00d4ff', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'],
-    thinking: ['#00ffff', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#f59e0b', '#f97316'],
-    speaking: ['#10b981', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#fbbf24'],
-    listening: ['#22d3ee', '#06b6d4', '#3b82f6', '#8b5cf6', '#c026d3', '#ec4899', '#f97316'],
-    error: ['#f43f5e', '#ef4444', '#dc2626', '#b91c1c', '#ec4899']
+    neutral: ['#00d4ff', '#00b4d8', '#7b2cbf', '#9d4edd', '#c77dff', '#e0aaff', '#ff006e'],
+    thinking: ['#00d4ff', '#4895ef', '#7209b7', '#b5179e', '#f72585'],
+    speaking: ['#4cc9f0', '#4361ee', '#3a0ca3', '#7209b7', '#f72585'],
+    listening: ['#4895ef', '#560bad', '#b5179e', '#f72585', '#ff4d6d'],
+    error: ['#ff4d6d', '#ff0000', '#c9184a', '#800f2f']
   };
   
-  const orangeSoulColor = new THREE.Color('#ff6b35');
+  // Reddish-orange soul color as seen in the images
+  const orangeSoulColor = new THREE.Color('#ff4d00');
   
   useEffect(() => {
     if (!containerRef.current) return;
@@ -81,7 +82,7 @@ const CubiQoVisual = ({
     rendererRef.current = renderer;
     
     // Create unified particle system for both states
-    const particleCount = 100000;
+    const particleCount = 200000;
     const geometry = new THREE.BufferGeometry();
     
     const positions = new Float32Array(particleCount * 3);
@@ -172,7 +173,7 @@ const CubiQoVisual = ({
         colors[i3 + 1] = THREE.MathUtils.lerp(c1.g, c2.g, cBlend);
         colors[i3 + 2] = THREE.MathUtils.lerp(c1.b, c2.b, cBlend);
         
-        sizes[idx] = 0.06 + Math.random() * 0.04;
+        sizes[idx] = 0.03 + Math.random() * 0.03;
         phases[idx] = xNorm * Math.PI * 4 + r * 0.5 + Math.random() * 0.5;
         ribbonIndex[idx] = r;
         isSoulNode[idx] = 0;
@@ -205,7 +206,7 @@ const CubiQoVisual = ({
       colors[i3 + 1] = orangeSoulColor.g;
       colors[i3 + 2] = orangeSoulColor.b;
       
-      sizes[idx] = 0.08 + Math.random() * 0.06;
+      sizes[idx] = 0.05 + Math.random() * 0.04;
       phases[idx] = Math.random() * Math.PI * 2;
       ribbonIndex[idx] = -1;
       isSoulNode[idx] = 1;
@@ -299,13 +300,18 @@ const CubiQoVisual = ({
           const ribbon = ribbonIndex[i];
           const isSoul = isSoulNode[i];
           
+          // Movement Toggle: Alternate between Wave and Soul movement
+          // oscillationFactor: 0 = Soul moves, 1 = Waves move
+          const cycleTime = time * 0.5;
+          const oscillationFactor = Math.sin(cycleTime) * 0.5 + 0.5; // Smoothly moves between 0 and 1
+          
           // Wave animation
           let waveX = wavePositions[i3];
           let waveY = wavePositions[i3 + 1];
           let waveZ = wavePositions[i3 + 2];
           
           if (ribbon >= 0) {
-            // Ribbon wave motion
+            // Ribbon wave motion (multiplied by oscillationFactor)
             const xNorm = (waveX / 25) + 0.5;
             const wave1 = Math.sin(phase + time * 0.8) * 2.5;
             const wave2 = Math.sin(phase * 0.5 + time * 0.6) * 1.5;
@@ -317,12 +323,13 @@ const CubiQoVisual = ({
             const mDist = Math.sqrt(dx * dx + dz * dz);
             const mouseWave = Math.max(0, 1 - mDist / 8) * 2 * Math.sin(time * 4 + mDist * 0.3);
             
-            waveY = wavePositions[i3 + 1] + (wave1 + wave2 + wave3) * audioMult * 0.4 + mouseWave;
+            waveY = wavePositions[i3 + 1] + (wave1 + wave2 + wave3) * audioMult * 0.4 * oscillationFactor + mouseWave;
           } else if (isSoul > 0) {
-            // Soul node floating
-            waveX = wavePositions[i3] + Math.sin(time * 0.5 + phase) * 0.5;
-            waveY = wavePositions[i3 + 1] + Math.cos(time * 0.3 + phase) * 0.4;
-            waveZ = wavePositions[i3 + 2] + Math.sin(time * 0.4 + phase) * 0.3;
+            // Soul node floating (multiplied by 1 - oscillationFactor)
+            const soulMovement = 1.0 - oscillationFactor;
+            waveX = wavePositions[i3] + Math.sin(time * 0.5 + phase) * 0.8 * soulMovement;
+            waveY = wavePositions[i3 + 1] + Math.cos(time * 0.3 + phase) * 0.7 * soulMovement;
+            waveZ = wavePositions[i3 + 2] + Math.sin(time * 0.4 + phase) * 0.6 * soulMovement;
           }
           
           // Cube animation
