@@ -98,50 +98,64 @@ const CubiQoVisual = ({
     
     const palette = colorPalettes.neutral;
     
-    // Create particles in a misty, amorphous pattern
+    // Create a horizontal "Nebula Belt"
+    const ribbonCount = 20;
+    const perRibbon = Math.floor(particleCount / ribbonCount);
+    
     let idx = 0;
-    for (let i = 0; i < particleCount; i++) {
-      const i3 = i * 3;
+    for (let r = 0; r < ribbonCount; r++) {
+      const ribbonY = (r / (ribbonCount - 1) - 0.5) * 4; // Centered vertical spread
       
-      const xNorm = Math.random();
-      const x = (xNorm - 0.5) * 40;
-      const spread = 8 + Math.random() * 6;
-      const y = (Math.random() - 0.5) * spread;
-      const z = (Math.random() - 0.5) * spread;
-      
-      wavePositions[i3] = x;
-      wavePositions[i3 + 1] = y;
-      wavePositions[i3 + 2] = z;
-      
-      // Target position (condensed soul center)
-      const radius = 2 + Math.random() * 4;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-      cubePositions[i3] = radius * Math.sin(phi) * Math.cos(theta);
-      cubePositions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-      cubePositions[i3 + 2] = radius * Math.cos(phi);
-      
-      // Initial position
-      positions[i3] = x;
-      positions[i3 + 1] = y;
-      positions[i3 + 2] = z;
-      
-      // Color gradient (Teal -> Purple -> Red)
-      const cIdx = Math.min(Math.floor(xNorm * (palette.length - 1)), palette.length - 2);
-      const cBlend = (xNorm * (palette.length - 1)) % 1;
-      const c1 = new THREE.Color(palette[cIdx]);
-      const c2 = new THREE.Color(palette[cIdx + 1]);
-      
-      colors[i3] = THREE.MathUtils.lerp(c1.r, c2.r, cBlend);
-      colors[i3 + 1] = THREE.MathUtils.lerp(c1.g, c2.g, cBlend);
-      colors[i3 + 2] = THREE.MathUtils.lerp(c1.b, c2.b, cBlend);
-      
-      sizes[idx] = 0.02 + Math.random() * 0.03;
-      phases[idx] = Math.random() * Math.PI * 2;
-      ribbonIndex[idx] = Math.random() < 0.8 ? 1 : -1; // 80% nebula, 20% soul
-      isSoulNode[idx] = ribbonIndex[idx] === -1 ? 1 : 0;
-      
-      idx++;
+      for (let p = 0; p < perRibbon; p++) {
+        const i3 = idx * 3;
+        const xNorm = p / perRibbon;
+        const x = (xNorm - 0.5) * 30; // Horizontal belt
+        
+        // Nebula "Mist" spread with a curved S-spine
+        const spineCurve = Math.sin(xNorm * Math.PI * 2) * 3;
+        const mistX = (Math.random() - 0.5) * 0.5;
+        const mistY = (Math.random() - 0.5) * 3.5;
+        const mistZ = (Math.random() - 0.5) * 5;
+        
+        wavePositions[i3] = x + mistX;
+        wavePositions[i3 + 1] = ribbonY + spineCurve + mistY;
+        wavePositions[i3 + 2] = mistZ;
+        
+        // "Active" state condensation
+        const radius = 1 + Math.random() * 3;
+        const angle = Math.random() * Math.PI * 2;
+        cubePositions[i3] = radius * Math.cos(angle);
+        cubePositions[i3 + 1] = radius * Math.sin(angle);
+        cubePositions[i3 + 2] = (Math.random() - 0.5) * 4;
+        
+        positions[i3] = wavePositions[i3];
+        positions[i3 + 1] = wavePositions[i3 + 1];
+        positions[i3 + 2] = wavePositions[i3 + 2];
+        
+        // Color gradient based on X (Teal -> Purple -> Red)
+        const cIdx = Math.min(Math.floor(xNorm * (palette.length - 1)), palette.length - 2);
+        const cBlend = (xNorm * (palette.length - 1)) % 1;
+        const c1 = new THREE.Color(palette[cIdx]);
+        const c2 = new THREE.Color(palette[cIdx + 1]);
+        
+        colors[i3] = THREE.MathUtils.lerp(c1.r, c2.r, cBlend);
+        colors[i3 + 1] = THREE.MathUtils.lerp(c1.g, c2.g, cBlend);
+        colors[i3 + 2] = THREE.MathUtils.lerp(c1.b, c2.b, cBlend);
+        
+        sizes[idx] = 0.04 + Math.random() * 0.06;
+        phases[idx] = xNorm * Math.PI * 6 + r * 0.8 + Math.random() * 1.0;
+        ribbonIndex[idx] = r;
+        isSoulNode[idx] = Math.random() < 0.1 ? 1 : 0; // 10% are soul nodes
+        
+        if (isSoulNode[idx]) {
+          colors[i3] = orangeSoulColor.r;
+          colors[i3 + 1] = orangeSoulColor.g;
+          colors[i3 + 2] = orangeSoulColor.b;
+          sizes[idx] *= 1.5;
+        }
+        
+        idx++;
+      }
     }
     
     // Removed soul node separate loop as it's merged into the main misty creation loop above
@@ -200,10 +214,10 @@ const CubiQoVisual = ({
           if (vDepth > 15.0) shiftColor.r *= 1.1;
           else if (vDepth < 8.0) shiftColor.b *= 1.1;
           
-          vec3 finalColor = shiftColor * intensity * 2.2;
-          finalColor += vec3(1.0) * core * 0.6; // Brighter core
+          vec3 finalColor = shiftColor * intensity * 3.5;
+          finalColor += vec3(1.0) * core * 0.8; // Much brighter core
           
-          gl_FragColor = vec4(finalColor, intensity * 0.85);
+          gl_FragColor = vec4(finalColor, intensity * 0.95);
         }
       `,
       transparent: true,
@@ -259,19 +273,20 @@ const CubiQoVisual = ({
           let waveZ = wavePositions[i3 + 2];
           
           if (ribbon >= 0) {
-            // Ribbon wave motion (multiplied by oscillationFactor)
-            const xNorm = (waveX / 25) + 0.5;
-            const wave1 = Math.sin(phase + time * 0.8) * 2.5;
-            const wave2 = Math.sin(phase * 0.5 + time * 0.6) * 1.5;
-            const wave3 = Math.cos(phase * 0.3 + time * 1.0) * 1.0;
+            // Ribbon nebula movement
+            const xNorm = (waveX / 30) + 0.5;
+            const wave1 = Math.sin(phase + time * 0.8) * 1.5;
+            const wave2 = Math.sin(phase * 0.4 + time * 1.2) * 1.0;
+            const wave3 = Math.cos(phase * 0.6 + time * 0.5) * 0.8;
             
-            // Mouse influence on waves
+            // Mouse influence
             const dx = waveX - mouseRef.current.x * 12;
             const dz = waveZ - mouseRef.current.y * 8;
             const mDist = Math.sqrt(dx * dx + dz * dz);
-            const mouseWave = Math.max(0, 1 - mDist / 8) * 2 * Math.sin(time * 4 + mDist * 0.3);
+            const mouseWave = Math.max(0, 1 - mDist / 10) * 2 * Math.sin(time * 4 + mDist * 0.3);
             
-            waveY = wavePositions[i3 + 1] + (wave1 + wave2 + wave3) * audioMult * 0.4 * oscillationFactor + mouseWave;
+            waveY = wavePositions[i3 + 1] + (wave1 + wave2 + wave3) * audioMult * 0.8 * oscillationFactor + mouseWave;
+            waveZ = wavePositions[i3 + 2] + Math.sin(phase * 0.5 + time) * 1.5 * oscillationFactor;
           } else if (isSoul > 0) {
             // Soul node floating (multiplied by 1 - oscillationFactor)
             // Focused "soul" core movement
