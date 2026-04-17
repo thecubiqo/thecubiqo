@@ -232,7 +232,8 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
     const animate = () => {
       timeRef.current += 0.008;
       const time = timeRef.current;
-      const palette = colorPalettes[currentAiStateRef.current] || colorPalettes.neutral;
+      const paletteStrings = colorPalettes[currentAiStateRef.current] || colorPalettes.neutral;
+      const palette = paletteStrings.map(c => new THREE.Color(c));
       const audioMult = 1 + audioLevelRef.current * 2.5;
       
       waveSystemsRef.current.forEach((layer) => {
@@ -266,8 +267,8 @@ const PlasmaField = ({ aiState = 'neutral', onAudioLevelChange }) => {
           // Dynamic colors
           const cIdx = Math.min(Math.floor(xN * (palette.length - 1)), palette.length - 2);
           const cBlend = (xN * (palette.length - 1)) % 1;
-          const c1 = new THREE.Color(palette[cIdx]);
-          const c2 = new THREE.Color(palette[cIdx + 1]);
+          const c1 = palette[cIdx];
+          const c2 = palette[cIdx + 1];
           
           const heightBoost = 1 + Math.abs(w1) * 0.15;
           colorAttr.array[i3] = THREE.MathUtils.lerp(c1.r, c2.r, cBlend) * heightBoost;

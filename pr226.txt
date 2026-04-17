@@ -1,0 +1,25 @@
+title:	Replace main with conflict26 branch content
+state:	OPEN
+author:	copilot-swe-agent
+labels:	
+assignees:	Copilot, CubiqoUnited
+reviewers:	github-code-quality (Commented), CubiqoUnited (Requested)
+projects:	
+milestone:	
+number:	226
+url:	https://github.com/thecubiqo/thecubiqo/pull/226
+additions:	9045
+deletions:	673388
+auto-merge:	disabled
+--
+Replaces the entire contents of `main` with the state of the `conflict26` branch — equivalent to a forced merge of `conflict26` into `main`.
+
+## Changes
+- Removed all files exclusive to `main` (1,734 files changed)
+- Applied all files from `origin/conflict26`, overwriting previous `main` state
+- Net result: `main` will be identical to `conflict26` after this PR merges
+
+<!-- START COPILOT CODING AGENT TIPS -->
+---
+
+💡 You can make Copilot smarter by setting up custom instructions, customizing its development environment and configuring Model Context Protocol (MCP) servers. Learn more [Copilot coding agent tips](https://gh.io/copilot-coding-agent-tips) in the docs.

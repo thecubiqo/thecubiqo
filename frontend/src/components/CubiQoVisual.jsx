@@ -278,7 +278,10 @@ const CubiQoVisual = ({
       morphProgressRef.current += (targetMorph - morphProgressRef.current) * 0.08;
       const morph = morphProgressRef.current;
       
-      const currentPalette = colorPalettes[aiStateRef.current] || colorPalettes.neutral;
+      const currentPaletteStrings = colorPalettes[aiStateRef.current] || colorPalettes.neutral;
+      // Pre-parse colors to avoid creating 100k objects per frame
+      const currentPalette = currentPaletteStrings.map(c => new THREE.Color(c));
+      
       const audioMult = 1 + audioLevelRef.current * 2;
       
       if (particlesRef.current) {
@@ -350,8 +353,8 @@ const CubiQoVisual = ({
             const xNorm = Math.max(0, Math.min(1, (wavePositions[i3] / 25) + 0.5));
             const cIdx = Math.min(Math.floor(xNorm * (currentPalette.length - 1)), currentPalette.length - 2);
             const cBlend = (xNorm * (currentPalette.length - 1)) % 1;
-            const c1 = new THREE.Color(currentPalette[cIdx]);
-            const c2 = new THREE.Color(currentPalette[cIdx + 1]);
+            const c1 = currentPalette[cIdx];
+            const c2 = currentPalette[cIdx + 1];
             
             colorAttr.array[i3] = THREE.MathUtils.lerp(c1.r, c2.r, cBlend);
             colorAttr.array[i3 + 1] = THREE.MathUtils.lerp(c1.g, c2.g, cBlend);

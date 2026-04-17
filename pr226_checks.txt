@@ -1,0 +1,8 @@
+Vercel – cubiqo-diagnosis	fail	0	https://vercel.com/cubiqo-projects-d7156840/cubiqo-diagnosis/7mZKt8SyE7JNNHZDjZfSjCAt7H2u	Deployment has failed
+Vercel – cubiqo-repo	fail	0	https://vercel.com/cubiqo-projects-d7156840/cubiqo-repo/7kYNwX4xN8B5ernLkzat1LZvFaiY	Deployment has failed
+Vercel – cubiqo-repo-check	fail	0	https://vercel.com/cubiqo-projects-d7156840/cubiqo-repo-check/6RkaQR4tGbeL5ZAHXX6XfFDhZERj	Deployment has failed
+Vercel – my-cubiqo	fail	0	https://vercel.com/cubiqo-projects-d7156840/my-cubiqo/4Sa2QqEsvJGmpCiJ3ViJCBGAe6wp	Deployment has failed
+Vercel – staging0217-full-app	fail	0	https://vercel.com/cubiqo-projects-d7156840/staging0217-full-app/BPncKRwJXbMzMusZcMbBcGECjyj4	Deployment has failed
+Analyze (javascript-typescript)	pass	44s	https://github.com/thecubiqo/thecubiqo/actions/runs/23159496626/job/67283198613	
+Vercel Preview Comments	pass	0	https://vercel.com/github	
+Vercel Agent Review	skipping	0	https://vercel.com/github	
