@@ -6,7 +6,7 @@
     "node": ">=18.x"
   },
   "scripts": {
-    "build": "cd frontend && yarn install && CI=false yarn build",
-    "start": "cd frontend && yarn start"
+    "build": "cd frontend && npm install --legacy-peer-deps && CI=false npm run build",
+    "start": "cd frontend && npm start"
   }
 }
