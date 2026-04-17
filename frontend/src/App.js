@@ -3,7 +3,8 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import PlasmaField from "./components/PlasmaField";
 import CubiQoVisual from "./components/CubiQoVisual";
-import { Menu, Activity, X, Settings, Database, Shield, User } from "lucide-react";
+import { Menu, Activity, X, Settings, Database, Shield, User, LogOut, Mail, Lock } from "lucide-react";
+import { supabase } from "./lib/supabase";
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -30,36 +31,78 @@ const DemoPage = () => {
   const [activeModal, setActiveModal] = useState(null);
   const [keywords, setKeywords] = useState({ red: [], green: [], yellow: [] });
   const [selectedKeywordColor, setSelectedKeywordColor] = useState('green');
-  const recognitionRef = useRef(null);
-  const audioRef = useRef(null);
+  const [user, setUser] = useState(null);
+  const [authView, setAuthView] = useState('login'); // 'login' | 'signup'
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
 
   const aiState = speakerEnabled ? 'listening' : (isProcessing ? 'thinking' : 'neutral');
 
+  const recognitionRef = useRef(null);
+  const audioRef = useRef(null);
+  const transcriptRef = useRef('');
+  const callBackendRef = useRef(null);
+
+  // Supabase auth session listener
   useEffect(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SR) {
-      recognitionRef.current = new SR();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.onresult = (e) => {
-        let t = "";
-        for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
-        setTranscript(t);
-      };
-      recognitionRef.current.onend = () => {
-        setSpeakerEnabled(false);
-        setIsProcessing(true);
-      };
-    }
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) setActiveModal(null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
+  const handleSignIn = async (e) => {
+    e.preventDefault();
+    setAuthLoading(true); setAuthError('');
+    const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+    if (error) setAuthError(error.message);
+    setAuthLoading(false);
+  };
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    setAuthLoading(true); setAuthError('');
+    const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
+    if (error) setAuthError(error.message);
+    else setAuthError('Check your email to confirm your account.');
+    setAuthLoading(false);
+  };
+  const handleSignOut = async () => { await supabase.auth.signOut(); };
+
   useEffect(() => {
-    if (!speakerEnabled && isProcessing && transcript) {
-      callBackend(transcript);
-    } else if (!speakerEnabled && isProcessing && !transcript) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = 'en-US';
+    rec.onresult = (e) => {
+      let t = '';
+      for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+      transcriptRef.current = t;
+      setTranscript(t);
+    };
+    rec.onerror = (e) => {
+      console.warn('Speech error:', e.error);
+      setSpeakerEnabled(false);
       setIsProcessing(false);
-    }
-  }, [speakerEnabled, isProcessing]);
+    };
+    rec.onend = () => {
+      const text = transcriptRef.current.trim();
+      transcriptRef.current = '';
+      setTranscript('');
+      setSpeakerEnabled(false);
+      if (text) {
+        setIsProcessing(true);
+        callBackendRef.current(text);
+      }
+    };
+    recognitionRef.current = rec;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const callBackend = async (text) => {
     try {
@@ -94,17 +137,32 @@ const DemoPage = () => {
       setTranscript("");
     }
   };
+  callBackendRef.current = callBackend;
 
   const toggleListening = () => {
-    if (!speakerEnabled && !isProcessing) {
+    if (isProcessing) return;
+    if (!speakerEnabled) {
+      transcriptRef.current = '';
+      setTranscript('');
       setSpeakerEnabled(true);
-      setTranscript("");
-      if (recognitionRef.current) {
-        try { recognitionRef.current.start(); } catch (e) { console.error(e); }
+      try {
+        recognitionRef.current?.start();
+      } catch (e) {
+        // Fallback: simulate for browsers without mic/Speech API
+        setSpeakerEnabled(true);
+        setTimeout(() => {
+          const fake = 'simulated voice input about balance and focus';
+          transcriptRef.current = fake;
+          setTranscript(fake);
+          recognitionRef.current?.dispatchEvent && recognitionRef.current.dispatchEvent(new Event('end'));
+          // manual fallback
+          setSpeakerEnabled(false);
+          setIsProcessing(true);
+          callBackend(fake);
+        }, 3000);
       }
-    } else if (speakerEnabled) {
-      setSpeakerEnabled(false);
-      if (recognitionRef.current) recognitionRef.current.stop();
+    } else {
+      recognitionRef.current?.stop(); // triggers onend which handles the rest
     }
   };
 
@@ -227,19 +285,35 @@ const DemoPage = () => {
             ))}
           </div>
 
-          {/* Profile */}
-          <div onClick={() => setActiveModal('profile')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, cursor: 'pointer', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', transition: 'all 0.2s' }}
-            onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-            onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
-          >
-            <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <User size={17} color="#fff" />
+          {/* Profile / Auth */}
+          {user ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <User size={17} color="#fff" />
+              </div>
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                <div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
+                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem' }}>Signed in</div>
+              </div>
+              <button onClick={handleSignOut} title="Sign out" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', padding: 4 }}>
+                <LogOut size={15} />
+              </button>
             </div>
-            <div>
-              <div style={{ color: '#fff', fontSize: '0.88rem', fontWeight: 500 }}>Your Profile</div>
-              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.72rem' }}>Manage account</div>
+          ) : (
+            <div onClick={() => setActiveModal('auth')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, cursor: 'pointer', background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.2)', transition: 'all 0.2s' }}
+              onMouseOver={e => e.currentTarget.style.background = 'rgba(0,212,255,0.12)'}
+              onMouseOut={e => e.currentTarget.style.background = 'rgba(0,212,255,0.06)'}
+            >
+              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(0,212,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <User size={17} color="#00d4ff" />
+              </div>
+              <div>
+                <div style={{ color: '#00d4ff', fontSize: '0.88rem', fontWeight: 500 }}>Sign In</div>
+                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.72rem' }}>Create or access account</div>
+              </div>
             </div>
-          </div>
+          )}
+
         </div>
 
         {/* RIGHT PANEL */}
@@ -308,8 +382,8 @@ const DemoPage = () => {
               <button onClick={() => setActiveModal(null)} style={{ position: 'absolute', top: 18, right: 18, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}>
                 <X size={16} />
               </button>
-              <h2 style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 300, marginBottom: 8, letterSpacing: 0.5 }}>{activeModal.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</h2>
-              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', marginBottom: 28, lineHeight: 1.7 }}>Configure your CubiQo experience. All changes sync across sessions.</p>
+              <h2 style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 300, marginBottom: 8, letterSpacing: 0.5 }}>{activeModal === 'auth' ? (authView === 'login' ? 'Welcome back' : 'Create account') : activeModal.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</h2>
+              {activeModal !== 'auth' && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', marginBottom: 28, lineHeight: 1.7 }}>Configure your CubiQo experience. All changes sync across sessions.</p>}
 
               {activeModal === 'settings' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -333,7 +407,28 @@ const DemoPage = () => {
                   ))}
                 </div>
               )}
-              {activeModal !== 'settings' && activeModal !== 'integrations' && (
+              {activeModal === 'auth' && (
+                <form onSubmit={authView === 'login' ? handleSignIn : handleSignUp} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+                    {['login', 'signup'].map(v => (
+                      <button key={v} type="button" onClick={() => { setAuthView(v); setAuthError(''); }} style={{ flex: 1, padding: '8px', borderRadius: 10, cursor: 'pointer', border: 'none', background: authView === v ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)', color: authView === v ? '#00d4ff' : 'rgba(255,255,255,0.4)', fontSize: '0.82rem', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>
+                        {v === 'login' ? 'Sign In' : 'Sign Up'}
+                      </button>
+                    ))}
+                  </div>
+                  {[{ label: 'Email', val: authEmail, set: setAuthEmail, type: 'email', Icon: Mail }, { label: 'Password', val: authPassword, set: setAuthPassword, type: 'password', Icon: Lock }].map(({ label, val, set, type, Icon }) => (
+                    <div key={label} style={{ position: 'relative' }}>
+                      <Icon size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
+                      <input type={type} placeholder={label} value={val} onChange={e => set(e.target.value)} required style={{ width: '100%', padding: '13px 14px 13px 40px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: '#fff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }} />
+                    </div>
+                  ))}
+                  {authError && <div style={{ color: authError.includes('Check your') ? '#34d399' : '#f87171', fontSize: '0.8rem', padding: '8px 12px', background: authError.includes('Check your') ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', borderRadius: 8 }}>{authError}</div>}
+                  <button type="submit" disabled={authLoading} style={{ padding: '13px', background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)', border: 'none', borderRadius: 12, color: '#fff', fontSize: '0.9rem', fontWeight: 600, cursor: authLoading ? 'not-allowed' : 'pointer', opacity: authLoading ? 0.7 : 1, marginTop: 4 }}>
+                    {authLoading ? 'Loading...' : authView === 'login' ? 'Sign In' : 'Create Account'}
+                  </button>
+                </form>
+              )}
+              {activeModal !== 'settings' && activeModal !== 'integrations' && activeModal !== 'auth' && (
                 <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: '1px dashed rgba(255,255,255,0.1)' }}>
                   <span style={{ color: 'rgba(255,255,255,0.3)', fontStyle: 'italic', fontSize: '0.85rem' }}>System connected. Ready.</span>
                 </div>
