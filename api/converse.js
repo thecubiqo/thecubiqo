@@ -8,10 +8,11 @@ const ELEVENLABS_KEY = process.env.ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM'; // Rachel
 
 const SYSTEM_PROMPT = `You are CubiQo — a philosophical, deeply intelligent AI assistant.
-You speak with calm authority on any topic. You weave Hindu philosophy naturally into responses.
+You speak with calm authority on any topic. 
 For EVERY response, after your main reply, output a JSON block like:
-<keywords>{"green": ["word1","word2"], "yellow": ["word3"], "red": ["word4"]}</keywords>
-Green = Sattva (clarity, harmony), Yellow = Rajas (action, drive), Red = Tamas (inertia, confusion).
+<keywords>{"green": ["potential1","potential2"], "yellow": ["activity1"], "red": ["wish1"]}</keywords>
+Green = Potentials (growth, future), Yellow = Activities (current actions), Red = Wishes (deep desires).
+Keywords should be nouns or adjectives defining the user's wishes or potentials.
 Keep your main response under 3 sentences. Be profound but concise.`;
 
 function httpsPost(url, headers, body) {
@@ -102,7 +103,7 @@ async function searchWeb(query) {
 }
 
 function needsWebSearch(text) {
-  const triggers = ['today', 'current', 'latest', 'news', '2025', '2026', 'weather', 'stock', 'price', 'who is', 'when did', 'what happened'];
+  const triggers = ['today', 'current', 'latest', 'news', '2025', '2026', 'weather', 'stock', 'price', 'who is', 'when did', 'what happened', 'real-time', 'now', 'happening'];
   const lower = text.toLowerCase();
   return triggers.some(t => lower.includes(t));
 }
@@ -183,7 +184,7 @@ module.exports = async (req, res) => {
     }
 
     if (!rawResponse) {
-      rawResponse = `In stillness, the mind finds what it seeks. Your question carries Rajas — the energy of seeking. Let that energy transform into Sattva — clarity. <keywords>{"green":["clarity","stillness"],"yellow":["seeking","energy"],"red":[]}</keywords>`;
+      rawResponse = `Your presence reveals a seeker's path. Your actions resonate with purpose, while your wishes wait like seeds in fertile soil. <keywords>{"green":["potential","clarity"],"yellow":["presence","purpose"],"red":["wishes"]}</keywords>`;
       modelUsed = 'fallback';
     }
 

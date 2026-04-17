@@ -167,9 +167,9 @@ const DemoPage = () => {
   };
 
   const colorMap = {
-    green: { label: 'Green · Sattva', desc: 'Purity, Harmony, Balance', hex: '#34d399', rgb: '52,211,153' },
-    yellow: { label: 'Yellow · Rajas', desc: 'Action, Passion, Energy', hex: '#fbbf24', rgb: '251,191,36' },
-    red: { label: 'Red · Tamas', desc: 'Inertia, Chaos, Imbalance', hex: '#f87171', rgb: '248,113,113' }
+    green: { label: 'Potential', desc: 'Growth and future wishes', hex: '#34d399', rgb: '52,211,153' },
+    yellow: { label: 'Activity', desc: 'Current drives and actions', hex: '#fbbf24', rgb: '251,191,36' },
+    red: { label: 'Wish', desc: 'Deep desires and goals', hex: '#f87171', rgb: '248,113,113' }
   };
   const active = colorMap[selectedKeywordColor];
 
@@ -324,25 +324,22 @@ const DemoPage = () => {
           </div>
 
           {/* Category tabs */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-            {Object.entries(colorMap).map(([id, { label, hex }]) => (
+          <div style={{ display: 'flex', gap: 12, marginBottom: 24, justifyContent: 'center' }}>
+            {Object.entries(colorMap).map(([id, { hex }]) => (
               <button key={id} onClick={() => setSelectedKeywordColor(id)} style={{
-                flex: 1, padding: '8px 4px', borderRadius: 10, cursor: 'pointer', transition: 'all 0.25s',
-                background: selectedKeywordColor === id ? `rgba(${colorMap[id].rgb},0.15)` : 'rgba(255,255,255,0.03)',
-                border: selectedKeywordColor === id ? `1px solid ${hex}50` : '1px solid rgba(255,255,255,0.06)',
-                color: selectedKeywordColor === id ? hex : 'rgba(255,255,255,0.4)',
-                fontSize: '0.68rem', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase',
-                boxShadow: selectedKeywordColor === id ? `0 0 16px ${hex}20` : 'none'
-              }}>
-                {id.charAt(0).toUpperCase() + id.slice(1)}
-              </button>
+                width: 48, height: 12, borderRadius: 6, cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                background: selectedKeywordColor === id ? hex : 'rgba(255,255,255,0.06)',
+                border: 'none',
+                boxShadow: selectedKeywordColor === id ? `0 0 20px ${hex}40` : 'none',
+                transform: selectedKeywordColor === id ? 'scaleY(1.2)' : 'scaleY(1)'
+              }} />
             ))}
           </div>
 
           {/* Active category detail */}
-          <div style={{ marginBottom: 20, padding: '14px 16px', background: `rgba(${active.rgb},0.08)`, borderRadius: 14, border: `1px solid ${active.hex}25` }}>
-            <div style={{ color: active.hex, fontSize: '0.85rem', fontWeight: 600 }}>{active.label}</div>
-            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.72rem', marginTop: 3 }}>{active.desc}</div>
+          <div style={{ marginBottom: 24, textAlign: 'center' }}>
+            <div style={{ color: active.hex, fontSize: '0.9rem', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>{active.label}</div>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', marginTop: 4 }}>{active.desc}</div>
           </div>
 
           {/* Keywords */}
@@ -369,10 +366,7 @@ const DemoPage = () => {
           {/* Divider */}
           <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '20px 0' }} />
 
-          {/* Philosophy note */}
-          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', lineHeight: 1.7 }}>
-            Signal maps to Hindu philosophy — Sattva (clarity), Rajas (motion), Tamas (inertia).
-          </div>
+          {/* Philosophy note removed as per request */}
         </div>
 
         {/* MODALS */}

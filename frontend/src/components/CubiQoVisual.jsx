@@ -1,4 +1,4 @@
-﻿import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
 
 /**
@@ -81,7 +81,7 @@ const CubiQoVisual = ({
     rendererRef.current = renderer;
     
     // Create unified particle system for both states
-    const particleCount = 50000;
+    const particleCount = 100000;
     const geometry = new THREE.BufferGeometry();
     
     const positions = new Float32Array(particleCount * 3);
@@ -251,11 +251,11 @@ const CubiQoVisual = ({
           float innerGlow = exp(-dist * 5.0);
           float outerGlow = exp(-dist * 2.5) * 0.5;
           
-          float intensity = core * 0.5 + innerGlow + outerGlow;
-          vec3 finalColor = vColor * intensity * 1.4;
-          finalColor += vec3(1.0) * core * 0.3;
+          float intensity = core * 0.8 + innerGlow * 1.5 + outerGlow;
+          vec3 finalColor = vColor * intensity * 2.0;
+          finalColor += vec3(1.0) * core * 0.5;
           
-          gl_FragColor = vec4(finalColor, intensity * 0.9);
+          gl_FragColor = vec4(finalColor, intensity * 0.95);
         }
       `,
       transparent: true,
