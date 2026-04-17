@@ -97,8 +97,33 @@ const CubiQoVisual = ({
     const isSoulNode = new Float32Array(particleCount);
     
     const palette = colorPalettes.neutral;
+    const cubeSize = 3;
+    const half = cubeSize / 2;
     
-    // Create two states: "Structured Wave" and "Spread Nebula"
+    // Add amorphous state storage
+    const amorphousX = new Float32Array(particleCount);
+    const amorphousY = new Float32Array(particleCount);
+    const amorphousZ = new Float32Array(particleCount);
+
+    geom.userData = {
+      wavePositions,
+      cubePositions,
+      amorphousX,
+      amorphousY,
+      amorphousZ,
+      phases,
+      ribbonIndex,
+      isSoulNode
+    };
+    
+    // Cube definitions for morphing
+    const cubeVertices = [
+      [-half, -half, -half], [half, -half, -half], [half, half, -half], [-half, half, -half],
+      [-half, -half, half], [half, -half, half], [half, half, half], [-half, half, half]
+    ];
+    const cubeFaces = [[0,1,2,3], [4,5,6,7], [0,1,5,4], [2,3,7,6], [0,3,7,4], [1,2,6,5]];
+    
+    // Create particles with 3 state targets
     const ribbonCount = 20;
     const perRibbon = Math.floor(particleCount / ribbonCount);
     
@@ -110,18 +135,35 @@ const CubiQoVisual = ({
         const i3 = idx * 3;
         const xNorm = p / perRibbon;
         const x = (xNorm - 0.5) * 32;
-        
         const spineCurve = Math.sin(xNorm * Math.PI * 2) * 2.5;
         
-        // Target A: Structured Wave (misty but tight)
+        // Target A: Twisted S-Wave (Mock)
         wavePositions[i3] = x + (Math.random() - 0.5) * 0.2;
         wavePositions[i3 + 1] = ribbonY + spineCurve + (Math.random() - 0.5) * 1.5;
         wavePositions[i3 + 2] = (Math.random() - 0.5) * 2.0;
         
-        // Target B: Spread Nebula (more amorphous)
-        cubePositions[i3] = x + (Math.random() - 0.5) * 1.5;
-        cubePositions[i3 + 1] = ribbonY * 1.5 + spineCurve * 1.2 + (Math.random() - 0.5) * 4.0;
-        cubePositions[i3 + 2] = (Math.random() - 0.5) * 6.0;
+        // Target B: Amorphous Particles (Spread Nebula)
+        // We'll store this in a temporary array or calculate on the fly. 
+        // For simplicity, we'll use a portion of the particle data to store 'amorphous' offsets.
+        const ampX = x + (Math.random() - 0.5) * 2.0;
+        const ampY = ribbonY * 1.5 + spineCurve * 1.2 + (Math.random() - 0.5) * 4.0;
+        const ampZ = (Math.random() - 0.5) * 6.0;
+        
+        // Target C: Cuboid (Restored)
+        const faceIdx = Math.floor(Math.random() * cubeFaces.length);
+        const face = cubeFaces[faceIdx];
+        const u = Math.random(), v = Math.random();
+        const v0 = cubeVertices[face[0]], v1 = cubeVertices[face[1]];
+        const v2 = cubeVertices[face[2]], v3 = cubeVertices[face[3]];
+        const inset = 0.95 + Math.random() * 0.1;
+        cubePositions[i3] = ((1-u)*(1-v)*v0[0] + u*(1-v)*v1[0] + u*v*v2[0] + (1-u)*v*v3[0]) * inset;
+        cubePositions[i3 + 1] = ((1-u)*(1-v)*v0[1] + u*(1-v)*v1[1] + u*v*v2[1] + (1-u)*v*v3[1]) * inset;
+        cubePositions[i3 + 2] = ((1-u)*(1-v)*v0[2] + u*(1-v)*v1[2] + u*v*v2[2] + (1-u)*v*v3[2]) * inset;
+
+        // UserData to store the amorphous offsets
+        geom.userData.amorphousX[idx] = ampX;
+        geom.userData.amorphousY[idx] = ampY;
+        geom.userData.amorphousZ[idx] = ampZ;
         
         positions[i3] = wavePositions[i3];
         positions[i3 + 1] = wavePositions[i3 + 1];
@@ -261,18 +303,18 @@ const CubiQoVisual = ({
           const cycleTime = time * 0.5;
           const oscillationFactor = Math.sin(cycleTime) * 0.5 + 0.5; // Smoothly moves between 0 and 1
           
-          // Breathing morph between Structured Wave (wavePositions) and Spread Nebula (cubePositions)
+          // Breathing morph between Structured Wave (wavePositions) and Spread Nebula (amorphous)
           const breath = (Math.sin(time * 0.3) + 1) / 2;
-          const targetX = THREE.MathUtils.lerp(wavePositions[i3], cubePositions[i3], breath);
-          const targetY = THREE.MathUtils.lerp(wavePositions[i3 + 1], cubePositions[i3 + 1], breath);
-          const targetZ = THREE.MathUtils.lerp(wavePositions[i3 + 2], cubePositions[i3 + 2], breath);
+          const targetX = THREE.MathUtils.lerp(wavePositions[i3], geom.userData.amorphousX[i], breath);
+          const targetY = THREE.MathUtils.lerp(wavePositions[i3 + 1], geom.userData.amorphousY[i], breath);
+          const targetZ = THREE.MathUtils.lerp(wavePositions[i3 + 2], geom.userData.amorphousZ[i], breath);
           
           let waveX = targetX;
           let waveY = targetY;
           let waveZ = targetZ;
           
           if (ribbon >= 0) {
-            // Subtle nebula movement
+            // Subtle nebula movement (Idle)
             const wave1 = Math.sin(phase + time * 0.4) * 0.6;
             const wave2 = Math.sin(phase * 0.3 + time * 0.6) * 0.4;
             const wave3 = Math.cos(phase * 0.5 + time * 0.3) * 0.3;
