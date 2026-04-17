@@ -105,7 +105,7 @@ const CubiQoVisual = ({
     const amorphousY = new Float32Array(particleCount);
     const amorphousZ = new Float32Array(particleCount);
 
-    geom.userData = {
+    geometry.userData = {
       wavePositions,
       cubePositions,
       amorphousX,
@@ -161,9 +161,9 @@ const CubiQoVisual = ({
         cubePositions[i3 + 2] = ((1-u)*(1-v)*v0[2] + u*(1-v)*v1[2] + u*v*v2[2] + (1-u)*v*v3[2]) * inset;
 
         // UserData to store the amorphous offsets
-        geom.userData.amorphousX[idx] = ampX;
-        geom.userData.amorphousY[idx] = ampY;
-        geom.userData.amorphousZ[idx] = ampZ;
+        geometry.userData.amorphousX[idx] = ampX;
+        geometry.userData.amorphousY[idx] = ampY;
+        geometry.userData.amorphousZ[idx] = ampZ;
         
         positions[i3] = wavePositions[i3];
         positions[i3 + 1] = wavePositions[i3 + 1];
@@ -286,7 +286,7 @@ const CubiQoVisual = ({
         const geom = particlesRef.current.geometry;
         const posAttr = geom.attributes.position;
         const colorAttr = geom.attributes.color;
-        const { wavePositions, cubePositions, phases, ribbonIndex, isSoulNode } = geom.userData;
+        const { wavePositions, cubePositions, amorphousX, amorphousY, amorphousZ, phases, ribbonIndex, isSoulNode } = geom.userData;
         
         // Update material uniforms
         particlesRef.current.material.uniforms.uMorph.value = morph;
@@ -305,9 +305,9 @@ const CubiQoVisual = ({
           
           // Breathing morph between Structured Wave (wavePositions) and Spread Nebula (amorphous)
           const breath = (Math.sin(time * 0.3) + 1) / 2;
-          const targetX = THREE.MathUtils.lerp(wavePositions[i3], geom.userData.amorphousX[i], breath);
-          const targetY = THREE.MathUtils.lerp(wavePositions[i3 + 1], geom.userData.amorphousY[i], breath);
-          const targetZ = THREE.MathUtils.lerp(wavePositions[i3 + 2], geom.userData.amorphousZ[i], breath);
+          const targetX = THREE.MathUtils.lerp(wavePositions[i3], amorphousX[i], breath);
+          const targetY = THREE.MathUtils.lerp(wavePositions[i3 + 1], amorphousY[i], breath);
+          const targetZ = THREE.MathUtils.lerp(wavePositions[i3 + 2], amorphousZ[i], breath);
           
           let waveX = targetX;
           let waveY = targetY;
