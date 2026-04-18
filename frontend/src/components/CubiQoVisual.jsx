@@ -167,9 +167,9 @@ const CubiQoVisual = ({
           wavePositions[i3 + 1] = ribbonY + spineCurve + (Math.random() - 0.5) * 1.5;
           wavePositions[i3 + 2] = (Math.random() - 0.5) * 2.0;
           
-          geometry.userData.amorphousX[idx] = ampX;
-          geometry.userData.amorphousY[idx] = ampY;
-          geometry.userData.amorphousZ[idx] = ampZ;
+          geometry.userData.amorphousX[idx] = x + (Math.random() - 0.5) * 2.0;
+          geometry.userData.amorphousY[idx] = ribbonY * 1.5 + spineCurve * 1.2 + (Math.random() - 0.5) * 4.0;
+          geometry.userData.amorphousZ[idx] = (Math.random() - 0.5) * 6.0;
           
           isSoulNode[idx] = 0;
         }
