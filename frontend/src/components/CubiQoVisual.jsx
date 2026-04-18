@@ -167,14 +167,14 @@ const CubiQoVisual = ({
           cubePositions[i3 + 1] = cy * 0.8;
           cubePositions[i3 + 2] = cz * 0.8;
         } else {
-          // Standard Nebula/Wave logic
-          wavePositions[i3] = x + (Math.random() - 0.5) * 0.2;
-          wavePositions[i3 + 1] = ribbonY + spineCurve + (Math.random() - 0.5) * 1.5;
-          wavePositions[i3 + 2] = (Math.random() - 0.5) * 2.0;
+          // Clean Ribbon Wave logic (Original design as requested)
+          wavePositions[i3] = x;
+          wavePositions[i3 + 1] = ribbonY + spineCurve;
+          wavePositions[i3 + 2] = 0;
           
-          geometry.userData.amorphousX[idx] = x + (Math.random() - 0.5) * 2.0;
-          geometry.userData.amorphousY[idx] = ribbonY * 1.5 + spineCurve * 1.2 + (Math.random() - 0.5) * 4.0;
-          geometry.userData.amorphousZ[idx] = (Math.random() - 0.5) * 6.0;
+          geometry.userData.amorphousX[idx] = x;
+          geometry.userData.amorphousY[idx] = ribbonY * 1.5 + spineCurve;
+          geometry.userData.amorphousZ[idx] = 0;
           
           isSoulNode[idx] = 0;
           
@@ -326,21 +326,15 @@ const CubiQoVisual = ({
           const waveMovement = 0.2 + 0.8 * Math.max(0, cycle);      // Never fully stops, peaks smoothly
           const soulMovement = 0.2 + 0.8 * Math.max(0, -cycle);     // Takes over smoothly when wave subsides
           
-          // Breathing morph between Structured Wave (wavePositions) and Spread Nebula (amorphous)
-          const breath = (Math.sin(time * 0.3) + 1) / 2;
-          const targetX = THREE.MathUtils.lerp(wavePositions[i3], amorphousX[i], breath);
-          const targetY = THREE.MathUtils.lerp(wavePositions[i3 + 1], amorphousY[i], breath);
-          const targetZ = THREE.MathUtils.lerp(wavePositions[i3 + 2], amorphousZ[i], breath);
-          
-          let waveX = targetX;
-          let waveY = targetY;
-          let waveZ = targetZ;
+          // Stay strictly as the structured ribbon wave (no amorphous morphing)
+          let waveX = wavePositions[i3];
+          let waveY = wavePositions[i3 + 1];
+          let waveZ = wavePositions[i3 + 2];
           
           if (ribbon >= 0 && isSoul === 0) {
-            // Subtle nebula movement (Idle)
-            const wave1 = Math.sin(phase + time * 0.4) * 0.6;
-            const wave2 = Math.sin(phase * 0.3 + time * 0.6) * 0.4;
-            const wave3 = Math.cos(phase * 0.5 + time * 0.3) * 0.3;
+            // Smooth Ribbon wave movement
+            const wave1 = Math.sin(phase + time * 0.4) * 0.8;
+            const wave2 = Math.sin(phase * 0.3 + time * 0.6) * 0.5;
             
             // Mouse influence
             const dx = waveX - mouseRef.current.x * 12;
@@ -348,8 +342,8 @@ const CubiQoVisual = ({
             const mDist = Math.sqrt(dx * dx + dz * dz);
             const mouseWave = Math.max(0, 1 - mDist / 12) * 1.5 * Math.sin(time * 3 + mDist * 0.3);
             
-            waveY += (wave1 + wave2 + wave3) * audioMult * 0.6 * waveMovement + mouseWave;
-            waveZ += Math.sin(phase * 0.4 + time * 0.5) * 0.8 * waveMovement;
+            waveY += (wave1 + wave2) * audioMult * waveMovement + mouseWave;
+            waveZ += Math.sin(phase * 0.5 + time * 0.5) * 1.5 * waveMovement;
           } else if (isSoul > 0) {
             // Central "soul" cluster movement
             // Create a harmonious breathing cluster that beats harder when dominant
