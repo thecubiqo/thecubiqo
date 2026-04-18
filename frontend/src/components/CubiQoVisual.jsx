@@ -174,16 +174,23 @@ const CubiQoVisual = ({
           isSoulNode[idx] = 0;
         }
         
-        // Target C: Cuboid (Restored)
-        const faceIdx = Math.floor(Math.random() * cubeFaces.length);
-        const face = cubeFaces[faceIdx];
-        const u = Math.random(), v = Math.random();
-        const v0 = cubeVertices[face[0]], v1 = cubeVertices[face[1]];
-        const v2 = cubeVertices[face[2]], v3 = cubeVertices[face[3]];
-        const inset = 0.95 + Math.random() * 0.1;
-        cubePositions[i3] = ((1-u)*(1-v)*v0[0] + u*(1-v)*v1[0] + u*v*v2[0] + (1-u)*v*v3[0]) * inset;
-        cubePositions[i3 + 1] = ((1-u)*(1-v)*v0[1] + u*(1-v)*v1[1] + u*v*v2[1] + (1-u)*v*v3[1]) * inset;
-        cubePositions[i3 + 2] = ((1-u)*(1-v)*v0[2] + u*(1-v)*v1[2] + u*v*v2[2] + (1-u)*v*v3[2]) * inset;
+        if (isCoreSoul) {
+          // Soul nodes stay within the core during cuboid morph
+          cubePositions[i3] = cx * 0.8;
+          cubePositions[i3 + 1] = cy * 0.8;
+          cubePositions[i3 + 2] = cz * 0.8;
+        } else {
+          // Target C: Cuboid (Restored)
+          const faceIdx = Math.floor(Math.random() * cubeFaces.length);
+          const face = cubeFaces[faceIdx];
+          const u = Math.random(), v = Math.random();
+          const v0 = cubeVertices[face[0]], v1 = cubeVertices[face[1]];
+          const v2 = cubeVertices[face[2]], v3 = cubeVertices[face[3]];
+          const inset = 0.95 + Math.random() * 0.1;
+          cubePositions[i3] = ((1-u)*(1-v)*v0[0] + u*(1-v)*v1[0] + u*v*v2[0] + (1-u)*v*v3[0]) * inset;
+          cubePositions[i3 + 1] = ((1-u)*(1-v)*v0[1] + u*(1-v)*v1[1] + u*v*v2[1] + (1-u)*v*v3[1]) * inset;
+          cubePositions[i3 + 2] = ((1-u)*(1-v)*v0[2] + u*(1-v)*v1[2] + u*v*v2[2] + (1-u)*v*v3[2]) * inset;
+        }
         
         positions[i3] = wavePositions[i3];
         positions[i3 + 1] = wavePositions[i3 + 1];
@@ -316,10 +323,10 @@ const CubiQoVisual = ({
           const ribbon = ribbonIndex[i];
           const isSoul = isSoulNode[i];
           
-          // Movement Toggle: Alternate between Wave and Soul movement
-          // oscillationFactor: 0 = Soul moves, 1 = Waves move
-          const cycleTime = time * 0.5;
-          const oscillationFactor = Math.sin(cycleTime) * 0.5 + 0.5; // Smoothly moves between 0 and 1
+          // Movement Toggle: Strict alternation between Wave and Soul movement
+          const cycle = Math.sin(time * 0.5);
+          const waveMovement = Math.max(0, cycle);      // 0 to 1 when cycle is positive
+          const soulMovement = Math.max(0, -cycle);     // 0 to 1 when cycle is negative
           
           // Breathing morph between Structured Wave (wavePositions) and Spread Nebula (amorphous)
           const breath = (Math.sin(time * 0.3) + 1) / 2;
@@ -343,13 +350,12 @@ const CubiQoVisual = ({
             const mDist = Math.sqrt(dx * dx + dz * dz);
             const mouseWave = Math.max(0, 1 - mDist / 12) * 1.5 * Math.sin(time * 3 + mDist * 0.3);
             
-            waveY += (wave1 + wave2 + wave3) * audioMult * 0.6 * oscillationFactor + mouseWave;
-            waveZ += Math.sin(phase * 0.4 + time * 0.5) * 0.8 * oscillationFactor;
+            waveY += (wave1 + wave2 + wave3) * audioMult * 0.6 * waveMovement + mouseWave;
+            waveZ += Math.sin(phase * 0.4 + time * 0.5) * 0.8 * waveMovement;
           } else if (isSoul > 0) {
             // Central "soul" cluster movement
             // Create an oscillating, breathing, beating cluster
             const beat = 1.0 + 0.15 * Math.sin(time * 4.0); // Fast heartbeat pulse
-            const soulMovement = 1.0 - oscillationFactor;
             
             // Cluster swirls around the center
             const swirlX = Math.sin(time * 0.8 + phase) * 1.2 * soulMovement;
@@ -367,10 +373,10 @@ const CubiQoVisual = ({
           let cubeZ = cubePositions[i3 + 2];
           
           if (isSoul > 0) {
-            // Soul nodes swirl inside cube
-            cubeX = cubePositions[i3] + Math.sin(time + phase) * 0.3;
-            cubeY = cubePositions[i3 + 1] + Math.cos(time * 0.8 + phase) * 0.25;
-            cubeZ = cubePositions[i3 + 2] + Math.sin(time * 0.6 + phase) * 0.3;
+            // Soul nodes pulse inside the cube
+            cubeX = cubePositions[i3] * (1 + Math.sin(time * 3 + phase) * 0.15);
+            cubeY = cubePositions[i3 + 1] * (1 + Math.cos(time * 3 + phase) * 0.15);
+            cubeZ = cubePositions[i3 + 2] * (1 + Math.sin(time * 3 + phase) * 0.15);
           } else {
             // Cube surface pulsing
             const pulse = Math.sin(time * 2 + phase) * 0.05;
