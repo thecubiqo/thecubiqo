@@ -62,7 +62,7 @@ const DemoPage = () => {
   const aiState = speakerEnabled ? 'listening' : (isProcessing ? 'thinking' : 'neutral');
 
   const recognitionRef = useRef(null);
-  const audioRef = useRef(null);
+  const audioRef = useRef(typeof Audio !== 'undefined' ? new Audio() : null);
   const transcriptRef = useRef('');
   const callBackendRef = useRef(null);
 
@@ -136,8 +136,16 @@ const DemoPage = () => {
       setAiResponse(data.response || "");
       if (data.keywords) setKeywords(data.keywords);
       if (data.audio_url) {
-        audioRef.current = new Audio(data.audio_url);
-        audioRef.current.play();
+        if (!audioRef.current) audioRef.current = new Audio();
+        audioRef.current.src = data.audio_url;
+        audioRef.current.volume = 1;
+        audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+      } else if (window.speechSynthesis) {
+        // Fallback to browser TTS if no audio_url (e.g., missing API key)
+        const utterance = new SpeechSynthesisUtterance(data.response || "");
+        utterance.rate = 0.9; // Slightly slower, more deliberate
+        utterance.pitch = 0.8;
+        window.speechSynthesis.speak(utterance);
       }
       setRightPanelOpen(true);
     } catch (err) {
@@ -161,6 +169,12 @@ const DemoPage = () => {
   callBackendRef.current = callBackend;
 
   const toggleListening = () => {
+    // Unlock audio context for iOS/Safari
+    if (audioRef.current) {
+      audioRef.current.volume = 0;
+      audioRef.current.play().catch(() => {});
+    }
+    
     if (isProcessing) return;
     if (!speakerEnabled) {
       transcriptRef.current = '';
