@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
-import PlasmaField from "./components/PlasmaField";
+import { Canvas } from "@react-three/fiber";
+import { Suspense } from "react";
+import PlasmaWaveField from "./components/PlasmaWaveField";
 import CubiQoVisual from "./components/CubiQoVisual";
 import { Menu, Activity, X, Settings, Database, Shield, User, LogOut, Mail, Lock } from "lucide-react";
 import { supabase } from "./lib/supabase";
@@ -317,7 +319,23 @@ const DemoPage = () => {
           cursor: 'pointer', zIndex: 0
         }}>
           <div style={{ width: '100%', height: '100%', position: 'relative', transition: 'transform 0.6s ease', transform: speakerEnabled || isProcessing ? 'scale(1.04)' : 'scale(1)' }}>
-            <PlasmaField aiState={aiState} />
+            <Canvas
+              camera={{ position: [0, 0, 5], fov: 50, near: 0.1, far: 1000 }}
+              gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false, depth: true }}
+              dpr={[1, 2]}
+              style={{ background: 'transparent' }}
+            >
+              <Suspense fallback={null}>
+                <ambientLight intensity={0.8} />
+                <directionalLight position={[5, 5, 5]} intensity={1.5} color="#ffffff" />
+                <pointLight position={[10, 10, 10]} intensity={1.2} color="#ffffff" />
+                <pointLight position={[-10, -10, -10]} intensity={0.6} color="#4444ff" />
+                <pointLight position={[0, 10, 0]} intensity={0.4} color="#00ffff" />
+                <group>
+                  <PlasmaWaveField isEnabled={speakerEnabled || isProcessing} aiState={aiState} />
+                </group>
+              </Suspense>
+            </Canvas>
           </div>
 
           <div style={{ position: 'absolute', bottom: '8%', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', textAlign: 'center', gap: 16, transition: 'opacity 0.8s ease', opacity: uiVisible ? 1 : 0 }}>
