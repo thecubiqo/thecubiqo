@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Canvas } from "@react-three/fiber";
+import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocessing";
 import { Suspense } from "react";
 import PlasmaWaveField from "./components/PlasmaWaveField";
 import CubiQoVisual from "./components/CubiQoVisual";
@@ -334,6 +335,11 @@ const DemoPage = () => {
                 <group>
                   <PlasmaWaveField isEnabled={speakerEnabled || isProcessing} aiState={aiState} />
                 </group>
+                <EffectComposer>
+                  <Bloom intensity={1.2} luminanceThreshold={0.1} luminanceSmoothing={0.9} mipmapBlur />
+                  <Noise opacity={0.02} />
+                  <Vignette eskil={false} offset={0.1} darkness={1.1} />
+                </EffectComposer>
               </Suspense>
             </Canvas>
           </div>
