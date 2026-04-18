@@ -315,16 +315,22 @@ const CubiQoVisual = ({
         particlesRef.current.material.uniforms.uMorph.value = morph;
         particlesRef.current.material.uniforms.uTime.value = time;
         
+        // Harmonious Movement Balance: Pre-calculated outside loop for massive performance boost
+        const cycle = Math.sin(time * 0.4);
+        const waveMovement = 0.2 + 0.8 * Math.max(0, cycle);      // Never fully stops, peaks smoothly
+        const soulMovement = 0.2 + 0.8 * Math.max(0, -cycle);     // Takes over smoothly when wave subsides
+        const beatIntensity = 0.05 + 0.15 * soulMovement;
+        const beat = 1.0 + beatIntensity * Math.sin(time * (3.0 + soulMovement * 2.0)); // Beats faster and larger when dominant
+        
+        const mouseX = mouseRef.current.x * 12;
+        const mouseY = mouseRef.current.y * 8;
+        const time3 = time * 3;
+        
         for (let i = 0; i < posAttr.count; i++) {
           const i3 = i * 3;
           const phase = phases[i];
           const ribbon = ribbonIndex[i];
           const isSoul = isSoulNode[i];
-          
-          // Harmonious Movement Balance: Soft pendulum between Wave and Soul dominance
-          const cycle = Math.sin(time * 0.4);
-          const waveMovement = 0.2 + 0.8 * Math.max(0, cycle);      // Never fully stops, peaks smoothly
-          const soulMovement = 0.2 + 0.8 * Math.max(0, -cycle);     // Takes over smoothly when wave subsides
           
           // Stay strictly as the structured ribbon wave (no amorphous morphing)
           let waveX = wavePositions[i3];
@@ -337,27 +343,23 @@ const CubiQoVisual = ({
             const wave2 = Math.sin(phase * 0.3 + time * 0.6) * 0.5;
             
             // Mouse influence
-            const dx = waveX - mouseRef.current.x * 12;
-            const dz = waveZ - mouseRef.current.y * 8;
+            const dx = waveX - mouseX;
+            const dz = waveZ - mouseY;
             const mDist = Math.sqrt(dx * dx + dz * dz);
-            const mouseWave = Math.max(0, 1 - mDist / 12) * 1.5 * Math.sin(time * 3 + mDist * 0.3);
+            const mouseWave = Math.max(0, 1 - mDist / 12) * 1.5 * Math.sin(time3 + mDist * 0.3);
             
             waveY += (wave1 + wave2) * audioMult * waveMovement + mouseWave;
             waveZ += Math.sin(phase * 0.5 + time * 0.5) * 1.5 * waveMovement;
           } else if (isSoul > 0) {
             // Central "soul" cluster movement
-            // Create a harmonious breathing cluster that beats harder when dominant
-            const beatIntensity = 0.05 + 0.15 * soulMovement;
-            const beat = 1.0 + beatIntensity * Math.sin(time * (3.0 + soulMovement * 2.0)); // Beats faster and larger when dominant
-            
             // Cluster swirls around the center
             const swirlX = Math.sin(time * 0.8 + phase) * 1.2 * soulMovement;
             const swirlY = Math.cos(time * 0.6 + phase) * 1.2 * soulMovement;
             const swirlZ = Math.sin(time * 0.9 + phase) * 1.2 * soulMovement;
             
-            waveX = targetX * beat + swirlX;
-            waveY = targetY * beat + swirlY;
-            waveZ = targetZ * beat + swirlZ;
+            waveX = wavePositions[i3] * beat + swirlX;
+            waveY = wavePositions[i3 + 1] * beat + swirlY;
+            waveZ = wavePositions[i3 + 2] * beat + swirlZ;
           }
           
           // Cube animation
