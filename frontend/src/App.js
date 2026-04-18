@@ -33,7 +33,37 @@ const LandingPage = () => {
   );
 };
 
+const JournalPage = () => {
+  const navigate = useNavigate();
+  return (
+    <div data-testid="journal-page" style={{ width: '100%', height: '100vh', background: '#020208', position: 'relative', overflow: 'hidden' }}>
+      <PlasmaField aiState="listening" />
+      <div style={{ position: 'absolute', top: 28, left: 28, zIndex: 100 }}>
+        <button onClick={() => navigate('/app')} style={{
+          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 12, padding: '10px 20px', color: '#fff', cursor: 'pointer', backdropFilter: 'blur(10px)',
+          display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem', transition: 'all 0.2s'
+        }}
+        onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+        onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+        >
+          <X size={16} /> Close Journal
+        </button>
+      </div>
+      <div style={{ position: 'absolute', bottom: '15%', left: '50%', transform: 'translateX(-50%)', zIndex: 100, textAlign: 'center', width: '80%', maxWidth: '600px' }}>
+        <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '2rem', fontWeight: 300, letterSpacing: 2, marginBottom: 12, textShadow: '0 0 20px rgba(255,255,255,0.3)' }}>
+          Daily Journal
+        </div>
+        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', fontWeight: 300, lineHeight: 1.6 }}>
+          Speak naturally. Your thoughts are recorded in the energy field.
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DemoPage = () => {
+  const navigate = useNavigate();
   const [speakerEnabled, setSpeakerEnabled] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -223,6 +253,7 @@ const DemoPage = () => {
 
   const navItems = [
     { id: 'dimensions', label: 'My Dimensions', icon: Activity, sub: 'Explore your space' },
+    { id: 'journal', label: 'Daily Journal', icon: Activity, sub: 'Reflect and capture thoughts' },
     { id: 'settings', label: 'Settings', icon: Settings, sub: 'Preferences & AI models' },
     { id: 'integrations', label: 'Integrations', icon: Database, sub: 'Notion, Calendar, Health' },
     { id: 'privacy', label: 'Data & Privacy', icon: Shield, sub: 'Zero retention policy' }
@@ -349,7 +380,7 @@ const DemoPage = () => {
           {/* Nav */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {navItems.map(({ id, label, icon: Icon, sub }) => (
-              <div key={id} onClick={() => setActiveModal(id)} style={{
+              <div key={id} onClick={() => id === 'journal' ? navigate('/journal') : setActiveModal(id)} style={{
                 display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px',
                 borderRadius: 12, cursor: 'pointer', transition: 'all 0.2s ease',
                 background: activeModal === id ? 'rgba(255,255,255,0.08)' : 'transparent',
@@ -545,6 +576,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/app" element={<DemoPage />} />
+          <Route path="/journal" element={<JournalPage />} />
         </Routes>
       </BrowserRouter>
     </div>
