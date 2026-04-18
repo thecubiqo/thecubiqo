@@ -37,7 +37,7 @@ const JournalPage = () => {
   const navigate = useNavigate();
   return (
     <div data-testid="journal-page" style={{ width: '100%', height: '100vh', background: '#020208', position: 'relative', overflow: 'hidden' }}>
-      <CubiQoVisual isEnabled={true} aiState="listening" />
+      <PlasmaField aiState="listening" />
       <div style={{ position: 'absolute', top: 28, left: 28, zIndex: 100 }}>
         <button onClick={() => navigate('/app')} style={{
           background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
@@ -177,7 +177,6 @@ const DemoPage = () => {
         utterance.pitch = 0.8;
         window.speechSynthesis.speak(utterance);
       }
-      setRightPanelOpen(true);
     } catch (err) {
       // Fallback: local keyword extraction
       const words = text.split(" ").filter(w => w.length > 3);
@@ -190,7 +189,6 @@ const DemoPage = () => {
       nk.green = [...new Set(nk.green)].slice(-10);
       nk.yellow = [...new Set(nk.yellow)].slice(-10);
       setKeywords(nk);
-      setRightPanelOpen(true);
     } finally {
       setIsProcessing(false);
       setTranscript("");
@@ -318,25 +316,11 @@ const DemoPage = () => {
           cursor: 'pointer', zIndex: 0
         }}>
           <div style={{ width: '100%', height: '100%', position: 'relative', transition: 'transform 0.6s ease', transform: speakerEnabled || isProcessing ? 'scale(1.04)' : 'scale(1)' }}>
-            <PlasmaField aiState={aiState} />
+            <CubiQoVisual isEnabled={speakerEnabled || isProcessing} aiState={aiState} />
           </div>
 
           <div style={{ position: 'absolute', bottom: '8%', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', textAlign: 'center', gap: 16, transition: 'opacity 0.8s ease', opacity: uiVisible ? 1 : 0 }}>
             
-            {/* Cinematic Subtitles for AI Response */}
-            {aiResponse && (
-              <div style={{
-                background: 'rgba(10,10,15,0.5)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
-                border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px',
-                padding: '20px 32px', maxWidth: '650px', marginBottom: 12,
-                boxShadow: '0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)',
-                color: '#fff', fontSize: '1.05rem', fontWeight: 300, lineHeight: 1.6,
-                letterSpacing: 0.5, animation: 'fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-                textShadow: '0 2px 10px rgba(0,0,0,0.5)'
-              }}>
-                {aiResponse}
-              </div>
-            )}
 
             <div style={{
               background: 'rgba(20,20,25,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
