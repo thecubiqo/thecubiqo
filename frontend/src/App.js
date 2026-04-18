@@ -35,9 +35,10 @@ const LandingPage = () => {
 
 const JournalPage = () => {
   const navigate = useNavigate();
+  const [speakerEnabled, setSpeakerEnabled] = useState(false);
   return (
-    <div data-testid="journal-page" style={{ width: '100%', height: '100vh', background: '#020208', position: 'relative', overflow: 'hidden' }}>
-      <PlasmaField aiState="listening" />
+    <div data-testid="journal-page" onClick={() => setSpeakerEnabled(!speakerEnabled)} style={{ width: '100%', height: '100vh', background: '#020208', position: 'relative', overflow: 'hidden', cursor: 'pointer' }}>
+      <CubiQoVisual isEnabled={speakerEnabled} aiState={speakerEnabled ? "listening" : "neutral"} />
       <div style={{ position: 'absolute', top: 28, left: 28, zIndex: 100 }}>
         <button onClick={() => navigate('/app')} style={{
           background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
@@ -316,7 +317,7 @@ const DemoPage = () => {
           cursor: 'pointer', zIndex: 0
         }}>
           <div style={{ width: '100%', height: '100%', position: 'relative', transition: 'transform 0.6s ease', transform: speakerEnabled || isProcessing ? 'scale(1.04)' : 'scale(1)' }}>
-            <CubiQoVisual isEnabled={speakerEnabled || isProcessing} aiState={aiState} />
+            <PlasmaField aiState={aiState} />
           </div>
 
           <div style={{ position: 'absolute', bottom: '8%', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', textAlign: 'center', gap: 16, transition: 'opacity 0.8s ease', opacity: uiVisible ? 1 : 0 }}>
