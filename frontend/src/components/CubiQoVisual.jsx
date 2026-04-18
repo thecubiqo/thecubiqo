@@ -137,17 +137,42 @@ const CubiQoVisual = ({
         const x = (xNorm - 0.5) * 32;
         const spineCurve = Math.sin(xNorm * Math.PI * 2) * 2.5;
         
-        // Target A: Twisted S-Wave (Mock)
-        wavePositions[i3] = x + (Math.random() - 0.5) * 0.2;
-        wavePositions[i3 + 1] = ribbonY + spineCurve + (Math.random() - 0.5) * 1.5;
-        wavePositions[i3 + 2] = (Math.random() - 0.5) * 2.0;
+        // Central Soul Cluster Logic
+        // We dedicate the first 5% of particles to be the central "Soul" cluster
+        const isCoreSoul = (idx < particleCount * 0.05);
         
-        // Target B: Amorphous Particles (Spread Nebula)
-        // We'll store this in a temporary array or calculate on the fly. 
-        // For simplicity, we'll use a portion of the particle data to store 'amorphous' offsets.
-        const ampX = x + (Math.random() - 0.5) * 2.0;
-        const ampY = ribbonY * 1.5 + spineCurve * 1.2 + (Math.random() - 0.5) * 4.0;
-        const ampZ = (Math.random() - 0.5) * 6.0;
+        if (isCoreSoul) {
+          // Concentrate soul nodes in a central spherical cluster
+          const radius = Math.random() * 2.5; // Tighter core radius
+          const theta = Math.random() * 2 * Math.PI;
+          const phi = Math.acos((Math.random() * 2) - 1);
+          
+          const cx = radius * Math.sin(phi) * Math.cos(theta);
+          const cy = radius * Math.sin(phi) * Math.sin(theta);
+          const cz = radius * Math.cos(phi);
+
+          wavePositions[i3] = cx;
+          wavePositions[i3 + 1] = cy;
+          wavePositions[i3 + 2] = cz;
+
+          // Amorphous target for soul is also a cluster
+          geometry.userData.amorphousX[idx] = cx * 1.5;
+          geometry.userData.amorphousY[idx] = cy * 1.5;
+          geometry.userData.amorphousZ[idx] = cz * 1.5;
+          
+          isSoulNode[idx] = 1;
+        } else {
+          // Standard Nebula/Wave logic
+          wavePositions[i3] = x + (Math.random() - 0.5) * 0.2;
+          wavePositions[i3 + 1] = ribbonY + spineCurve + (Math.random() - 0.5) * 1.5;
+          wavePositions[i3 + 2] = (Math.random() - 0.5) * 2.0;
+          
+          geometry.userData.amorphousX[idx] = ampX;
+          geometry.userData.amorphousY[idx] = ampY;
+          geometry.userData.amorphousZ[idx] = ampZ;
+          
+          isSoulNode[idx] = 0;
+        }
         
         // Target C: Cuboid (Restored)
         const faceIdx = Math.floor(Math.random() * cubeFaces.length);
@@ -159,11 +184,6 @@ const CubiQoVisual = ({
         cubePositions[i3] = ((1-u)*(1-v)*v0[0] + u*(1-v)*v1[0] + u*v*v2[0] + (1-u)*v*v3[0]) * inset;
         cubePositions[i3 + 1] = ((1-u)*(1-v)*v0[1] + u*(1-v)*v1[1] + u*v*v2[1] + (1-u)*v*v3[1]) * inset;
         cubePositions[i3 + 2] = ((1-u)*(1-v)*v0[2] + u*(1-v)*v1[2] + u*v*v2[2] + (1-u)*v*v3[2]) * inset;
-
-        // UserData to store the amorphous offsets
-        geometry.userData.amorphousX[idx] = ampX;
-        geometry.userData.amorphousY[idx] = ampY;
-        geometry.userData.amorphousZ[idx] = ampZ;
         
         positions[i3] = wavePositions[i3];
         positions[i3 + 1] = wavePositions[i3 + 1];
@@ -181,13 +201,12 @@ const CubiQoVisual = ({
         sizes[idx] = 0.03 + Math.random() * 0.04;
         phases[idx] = xNorm * Math.PI * 4 + r * 0.5 + Math.random();
         ribbonIndex[idx] = r;
-        isSoulNode[idx] = Math.random() < 0.08 ? 1 : 0;
         
         if (isSoulNode[idx]) {
           colors[i3] = orangeSoulColor.r;
           colors[i3 + 1] = orangeSoulColor.g;
           colors[i3 + 2] = orangeSoulColor.b;
-          sizes[idx] *= 1.4;
+          sizes[idx] *= 1.8; // Make soul particles slightly larger for visibility
         }
         
         idx++;
@@ -312,7 +331,7 @@ const CubiQoVisual = ({
           let waveY = targetY;
           let waveZ = targetZ;
           
-          if (ribbon >= 0) {
+          if (ribbon >= 0 && isSoul === 0) {
             // Subtle nebula movement (Idle)
             const wave1 = Math.sin(phase + time * 0.4) * 0.6;
             const wave2 = Math.sin(phase * 0.3 + time * 0.6) * 0.4;
@@ -327,12 +346,19 @@ const CubiQoVisual = ({
             waveY += (wave1 + wave2 + wave3) * audioMult * 0.6 * oscillationFactor + mouseWave;
             waveZ += Math.sin(phase * 0.4 + time * 0.5) * 0.8 * oscillationFactor;
           } else if (isSoul > 0) {
-            // Focused "soul" core movement - very subtle
+            // Central "soul" cluster movement
+            // Create an oscillating, breathing, beating cluster
+            const beat = 1.0 + 0.15 * Math.sin(time * 4.0); // Fast heartbeat pulse
             const soulMovement = 1.0 - oscillationFactor;
-            const coreBreathing = 1.0 + 0.05 * Math.sin(time * 0.3);
-            waveX = targetX * coreBreathing + Math.sin(time * 0.4 + phase) * 0.3 * soulMovement;
-            waveY = targetY * coreBreathing + Math.cos(time * 0.3 + phase) * 0.2 * soulMovement;
-            waveZ = targetZ * coreBreathing + Math.sin(time * 0.5 + phase) * 0.2 * soulMovement;
+            
+            // Cluster swirls around the center
+            const swirlX = Math.sin(time * 0.8 + phase) * 1.2 * soulMovement;
+            const swirlY = Math.cos(time * 0.6 + phase) * 1.2 * soulMovement;
+            const swirlZ = Math.sin(time * 0.9 + phase) * 1.2 * soulMovement;
+            
+            waveX = targetX * beat + swirlX;
+            waveY = targetY * beat + swirlY;
+            waveZ = targetZ * beat + swirlZ;
           }
           
           // Cube animation

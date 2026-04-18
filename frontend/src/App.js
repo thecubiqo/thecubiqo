@@ -257,9 +257,9 @@ const DemoPage = () => {
             <sup style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', marginLeft: 2 }}>TM</sup>
           </div>
           <div style={{ 
-            fontSize: '0.58rem', color: '#ff6b35', letterSpacing: 3.5, 
-            marginTop: 6, textTransform: 'uppercase', fontWeight: 600,
-            opacity: 0.9, whiteSpace: 'nowrap', textShadow: '0 0 20px rgba(255,107,53,0.3)'
+            fontSize: '0.58rem', color: 'rgba(255,255,255,0.45)', letterSpacing: 3.5, 
+            marginTop: 6, textTransform: 'uppercase', fontWeight: 500,
+            opacity: 0.9, whiteSpace: 'nowrap'
           }}>
             Home to General Intelligence
           </div>
@@ -384,10 +384,6 @@ const DemoPage = () => {
 
         {/* RIGHT PANEL */}
         <div style={{ ...panelBase, right: '28px', transform: rightPanelOpen ? 'translateX(0)' : 'translateX(130%)', opacity: rightPanelOpen ? 1 : 0, pointerEvents: rightPanelOpen ? 'auto' : 'none', padding: '32px 24px' }}>
-          <div style={{ marginBottom: 32, textAlign: 'center' }}>
-            <div style={{ fontSize: '1.6rem', fontWeight: 300, color: '#fff', letterSpacing: 2, fontFamily: "'SF Pro Display','Inter',sans-serif", textShadow: '0 0 20px rgba(255,255,255,0.2)' }}>Signal</div>
-            <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', letterSpacing: 4, marginTop: 6, textTransform: 'uppercase', fontWeight: 600 }}>Real-time awareness</div>
-          </div>
 
           {/* Signal Aura Indicator (Replaces Tabs) */}
           <div style={{ position: 'relative', height: '60px', marginBottom: 20, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -413,7 +409,6 @@ const DemoPage = () => {
 
           {/* Keywords */}
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 16, fontWeight: 600, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 8 }}>Detected Keywords</div>
             {keywords[selectedKeywordColor]?.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {keywords[selectedKeywordColor].map((k, i) => (
