@@ -161,6 +161,11 @@ const CubiQoVisual = ({
           geometry.userData.amorphousZ[idx] = cz * 1.5;
           
           isSoulNode[idx] = 1;
+          
+          // Soul nodes stay within the core during cuboid morph
+          cubePositions[i3] = cx * 0.8;
+          cubePositions[i3 + 1] = cy * 0.8;
+          cubePositions[i3 + 2] = cz * 0.8;
         } else {
           // Standard Nebula/Wave logic
           wavePositions[i3] = x + (Math.random() - 0.5) * 0.2;
@@ -172,14 +177,7 @@ const CubiQoVisual = ({
           geometry.userData.amorphousZ[idx] = (Math.random() - 0.5) * 6.0;
           
           isSoulNode[idx] = 0;
-        }
-        
-        if (isCoreSoul) {
-          // Soul nodes stay within the core during cuboid morph
-          cubePositions[i3] = cx * 0.8;
-          cubePositions[i3 + 1] = cy * 0.8;
-          cubePositions[i3 + 2] = cz * 0.8;
-        } else {
+          
           // Target C: Cuboid (Restored)
           const faceIdx = Math.floor(Math.random() * cubeFaces.length);
           const face = cubeFaces[faceIdx];
