@@ -321,10 +321,10 @@ const CubiQoVisual = ({
           const ribbon = ribbonIndex[i];
           const isSoul = isSoulNode[i];
           
-          // Movement Toggle: Strict alternation between Wave and Soul movement
-          const cycle = Math.sin(time * 0.5);
-          const waveMovement = Math.max(0, cycle);      // 0 to 1 when cycle is positive
-          const soulMovement = Math.max(0, -cycle);     // 0 to 1 when cycle is negative
+          // Harmonious Movement Balance: Soft pendulum between Wave and Soul dominance
+          const cycle = Math.sin(time * 0.4);
+          const waveMovement = 0.2 + 0.8 * Math.max(0, cycle);      // Never fully stops, peaks smoothly
+          const soulMovement = 0.2 + 0.8 * Math.max(0, -cycle);     // Takes over smoothly when wave subsides
           
           // Breathing morph between Structured Wave (wavePositions) and Spread Nebula (amorphous)
           const breath = (Math.sin(time * 0.3) + 1) / 2;
@@ -352,8 +352,9 @@ const CubiQoVisual = ({
             waveZ += Math.sin(phase * 0.4 + time * 0.5) * 0.8 * waveMovement;
           } else if (isSoul > 0) {
             // Central "soul" cluster movement
-            // Create an oscillating, breathing, beating cluster
-            const beat = 1.0 + 0.15 * Math.sin(time * 4.0); // Fast heartbeat pulse
+            // Create a harmonious breathing cluster that beats harder when dominant
+            const beatIntensity = 0.05 + 0.15 * soulMovement;
+            const beat = 1.0 + beatIntensity * Math.sin(time * (3.0 + soulMovement * 2.0)); // Beats faster and larger when dominant
             
             // Cluster swirls around the center
             const swirlX = Math.sin(time * 0.8 + phase) * 1.2 * soulMovement;
