@@ -291,6 +291,22 @@ const DemoPage = () => {
           </div>
 
           <div style={{ position: 'absolute', bottom: '8%', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', textAlign: 'center', gap: 16, transition: 'opacity 0.8s ease', opacity: uiVisible ? 1 : 0 }}>
+            
+            {/* Cinematic Subtitles for AI Response */}
+            {aiResponse && (
+              <div style={{
+                background: 'rgba(10,10,15,0.5)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
+                border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px',
+                padding: '20px 32px', maxWidth: '650px', marginBottom: 12,
+                boxShadow: '0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)',
+                color: '#fff', fontSize: '1.05rem', fontWeight: 300, lineHeight: 1.6,
+                letterSpacing: 0.5, animation: 'fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+                textShadow: '0 2px 10px rgba(0,0,0,0.5)'
+              }}>
+                {aiResponse}
+              </div>
+            )}
+
             <div style={{
               background: 'rgba(20,20,25,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
               border: '1px solid rgba(255,255,255,0.08)', borderRadius: '40px',
