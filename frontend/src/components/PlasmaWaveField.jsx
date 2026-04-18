@@ -237,9 +237,32 @@ export function PlasmaWaveField({
     let segIdx = 0
     let ptIdx = 0
 
+    // Dynamic movement based on AI state
+    let rotSpeed = 0.05; // neutral
+    let pulseSpeed = 1;
+    let pulseAmount = 0.02;
+    let orbitMultiplier = 0.01;
+
+    if (aiState === 'listening') {
+      rotSpeed = 0.2;
+      pulseSpeed = 3;
+      pulseAmount = 0.06;
+      orbitMultiplier = 0.03;
+    } else if (aiState === 'thinking') {
+      rotSpeed = 0.8;
+      pulseSpeed = 8;
+      pulseAmount = 0.03;
+      orbitMultiplier = 0.08;
+    } else if (aiState === 'speaking') {
+      rotSpeed = 0.3;
+      pulseSpeed = 6;
+      pulseAmount = 0.1;
+      orbitMultiplier = 0.04;
+    }
+
     // Core rotation and breathing pulse for cube mode
-    const pulse = isEnabled ? Math.sin(time * 3) * 0.06 : 0
-    const rotY = time * 0.25
+    const pulse = isEnabled ? Math.sin(time * pulseSpeed) * pulseAmount : 0
+    const rotY = time * rotSpeed
     const cosY = Math.cos(rotY)
     const sinY = Math.sin(rotY)
 
@@ -330,9 +353,8 @@ export function PlasmaWaveField({
 
         // Vortex spin in cube mode
         if (isEnabled) {
-          const orbitSpeed = 0.03
-          node.vx += -node.z * orbitSpeed
-          node.vz += node.x * orbitSpeed
+          node.vx += -node.z * orbitMultiplier
+          node.vz += node.x * orbitMultiplier
         }
 
         _m.makeTranslation(node.x, node.y, node.z)

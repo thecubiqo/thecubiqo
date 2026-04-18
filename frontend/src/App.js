@@ -26,7 +26,28 @@ const LandingPage = () => {
   return (
     <div data-testid="landing-page" onClick={() => navigate('/app')}
       style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden', cursor: 'pointer' }}>
-      <PlasmaField aiState="neutral" />
+      <Canvas
+        camera={{ position: [0, 0, 5], fov: 50, near: 0.1, far: 1000 }}
+        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false, depth: true }}
+        dpr={[1, 2]}
+        style={{ background: 'transparent', position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+      >
+        <Suspense fallback={null}>
+          <ambientLight intensity={0.8} />
+          <directionalLight position={[5, 5, 5]} intensity={1.5} color="#ffffff" />
+          <pointLight position={[10, 10, 10]} intensity={1.2} color="#ffffff" />
+          <pointLight position={[-10, -10, -10]} intensity={0.6} color="#4444ff" />
+          <pointLight position={[0, 10, 0]} intensity={0.4} color="#00ffff" />
+          <group>
+            <PlasmaWaveField isEnabled={false} aiState="neutral" />
+          </group>
+          <EffectComposer>
+            <Bloom intensity={1.2} luminanceThreshold={0.1} luminanceSmoothing={0.9} mipmapBlur />
+            <Noise opacity={0.02} />
+            <Vignette eskil={false} offset={0.1} darkness={1.1} />
+          </EffectComposer>
+        </Suspense>
+      </Canvas>
       <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', zIndex: 50, pointerEvents: 'none' }}>
         <h1 style={{ fontSize: 'clamp(3rem, 10vw, 7rem)', fontWeight: 300, color: '#fff', textShadow: '0 0 60px rgba(0,212,255,0.4)', marginBottom: 20, letterSpacing: 8, fontFamily: "'SF Pro Display','Inter',sans-serif", textTransform: 'uppercase' }}>CubiQo</h1>
         <p style={{ fontSize: 'clamp(1rem, 2.5vw, 1.3rem)', color: 'rgba(255,255,255,0.6)', marginBottom: 50, fontFamily: "'SF Pro Display','Inter',sans-serif", fontWeight: 300, letterSpacing: 3 }}>One Mind. Many Dimensions.</p>
@@ -72,6 +93,7 @@ const DemoPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [aiResponse, setAiResponse] = useState("");
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
@@ -93,7 +115,7 @@ const DemoPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const aiState = speakerEnabled ? 'listening' : (isProcessing ? 'thinking' : 'neutral');
+  const aiState = isSpeaking ? 'speaking' : (speakerEnabled ? 'listening' : (isProcessing ? 'thinking' : 'neutral'));
 
   const recognitionRef = useRef(null);
   const audioRef = useRef(typeof Audio !== 'undefined' ? new Audio() : null);
@@ -173,12 +195,19 @@ const DemoPage = () => {
         if (!audioRef.current) audioRef.current = new Audio();
         audioRef.current.src = data.audio_url;
         audioRef.current.volume = 1;
-        audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+        audioRef.current.onplay = () => setIsSpeaking(true);
+        audioRef.current.onended = () => setIsSpeaking(false);
+        audioRef.current.play().catch(e => {
+          console.error("Audio play failed:", e);
+          setIsSpeaking(false);
+        });
       } else if (window.speechSynthesis) {
         // Fallback to browser TTS if no audio_url (e.g., missing API key)
         const utterance = new SpeechSynthesisUtterance(data.response || "");
         utterance.rate = 0.9; // Slightly slower, more deliberate
         utterance.pitch = 0.8;
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
         window.speechSynthesis.speak(utterance);
       }
     } catch (err) {
@@ -319,7 +348,7 @@ const DemoPage = () => {
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', zIndex: 0
         }}>
-          <div style={{ width: '100%', height: '100%', position: 'relative', transition: 'transform 0.6s ease', transform: speakerEnabled || isProcessing ? 'scale(1.04)' : 'scale(1)' }}>
+          <div style={{ width: '100%', height: '100%', position: 'relative', transition: 'transform 0.6s ease', transform: speakerEnabled || isProcessing || isSpeaking ? 'scale(1.04)' : 'scale(1)' }}>
             <Canvas
               camera={{ position: [0, 0, 5], fov: 50, near: 0.1, far: 1000 }}
               gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false, depth: true }}
@@ -333,7 +362,7 @@ const DemoPage = () => {
                 <pointLight position={[-10, -10, -10]} intensity={0.6} color="#4444ff" />
                 <pointLight position={[0, 10, 0]} intensity={0.4} color="#00ffff" />
                 <group>
-                  <PlasmaWaveField isEnabled={speakerEnabled || isProcessing} aiState={aiState} />
+                  <PlasmaWaveField isEnabled={speakerEnabled || isProcessing || isSpeaking} aiState={aiState} />
                 </group>
                 <EffectComposer>
                   <Bloom intensity={1.2} luminanceThreshold={0.1} luminanceSmoothing={0.9} mipmapBlur />
@@ -354,7 +383,12 @@ const DemoPage = () => {
               boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
               transition: 'all 0.4s ease'
             }}>
-              {speakerEnabled ? (
+              {isSpeaking ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff0088', boxShadow: '0 0 12px #ff0088', animation: 'pulse 1s infinite' }} />
+                  <div style={{ color: '#fff', fontSize: '0.85rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 500 }}>Speaking</div>
+                </div>
+              ) : speakerEnabled ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff6b35', boxShadow: '0 0 12px #ff6b35', animation: 'pulse 1s infinite' }} />
                   <div style={{ color: '#fff', fontSize: '0.85rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 500 }}>Listening</div>
