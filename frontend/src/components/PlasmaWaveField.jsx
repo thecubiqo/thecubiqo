@@ -86,8 +86,8 @@ export function PlasmaWaveField({
   const targetMorph = useRef(0)
 
   // Configuration
-  const RIBBON_COUNT = 60
-  const POINTS_PER_RIBBON = 50
+  const RIBBON_COUNT = 50
+  const POINTS_PER_RIBBON = 100
   const TOTAL_POINTS = RIBBON_COUNT * POINTS_PER_RIBBON
   const TOTAL_SEGMENTS = RIBBON_COUNT * (POINTS_PER_RIBBON - 1)
   const CUBE_SIZE = 1.4
@@ -106,14 +106,14 @@ export function PlasmaWaveField({
     let sIdx = 0
 
     for (let r = 0; r < RIBBON_COUNT; r++) {
-      const ribbonY = (r / RIBBON_COUNT - 0.5) * 1.5 // Tighter vertical bundle
-      const layerDepth = (Math.random() - 0.5) * 1.5 // Tighter depth
-      const waveFreq = 1.2 + r * 0.04
+      const ribbonY = (r / RIBBON_COUNT - 0.5) * 3.0 // Elegant vertical spread
+      const layerDepth = (Math.random() - 0.5) * 1.5 
+      const waveFreq = 1.0 // Unified frequency for parallel movement
 
       const ribbon = []
       for (let p = 0; p < POINTS_PER_RIBBON; p++) {
         const t = p / (POINTS_PER_RIBBON - 1)
-        const x = (t - 0.5) * 6.5 // Visible beginning and end
+        const x = (t - 0.5) * 22.0 // Spans across the entire screen smoothly
         const y = ribbonY
         const z = layerDepth
 
@@ -147,10 +147,10 @@ export function PlasmaWaveField({
         const colorT = (t * (palette.length - 1)) % 1
 
         const c = new THREE.Color().lerpColors(palette[colorIdx], palette[nextColorIdx], colorT)
-        // Depth-based brightness and edge fade
+        // Depth-based brightness with smooth fade at the extreme edges
         const depthFactor = 0.5 + ((layerDepth + 1.0) / 2.0) * 0.5
-        const edgeFactor = Math.sin(t * Math.PI) // Smooth fade at beginning and end
-        c.multiplyScalar(depthFactor * Math.pow(edgeFactor, 0.4))
+        const edgeFactor = Math.pow(Math.sin(t * Math.PI), 0.3)
+        c.multiplyScalar(depthFactor * edgeFactor)
 
         pCols[pIdx * 3] = c.r
         pCols[pIdx * 3 + 1] = c.g
@@ -279,9 +279,10 @@ export function PlasmaWaveField({
         const distSq = dx * dx + dy * dy
         const influence = Math.max(0, 1 - distSq / 9) * 0.4
 
-        // Fluid wave formula (interactive) - increased amplitude for dramatic crossovers
-        const animatedWaveY = pt.wY + Math.sin(time * pt.freq + pt.wX * 0.6) * (0.65 + influence) + dy * influence * 0.15
-        const animatedWaveZ = pt.wZ + Math.sin(time * 0.5 + pt.phase) * (0.3 + influence)
+        // Fluid wave formula - parallel harmonious movement
+        const wavePhase = pt.wX * 0.35 + pt.wZ * 0.2; // Z depth adds slight variation
+        const animatedWaveY = pt.wY + Math.sin(time * pt.freq + wavePhase) * (0.8 + influence) + dy * influence * 0.15
+        const animatedWaveZ = pt.wZ + Math.sin(time * 0.5 + pt.phase * 0.1) * (0.2 + influence)
 
         // Cube position with Y-axis rotation
         const cx = pt.cX * cosY - pt.cZ * sinY
