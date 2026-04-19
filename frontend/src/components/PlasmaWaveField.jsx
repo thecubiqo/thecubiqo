@@ -86,7 +86,7 @@ export function PlasmaWaveField({
   const targetMorph = useRef(0)
 
   // Configuration
-  const RIBBON_COUNT = 30
+  const RIBBON_COUNT = 60
   const POINTS_PER_RIBBON = 50
   const TOTAL_POINTS = RIBBON_COUNT * POINTS_PER_RIBBON
   const TOTAL_SEGMENTS = RIBBON_COUNT * (POINTS_PER_RIBBON - 1)
@@ -390,7 +390,7 @@ export function PlasmaWaveField({
 
       {/* Soul nodes (orange plasma particles) */}
       <instancedMesh ref={soulNodesRef} args={[undefined, undefined, SOUL_NODE_COUNT]}>
-        <sphereGeometry args={[0.045, 12, 12]} />
+        <sphereGeometry args={[0.022, 12, 12]} />
         <meshStandardMaterial color="#ff8844" emissive="#ff6600" emissiveIntensity={2} />
       </instancedMesh>
 
