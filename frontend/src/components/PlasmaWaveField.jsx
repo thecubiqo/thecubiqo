@@ -86,8 +86,8 @@ export function PlasmaWaveField({
   const targetMorph = useRef(0)
 
   // Configuration
-  const RIBBON_COUNT = 50
-  const POINTS_PER_RIBBON = 100
+  const RIBBON_COUNT = 30
+  const POINTS_PER_RIBBON = 50
   const TOTAL_POINTS = RIBBON_COUNT * POINTS_PER_RIBBON
   const TOTAL_SEGMENTS = RIBBON_COUNT * (POINTS_PER_RIBBON - 1)
   const CUBE_SIZE = 1.4
@@ -106,14 +106,14 @@ export function PlasmaWaveField({
     let sIdx = 0
 
     for (let r = 0; r < RIBBON_COUNT; r++) {
-      const ribbonY = (r / RIBBON_COUNT - 0.5) * 3.0 // Elegant vertical spread
-      const layerDepth = (Math.random() - 0.5) * 1.5 
-      const waveFreq = 1.0 // Unified frequency for parallel movement
+      const ribbonY = (r / RIBBON_COUNT - 0.5) * 2.5 // Tighter vertical spread
+      const layerDepth = (Math.random() - 0.5) * 1.5 // Tighter depth
+      const waveFreq = 1.2 + r * 0.04
 
       const ribbon = []
       for (let p = 0; p < POINTS_PER_RIBBON; p++) {
         const t = p / (POINTS_PER_RIBBON - 1)
-        const x = (t - 0.5) * 22.0 // Spans across the entire screen smoothly
+        const x = (t - 0.5) * 9.0
         const y = ribbonY
         const z = layerDepth
 
@@ -147,10 +147,9 @@ export function PlasmaWaveField({
         const colorT = (t * (palette.length - 1)) % 1
 
         const c = new THREE.Color().lerpColors(palette[colorIdx], palette[nextColorIdx], colorT)
-        // Depth-based brightness with smooth fade at the extreme edges
+        // Depth-based brightness
         const depthFactor = 0.5 + ((layerDepth + 1.0) / 2.0) * 0.5
-        const edgeFactor = Math.pow(Math.sin(t * Math.PI), 0.3)
-        c.multiplyScalar(depthFactor * edgeFactor)
+        c.multiplyScalar(depthFactor)
 
         pCols[pIdx * 3] = c.r
         pCols[pIdx * 3 + 1] = c.g
@@ -279,10 +278,9 @@ export function PlasmaWaveField({
         const distSq = dx * dx + dy * dy
         const influence = Math.max(0, 1 - distSq / 9) * 0.4
 
-        // Fluid wave formula - perfectly parallel, slow, harmonious sweep
-        const wavePhase = pt.wX * 0.3 + pt.phase * 0.05; // Use predictable ribbon index (phase) instead of random Z
-        const animatedWaveY = pt.wY + Math.sin(time * 0.3 + wavePhase) * (0.8 + influence) + dy * influence * 0.15
-        const animatedWaveZ = pt.wZ + Math.sin(time * 0.15 + pt.phase * 0.05) * (0.15 + influence)
+        // Fluid wave formula (interactive)
+        const animatedWaveY = pt.wY + Math.sin(time * pt.freq + pt.wX * 0.6) * (0.35 + influence) + dy * influence * 0.15
+        const animatedWaveZ = pt.wZ + Math.sin(time * 0.5 + pt.phase) * (0.2 + influence)
 
         // Cube position with Y-axis rotation
         const cx = pt.cX * cosY - pt.cZ * sinY
@@ -342,8 +340,8 @@ export function PlasmaWaveField({
         node.y += node.vy
         node.z += node.vz
 
-        // Bounding box limits (tighter during cube mode)
-        const bounds = isEnabled ? CUBE_SIZE * 0.45 : 2.5
+        // Bounding box limits (tighter during cube mode and tighter overall)
+        const bounds = isEnabled ? CUBE_SIZE * 0.45 : 1.2
         if (Math.abs(node.x) > bounds) { node.vx *= -0.7; node.x = Math.sign(node.x) * bounds }
         if (Math.abs(node.y) > bounds) { node.vy *= -0.7; node.y = Math.sign(node.y) * bounds }
         if (Math.abs(node.z) > bounds) { node.vz *= -0.7; node.z = Math.sign(node.z) * bounds }
