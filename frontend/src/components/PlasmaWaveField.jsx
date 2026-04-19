@@ -279,10 +279,10 @@ export function PlasmaWaveField({
         const distSq = dx * dx + dy * dy
         const influence = Math.max(0, 1 - distSq / 9) * 0.4
 
-        // Fluid wave formula - parallel harmonious movement
-        const wavePhase = pt.wX * 0.35 + pt.wZ * 0.2; // Z depth adds slight variation
-        const animatedWaveY = pt.wY + Math.sin(time * pt.freq + wavePhase) * (0.8 + influence) + dy * influence * 0.15
-        const animatedWaveZ = pt.wZ + Math.sin(time * 0.5 + pt.phase * 0.1) * (0.2 + influence)
+        // Fluid wave formula - perfectly parallel, slow, harmonious sweep
+        const wavePhase = pt.wX * 0.3 + pt.phase * 0.05; // Use predictable ribbon index (phase) instead of random Z
+        const animatedWaveY = pt.wY + Math.sin(time * 0.3 + wavePhase) * (0.8 + influence) + dy * influence * 0.15
+        const animatedWaveZ = pt.wZ + Math.sin(time * 0.15 + pt.phase * 0.05) * (0.15 + influence)
 
         // Cube position with Y-axis rotation
         const cx = pt.cX * cosY - pt.cZ * sinY
