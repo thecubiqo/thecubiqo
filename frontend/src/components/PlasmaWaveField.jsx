@@ -106,14 +106,14 @@ export function PlasmaWaveField({
     let sIdx = 0
 
     for (let r = 0; r < RIBBON_COUNT; r++) {
-      const ribbonY = (r / RIBBON_COUNT - 0.5) * 4.0
-      const layerDepth = (Math.random() - 0.5) * 2.0
+      const ribbonY = (r / RIBBON_COUNT - 0.5) * 1.5 // Tighter vertical bundle
+      const layerDepth = (Math.random() - 0.5) * 1.5 // Tighter depth
       const waveFreq = 1.2 + r * 0.04
 
       const ribbon = []
       for (let p = 0; p < POINTS_PER_RIBBON; p++) {
         const t = p / (POINTS_PER_RIBBON - 1)
-        const x = (t - 0.5) * 9.0
+        const x = (t - 0.5) * 6.5 // Visible beginning and end
         const y = ribbonY
         const z = layerDepth
 
@@ -147,9 +147,10 @@ export function PlasmaWaveField({
         const colorT = (t * (palette.length - 1)) % 1
 
         const c = new THREE.Color().lerpColors(palette[colorIdx], palette[nextColorIdx], colorT)
-        // Depth-based brightness
+        // Depth-based brightness and edge fade
         const depthFactor = 0.5 + ((layerDepth + 1.0) / 2.0) * 0.5
-        c.multiplyScalar(depthFactor)
+        const edgeFactor = Math.sin(t * Math.PI) // Smooth fade at beginning and end
+        c.multiplyScalar(depthFactor * Math.pow(edgeFactor, 0.4))
 
         pCols[pIdx * 3] = c.r
         pCols[pIdx * 3 + 1] = c.g
@@ -278,9 +279,9 @@ export function PlasmaWaveField({
         const distSq = dx * dx + dy * dy
         const influence = Math.max(0, 1 - distSq / 9) * 0.4
 
-        // Fluid wave formula (interactive)
-        const animatedWaveY = pt.wY + Math.sin(time * pt.freq + pt.wX * 0.6) * (0.35 + influence) + dy * influence * 0.15
-        const animatedWaveZ = pt.wZ + Math.sin(time * 0.5 + pt.phase) * (0.2 + influence)
+        // Fluid wave formula (interactive) - increased amplitude for dramatic crossovers
+        const animatedWaveY = pt.wY + Math.sin(time * pt.freq + pt.wX * 0.6) * (0.65 + influence) + dy * influence * 0.15
+        const animatedWaveZ = pt.wZ + Math.sin(time * 0.5 + pt.phase) * (0.3 + influence)
 
         // Cube position with Y-axis rotation
         const cx = pt.cX * cosY - pt.cZ * sinY
