@@ -91,7 +91,7 @@ export function PlasmaWaveField({
   const TOTAL_POINTS = RIBBON_COUNT * POINTS_PER_RIBBON
   const TOTAL_SEGMENTS = RIBBON_COUNT * (POINTS_PER_RIBBON - 1)
   const CUBE_SIZE = 1.4
-  const PIPE_RADIUS = 0.012
+  const PIPE_RADIUS = 0.003 // Hair-thin threads instead of thick pipes
   const SOUL_NODE_COUNT = 50
 
   // Generate wave data
@@ -373,22 +373,22 @@ export function PlasmaWaveField({
       {/* 3D Connecting Pipes using InstancedMesh */}
       <instancedMesh ref={cylinderInstancedRef} args={[undefined, undefined, TOTAL_SEGMENTS]}>
         <cylinderGeometry args={[PIPE_RADIUS, PIPE_RADIUS, 1.0, 5]} />
-        <meshStandardMaterial
-          metalness={0.7}
-          roughness={0.2}
+        <meshBasicMaterial
           transparent
-          opacity={0.85}
+          opacity={0.6}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
         />
       </instancedMesh>
 
       {/* 3D Joints using InstancedMesh (Spheres for smooth continuous pipes) */}
       <instancedMesh ref={sphereInstancedRef} args={[undefined, undefined, TOTAL_POINTS]}>
         <sphereGeometry args={[PIPE_RADIUS * 1.1, 8, 8]} />
-        <meshStandardMaterial
-          metalness={0.7}
-          roughness={0.2}
+        <meshBasicMaterial
           transparent
-          opacity={0.85}
+          opacity={0.6}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
         />
       </instancedMesh>
 
