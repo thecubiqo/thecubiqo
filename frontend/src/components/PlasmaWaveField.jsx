@@ -106,14 +106,15 @@ export function PlasmaWaveField({
     let sIdx = 0
 
     for (let r = 0; r < RIBBON_COUNT; r++) {
-      const ribbonY = (r / RIBBON_COUNT - 0.5) * 2.5 // Tighter vertical spread
-      const layerDepth = (Math.random() - 0.5) * 1.5 // Tighter depth
-      const waveFreq = 1.2 + r * 0.04
+      const ribbonY = (r / RIBBON_COUNT - 0.5) * 8.0 // From old CubiQoVisual
+      const layerDepth = (Math.random() - 0.5) * 0.6 // Tight depth
+      const waveFreq = 1.0
 
       const ribbon = []
       for (let p = 0; p < POINTS_PER_RIBBON; p++) {
         const t = p / (POINTS_PER_RIBBON - 1)
-        const x = (t - 0.5) * 9.0
+        const x = (t - 0.5) * 25.0 // Span from old CubiQoVisual
+        const phase = t * Math.PI * 4 + r * 0.5 + Math.random() * 0.5 // From old CubiQoVisual
         const y = ribbonY
         const z = layerDepth
 
@@ -139,7 +140,7 @@ export function PlasmaWaveField({
           }
         }
 
-        ribbon.push({ wX: x, wY: y, wZ: z, cX: cx, cY: cy, cZ: cz, freq: waveFreq, phase: r })
+        ribbon.push({ wX: x, wY: y, wZ: z, cX: cx, cY: cy, cZ: cz, phase: phase })
 
         // Assign colors based on position in ribbon
         const colorIdx = Math.floor(t * (palette.length - 1))
@@ -278,9 +279,12 @@ export function PlasmaWaveField({
         const distSq = dx * dx + dy * dy
         const influence = Math.max(0, 1 - distSq / 9) * 0.4
 
-        // Fluid wave formula (interactive)
-        const animatedWaveY = pt.wY + Math.sin(time * pt.freq + pt.wX * 0.6) * (0.35 + influence) + dy * influence * 0.15
-        const animatedWaveZ = pt.wZ + Math.sin(time * 0.5 + pt.phase) * (0.2 + influence)
+        // Restored exact multi-sine complex wave logic from old codebase
+        const wave1 = Math.sin(pt.phase + time * 0.8) * 2.5;
+        const wave2 = Math.sin(pt.phase * 0.5 + time * 0.6) * 1.5;
+        const wave3 = Math.cos(pt.phase * 0.3 + time * 1.0) * 1.0;
+        const animatedWaveY = pt.wY + (wave1 + wave2 + wave3) * 0.4 + dy * influence * 0.15;
+        const animatedWaveZ = pt.wZ;
 
         // Cube position with Y-axis rotation
         const cx = pt.cX * cosY - pt.cZ * sinY
