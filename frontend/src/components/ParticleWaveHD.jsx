@@ -34,6 +34,28 @@ function phaseWindow(t, start, end, feather = 0.8) {
   return smoothstep(start - feather, start + feather, t) * (1 - smoothstep(end - feather, end + feather, t));
 }
 
+function computeStreamPoint({
+  side,
+  u,
+  lineT,
+  offset,
+  amp,
+  freq,
+  phase,
+  time,
+  xMax,
+  centerGap,
+  depth,
+}) {
+  const x = side * (xMax - u * (xMax - centerGap));
+  const convergence = 0.9 - Math.pow(u, 1.25) * 0.42;
+  const braid = Math.sin(u * freq + phase + time * 0.72) * amp;
+  const counter = Math.sin(u * freq * 0.48 - phase * 0.7 - time * 0.42) * amp * 0.42;
+  const y = offset * convergence + braid + counter;
+  const z = Math.cos(u * freq * 0.7 + phase + time * 0.48) * depth + (lineT - 0.5) * depth * 0.72;
+  return [x, y, z];
+}
+
 function createWaveField({
   side,
   lines,
@@ -198,6 +220,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
 
     const waveSystems = [];
     const filamentSystems = [];
+    const streamSystems = [];
 
     function addWaveSystem(config) {
       const paletteA = config.side === -1 ? leftA : rightA;
@@ -292,6 +315,97 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
       size: layout.secondarySize,
       opacity: layout.secondaryOpacity,
     });
+
+    function addNodeStreamSystem(side) {
+      const lineCount = isLanding ? 38 : 32;
+      const segments = isLanding ? 128 : 112;
+      const xMax = isLanding ? 5.3 : 3.34;
+      const centerGap = isLanding ? 0.34 : 0.2;
+      const streamColor = side === -1 ? leftA : rightB;
+      const streamAccent = side === -1 ? leftB : purple;
+      const group = new THREE.Group();
+      const lines = [];
+
+      for (let l = 0; l < lineCount; l++) {
+        const lineT = l / Math.max(lineCount - 1, 1);
+        const offset = (lineT - 0.5) * (isLanding ? 1.32 : 1.18);
+        const amp = (isLanding ? 0.16 : 0.13) + Math.sin(lineT * Math.PI) * (isLanding ? 0.14 : 0.1);
+        const freq = THREE.MathUtils.lerp(7.4, 11.8, (l % 7) / 6);
+        const phase = Math.random() * Math.PI * 2;
+        const depth = THREE.MathUtils.lerp(0.07, isLanding ? 0.2 : 0.16, lineT);
+        const positions = new Float32Array(segments * 3);
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+        const color = new THREE.Color().copy(streamColor).lerp(streamAccent, lineT * 0.55);
+        const material = new THREE.LineBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        const line = new THREE.Line(geometry, material);
+        line.renderOrder = 6;
+        group.add(line);
+        lines.push({ geometry, material, line, lineT, offset, amp, freq, phase, depth });
+      }
+
+      const nodeCount = lineCount * (isLanding ? 8 : 7);
+      const nodePositions = new Float32Array(nodeCount * 3);
+      const nodeColors = new Float32Array(nodeCount * 3);
+      const nodeSeeds = [];
+      const color = new THREE.Color();
+      for (let i = 0; i < nodeCount; i++) {
+        const lineIndex = i % lineCount;
+        const lineT = lineIndex / Math.max(lineCount - 1, 1);
+        color.copy(streamColor).lerp(new THREE.Color("#ffffff"), 0.54 + Math.sin(lineT * Math.PI) * 0.24);
+        nodeColors[i * 3] = color.r;
+        nodeColors[i * 3 + 1] = color.g;
+        nodeColors[i * 3 + 2] = color.b;
+        nodeSeeds.push({
+          lineIndex,
+          u: THREE.MathUtils.randFloat(0.08, 0.94),
+          speed: THREE.MathUtils.randFloat(0.018, 0.038),
+          phase: Math.random() * Math.PI * 2,
+        });
+      }
+      const nodeGeometry = new THREE.BufferGeometry();
+      nodeGeometry.setAttribute("position", new THREE.BufferAttribute(nodePositions, 3));
+      nodeGeometry.setAttribute("color", new THREE.BufferAttribute(nodeColors, 3));
+      const nodeMaterial = new THREE.PointsMaterial({
+        size: isLanding ? 4.2 : 4.8,
+        map: glowMap || null,
+        alphaMap: glowMap || null,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        depthTest: false,
+        vertexColors: true,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: false,
+      });
+      const nodes = new THREE.Points(nodeGeometry, nodeMaterial);
+      nodes.renderOrder = 8;
+      group.add(nodes);
+
+      scene.add(group);
+      streamSystems.push({
+        side,
+        group,
+        lines,
+        lineCount,
+        segments,
+        xMax,
+        centerGap,
+        nodeGeometry,
+        nodeMaterial,
+        nodeSeeds,
+        nodes,
+      });
+    }
+
+    addNodeStreamSystem(-1);
+    addNodeStreamSystem(1);
 
     const particleCount = layout.particleCount;
     const particlePositions = new Float32Array(particleCount * 3);
@@ -591,11 +705,68 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
             pos[dst + 2] = sourceArray[src + 2];
           }
           entry.geometry.attributes.position.needsUpdate = true;
-          entry.material.opacity = isLanding ? 0 : preMorph * 0.018;
+          entry.material.opacity = 0;
         });
         net.lineGroup.rotation.z = Math.sin(t * 0.055 + netIndex * 0.2) * (isLanding ? 0.009 : 0.006);
         net.lineGroup.rotation.x = Math.cos(t * 0.04 + netIndex * 0.15) * (isLanding ? 0.011 : 0.007);
         net.lineGroup.rotation.y = Math.sin(t * 0.035 + netIndex * 0.2) * (isLanding ? 0.018 : 0.012);
+      });
+
+      streamSystems.forEach((system) => {
+        const streamPresence = isLanding ? preMorph : Math.max(preMorph, voiceMorph * 0.36);
+        system.group.position.z = isLanding ? 0 : THREE.MathUtils.lerp(0, -0.62, voiceMorph);
+        system.group.rotation.y = Math.sin(t * 0.035 + system.side) * 0.012 * streamPresence;
+        system.lines.forEach((entry) => {
+          const pos = entry.geometry.attributes.position.array;
+          for (let s = 0; s < system.segments; s++) {
+            const u = s / Math.max(system.segments - 1, 1);
+            const point = computeStreamPoint({
+              side: system.side,
+              u,
+              lineT: entry.lineT,
+              offset: entry.offset,
+              amp: entry.amp,
+              freq: entry.freq,
+              phase: entry.phase,
+              time: t,
+              xMax: system.xMax,
+              centerGap: system.centerGap,
+              depth: entry.depth,
+            });
+            const dst = s * 3;
+            pos[dst] = point[0];
+            pos[dst + 1] = point[1];
+            pos[dst + 2] = point[2];
+          }
+          entry.geometry.attributes.position.needsUpdate = true;
+          const laneEnergy = 0.72 + Math.sin(t * 0.26 + entry.phase) * 0.18;
+          entry.material.opacity = streamPresence * (isLanding ? 0.16 : 0.2) * laneEnergy;
+        });
+
+        const nodePos = system.nodeGeometry.attributes.position.array;
+        system.nodeSeeds.forEach((node, i) => {
+          const line = system.lines[node.lineIndex];
+          const u = (node.u + t * node.speed) % 1;
+          const point = computeStreamPoint({
+            side: system.side,
+            u,
+            lineT: line.lineT,
+            offset: line.offset,
+            amp: line.amp,
+            freq: line.freq,
+            phase: line.phase + node.phase * 0.08,
+            time: t,
+            xMax: system.xMax,
+            centerGap: system.centerGap,
+            depth: line.depth,
+          });
+          const idx = i * 3;
+          nodePos[idx] = point[0];
+          nodePos[idx + 1] = point[1];
+          nodePos[idx + 2] = point[2];
+        });
+        system.nodeGeometry.attributes.position.needsUpdate = true;
+        system.nodeMaterial.opacity = streamPresence * (isLanding ? 0.95 : 0.9);
       });
 
       const particleArray = particleGeometry.attributes.position.array;
@@ -723,6 +894,14 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
       });
       particleGeometry.dispose();
       particleMaterial.dispose();
+      streamSystems.forEach((system) => {
+        system.lines.forEach((entry) => {
+          entry.geometry.dispose();
+          entry.material.dispose();
+        });
+        system.nodeGeometry.dispose();
+        system.nodeMaterial.dispose();
+      });
       ambientPlanes.forEach((plane) => {
         plane.geometry.dispose();
         plane.material.dispose();
