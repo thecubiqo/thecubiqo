@@ -189,10 +189,10 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
       filamentSystems.push({ config, lineGroup, lines });
     }
 
-    addWaveSystem({ side: -1, lines: 36, segments: 140, width: 14.5, spread: 6.0, amplitude: 1.36, inset: 0.44, size: 0.058, opacity: 0.64 });
-    addWaveSystem({ side: 1, lines: 36, segments: 140, width: 14.5, spread: 6.0, amplitude: 1.36, inset: 0.44, size: 0.058, opacity: 0.64 });
-    addWaveSystem({ side: -1, lines: 16, segments: 116, width: 13.0, spread: 3.5, amplitude: 0.84, inset: 0.1, size: 0.08, opacity: 0.72 });
-    addWaveSystem({ side: 1, lines: 16, segments: 116, width: 13.0, spread: 3.5, amplitude: 0.84, inset: 0.1, size: 0.08, opacity: 0.72 });
+    addWaveSystem({ side: -1, lines: 108, segments: 350, width: 14.5, spread: 6.0, amplitude: 1.36, inset: 0.44, size: 0.025, opacity: 0.64 });
+    addWaveSystem({ side: 1, lines: 108, segments: 350, width: 14.5, spread: 6.0, amplitude: 1.36, inset: 0.44, size: 0.025, opacity: 0.64 });
+    addWaveSystem({ side: -1, lines: 48, segments: 250, width: 13.0, spread: 3.5, amplitude: 0.84, inset: 0.1, size: 0.035, opacity: 0.72 });
+    addWaveSystem({ side: 1, lines: 48, segments: 250, width: 13.0, spread: 3.5, amplitude: 0.84, inset: 0.1, size: 0.035, opacity: 0.72 });
 
     const particleCount = 20000;
     const particlePositions = new Float32Array(particleCount * 3);
