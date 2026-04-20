@@ -184,7 +184,7 @@ module.exports = async (req, res) => {
     }
 
     if (!rawResponse) {
-      rawResponse = `Your presence reveals a seeker's path. Your actions resonate with purpose, while your wishes wait like seeds in fertile soil. <keywords>{"green":["potential","clarity"],"yellow":["presence","purpose"],"red":["wishes"]}</keywords>`;
+      // No philosophical fallback — return silent response when all AI models unavailable
       modelUsed = 'fallback';
     }
 

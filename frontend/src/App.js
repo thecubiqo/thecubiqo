@@ -374,11 +374,7 @@ const DemoPage = () => {
                 "{transcript}"
               </div>
             )}
-            {aiResponse && !isProcessing && (
-              <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.95rem', lineHeight: 1.6, maxWidth: 380, background: 'rgba(10,10,15,0.5)', backdropFilter: 'blur(20px)', padding: '16px 20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', marginTop: 8, fontWeight: 300, boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
-                {aiResponse}
-              </div>
-            )}
+
           </div>
         </div>
 

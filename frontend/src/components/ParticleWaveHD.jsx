@@ -12,9 +12,9 @@ function makeGlowSprite() {
   if (!ctx) return null;
 
   const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  gradient.addColorStop(0, "rgba(255,255,255,0.6)");
-  gradient.addColorStop(0.2, "rgba(255,255,255,0.15)");
-  gradient.addColorStop(0.5, "rgba(255,255,255,0.02)");
+  gradient.addColorStop(0, "rgba(255,255,255,1.0)");
+  gradient.addColorStop(0.25, "rgba(255,255,255,0.4)");
+  gradient.addColorStop(0.55, "rgba(255,255,255,0.08)");
   gradient.addColorStop(1, "rgba(255,255,255,0)");
 
   ctx.fillStyle = gradient;
@@ -106,7 +106,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
 
     const scene = new THREE.Scene();
     scene.background = null; // Removed hardcoded background for app integration
-    scene.fog = new THREE.FogExp2("#111114", 0.024);
+    // No fog — fog was creating invisible black patches across the particle field
 
     const camera = new THREE.PerspectiveCamera(34, mount.clientWidth / mount.clientHeight, 0.1, 100);
     camera.position.set(0, 0, 11.8);
@@ -116,7 +116,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.75;
+    renderer.toneMappingExposure = 1.1;
     mount.appendChild(renderer.domElement);
 
     const glowMap = makeGlowSprite();
@@ -188,10 +188,11 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
       filamentSystems.push({ config, lineGroup, lines });
     }
 
-    addWaveSystem({ side: -1, lines: 36, segments: 140, width: 5.25, spread: 3.0, amplitude: 0.68, inset: 0.22, size: 0.058, opacity: 0.64 });
-    addWaveSystem({ side: 1, lines: 36, segments: 140, width: 5.25, spread: 3.0, amplitude: 0.68, inset: 0.22, size: 0.058, opacity: 0.64 });
-    addWaveSystem({ side: -1, lines: 16, segments: 116, width: 4.75, spread: 1.75, amplitude: 0.42, inset: 0.05, size: 0.08, opacity: 0.72 });
-    addWaveSystem({ side: 1, lines: 16, segments: 116, width: 4.75, spread: 1.75, amplitude: 0.42, inset: 0.05, size: 0.08, opacity: 0.72 });
+    // Wide elongated double-lobe: large width, tight spread
+    addWaveSystem({ side: -1, lines: 36, segments: 140, width: 8.5, spread: 1.4, amplitude: 0.48, inset: 0.12, size: 0.058, opacity: 0.64 });
+    addWaveSystem({ side: 1,  lines: 36, segments: 140, width: 8.5, spread: 1.4, amplitude: 0.48, inset: 0.12, size: 0.058, opacity: 0.64 });
+    addWaveSystem({ side: -1, lines: 16, segments: 116, width: 7.2, spread: 1.0, amplitude: 0.34, inset: 0.05, size: 0.08,  opacity: 0.72 });
+    addWaveSystem({ side: 1,  lines: 16, segments: 116, width: 7.2, spread: 1.0, amplitude: 0.34, inset: 0.05, size: 0.08,  opacity: 0.72 });
 
     const particleCount = 2400;
     const particlePositions = new Float32Array(particleCount * 3);
@@ -203,9 +204,9 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
     for (let i = 0; i < particleCount; i++) {
       const idx = i * 3;
       const side = i % 2 === 0 ? -1 : 1;
-      const x = side * THREE.MathUtils.randFloat(0.2, 7.1);
-      const y = THREE.MathUtils.randFloatSpread(2.8);
-      const z = THREE.MathUtils.randFloatSpread(1.6);
+      const x = side * THREE.MathUtils.randFloat(0.2, 9.0);
+      const y = THREE.MathUtils.randFloatSpread(1.8);
+      const z = THREE.MathUtils.randFloatSpread(1.2);
       particlePositions[idx] = x;
       particlePositions[idx + 1] = y;
       particlePositions[idx + 2] = z;
@@ -337,30 +338,21 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
     const animate = () => {
       const t = clock.getElapsedTime();
       
-      // Ambient sequence variations
-      const cycle = t % 24;
-      const baseTwoWave = phaseWindow(cycle, 0, 6, 1.2);
-      const baseOneWave = phaseWindow(cycle, 5, 10, 1.2);
-      const baseFilament = phaseWindow(cycle, 9, 14, 1.2);
-      const baseRibbon = phaseWindow(cycle, 13, 18, 1.2);
-      const baseBeam = phaseWindow(cycle, 17, 21, 1.0);
-      const baseParticle = phaseWindow(cycle, 20, 24, 1.0);
+      // Continuous ambient variations — no dead zones, always visible
+      const breathe     = (Math.sin(t * 0.13) + 1) * 0.5;        // 0→1 slow cycle
+      const pulse       = (Math.sin(t * 0.08 + 1.5) + 1) * 0.5;  // offset cycle
+      const waveAmp     = 0.06 + breathe * 0.10;                  // ripple intensity
+      const spreadVar   = 0.90 + pulse   * 0.10;                  // gentle vertical breath
+      const beamMode    = 0.08 + pulse   * 0.08;                  // always-on subtle beam
+      const particleMode = 0.18 + breathe * 0.18;                 // ambient scatter
 
-      // Interpolate towards target state
+      // Voice morph
       const targetMorph = voiceModeRef.current ? 1 : 0;
       currentMorph += (targetMorph - currentMorph) * 0.05;
 
       const ambientVisibility = 1 - currentMorph;
       const voiceMorph = currentMorph;
-
-      const unifiedWave = currentMorph * 0.7 + baseOneWave * ambientVisibility; 
-      const separation = baseTwoWave * ambientVisibility;
-      const plasmaMode = currentMorph * 0.35; 
-      
-      const filamentMode = baseFilament * ambientVisibility;
-      const ribbonMode = baseRibbon * ambientVisibility;
-      const beamMode = baseBeam * ambientVisibility + 0.2 * voiceMorph;
-      const particleMode = baseParticle * ambientVisibility + 0.3 * voiceMorph;
+      const plasmaMode = currentMorph * 0.35;
 
       waveSystems.forEach((sys, sysIndex) => {
         const arr = sys.geometry.attributes.position.array;
@@ -378,33 +370,18 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
           const by = sys.basePositions[idx + 1];
           const bz = sys.basePositions[idx + 2];
 
-          const waveA = Math.sin(segT * 8.0 - t * 0.9 + lineIndex * 0.14 + seed * 0.0008);
-          const waveB = Math.cos(segT * 12.0 + t * 0.72 - lineIndex * 0.11 + seed * 0.0009);
-          const filament = (waveA * 0.5 + waveB * 0.32) * (0.08 + towardCenter * 0.18 + filamentMode * 0.08 + ribbonMode * 0.04);
+          // Always use base positions — no center compression
+          const waveA  = Math.sin(segT * 8.0  - t * 0.9  + lineIndex * 0.14 + seed * 0.0008);
+          const waveB  = Math.cos(segT * 12.0 + t * 0.72 - lineIndex * 0.11 + seed * 0.0009);
+          const ripple = (waveA * 0.5 + waveB * 0.32) * waveAmp * (0.4 + towardCenter * 0.9);
 
-          const mergedX = sys.side * (0.03 + Math.abs(bx) * 0.16);
-          const splitX = bx;
-          const baseAmbientX = THREE.MathUtils.lerp(mergedX, splitX, separation);
           const cuboidX = sys.side * (0.18 + lineT * 0.86);
-          const baseX = THREE.MathUtils.lerp(baseAmbientX, cuboidX, voiceMorph * (0.3 + towardCenter * 0.7));
-
-          const mergedY = by * 0.22;
-          const splitY = by;
-          const baseAmbientY = THREE.MathUtils.lerp(mergedY, splitY, separation);
           const cuboidY = (lineT - 0.5) * 1.7 + Math.sin(segT * Math.PI * 2 + lineIndex * 0.08) * 0.045;
-          const baseY = THREE.MathUtils.lerp(baseAmbientY, cuboidY, voiceMorph * 0.9);
-
-          const mergedZ = bz * 0.55;
-          const splitZ = bz;
-          const baseAmbientZ = THREE.MathUtils.lerp(mergedZ, splitZ, separation);
           const cuboidZ = Math.sin(segT * Math.PI * 2 + lineT * 2.2 + seed * 0.0006) * 0.34;
-          const baseZ = THREE.MathUtils.lerp(baseAmbientZ, cuboidZ, voiceMorph * 0.88);
 
-          const ribbonLift = Math.sin(segT * Math.PI + t * 0.35 + sysIndex * 0.3) * ribbonMode * 0.16;
-          const beamTighten = beamMode * (1 - lineT) * 0.18;
-          arr[idx] = baseX + Math.sin(t * 0.55 + lineT * 4.0) * 0.03 * towardCenter - sys.side * unifiedWave * towardCenter * 0.16;
-          arr[idx + 1] = baseY + filament + ribbonLift;
-          arr[idx + 2] = baseZ + Math.cos(segT * 10.0 - t * 0.65 + seed * 0.0007) * (0.03 + towardCenter * 0.08) - beamTighten;
+          arr[idx]     = THREE.MathUtils.lerp(bx + Math.sin(t * 0.5 + lineT * 3.5) * 0.025 * towardCenter, cuboidX, voiceMorph * (0.3 + towardCenter * 0.7));
+          arr[idx + 1] = THREE.MathUtils.lerp((by + ripple) * spreadVar, cuboidY, voiceMorph * 0.9);
+          arr[idx + 2] = THREE.MathUtils.lerp(bz + Math.cos(segT * 10.0 - t * 0.65 + seed * 0.0007) * (0.03 + towardCenter * 0.07), cuboidZ, voiceMorph * 0.88);
         }
 
         sys.geometry.attributes.position.needsUpdate = true;
@@ -412,8 +389,8 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
         sys.points.rotation.x = Math.cos(t * 0.035 + sysIndex * 0.15) * 0.007;
         sys.points.rotation.y = Math.sin(t * 0.03 + sysIndex * 0.2) * 0.012;
 
-        const opacityBase = sysIndex < 2 ? 0.44 : 0.54;
-        sys.material.opacity = ambientVisibility * opacityBase + (voiceMorph * 0.1);
+        const opacityBase = sysIndex < 2 ? 0.58 : 0.68;
+        sys.material.opacity = Math.max(0.48, ambientVisibility * opacityBase + voiceMorph * 0.1);
       });
 
       filamentSystems.forEach((net, netIndex) => {
@@ -443,25 +420,22 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
         const bz = particleBase[idx + 2];
         const seed = particleSeeds[i];
         const side = bx < 0 ? -1 : 1;
-        const inward = THREE.MathUtils.clamp(1 - Math.abs(bx) / 7.1, 0, 1);
+        const inward = THREE.MathUtils.clamp(1 - Math.abs(bx) / 9.0, 0, 1);
 
-        const mergedPX = side * (0.04 + Math.abs(bx) * 0.2);
-        const splitPX = bx;
-        const ambientPX = THREE.MathUtils.lerp(mergedPX, splitPX, separation);
+        // Always use base positions for ambient cloud — no merging compression
         const cuboidPX = side * (0.12 + inward * 0.92);
-        const px = THREE.MathUtils.lerp(ambientPX, cuboidPX, voiceMorph * 0.9);
+        const px = THREE.MathUtils.lerp(bx, cuboidPX, voiceMorph * 0.9);
 
-        const ambientPY = THREE.MathUtils.lerp(by * 0.22, by, separation);
-        const py = THREE.MathUtils.lerp(ambientPY, Math.sin(seed * 0.004 + t * 0.8) * 0.9, voiceMorph * 0.88);
-        const ambientPZ = THREE.MathUtils.lerp(bz * 0.5, bz, separation);
-        const pz = THREE.MathUtils.lerp(ambientPZ, Math.cos(seed * 0.005 + t * 0.62) * 0.88, voiceMorph * 0.84);
+        const py = THREE.MathUtils.lerp(by, Math.sin(seed * 0.004 + t * 0.8) * 0.9, voiceMorph * 0.88);
+        const pz = THREE.MathUtils.lerp(bz, Math.cos(seed * 0.005 + t * 0.62) * 0.88, voiceMorph * 0.84);
 
         particleArray[idx] = px + side * Math.sin(t * 0.42 + seed * 0.002) * (0.02 + particleMode * 0.07);
         particleArray[idx + 1] = py + Math.cos(t * 0.74 + seed * 0.008) * (0.02 + particleMode * 0.12);
         particleArray[idx + 2] = pz + Math.sin(t * 0.85 + seed * 0.01) * (0.03 + particleMode * 0.08);
       }
       particleGeometry.attributes.position.needsUpdate = true;
-      particleMaterial.opacity = ambientVisibility * (0.22 + particleMode * 0.4 + beamMode * 0.08) + voiceMorph * 0.16;
+      // Minimum floor of 0.12 so ambient particle cloud stays visible
+      particleMaterial.opacity = Math.max(0.12, ambientVisibility * (0.28 + particleMode * 0.4 + beamMode * 0.08) + voiceMorph * 0.16);
       particleCloud.rotation.y = t * 0.014;
       particleCloud.rotation.x = Math.sin(t * 0.05) * 0.01;
 
@@ -503,7 +477,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
         bar.material.opacity = voiceMorph * (0.28 + envelope * 0.46);
       });
 
-      coreLight.intensity = 8 + unifiedWave * 3 + particleMode * 2 + voiceMorph * 9;
+      coreLight.intensity = 8 + breathe * 2 + particleMode * 2 + voiceMorph * 9;
       camera.position.x = Math.sin(t * 0.022) * 0.01;
       camera.position.y = Math.cos(t * 0.018) * 0.008;
       camera.position.z = 11.8 - voiceMorph * 0.28;
