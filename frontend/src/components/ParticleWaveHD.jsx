@@ -12,10 +12,9 @@ function makeGlowSprite() {
   if (!ctx) return null;
 
   const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  gradient.addColorStop(0, "rgba(255,255,255,1)");
-  gradient.addColorStop(0.1, "rgba(255,255,255,0.8)");
-  gradient.addColorStop(0.3, "rgba(255,255,255,0.2)");
-  gradient.addColorStop(0.6, "rgba(255,255,255,0.05)");
+  gradient.addColorStop(0, "rgba(255,255,255,0.6)");
+  gradient.addColorStop(0.2, "rgba(255,255,255,0.15)");
+  gradient.addColorStop(0.5, "rgba(255,255,255,0.02)");
   gradient.addColorStop(1, "rgba(255,255,255,0)");
 
   ctx.fillStyle = gradient;
@@ -117,7 +116,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.5;
+    renderer.toneMappingExposure = 0.75;
     mount.appendChild(renderer.domElement);
 
     const glowMap = makeGlowSprite();
@@ -338,19 +337,30 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
     const animate = () => {
       const t = clock.getElapsedTime();
       
+      // Ambient sequence variations
+      const cycle = t % 24;
+      const baseTwoWave = phaseWindow(cycle, 0, 6, 1.2);
+      const baseOneWave = phaseWindow(cycle, 5, 10, 1.2);
+      const baseFilament = phaseWindow(cycle, 9, 14, 1.2);
+      const baseRibbon = phaseWindow(cycle, 13, 18, 1.2);
+      const baseBeam = phaseWindow(cycle, 17, 21, 1.0);
+      const baseParticle = phaseWindow(cycle, 20, 24, 1.0);
+
       // Interpolate towards target state
       const targetMorph = voiceModeRef.current ? 1 : 0;
       currentMorph += (targetMorph - currentMorph) * 0.05;
 
       const ambientVisibility = 1 - currentMorph;
-      const unifiedWave = currentMorph * 0.7; // Partially unify waves when voice starts
-      const separation = 0;
       const voiceMorph = currentMorph;
-      const plasmaMode = currentMorph * 0.35; // keep some plasma feel
-      const filamentMode = 1.0 * (1 - currentMorph);
-      const ribbonMode = 1.0 * (1 - currentMorph);
-      const beamMode = 0.2 * (1 - currentMorph);
-      const particleMode = 0.3;
+
+      const unifiedWave = currentMorph * 0.7 + baseOneWave * ambientVisibility; 
+      const separation = baseTwoWave * ambientVisibility;
+      const plasmaMode = currentMorph * 0.35; 
+      
+      const filamentMode = baseFilament * ambientVisibility;
+      const ribbonMode = baseRibbon * ambientVisibility;
+      const beamMode = baseBeam * ambientVisibility + 0.2 * voiceMorph;
+      const particleMode = baseParticle * ambientVisibility + 0.3 * voiceMorph;
 
       waveSystems.forEach((sys, sysIndex) => {
         const arr = sys.geometry.attributes.position.array;
@@ -418,7 +428,8 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
             pos[dst + 2] = sourceArray[src + 2];
           }
           entry.geometry.attributes.position.needsUpdate = true;
-          entry.material.opacity = ambientVisibility * (filamentMode * 0.35 + ribbonMode * 0.15 + beamMode * 0.04);
+          // When variations are active, allow their respective opacity multipliers to show the mesh clearly
+          entry.material.opacity = ambientVisibility * (filamentMode * 0.45 + ribbonMode * 0.25 + beamMode * 0.04);
         });
         net.lineGroup.rotation.z = Math.sin(t * 0.04 + netIndex * 0.2) * 0.005;
         net.lineGroup.rotation.x = Math.cos(t * 0.035 + netIndex * 0.15) * 0.007;
