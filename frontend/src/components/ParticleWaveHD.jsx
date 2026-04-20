@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 function makeGlowSprite() {
-  const size = 192;
+  const size = 128;
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
@@ -13,8 +13,9 @@ function makeGlowSprite() {
 
   const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
   gradient.addColorStop(0, "rgba(255,255,255,1)");
-  gradient.addColorStop(0.18, "rgba(255,255,255,0.92)");
-  gradient.addColorStop(0.42, "rgba(255,255,255,0.42)");
+  gradient.addColorStop(0.1, "rgba(255,255,255,0.8)");
+  gradient.addColorStop(0.3, "rgba(255,255,255,0.2)");
+  gradient.addColorStop(0.6, "rgba(255,255,255,0.05)");
   gradient.addColorStop(1, "rgba(255,255,255,0)");
 
   ctx.fillStyle = gradient;
@@ -115,6 +116,8 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.5;
     mount.appendChild(renderer.domElement);
 
     const glowMap = makeGlowSprite();
