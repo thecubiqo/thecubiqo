@@ -64,8 +64,10 @@ function createWaveField({
       const towardCenter = 1 - segNorm;
       const xSpan = segNorm * width;
       const x = side === -1 ? -xSpan - inset : xSpan + inset;
-      const y = verticalBias * Math.pow(towardCenter, 0.72) + Math.sin(segNorm * Math.PI * 2 + l * 0.24) * amplitude * (0.22 + towardCenter * 0.88);
-      const z = Math.cos(segNorm * Math.PI * 3 + l * 0.19) * (0.04 + towardCenter * 0.28) + (lineNorm - 0.5) * 0.08;
+      // Boxy plasma shape: spread stays ~45% even at outer tip (not tapered to zero)
+      const boxFactor = 0.45 + Math.pow(towardCenter, 0.38) * 0.55;
+      const y = verticalBias * boxFactor + Math.sin(segNorm * Math.PI * 2 + l * 0.24) * amplitude * (0.35 + towardCenter * 0.65);
+      const z = Math.cos(segNorm * Math.PI * 3 + l * 0.19) * (0.06 + towardCenter * 0.38) + (lineNorm - 0.5) * 0.14;
 
       positions[ptr] = x;
       positions[ptr + 1] = y;
@@ -188,13 +190,13 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
       filamentSystems.push({ config, lineGroup, lines });
     }
 
-    // Wide elongated double-lobe: large width, tight spread
-    addWaveSystem({ side: -1, lines: 36, segments: 140, width: 8.5, spread: 1.4, amplitude: 0.48, inset: 0.12, size: 0.058, opacity: 0.64 });
-    addWaveSystem({ side: 1,  lines: 36, segments: 140, width: 8.5, spread: 1.4, amplitude: 0.48, inset: 0.12, size: 0.058, opacity: 0.64 });
-    addWaveSystem({ side: -1, lines: 16, segments: 116, width: 7.2, spread: 1.0, amplitude: 0.34, inset: 0.05, size: 0.08,  opacity: 0.72 });
-    addWaveSystem({ side: 1,  lines: 16, segments: 116, width: 7.2, spread: 1.0, amplitude: 0.34, inset: 0.05, size: 0.08,  opacity: 0.72 });
+    // Dense tall plasma clouds — large spread, high line count, boxy shape
+    addWaveSystem({ side: -1, lines: 80, segments: 130, width: 6.8, spread: 3.6, amplitude: 0.78, inset: 0.18, size: 0.052, opacity: 0.58 });
+    addWaveSystem({ side: 1,  lines: 80, segments: 130, width: 6.8, spread: 3.6, amplitude: 0.78, inset: 0.18, size: 0.052, opacity: 0.58 });
+    addWaveSystem({ side: -1, lines: 36, segments: 110, width: 5.5, spread: 2.8, amplitude: 0.58, inset: 0.08, size: 0.072, opacity: 0.68 });
+    addWaveSystem({ side: 1,  lines: 36, segments: 110, width: 5.5, spread: 2.8, amplitude: 0.58, inset: 0.08, size: 0.072, opacity: 0.68 });
 
-    const particleCount = 2400;
+    const particleCount = 4800;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleBase = new Float32Array(particleCount * 3);
     const particleColors = new Float32Array(particleCount * 3);
@@ -204,9 +206,9 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
     for (let i = 0; i < particleCount; i++) {
       const idx = i * 3;
       const side = i % 2 === 0 ? -1 : 1;
-      const x = side * THREE.MathUtils.randFloat(0.2, 9.0);
-      const y = THREE.MathUtils.randFloatSpread(1.8);
-      const z = THREE.MathUtils.randFloatSpread(1.2);
+      const x = side * THREE.MathUtils.randFloat(0.2, 7.5);
+      const y = THREE.MathUtils.randFloatSpread(4.0);
+      const z = THREE.MathUtils.randFloatSpread(1.6);
       particlePositions[idx] = x;
       particlePositions[idx + 1] = y;
       particlePositions[idx + 2] = z;
@@ -341,10 +343,10 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
       // Continuous ambient variations — no dead zones, always visible
       const breathe     = (Math.sin(t * 0.13) + 1) * 0.5;        // 0→1 slow cycle
       const pulse       = (Math.sin(t * 0.08 + 1.5) + 1) * 0.5;  // offset cycle
-      const waveAmp     = 0.06 + breathe * 0.10;                  // ripple intensity
+      const waveAmp     = 0.14 + breathe * 0.22;                  // strong plasma undulation
       const spreadVar   = 0.90 + pulse   * 0.10;                  // gentle vertical breath
-      const beamMode    = 0.08 + pulse   * 0.08;                  // always-on subtle beam
-      const particleMode = 0.18 + breathe * 0.18;                 // ambient scatter
+      const beamMode    = 0.06 + pulse   * 0.06;                  // subtle beam
+      const particleMode = 0.22 + breathe * 0.22;                 // ambient scatter
 
       // Voice morph
       const targetMorph = voiceModeRef.current ? 1 : 0;
