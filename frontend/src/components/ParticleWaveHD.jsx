@@ -118,7 +118,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.5;
     mount.appendChild(renderer.domElement);
 
     const glowMap = makeGlowSprite();
@@ -190,11 +190,11 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
       filamentSystems.push({ config, lineGroup, lines });
     }
 
-    // Dense tall plasma clouds — large spread, high line count, boxy shape
-    addWaveSystem({ side: -1, lines: 80, segments: 130, width: 6.8, spread: 3.6, amplitude: 0.78, inset: 0.18, size: 0.052, opacity: 0.58 });
-    addWaveSystem({ side: 1,  lines: 80, segments: 130, width: 6.8, spread: 3.6, amplitude: 0.78, inset: 0.18, size: 0.052, opacity: 0.58 });
-    addWaveSystem({ side: -1, lines: 36, segments: 110, width: 5.5, spread: 2.8, amplitude: 0.58, inset: 0.08, size: 0.072, opacity: 0.68 });
-    addWaveSystem({ side: 1,  lines: 36, segments: 110, width: 5.5, spread: 2.8, amplitude: 0.58, inset: 0.08, size: 0.072, opacity: 0.68 });
+    // Fit the /app canvas (50% viewport width, camera sees ±3.2 units horiz)
+    addWaveSystem({ side: -1, lines: 80, segments: 110, width: 2.9, spread: 3.5, amplitude: 0.82, inset: 0.16, size: 0.055, opacity: 0.62 });
+    addWaveSystem({ side: 1,  lines: 80, segments: 110, width: 2.9, spread: 3.5, amplitude: 0.82, inset: 0.16, size: 0.055, opacity: 0.62 });
+    addWaveSystem({ side: -1, lines: 40, segments: 90,  width: 2.2, spread: 2.6, amplitude: 0.62, inset: 0.08, size: 0.075, opacity: 0.72 });
+    addWaveSystem({ side: 1,  lines: 40, segments: 90,  width: 2.2, spread: 2.6, amplitude: 0.62, inset: 0.08, size: 0.075, opacity: 0.72 });
 
     const particleCount = 4800;
     const particlePositions = new Float32Array(particleCount * 3);
@@ -206,9 +206,9 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
     for (let i = 0; i < particleCount; i++) {
       const idx = i * 3;
       const side = i % 2 === 0 ? -1 : 1;
-      const x = side * THREE.MathUtils.randFloat(0.2, 7.5);
-      const y = THREE.MathUtils.randFloatSpread(4.0);
-      const z = THREE.MathUtils.randFloatSpread(1.6);
+      const x = side * THREE.MathUtils.randFloat(0.15, 3.0);
+      const y = THREE.MathUtils.randFloatSpread(3.8);
+      const z = THREE.MathUtils.randFloatSpread(1.4);
       particlePositions[idx] = x;
       particlePositions[idx + 1] = y;
       particlePositions[idx + 2] = z;
@@ -391,8 +391,8 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
         sys.points.rotation.x = Math.cos(t * 0.035 + sysIndex * 0.15) * 0.007;
         sys.points.rotation.y = Math.sin(t * 0.03 + sysIndex * 0.2) * 0.012;
 
-        const opacityBase = sysIndex < 2 ? 0.58 : 0.68;
-        sys.material.opacity = Math.max(0.48, ambientVisibility * opacityBase + voiceMorph * 0.1);
+        const opacityBase = sysIndex < 2 ? 0.65 : 0.75;
+        sys.material.opacity = Math.max(0.55, ambientVisibility * opacityBase + voiceMorph * 0.1);
       });
 
       filamentSystems.forEach((net, netIndex) => {
