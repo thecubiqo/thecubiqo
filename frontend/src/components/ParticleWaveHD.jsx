@@ -347,8 +347,8 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
       const separation = 0;
       const voiceMorph = currentMorph;
       const plasmaMode = currentMorph * 0.35; // keep some plasma feel
-      const filamentMode = 0.5 * (1 - currentMorph);
-      const ribbonMode = 0.5 * (1 - currentMorph);
+      const filamentMode = 1.0 * (1 - currentMorph);
+      const ribbonMode = 1.0 * (1 - currentMorph);
       const beamMode = 0.2 * (1 - currentMorph);
       const particleMode = 0.3;
 
@@ -370,7 +370,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
 
           const waveA = Math.sin(segT * 8.0 - t * 0.9 + lineIndex * 0.14 + seed * 0.0008);
           const waveB = Math.cos(segT * 12.0 + t * 0.72 - lineIndex * 0.11 + seed * 0.0009);
-          const filament = (waveA * 0.5 + waveB * 0.32) * (0.08 + towardCenter * 0.18 + filamentMode * 0.08 + ribbonMode * 0.04);
+          const filament = (waveA * 0.5 + waveB * 0.32) * (0.08 + towardCenter * 0.18 + filamentMode * 0.25 + ribbonMode * 0.15);
 
           const mergedX = sys.side * (0.03 + Math.abs(bx) * 0.16);
           const splitX = bx;
@@ -418,7 +418,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
             pos[dst + 2] = sourceArray[src + 2];
           }
           entry.geometry.attributes.position.needsUpdate = true;
-          entry.material.opacity = ambientVisibility * (filamentMode * 0.16 + ribbonMode * 0.08 + beamMode * 0.04);
+          entry.material.opacity = ambientVisibility * (filamentMode * 0.35 + ribbonMode * 0.15 + beamMode * 0.04);
         });
         net.lineGroup.rotation.z = Math.sin(t * 0.04 + netIndex * 0.2) * 0.005;
         net.lineGroup.rotation.x = Math.cos(t * 0.035 + netIndex * 0.15) * 0.007;
