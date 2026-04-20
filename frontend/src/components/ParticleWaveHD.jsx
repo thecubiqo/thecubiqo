@@ -188,12 +188,12 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
       filamentSystems.push({ config, lineGroup, lines });
     }
 
-    addWaveSystem({ side: -1, lines: 108, segments: 350, width: 14.5, spread: 6.0, amplitude: 1.36, inset: 0.44, size: 0.025, opacity: 0.64 });
-    addWaveSystem({ side: 1, lines: 108, segments: 350, width: 14.5, spread: 6.0, amplitude: 1.36, inset: 0.44, size: 0.025, opacity: 0.64 });
-    addWaveSystem({ side: -1, lines: 48, segments: 250, width: 13.0, spread: 3.5, amplitude: 0.84, inset: 0.1, size: 0.035, opacity: 0.72 });
-    addWaveSystem({ side: 1, lines: 48, segments: 250, width: 13.0, spread: 3.5, amplitude: 0.84, inset: 0.1, size: 0.035, opacity: 0.72 });
+    addWaveSystem({ side: -1, lines: 36, segments: 140, width: 5.25, spread: 3.0, amplitude: 0.68, inset: 0.22, size: 0.058, opacity: 0.64 });
+    addWaveSystem({ side: 1, lines: 36, segments: 140, width: 5.25, spread: 3.0, amplitude: 0.68, inset: 0.22, size: 0.058, opacity: 0.64 });
+    addWaveSystem({ side: -1, lines: 16, segments: 116, width: 4.75, spread: 1.75, amplitude: 0.42, inset: 0.05, size: 0.08, opacity: 0.72 });
+    addWaveSystem({ side: 1, lines: 16, segments: 116, width: 4.75, spread: 1.75, amplitude: 0.42, inset: 0.05, size: 0.08, opacity: 0.72 });
 
-    const particleCount = 20000;
+    const particleCount = 2400;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleBase = new Float32Array(particleCount * 3);
     const particleColors = new Float32Array(particleCount * 3);
@@ -203,16 +203,16 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
     for (let i = 0; i < particleCount; i++) {
       const idx = i * 3;
       const side = i % 2 === 0 ? -1 : 1;
-      const x = side * THREE.MathUtils.randFloat(0.2, 19.0);
-      const y = THREE.MathUtils.randFloatSpread(6.4);
-      const z = THREE.MathUtils.randFloatSpread(4.0);
+      const x = side * THREE.MathUtils.randFloat(0.2, 7.1);
+      const y = THREE.MathUtils.randFloatSpread(2.8);
+      const z = THREE.MathUtils.randFloatSpread(1.6);
       particlePositions[idx] = x;
       particlePositions[idx + 1] = y;
       particlePositions[idx + 2] = z;
       particleBase[idx] = x;
       particleBase[idx + 1] = y;
       particleBase[idx + 2] = z;
-      temp.copy(side === -1 ? leftA : rightA).lerp(side === -1 ? purple : rightB, THREE.MathUtils.clamp(1 - Math.abs(x) / 19.0, 0, 1));
+      temp.copy(side === -1 ? leftA : rightA).lerp(side === -1 ? purple : rightB, THREE.MathUtils.clamp(1 - Math.abs(x) / 7.1, 0, 1));
       const lift = THREE.MathUtils.randFloat(0.4, 1.1);
       particleColors[idx] = temp.r * lift;
       particleColors[idx + 1] = temp.g * lift;
@@ -224,11 +224,11 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
     particleGeometry.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
     particleGeometry.setAttribute("color", new THREE.BufferAttribute(particleColors, 3));
     const particleMaterial = new THREE.PointsMaterial({
-      size: 0.024,
+      size: 0.048,
       map: glowMap || null,
       alphaMap: glowMap || null,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.48,
       depthWrite: false,
       vertexColors: true,
       blending: THREE.AdditiveBlending,
@@ -380,7 +380,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
 
           const waveA = Math.sin(segT * 8.0 - t * 0.9 + lineIndex * 0.14 + seed * 0.0008);
           const waveB = Math.cos(segT * 12.0 + t * 0.72 - lineIndex * 0.11 + seed * 0.0009);
-          const filament = (waveA * 0.5 + waveB * 0.32) * (0.08 + towardCenter * 0.18 + filamentMode * 0.25 + ribbonMode * 0.15);
+          const filament = (waveA * 0.5 + waveB * 0.32) * (0.08 + towardCenter * 0.18 + filamentMode * 0.08 + ribbonMode * 0.04);
 
           const mergedX = sys.side * (0.03 + Math.abs(bx) * 0.16);
           const splitX = bx;
@@ -428,8 +428,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
             pos[dst + 2] = sourceArray[src + 2];
           }
           entry.geometry.attributes.position.needsUpdate = true;
-          // When variations are active, allow their respective opacity multipliers to show the mesh clearly
-          entry.material.opacity = ambientVisibility * (filamentMode * 0.45 + ribbonMode * 0.25 + beamMode * 0.04);
+          entry.material.opacity = ambientVisibility * (filamentMode * 0.16 + ribbonMode * 0.08 + beamMode * 0.04);
         });
         net.lineGroup.rotation.z = Math.sin(t * 0.04 + netIndex * 0.2) * 0.005;
         net.lineGroup.rotation.x = Math.cos(t * 0.035 + netIndex * 0.15) * 0.007;
@@ -444,7 +443,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
         const bz = particleBase[idx + 2];
         const seed = particleSeeds[i];
         const side = bx < 0 ? -1 : 1;
-        const inward = THREE.MathUtils.clamp(1 - Math.abs(bx) / 19.0, 0, 1);
+        const inward = THREE.MathUtils.clamp(1 - Math.abs(bx) / 7.1, 0, 1);
 
         const mergedPX = side * (0.04 + Math.abs(bx) * 0.2);
         const splitPX = bx;
