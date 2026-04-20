@@ -354,12 +354,13 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
       transparent: true,
       opacity: isLanding ? 0.94 : 0.82,
       depthWrite: false,
+      depthTest: true,
       vertexColors: true,
       blending: THREE.AdditiveBlending,
       sizeAttenuation: true,
     });
     const particleCloud = new THREE.Points(particleGeometry, particleMaterial);
-    particleCloud.renderOrder = 5;
+    particleCloud.renderOrder = 2;
     scene.add(particleCloud);
 
     const ambientPlanes = [];
@@ -389,6 +390,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
 
     // Voice cuboid: plasma, not floating giant wireframe.
     const cuboidGroup = new THREE.Group();
+    cuboidGroup.renderOrder = 6;
     scene.add(cuboidGroup);
 
     const shellEdges = [];
@@ -402,6 +404,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
         depthWrite: false,
       });
       const lines = new THREE.LineSegments(geo, mat);
+      lines.renderOrder = i === 0 ? 7 : 6;
       cuboidGroup.add(lines);
       shellEdges.push({ lines, geometry: geo, material: mat, scale: i === 0 ? 1 : 0.86 });
     });
@@ -447,9 +450,12 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
       sizeAttenuation: true,
     });
     const shellParticles = new THREE.Points(shellParticleGeometry, shellParticleMaterial);
+    shellParticles.renderOrder = 6;
     cuboidGroup.add(shellParticles);
 
     const voiceSignalGroup = new THREE.Group();
+    voiceSignalGroup.position.z = 0.72;
+    voiceSignalGroup.renderOrder = 9;
     cuboidGroup.add(voiceSignalGroup);
     const signalBars = [];
     const ruby = new THREE.Color("#b83b4f");
@@ -470,10 +476,12 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
         opacity: 0,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
+        depthTest: false,
         side: THREE.DoubleSide,
       });
       const bar = new THREE.Mesh(geo, mat);
       bar.position.x = x;
+      bar.renderOrder = 9;
       voiceSignalGroup.add(bar);
       signalBars.push({ mesh: bar, geometry: geo, material: mat, xNorm, phase: Math.random() * Math.PI * 2 });
     }
@@ -483,6 +491,11 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
     
     // Smooth transition tracking
     let currentMorph = voiceModeRef.current ? 1 : 0;
+    let voiceEngagedAt = voiceModeRef.current ? 0 : null;
+    let wasVoiceActive = voiceModeRef.current;
+    let cuboidRotX = 0;
+    let cuboidRotY = 0;
+    let cuboidRotZ = 0;
 
     const animate = () => {
       const t = clock.getElapsedTime();
@@ -492,6 +505,12 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
       const pulse       = (Math.sin(t * 0.08 + 1.5) + 1) * 0.5;  // offset cycle
       // Voice morph
       const targetMorph = voiceModeRef.current ? 1 : 0;
+      const targetVoiceActive = targetMorph > 0.5;
+      if (targetVoiceActive !== wasVoiceActive) {
+        voiceEngagedAt = targetVoiceActive ? t : null;
+        wasVoiceActive = targetVoiceActive;
+      }
+      const voiceAge = voiceEngagedAt === null ? 0 : Math.max(0, t - voiceEngagedAt);
       currentMorph += (targetMorph - currentMorph) * 0.05;
 
       const ambientVisibility = 1 - currentMorph;
@@ -583,20 +602,26 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
         const inward = THREE.MathUtils.clamp(1 - Math.abs(bx) / layout.particleXMax, 0, 1);
 
         // Always use base positions for ambient cloud — no merging compression
-        const cuboidPX = side * (0.12 + inward * 0.92);
+        const cuboidPX = side * (0.08 + inward * 0.78);
+        const cuboidBackY = Math.sin(seed * 0.004 + t * 0.58) * (0.42 + inward * 0.34);
+        const cuboidBackZ = -0.74 - inward * 0.28 + Math.cos(seed * 0.005 + t * 0.42) * 0.14;
         const helix = Math.sin(t * 0.38 + seed * 0.012 + inward * Math.PI * 3.2) * lane * preMorph;
         const px = THREE.MathUtils.lerp(bx - side * convergence * (0.2 + inward), cuboidPX, voiceMorph * 0.9);
 
-        const py = THREE.MathUtils.lerp(by + helix * (0.025 + inward * 0.08), Math.sin(seed * 0.004 + t * 0.8) * 0.9, voiceMorph * 0.88);
-        const pz = THREE.MathUtils.lerp(bz + Math.cos(t * 0.34 + seed * 0.01) * lane * (0.02 + inward * 0.09) * preMorph, Math.cos(seed * 0.005 + t * 0.62) * 0.88, voiceMorph * 0.84);
+        const py = THREE.MathUtils.lerp(by + helix * (0.025 + inward * 0.08), cuboidBackY, voiceMorph * 0.9);
+        const pz = THREE.MathUtils.lerp(bz + Math.cos(t * 0.34 + seed * 0.01) * lane * (0.02 + inward * 0.09) * preMorph, cuboidBackZ, voiceMorph * 0.92);
+        const voiceDamping = 1 - voiceMorph * 0.55;
+        const voiceDepthDamping = 1 - voiceMorph * 0.72;
 
-        particleArray[idx] = px + side * Math.sin(t * 0.44 + seed * 0.002) * (0.025 + particleMode * (isLanding ? 0.105 : 0.075));
-        particleArray[idx + 1] = py + Math.cos(t * 0.78 + seed * 0.008) * (0.025 + particleMode * (isLanding ? 0.15 : 0.12));
-        particleArray[idx + 2] = pz + Math.sin(t * 0.9 + seed * 0.01) * (0.035 + particleMode * (isLanding ? 0.105 : 0.08));
+        particleArray[idx] = px + side * Math.sin(t * 0.44 + seed * 0.002) * (0.025 + particleMode * (isLanding ? 0.105 : 0.075)) * voiceDamping;
+        particleArray[idx + 1] = py + Math.cos(t * 0.78 + seed * 0.008) * (0.025 + particleMode * (isLanding ? 0.15 : 0.12)) * voiceDamping;
+        particleArray[idx + 2] = pz + Math.sin(t * 0.9 + seed * 0.01) * (0.035 + particleMode * (isLanding ? 0.105 : 0.08)) * voiceDepthDamping;
       }
       particleGeometry.attributes.position.needsUpdate = true;
-      // Minimum floor of 0.12 so ambient particle cloud stays visible
-      particleMaterial.opacity = Math.max(isLanding ? 0.62 : 0.34, ambientVisibility * (0.58 + particleMode * (isLanding ? 0.7 : 0.6) + beamMode * 0.1) + voiceMorph * 0.16);
+      // Keep the idle plume visible, then dim it into the cuboid's rear plane while listening.
+      const ambientParticleOpacity = Math.max(isLanding ? 0.62 : 0.34, ambientVisibility * (0.58 + particleMode * (isLanding ? 0.7 : 0.6) + beamMode * 0.1));
+      const rearParticleOpacity = isLanding ? ambientParticleOpacity : 0.13 + particleMode * 0.04;
+      particleMaterial.opacity = THREE.MathUtils.lerp(ambientParticleOpacity, rearParticleOpacity, voiceMorph);
       particleCloud.rotation.y = t * (isLanding ? 0.019 : 0.014);
       particleCloud.rotation.x = Math.sin(t * 0.052) * (isLanding ? 0.015 : 0.01);
 
@@ -626,8 +651,15 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
       shellParticleGeometry.attributes.position.needsUpdate = true;
       shellParticleMaterial.opacity = voiceMorph * 0.26;
 
-      cuboidGroup.rotation.y = Math.sin(t * 0.045) * 0.06 * voiceMorph;
-      cuboidGroup.rotation.x = Math.cos(t * 0.038) * 0.025 * voiceMorph;
+      const isometricEase = voiceMorph * smoothstep(0.45, 2.65, voiceAge);
+      const settleEnergy = targetVoiceActive ? Math.exp(-voiceAge * 1.12) * voiceMorph : 0;
+      const targetCuboidY = 0.56 * isometricEase + Math.sin(voiceAge * 5.7) * 0.24 * settleEnergy + Math.sin(t * 0.12) * 0.015 * voiceMorph;
+      const targetCuboidX = -0.34 * isometricEase + Math.sin(voiceAge * 6.8 + 0.7) * 0.12 * settleEnergy + Math.cos(t * 0.1) * 0.01 * voiceMorph;
+      const targetCuboidZ = 0.035 * isometricEase + Math.sin(voiceAge * 7.4 + 1.1) * 0.035 * settleEnergy;
+      cuboidRotX += (targetCuboidX - cuboidRotX) * 0.08;
+      cuboidRotY += (targetCuboidY - cuboidRotY) * 0.08;
+      cuboidRotZ += (targetCuboidZ - cuboidRotZ) * 0.08;
+      cuboidGroup.rotation.set(cuboidRotX, cuboidRotY, cuboidRotZ);
 
       // Visible tri-color ECG/audio signal through cuboid.
       const realAudio = audioLevelRef.current;

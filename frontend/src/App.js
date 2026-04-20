@@ -71,7 +71,6 @@ const DemoPage = () => {
   const navigate = useNavigate();
   const [speakerEnabled, setSpeakerEnabled] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [transcript, setTranscript] = useState("");
   const [aiResponse, setAiResponse] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
@@ -140,7 +139,6 @@ const DemoPage = () => {
       let t = '';
       for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
       transcriptRef.current = t;
-      setTranscript(t);
     };
     rec.onerror = (e) => {
       console.warn('Speech error:', e.error);
@@ -150,7 +148,6 @@ const DemoPage = () => {
     rec.onend = () => {
       const text = transcriptRef.current.trim();
       transcriptRef.current = '';
-      setTranscript('');
       setSpeakerEnabled(false);
       if (text) {
         setIsProcessing(true);
@@ -204,7 +201,6 @@ const DemoPage = () => {
       setKeywords(nk);
     } finally {
       setIsProcessing(false);
-      setTranscript("");
     }
   };
   callBackendRef.current = callBackend;
@@ -219,7 +215,6 @@ const DemoPage = () => {
     if (isProcessing) return;
     if (!speakerEnabled) {
       transcriptRef.current = '';
-      setTranscript('');
       setSpeakerEnabled(true);
       try {
         recognitionRef.current?.start();
@@ -229,7 +224,6 @@ const DemoPage = () => {
         setTimeout(() => {
           const fake = 'simulated voice input about balance and focus';
           transcriptRef.current = fake;
-          setTranscript(fake);
           recognitionRef.current?.dispatchEvent && recognitionRef.current.dispatchEvent(new Event('end'));
           // manual fallback
           setSpeakerEnabled(false);
@@ -367,12 +361,6 @@ const DemoPage = () => {
                 </div>
               )}
             </div>
-
-            {speakerEnabled && transcript && (
-              <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '1.05rem', fontStyle: 'italic', maxWidth: 360, textShadow: '0 2px 10px rgba(0,0,0,0.5)', fontWeight: 300 }}>
-                "{transcript}"
-              </div>
-            )}
 
           </div>
         </div>
