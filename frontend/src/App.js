@@ -4,8 +4,8 @@ import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Canvas } from "@react-three/fiber";
 import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocessing";
 import { Suspense } from "react";
-import PlasmaWaveField from "./components/PlasmaWaveField";
 import CubiQoVisual from "./components/CubiQoVisual";
+import ParticleWaveHD from "./components/ParticleWaveHD";
 import { Menu, Activity, X, Settings, Database, Shield, User, LogOut, Mail, Lock } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
@@ -27,7 +27,7 @@ const LandingPage = () => {
     <div data-testid="landing-page" onClick={() => navigate('/app')}
       style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden', cursor: 'pointer' }}>
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none' }}>
-        <CubiQoVisual isEnabled={false} aiState="neutral" />
+        <ParticleWaveHD isVoiceMode={false} />
       </div>
       <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', zIndex: 50, pointerEvents: 'none' }}>
         <h1 style={{ fontSize: 'clamp(3rem, 10vw, 7rem)', fontWeight: 300, color: '#fff', textShadow: '0 0 60px rgba(0,212,255,0.4)', marginBottom: 20, letterSpacing: 8, fontFamily: "'SF Pro Display','Inter',sans-serif", textTransform: 'uppercase' }}>CubiQo</h1>
@@ -331,9 +331,9 @@ const DemoPage = () => {
         }}>
           <div style={{ width: '100%', height: '100%', position: 'relative', transition: 'transform 0.6s ease', transform: speakerEnabled || isProcessing || isSpeaking ? 'scale(1.04)' : 'scale(1)' }}>
             
-            {/* SINGLE HERO VISUAL: Clean morphing system natively supported by CubiQoVisual */}
+            {/* SINGLE HERO VISUAL: Clean morphing system using provided prototype */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
-              <CubiQoVisual isEnabled={speakerEnabled || isProcessing || isSpeaking} aiState={aiState} />
+              <ParticleWaveHD isVoiceMode={speakerEnabled || isProcessing || isSpeaking} />
             </div>
           </div>
 
