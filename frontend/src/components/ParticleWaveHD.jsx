@@ -90,13 +90,18 @@ function createWaveField({
   return { positions, basePositions, colors, seeds };
 }
 
-export default function ParticleWaveHD({ isVoiceMode }) {
+export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
   const mountRef = useRef(null);
   const voiceModeRef = useRef(isVoiceMode || false);
+  const audioLevelRef = useRef(audioLevel);
 
   useEffect(() => {
     voiceModeRef.current = isVoiceMode;
   }, [isVoiceMode]);
+
+  useEffect(() => {
+    audioLevelRef.current = audioLevel;
+  }, [audioLevel]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -484,13 +489,14 @@ export default function ParticleWaveHD({ isVoiceMode }) {
       cuboidGroup.rotation.x = Math.cos(t * 0.038) * 0.025 * voiceMorph;
 
       // Visible tri-color ECG/audio signal through cuboid.
-      const speakingPulse = 0.35 + Math.pow((Math.sin(t * 2.4) + 1) * 0.5, 1.5) * 0.65;
+      const realAudio = audioLevelRef.current;
+      const speakingPulse = 0.35 + (Math.pow((Math.sin(t * 2.4) + 1) * 0.5, 1.5) * 0.65) * (1 + realAudio * 3.0);
       signalBars.forEach((bar, i) => {
         const envelope = Math.exp(-Math.pow((bar.xNorm - 0.5) / 0.38, 2));
         const wave = Math.sin(i * 0.34 - t * 5.8 + bar.phase) * 0.65 + Math.sin(i * 0.17 + t * 2.8) * 0.35;
-        const heartbeat = Math.exp(-Math.pow(((((t * 1.35 + bar.xNorm * 0.95) % 1) - 0.17) / 0.05), 2)) * 1.35;
+        const heartbeat = Math.exp(-Math.pow(((((t * 1.35 + bar.xNorm * 0.95) % 1) - 0.17) / 0.05), 2)) * (1.35 + realAudio * 2.0);
         const amp = (0.16 + envelope * 0.34) * speakingPulse + heartbeat * 0.48;
-        bar.mesh.scale.y = 0.42 + Math.abs(wave) * amp * 4.8;
+        bar.mesh.scale.y = 0.42 + Math.abs(wave) * amp * (4.8 + realAudio * 5.0);
         bar.mesh.position.y = Math.sin(i * 0.08 + t * 1.15) * 0.014;
         bar.mesh.position.z = Math.sin(i * 0.05 + t * 0.9) * 0.01;
         bar.material.opacity = voiceMorph * (0.28 + envelope * 0.46);

@@ -333,7 +333,7 @@ const DemoPage = () => {
             
             {/* SINGLE HERO VISUAL: Clean morphing system using provided prototype */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
-              <ParticleWaveHD isVoiceMode={speakerEnabled || isProcessing || isSpeaking} />
+              <ParticleWaveHD isVoiceMode={speakerEnabled || isProcessing || isSpeaking} audioLevel={isSpeaking ? 1.0 : 0.0} />
             </div>
           </div>
 
