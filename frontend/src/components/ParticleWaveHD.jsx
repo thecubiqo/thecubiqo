@@ -2,6 +2,9 @@
 
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass";
 
 function makeGlowSprite() {
   const size = 192;
@@ -181,12 +184,12 @@ export default function ParticleWaveHD({ isVoiceMode }) {
       filamentSystems.push({ config, lineGroup, lines });
     }
 
-    addWaveSystem({ side: -1, lines: 36, segments: 140, width: 5.25, spread: 3.0, amplitude: 0.68, inset: 0.22, size: 0.058, opacity: 0.64 });
-    addWaveSystem({ side: 1, lines: 36, segments: 140, width: 5.25, spread: 3.0, amplitude: 0.68, inset: 0.22, size: 0.058, opacity: 0.64 });
-    addWaveSystem({ side: -1, lines: 16, segments: 116, width: 4.75, spread: 1.75, amplitude: 0.42, inset: 0.05, size: 0.08, opacity: 0.72 });
-    addWaveSystem({ side: 1, lines: 16, segments: 116, width: 4.75, spread: 1.75, amplitude: 0.42, inset: 0.05, size: 0.08, opacity: 0.72 });
+    addWaveSystem({ side: -1, lines: 108, segments: 350, width: 5.25, spread: 3.0, amplitude: 0.68, inset: 0.22, size: 0.035, opacity: 0.8 });
+    addWaveSystem({ side: 1, lines: 108, segments: 350, width: 5.25, spread: 3.0, amplitude: 0.68, inset: 0.22, size: 0.035, opacity: 0.8 });
+    addWaveSystem({ side: -1, lines: 48, segments: 250, width: 4.75, spread: 1.75, amplitude: 0.42, inset: 0.05, size: 0.05, opacity: 0.9 });
+    addWaveSystem({ side: 1, lines: 48, segments: 250, width: 4.75, spread: 1.75, amplitude: 0.42, inset: 0.05, size: 0.05, opacity: 0.9 });
 
-    const particleCount = 2400;
+    const particleCount = 8000;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleBase = new Float32Array(particleCount * 3);
     const particleColors = new Float32Array(particleCount * 3);
@@ -217,11 +220,11 @@ export default function ParticleWaveHD({ isVoiceMode }) {
     particleGeometry.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
     particleGeometry.setAttribute("color", new THREE.BufferAttribute(particleColors, 3));
     const particleMaterial = new THREE.PointsMaterial({
-      size: 0.048,
+      size: 0.025,
       map: glowMap || null,
       alphaMap: glowMap || null,
       transparent: true,
-      opacity: 0.48,
+      opacity: 0.68,
       depthWrite: false,
       vertexColors: true,
       blending: THREE.AdditiveBlending,
@@ -326,6 +329,16 @@ export default function ParticleWaveHD({ isVoiceMode }) {
     
     // Smooth transition tracking
     let currentMorph = voiceModeRef.current ? 1 : 0;
+
+    // Post-processing Bloom setup
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(mount.clientWidth, mount.clientHeight), 1.5, 0.4, 0.85);
+    bloomPass.threshold = 0.1;
+    bloomPass.strength = 1.8;
+    bloomPass.radius = 0.5;
+    composer.addPass(bloomPass);
 
     const animate = () => {
       const t = clock.getElapsedTime();
@@ -489,17 +502,20 @@ export default function ParticleWaveHD({ isVoiceMode }) {
       camera.position.z = 11.8 - voiceMorph * 0.28;
       camera.lookAt(0, 0, 0);
 
-      renderer.render(scene, camera);
+      composer.render();
       frameId = window.requestAnimationFrame(animate);
     };
 
     animate();
 
     const handleResize = () => {
-      camera.aspect = mount.clientWidth / mount.clientHeight;
+      const width = mount.clientWidth;
+      const height = mount.clientHeight;
+      camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      renderer.setSize(mount.clientWidth, mount.clientHeight);
+      renderer.setSize(width, height);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      composer.setSize(width, height);
     };
 
     window.addEventListener("resize", handleResize);
