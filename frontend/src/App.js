@@ -24,16 +24,15 @@ const SignalIcon = ({ size = 18 }) => (
 const LandingPage = () => {
   const navigate = useNavigate();
   return (
-    <div data-testid="landing-page" onClick={() => navigate('/app')}
-      style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden', cursor: 'pointer' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none' }}>
-        <ParticleWaveHD isVoiceMode={false} />
+    <div data-testid="landing-page" className="landing-page" onClick={() => navigate('/app')}>
+      <div className="landing-visual" aria-hidden="true">
+        <ParticleWaveHD isVoiceMode={false} presentation="landing" />
       </div>
-      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', zIndex: 50, pointerEvents: 'none' }}>
-        <h1 style={{ fontSize: 'clamp(3rem, 10vw, 7rem)', fontWeight: 300, color: '#fff', textShadow: '0 0 60px rgba(0,212,255,0.4)', marginBottom: 20, letterSpacing: 8, fontFamily: "'SF Pro Display','Inter',sans-serif", textTransform: 'uppercase' }}>CubiQo</h1>
-        <p style={{ fontSize: 'clamp(1rem, 2.5vw, 1.3rem)', color: 'rgba(255,255,255,0.6)', marginBottom: 50, fontFamily: "'SF Pro Display','Inter',sans-serif", fontWeight: 300, letterSpacing: 3 }}>One Mind. Many Dimensions.</p>
-        <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter',sans-serif", animation: 'pulse 2s ease-in-out infinite' }}>Tap anywhere to begin</p>
+      <div className="landing-lockup">
+        <h1 className="landing-title">CubiQo</h1>
+        <p className="landing-subtitle">One Mind. Many Dimensions.</p>
       </div>
+      <p className="landing-entry">Tap anywhere to begin</p>
     </div>
   );
 };

@@ -51,6 +51,7 @@ function createWaveField({
   const basePositions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
   const seeds = new Float32Array(count);
+  const laneOffsets = new Float32Array(count);
   const mixed = new THREE.Color();
   const blended = new THREE.Color();
 
@@ -58,6 +59,7 @@ function createWaveField({
   for (let l = 0; l < lines; l++) {
     const lineNorm = l / Math.max(lines - 1, 1);
     const verticalBias = (lineNorm - 0.5) * spread;
+    const laneSign = l % 2 === 0 ? 1 : -1;
 
     for (let s = 0; s < segments; s++) {
       const segNorm = s / Math.max(segments - 1, 1);
@@ -66,8 +68,9 @@ function createWaveField({
       const x = side === -1 ? -xSpan - inset : xSpan + inset;
       // Boxy plasma shape: spread stays ~45% even at outer tip (not tapered to zero)
       const boxFactor = 0.45 + Math.pow(towardCenter, 0.38) * 0.55;
-      const y = verticalBias * boxFactor + Math.sin(segNorm * Math.PI * 2 + l * 0.24) * amplitude * (0.35 + towardCenter * 0.65);
-      const z = Math.cos(segNorm * Math.PI * 3 + l * 0.19) * (0.06 + towardCenter * 0.38) + (lineNorm - 0.5) * 0.14;
+      const cellularNoise = (Math.random() - 0.5) * amplitude * 0.22 * (0.45 + towardCenter);
+      const y = verticalBias * boxFactor + Math.sin(segNorm * Math.PI * 2 + l * 0.24) * amplitude * (0.35 + towardCenter * 0.65) + cellularNoise;
+      const z = Math.cos(segNorm * Math.PI * 3 + l * 0.19) * (0.06 + towardCenter * 0.38) + (lineNorm - 0.5) * 0.14 + (Math.random() - 0.5) * 0.08;
 
       positions[ptr] = x;
       positions[ptr + 1] = y;
@@ -82,14 +85,15 @@ function createWaveField({
       colors[ptr + 1] = blended.g;
       colors[ptr + 2] = blended.b;
       seeds[ptr / 3] = Math.random() * 1000;
+      laneOffsets[ptr / 3] = laneSign * (0.55 + Math.random() * 0.55);
       ptr += 3;
     }
   }
 
-  return { positions, basePositions, colors, seeds };
+  return { positions, basePositions, colors, seeds, laneOffsets };
 }
 
-export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
+export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentation = "app" }) {
   const mountRef = useRef(null);
   const voiceModeRef = useRef(isVoiceMode || false);
   const audioLevelRef = useRef(audioLevel);
@@ -106,19 +110,69 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
     const mount = mountRef.current;
     if (!mount) return;
 
+    const isLanding = presentation === "landing";
+    const layout = isLanding
+      ? {
+          cameraZ: 11.0,
+          primaryLines: 88,
+          primarySegments: 138,
+          primaryWidth: 5.35,
+          primarySpread: 2.2,
+          primaryAmplitude: 0.46,
+          primaryInset: 0.1,
+          primarySize: 0.046,
+          primaryOpacity: 0.48,
+          secondaryLines: 52,
+          secondarySegments: 112,
+          secondaryWidth: 4.8,
+          secondarySpread: 1.62,
+          secondaryAmplitude: 0.36,
+          secondaryInset: 0.2,
+          secondarySize: 0.064,
+          secondaryOpacity: 0.56,
+          particleCount: 32000,
+          particleXMax: 5.65,
+          particleYSpread: 2.9,
+          particleZSpread: 1.28,
+        }
+      : {
+          cameraZ: 11.8,
+          primaryLines: 76,
+          primarySegments: 118,
+          primaryWidth: 2.9,
+          primarySpread: 2.18,
+          primaryAmplitude: 0.44,
+          primaryInset: 0.06,
+          primarySize: 0.045,
+          primaryOpacity: 0.42,
+          secondaryLines: 46,
+          secondarySegments: 96,
+          secondaryWidth: 2.25,
+          secondarySpread: 1.52,
+          secondaryAmplitude: 0.34,
+          secondaryInset: 0.08,
+          secondarySize: 0.062,
+          secondaryOpacity: 0.54,
+          particleCount: 12500,
+          particleXMax: 3.08,
+          particleYSpread: 2.24,
+          particleZSpread: 1.04,
+        };
+    const useReferencePlume = isLanding || presentation === "app";
+
     const scene = new THREE.Scene();
     scene.background = null; // Removed hardcoded background for app integration
     // No fog — fog was creating invisible black patches across the particle field
 
     const camera = new THREE.PerspectiveCamera(34, mount.clientWidth / mount.clientHeight, 0.1, 100);
-    camera.position.set(0, 0, 11.8);
+    camera.position.set(0, 0, layout.cameraZ);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // Made alpha true
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.5;
+    renderer.toneMappingExposure = isLanding ? 1.85 : 1.78;
     mount.appendChild(renderer.domElement);
 
     const glowMap = makeGlowSprite();
@@ -134,11 +188,13 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
     rightLight.position.set(6.8, 1.2, 4.8);
     scene.add(rightLight);
 
-    const leftA = new THREE.Color("#34b6ff");
-    const leftB = new THREE.Color("#73ebff");
-    const rightA = new THREE.Color("#ff9a50");
-    const rightB = new THREE.Color("#ff6da9");
-    const purple = new THREE.Color("#8c85ff");
+    const leftA = new THREE.Color("#28cfff");
+    const leftB = new THREE.Color("#8ff7ff");
+    const rightA = new THREE.Color("#ff9f55");
+    const rightB = new THREE.Color("#ff5f9f");
+    const purple = new THREE.Color("#9384ff");
+    const livingGreen = new THREE.Color("#63f3b7");
+    const signalGold = new THREE.Color("#f2cf74");
 
     const waveSystems = [];
     const filamentSystems = [];
@@ -165,6 +221,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
       });
 
       const points = new THREE.Points(pointsGeometry, pointsMaterial);
+      points.renderOrder = 4;
       scene.add(points);
       waveSystems.push({ ...config, ...data, geometry: pointsGeometry, material: pointsMaterial, points });
 
@@ -183,6 +240,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
           depthWrite: false,
         });
         const line = new THREE.Line(g, m);
+        line.renderOrder = 3;
         lineGroup.add(line);
         lines.push({ geometry: g, material: m, line });
       }
@@ -190,55 +248,144 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
       filamentSystems.push({ config, lineGroup, lines });
     }
 
-    // Fit the /app canvas (50% viewport width, camera sees ±3.2 units horiz)
-    addWaveSystem({ side: -1, lines: 80, segments: 110, width: 2.9, spread: 3.5, amplitude: 0.82, inset: 0.16, size: 0.055, opacity: 0.62 });
-    addWaveSystem({ side: 1,  lines: 80, segments: 110, width: 2.9, spread: 3.5, amplitude: 0.82, inset: 0.16, size: 0.055, opacity: 0.62 });
-    addWaveSystem({ side: -1, lines: 40, segments: 90,  width: 2.2, spread: 2.6, amplitude: 0.62, inset: 0.08, size: 0.075, opacity: 0.72 });
-    addWaveSystem({ side: 1,  lines: 40, segments: 90,  width: 2.2, spread: 2.6, amplitude: 0.62, inset: 0.08, size: 0.075, opacity: 0.72 });
+    addWaveSystem({
+      side: -1,
+      lines: layout.primaryLines,
+      segments: layout.primarySegments,
+      width: layout.primaryWidth,
+      spread: layout.primarySpread,
+      amplitude: layout.primaryAmplitude,
+      inset: layout.primaryInset,
+      size: layout.primarySize,
+      opacity: layout.primaryOpacity,
+    });
+    addWaveSystem({
+      side: 1,
+      lines: layout.primaryLines,
+      segments: layout.primarySegments,
+      width: layout.primaryWidth,
+      spread: layout.primarySpread,
+      amplitude: layout.primaryAmplitude,
+      inset: layout.primaryInset,
+      size: layout.primarySize,
+      opacity: layout.primaryOpacity,
+    });
+    addWaveSystem({
+      side: -1,
+      lines: layout.secondaryLines,
+      segments: layout.secondarySegments,
+      width: layout.secondaryWidth,
+      spread: layout.secondarySpread,
+      amplitude: layout.secondaryAmplitude,
+      inset: layout.secondaryInset,
+      size: layout.secondarySize,
+      opacity: layout.secondaryOpacity,
+    });
+    addWaveSystem({
+      side: 1,
+      lines: layout.secondaryLines,
+      segments: layout.secondarySegments,
+      width: layout.secondaryWidth,
+      spread: layout.secondarySpread,
+      amplitude: layout.secondaryAmplitude,
+      inset: layout.secondaryInset,
+      size: layout.secondarySize,
+      opacity: layout.secondaryOpacity,
+    });
 
-    const particleCount = 4800;
+    const particleCount = layout.particleCount;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleBase = new Float32Array(particleCount * 3);
     const particleColors = new Float32Array(particleCount * 3);
     const particleSeeds = new Float32Array(particleCount);
+    const particleLanes = new Float32Array(particleCount);
     const temp = new THREE.Color();
 
     for (let i = 0; i < particleCount; i++) {
       const idx = i * 3;
       const side = i % 2 === 0 ? -1 : 1;
-      const x = side * THREE.MathUtils.randFloat(0.15, 3.0);
-      const y = THREE.MathUtils.randFloatSpread(3.8);
-      const z = THREE.MathUtils.randFloatSpread(1.4);
+      const xNorm = useReferencePlume ? Math.random() : Math.pow(Math.random(), 0.58);
+      const xMag = THREE.MathUtils.lerp(useReferencePlume ? 0 : 0.08, layout.particleXMax, xNorm);
+      const envelope = useReferencePlume
+        ? 0.11 + Math.pow(1 - xNorm, 0.7) * 1.05
+        : 0.36 + Math.pow(1 - xMag / layout.particleXMax, 0.48) * 0.9;
+      const outlier = useReferencePlume && Math.random() < 0.1 ? (isLanding ? 1.75 : 1.45) : 1;
+      const gaussian = (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
+      const x = side * xMag;
+      const y = useReferencePlume
+        ? gaussian * layout.particleYSpread * envelope * outlier
+        : THREE.MathUtils.randFloatSpread(layout.particleYSpread * envelope);
+      const z = useReferencePlume
+        ? THREE.MathUtils.randFloatSpread(layout.particleZSpread * envelope) + Math.sin(xNorm * Math.PI * 4 + side) * 0.08
+        : THREE.MathUtils.randFloatSpread(layout.particleZSpread * envelope);
       particlePositions[idx] = x;
       particlePositions[idx + 1] = y;
       particlePositions[idx + 2] = z;
       particleBase[idx] = x;
       particleBase[idx + 1] = y;
       particleBase[idx + 2] = z;
-      temp.copy(side === -1 ? leftA : rightA).lerp(side === -1 ? purple : rightB, THREE.MathUtils.clamp(1 - Math.abs(x) / 7.1, 0, 1));
-      const lift = THREE.MathUtils.randFloat(0.4, 1.1);
+      const coreMix = THREE.MathUtils.clamp(1 - Math.abs(x) / layout.particleXMax, 0, 1);
+      if (useReferencePlume) {
+        temp.copy(side === -1 ? leftA : rightB)
+          .lerp(side === -1 ? livingGreen : signalGold, xNorm * (side === -1 ? 0.08 : 0.34))
+          .lerp(purple, coreMix * 0.38);
+      } else {
+        temp.copy(side === -1 ? leftA : rightB)
+          .lerp(purple, coreMix * 0.72)
+          .lerp(side === -1 ? livingGreen : signalGold, Math.pow(coreMix, 2.2) * 0.18);
+      }
+      const lift = useReferencePlume
+        ? THREE.MathUtils.randFloat(isLanding ? 0.92 : 0.86, isLanding ? 1.42 : 1.36)
+        : THREE.MathUtils.randFloat(0.46, 1.18);
       particleColors[idx] = temp.r * lift;
       particleColors[idx + 1] = temp.g * lift;
       particleColors[idx + 2] = temp.b * lift;
       particleSeeds[i] = Math.random() * 1000;
+      particleLanes[i] = (Math.random() < 0.5 ? -1 : 1) * THREE.MathUtils.randFloat(0.45, 1.15);
     }
 
     const particleGeometry = new THREE.BufferGeometry();
     particleGeometry.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
     particleGeometry.setAttribute("color", new THREE.BufferAttribute(particleColors, 3));
     const particleMaterial = new THREE.PointsMaterial({
-      size: 0.048,
+      size: isLanding ? 0.086 : 0.066,
       map: glowMap || null,
       alphaMap: glowMap || null,
       transparent: true,
-      opacity: 0.48,
+      opacity: isLanding ? 0.94 : 0.82,
       depthWrite: false,
       vertexColors: true,
       blending: THREE.AdditiveBlending,
       sizeAttenuation: true,
     });
     const particleCloud = new THREE.Points(particleGeometry, particleMaterial);
+    particleCloud.renderOrder = 5;
     scene.add(particleCloud);
+
+    const ambientPlanes = [];
+    if (isLanding) {
+      [
+        { x: -2.25, y: 0.03, z: -0.58, w: 4.45, h: 2.35, color: "#2f7188", opacity: 0.016, rz: -0.018 },
+        { x: 2.18, y: 0.04, z: -0.62, w: 4.8, h: 2.38, color: "#7b4053", opacity: 0.014, rz: 0.016 },
+        { x: 0, y: 0.1, z: -0.78, w: 1.24, h: 3.2, color: "#777aa4", opacity: 0.012, rz: 0 },
+        { x: 0, y: 0.02, z: -0.88, w: 9.2, h: 0.28, color: "#87716f", opacity: 0.012, rz: 0.004 },
+      ].forEach((plane) => {
+        const geometry = new THREE.PlaneGeometry(plane.w, plane.h);
+        const material = new THREE.MeshBasicMaterial({
+          color: plane.color,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(plane.x, plane.y, plane.z);
+        mesh.rotation.z = plane.rz;
+        mesh.renderOrder = 1;
+        scene.add(mesh);
+        ambientPlanes.push({ mesh, geometry, material, ...plane });
+      });
+    }
 
     // Voice cuboid: plasma, not floating giant wireframe.
     const cuboidGroup = new THREE.Group();
@@ -343,11 +490,6 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
       // Continuous ambient variations — no dead zones, always visible
       const breathe     = (Math.sin(t * 0.13) + 1) * 0.5;        // 0→1 slow cycle
       const pulse       = (Math.sin(t * 0.08 + 1.5) + 1) * 0.5;  // offset cycle
-      const waveAmp     = 0.14 + breathe * 0.22;                  // strong plasma undulation
-      const spreadVar   = 0.90 + pulse   * 0.10;                  // gentle vertical breath
-      const beamMode    = 0.06 + pulse   * 0.06;                  // subtle beam
-      const particleMode = 0.22 + breathe * 0.22;                 // ambient scatter
-
       // Voice morph
       const targetMorph = voiceModeRef.current ? 1 : 0;
       currentMorph += (targetMorph - currentMorph) * 0.05;
@@ -355,10 +497,15 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
       const ambientVisibility = 1 - currentMorph;
       const voiceMorph = currentMorph;
       const plasmaMode = currentMorph * 0.35;
+      const preMorph = 1 - voiceMorph;
+      const waveAmp = 0.2 + breathe * (isLanding ? 0.36 : 0.28);
+      const spreadVar = 0.92 + pulse * (isLanding ? 0.16 : 0.11);
+      const beamMode = 0.08 + pulse * (isLanding ? 0.16 : 0.11);
+      const particleMode = 0.28 + breathe * (isLanding ? 0.42 : 0.32);
+      const convergence = (0.04 + Math.pow((Math.sin(t * 0.115) + 1) * 0.5, 1.4) * (isLanding ? 0.22 : 0.12)) * preMorph;
 
       waveSystems.forEach((sys, sysIndex) => {
         const arr = sys.geometry.attributes.position.array;
-        const lineCenter = (sys.lines - 1) * 0.5;
 
         for (let i = 0; i < sys.seeds.length; i++) {
           const idx = i * 3;
@@ -371,28 +518,38 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
           const bx = sys.basePositions[idx];
           const by = sys.basePositions[idx + 1];
           const bz = sys.basePositions[idx + 2];
+          const lane = sys.laneOffsets[i] || 1;
 
-          // Always use base positions — no center compression
-          const waveA  = Math.sin(segT * 8.0  - t * 0.9  + lineIndex * 0.14 + seed * 0.0008);
-          const waveB  = Math.cos(segT * 12.0 + t * 0.72 - lineIndex * 0.11 + seed * 0.0009);
-          const ripple = (waveA * 0.5 + waveB * 0.32) * waveAmp * (0.4 + towardCenter * 0.9);
+          const waveA = Math.sin(segT * 9.5 - t * 1.05 + lineIndex * 0.13 + seed * 0.0008);
+          const waveB = Math.cos(segT * 14.0 + t * 0.8 - lineIndex * 0.105 + seed * 0.0009);
+          const helixPhase = segT * Math.PI * (isLanding ? 7.1 : 6.2) - t * 0.54 + lineT * Math.PI * 3.4 + seed * 0.0007;
+          const braidY = Math.sin(helixPhase) * lane * (0.035 + towardCenter * (isLanding ? 0.11 : 0.075)) * preMorph;
+          const braidZ = Math.cos(helixPhase) * lane * (0.045 + towardCenter * (isLanding ? 0.16 : 0.105)) * preMorph;
+          const membrane = Math.sin(lineT * Math.PI * 2 + t * 0.22 + sysIndex * 0.6) * 0.035 * preMorph;
+          const ripple = (waveA * 0.58 + waveB * 0.34) * waveAmp * (0.45 + towardCenter * 0.95);
 
           const cuboidX = sys.side * (0.18 + lineT * 0.86);
           const cuboidY = (lineT - 0.5) * 1.7 + Math.sin(segT * Math.PI * 2 + lineIndex * 0.08) * 0.045;
           const cuboidZ = Math.sin(segT * Math.PI * 2 + lineT * 2.2 + seed * 0.0006) * 0.34;
 
-          arr[idx]     = THREE.MathUtils.lerp(bx + Math.sin(t * 0.5 + lineT * 3.5) * 0.025 * towardCenter, cuboidX, voiceMorph * (0.3 + towardCenter * 0.7));
-          arr[idx + 1] = THREE.MathUtils.lerp((by + ripple) * spreadVar, cuboidY, voiceMorph * 0.9);
-          arr[idx + 2] = THREE.MathUtils.lerp(bz + Math.cos(segT * 10.0 - t * 0.65 + seed * 0.0007) * (0.03 + towardCenter * 0.07), cuboidZ, voiceMorph * 0.88);
+          const ambientX = bx - sys.side * convergence * (0.3 + towardCenter * 0.9) + sys.side * Math.sin(t * 0.36 + lineT * 4.1 + seed * 0.001) * 0.04 * towardCenter * preMorph;
+          const ambientY = (by + ripple + braidY + membrane) * spreadVar;
+          const ambientZ = bz + braidZ + Math.cos(segT * 10.8 - t * 0.72 + seed * 0.0007) * (0.04 + towardCenter * (isLanding ? 0.1 : 0.07));
+
+          arr[idx] = THREE.MathUtils.lerp(ambientX, cuboidX, voiceMorph * (0.3 + towardCenter * 0.7));
+          arr[idx + 1] = THREE.MathUtils.lerp(ambientY, cuboidY, voiceMorph * 0.9);
+          arr[idx + 2] = THREE.MathUtils.lerp(ambientZ, cuboidZ, voiceMorph * 0.88);
         }
 
         sys.geometry.attributes.position.needsUpdate = true;
-        sys.points.rotation.z = Math.sin(t * 0.04 + sysIndex * 0.2) * 0.005;
-        sys.points.rotation.x = Math.cos(t * 0.035 + sysIndex * 0.15) * 0.007;
-        sys.points.rotation.y = Math.sin(t * 0.03 + sysIndex * 0.2) * 0.012;
+        sys.points.rotation.z = Math.sin(t * 0.055 + sysIndex * 0.2) * (isLanding ? 0.009 : 0.006);
+        sys.points.rotation.x = Math.cos(t * 0.04 + sysIndex * 0.15) * (isLanding ? 0.011 : 0.007);
+        sys.points.rotation.y = Math.sin(t * 0.035 + sysIndex * 0.2) * (isLanding ? 0.018 : 0.012);
 
-        const opacityBase = sysIndex < 2 ? 0.65 : 0.75;
-        sys.material.opacity = Math.max(0.55, ambientVisibility * opacityBase + voiceMorph * 0.1);
+        const opacityBase = sysIndex < 2 ? layout.primaryOpacity : layout.secondaryOpacity;
+        sys.material.opacity = isLanding
+          ? ambientVisibility * opacityBase
+          : Math.max(0.55, ambientVisibility * opacityBase + voiceMorph * 0.1);
       });
 
       filamentSystems.forEach((net, netIndex) => {
@@ -407,11 +564,11 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
             pos[dst + 2] = sourceArray[src + 2];
           }
           entry.geometry.attributes.position.needsUpdate = true;
-          entry.material.opacity = ambientVisibility * beamMode * 0.08;
+          entry.material.opacity = 0;
         });
-        net.lineGroup.rotation.z = Math.sin(t * 0.04 + netIndex * 0.2) * 0.005;
-        net.lineGroup.rotation.x = Math.cos(t * 0.035 + netIndex * 0.15) * 0.007;
-        net.lineGroup.rotation.y = Math.sin(t * 0.03 + netIndex * 0.2) * 0.012;
+        net.lineGroup.rotation.z = Math.sin(t * 0.055 + netIndex * 0.2) * (isLanding ? 0.009 : 0.006);
+        net.lineGroup.rotation.x = Math.cos(t * 0.04 + netIndex * 0.15) * (isLanding ? 0.011 : 0.007);
+        net.lineGroup.rotation.y = Math.sin(t * 0.035 + netIndex * 0.2) * (isLanding ? 0.018 : 0.012);
       });
 
       const particleArray = particleGeometry.attributes.position.array;
@@ -422,24 +579,32 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
         const bz = particleBase[idx + 2];
         const seed = particleSeeds[i];
         const side = bx < 0 ? -1 : 1;
-        const inward = THREE.MathUtils.clamp(1 - Math.abs(bx) / 9.0, 0, 1);
+        const lane = particleLanes[i] || 1;
+        const inward = THREE.MathUtils.clamp(1 - Math.abs(bx) / layout.particleXMax, 0, 1);
 
         // Always use base positions for ambient cloud — no merging compression
         const cuboidPX = side * (0.12 + inward * 0.92);
-        const px = THREE.MathUtils.lerp(bx, cuboidPX, voiceMorph * 0.9);
+        const helix = Math.sin(t * 0.38 + seed * 0.012 + inward * Math.PI * 3.2) * lane * preMorph;
+        const px = THREE.MathUtils.lerp(bx - side * convergence * (0.2 + inward), cuboidPX, voiceMorph * 0.9);
 
-        const py = THREE.MathUtils.lerp(by, Math.sin(seed * 0.004 + t * 0.8) * 0.9, voiceMorph * 0.88);
-        const pz = THREE.MathUtils.lerp(bz, Math.cos(seed * 0.005 + t * 0.62) * 0.88, voiceMorph * 0.84);
+        const py = THREE.MathUtils.lerp(by + helix * (0.025 + inward * 0.08), Math.sin(seed * 0.004 + t * 0.8) * 0.9, voiceMorph * 0.88);
+        const pz = THREE.MathUtils.lerp(bz + Math.cos(t * 0.34 + seed * 0.01) * lane * (0.02 + inward * 0.09) * preMorph, Math.cos(seed * 0.005 + t * 0.62) * 0.88, voiceMorph * 0.84);
 
-        particleArray[idx] = px + side * Math.sin(t * 0.42 + seed * 0.002) * (0.02 + particleMode * 0.07);
-        particleArray[idx + 1] = py + Math.cos(t * 0.74 + seed * 0.008) * (0.02 + particleMode * 0.12);
-        particleArray[idx + 2] = pz + Math.sin(t * 0.85 + seed * 0.01) * (0.03 + particleMode * 0.08);
+        particleArray[idx] = px + side * Math.sin(t * 0.44 + seed * 0.002) * (0.025 + particleMode * (isLanding ? 0.105 : 0.075));
+        particleArray[idx + 1] = py + Math.cos(t * 0.78 + seed * 0.008) * (0.025 + particleMode * (isLanding ? 0.15 : 0.12));
+        particleArray[idx + 2] = pz + Math.sin(t * 0.9 + seed * 0.01) * (0.035 + particleMode * (isLanding ? 0.105 : 0.08));
       }
       particleGeometry.attributes.position.needsUpdate = true;
       // Minimum floor of 0.12 so ambient particle cloud stays visible
-      particleMaterial.opacity = Math.max(0.12, ambientVisibility * (0.28 + particleMode * 0.4 + beamMode * 0.08) + voiceMorph * 0.16);
-      particleCloud.rotation.y = t * 0.014;
-      particleCloud.rotation.x = Math.sin(t * 0.05) * 0.01;
+      particleMaterial.opacity = Math.max(isLanding ? 0.62 : 0.34, ambientVisibility * (0.58 + particleMode * (isLanding ? 0.7 : 0.6) + beamMode * 0.1) + voiceMorph * 0.16);
+      particleCloud.rotation.y = t * (isLanding ? 0.019 : 0.014);
+      particleCloud.rotation.x = Math.sin(t * 0.052) * (isLanding ? 0.015 : 0.01);
+
+      ambientPlanes.forEach((plane, i) => {
+        plane.material.opacity = preMorph * plane.opacity * (0.82 + Math.sin(t * 0.09 + i) * 0.12);
+        plane.mesh.rotation.z = plane.rz + Math.sin(t * 0.045 + i * 0.7) * 0.012;
+        plane.mesh.position.y = plane.y + Math.sin(t * 0.05 + i) * 0.025;
+      });
 
       // Cuboid shell + internal plasma particles.
       shellEdges.forEach((shell, i) => {
@@ -482,7 +647,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
       coreLight.intensity = 8 + breathe * 2 + particleMode * 2 + voiceMorph * 9;
       camera.position.x = Math.sin(t * 0.022) * 0.01;
       camera.position.y = Math.cos(t * 0.018) * 0.008;
-      camera.position.z = 11.8 - voiceMorph * 0.28;
+      camera.position.z = layout.cameraZ - voiceMorph * 0.28;
       camera.lookAt(0, 0, 0);
 
       renderer.render(scene, camera);
@@ -518,6 +683,10 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
       });
       particleGeometry.dispose();
       particleMaterial.dispose();
+      ambientPlanes.forEach((plane) => {
+        plane.geometry.dispose();
+        plane.material.dispose();
+      });
       shellEdges.forEach((shell) => {
         shell.geometry.dispose();
         shell.material.dispose();
@@ -535,7 +704,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
         mount.removeChild(renderer.domElement);
       }
     };
-  }, []);
+  }, [presentation]);
 
   return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />;
 }
