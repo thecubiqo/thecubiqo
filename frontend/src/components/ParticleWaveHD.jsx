@@ -405,7 +405,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
             pos[dst + 2] = sourceArray[src + 2];
           }
           entry.geometry.attributes.position.needsUpdate = true;
-          entry.material.opacity = ambientVisibility * (filamentMode * 0.16 + ribbonMode * 0.08 + beamMode * 0.04);
+          entry.material.opacity = ambientVisibility * beamMode * 0.08;
         });
         net.lineGroup.rotation.z = Math.sin(t * 0.04 + netIndex * 0.2) * 0.005;
         net.lineGroup.rotation.x = Math.cos(t * 0.035 + netIndex * 0.15) * 0.007;
