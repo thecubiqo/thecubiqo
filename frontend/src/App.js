@@ -6,6 +6,7 @@ import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocess
 import { Suspense } from "react";
 import PlasmaWaveField from "./components/PlasmaWaveField";
 import CubiQoVisual from "./components/CubiQoVisual";
+import CubiQoVoiceMorph from "./components/CubiQoVoiceMorph";
 import { Menu, Activity, X, Settings, Database, Shield, User, LogOut, Mail, Lock } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
@@ -39,7 +40,7 @@ const LandingPage = () => {
           <pointLight position={[-10, -10, -10]} intensity={0.6} color="#4444ff" />
           <pointLight position={[0, 10, 0]} intensity={0.4} color="#00ffff" />
           <group>
-            <PlasmaWaveField isEnabled={false} aiState="neutral" />
+            <CubiQoVoiceMorph isVoiceMode={false} audioLevel={0} isSpeaking={false} />
           </group>
           <EffectComposer>
             <Bloom intensity={1.2} luminanceThreshold={0.1} luminanceSmoothing={0.9} mipmapBlur />
@@ -350,13 +351,8 @@ const DemoPage = () => {
         }}>
           <div style={{ width: '100%', height: '100%', position: 'relative', transition: 'transform 0.6s ease', transform: speakerEnabled || isProcessing || isSpeaking ? 'scale(1.04)' : 'scale(1)' }}>
             
-            {/* 1. PRE-MORPH: The exact 60k particle classic visual from 3 weeks ago */}
-            <div style={{ position: 'absolute', inset: 0, opacity: (speakerEnabled || isProcessing || isSpeaking) ? 0 : 1, transition: 'opacity 1.2s ease', pointerEvents: 'none', zIndex: 1 }}>
-              <CubiQoVisual isEnabled={false} aiState={aiState} />
-            </div>
-
-            {/* 2. POST-MORPH: The structured R3F pipe cube currently live */}
-            <div style={{ position: 'absolute', inset: 0, opacity: (speakerEnabled || isProcessing || isSpeaking) ? 1 : 0, transition: 'opacity 1.2s ease', pointerEvents: 'none', zIndex: 2 }}>
+            {/* SINGLE HERO VISUAL: Clean morphing system */}
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
               <Canvas
                 camera={{ position: [0, 0, 5], fov: 50, near: 0.1, far: 1000 }}
                 gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false, depth: true }}
@@ -370,7 +366,11 @@ const DemoPage = () => {
                   <pointLight position={[-10, -10, -10]} intensity={0.6} color="#4444ff" />
                   <pointLight position={[0, 10, 0]} intensity={0.4} color="#00ffff" />
                   <group>
-                    <PlasmaWaveField isEnabled={speakerEnabled || isProcessing || isSpeaking} aiState={aiState} />
+                    <CubiQoVoiceMorph 
+                      isVoiceMode={speakerEnabled || isProcessing || isSpeaking} 
+                      audioLevel={isSpeaking ? 1.0 : 0.0} 
+                      isSpeaking={isSpeaking} 
+                    />
                   </group>
                   <EffectComposer>
                     <Bloom intensity={1.2} luminanceThreshold={0.1} luminanceSmoothing={0.9} mipmapBlur />
