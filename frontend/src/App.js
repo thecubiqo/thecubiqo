@@ -6,7 +6,6 @@ import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocess
 import { Suspense } from "react";
 import PlasmaWaveField from "./components/PlasmaWaveField";
 import CubiQoVisual from "./components/CubiQoVisual";
-import CubiQoVoiceMorph from "./components/CubiQoVoiceMorph";
 import { Menu, Activity, X, Settings, Database, Shield, User, LogOut, Mail, Lock } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
@@ -27,28 +26,9 @@ const LandingPage = () => {
   return (
     <div data-testid="landing-page" onClick={() => navigate('/app')}
       style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden', cursor: 'pointer' }}>
-      <Canvas
-        camera={{ position: [0, 0, 5], fov: 50, near: 0.1, far: 1000 }}
-        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false, depth: true }}
-        dpr={[1, 2]}
-        style={{ background: 'transparent', position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-      >
-        <Suspense fallback={null}>
-          <ambientLight intensity={0.8} />
-          <directionalLight position={[5, 5, 5]} intensity={1.5} color="#ffffff" />
-          <pointLight position={[10, 10, 10]} intensity={1.2} color="#ffffff" />
-          <pointLight position={[-10, -10, -10]} intensity={0.6} color="#4444ff" />
-          <pointLight position={[0, 10, 0]} intensity={0.4} color="#00ffff" />
-          <group>
-            <CubiQoVoiceMorph isVoiceMode={false} audioLevel={0} isSpeaking={false} />
-          </group>
-          <EffectComposer>
-            <Bloom intensity={1.2} luminanceThreshold={0.1} luminanceSmoothing={0.9} mipmapBlur />
-            <Noise opacity={0.02} />
-            <Vignette eskil={false} offset={0.1} darkness={1.1} />
-          </EffectComposer>
-        </Suspense>
-      </Canvas>
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none' }}>
+        <CubiQoVisual isEnabled={false} aiState="neutral" />
+      </div>
       <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', zIndex: 50, pointerEvents: 'none' }}>
         <h1 style={{ fontSize: 'clamp(3rem, 10vw, 7rem)', fontWeight: 300, color: '#fff', textShadow: '0 0 60px rgba(0,212,255,0.4)', marginBottom: 20, letterSpacing: 8, fontFamily: "'SF Pro Display','Inter',sans-serif", textTransform: 'uppercase' }}>CubiQo</h1>
         <p style={{ fontSize: 'clamp(1rem, 2.5vw, 1.3rem)', color: 'rgba(255,255,255,0.6)', marginBottom: 50, fontFamily: "'SF Pro Display','Inter',sans-serif", fontWeight: 300, letterSpacing: 3 }}>One Mind. Many Dimensions.</p>
@@ -351,34 +331,9 @@ const DemoPage = () => {
         }}>
           <div style={{ width: '100%', height: '100%', position: 'relative', transition: 'transform 0.6s ease', transform: speakerEnabled || isProcessing || isSpeaking ? 'scale(1.04)' : 'scale(1)' }}>
             
-            {/* SINGLE HERO VISUAL: Clean morphing system */}
+            {/* SINGLE HERO VISUAL: Clean morphing system natively supported by CubiQoVisual */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
-              <Canvas
-                camera={{ position: [0, 0, 5], fov: 50, near: 0.1, far: 1000 }}
-                gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false, depth: true }}
-                dpr={[1, 2]}
-                style={{ background: 'transparent' }}
-              >
-                <Suspense fallback={null}>
-                  <ambientLight intensity={0.8} />
-                  <directionalLight position={[5, 5, 5]} intensity={1.5} color="#ffffff" />
-                  <pointLight position={[10, 10, 10]} intensity={1.2} color="#ffffff" />
-                  <pointLight position={[-10, -10, -10]} intensity={0.6} color="#4444ff" />
-                  <pointLight position={[0, 10, 0]} intensity={0.4} color="#00ffff" />
-                  <group>
-                    <CubiQoVoiceMorph 
-                      isVoiceMode={speakerEnabled || isProcessing || isSpeaking} 
-                      audioLevel={isSpeaking ? 1.0 : 0.0} 
-                      isSpeaking={isSpeaking} 
-                    />
-                  </group>
-                  <EffectComposer>
-                    <Bloom intensity={1.2} luminanceThreshold={0.1} luminanceSmoothing={0.9} mipmapBlur />
-                    <Noise opacity={0.02} />
-                    <Vignette eskil={false} offset={0.1} darkness={1.1} />
-                  </EffectComposer>
-                </Suspense>
-              </Canvas>
+              <CubiQoVisual isEnabled={speakerEnabled || isProcessing || isSpeaking} aiState={aiState} />
             </div>
           </div>
 
