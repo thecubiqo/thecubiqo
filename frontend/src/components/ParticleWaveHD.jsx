@@ -189,10 +189,10 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
       filamentSystems.push({ config, lineGroup, lines });
     }
 
-    addWaveSystem({ side: -1, lines: 36, segments: 140, width: 7.25, spread: 3.0, amplitude: 0.68, inset: 0.22, size: 0.058, opacity: 0.64 });
-    addWaveSystem({ side: 1, lines: 36, segments: 140, width: 7.25, spread: 3.0, amplitude: 0.68, inset: 0.22, size: 0.058, opacity: 0.64 });
-    addWaveSystem({ side: -1, lines: 16, segments: 116, width: 6.5, spread: 1.75, amplitude: 0.42, inset: 0.05, size: 0.08, opacity: 0.72 });
-    addWaveSystem({ side: 1, lines: 16, segments: 116, width: 6.5, spread: 1.75, amplitude: 0.42, inset: 0.05, size: 0.08, opacity: 0.72 });
+    addWaveSystem({ side: -1, lines: 36, segments: 140, width: 14.5, spread: 6.0, amplitude: 1.36, inset: 0.44, size: 0.058, opacity: 0.64 });
+    addWaveSystem({ side: 1, lines: 36, segments: 140, width: 14.5, spread: 6.0, amplitude: 1.36, inset: 0.44, size: 0.058, opacity: 0.64 });
+    addWaveSystem({ side: -1, lines: 16, segments: 116, width: 13.0, spread: 3.5, amplitude: 0.84, inset: 0.1, size: 0.08, opacity: 0.72 });
+    addWaveSystem({ side: 1, lines: 16, segments: 116, width: 13.0, spread: 3.5, amplitude: 0.84, inset: 0.1, size: 0.08, opacity: 0.72 });
 
     const particleCount = 20000;
     const particlePositions = new Float32Array(particleCount * 3);
@@ -204,16 +204,16 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
     for (let i = 0; i < particleCount; i++) {
       const idx = i * 3;
       const side = i % 2 === 0 ? -1 : 1;
-      const x = side * THREE.MathUtils.randFloat(0.2, 9.5);
-      const y = THREE.MathUtils.randFloatSpread(3.2);
-      const z = THREE.MathUtils.randFloatSpread(2.0);
+      const x = side * THREE.MathUtils.randFloat(0.2, 19.0);
+      const y = THREE.MathUtils.randFloatSpread(6.4);
+      const z = THREE.MathUtils.randFloatSpread(4.0);
       particlePositions[idx] = x;
       particlePositions[idx + 1] = y;
       particlePositions[idx + 2] = z;
       particleBase[idx] = x;
       particleBase[idx + 1] = y;
       particleBase[idx + 2] = z;
-      temp.copy(side === -1 ? leftA : rightA).lerp(side === -1 ? purple : rightB, THREE.MathUtils.clamp(1 - Math.abs(x) / 9.5, 0, 1));
+      temp.copy(side === -1 ? leftA : rightA).lerp(side === -1 ? purple : rightB, THREE.MathUtils.clamp(1 - Math.abs(x) / 19.0, 0, 1));
       const lift = THREE.MathUtils.randFloat(0.4, 1.1);
       particleColors[idx] = temp.r * lift;
       particleColors[idx + 1] = temp.g * lift;
@@ -433,7 +433,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
         const bz = particleBase[idx + 2];
         const seed = particleSeeds[i];
         const side = bx < 0 ? -1 : 1;
-        const inward = THREE.MathUtils.clamp(1 - Math.abs(bx) / 9.5, 0, 1);
+        const inward = THREE.MathUtils.clamp(1 - Math.abs(bx) / 19.0, 0, 1);
 
         const mergedPX = side * (0.04 + Math.abs(bx) * 0.2);
         const splitPX = bx;
@@ -480,15 +480,16 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0 }) {
 
       // Visible tri-color ECG/audio signal through cuboid.
       const realAudio = audioLevelRef.current;
-      const speakingPulse = 0.35 + (Math.pow((Math.sin(t * 2.4) + 1) * 0.5, 1.5) * 0.65) * (1 + realAudio * 3.0);
+      const st = t * 0.35; // Slow down base autonomous movement
+      const speakingPulse = 0.35 + (Math.pow((Math.sin(st * 2.4) + 1) * 0.5, 1.5) * 0.65) * (1 + realAudio * 3.0);
       signalBars.forEach((bar, i) => {
         const envelope = Math.exp(-Math.pow((bar.xNorm - 0.5) / 0.38, 2));
-        const wave = Math.sin(i * 0.34 - t * 5.8 + bar.phase) * 0.65 + Math.sin(i * 0.17 + t * 2.8) * 0.35;
-        const heartbeat = Math.exp(-Math.pow(((((t * 1.35 + bar.xNorm * 0.95) % 1) - 0.17) / 0.05), 2)) * (1.35 + realAudio * 2.0);
+        const wave = Math.sin(i * 0.34 - st * 5.8 + bar.phase) * 0.65 + Math.sin(i * 0.17 + st * 2.8) * 0.35;
+        const heartbeat = Math.exp(-Math.pow(((((st * 1.35 + bar.xNorm * 0.95) % 1) - 0.17) / 0.05), 2)) * (1.35 + realAudio * 2.0);
         const amp = (0.16 + envelope * 0.34) * speakingPulse + heartbeat * 0.48;
         bar.mesh.scale.y = 0.42 + Math.abs(wave) * amp * (4.8 + realAudio * 5.0);
-        bar.mesh.position.y = Math.sin(i * 0.08 + t * 1.15) * 0.014;
-        bar.mesh.position.z = Math.sin(i * 0.05 + t * 0.9) * 0.01;
+        bar.mesh.position.y = Math.sin(i * 0.08 + st * 1.15) * 0.014;
+        bar.mesh.position.z = Math.sin(i * 0.05 + st * 0.9) * 0.01;
         bar.material.opacity = voiceMorph * (0.28 + envelope * 0.46);
       });
 
