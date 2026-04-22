@@ -1,11 +1,28 @@
 const https = require('https');
 
 // AI model orchestration - Claude → GPT-4o → OpenRouter
-const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-const OPENAI_KEY = process.env.OPENAI_API_KEY;
-const OPENROUTER_KEY = process.env.OPENROUTER_KEY;
-const ELEVENLABS_KEY = process.env.ELEVENLABS_API_KEY;
-const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM'; // Rachel
+function readEnv(names) {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value && value.trim()) return { value: value.trim(), name };
+  }
+  return { value: '', name: null };
+}
+
+const ANTHROPIC_ENV = readEnv(['ANTHROPIC_API_KEY', 'ANTHROPIC_KEY', 'CLAUDE_API_KEY', 'CLAUDE_KEY']);
+const OPENAI_ENV = readEnv(['OPENAI_API_KEY', 'OPENAI_KEY', 'AI_API_KEY']);
+const OPENROUTER_ENV = readEnv(['OPENROUTER_API_KEY', 'OPENROUTER_KEY']);
+const ELEVENLABS_ENV = readEnv(['ELEVENLABS_API_KEY', 'ELEVEN_LABS_API_KEY', 'ELEVENLABS_KEY', 'ELEVEN_LABS_KEY', 'XI_API_KEY']);
+const VOICE_ENV = readEnv(['ELEVENLABS_VOICE_ID', 'ELEVEN_LABS_VOICE_ID', 'VOICE_ID']);
+
+const ANTHROPIC_KEY = ANTHROPIC_ENV.value;
+const OPENAI_KEY = OPENAI_ENV.value;
+const OPENROUTER_KEY = OPENROUTER_ENV.value;
+const ELEVENLABS_KEY = ELEVENLABS_ENV.value;
+const ELEVENLABS_VOICE_ID = VOICE_ENV.value || '21m00Tcm4TlvDq8ikWAM'; // Rachel
+const OPENAI_MODEL = process.env.OPENAI_MODEL || process.env.AI_MODEL || 'gpt-4o';
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20241022';
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet';
 
 const SYSTEM_PROMPT = `You are CubiQo — a philosophical, deeply intelligent AI assistant.
 You speak with calm authority on any topic. 
@@ -47,9 +64,9 @@ async function callClaude(message, history, context) {
   const raw = await httpsPost(
     'https://api.anthropic.com/v1/messages',
     { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    JSON.stringify({ model: 'claude-3-5-sonnet-20241022', max_tokens: 512, system: SYSTEM_PROMPT, messages })
+    JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 512, system: SYSTEM_PROMPT, messages })
   );
-  return [JSON.parse(raw).content[0].text, 'claude-3-5-sonnet'];
+  return [JSON.parse(raw).content[0].text, ANTHROPIC_MODEL];
 }
 
 async function callOpenAI(message, history, context) {
@@ -61,9 +78,9 @@ async function callOpenAI(message, history, context) {
   const raw = await httpsPost(
     'https://api.openai.com/v1/chat/completions',
     { 'Authorization': `Bearer ${OPENAI_KEY}`, 'Content-Type': 'application/json' },
-    JSON.stringify({ model: 'gpt-4o', max_tokens: 512, messages })
+    JSON.stringify({ model: OPENAI_MODEL, max_tokens: 512, messages })
   );
-  return [JSON.parse(raw).choices[0].message.content, 'gpt-4o'];
+  return [JSON.parse(raw).choices[0].message.content, OPENAI_MODEL];
 }
 
 async function callOpenRouter(message, history, context) {
@@ -75,9 +92,9 @@ async function callOpenRouter(message, history, context) {
   const raw = await httpsPost(
     'https://openrouter.ai/api/v1/chat/completions',
     { 'Authorization': `Bearer ${OPENROUTER_KEY}`, 'Content-Type': 'application/json' },
-    JSON.stringify({ model: 'anthropic/claude-3.5-sonnet', max_tokens: 512, messages })
+    JSON.stringify({ model: OPENROUTER_MODEL, max_tokens: 512, messages })
   );
-  return [JSON.parse(raw).choices[0].message.content, 'openrouter/claude-3.5'];
+  return [JSON.parse(raw).choices[0].message.content, OPENROUTER_MODEL];
 }
 
 async function searchWeb(query) {
@@ -118,6 +135,13 @@ function extractKeywords(text) {
 
 function cleanResponse(text) {
   return text.replace(/<keywords>[\s\S]*?<\/keywords>/g, '').trim();
+}
+
+function publicError(error) {
+  return String(error?.message || error || 'Unknown error')
+    .replace(/sk-[A-Za-z0-9_-]+/g, '[redacted-key]')
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/g, 'Bearer [redacted-key]')
+    .slice(0, 220);
 }
 
 function buildLocalFallback(message) {
@@ -184,6 +208,7 @@ module.exports = async (req, res) => {
 
   const { message, history } = req.body || {};
   if (!message?.trim()) return res.status(400).json({ error: 'Message required' });
+  const attempts = [];
 
   try {
     // Web search if needed
@@ -194,11 +219,17 @@ module.exports = async (req, res) => {
 
     // Orchestrate: Claude → GPT-4o → OpenRouter
     let rawResponse = '', modelUsed = 'fallback';
-    for (const fn of [callClaude, callOpenAI, callOpenRouter]) {
+    for (const { name, configured, envName, fn } of [
+      { name: 'anthropic', configured: Boolean(ANTHROPIC_KEY), envName: ANTHROPIC_ENV.name, fn: callClaude },
+      { name: 'openai', configured: Boolean(OPENAI_KEY), envName: OPENAI_ENV.name, fn: callOpenAI },
+      { name: 'openrouter', configured: Boolean(OPENROUTER_KEY), envName: OPENROUTER_ENV.name, fn: callOpenRouter }
+    ]) {
       try {
         [rawResponse, modelUsed] = await fn(message, history, context);
+        attempts.push({ provider: name, configured, env: envName, ok: true });
         break;
       } catch (e) {
+        attempts.push({ provider: name, configured, env: envName, ok: false, error: publicError(e) });
         console.warn(`${fn.name} failed:`, e.message);
       }
     }
@@ -220,7 +251,20 @@ module.exports = async (req, res) => {
     // ElevenLabs TTS
     const audioUrl = await generateElevenLabsAudio(cleanText);
 
-    return res.status(200).json({ response: cleanText, keywords, audio_url: audioUrl, model_used: modelUsed });
+    const payload = { response: cleanText, keywords, audio_url: audioUrl, model_used: modelUsed };
+    if (req.query?.diagnostics === '1' || req.body?.diagnostics === true) {
+      payload.diagnostics = {
+        env: {
+          anthropic: { configured: Boolean(ANTHROPIC_KEY), name: ANTHROPIC_ENV.name, model: ANTHROPIC_MODEL },
+          openai: { configured: Boolean(OPENAI_KEY), name: OPENAI_ENV.name, model: OPENAI_MODEL },
+          openrouter: { configured: Boolean(OPENROUTER_KEY), name: OPENROUTER_ENV.name, model: OPENROUTER_MODEL },
+          elevenlabs: { configured: Boolean(ELEVENLABS_KEY), name: ELEVENLABS_ENV.name, voice: ELEVENLABS_VOICE_ID }
+        },
+        attempts
+      };
+    }
+
+    return res.status(200).json(payload);
 
   } catch (err) {
     console.error('Converse error:', err);
