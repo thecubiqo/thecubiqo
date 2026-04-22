@@ -120,6 +120,26 @@ function cleanResponse(text) {
   return text.replace(/<keywords>[\s\S]*?<\/keywords>/g, '').trim();
 }
 
+function buildLocalFallback(message) {
+  const words = message
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 3 && !['what', 'when', 'where', 'with', 'from', 'this', 'that', 'have', 'your', 'about', 'into'].includes(word));
+
+  const unique = [...new Set(words)].slice(0, 9);
+  const topic = unique[0] || 'this';
+
+  return {
+    response: `I am here. I caught the signal around ${topic}; say a little more and I will help shape it into a clearer next move.`,
+    keywords: {
+      green: unique.slice(0, 3),
+      yellow: unique.slice(3, 6),
+      red: unique.slice(6, 9)
+    }
+  };
+}
+
 async function generateElevenLabsAudio(text) {
   if (!ELEVENLABS_KEY) return null;
   return new Promise((resolve) => {
@@ -184,12 +204,18 @@ module.exports = async (req, res) => {
     }
 
     if (!rawResponse) {
-      // No philosophical fallback — return silent response when all AI models unavailable
-      modelUsed = 'fallback';
+      modelUsed = 'local-fallback';
     }
 
-    const keywords = extractKeywords(rawResponse);
-    const cleanText = cleanResponse(rawResponse);
+    let keywords = extractKeywords(rawResponse);
+    let cleanText = cleanResponse(rawResponse);
+
+    if (!cleanText) {
+      const fallback = buildLocalFallback(message);
+      cleanText = fallback.response;
+      keywords = fallback.keywords;
+      modelUsed = 'local-fallback';
+    }
 
     // ElevenLabs TTS
     const audioUrl = await generateElevenLabsAudio(cleanText);

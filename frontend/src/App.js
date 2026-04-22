@@ -6,7 +6,7 @@ import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocess
 import { Suspense } from "react";
 import CubiQoVisual from "./components/CubiQoVisual";
 import ParticleWaveHD from "./components/ParticleWaveHD";
-import { Menu, Activity, X, Settings, Database, Shield, User, LogOut, Mail, Lock } from "lucide-react";
+import { Menu, Activity, X, Settings, Database, Shield, User, LogOut, Mail, Lock, Send } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 const SignalIcon = ({ size = 18 }) => (
@@ -85,6 +85,9 @@ const DemoPage = () => {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
   const [uiVisible, setUiVisible] = useState(true);
+  const [chatInput, setChatInput] = useState('');
+  const [lastUserMessage, setLastUserMessage] = useState('');
+  const [conversationError, setConversationError] = useState('');
 
   // Periodic UI Breathing (Back and Forth between functional and cinematic)
   useEffect(() => {
@@ -144,6 +147,7 @@ const DemoPage = () => {
       console.warn('Speech error:', e.error);
       setSpeakerEnabled(false);
       setIsProcessing(false);
+      setConversationError(e.error === 'not-allowed' ? 'Microphone permission denied. Use the text field instead.' : 'Voice input stopped. Use the text field or try again.');
     };
     rec.onend = () => {
       const text = transcriptRef.current.trim();
@@ -151,7 +155,9 @@ const DemoPage = () => {
       setSpeakerEnabled(false);
       if (text) {
         setIsProcessing(true);
-        callBackendRef.current(text);
+        callBackendRef.current?.(text);
+      } else {
+        setConversationError('No speech detected. Tap again or type below.');
       }
     };
     recognitionRef.current = rec;
@@ -159,14 +165,22 @@ const DemoPage = () => {
   }, []);
 
   const callBackend = async (text) => {
+    const cleanInput = text.trim();
+    if (!cleanInput) return;
+    setLastUserMessage(cleanInput);
+    setAiResponse('');
+    setConversationError('');
+
     try {
       const res = await fetch('/api/converse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ message: cleanInput })
       });
+      if (!res.ok) throw new Error(`Conversation failed with ${res.status}`);
       const data = await res.json();
-      setAiResponse(data.response || "");
+      const responseText = data.response || "I am here. Say that once more and I will stay with it.";
+      setAiResponse(responseText);
       if (data.keywords) setKeywords(data.keywords);
       if (data.audio_url) {
         if (!audioRef.current) audioRef.current = new Audio();
@@ -180,7 +194,7 @@ const DemoPage = () => {
         });
       } else if (window.speechSynthesis) {
         // Fallback to browser TTS if no audio_url (e.g., missing API key)
-        const utterance = new SpeechSynthesisUtterance(data.response || "");
+        const utterance = new SpeechSynthesisUtterance(responseText);
         utterance.rate = 0.9; // Slightly slower, more deliberate
         utterance.pitch = 0.8;
         utterance.onstart = () => setIsSpeaking(true);
@@ -189,7 +203,7 @@ const DemoPage = () => {
       }
     } catch (err) {
       // Fallback: local keyword extraction
-      const words = text.split(" ").filter(w => w.length > 3);
+      const words = cleanInput.split(" ").filter(w => w.length > 3);
       const nk = { red: [...keywords.red], green: [...keywords.green], yellow: [...keywords.yellow] };
       words.forEach(w => {
         const r = Math.random();
@@ -199,11 +213,22 @@ const DemoPage = () => {
       nk.green = [...new Set(nk.green)].slice(-10);
       nk.yellow = [...new Set(nk.yellow)].slice(-10);
       setKeywords(nk);
+      setAiResponse("I am here, but the live model connection is degraded. I still caught your intent; try again in a moment or keep typing and I will keep tracking the signal.");
+      setConversationError('Model connection degraded');
     } finally {
       setIsProcessing(false);
     }
   };
   callBackendRef.current = callBackend;
+
+  const handleTextSubmit = (e) => {
+    e.preventDefault();
+    const text = chatInput.trim();
+    if (!text || isProcessing) return;
+    setChatInput('');
+    setIsProcessing(true);
+    callBackend(text);
+  };
 
   const toggleListening = () => {
     // Unlock audio context for iOS/Safari
@@ -214,6 +239,10 @@ const DemoPage = () => {
     
     if (isProcessing) return;
     if (!speakerEnabled) {
+      if (!recognitionRef.current) {
+        setConversationError('Voice input unavailable in this browser. Use the text field instead.');
+        return;
+      }
       transcriptRef.current = '';
       setSpeakerEnabled(true);
       try {
@@ -330,8 +359,61 @@ const DemoPage = () => {
             </div>
           </div>
 
-          <div style={{ position: 'absolute', bottom: '8%', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', textAlign: 'center', gap: 16, transition: 'opacity 0.8s ease', opacity: uiVisible ? 1 : 0 }}>
-            
+          <div style={{ position: 'absolute', bottom: '8%', width: 'min(92vw, 560px)', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'auto', textAlign: 'center', gap: 14, transition: 'opacity 0.8s ease', opacity: uiVisible ? 1 : 0 }}>
+            {(lastUserMessage || aiResponse) && (
+              <div style={{
+                width: '100%', maxHeight: '28vh', overflowY: 'auto',
+                background: 'rgba(10,10,16,0.56)', backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)',
+                border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18,
+                padding: '14px 16px', boxShadow: '0 18px 40px rgba(0,0,0,0.35)',
+                textAlign: 'left'
+              }}>
+                {lastUserMessage && (
+                  <div style={{ color: 'rgba(255,255,255,0.46)', fontSize: '0.76rem', lineHeight: 1.5, marginBottom: aiResponse ? 8 : 0 }}>
+                    {lastUserMessage}
+                  </div>
+                )}
+                {aiResponse && (
+                  <div style={{ color: 'rgba(255,255,255,0.92)', fontSize: '0.95rem', lineHeight: 1.55, fontWeight: 300 }}>
+                    {aiResponse}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <form onSubmit={handleTextSubmit} onClick={e => e.stopPropagation()} style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+              background: 'rgba(20,20,25,0.5)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+              border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20,
+              padding: 8, boxShadow: '0 20px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)'
+            }}>
+              <input
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                disabled={isProcessing}
+                placeholder="Type to CubiQo"
+                style={{
+                  flex: 1, minWidth: 0, height: 42, border: 'none', outline: 'none',
+                  background: 'transparent', color: '#fff', padding: '0 10px',
+                  fontSize: '0.92rem'
+                }}
+              />
+              <button type="submit" title="Send message" aria-label="Send message" disabled={isProcessing || !chatInput.trim()} style={{
+                width: 42, height: 42, borderRadius: 14, border: '1px solid rgba(255,255,255,0.1)',
+                background: chatInput.trim() && !isProcessing ? 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)' : 'rgba(255,255,255,0.05)',
+                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: chatInput.trim() && !isProcessing ? 'pointer' : 'not-allowed',
+                opacity: chatInput.trim() && !isProcessing ? 1 : 0.45
+              }}>
+                <Send size={17} />
+              </button>
+            </form>
+
+            {conversationError && (
+              <div style={{ color: 'rgba(251,191,36,0.82)', fontSize: '0.74rem', letterSpacing: 1, textTransform: 'uppercase' }}>
+                {conversationError}
+              </div>
+            )}
 
             <div style={{
               background: 'rgba(20,20,25,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
