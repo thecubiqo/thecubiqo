@@ -4,7 +4,9 @@ const https = require('https');
 function readEnv(names) {
   for (const name of names) {
     const value = process.env[name];
-    if (value && value.trim()) return { value: value.trim(), name };
+    if (value && value.trim()) {
+      return { value: value.trim().replace(/^['"]|['"]$/g, ''), name };
+    }
   }
   return { value: '', name: null };
 }
@@ -23,6 +25,7 @@ const ELEVENLABS_VOICE_ID = VOICE_ENV.value || '21m00Tcm4TlvDq8ikWAM'; // Rachel
 const OPENAI_MODEL = process.env.OPENAI_MODEL || process.env.AI_MODEL || 'gpt-4o';
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20241022';
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet';
+const ELEVENLABS_MODEL_ID = process.env.ELEVENLABS_MODEL_ID || process.env.ELEVEN_LABS_MODEL_ID || 'eleven_flash_v2_5';
 
 const SYSTEM_PROMPT = `You are CubiQo — a philosophical, deeply intelligent AI assistant.
 You speak with calm authority on any topic. 
@@ -169,7 +172,7 @@ async function generateElevenLabsAudio(text) {
   return new Promise((resolve) => {
     const body = JSON.stringify({
       text: text.slice(0, 500),
-      model_id: 'eleven_monolingual_v1',
+      model_id: ELEVENLABS_MODEL_ID,
       voice_settings: { stability: 0.5, similarity_boost: 0.8 }
     });
     const options = {
@@ -261,7 +264,7 @@ module.exports = async (req, res) => {
           anthropic: { configured: Boolean(ANTHROPIC_KEY), name: ANTHROPIC_ENV.name, model: ANTHROPIC_MODEL },
           openai: { configured: Boolean(OPENAI_KEY), name: OPENAI_ENV.name, model: OPENAI_MODEL },
           openrouter: { configured: Boolean(OPENROUTER_KEY), name: OPENROUTER_ENV.name, model: OPENROUTER_MODEL },
-          elevenlabs: { configured: Boolean(ELEVENLABS_KEY), name: ELEVENLABS_ENV.name, voice: ELEVENLABS_VOICE_ID }
+          elevenlabs: { configured: Boolean(ELEVENLABS_KEY), name: ELEVENLABS_ENV.name, voice: ELEVENLABS_VOICE_ID, model: ELEVENLABS_MODEL_ID }
         },
         attempts,
         tts: {
