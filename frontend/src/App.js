@@ -6,7 +6,7 @@ import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocess
 import { Suspense } from "react";
 import CubiQoVisual from "./components/CubiQoVisual";
 import ParticleWaveHD from "./components/ParticleWaveHD";
-import { Menu, Activity, X, Settings, Database, Shield, User, LogOut, Mail, Lock, Send } from "lucide-react";
+import { Menu, Activity, X, Settings, Database, Shield, User, LogOut, Mail, Lock, Send, Plus } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 const SignalIcon = ({ size = 18 }) => (
@@ -78,6 +78,18 @@ const DemoPage = () => {
   const [activeModal, setActiveModal] = useState(null);
   const [keywords, setKeywords] = useState({ red: [], green: [], yellow: [] });
   const [selectedKeywordColor, setSelectedKeywordColor] = useState('green');
+  const [rgyCapsule, setRgyCapsule] = useState({
+    color: 'yellow',
+    signal: 'YELLOW',
+    label: 'Casual',
+    intent: 'casual_general',
+    voice: 'friendly',
+    routing_mode: 'intelligent',
+    color_is_ui_only: true
+  });
+  const [modelUsed, setModelUsed] = useState('local-fallback');
+  const [keywordDraft, setKeywordDraft] = useState('');
+  const [colorLock, setColorLock] = useState(null);
   const [user, setUser] = useState(null);
   const [authView, setAuthView] = useState('login'); // 'login' | 'signup'
   const [authEmail, setAuthEmail] = useState('');
@@ -98,6 +110,7 @@ const DemoPage = () => {
   }, []);
 
   const aiState = isSpeaking ? 'speaking' : (speakerEnabled ? 'listening' : (isProcessing ? 'thinking' : 'neutral'));
+  const statusLabel = isSpeaking ? 'Speaking' : (speakerEnabled ? 'Listening' : (isProcessing ? 'Thinking' : 'Idle'));
 
   const recognitionRef = useRef(null);
   const audioRef = useRef(typeof Audio !== 'undefined' ? new Audio() : null);
@@ -182,6 +195,11 @@ const DemoPage = () => {
       const responseText = data.response || "I am here. Say that once more and I will stay with it.";
       setAiResponse(responseText);
       if (data.keywords) setKeywords(data.keywords);
+      if (data.model_used) setModelUsed(data.model_used);
+      if (data.rgy) {
+        setRgyCapsule(data.rgy);
+        if (!colorLock && data.rgy.color) setSelectedKeywordColor(data.rgy.color);
+      }
       if (data.audio_url) {
         if (!audioRef.current) audioRef.current = new Audio();
         audioRef.current.src = data.audio_url;
@@ -213,6 +231,17 @@ const DemoPage = () => {
       nk.green = [...new Set(nk.green)].slice(-10);
       nk.yellow = [...new Set(nk.yellow)].slice(-10);
       setKeywords(nk);
+      setModelUsed('local-fallback');
+      setRgyCapsule({
+        color: 'yellow',
+        signal: 'YELLOW',
+        label: 'Casual',
+        intent: 'degraded_connection',
+        voice: 'friendly',
+        routing_mode: 'local',
+        color_is_ui_only: true
+      });
+      if (!colorLock) setSelectedKeywordColor('yellow');
       setAiResponse("I am here, but the live model connection is degraded. I still caught your intent; try again in a moment or keep typing and I will keep tracking the signal.");
       setConversationError('Model connection degraded');
     } finally {
@@ -266,11 +295,29 @@ const DemoPage = () => {
   };
 
   const colorMap = {
-    green: { label: 'Potential', desc: 'Future Growth', hex: '#10b981', rgb: '16,185,129', aura: 'rgba(16,185,129,0.15)' },
-    yellow: { label: 'Activity', desc: 'Active Energy', hex: '#f59e0b', rgb: '245,158,11', aura: 'rgba(245,158,11,0.15)' },
-    red: { label: 'Wish', desc: 'Deep Desire', hex: '#ef4444', rgb: '239,68,68', aura: 'rgba(239,68,68,0.15)' }
+    green: { label: 'Goal', desc: 'Action / Growth', hex: '#14b8a6', rgb: '20,184,166', aura: 'rgba(20,184,166,0.15)' },
+    yellow: { label: 'Casual', desc: 'General / Support', hex: '#f59e0b', rgb: '245,158,11', aura: 'rgba(245,158,11,0.15)' },
+    red: { label: 'Age Gate', desc: 'Explicit / Private', hex: '#ef4444', rgb: '239,68,68', aura: 'rgba(239,68,68,0.15)' }
   };
   const active = colorMap[selectedKeywordColor];
+  const signalColor = colorLock || rgyCapsule.color || 'yellow';
+  const signal = colorMap[signalColor] || colorMap.yellow;
+  const systemRows = [
+    { label: 'State', value: statusLabel, color: signal.hex },
+    { label: 'RGY', value: `${signal.label} · ${rgyCapsule.intent || 'session'}`, color: signal.hex },
+    { label: 'Router', value: rgyCapsule.routing_mode === 'direct' ? 'Direct' : 'Intelligent', color: '#60a5fa' },
+    { label: 'Backend', value: modelUsed, color: modelUsed.includes('fallback') ? '#f59e0b' : '#34d399' }
+  ];
+
+  const addKeyword = (value = keywordDraft) => {
+    const next = value.trim().toLowerCase().replace(/[^a-z0-9 -]/g, '');
+    if (!next) return;
+    setKeywords(prev => ({
+      ...prev,
+      [selectedKeywordColor]: [...new Set([...(prev[selectedKeywordColor] || []), next])].slice(-12)
+    }));
+    setKeywordDraft('');
+  };
 
   const panelBase = {
     position: 'absolute', top: '100px', bottom: '40px', width: '320px',
@@ -424,22 +471,22 @@ const DemoPage = () => {
             }}>
               {isSpeaking ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff0088', boxShadow: '0 0 12px #ff0088', animation: 'pulse 1s infinite' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: signal.hex, boxShadow: `0 0 12px ${signal.hex}`, animation: 'pulse 1s infinite' }} />
                   <div style={{ color: '#fff', fontSize: '0.85rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 500 }}>Speaking</div>
                 </div>
               ) : speakerEnabled ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff6b35', boxShadow: '0 0 12px #ff6b35', animation: 'pulse 1s infinite' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: signal.hex, boxShadow: `0 0 12px ${signal.hex}`, animation: 'pulse 1s infinite' }} />
                   <div style={{ color: '#fff', fontSize: '0.85rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 500 }}>Listening</div>
                 </div>
               ) : isProcessing ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00d4ff', boxShadow: '0 0 12px #00d4ff', animation: 'pulse 1s infinite' }} />
-                  <div style={{ color: '#fff', fontSize: '0.85rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 500 }}>Processing</div>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: signal.hex, boxShadow: `0 0 12px ${signal.hex}`, animation: 'pulse 1s infinite' }} />
+                  <div style={{ color: '#fff', fontSize: '0.85rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 500 }}>Thinking</div>
                 </div>
               ) : (
-                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 400 }}>
-                  Tap to speak
+                <div style={{ color: 'rgba(255,255,255,0.58)', fontSize: '0.85rem', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 400 }}>
+                  Idle · {signal.label}
                 </div>
               )}
             </div>
@@ -474,12 +521,13 @@ const DemoPage = () => {
           <div style={{ flex: 1 }} />
 
           {/* AI model status */}
-          <div style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)', borderRadius: 14, padding: '14px 16px', marginBottom: 16 }}>
-            <div style={{ fontSize: '0.68rem', color: 'rgba(0,212,255,0.7)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Active Systems</div>
-            {['Claude 3.5', 'GPT-4o', 'ElevenLabs TTS', 'Web Search'].map((s, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 6px #34d399' }} />
-                <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.78rem' }}>{s}</span>
+          <div style={{ background: `rgba(${signal.rgb},0.07)`, border: `1px solid ${signal.hex}26`, borderRadius: 14, padding: '14px 16px', marginBottom: 16 }}>
+            <div style={{ fontSize: '0.68rem', color: signal.hex, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Active Systems</div>
+            {systemRows.map(({ label, value, color }) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, minWidth: 0 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}` }} />
+                <span style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.72rem', width: 54, flexShrink: 0 }}>{label}</span>
+                <span style={{ color: 'rgba(255,255,255,0.68)', fontSize: '0.76rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
               </div>
             ))}
           </div>
@@ -538,8 +586,16 @@ const DemoPage = () => {
             </div>
           </div>
 
-          {/* Category detail removed - no literal explanation needed */}
-          <div style={{ marginBottom: 24 }} />
+          <div style={{ marginBottom: 18, padding: '12px 14px', borderRadius: 14, background: `rgba(${active.rgb},0.07)`, border: `1px solid ${active.hex}24` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ color: active.hex, fontSize: '0.68rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>{active.label}</span>
+              {colorLock && <span style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.68rem', letterSpacing: 1.5, textTransform: 'uppercase' }}>Locked</span>}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.86rem', lineHeight: 1.35 }}>{active.desc}</div>
+            <div style={{ color: 'rgba(255,255,255,0.34)', fontSize: '0.72rem', lineHeight: 1.45, marginTop: 8 }}>
+              {selectedKeywordColor === (rgyCapsule.color || 'yellow') ? rgyCapsule.intent : 'keyword shelf'}
+            </div>
+          </div>
 
           {/* Keywords */}
           <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -561,6 +617,36 @@ const DemoPage = () => {
             )}
           </div>
 
+          <form onSubmit={e => { e.preventDefault(); addKeyword(); }} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16 }}>
+            <input
+              value={keywordDraft}
+              onChange={e => setKeywordDraft(e.target.value)}
+              placeholder="company, trade, collaboration"
+              style={{
+                flex: 1, minWidth: 0, height: 38, borderRadius: 12,
+                border: `1px solid ${active.hex}24`, background: 'rgba(255,255,255,0.04)',
+                color: '#fff', outline: 'none', padding: '0 11px', fontSize: '0.78rem'
+              }}
+            />
+            <button type="submit" title="Add keyword" aria-label="Add keyword" style={{
+              width: 38, height: 38, borderRadius: 12, border: `1px solid ${active.hex}30`,
+              background: `rgba(${active.rgb},0.14)`, color: active.hex, display: 'flex',
+              alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+            }}>
+              <Plus size={16} />
+            </button>
+          </form>
+
+          <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+            {['company', 'collaboration', 'trade'].map(k => (
+              <button key={k} onClick={() => addKeyword(k)} style={{
+                border: `1px solid ${active.hex}22`, background: 'rgba(255,255,255,0.03)',
+                color: 'rgba(255,255,255,0.48)', borderRadius: 999, padding: '6px 9px',
+                fontSize: '0.68rem', cursor: 'pointer'
+              }}>{k}</button>
+            ))}
+          </div>
+
           {/* Divider */}
           <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '20px 0' }} />
 
@@ -579,12 +665,29 @@ const DemoPage = () => {
 
               {activeModal === 'settings' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {[{ label: 'AI Voice', value: 'ElevenLabs · Rachel', color: '#00d4ff' }, { label: 'Primary Model', value: 'Claude 3.5 Sonnet', color: '#8b5cf6' }, { label: 'Fallback Model', value: 'GPT-4o', color: '#f59e0b' }, { label: 'Web Search', value: 'Enabled · Playwright', color: '#34d399' }].map(({ label, value, color }) => (
+                  {[{ label: 'Voice', value: rgyCapsule.voice || 'friendly', color: signal.hex }, { label: 'Primary', value: 'OpenAI first', color: '#60a5fa' }, { label: 'Fallback', value: 'Anthropic / OpenRouter / local', color: '#f59e0b' }, { label: 'Storage', value: 'Session keywords only', color: '#34d399' }].map(({ label, value, color }) => (
                     <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
                       <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>{label}</span>
                       <span style={{ color, fontSize: '0.85rem', fontWeight: 500 }}>{value}</span>
                     </div>
                   ))}
+                  <div style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginBottom: 10 }}>Color lock</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                      {[['auto', null], ['green', 'green'], ['yellow', 'yellow'], ['red', 'red']].map(([label, value]) => {
+                        const locked = colorLock === value;
+                        const swatch = value ? colorMap[value] : { hex: '#94a3b8', rgb: '148,163,184' };
+                        return (
+                          <button key={label} type="button" onClick={() => { setColorLock(value); if (value) setSelectedKeywordColor(value); }} style={{
+                            height: 34, borderRadius: 10, border: `1px solid ${locked ? swatch.hex : 'rgba(255,255,255,0.08)'}`,
+                            background: locked ? `rgba(${swatch.rgb},0.16)` : 'rgba(255,255,255,0.04)',
+                            color: locked ? swatch.hex : 'rgba(255,255,255,0.5)', cursor: 'pointer',
+                            fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: 1
+                          }}>{label}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
               {activeModal === 'integrations' && (

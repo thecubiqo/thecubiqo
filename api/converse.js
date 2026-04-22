@@ -37,6 +37,41 @@ Green = Potentials (growth, future), Yellow = Activities (current actions), Red 
 Keywords should be nouns or adjectives defining the user's wishes or potentials.
 Keep your main response under 3 sentences. Be profound but concise.`;
 
+const RGY_META = {
+  green: {
+    label: 'Goal',
+    intent: 'goal_oriented',
+    voice: 'professional_decisive',
+    color: 'TEAL'
+  },
+  yellow: {
+    label: 'Casual',
+    intent: 'casual_general',
+    voice: 'friendly',
+    color: 'YELLOW'
+  },
+  red: {
+    label: 'Age-gated',
+    intent: 'explicit_goal_oriented',
+    voice: 'discreet_low_volume',
+    color: 'RED'
+  }
+};
+
+const GOAL_TERMS = [
+  'build', 'business', 'company', 'launch', 'strategy', 'plan', 'work', 'career',
+  'health', 'wellness', 'focus', 'money', 'trade', 'collaborate', 'collaboration',
+  'ship', 'design', 'code', 'learn', 'grow', 'goal', 'task', 'project'
+];
+const RED_TERMS = [
+  'explicit', 'adult', 'sex', 'porn', 'nsfw', 'hookup', 'fetish', 'kink', 'dating',
+  'intimate', 'private'
+];
+const SELF_HARM_TERMS = [
+  'kill myself', 'suicide', 'self harm', 'self-harm', 'hurt myself', 'end my life',
+  'want to die', 'cut myself'
+];
+
 function httpsPost(url, headers, body) {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url);
@@ -94,6 +129,35 @@ function parseProviderOrder(value) {
     }
   }
   return ordered;
+}
+
+function includesAny(text, terms) {
+  return terms.some(term => text.includes(term));
+}
+
+function detectRgyCapsule(message, keywordHints = {}) {
+  const lower = String(message || '').toLowerCase();
+  const selfHarm = includesAny(lower, SELF_HARM_TERMS);
+  const explicit = includesAny(lower, RED_TERMS);
+  const goal = includesAny(lower, GOAL_TERMS);
+  const selected = selfHarm ? 'yellow' : (explicit ? 'red' : (goal ? 'green' : 'yellow'));
+  const meta = RGY_META[selected];
+
+  return {
+    color: selected,
+    signal: meta.color,
+    label: meta.label,
+    intent: selfHarm ? 'support' : meta.intent,
+    voice: selfHarm ? 'supportive' : meta.voice,
+    age_gate_required: explicit && !selfHarm,
+    self_harm_support: selfHarm,
+    color_is_ui_only: true,
+    keywords: {
+      green: keywordHints.green || [],
+      yellow: keywordHints.yellow || [],
+      red: keywordHints.red || []
+    }
+  };
 }
 
 function parseHttpStatus(error) {
@@ -232,7 +296,7 @@ function publicError(error) {
     .slice(0, 220);
 }
 
-function buildLocalFallback(message) {
+function buildLocalFallback(message, primaryColor = 'green') {
   const words = message
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, ' ')
@@ -241,19 +305,22 @@ function buildLocalFallback(message) {
 
   const unique = [...new Set(words)].slice(0, 9);
   const topic = unique[0] || 'this';
+  const color = ['green', 'yellow', 'red'].includes(primaryColor) ? primaryColor : 'green';
+  const keywords = { green: [], yellow: [], red: [] };
+  keywords[color] = unique.slice(0, 6);
+  const otherColors = ['green', 'yellow', 'red'].filter(item => item !== color);
+  unique.slice(6, 9).forEach((word, index) => {
+    keywords[otherColors[index % otherColors.length]].push(word);
+  });
 
   return {
     response: `I am here. I caught the signal around ${topic}; say a little more and I will help shape it into a clearer next move.`,
-    keywords: {
-      green: unique.slice(0, 3),
-      yellow: unique.slice(3, 6),
-      red: unique.slice(6, 9)
-    }
+    keywords
   };
 }
 
 function buildSafetyResponse(message) {
-  const fallback = buildLocalFallback(message);
+  const fallback = buildLocalFallback(message, 'yellow');
   return {
     response: "I can't help with that request, but I can help reframe it into something safe, legal, and useful.",
     keywords: {
@@ -264,13 +331,28 @@ function buildSafetyResponse(message) {
   };
 }
 
-function getProviderSequence() {
+function buildSelfHarmSupport(message) {
+  const fallback = buildLocalFallback(message, 'yellow');
+  return {
+    response: "I am really glad you said something. I can't help with instructions for self-harm, but if you might act on this, call or text 988 in the U.S. or Canada now; if you are elsewhere, contact local emergency services or someone you trust and stay with them while the feeling is intense.",
+    keywords: {
+      green: fallback.keywords.green,
+      yellow: ['support', 'safety', 'grounding'],
+      red: []
+    }
+  };
+}
+
+function getProviderSequence(modelOverride) {
+  const direct = normalizeProviderName(modelOverride);
   const registry = {
     openai: { name: 'openai', configured: Boolean(OPENAI_KEY), envName: OPENAI_ENV.name, fn: callOpenAI },
     anthropic: { name: 'anthropic', configured: Boolean(ANTHROPIC_KEY), envName: ANTHROPIC_ENV.name, fn: callClaude },
     openrouter: { name: 'openrouter', configured: Boolean(OPENROUTER_KEY), envName: OPENROUTER_ENV.name, fn: callOpenRouter }
   };
-  return PROVIDER_ORDER.map(provider => registry[provider]).filter(Boolean);
+  if (direct === 'local') return [];
+  const order = registry[direct] ? [direct] : PROVIDER_ORDER;
+  return order.map(provider => registry[provider]).filter(Boolean);
 }
 
 async function generateElevenLabsAudio(text) {
@@ -318,11 +400,26 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { message, history } = req.body || {};
+  const { message, history, model } = req.body || {};
   if (!message?.trim()) return res.status(400).json({ error: 'Message required' });
   const attempts = [];
+  const directModel = normalizeProviderName(model);
 
   try {
+    let rgy = detectRgyCapsule(message);
+
+    if (rgy.self_harm_support) {
+      const support = buildSelfHarmSupport(message);
+      const audio = await generateElevenLabsAudio(support.response);
+      return res.status(200).json({
+        response: support.response,
+        keywords: support.keywords,
+        audio_url: audio.audioUrl,
+        model_used: 'local-safety',
+        rgy: detectRgyCapsule(message, support.keywords)
+      });
+    }
+
     // Web search if needed
     let context = '';
     if (needsWebSearch(message)) {
@@ -332,7 +429,7 @@ module.exports = async (req, res) => {
     // Orchestrate providers. Operational failures fall through; safety refusals do not.
     let rawResponse = '', modelUsed = 'fallback';
     let safetyStop = false;
-    for (const { name, configured, envName, fn } of getProviderSequence()) {
+    for (const { name, configured, envName, fn } of getProviderSequence(directModel)) {
       if (!configured) {
         attempts.push({ provider: name, configured, env: envName, ok: false, category: 'missing_key', retryable: false });
         continue;
@@ -375,16 +472,28 @@ module.exports = async (req, res) => {
     let cleanText = cleanResponse(rawResponse);
 
     if (!cleanText) {
-      const fallback = safetyStop ? buildSafetyResponse(message) : buildLocalFallback(message);
+      const fallback = safetyStop ? buildSafetyResponse(message) : buildLocalFallback(message, rgy.color);
       cleanText = fallback.response;
       keywords = fallback.keywords;
       modelUsed = 'local-fallback';
     }
 
+    rgy = detectRgyCapsule(message, keywords);
+
     // ElevenLabs TTS
     const audio = await generateElevenLabsAudio(cleanText);
 
-    const payload = { response: cleanText, keywords, audio_url: audio.audioUrl, model_used: modelUsed };
+    const payload = {
+      response: cleanText,
+      keywords,
+      audio_url: audio.audioUrl,
+      model_used: modelUsed,
+      rgy: {
+        ...rgy,
+        routing_mode: directModel && ['openai', 'anthropic', 'openrouter', 'local'].includes(directModel) ? 'direct' : 'intelligent',
+        direct_model: directModel || null
+      }
+    };
     if (req.query?.diagnostics === '1' || req.body?.diagnostics === true) {
       payload.diagnostics = {
         env: {
@@ -394,6 +503,7 @@ module.exports = async (req, res) => {
           elevenlabs: { configured: Boolean(ELEVENLABS_KEY), name: ELEVENLABS_ENV.name, voice: ELEVENLABS_VOICE_ID, model: ELEVENLABS_MODEL_ID }
         },
         provider_order: PROVIDER_ORDER,
+        direct_model: directModel || null,
         attempts,
         tts: {
           configured: Boolean(ELEVENLABS_KEY),
