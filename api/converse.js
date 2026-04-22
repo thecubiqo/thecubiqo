@@ -165,7 +165,7 @@ function buildLocalFallback(message) {
 }
 
 async function generateElevenLabsAudio(text) {
-  if (!ELEVENLABS_KEY) return null;
+  if (!ELEVENLABS_KEY) return { audioUrl: null, error: 'No ElevenLabs key' };
   return new Promise((resolve) => {
     const body = JSON.stringify({
       text: text.slice(0, 500),
@@ -188,11 +188,14 @@ async function generateElevenLabsAudio(text) {
       res.on('end', () => {
         if (res.statusCode === 200) {
           const b64 = Buffer.concat(chunks).toString('base64');
-          resolve(`data:audio/mpeg;base64,${b64}`);
-        } else resolve(null);
+          resolve({ audioUrl: `data:audio/mpeg;base64,${b64}`, error: null });
+        } else {
+          const errorText = Buffer.concat(chunks).toString('utf8').slice(0, 220);
+          resolve({ audioUrl: null, error: `HTTP ${res.statusCode}: ${errorText}` });
+        }
       });
     });
-    req.on('error', () => resolve(null));
+    req.on('error', (error) => resolve({ audioUrl: null, error: publicError(error) }));
     req.write(body);
     req.end();
   });
@@ -249,9 +252,9 @@ module.exports = async (req, res) => {
     }
 
     // ElevenLabs TTS
-    const audioUrl = await generateElevenLabsAudio(cleanText);
+    const audio = await generateElevenLabsAudio(cleanText);
 
-    const payload = { response: cleanText, keywords, audio_url: audioUrl, model_used: modelUsed };
+    const payload = { response: cleanText, keywords, audio_url: audio.audioUrl, model_used: modelUsed };
     if (req.query?.diagnostics === '1' || req.body?.diagnostics === true) {
       payload.diagnostics = {
         env: {
@@ -260,7 +263,13 @@ module.exports = async (req, res) => {
           openrouter: { configured: Boolean(OPENROUTER_KEY), name: OPENROUTER_ENV.name, model: OPENROUTER_MODEL },
           elevenlabs: { configured: Boolean(ELEVENLABS_KEY), name: ELEVENLABS_ENV.name, voice: ELEVENLABS_VOICE_ID }
         },
-        attempts
+        attempts,
+        tts: {
+          configured: Boolean(ELEVENLABS_KEY),
+          env: ELEVENLABS_ENV.name,
+          ok: Boolean(audio.audioUrl),
+          error: audio.error ? publicError(audio.error) : null
+        }
       };
     }
 
