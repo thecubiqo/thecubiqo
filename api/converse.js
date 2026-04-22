@@ -1,6 +1,6 @@
 const https = require('https');
 
-// AI model orchestration - Claude → GPT-4o → OpenRouter
+// AI model orchestration - OpenAI -> Anthropic -> OpenRouter
 function readEnv(names) {
   for (const name of names) {
     const value = process.env[name];
@@ -22,10 +22,12 @@ const OPENAI_KEY = OPENAI_ENV.value;
 const OPENROUTER_KEY = OPENROUTER_ENV.value;
 const ELEVENLABS_KEY = ELEVENLABS_ENV.value;
 const ELEVENLABS_VOICE_ID = VOICE_ENV.value || '21m00Tcm4TlvDq8ikWAM'; // Rachel
-const OPENAI_MODEL = process.env.OPENAI_MODEL || process.env.AI_MODEL || 'gpt-4o';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || process.env.AI_MODEL || 'gpt-5.4';
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20241022';
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet';
 const ELEVENLABS_MODEL_ID = process.env.ELEVENLABS_MODEL_ID || process.env.ELEVEN_LABS_MODEL_ID || 'eleven_flash_v2_5';
+const DEFAULT_PROVIDER_ORDER = ['openai', 'anthropic', 'openrouter'];
+const PROVIDER_ORDER = parseProviderOrder(process.env.PROVIDER_ORDER);
 
 const SYSTEM_PROMPT = `You are CubiQo — a philosophical, deeply intelligent AI assistant.
 You speak with calm authority on any topic. 
@@ -70,6 +72,62 @@ async function callClaude(message, history, context) {
     JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 512, system: SYSTEM_PROMPT, messages })
   );
   return [JSON.parse(raw).content[0].text, ANTHROPIC_MODEL];
+}
+
+function normalizeProviderName(name) {
+  const normalized = String(name || '').trim().toLowerCase();
+  if (['claude', 'anthropic'].includes(normalized)) return 'anthropic';
+  if (['gpt', 'openai'].includes(normalized)) return 'openai';
+  if (['router', 'openrouter'].includes(normalized)) return 'openrouter';
+  return normalized;
+}
+
+function parseProviderOrder(value) {
+  const requested = String(value || '')
+    .split(',')
+    .map(normalizeProviderName)
+    .filter(Boolean);
+  const ordered = [];
+  for (const provider of [...requested, ...DEFAULT_PROVIDER_ORDER]) {
+    if (DEFAULT_PROVIDER_ORDER.includes(provider) && !ordered.includes(provider)) {
+      ordered.push(provider);
+    }
+  }
+  return ordered;
+}
+
+function parseHttpStatus(error) {
+  const match = String(error?.message || error || '').match(/HTTP\s+(\d{3})/i);
+  return match ? Number(match[1]) : null;
+}
+
+function classifyProviderError(error) {
+  const status = parseHttpStatus(error);
+  const text = String(error?.message || error || '').toLowerCase();
+  const policySignals = ['content_policy', 'policy_violation', 'safety', 'safeguard', 'disallowed', 'unsafe content'];
+
+  if (policySignals.some(signal => text.includes(signal))) {
+    return { category: 'safety', retryable: false, status };
+  }
+  if (status === 401 || status === 403) {
+    return { category: 'auth', retryable: false, status };
+  }
+  if (status === 402) {
+    return { category: 'billing', retryable: false, status };
+  }
+  if (status === 408 || status === 409 || status === 425 || status === 429) {
+    return { category: status === 429 ? 'rate_limit' : 'transient', retryable: true, status };
+  }
+  if (status >= 500) {
+    return { category: 'provider_unavailable', retryable: true, status };
+  }
+  if (status === 400 || status === 404) {
+    return { category: 'request_or_model', retryable: false, status };
+  }
+  if (['timeout', 'econnreset', 'enotfound', 'socket hang up', 'network'].some(signal => text.includes(signal))) {
+    return { category: 'network', retryable: true, status };
+  }
+  return { category: 'unknown', retryable: true, status };
 }
 
 async function callOpenAI(message, history, context) {
@@ -140,6 +198,33 @@ function cleanResponse(text) {
   return text.replace(/<keywords>[\s\S]*?<\/keywords>/g, '').trim();
 }
 
+function isSafetyRefusal(text) {
+  const lower = String(text || '').toLowerCase();
+  const refusalSignals = [
+    "i can't assist",
+    'i cannot assist',
+    "i can't help",
+    'i cannot help',
+    "i won't help",
+    'i will not help',
+    'unable to help'
+  ];
+  const safetySignals = [
+    'policy',
+    'safety',
+    'unsafe',
+    'illegal',
+    'harmful',
+    'sexual content',
+    'minor',
+    'self-harm',
+    'hate',
+    'weapon',
+    'disallowed'
+  ];
+  return refusalSignals.some(signal => lower.includes(signal)) && safetySignals.some(signal => lower.includes(signal));
+}
+
 function publicError(error) {
   return String(error?.message || error || 'Unknown error')
     .replace(/sk-[A-Za-z0-9_-]+/g, '[redacted-key]')
@@ -165,6 +250,27 @@ function buildLocalFallback(message) {
       red: unique.slice(6, 9)
     }
   };
+}
+
+function buildSafetyResponse(message) {
+  const fallback = buildLocalFallback(message);
+  return {
+    response: "I can't help with that request, but I can help reframe it into something safe, legal, and useful.",
+    keywords: {
+      green: fallback.keywords.green,
+      yellow: ['reframe', 'boundary'],
+      red: ['risk']
+    }
+  };
+}
+
+function getProviderSequence() {
+  const registry = {
+    openai: { name: 'openai', configured: Boolean(OPENAI_KEY), envName: OPENAI_ENV.name, fn: callOpenAI },
+    anthropic: { name: 'anthropic', configured: Boolean(ANTHROPIC_KEY), envName: ANTHROPIC_ENV.name, fn: callClaude },
+    openrouter: { name: 'openrouter', configured: Boolean(OPENROUTER_KEY), envName: OPENROUTER_ENV.name, fn: callOpenRouter }
+  };
+  return PROVIDER_ORDER.map(provider => registry[provider]).filter(Boolean);
 }
 
 async function generateElevenLabsAudio(text) {
@@ -223,20 +329,41 @@ module.exports = async (req, res) => {
       context = await searchWeb(message);
     }
 
-    // Orchestrate: Claude → GPT-4o → OpenRouter
+    // Orchestrate providers. Operational failures fall through; safety refusals do not.
     let rawResponse = '', modelUsed = 'fallback';
-    for (const { name, configured, envName, fn } of [
-      { name: 'anthropic', configured: Boolean(ANTHROPIC_KEY), envName: ANTHROPIC_ENV.name, fn: callClaude },
-      { name: 'openai', configured: Boolean(OPENAI_KEY), envName: OPENAI_ENV.name, fn: callOpenAI },
-      { name: 'openrouter', configured: Boolean(OPENROUTER_KEY), envName: OPENROUTER_ENV.name, fn: callOpenRouter }
-    ]) {
+    let safetyStop = false;
+    for (const { name, configured, envName, fn } of getProviderSequence()) {
+      if (!configured) {
+        attempts.push({ provider: name, configured, env: envName, ok: false, category: 'missing_key', retryable: false });
+        continue;
+      }
+
       try {
         [rawResponse, modelUsed] = await fn(message, history, context);
-        attempts.push({ provider: name, configured, env: envName, ok: true });
+        if (!String(rawResponse || '').trim()) {
+          attempts.push({ provider: name, configured, env: envName, ok: false, category: 'empty_response', retryable: true });
+          rawResponse = '';
+          continue;
+        }
+
+        if (isSafetyRefusal(rawResponse)) {
+          attempts.push({ provider: name, configured, env: envName, ok: true, safety_refusal: true });
+          safetyStop = true;
+        } else {
+          attempts.push({ provider: name, configured, env: envName, ok: true });
+        }
         break;
       } catch (e) {
-        attempts.push({ provider: name, configured, env: envName, ok: false, error: publicError(e) });
+        const errorInfo = classifyProviderError(e);
+        attempts.push({ provider: name, configured, env: envName, ok: false, ...errorInfo, error: publicError(e) });
         console.warn(`${fn.name} failed:`, e.message);
+        if (errorInfo.category === 'safety') {
+          const safety = buildSafetyResponse(message);
+          rawResponse = safety.response;
+          modelUsed = `${name}-safety`;
+          safetyStop = true;
+          break;
+        }
       }
     }
 
@@ -248,7 +375,7 @@ module.exports = async (req, res) => {
     let cleanText = cleanResponse(rawResponse);
 
     if (!cleanText) {
-      const fallback = buildLocalFallback(message);
+      const fallback = safetyStop ? buildSafetyResponse(message) : buildLocalFallback(message);
       cleanText = fallback.response;
       keywords = fallback.keywords;
       modelUsed = 'local-fallback';
@@ -266,6 +393,7 @@ module.exports = async (req, res) => {
           openrouter: { configured: Boolean(OPENROUTER_KEY), name: OPENROUTER_ENV.name, model: OPENROUTER_MODEL },
           elevenlabs: { configured: Boolean(ELEVENLABS_KEY), name: ELEVENLABS_ENV.name, voice: ELEVENLABS_VOICE_ID, model: ELEVENLABS_MODEL_ID }
         },
+        provider_order: PROVIDER_ORDER,
         attempts,
         tts: {
           configured: Boolean(ELEVENLABS_KEY),
