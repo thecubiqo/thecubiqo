@@ -46,6 +46,14 @@ For production-sensitive work:
 - Prefer PR preview deployments for QA before production.
 - Keep rollback notes in the final response when a deployment is involved.
 
+## Shared Notes
+
+Use `docs/codex-shared-notes.md` as the shared notebook between Desktop Codex and Cloud Codex.
+
+- Read it before project setup, environment, deployment, or cross-agent workflow changes.
+- Update it when durable project context changes.
+- Keep task-specific scratch notes out of it unless they affect future work.
+
 ## Environment Guidance
 
 Recommended environment model:
