@@ -115,6 +115,21 @@ Merge owner: the user by default. If the user explicitly delegates merge/release
 
 Desktop Codex should not create duplicate PRs for Cloud Codex work. Cloud Codex should not treat unpushed Desktop local changes as available context.
 
+## Workflow Ownership One-Liners
+
+1. Exclusive coder: Cloud Codex.
+2. Exclusive verifier: Desktop Codex.
+3. Exclusive PR creator: Cloud Codex.
+4. Exclusive PR merger: Desktop Codex, but only after user approval for production-impacting merges.
+5. Branch created: Cloud Codex creates a feature branch when a new requirement/task starts.
+6. Creating a PR: opening a GitHub pull request from the feature branch into the target branch.
+7. PRs merge to: usually `main`, unless a dedicated `qa` or `staging` branch is added.
+8. Merged branch after merge: feature branch becomes disposable and can be deleted.
+9. Feedback loop: Desktop verifies, writes issues, Cloud fixes same PR branch, Desktop re-verifies.
+10. Automation target: Cloud codes + pushes PR preview to QA automatically; prod waits for user approval.
+11. Env usage: local/dev for Desktop, preview/QA for PRs, production for `main`.
+12. Branch to env mapping: feature branch = Vercel Preview QA, `main` = Production; keep this constant unless staging is added.
+
 ## Pipeline Summary
 
 - Dev: local Desktop Codex and feature branches.
