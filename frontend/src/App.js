@@ -100,6 +100,9 @@ const DemoPage = () => {
   const [chatInput, setChatInput] = useState('');
   const [lastUserMessage, setLastUserMessage] = useState('');
   const [conversationError, setConversationError] = useState('');
+  const [journalEntries, setJournalEntries] = useState([]);
+  const [personalitySignals, setPersonalitySignals] = useState([]);
+  const [browserAgentConnected, setBrowserAgentConnected] = useState(false);
 
   // Periodic UI Breathing (Back and Forth between functional and cinematic)
   useEffect(() => {
@@ -181,6 +184,16 @@ const DemoPage = () => {
     const cleanInput = text.trim();
     if (!cleanInput) return;
     setLastUserMessage(cleanInput);
+    const autoRgy = classifyRgyFromInput(cleanInput);
+    const derived = extractSignals(cleanInput);
+    setJournalEntries((prev) => [{ at: new Date().toISOString(), text: cleanInput }, ...prev].slice(0, 12));
+    setPersonalitySignals((prev) => [...new Set([...derived.personality, ...prev])].slice(0, 10));
+    if (derived.verbs.length) {
+      setKeywords((prev) => ({
+        ...prev,
+        [autoRgy]: [...new Set([...(prev[autoRgy] || []), ...derived.verbs])].slice(-12)
+      }));
+    }
     setAiResponse('');
     setConversationError('');
 
@@ -199,6 +212,8 @@ const DemoPage = () => {
       if (data.rgy) {
         setRgyCapsule(data.rgy);
         if (!colorLock && data.rgy.color) setSelectedKeywordColor(data.rgy.color);
+      } else if (!colorLock) {
+        setSelectedKeywordColor(autoRgy);
       }
       if (data.audio_url) {
         if (!audioRef.current) audioRef.current = new Audio();
@@ -249,6 +264,20 @@ const DemoPage = () => {
     }
   };
   callBackendRef.current = callBackend;
+
+  const classifyRgyFromInput = (text) => {
+    const lowered = text.toLowerCase();
+    if (/(explicit|adult|nsfw|private|sensitive)/.test(lowered)) return 'red';
+    if (/(build|launch|task|project|deadline|deliver|focus|plan)/.test(lowered)) return 'green';
+    return 'yellow';
+  };
+
+  const extractSignals = (text) => {
+    const tokens = text.toLowerCase().match(/[a-z][a-z0-9-]{2,}/g) || [];
+    const verbs = tokens.filter((w) => /(ing|ed)$/.test(w) || ['build', 'launch', 'ship', 'write', 'plan', 'track', 'create'].includes(w));
+    const personality = tokens.filter((w) => ['focused', 'calm', 'stressed', 'optimistic', 'creative', 'disciplined', 'tired'].includes(w));
+    return { verbs: [...new Set(verbs)].slice(-8), personality: [...new Set(personality)].slice(-8) };
+  };
 
   const handleTextSubmit = (e) => {
     e.preventDefault();
@@ -496,6 +525,14 @@ const DemoPage = () => {
 
         {/* LEFT PANEL */}
         <div style={{ ...panelBase, left: '28px', transform: leftPanelOpen ? 'translateX(0)' : (uiVisible ? 'translateX(-130%)' : 'translateX(-130%)'), opacity: leftPanelOpen ? 1 : 0, pointerEvents: leftPanelOpen ? 'auto' : 'none', padding: '40px 24px' }}>
+          {/* Daily journal */}
+          <div style={{ marginBottom: 16, padding: '12px 14px', borderRadius: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ color: '#93c5fd', fontSize: '0.7rem', letterSpacing: 1.8, textTransform: 'uppercase', marginBottom: 8 }}>Daily Journal</div>
+            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.8rem', lineHeight: 1.4 }}>
+              Personality signals: {personalitySignals.length ? personalitySignals.join(' · ') : 'Awaiting entries'}
+            </div>
+          </div>
+
           {/* Nav */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {navItems.map(({ id, label, icon: Icon, sub }) => (
@@ -519,6 +556,14 @@ const DemoPage = () => {
           </div>
 
           <div style={{ flex: 1 }} />
+
+          <div style={{ maxHeight: 170, overflowY: 'auto', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {journalEntries.map((entry) => (
+              <div key={entry.at} style={{ padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.68)', fontSize: '0.76rem', lineHeight: 1.35 }}>
+                {entry.text}
+              </div>
+            ))}
+          </div>
 
           {/* AI model status */}
           <div style={{ background: `rgba(${signal.rgb},0.07)`, border: `1px solid ${signal.hex}26`, borderRadius: 14, padding: '14px 16px', marginBottom: 16 }}>
@@ -565,6 +610,14 @@ const DemoPage = () => {
 
         {/* RIGHT PANEL */}
         <div style={{ ...panelBase, right: '28px', transform: rightPanelOpen ? 'translateX(0)' : 'translateX(130%)', opacity: rightPanelOpen ? 1 : 0, pointerEvents: rightPanelOpen ? 'auto' : 'none', padding: '32px 24px' }}>
+
+          <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 12, border: `1px solid ${browserAgentConnected ? '#34d39944' : '#f59e0b44'}`, background: browserAgentConnected ? 'rgba(52,211,153,0.09)' : 'rgba(245,158,11,0.09)' }}>
+            <div style={{ color: browserAgentConnected ? '#34d399' : '#f59e0b', fontSize: '0.72rem', letterSpacing: 1.6, textTransform: 'uppercase' }}>Headless Browser Agent</div>
+            <div style={{ color: 'rgba(255,255,255,0.66)', fontSize: '0.78rem', marginTop: 4 }}>{browserAgentConnected ? 'Connected' : 'Disconnected (POC stub)'}</div>
+            <button type="button" onClick={() => setBrowserAgentConnected((v) => !v)} style={{ marginTop: 8, height: 28, borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.75)', fontSize: '0.72rem', cursor: 'pointer', padding: '0 10px' }}>
+              Toggle
+            </button>
+          </div>
 
           {/* Signal Aura Indicator (Replaces Tabs) */}
           <div style={{ position: 'relative', height: '60px', marginBottom: 20, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
