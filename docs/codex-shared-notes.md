@@ -93,6 +93,28 @@ flowchart TB
 - Do not deploy production unless explicitly approved.
 - Use Vercel PR previews as QA.
 
+## Default Cloud/Desktop Path
+
+Cloud Codex is the default builder:
+
+- create implementation branch
+- make code changes
+- open the pull request
+- keep changes scoped to the task
+
+Desktop Codex is the default verifier:
+
+- fetch the Cloud branch or PR branch
+- run build/checks locally
+- run browser/screenshot QA for UI changes
+- report pass/fail, risks, and release notes
+
+PR creation owner: Cloud Codex.
+
+Merge owner: the user by default. If the user explicitly delegates merge/release to an agent, Desktop Codex should only proceed after local verification passes and the target is confirmed as `cubiqo-repo` / `cubiqo.ai`.
+
+Desktop Codex should not create duplicate PRs for Cloud Codex work. Cloud Codex should not treat unpushed Desktop local changes as available context.
+
 ## Pipeline Summary
 
 - Dev: local Desktop Codex and feature branches.

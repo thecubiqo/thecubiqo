@@ -72,3 +72,18 @@ GitHub is the source of truth between Desktop Codex and Cloud Codex.
 - Use branches and PRs to hand work between Desktop and Cloud Codex.
 - Use this Desktop workspace for local visual QA, screenshots, and hands-on debugging.
 - Use Cloud Codex for clean repo changes, CI fixes, and pull request workflows.
+
+## Default Agent Workflow
+
+Cloud Codex owns implementation branches and pull request creation for normal product changes.
+
+Desktop Codex owns local verification:
+
+- fetch the Cloud Codex branch
+- run build/checks
+- run local browser or screenshot QA when relevant
+- report pass/fail, risks, and release notes
+
+Desktop Codex should not create a duplicate PR for Cloud Codex work.
+
+No agent should merge to `main` or trigger production deployment without explicit user approval after verification. The preferred merge owner is the user. If the user explicitly delegates merge/release, do it only after Desktop verification has passed.
