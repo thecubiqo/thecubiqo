@@ -1,0 +1,215 @@
+# Branch Cleanup Audit
+
+Generated from remote branch metadata. No branches were deleted.
+
+## Summary
+
+- DELETE_CANDIDATE: 165
+- KEEP_REVIEW: 30
+- REVIEW_FEATURE: 2
+
+## Keep / Review
+
+- `backup-main-20260215-224930` (2026-02-15, no-pr): Merge branch 'copilot/create-founders-pass-admin' and 'ui/energy-cube-staging' into main (Visuals + Dashboard)
+- `codex/cubiqo-ai-clean-baseline` (2026-04-22, no-pr): add rgy flagship baseline
+- `codex/cubiqo-ai-readiness` (2026-05-02, no-pr): docs: add setup checklist and git hygiene owner
+- `conflict26` (2026-04-17, no-pr): Complete UI updates and configurations
+- `copilot/analyze-features-staging0217` (2026-02-19, merged-pr): Merge staging0217 into copilot/analyze-features-staging0217 to fix broken auth
+- `copilot/backup-main-20231007` (2026-03-16, merged-pr): Replace main branch content with conflict26 branch content
+- `copilot/check-ui-components-in-staging` (2026-02-19, merged-pr): fix: revert yarn.lock changes and remove duplicate .gitignore entry
+- `copilot/compare-backup-with-main` (2026-02-17, merged-pr): docs: Add Vercel branch-to-project mapping documentation
+- `copilot/ensure-pr-readiness-for-staging` (2026-02-19, merged-pr): fix(security): bump next to 15.2.9 to fix DoS, auth bypass, and RCE CVEs
+- `copilot/fix-html-structure-issue` (2026-02-26, open-pr): fix: remove unreachable typeof window check inside useEffect (code review feedback)
+- `copilot/merge-changes-into-staging0217` (2026-02-18, merged-pr): docs: Add comprehensive summary of new developer agents
+- `copilot/move-pr-open-to-staging` (2026-02-19, merged-pr): Revert unintended yarn.lock change
+- `copilot/preview-app-folder` (2026-02-15, closed-pr): Add HOW_TO_PREVIEW.md guide for accessing the application
+- `copilot/preview-standalone-implementation` (2026-02-21, closed-pr): feat: commit cubiqo-preview.zip directly to repo for direct GitHub download
+- `copilot/replace-main-with-conflict26` (2026-03-16, open-pr): Replace main branch code with conflict26 branch content
+- `copilot/report-merging-prs-staging-readiness` (2026-02-19, merged-pr): fix: add explicit permissions to staging-readiness workflow
+- `copilot/setup-supabase-staging-database` (2026-02-17, merged-pr): Add staging documentation index for easy navigation
+- `copilot/test-staging0217-bug-reports` (2026-02-19, merged-pr): Add START HERE guide for easy onboarding
+- `main-backup-0218` (2026-02-17, no-pr): Clarify agent's monitoring and reporting capabilities
+- `master` (2026-02-12, no-pr): Added root vercel.json and re-triggering deployment
+- `origin` (2026-04-22, no-pr): add rgy flagship baseline
+- `preview` (2026-02-10, no-pr): Fix: Update env var names to match Vercel config
+- `production` (2026-02-26, no-pr): feat: integrate Biometric Watcher global toggle and Studio HUD
+- `production-safe` (2026-02-18, no-pr): fix: Update layout with Inter font for compatibility
+- `safe-merge-only` (2026-02-19, no-pr): Low hanging fruits: remove console.logs, add loading states, add documentation
+- `staging-environment` (2026-02-16, no-pr): Merge branch 'origin/copilot/fix-plasma-wave-visibility-again' into staging-environment
+- `staging0217` (2026-02-21, closed-pr): fix: correct MiniMax model to 'MiniMax-M2' based on tests/docs
+- `staging0217-backup` (2026-02-18, no-pr): fix(health): resolve merge conflict in health API route
+- `staging0217test` (2026-02-20, no-pr): fix: second pass - restore remaining PR content (highest PR wins)
+- `ui/energy-cube-staging` (2026-02-12, closed-pr): feat: Add cube design toggle and experiments page
+
+## Review Feature Candidates
+
+- `fix-ui-issues` (2026-02-20, no-pr): Fix: Strip quotes from env values in validation script
+- `fix/api-keys-mismatch` (2026-02-16, no-pr): Fix: Switch to OpenAI-compatible MiniMax endpoint and abab6.5s model
+
+## Delete Candidates
+
+- `conflict_130226_1721` (2026-02-13, no-pr, no PR): Auto-generated changes
+- `conflict_150226_1305` (2026-02-15, no-pr, no PR): Auto-generated changes
+- `conflict_160226_1535` (2026-02-16, no-pr, no PR): Auto-generated changes
+- `copilot/access-coding-panel` (2026-02-26, merged-pr, PR 208): Fix /coder 404: remove duplicate html/body from nested layout, fix CSS @import ordering
+- `copilot/access-emergent-style-panel` (2026-02-26, merged-pr, PR 214): fix: make Emergent Coder panel accessible to all users
+- `copilot/add-agent-configuration-ui` (2026-02-19, merged-pr, PR 144): Address code review: fix ID generation, remove dangerouslySetInnerHTML, add Page Visibility check, connect quick actions to prompts
+- `copilot/add-agents-onboarding` (2026-02-15, merged-pr, PR 21): docs: Add complete implementation report with all acceptance criteria verification
+- `copilot/add-daily-self-heal-job` (2026-02-15, merged-pr, PR 20): Add comprehensive comparison analysis of PR #20 vs #27
+- `copilot/add-daily-self-heal-job-again` (2026-02-15, merged-pr, PR 27): Add email FROM/TO configuration for self-heal reports
+- `copilot/add-job-hunt-mode` (2026-02-19, merged-pr, PR 118): docs: add complete verification summary with all checks passed
+- `copilot/add-magic-link-buttons` (2026-02-15, merged-pr, PR 25): Refactor: Extract reusable MagicLinkButtons component and fix analytics
+- `copilot/add-openclaw-provider-abstraction` (2026-02-16, merged-pr, PR 83): fix: Update provider tests to properly isolate environment and fix middleware conflict
+- `copilot/add-openclaw-provider-abstraction-again` (2026-02-16, merged-pr, PR 84): refactor: Remove redundant validation and improve test cleanup
+- `copilot/add-particle-landing-feature-flag` (2026-02-16, merged-pr, PR 90): feat: Add feature flag for ParticleLanding as home page
+- `copilot/add-pwa-install-prompt` (2026-02-19, merged-pr, PR 146): Fix code review: clean up event listeners and intervals on unmount
+- `copilot/add-sandbox-bridge-functionality` (2026-02-25, merged-pr, PR 204): Merge origin/main into copilot/add-sandbox-bridge-functionality and resolve conflicts
+- `copilot/add-sci-fi-features` (2026-02-19, merged-pr, PR 157): feat: add CubiQo Autopilot sci-fi features for autonomous profile filling and background agent work
+- `copilot/add-toggle-for-viewing-mode` (2026-02-26, merged-pr, PR 216): Initial plan
+- `copilot/add-user-communication-methods` (2026-02-18, merged-pr, PR 111): Final implementation summary and completion
+- `copilot/add-user-search-functionality` (2026-02-16, merged-pr, PR 96): Add repository information documentation answering "What is the name of the repository?"
+- `copilot/add-webauthn-rp-id` (2026-02-26, merged-pr, PR 211): feat: add NEXT_PUBLIC_RP_ID env var, fix Start Campaign button, add profile links & analytics tab to social army
+- `copilot/add-workspace-isolation-agent-messaging` (2026-02-19, merged-pr, PR 150): fix: make workspace isolation thread-safe by passing workspace as parameter
+- `copilot/analyze-cubiqo-website-issue` (2026-02-24, merged-pr, PR 191): fix: sync main with staging0217 — restore Cubiqo app, remove portfolio/debug/temp files
+- `copilot/analyze-feature-branches` (2026-02-18, merged-pr, PR 110): Epic 1: @blossom adds RBAC system and Organizations API
+- `copilot/analyze-monetisation-ui-features` (2026-02-19, merged-pr, PR 132): Add monetization analysis index - Task complete
+- `copilot/apply-landing-page-ui-changes` (2026-02-15, merged-pr, PR 49): Fix code review issues: add validation and update image URLs
+- `copilot/audit-pr-merges-and-testing` (2026-02-16, merged-pr, PR 86): Add explicit GITHUB_TOKEN permissions to CI workflow for security
+- `copilot/bridge-infrastructure-codebase` (2026-02-25, merged-pr, PR 205): Revert unintended typescript version pin in package.json
+- `copilot/build-admin-level-dashboard` (2026-02-19, merged-pr, PR 115): docs: Add validation complete certificate for staging0217
+- `copilot/build-ai-app-environment` (2026-02-19, merged-pr, PR 113): docs: Add Studio UI completion visual guide
+- `copilot/centralize-auth-state` (2026-02-16, merged-pr, PR 89): Add middleware, auth tests, and documentation for magic-link flow
+- `copilot/check-access-to-vscode` (2026-02-15, closed-pr, PR 45): Initial plan
+- `copilot/check-chatbot-functionality` (2026-02-19, merged-pr, PR 117): Add comprehensive emergent UI integration success documentation
+- `copilot/check-chromatic-connection` (2026-02-16, merged-pr, PR 97): Initial plan
+- `copilot/check-chromatic-connection-again` (2026-02-16, merged-pr, PR 99): Add Storybook + Chromatic visual testing setup with 8 component stories
+- `copilot/check-cubiqo-features` (2026-02-19, merged-pr, PR 143): docs: add feature verification report for Companion Mode, Browser Control, and Duo Mode
+- `copilot/check-dba-api-efficiency` (2026-02-19, merged-pr, PR 138): Revert unrelated yarn.lock platform-specific changes
+- `copilot/check-pr-readiness` (2026-02-19, merged-pr, PR 136): Add automated conflict resolution script for PR #116 and PR #113
+- `copilot/check-rgy-ui-match` (2026-02-19, merged-pr, PR 142): fix: align RGY colors to canonical system and fix dot order consistency
+- `copilot/clarify-founders-pass-usage` (2026-02-26, merged-pr, PR 215): Initial plan
+- `copilot/close-open-pr-after-testing` (2026-02-21, closed-pr, PR 186): feat: auto-close open PRs targeting staging0217 after merge to main
+- `copilot/compare-sopark-features` (2026-02-15, closed-pr, PR 41): Add Spark AI comparison document
+- `copilot/complete-daily-journal-page` (2026-02-19, merged-pr, PR 119): docs: Add complete UI verification with visual mockups
+- `copilot/continuous-testing-bug-fixing` (2026-02-19, merged-pr, PR 134): Add explicit permissions to staging CI job for security
+- `copilot/create-founders-pass-admin` (2026-02-15, merged-pr, PR 15): fix: Address code review feedback - fix test name, provider-specific OAuth params, remove empty client_id
+- `copilot/create-pr-triage-agent` (2026-02-15, merged-pr, PR 30): Address code review: improve variable naming clarity
+- `copilot/create-user-manual` (2026-02-24, merged-pr, PR 193): Address review: null-safe prompt logging, remove fake post URLs
+- `copilot/create-website-with-images` (2026-02-23, merged-pr, PR 190): fix(cpsite): add org website links to Work section and /work page
+- `copilot/debug-and-launch-cubiqo-ai` (2026-02-23, merged-pr, PR 188): fix: use semver range for @fontsource/inter version (^5.2.8)
+- `copilot/debug-code-issues` (2026-02-14, merged-pr, PR 8): Final clarity: Simple guide explaining no terminal work needed - just merge PR #8
+- `copilot/design-journey-memory-system` (2026-02-15, merged-pr, PR 22): Add executive summary of Journey Memory UI integration
+- `copilot/enhance-ecommerce-portal` (2026-03-04, merged-pr, PR 222): fix: address code review - improve localStorage check and add ref deps
+- `copilot/enhance-self-heal-reporting` (2026-02-19, merged-pr, PR 155): Address code review: extract rounding helper, simplify uptime calc, revert yarn.lock
+- `copilot/ensure-ui-components-exist` (2026-02-19, merged-pr, PR 141): Fix memory bars to show meaningful proportions, remove extra docs
+- `copilot/extract-implementation-requirements` (2026-02-19, merged-pr, PR 133): docs: add main requirements extraction, summary, and task completion report
+- `copilot/find-coding-panel-location` (2026-02-26, merged-pr, PR 209): Add Coder to sidebar navigation with feature gate
+- `copilot/fix-120k-particle-view` (2026-02-16, merged-pr, PR 98): Merge branch 'main' into copilot/fix-120k-particle-view
+- `copilot/fix-audio-video-issues` (2026-02-21, closed-pr, PR 183): chore: restore lock files to match main
+- `copilot/fix-auth-ui-implementation` (2026-02-15, merged-pr, PR 17): fix(auth): address code review feedback - stabilize supabase ref, split event handling
+- `copilot/fix-authentication-ui-session-state` (2026-02-15, merged-pr, PR 13): Add Account section with sign-out button to settings menu
+- `copilot/fix-broken-prod` (2026-02-25, merged-pr, PR 199): fix: remove duplicate root app/ directory and junk files from emergency commit
+- `copilot/fix-build-error-cubiqo-ai` (2026-02-20, closed-pr, PR 176): Fix build errors: test mocks, API mismatches, admin auth, and missing integration case
+- `copilot/fix-button-signal-issue` (2026-02-21, closed-pr, PR 184): revert: remove debug env endpoint (already in main, causing merge conflict)
+- `copilot/fix-chat-and-stuff-issues` (2026-02-21, closed-pr, PR 182): fix: address code review feedback - improve mock then() handler, clean up font imports, remove non-null assertion
+- `copilot/fix-code-quality-issues` (2026-02-26, merged-pr, PR 221): Initial plan
+- `copilot/fix-coding-panel-tools-integration` (2026-02-24, merged-pr, PR 197): Fix CodePanel (Monaco editor + error display) and wire up Launchpad integration buttons
+- `copilot/fix-control-room-integration` (2026-02-19, merged-pr, PR 169): fix: connect control room to real data - security, NOC, users, analytics, settings pages
+- `copilot/fix-cubiqo-user-following` (2026-02-19, merged-pr, PR 145): Address code review feedback: improve docs, test robustness, and security comments
+- `copilot/fix-dashboard-component-issues` (2026-02-26, merged-pr, PR 213): fix: platforms.json memer typo + add full social army & railway worker tests
+- `copilot/fix-deploy-issue-for-prod` (2026-02-20, closed-pr, PR 177): Address code review feedback: add try/catch to loadDocker, use ref for cleanup
+- `copilot/fix-deployment-error` (2026-02-26, merged-pr, PR 212): Fix deployment: add missing VolbakHero component and fix empty-string Supabase URL fallbacks
+- `copilot/fix-email-rate-limiting-issues` (2026-02-15, merged-pr, PR 14): Address code review feedback - extract magic numbers, cleanup setTimeout, fix apostrophe
+- `copilot/fix-enhance-security-auth` (2026-02-19, merged-pr, PR 154): Add SECURITY_AUTH.md, rate-limit utility, terminal auth/sandbox/rate-limit guards, and tests
+- `copilot/fix-founderspass-dashboard-ux` (2026-02-16, merged-pr, PR 80): Add final implementation summary document
+- `copilot/fix-main-branch-issue` (2026-02-25, merged-pr, PR 198): fix: add fallback values to Supabase client init in stripe webhook route to fix build
+- `copilot/fix-missing-ability` (2026-02-19, merged-pr, PR 153): fix: address code review feedback - fix regex reuse and React keys
+- `copilot/fix-missing-apis` (2026-02-19, merged-pr, PR 151): fix: remove extra docs, fix TS errors in admin routes, update tools routes to use async params
+- `copilot/fix-missing-context-assembly` (2026-02-19, merged-pr, PR 152): Address code review feedback: add precedence comment, runtime init guard, fix test name
+- `copilot/fix-multiple-point-failures` (2026-02-20, closed-pr, PR 178): feat: add branding elements to landing screen - adjectives marquee, integration logos, AI model names
+- `copilot/fix-nextjs-build-error-again` (2026-02-14, merged-pr, PR 11): Fix: Wrap useSearchParams in Suspense boundary for auth error page
+- `copilot/fix-nextjs-version-error` (2026-03-16, merged-pr, PR 229): Add vercel.json to fix deployment build failure
+- `copilot/fix-placeholder-terminal-functionality` (2026-02-25, merged-pr, PR 202): Add studio engine tests, fix TS errors, document WORKSPACE_ROOT and VERCEL_TOKEN env vars
+- `copilot/fix-plasma-wave-visibility` (2026-02-16, merged-pr, PR 91): Fix comment consistency - update time reference to match 4-hour threshold
+- `copilot/fix-plasma-wave-visibility-again` (2026-02-16, merged-pr, PR 92): docs: add comprehensive conflict analysis for PR #92
+- `copilot/fix-proxy-function-export` (2026-02-20, closed-pr, PR 180): fix: update proxy.ts to use inline default export for Next.js 16 Turbopack compatibility
+- `copilot/fix-prs-requiring-work` (2026-02-19, merged-pr, PR 164): Address code review: reject command chains, use minimal PATH in terminal API
+- `copilot/fix-sign-in-button-issue` (2026-02-16, merged-pr, PR 102): refactor: extract auth timeout as named constant
+- `copilot/fix-typo-and-update-year` (2026-02-16, merged-pr, PR 94): Merge main branch to resolve conflicts
+- `copilot/fix-ui-component-conflicts` (2026-02-19, merged-pr, PR 147): Fix UI component conflicts: use advanced EnergyCube in CubeScene, unify FoundersPass navigation
+- `copilot/fix-ui-cuboid-structure` (2026-02-24, merged-pr, PR 195): Fix: restore PlasmaWaveField (ribbons morphing to cube) in EnergyCubeScene, remove solid pink EnergyCube
+- `copilot/fix-ui-issues-in-prod` (2026-03-04, merged-pr, PR 223): fix: remove duplicate LandingCubeRouter and conditional LandingOverlay to fix triple-rendered landing UI
+- `copilot/fix-vercel-build-issues` (2026-02-26, merged-pr, PR 218,60): Initial plan
+- `copilot/fix-vercel-deployment-issues` (2026-02-14, merged-pr, PR 9): Initial plan
+- `copilot/fix-working-issue` (2026-02-16, merged-pr, PR 93): Remove unused LandingCube import from FullscreenApp
+- `copilot/identify-database-needs` (2026-02-19, merged-pr, PR 161): Add comprehensive PR database requirements analysis report
+- `copilot/implement-cubiqo-features` (2026-02-18, merged-pr, PR 106): final: RGY system complete - built as requested
+- `copilot/implement-deep-learning-strategy` (2026-02-19, merged-pr, PR 156): Fix code review feedback: typo in parameter name and improve TODO comment
+- `copilot/implement-security-features` (2026-02-19, merged-pr, PR 116): Add comprehensive UI enhancement summary documentation
+- `copilot/implement-storage-adapter-interface` (2026-02-25, merged-pr, PR 203): test: add 37 unit tests for StorageAdapter, WorkspaceManager, and createStorageAdapter
+- `copilot/improve-ui-quality` (2026-02-24, merged-pr, PR 194): Revert EnergyCubeScene to restore EnergyCube morph animation
+- `copilot/integrate-cubiqo-with-groupon` (2026-02-19, merged-pr, PR 139): fix: validate category and maxResults params in deals API route
+- `copilot/integrate-shopify-printify` (2026-02-19, merged-pr, PR 112): Add complete implementation summary for self-heal system
+- `copilot/investigate-features-and-ui-components` (2026-02-23, merged-pr, PR 187): docs: split CUBIQO_COMPLETE_REPORT into Part 1 (307KB) + Part 2 (381KB) — fixes GitHub PDF viewer truncation
+- `copilot/investigate-prod-build-failure` (2026-02-20, closed-pr, PR 179): fix: use caret ranges for new dependencies to match project convention
+- `copilot/merge-feature-branches-to-main` (2026-02-15, merged-pr, PR 42): Address code review feedback and pass security checks
+- `copilot/merge-features-into-main` (2026-02-15, merged-pr, PR 40): Security fix: Remove hardcoded API key from MultivaCubiKey component
+- `copilot/monitor-activity-across-environments` (2026-02-19, merged-pr, PR 130): docs: Add final delivery summary with complete project overview
+- `copilot/monitor-deployment-impact` (2026-02-19, merged-pr, PR 127): fix: Remove duplicate node_modules entry from .gitignore and update deployment analysis
+- `copilot/monitor-deployments-for-branches` (2026-02-19, merged-pr, PR 166): feat(ci): extend CI and Chromatic coverage to master (emergent code) branch
+- `copilot/monitor-merge-for-issues` (2026-02-19, merged-pr, PR 124): Address code review: fix env var fallbacks and rescue page PIN security
+- `copilot/monitor-merge-to-main` (2026-02-19, merged-pr, PR 129): chore: revert unrelated yarn.lock platform changes
+- `copilot/port-wave-to-cube-morph` (2026-02-15, merged-pr, PR 78): Merge branch 'main' into copilot/port-wave-to-cube-morph
+- `copilot/prepare-items-for-merge` (2026-02-20, merged-pr, PR 174): feat: add staging merge preparation package with 50 PRs categorized into 3 phases
+- `copilot/prepare-to-merge-tested-prs` (2026-02-19, merged-pr, PR 160): Fix contradictory PR reference in readiness assessment
+- `copilot/query-branch-merge-details` (2026-02-20, merged-pr, PR 173): docs: add BRANCH_MERGE_STATISTICS.md with staging and production merge counts
+- `copilot/ready-to-merge-database-api` (2026-02-19, merged-pr, PR 165): feat(db): add missing staging tables — conscious_memories, daily_summaries, pending_intents, regions
+- `copilot/recreate-pr-28-auth-context` (2026-02-16, merged-pr, PR 81): fix: Address code review feedback for AuthContext
+- `copilot/remove-hardcoded-pin` (2026-02-23, merged-pr, PR 189): feat(e2e): add cubiqo.ai acceptance test suite covering all 21 requirements
+- `copilot/remove-signal-element-main-page` (2026-03-10, merged-pr, PR 224): Remove SIGNAL branding from top right corner and landing page overlay
+- `copilot/research-third-party-apps` (2026-02-21, closed-pr, PR 185): fix: unblock camera and microphone — fix Permissions-Policy and media-src CSP in middleware
+- `copilot/reset-21-p0-tests` (2026-02-24, merged-pr, PR 192): fix: make cube scene fill viewport instead of fixed 600×600px box
+- `copilot/resolve-merge-conflicts` (2026-02-25, merged-pr, PR 206,55): feat: replace stub File/Terminal APIs with real sandboxed implementations from PR #204
+- `copilot/resolve-open-pr-conflicts` (2026-02-15, merged-pr, PR 31): Merge branch 'main' into copilot/resolve-open-pr-conflicts
+- `copilot/resolve-pull-request-conflicts-another-one` (2026-02-15, closed-pr, PR 73): Address code review feedback: Improve error handling and UX
+- `copilot/restore-energy-cube-components` (2026-02-16, merged-pr, PR 85): Extend visual-smoke-test.ts to validate energy cube components and accessibility
+- `copilot/restore-energy-cube-components-again` (2026-02-16, merged-pr, PR 88): Add premium design classes and accessibility to EnergyCubeWireframe
+- `copilot/review-social-army-functionality` (2026-02-19, merged-pr, PR 158): Address code review: clean up comments, reduce test redundancy, revert yarn.lock
+- `copilot/rework-open-incomplete-pr` (2026-02-26, merged-pr, PR 219): feat: rework PR #217 - logo top-left, CQ messenger bottom-left, remove hero glow/backdrop
+- `copilot/run-tests-and-generate-reports` (2026-02-20, closed-pr, PR 175): feat: run post-merge tests and generate comprehensive test reports
+- `copilot/secure-authentication-access-control` (2026-02-18, merged-pr, PR 114): docs: add quick summary for admin security phase 2
+- `copilot/setup-chromatic-visual-testing` (2026-02-16, merged-pr, PR 95): docs: Add verification results report
+- `copilot/setup-release-process` (2026-02-17, merged-pr, PR 105): Add comprehensive missing features analysis - none found!
+- `copilot/setup-vision-hearing-capabilities` (2026-02-19, merged-pr, PR 120): Add implementation complete summary
+- `copilot/test-api-database-aspects` (2026-02-19, merged-pr, PR 131): Add comprehensive API database validation tests (67 tests)
+- `copilot/test-api-database-dependency` (2026-02-19, merged-pr, PR 135): Add journal API, memory API, region config, and middleware tests
+- `copilot/test-broken-chat-audio-landing-page` (2026-02-16, merged-pr, PR 100): fix: remove stray 'v' character in FullscreenApp.tsx that broke the build
+- `copilot/test-cubiqo-coding-panel` (2026-02-25, merged-pr, PR 207): feat: add enterprise luxury upgrade layers L12-L15 (Algolia, Akeneo, Segment, HubSpot, Salesforce, Cloudflare, Snyk)
+- `copilot/test-deploy-unified-kernel` (2026-02-25, merged-pr, PR 200): Merge main into PR #200: resolve stripe webhook conflict (keep lazy-init pattern)
+- `copilot/test-fix-social-army-cubiqo` (2026-02-25, merged-pr, PR 201): feat: Add independent /coder and /marketing routes, domain middleware, fix self-heal cron to 10 AM EST
+- `copilot/test-functionbakl-performance` (2026-02-19, merged-pr, PR 162): Add comprehensive unit, integration, performance, load, regression, and functional tests
+- `copilot/test-functionbakl-performance-load` (2026-02-19, merged-pr, PR 163): Increase performance/load test thresholds for CI stability
+- `copilot/test-open-pull-requests` (2026-02-18, merged-pr, PR 121): Initial plan
+- `copilot/test-syagiuing-main-branch` (2026-02-19, closed-pr, PR 172): fix: resolve 5 failing test suites in Vitest
+- `copilot/update-api-integrations` (2026-02-19, merged-pr, PR 168): feat: Add SaaS & Business Integration Ecosystem page
+- `copilot/update-api-tests-and-schema` (2026-02-19, merged-pr, PR 167): fix: resolve all test failures so PR is merge-ready for staging
+- `copilot/update-cubiqo-ui-design` (2026-02-15, closed-pr, PR 51): Revert incorrect change: restore cube morphing feature
+- `copilot/update-dashboard-requirements` (2026-02-19, merged-pr, PR 159): Address code review: document in-memory lock limitation and fix percentage formatting
+- `copilot/update-dashboard-security-capabilities` (2026-02-19, merged-pr, PR 140): docs: Fix completion percentage calculations in emergent requirement docs
+- `copilot/update-logo-positioning` (2026-02-26, merged-pr, PR 217): Merge PR #217: Logo top-left, CQ messenger bottom-left + coding panel button + eye icon
+- `copilot/update-top-left-logo` (2026-03-10, merged-pr, PR 225): feat: redesign top-left logo from "C" to designer "CQ" monogram
+- `copilot/update-ui-elements-for-premium-feel` (2026-02-16, merged-pr, PR 101): Use Unicode chars instead of HTML entities for curly quotes
+- `copilot/validate-and-reintroduce-missing-pr-changes` (2026-02-16, merged-pr, PR 82): Add comprehensive PR consolidation summary
+- `copilot/validate-api-database-dependencies` (2026-02-19, merged-pr, PR 137): Add JO Feature Readiness Validation Report and canonical Pricing Tiers reference for PRs 116, 119, 128, 118, 113, 133, 132, 130, 117, 135
+- `copilot/validate-issues-api-integrations` (2026-02-24, merged-pr, PR 196): Add deployment validation report: build/tests passing, 3 DB migrations needed in prod Supabase
+- `copilot/validate-main-branch-changes` (2026-02-19, merged-pr, PR 125): fix: improve spacing regex to enforce directional suffix for space utilities
+- `copilot/verify-branch-features` (2026-02-18, merged-pr, PR 122): Merge: consolidate all previous work into clean staging0217-based branch
+- `copilot/verify-vercel-analytics-installation` (2026-02-16, merged-pr, PR 87): Refactor layout analytics test to use beforeAll for better maintainability
+- `copilot/watch-emergent-coider-merge` (2026-02-19, merged-pr, PR 170): feat(ci): add emergent merge monitor workflow
+- `feat/top-right-cta-highdef` (2026-02-15, no-pr, no PR): feat(ui): Implement Top-Right CTA with high-def visuals and feature flag
+- `feature/emergent-commerce` (2026-02-19, no-pr, no PR): feat: Add Business Suite (10 integrations), Codexo V2, and Launchpad UI
+- `fix/chat-audio-validation` (2026-02-16, no-pr, no PR): fix(ai): Priority reorder - Claude > Llama > MiniMax to resolve invalid key errors
+- `merge-all-features` (2026-02-12, no-pr, no PR): feat: Merge all features + experiments + Claude key
+- `passedesigns` (2026-02-14, no-pr, no PR): auto-commit for 8adb14bb-7186-4564-b97c-52ae9eb2bbb4
+- `test/thecubiqo-main` (2025-11-08, no-pr, no PR): Merge pull request #3 from thecubiqo/develop
+- `visuals-demo` (2026-02-16, no-pr, no PR): Auto-generated changes
