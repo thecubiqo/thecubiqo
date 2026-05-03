@@ -129,6 +129,26 @@ Desktop Codex should not create duplicate PRs for Cloud Codex work. Cloud Codex 
 10. Automation target: Cloud codes + pushes PR preview to QA automatically; prod waits for user approval.
 11. Env usage: local/dev for Desktop, preview/QA for PRs, production for `main`.
 12. Branch to env mapping: feature branch = Vercel Preview QA, `main` = Production; keep this constant unless staging is added.
+13. Git hygiene owner: Desktop Codex audits stale branches/PRs, proposes cleanup, and deletes only after user approval.
+
+## Setup Checklist Completed
+
+- Confirmed `cubiqo.ai` / `www.cubiqo.ai` is served by Vercel project `cubiqo-repo`.
+- Confirmed `cubiqo-repo` is connected to GitHub repo `thecubiqo/thecubiqo` on `main`.
+- Confirmed `thecubiqo.vercel.app` is a separate plasma/cuboid experimental project.
+- Created Desktop readiness branch `codex/cubiqo-ai-readiness`.
+- Added local Desktop Vercel link `.vercel/project.json` to `cubiqo-repo`.
+- Confirmed `.vercel/` is ignored and local-only.
+- Removed confirmed local test artifacts from the Desktop workspace.
+- Added `AGENTS.md` with project boundaries and agent rules.
+- Added `docs/supabase-readiness.md` with Supabase env and RLS checklist.
+- Added `frontend/.env.example` with required Supabase frontend variables.
+- Added `docs/codex-shared-notes.md` as the shared Desktop/Cloud notebook.
+- Added architecture diagrams for Desktop Codex, Cloud Codex, GitHub, Vercel, and environments.
+- Set Cloud Codex as exclusive coder and PR creator.
+- Set Desktop Codex as exclusive verifier, release assistant, and Git hygiene owner.
+- Set user approval as the production merge/deploy gate.
+- Pushed the readiness branch to GitHub so Cloud Codex can see it.
 
 ## Pipeline Summary
 
