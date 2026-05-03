@@ -1,6 +1,14 @@
 # Branch Cleanup Audit
 
-Generated from remote branch metadata. No branches were deleted.
+Generated from remote branch metadata.
+
+## Cleanup Result
+
+- Initial remote heads: 197
+- Approved delete candidates: 165
+- Deleted remote branches: 164
+- Remaining remote heads: 33
+- Not deleted: `test/thecubiqo-main` because GitHub branch protection rejected deletion.
 
 ## Summary
 
