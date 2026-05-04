@@ -76,8 +76,8 @@ const DemoPage = () => {
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
-  const [keywords, setKeywords] = useState({ red: [], teal: [], yellow: [] });
-  const [selectedKeywordColor, setSelectedKeywordColor] = useState('teal');
+  const [keywords, setKeywords] = useState({ green: [], yellow: [], red: [] });
+  const [selectedKeywordColor, setSelectedKeywordColor] = useState('green');
   const [rgyCapsule, setRgyCapsule] = useState({
     color: 'yellow',
     signal: 'YELLOW',
@@ -96,11 +96,13 @@ const DemoPage = () => {
   const [authPassword, setAuthPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [profileSyncError, setProfileSyncError] = useState('');
   const [uiVisible, setUiVisible] = useState(true);
   const [chatInput, setChatInput] = useState('');
   const [journalEntry, setJournalEntry] = useState('');
   const [lastUserMessage, setLastUserMessage] = useState('');
   const [conversationError, setConversationError] = useState('');
+  const [speakingAudioLevel, setSpeakingAudioLevel] = useState(0);
 
   // Periodic UI Breathing (Back and Forth between functional and cinematic)
   useEffect(() => {
@@ -115,32 +117,70 @@ const DemoPage = () => {
 
   const recognitionRef = useRef(null);
   const audioRef = useRef(typeof Audio !== 'undefined' ? new Audio() : null);
+  const audioAnalysisContextRef = useRef(null);
+  const audioAnalysisSourceRef = useRef(null);
+  const audioAnalyserRef = useRef(null);
+  const audioAnalysisFrameRef = useRef(null);
   const transcriptRef = useRef('');
   const callBackendRef = useRef(null);
 
+  const ensureUserProfile = async (session) => {
+    const sessionUser = session?.user;
+    if (!sessionUser) return true;
+
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        id: sessionUser.id,
+        email: sessionUser.email,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+
+    if (error) {
+      console.warn('Profile sync failed:', error.message);
+      setProfileSyncError('Account auth worked, but the Supabase profiles table is not reachable.');
+      return false;
+    }
+
+    setProfileSyncError('');
+    return true;
+  };
+
   // Supabase auth session listener
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      setUser(data.session?.user ?? null);
+      await ensureUserProfile(data.session);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_e, session) => {
       setUser(session?.user ?? null);
+      await ensureUserProfile(session);
       if (session?.user) setActiveModal(null);
     });
+    // ensureUserProfile only depends on stable Supabase client module state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     return () => subscription.unsubscribe();
   }, []);
 
   const handleSignIn = async (e) => {
     e.preventDefault();
     setAuthLoading(true); setAuthError('');
-    const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+    setProfileSyncError('');
+    const { data, error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
     if (error) setAuthError(error.message);
+    else await ensureUserProfile(data.session);
     setAuthLoading(false);
   };
   const handleSignUp = async (e) => {
     e.preventDefault();
     setAuthLoading(true); setAuthError('');
-    const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
+    setProfileSyncError('');
+    const { data, error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
     if (error) setAuthError(error.message);
-    else setAuthError('Check your email to confirm your account.');
+    else {
+      const profileReady = await ensureUserProfile(data.session);
+      setAuthError(data.session && profileReady ? 'Account created and profile synced.' : 'Account created. Confirm your email, then sign in to sync your profile.');
+    }
     setAuthLoading(false);
   };
   const handleSignOut = async () => { await supabase.auth.signOut(); };
@@ -178,6 +218,78 @@ const DemoPage = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const normalizeKeywordColor = (color) => color === 'teal' ? 'green' : (['green', 'yellow', 'red'].includes(color) ? color : 'yellow');
+  const normalizeKeywords = (raw = {}) => ({
+    green: [...new Set([...(raw.green || []), ...(raw.teal || [])])].slice(-12),
+    yellow: [...new Set(raw.yellow || [])].slice(-12),
+    red: [...new Set(raw.red || [])].slice(-12)
+  });
+
+  const speechProfileForRgy = (color) => {
+    if (color === 'green') return { rate: 0.96, pitch: 0.92, volume: 0.95 };
+    if (color === 'red') return { rate: 0.82, pitch: 0.72, volume: 0.72 };
+    return { rate: 0.88, pitch: 0.82, volume: 0.9 };
+  };
+
+  const stopAudioAnalysis = () => {
+    if (audioAnalysisFrameRef.current) {
+      cancelAnimationFrame(audioAnalysisFrameRef.current);
+      audioAnalysisFrameRef.current = null;
+    }
+    setSpeakingAudioLevel(0);
+  };
+
+  const startAudioAnalysis = async () => {
+    const audio = audioRef.current;
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!audio || !AudioContextCtor) {
+      setSpeakingAudioLevel(0.18);
+      return;
+    }
+
+    try {
+      if (!audioAnalysisContextRef.current) {
+        audioAnalysisContextRef.current = new AudioContextCtor();
+      }
+      const ctx = audioAnalysisContextRef.current;
+      if (ctx.state === 'suspended') await ctx.resume();
+      if (!audioAnalysisSourceRef.current) {
+        audioAnalysisSourceRef.current = ctx.createMediaElementSource(audio);
+        audioAnalyserRef.current = ctx.createAnalyser();
+        audioAnalyserRef.current.fftSize = 256;
+        audioAnalysisSourceRef.current.connect(audioAnalyserRef.current);
+        audioAnalyserRef.current.connect(ctx.destination);
+      }
+
+      const analyser = audioAnalyserRef.current;
+      const samples = new Uint8Array(analyser.fftSize);
+      const tick = () => {
+        analyser.getByteTimeDomainData(samples);
+        let sum = 0;
+        for (let i = 0; i < samples.length; i++) {
+          const normalized = (samples[i] - 128) / 128;
+          sum += normalized * normalized;
+        }
+        const rms = Math.sqrt(sum / samples.length);
+        const level = Math.max(0.04, Math.min(0.72, (rms - 0.012) * 3.2));
+        setSpeakingAudioLevel(prev => prev * 0.7 + level * 0.3);
+        audioAnalysisFrameRef.current = requestAnimationFrame(tick);
+      };
+      stopAudioAnalysis();
+      tick();
+    } catch (error) {
+      console.warn('Audio analysis unavailable:', error.message);
+      setSpeakingAudioLevel(0.18);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopAudioAnalysis();
+      audioAnalysisContextRef.current?.close?.();
+    };
+  }, []);
+
   const callBackend = async (text) => {
     const cleanInput = text.trim();
     if (!cleanInput) return;
@@ -195,44 +307,63 @@ const DemoPage = () => {
       const data = await res.json();
       const responseText = data.response || "I am here. Say that once more and I will stay with it.";
       setAiResponse(responseText);
-      if (data.keywords) setKeywords(data.keywords);
+      if (data.keywords) setKeywords(normalizeKeywords(data.keywords));
       if (data.model_used) setModelUsed(data.model_used);
       if (data.rgy) {
-        setRgyCapsule(data.rgy);
-        if (!colorLock && data.rgy.color) setSelectedKeywordColor(data.rgy.color);
+        const normalizedColor = normalizeKeywordColor(data.rgy.color);
+        setRgyCapsule({ ...data.rgy, color: normalizedColor });
+        if (!colorLock && data.rgy.color) setSelectedKeywordColor(normalizedColor);
       }
       if (data.audio_url) {
         if (!audioRef.current) audioRef.current = new Audio();
         audioRef.current.src = data.audio_url;
         audioRef.current.volume = 1;
-        audioRef.current.onplay = () => setIsSpeaking(true);
-        audioRef.current.onended = () => setIsSpeaking(false);
+        audioRef.current.onplay = () => {
+          setIsSpeaking(true);
+          startAudioAnalysis();
+        };
+        audioRef.current.onpause = stopAudioAnalysis;
+        audioRef.current.onended = () => {
+          setIsSpeaking(false);
+          stopAudioAnalysis();
+        };
         audioRef.current.play().catch(e => {
           console.error("Audio play failed:", e);
           setIsSpeaking(false);
+          stopAudioAnalysis();
         });
       } else if (window.speechSynthesis) {
         // Fallback to browser TTS if no audio_url (e.g., missing API key)
+        const profile = speechProfileForRgy(data.rgy?.color || rgyCapsule.color);
         const utterance = new SpeechSynthesisUtterance(responseText);
-        utterance.rate = 0.9; // Slightly slower, more deliberate
-        utterance.pitch = 0.8;
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
+        utterance.rate = profile.rate;
+        utterance.pitch = profile.pitch;
+        utterance.volume = profile.volume;
+        utterance.onstart = () => {
+          setIsSpeaking(true);
+          setSpeakingAudioLevel(data.rgy?.color === 'red' ? 0.12 : 0.18);
+        };
+        utterance.onend = () => {
+          setIsSpeaking(false);
+          setSpeakingAudioLevel(0);
+        };
         window.speechSynthesis.speak(utterance);
       }
     } catch (err) {
       // Fallback: local keyword extraction
       const words = cleanInput.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-      const activityVerbs = new Set(['build', 'ship', 'code', 'draft', 'write', 'plan', 'book', 'schedule', 'train', 'review', 'call', 'send', 'buy', 'sell', 'trade', 'collaborate', 'run', 'fix']);
-      const explicitTerms = new Set(['nsfw', 'explicit', 'adult', 'private']);
-      const nk = { red: [...keywords.red], teal: [...keywords.teal], yellow: [...keywords.yellow] };
+      const activityVerbs = new Set(['build', 'ship', 'code', 'draft', 'write', 'plan', 'book', 'schedule', 'train', 'review', 'call', 'send', 'buy', 'sell', 'trade', 'collaborate', 'run', 'fix', 'linkedin', 'yoga', 'wellness', 'career', 'vibe']);
+      const casualTerms = new Set(['facebook', 'fb', 'instagram', 'insta', 'threads', 'post', 'story', 'comfort', 'chat', 'friends', 'mood']);
+      const explicitTerms = new Set(['nsfw', 'explicit', 'adult', 'private', 'grindr', 'tinder', 'hookup', 'dating', 'kink', 'fetish']);
+      const nk = { red: [...keywords.red], green: [...keywords.green], yellow: [...keywords.yellow] };
       words.forEach(w => {
         if (explicitTerms.has(w)) nk.red.push(w);
-        else if (activityVerbs.has(w)) nk.teal.push(w);
+        else if (activityVerbs.has(w)) nk.green.push(w);
+        else if (casualTerms.has(w)) nk.yellow.push(w);
         else nk.yellow.push(w);
       });
       nk.red = [...new Set(nk.red)].slice(-10);
-      nk.teal = [...new Set(nk.teal)].slice(-10);
+      nk.green = [...new Set(nk.green)].slice(-10);
       nk.yellow = [...new Set(nk.yellow)].slice(-10);
       setKeywords(nk);
       setModelUsed('local-fallback');
@@ -299,12 +430,13 @@ const DemoPage = () => {
   };
 
   const colorMap = {
-    teal: { label: 'Goal', desc: 'Action / Growth', hex: '#14b8a6', rgb: '20,184,166', aura: 'rgba(20,184,166,0.15)' },
-    yellow: { label: 'Casual', desc: 'General / Support', hex: '#f59e0b', rgb: '245,158,11', aura: 'rgba(245,158,11,0.15)' },
-    red: { label: 'Age Gate', desc: 'Explicit / Private', hex: '#ef4444', rgb: '239,68,68', aura: 'rgba(239,68,68,0.15)' }
+    green: { label: 'Help', desc: 'Action / Growth', hex: '#22c55e', rgb: '34,197,94', aura: 'rgba(34,197,94,0.15)' },
+    yellow: { label: 'Comfort', desc: 'Casual / Social', hex: '#f59e0b', rgb: '245,158,11', aura: 'rgba(245,158,11,0.15)' },
+    red: { label: 'Age Gate', desc: 'Adult / Private', hex: '#ef4444', rgb: '239,68,68', aura: 'rgba(239,68,68,0.15)' }
   };
-  const active = colorMap[selectedKeywordColor];
-  const signalColor = colorLock || rgyCapsule.color || 'yellow';
+  const activeColor = normalizeKeywordColor(selectedKeywordColor);
+  const active = colorMap[activeColor] || colorMap.yellow;
+  const signalColor = normalizeKeywordColor(colorLock || rgyCapsule.color || 'yellow');
   const signal = colorMap[signalColor] || colorMap.yellow;
   const systemRows = [
     { label: 'State', value: statusLabel, color: signal.hex },
@@ -318,7 +450,7 @@ const DemoPage = () => {
     if (!next) return;
     setKeywords(prev => ({
       ...prev,
-      [selectedKeywordColor]: [...new Set([...(prev[selectedKeywordColor] || []), next])].slice(-12)
+      [activeColor]: [...new Set([...(prev[activeColor] || []), next])].slice(-12)
     }));
     setKeywordDraft('');
   };
@@ -406,7 +538,7 @@ const DemoPage = () => {
             
             {/* SINGLE HERO VISUAL: Clean morphing system using provided prototype */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
-              <ParticleWaveHD isVoiceMode={speakerEnabled || isProcessing || isSpeaking} audioLevel={isSpeaking ? 1.0 : 0.0} />
+              <ParticleWaveHD isVoiceMode={speakerEnabled || isProcessing || isSpeaking} audioLevel={speakerEnabled ? 0.2 : speakingAudioLevel} />
             </div>
           </div>
 
@@ -608,15 +740,15 @@ const DemoPage = () => {
             </div>
             <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.86rem', lineHeight: 1.35 }}>{active.desc}</div>
             <div style={{ color: 'rgba(255,255,255,0.34)', fontSize: '0.72rem', lineHeight: 1.45, marginTop: 8 }}>
-              {selectedKeywordColor === (rgyCapsule.color || 'yellow') ? rgyCapsule.intent : 'keyword shelf'}
+              {activeColor === normalizeKeywordColor(rgyCapsule.color || 'yellow') ? rgyCapsule.intent : 'keyword shelf'}
             </div>
           </div>
 
           {/* Keywords */}
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            {keywords[selectedKeywordColor]?.length > 0 ? (
+            {keywords[activeColor]?.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {keywords[selectedKeywordColor].map((k, i) => (
+                {keywords[activeColor].map((k, i) => (
                   <span key={i} style={{
                     background: `rgba(${active.rgb},0.12)`, color: active.hex,
                     border: `1px solid ${active.hex}30`, padding: '7px 14px',
@@ -689,7 +821,7 @@ const DemoPage = () => {
                   <div style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
                     <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginBottom: 10 }}>Color lock</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                      {[['auto', null], ['teal', 'teal'], ['yellow', 'yellow'], ['red', 'red']].map(([label, value]) => {
+                      {[['auto', null], ['green', 'green'], ['yellow', 'yellow'], ['red', 'red']].map(([label, value]) => {
                         const locked = colorLock === value;
                         const swatch = value ? colorMap[value] : { hex: '#94a3b8', rgb: '148,163,184' };
                         return (
@@ -707,12 +839,19 @@ const DemoPage = () => {
               )}
               {activeModal === 'integrations' && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  {['Headless Browser (Connected)', 'Google Calendar', 'Spotify', 'Apple Health', 'Slack', 'Linear'].map(app => (
-                    <div key={app} style={{ background: 'rgba(255,255,255,0.04)', padding: '18px', borderRadius: 14, textAlign: 'center', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.06)', transition: 'all 0.2s' }}
+                  {[
+                    { name: 'Headless Browser', status: 'QA OFFLINE', color: '#f59e0b' },
+                    { name: 'Google Calendar', status: 'CONNECT', color: '#00d4ff' },
+                    { name: 'Spotify', status: 'CONNECT', color: '#00d4ff' },
+                    { name: 'Apple Health', status: 'CONNECT', color: '#00d4ff' },
+                    { name: 'Slack', status: 'CONNECT', color: '#00d4ff' },
+                    { name: 'Linear', status: 'CONNECT', color: '#00d4ff' }
+                  ].map(app => (
+                    <div key={app.name} style={{ background: 'rgba(255,255,255,0.04)', padding: '18px', borderRadius: 14, textAlign: 'center', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.06)', transition: 'all 0.2s' }}
                       onMouseOver={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
                       onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}>
-                      <div style={{ color: '#fff', fontWeight: 500, fontSize: '0.88rem' }}>{app}</div>
-                      <div style={{ color: '#00d4ff', fontSize: '0.72rem', marginTop: 6, letterSpacing: 1 }}>CONNECT</div>
+                      <div style={{ color: '#fff', fontWeight: 500, fontSize: '0.88rem' }}>{app.name}</div>
+                      <div style={{ color: app.color, fontSize: '0.72rem', marginTop: 6, letterSpacing: 1 }}>{app.status}</div>
                     </div>
                   ))}
                 </div>
@@ -732,7 +871,8 @@ const DemoPage = () => {
                       <input type={type} placeholder={label} value={val} onChange={e => set(e.target.value)} required style={{ width: '100%', padding: '13px 14px 13px 40px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: '#fff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }} />
                     </div>
                   ))}
-                  {authError && <div style={{ color: authError.includes('Check your') ? '#34d399' : '#f87171', fontSize: '0.8rem', padding: '8px 12px', background: authError.includes('Check your') ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', borderRadius: 8 }}>{authError}</div>}
+                  {authError && <div style={{ color: authError.includes('created') || authError.includes('synced') ? '#34d399' : '#f87171', fontSize: '0.8rem', padding: '8px 12px', background: authError.includes('created') || authError.includes('synced') ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', borderRadius: 8 }}>{authError}</div>}
+                  {profileSyncError && <div style={{ color: '#f59e0b', fontSize: '0.8rem', padding: '8px 12px', background: 'rgba(245,158,11,0.1)', borderRadius: 8 }}>{profileSyncError}</div>}
                   <button type="submit" disabled={authLoading} style={{ padding: '13px', background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)', border: 'none', borderRadius: 12, color: '#fff', fontSize: '0.9rem', fontWeight: 600, cursor: authLoading ? 'not-allowed' : 'pointer', opacity: authLoading ? 0.7 : 1, marginTop: 4 }}>
                     {authLoading ? 'Loading...' : authView === 'login' ? 'Sign In' : 'Create Account'}
                   </button>

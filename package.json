@@ -6,7 +6,8 @@
     "node": ">=18.x"
   },
   "scripts": {
-    "build": "cd frontend && npm install --legacy-peer-deps && CI=false npm run build",
-    "start": "cd frontend && npm start"
+    "build": "node scripts/build-frontend.mjs",
+    "start": "cd frontend && npm start",
+    "verify:cqai": "node scripts/verify-cqai-e2e.mjs"
   }
 }

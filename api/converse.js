@@ -1,11 +1,20 @@
 const https = require('https');
 
 // AI model orchestration - OpenAI -> Anthropic -> OpenRouter
+function cleanEnvValue(value) {
+  return String(value || '')
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/\\r\\n$/g, '')
+    .replace(/\\n$/g, '')
+    .trim();
+}
+
 function readEnv(names) {
   for (const name of names) {
-    const value = process.env[name];
-    if (value && value.trim()) {
-      return { value: value.trim().replace(/^['"]|['"]$/g, ''), name };
+    const value = cleanEnvValue(process.env[name]);
+    if (value) {
+      return { value, name };
     }
   }
   return { value: '', name: null };
@@ -21,7 +30,8 @@ const ANTHROPIC_KEY = ANTHROPIC_ENV.value;
 const OPENAI_KEY = OPENAI_ENV.value;
 const OPENROUTER_KEY = OPENROUTER_ENV.value;
 const ELEVENLABS_KEY = ELEVENLABS_ENV.value;
-const ELEVENLABS_VOICE_ID = VOICE_ENV.value || '21m00Tcm4TlvDq8ikWAM'; // Rachel
+const ELEVENLABS_VOICE_ID = VOICE_ENV.value || 'SAz9YHcvj6GT2YYXdXww'; // River - relaxed, neutral, informative
+const ELEVENLABS_VOICE_NAME = process.env.ELEVENLABS_VOICE_NAME || process.env.ELEVEN_LABS_VOICE_NAME || 'River';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || process.env.AI_MODEL || 'gpt-5.4';
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20241022';
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet';
@@ -29,12 +39,26 @@ const ELEVENLABS_MODEL_ID = process.env.ELEVENLABS_MODEL_ID || process.env.ELEVE
 const DEFAULT_PROVIDER_ORDER = ['openai', 'anthropic', 'openrouter'];
 const PROVIDER_ORDER = parseProviderOrder(process.env.PROVIDER_ORDER);
 
+const RUNTIME_MANIFEST = {
+  product: 'cq.ai / CubiQo QA',
+  app_path: 'React frontend on Vercel with /api/converse serverless function',
+  active_backend: 'Vercel Node.js function api/converse.js',
+  inactive_backend_note: 'backend/server.py exists in the repo but is not the active QA/production route',
+  primary_llm: `OpenAI ${OPENAI_MODEL}`,
+  provider_order: PROVIDER_ORDER,
+  voice: `ElevenLabs ${ELEVENLABS_VOICE_NAME} (${ELEVENLABS_MODEL_ID})`,
+  headless_browser: 'Not wired in this QA deployment; UI should not claim it is connected',
+  storage: 'Supabase auth/profile/RGY tables are provisioned'
+};
+
 const SYSTEM_PROMPT = `You are CubiQo — a philosophical, deeply intelligent AI assistant.
 You speak with calm authority on any topic. 
 For EVERY response, after your main reply, output a JSON block like:
-<keywords>{"green": ["potential1","potential2"], "yellow": ["activity1"], "red": ["wish1"]}</keywords>
-Green = Potentials (growth, future), Yellow = Activities (current actions), Red = Wishes (deep desires).
-Keywords should be nouns or adjectives defining the user's wishes or potentials.
+<keywords>{"green": ["linkedin","career"], "yellow": ["instagram","comfort"], "red": ["grindr","tinder"]}</keywords>
+Green = productive/help-oriented user activity and system help: verbs or platforms around LinkedIn, yoga, wellness, career, planning, building, writing, shipping, focus, growth, and professional vibe.
+Yellow = laid-back comfort and social chat: Facebook, Instagram, casual posting, checking in, reassurance, mood, friends, and easy conversation.
+Red = adult-gated or explicit-intent contexts: Grindr, Tinder, hookup, NSFW, intimate, private dating, kink, fetish, and similar adult/age-gated signals.
+Keywords should describe user activities and the nature of help the system is giving.
 Keep your main response under 3 sentences. Be profound but concise.`;
 
 const RGY_META = {
@@ -42,7 +66,7 @@ const RGY_META = {
     label: 'Goal',
     intent: 'goal_oriented',
     voice: 'professional_decisive',
-    color: 'TEAL'
+    color: 'GREEN'
   },
   yellow: {
     label: 'Casual',
@@ -61,11 +85,19 @@ const RGY_META = {
 const GOAL_TERMS = [
   'build', 'business', 'company', 'launch', 'strategy', 'plan', 'work', 'career',
   'health', 'wellness', 'focus', 'money', 'trade', 'collaborate', 'collaboration',
-  'ship', 'design', 'code', 'learn', 'grow', 'goal', 'task', 'project'
+  'ship', 'design', 'code', 'learn', 'grow', 'goal', 'task', 'project', 'linkedin',
+  'yoga', 'fitness', 'resume', 'interview', 'portfolio', 'networking', 'outreach',
+  'proposal', 'draft', 'write', 'review', 'schedule', 'train', 'vibe'
+];
+const CASUAL_TERMS = [
+  'facebook', 'fb', 'instagram', 'insta', 'thread', 'threads', 'post', 'story',
+  'scroll', 'chat', 'comfort', 'casual', 'friend', 'friends', 'mood', 'vent',
+  'reassure', 'reassurance', 'easy', 'laidback', 'laid-back', 'hang', 'social'
 ];
 const RED_TERMS = [
   'explicit', 'adult', 'sex', 'porn', 'nsfw', 'hookup', 'fetish', 'kink', 'dating',
-  'intimate', 'private'
+  'intimate', 'private', 'grindr', 'tinder', 'bumble', 'hinge', 'onlyfans',
+  'escort', 'bdsm', 'sext', 'sexting'
 ];
 const SELF_HARM_TERMS = [
   'kill myself', 'suicide', 'self harm', 'self-harm', 'hurt myself', 'end my life',
@@ -135,13 +167,66 @@ function includesAny(text, terms) {
   return terms.some(term => text.includes(term));
 }
 
+function normalizeKeyword(word) {
+  return String(word || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '')
+    .trim();
+}
+
+function uniqueLimited(words, limit = 10) {
+  return [...new Set(words.map(normalizeKeyword).filter(Boolean))].slice(0, limit);
+}
+
+function classifyMessageKeywords(message) {
+  const lower = String(message || '').toLowerCase();
+  const tokens = lower
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .split(/\s+/)
+    .map(normalizeKeyword)
+    .filter(word => word.length > 2);
+
+  const keywords = { green: [], yellow: [], red: [] };
+  const scanTerms = (terms, color) => {
+    terms.forEach(term => {
+      if (lower.includes(term)) keywords[color].push(term);
+    });
+  };
+
+  scanTerms(GOAL_TERMS, 'green');
+  scanTerms(CASUAL_TERMS, 'yellow');
+  scanTerms(RED_TERMS, 'red');
+
+  tokens.forEach(word => {
+    if (RED_TERMS.includes(word)) keywords.red.push(word);
+    else if (GOAL_TERMS.includes(word)) keywords.green.push(word);
+    else if (CASUAL_TERMS.includes(word)) keywords.yellow.push(word);
+  });
+
+  return {
+    green: uniqueLimited(keywords.green),
+    yellow: uniqueLimited(keywords.yellow),
+    red: uniqueLimited(keywords.red)
+  };
+}
+
+function mergeKeywords(primary = {}, fallback = {}) {
+  return {
+    green: uniqueLimited([...(primary.green || []), ...(fallback.green || [])]),
+    yellow: uniqueLimited([...(primary.yellow || []), ...(fallback.yellow || [])]),
+    red: uniqueLimited([...(primary.red || []), ...(fallback.red || [])])
+  };
+}
+
 function detectRgyCapsule(message, keywordHints = {}) {
   const lower = String(message || '').toLowerCase();
   const selfHarm = includesAny(lower, SELF_HARM_TERMS);
   const explicit = includesAny(lower, RED_TERMS);
   const goal = includesAny(lower, GOAL_TERMS);
-  const selected = selfHarm ? 'yellow' : (explicit ? 'red' : (goal ? 'green' : 'yellow'));
+  const casual = includesAny(lower, CASUAL_TERMS);
+  const selected = selfHarm ? 'yellow' : (explicit ? 'red' : (goal ? 'green' : (casual ? 'yellow' : 'yellow')));
   const meta = RGY_META[selected];
+  const keywords = mergeKeywords(keywordHints, classifyMessageKeywords(message));
 
   return {
     color: selected,
@@ -152,10 +237,40 @@ function detectRgyCapsule(message, keywordHints = {}) {
     age_gate_required: explicit && !selfHarm,
     self_harm_support: selfHarm,
     color_is_ui_only: true,
+    keywords
+  };
+}
+
+function buildRuntimeContext() {
+  return [
+    '[Runtime context]',
+    `Product: ${RUNTIME_MANIFEST.product}`,
+    `Active code path: ${RUNTIME_MANIFEST.app_path}`,
+    `Active backend: ${RUNTIME_MANIFEST.active_backend}`,
+    `Inactive backend note: ${RUNTIME_MANIFEST.inactive_backend_note}`,
+    `Primary LLM: ${RUNTIME_MANIFEST.primary_llm}`,
+    `Provider order: ${RUNTIME_MANIFEST.provider_order.join(' -> ')}`,
+    `Voice: ${RUNTIME_MANIFEST.voice}`,
+    `Headless browser connector: ${RUNTIME_MANIFEST.headless_browser}`,
+    `Storage: ${RUNTIME_MANIFEST.storage}`,
+    'If the user asks what model, tools, voice, database, or backend you use, answer from this runtime context without hedging.'
+  ].join('\n');
+}
+
+function isRuntimeQuestion(message) {
+  const lower = String(message || '').toLowerCase();
+  const subjects = ['model', 'backend', 'code', 'tools', 'browser', 'headless', 'database', 'supabase', 'voice', 'elevenlabs', 'connected'];
+  const asksSelf = ['you', 'your', 'cubi', 'cubiqo', 'system', 'runtime', 'connected'].some(term => lower.includes(term));
+  return asksSelf && subjects.some(term => lower.includes(term));
+}
+
+function buildRuntimeStatusResponse() {
+  return {
+    response: `I am running the CubiQo QA flow through ${RUNTIME_MANIFEST.primary_llm} in ${RUNTIME_MANIFEST.active_backend}. Voice is ${RUNTIME_MANIFEST.voice}; Supabase auth/profile/RGY storage is provisioned. Headless browser is not wired in this QA deployment yet, so I should not claim it is connected.`,
     keywords: {
-      green: keywordHints.green || [],
-      yellow: keywordHints.yellow || [],
-      red: keywordHints.red || []
+      green: ['model', 'runtime', 'supabase', 'voice'],
+      yellow: ['qa', 'status'],
+      red: []
     }
   };
 }
@@ -203,7 +318,7 @@ async function callOpenAI(message, history, context) {
   const raw = await httpsPost(
     'https://api.openai.com/v1/chat/completions',
     { 'Authorization': `Bearer ${OPENAI_KEY}`, 'Content-Type': 'application/json' },
-    JSON.stringify({ model: OPENAI_MODEL, max_tokens: 512, messages })
+    JSON.stringify({ model: OPENAI_MODEL, max_completion_tokens: 512, messages })
   );
   return [JSON.parse(raw).choices[0].message.content, OPENAI_MODEL];
 }
@@ -253,7 +368,9 @@ function needsWebSearch(text) {
 function extractKeywords(text) {
   const match = text.match(/<keywords>([\s\S]*?)<\/keywords>/);
   if (match) {
-    try { return JSON.parse(match[1]); } catch {}
+    try {
+      return mergeKeywords(JSON.parse(match[1]));
+    } catch {}
   }
   return { green: [], yellow: [], red: [] };
 }
@@ -306,11 +423,15 @@ function buildLocalFallback(message, primaryColor = 'green') {
   const unique = [...new Set(words)].slice(0, 9);
   const topic = unique[0] || 'this';
   const color = ['green', 'yellow', 'red'].includes(primaryColor) ? primaryColor : 'green';
-  const keywords = { green: [], yellow: [], red: [] };
-  keywords[color] = unique.slice(0, 6);
+  const keywords = classifyMessageKeywords(message);
+  const assigned = new Set([...keywords.green, ...keywords.yellow, ...keywords.red]);
+  keywords[color] = uniqueLimited([...keywords[color], ...unique.filter(word => !assigned.has(word)).slice(0, 6)]);
   const otherColors = ['green', 'yellow', 'red'].filter(item => item !== color);
-  unique.slice(6, 9).forEach((word, index) => {
+  unique.filter(word => !assigned.has(word)).slice(6, 9).forEach((word, index) => {
     keywords[otherColors[index % otherColors.length]].push(word);
+  });
+  Object.keys(keywords).forEach(key => {
+    keywords[key] = uniqueLimited(keywords[key]);
   });
 
   return {
@@ -355,13 +476,23 @@ function getProviderSequence(modelOverride) {
   return order.map(provider => registry[provider]).filter(Boolean);
 }
 
-async function generateElevenLabsAudio(text) {
+function voiceSettingsForRgy(rgy = {}) {
+  if (rgy.color === 'green') {
+    return { stability: 0.64, similarity_boost: 0.78, style: 0.16, use_speaker_boost: true };
+  }
+  if (rgy.color === 'red') {
+    return { stability: 0.82, similarity_boost: 0.72, style: 0.04, use_speaker_boost: false };
+  }
+  return { stability: 0.72, similarity_boost: 0.76, style: 0.12, use_speaker_boost: true };
+}
+
+async function generateElevenLabsAudio(text, rgy = {}) {
   if (!ELEVENLABS_KEY) return { audioUrl: null, error: 'No ElevenLabs key' };
   return new Promise((resolve) => {
     const body = JSON.stringify({
       text: text.slice(0, 500),
       model_id: ELEVENLABS_MODEL_ID,
-      voice_settings: { stability: 0.5, similarity_boost: 0.8 }
+      voice_settings: voiceSettingsForRgy(rgy)
     });
     const options = {
       hostname: 'api.elevenlabs.io',
@@ -410,7 +541,7 @@ module.exports = async (req, res) => {
 
     if (rgy.self_harm_support) {
       const support = buildSelfHarmSupport(message);
-      const audio = await generateElevenLabsAudio(support.response);
+      const audio = await generateElevenLabsAudio(support.response, rgy);
       return res.status(200).json({
         response: support.response,
         keywords: support.keywords,
@@ -420,11 +551,43 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Web search if needed
-    let context = '';
-    if (needsWebSearch(message)) {
-      context = await searchWeb(message);
+    if (isRuntimeQuestion(message)) {
+      const status = buildRuntimeStatusResponse();
+      rgy = detectRgyCapsule(message, status.keywords);
+      const audio = await generateElevenLabsAudio(status.response, rgy);
+      const payload = {
+        response: status.response,
+        keywords: status.keywords,
+        audio_url: audio.audioUrl,
+        model_used: 'runtime-status',
+        rgy: {
+          ...rgy,
+          routing_mode: 'direct',
+          direct_model: 'runtime'
+        }
+      };
+      if (req.query?.diagnostics === '1' || req.body?.diagnostics === true) {
+        payload.diagnostics = {
+          runtime: RUNTIME_MANIFEST,
+          tts: {
+            configured: Boolean(ELEVENLABS_KEY),
+            env: ELEVENLABS_ENV.name,
+            ok: Boolean(audio.audioUrl),
+            voice: ELEVENLABS_VOICE_NAME,
+            error: audio.error ? publicError(audio.error) : null
+          }
+        };
+      }
+      return res.status(200).json(payload);
     }
+
+    // Web search if needed
+    const contexts = [buildRuntimeContext()];
+    if (needsWebSearch(message)) {
+      const webContext = await searchWeb(message);
+      if (webContext) contexts.push(webContext);
+    }
+    const context = contexts.join('\n\n');
 
     // Orchestrate providers. Operational failures fall through; safety refusals do not.
     let rawResponse = '', modelUsed = 'fallback';
@@ -453,7 +616,7 @@ module.exports = async (req, res) => {
       } catch (e) {
         const errorInfo = classifyProviderError(e);
         attempts.push({ provider: name, configured, env: envName, ok: false, ...errorInfo, error: publicError(e) });
-        console.warn(`${fn.name} failed:`, e.message);
+        console.warn(`${fn.name} failed:`, publicError(e));
         if (errorInfo.category === 'safety') {
           const safety = buildSafetyResponse(message);
           rawResponse = safety.response;
@@ -481,7 +644,7 @@ module.exports = async (req, res) => {
     rgy = detectRgyCapsule(message, keywords);
 
     // ElevenLabs TTS
-    const audio = await generateElevenLabsAudio(cleanText);
+    const audio = await generateElevenLabsAudio(cleanText, rgy);
 
     const payload = {
       response: cleanText,
@@ -500,8 +663,9 @@ module.exports = async (req, res) => {
           anthropic: { configured: Boolean(ANTHROPIC_KEY), name: ANTHROPIC_ENV.name, model: ANTHROPIC_MODEL },
           openai: { configured: Boolean(OPENAI_KEY), name: OPENAI_ENV.name, model: OPENAI_MODEL },
           openrouter: { configured: Boolean(OPENROUTER_KEY), name: OPENROUTER_ENV.name, model: OPENROUTER_MODEL },
-          elevenlabs: { configured: Boolean(ELEVENLABS_KEY), name: ELEVENLABS_ENV.name, voice: ELEVENLABS_VOICE_ID, model: ELEVENLABS_MODEL_ID }
+          elevenlabs: { configured: Boolean(ELEVENLABS_KEY), name: ELEVENLABS_ENV.name, voice: ELEVENLABS_VOICE_ID, voice_name: ELEVENLABS_VOICE_NAME, model: ELEVENLABS_MODEL_ID }
         },
+        runtime: RUNTIME_MANIFEST,
         provider_order: PROVIDER_ORDER,
         direct_model: directModel || null,
         attempts,
@@ -509,6 +673,7 @@ module.exports = async (req, res) => {
           configured: Boolean(ELEVENLABS_KEY),
           env: ELEVENLABS_ENV.name,
           ok: Boolean(audio.audioUrl),
+          voice: ELEVENLABS_VOICE_NAME,
           error: audio.error ? publicError(audio.error) : null
         }
       };

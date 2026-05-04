@@ -840,19 +840,19 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
       shellParticleMaterial.opacity = voiceMorph * 0.12;
       cuboidGroup.rotation.set(0, 0, 0);
 
-      // Visible tri-color ECG/audio signal through cuboid.
+      // Subtle tri-color audio signal through cuboid.
       const realAudio = audioLevelRef.current;
       const st = t * 0.35; // Slow down base autonomous movement
-      const speakingPulse = 0.35 + (Math.pow((Math.sin(st * 2.4) + 1) * 0.5, 1.5) * 0.65) * (1 + realAudio * 3.0);
+      const speakingPulse = 0.22 + (Math.pow((Math.sin(st * 2.4) + 1) * 0.5, 1.5) * 0.38) * (1 + realAudio * 1.8);
       signalBars.forEach((bar, i) => {
         const envelope = Math.exp(-Math.pow((bar.xNorm - 0.5) / 0.38, 2));
         const wave = Math.sin(i * 0.34 - st * 5.8 + bar.phase) * 0.65 + Math.sin(i * 0.17 + st * 2.8) * 0.35;
-        const heartbeat = Math.exp(-Math.pow(((((st * 1.35 + bar.xNorm * 0.95) % 1) - 0.17) / 0.05), 2)) * (1.35 + realAudio * 2.0);
-        const amp = (0.16 + envelope * 0.34) * speakingPulse + heartbeat * 0.48;
-        bar.mesh.scale.y = 0.42 + Math.abs(wave) * amp * (4.8 + realAudio * 5.0);
+        const heartbeat = Math.exp(-Math.pow(((((st * 1.35 + bar.xNorm * 0.95) % 1) - 0.17) / 0.05), 2)) * (0.42 + realAudio * 0.8);
+        const amp = (0.08 + envelope * 0.18) * speakingPulse + heartbeat * 0.18;
+        bar.mesh.scale.y = 0.24 + Math.abs(wave) * amp * (2.2 + realAudio * 2.4);
         bar.mesh.position.y = Math.sin(i * 0.08 + st * 1.15) * 0.014;
         bar.mesh.position.z = Math.sin(i * 0.05 + st * 0.9) * 0.01;
-        bar.material.opacity = voiceMorph * (0.28 + envelope * 0.46);
+        bar.material.opacity = voiceMorph * (0.08 + envelope * 0.2 + realAudio * 0.08);
       });
 
       coreLight.intensity = 8 + breathe * 2 + particleMode * 2 + voiceMorph * 9;
