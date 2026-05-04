@@ -76,8 +76,8 @@ const DemoPage = () => {
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
-  const [keywords, setKeywords] = useState({ red: [], green: [], yellow: [] });
-  const [selectedKeywordColor, setSelectedKeywordColor] = useState('green');
+  const [keywords, setKeywords] = useState({ red: [], teal: [], yellow: [] });
+  const [selectedKeywordColor, setSelectedKeywordColor] = useState('teal');
   const [rgyCapsule, setRgyCapsule] = useState({
     color: 'yellow',
     signal: 'YELLOW',
@@ -98,6 +98,7 @@ const DemoPage = () => {
   const [authError, setAuthError] = useState('');
   const [uiVisible, setUiVisible] = useState(true);
   const [chatInput, setChatInput] = useState('');
+  const [journalEntry, setJournalEntry] = useState('');
   const [lastUserMessage, setLastUserMessage] = useState('');
   const [conversationError, setConversationError] = useState('');
 
@@ -221,14 +222,17 @@ const DemoPage = () => {
       }
     } catch (err) {
       // Fallback: local keyword extraction
-      const words = cleanInput.split(" ").filter(w => w.length > 3);
-      const nk = { red: [...keywords.red], green: [...keywords.green], yellow: [...keywords.yellow] };
+      const words = cleanInput.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      const activityVerbs = new Set(['build', 'ship', 'code', 'draft', 'write', 'plan', 'book', 'schedule', 'train', 'review', 'call', 'send', 'buy', 'sell', 'trade', 'collaborate', 'run', 'fix']);
+      const explicitTerms = new Set(['nsfw', 'explicit', 'adult', 'private']);
+      const nk = { red: [...keywords.red], teal: [...keywords.teal], yellow: [...keywords.yellow] };
       words.forEach(w => {
-        const r = Math.random();
-        if (r < 0.33) nk.red.push(w); else if (r < 0.66) nk.green.push(w); else nk.yellow.push(w);
+        if (explicitTerms.has(w)) nk.red.push(w);
+        else if (activityVerbs.has(w)) nk.teal.push(w);
+        else nk.yellow.push(w);
       });
       nk.red = [...new Set(nk.red)].slice(-10);
-      nk.green = [...new Set(nk.green)].slice(-10);
+      nk.teal = [...new Set(nk.teal)].slice(-10);
       nk.yellow = [...new Set(nk.yellow)].slice(-10);
       setKeywords(nk);
       setModelUsed('local-fallback');
@@ -295,7 +299,7 @@ const DemoPage = () => {
   };
 
   const colorMap = {
-    green: { label: 'Goal', desc: 'Action / Growth', hex: '#14b8a6', rgb: '20,184,166', aura: 'rgba(20,184,166,0.15)' },
+    teal: { label: 'Goal', desc: 'Action / Growth', hex: '#14b8a6', rgb: '20,184,166', aura: 'rgba(20,184,166,0.15)' },
     yellow: { label: 'Casual', desc: 'General / Support', hex: '#f59e0b', rgb: '245,158,11', aura: 'rgba(245,158,11,0.15)' },
     red: { label: 'Age Gate', desc: 'Explicit / Private', hex: '#ef4444', rgb: '239,68,68', aura: 'rgba(239,68,68,0.15)' }
   };
@@ -533,6 +537,17 @@ const DemoPage = () => {
           </div>
 
           {/* Profile / Auth */}
+
+          <div style={{ marginTop: 14, marginBottom: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 12px' }}>
+            <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.78rem', marginBottom: 8, letterSpacing: 1.2, textTransform: 'uppercase' }}>Daily Journal</div>
+            <textarea
+              value={journalEntry}
+              onChange={e => setJournalEntry(e.target.value)}
+              placeholder="Personality notes for today (mood, energy, focus)..."
+              style={{ width: '100%', minHeight: 86, resize: 'vertical', borderRadius: 10, border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(0,0,0,0.2)', color: '#fff', padding: 10, fontSize: '0.78rem' }}
+            />
+          </div>
+
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
               <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -674,7 +689,7 @@ const DemoPage = () => {
                   <div style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
                     <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginBottom: 10 }}>Color lock</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                      {[['auto', null], ['green', 'green'], ['yellow', 'yellow'], ['red', 'red']].map(([label, value]) => {
+                      {[['auto', null], ['teal', 'teal'], ['yellow', 'yellow'], ['red', 'red']].map(([label, value]) => {
                         const locked = colorLock === value;
                         const swatch = value ? colorMap[value] : { hex: '#94a3b8', rgb: '148,163,184' };
                         return (
@@ -692,7 +707,7 @@ const DemoPage = () => {
               )}
               {activeModal === 'integrations' && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  {['Notion', 'Google Calendar', 'Spotify', 'Apple Health', 'Slack', 'Linear'].map(app => (
+                  {['Headless Browser (Connected)', 'Google Calendar', 'Spotify', 'Apple Health', 'Slack', 'Linear'].map(app => (
                     <div key={app} style={{ background: 'rgba(255,255,255,0.04)', padding: '18px', borderRadius: 14, textAlign: 'center', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.06)', transition: 'all 0.2s' }}
                       onMouseOver={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
                       onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}>
