@@ -26,6 +26,7 @@ Each feature moves through:
 | P0 | QA launch/auth/RGY/voice baseline | current branch + `codex/cubiqo-ai-clean-baseline` | Done | Keep as foundation. |
 | P0 | Left panel essentials | Current QA, legacy dashboard/journal docs | Done | Theme, sign-in, journal CTA, and CubiQo size are present. |
 | P0 | Daily Journal | `src/app/journal/*`, `src/components/journal/*`, `DAILY_JOURNAL_*` docs | Code ready / DB pending | Guided flow, API, local fallback, history basics, and migration SQL are ready; Supabase needs the new migration applied. |
+| P1 | Dashboard basics / legacy console | `src/app/dashboard/*`, `DashboardStats`, admin dashboard docs | Live shell | `/dashboard` now tracks account stats, journal fallback, and all legacy modules with gates. |
 | P1 | Runtime self-awareness | `src/lib/engine/*`, current `/api/converse` manifest | Partial | Extend model/tool/code awareness through tool layer. |
 | P1 | Live search | `src/lib/engine/web-tools.ts` | Missing | Add search as a separate tool from browser control. |
 | P1 | SettingsCube | `src/app/settings-cube/*`, `src/components/settings-cube/*` | Missing | Rebuild after RGY/side-panel state is stable. |
@@ -39,6 +40,7 @@ Each feature moves through:
 | P2 | Job Hunt mode | `JOB_HUNT_MODE.md`, `src/app/api/job-hunt/dashboard/route.ts` | Missing | Likely portable as dashboard/tool workflow. |
 | P2 | Marketing/social army/10x10 rule | `social-army/*`, `src/app/marketing/*`, `scripts/social-army-worker.ts` | Missing | Ambitious; requires accounts/API keys/browser worker. Start with planner/queue only. |
 | P2 | Ecommerce business pack | `src/app/commerce-demo/*`, `src/app/coder/*` commerce stack refs | Missing | Mostly dashboard/integration catalog; real selling needs provider keys. |
+| P2 | Biometrics / camera awareness | `src/components/auth/Biometric*`, `src/components/multimodal/CameraPreview.tsx`, `src/lib/multimodal/camera.ts` | Missing | Consent-gated only. Port after auth/privacy boundaries are explicit. |
 | P3 | Wallet/crypto/QR delayed release | crosswalk evidence only | Missing | Keep out until payment/security design is approved. |
 | P3 | Food/taxi/smart-home connectors | product spec only | Missing | Keep out until connector providers are selected. |
 | P3 | Antivirus | security docs/workflows | Partial/aspirational | Existing work is security scanning, not true antivirus. Real malware scanning needs a service. |
@@ -58,4 +60,11 @@ Each feature moves through:
 - Fix: Port the right panel into a useful signal surface: selected RGY band glows, other bands dim, keywords become signal cards, and match spaces show Socialize / Collaborate / Trade affordances with a private CQ-to-CQ placeholder.
 - Boundary: This is UI/intent capture only. Real public matching still needs Supabase schema, consent gates, geofence rules, and realtime CQ identity.
 - Verification: Build, typecheck, CQAI regression, and browser UAT passed.
+
+### 3. Dashboard Basics / Legacy Feature Console
+
+- Analysis: Legacy has many partially complete modules. Bulk merge would import broken routes, unsafe server browser code, and provider-key assumptions.
+- Fix: Added `/dashboard` as the current-stack control surface for transferable legacy work: account state, conversation count, keyword count, journal count/local fallback, and feature cards for job hunter, launchpad, ecommerce, social army, agent engine, coder, browser, self-heal, biometrics, and camera awareness.
+- Backend: Added `/api/dashboard` for authenticated stats and feature status. It intentionally reports `journalMigrationPending` until `journal_entries` exists in Supabase.
+- Boundary: This moves the modules into QA as visible, gated workstreams. It does not claim provider-backed flows are end-to-end until their schemas, secrets, consent, and sandboxing are finished.
 

@@ -5,7 +5,7 @@ import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocess
 import { Suspense } from "react";
 import CubiQoVisual from "./components/CubiQoVisual";
 import ParticleWaveHD from "./components/ParticleWaveHD";
-import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut } from "lucide-react";
+import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut, LayoutDashboard, BookOpen, Briefcase, Rocket, ShoppingBag, Code2, ShieldCheck, Globe2, Camera, Fingerprint, Bot, Search } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 const SignalIcon = ({ size = 18 }) => (
@@ -74,6 +74,114 @@ const normalizeKeywordRows = (keywords = {}, userId) => Object.entries(keywords)
     metadata: { captured_by: 'cubiqo-client' }
   })))
   .filter(row => ['green', 'yellow', 'red'].includes(row.color) && row.keyword);
+
+const LEGACY_FEATURES = [
+  {
+    id: 'auth',
+    label: 'Auth + Account',
+    status: 'Live',
+    detail: 'Email/password auth and profile sync are wired in QA.',
+    Icon: User,
+    color: '#34d399'
+  },
+  {
+    id: 'daily-journal',
+    label: 'Daily Journal',
+    status: 'Code ready',
+    detail: 'Guided journal, local fallback, API, and migration SQL are in branch; DB migration is pending.',
+    Icon: BookOpen,
+    color: '#fbbf24',
+    path: '/journal'
+  },
+  {
+    id: 'dashboard',
+    label: 'My Dashboard',
+    status: 'Live shell',
+    detail: 'Account stats, journal count fallback, and quick links are now in this QA console.',
+    Icon: LayoutDashboard,
+    color: '#60a5fa'
+  },
+  {
+    id: 'job-hunter',
+    label: 'Job Hunter',
+    status: 'Staged',
+    detail: 'Legacy UI/API/schema found. Next move is Supabase job schema plus workflow pages.',
+    Icon: Briefcase,
+    color: '#22c55e'
+  },
+  {
+    id: 'launchpad',
+    label: 'Website Launcher',
+    status: 'Staged',
+    detail: 'Legacy launchpad and site template ideas are represented; production launcher backend remains.',
+    Icon: Rocket,
+    color: '#38bdf8'
+  },
+  {
+    id: 'commerce',
+    label: 'Ecomm Business Pack',
+    status: 'Staged',
+    detail: 'Shopify/Printify/business-pack concepts found; real provider keys and workflows are not complete.',
+    Icon: ShoppingBag,
+    color: '#fb7185'
+  },
+  {
+    id: 'social-army',
+    label: 'Social Army 10/10/10',
+    status: 'Admin gated',
+    detail: 'Planner/queue should come first. Posting needs accounts, GFXToolz, proxy, and approval gates.',
+    Icon: Globe2,
+    color: '#f97316'
+  },
+  {
+    id: 'agent-engine',
+    label: 'Agent Engine',
+    status: 'Design gated',
+    detail: 'Legacy agents exist, but deploy/git/workspace isolation are incomplete. Port through tool layer.',
+    Icon: Bot,
+    color: '#a78bfa'
+  },
+  {
+    id: 'coder',
+    label: 'Coder / Studio',
+    status: 'Sandbox gated',
+    detail: 'Legacy Monaco/terminal UI exists. Current QA should start read-only before code actions.',
+    Icon: Code2,
+    color: '#c084fc'
+  },
+  {
+    id: 'browser',
+    label: 'Browser Automation',
+    status: 'Sandbox gated',
+    detail: 'Legacy Puppeteer/browser code is not Vercel-safe as-is. Needs hosted browser or sandbox.',
+    Icon: Search,
+    color: '#2dd4bf'
+  },
+  {
+    id: 'self-heal',
+    label: 'Self-Heal / NOC',
+    status: 'Read-only first',
+    detail: 'Diagnostics and reporting can move first; repair actions need owner approval.',
+    Icon: ShieldCheck,
+    color: '#93c5fd'
+  },
+  {
+    id: 'biometrics-camera',
+    label: 'Biometrics + Camera',
+    status: 'Consent gated',
+    detail: 'Legacy biometric and camera traces exist. Must be explicit opt-in with local-device privacy boundaries.',
+    Icon: Fingerprint,
+    color: '#facc15'
+  },
+  {
+    id: 'camera-awareness',
+    label: 'Visual Awareness',
+    status: 'Consent gated',
+    detail: 'Camera reaction should become a multimodal tool only after permission, purpose, and retention rules.',
+    Icon: Camera,
+    color: '#fb923c'
+  }
+];
 
 const JournalPage = () => {
   const navigate = useNavigate();
@@ -382,6 +490,160 @@ const JournalPage = () => {
           {journalStatus && (
             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.78rem', lineHeight: 1.45 }}>{journalStatus}</div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DashboardPage = () => {
+  const navigate = useNavigate();
+  const [sessionUser, setSessionUser] = useState(null);
+  const [stats, setStats] = useState({
+    conversations: 0,
+    keywords: 0,
+    journals: null,
+    localJournals: 0,
+    migrationPending: false
+  });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const readLocalJournalCount = () => {
+      if (typeof window === 'undefined') return 0;
+      try {
+        const history = JSON.parse(localStorage.getItem('cubiqo_daily_journal_history') || '[]');
+        return Array.isArray(history) ? history.length : 0;
+      } catch {
+        return 0;
+      }
+    };
+
+    const loadDashboard = async () => {
+      const { data } = await supabase.auth.getSession();
+      const user = data?.session?.user || null;
+      const token = data?.session?.access_token;
+      if (cancelled) return;
+      setSessionUser(user);
+      setStats(current => ({ ...current, localJournals: readLocalJournalCount() }));
+
+      if (!token) {
+        setIsLoadingStats(false);
+        return;
+      }
+
+      const response = await fetch('/api/dashboard', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (cancelled) return;
+
+      if (response.ok) {
+        setStats({
+          conversations: payload.stats?.conversations || 0,
+          keywords: payload.stats?.keywords || 0,
+          journals: payload.stats?.journals ?? null,
+          localJournals: readLocalJournalCount(),
+          migrationPending: Boolean(payload.stats?.journalMigrationPending)
+        });
+      }
+      setIsLoadingStats(false);
+    };
+
+    loadDashboard().catch(() => {
+      if (!cancelled) setIsLoadingStats(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const quickStats = [
+    { label: 'Account', value: sessionUser ? 'Signed in' : 'Guest', color: sessionUser ? '#34d399' : '#fbbf24' },
+    { label: 'Conversations', value: stats.conversations, color: '#60a5fa' },
+    { label: 'Keywords', value: stats.keywords, color: '#22c55e' },
+    { label: 'Journals', value: stats.journals ?? stats.localJournals, color: stats.migrationPending ? '#f97316' : '#fbbf24' }
+  ];
+
+  const statusTone = (status) => {
+    if (/live/i.test(status)) return '#34d399';
+    if (/ready|staged/i.test(status)) return '#fbbf24';
+    return '#fb923c';
+  };
+
+  return (
+    <div data-testid="dashboard-page" style={{ width: '100%', minHeight: '100vh', background: '#020208', position: 'relative', overflow: 'hidden', color: '#fff' }}>
+      <CubiQoVisual isEnabled={false} aiState="neutral" />
+      <div style={{ position: 'absolute', inset: 0, zIndex: 90, overflow: 'auto', padding: '28px clamp(18px, 4vw, 56px) 48px' }}>
+        <div style={{ maxWidth: 1180, margin: '0 auto', display: 'grid', gap: 22 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/app')}
+              style={{ width: 44, height: 44, borderRadius: 15, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+              aria-label="Close dashboard"
+            >
+              <X size={18} />
+            </button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => navigate('/journal')}
+                style={{ border: '1px solid rgba(251,191,36,0.28)', background: 'rgba(251,191,36,0.1)', color: 'rgba(251,191,36,0.92)', borderRadius: 14, padding: '11px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+              >
+                <BookOpen size={16} /> Journal
+              </button>
+            </div>
+          </div>
+
+          <section style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, background: 'linear-gradient(180deg, rgba(16,16,25,0.74), rgba(6,6,12,0.56))', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', padding: '28px', boxShadow: '0 30px 90px rgba(0,0,0,0.32)' }}>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.68rem', letterSpacing: 2.4, textTransform: 'uppercase' }}>QA Legacy Console</div>
+            <div style={{ marginTop: 10, fontSize: 'clamp(1.55rem, 3vw, 2.25rem)', fontWeight: 400, letterSpacing: 0 }}>Portable features are now tracked from one place.</div>
+            <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
+              {quickStats.map(item => (
+                <div key={item.label} style={{ border: '1px solid rgba(255,255,255,0.09)', borderRadius: 16, background: 'rgba(255,255,255,0.045)', padding: '14px 15px' }}>
+                  <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.68rem', letterSpacing: 1.4, textTransform: 'uppercase' }}>{item.label}</div>
+                  <div style={{ color: item.color, marginTop: 8, fontSize: '1.1rem', fontWeight: 600 }}>{isLoadingStats && item.label !== 'Account' ? '...' : item.value}</div>
+                </div>
+              ))}
+            </div>
+            {stats.migrationPending && (
+              <div style={{ marginTop: 14, color: 'rgba(251,146,60,0.9)', fontSize: '0.82rem', lineHeight: 1.5 }}>
+                Daily Journal cloud count is waiting on the Supabase `journal_entries` migration.
+              </div>
+            )}
+          </section>
+
+          <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(245px, 1fr))', gap: 14 }}>
+            {LEGACY_FEATURES.map(feature => {
+              const Icon = feature.Icon;
+              return (
+                <article key={feature.id} style={{ minHeight: 178, border: `1px solid rgba(255,255,255,0.1)`, borderRadius: 20, background: 'rgba(9,9,15,0.72)', padding: 18, display: 'grid', alignContent: 'space-between', gap: 16, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 48px rgba(0,0,0,0.18)` }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14 }}>
+                    <div style={{ width: 42, height: 42, borderRadius: 14, display: 'grid', placeItems: 'center', background: `${feature.color}18`, border: `1px solid ${feature.color}38`, color: feature.color }}>
+                      <Icon size={19} />
+                    </div>
+                    <div style={{ color: statusTone(feature.status), fontSize: '0.66rem', letterSpacing: 1.4, textTransform: 'uppercase', paddingTop: 4 }}>{feature.status}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: 'rgba(255,255,255,0.88)', fontSize: '1rem', fontWeight: 600, letterSpacing: 0 }}>{feature.label}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.78rem', lineHeight: 1.5, marginTop: 8 }}>{feature.detail}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => feature.path ? navigate(feature.path) : undefined}
+                    disabled={!feature.path}
+                    style={{ justifySelf: 'start', border: `1px solid ${feature.path ? `${feature.color}45` : 'rgba(255,255,255,0.08)'}`, background: feature.path ? `${feature.color}12` : 'rgba(255,255,255,0.035)', color: feature.path ? feature.color : 'rgba(255,255,255,0.32)', borderRadius: 12, padding: '9px 12px', cursor: feature.path ? 'pointer' : 'default', fontSize: '0.76rem' }}
+                  >
+                    {feature.path ? 'Open' : 'Queued'}
+                  </button>
+                </article>
+              );
+            })}
+          </section>
         </div>
       </div>
     </div>
@@ -1333,7 +1595,30 @@ const DemoPage = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.5, textTransform: 'uppercase' }}>Journal</div>
+            <div style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.5, textTransform: 'uppercase' }}>Workspace</div>
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                width: '100%',
+                background: trayTheme.card,
+                border: `1px solid ${trayTheme.cardBorder}`,
+                borderRadius: 14,
+                padding: '12px 14px',
+                color: trayTheme.text,
+                cursor: 'pointer',
+                textAlign: 'left'
+              }}
+              onMouseOver={e => e.currentTarget.style.background = trayTheme.cardHover}
+              onMouseOut={e => e.currentTarget.style.background = trayTheme.card}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><LayoutDashboard size={15} /> Dashboard</span>
+              <span style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.2, textTransform: 'uppercase' }}>QA</span>
+            </button>
             <button
               type="button"
               onClick={() => navigate('/journal')}
@@ -1763,6 +2048,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/app" element={<DemoPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/journal" element={<JournalPage />} />
         </Routes>
       </BrowserRouter>
