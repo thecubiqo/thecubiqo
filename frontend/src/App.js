@@ -75,20 +75,20 @@ const normalizeKeywordRows = (keywords = {}, userId) => Object.entries(keywords)
   })))
   .filter(row => ['green', 'yellow', 'red'].includes(row.color) && row.keyword);
 
-const LEGACY_FEATURES = [
+const READY_FEATURES = [
   {
     id: 'auth',
     label: 'Auth + Account',
     status: 'Live',
-    detail: 'Email/password auth and profile sync are wired in QA.',
+    detail: 'Returning-user sign-in, protected dashboard access, logout, and profile sync are wired in QA.',
     Icon: User,
     color: '#34d399'
   },
   {
     id: 'daily-journal',
     label: 'Daily Journal',
-    status: 'Code ready',
-    detail: 'Guided journal, local fallback, API, and migration SQL are in branch; DB migration is pending.',
+    status: 'Device live',
+    detail: 'Guided journal create, edit, delete, history, loading, and error states work on this device. Cloud sync stays hidden until Supabase journal_entries is applied.',
     Icon: BookOpen,
     color: '#fbbf24',
     path: '/journal'
@@ -96,90 +96,27 @@ const LEGACY_FEATURES = [
   {
     id: 'dashboard',
     label: 'My Dashboard',
-    status: 'Live shell',
-    detail: 'Account stats, journal count fallback, and quick links are now in this QA console.',
+    status: 'Live',
+    detail: 'Protected account state, conversation count, keyword count, local journal count fallback, and quick links work without exposing incomplete modules.',
     Icon: LayoutDashboard,
-    color: '#60a5fa'
+    color: '#60a5fa',
+    path: '/dashboard'
   },
   {
-    id: 'job-hunter',
-    label: 'Job Hunter',
-    status: 'Staged',
-    detail: 'Legacy UI/API/schema found. Next move is Supabase job schema plus workflow pages.',
-    Icon: Briefcase,
-    color: '#22c55e'
-  },
-  {
-    id: 'launchpad',
-    label: 'Website Launcher',
-    status: 'Staged',
-    detail: 'Legacy launchpad and site template ideas are represented; production launcher backend remains.',
-    Icon: Rocket,
-    color: '#38bdf8'
-  },
-  {
-    id: 'commerce',
-    label: 'Ecomm Business Pack',
-    status: 'Staged',
-    detail: 'Shopify/Printify/business-pack concepts found; real provider keys and workflows are not complete.',
-    Icon: ShoppingBag,
-    color: '#fb7185'
-  },
-  {
-    id: 'social-army',
-    label: 'Social Army 10/10/10',
-    status: 'Admin gated',
-    detail: 'Planner/queue should come first. Posting needs accounts, GFXToolz, proxy, and approval gates.',
-    Icon: Globe2,
-    color: '#f97316'
-  },
-  {
-    id: 'agent-engine',
-    label: 'Agent Engine',
-    status: 'Design gated',
-    detail: 'Legacy agents exist, but deploy/git/workspace isolation are incomplete. Port through tool layer.',
-    Icon: Bot,
-    color: '#a78bfa'
-  },
-  {
-    id: 'coder',
-    label: 'Coder / Studio',
-    status: 'Sandbox gated',
-    detail: 'Legacy Monaco/terminal UI exists. Current QA should start read-only before code actions.',
-    Icon: Code2,
-    color: '#c084fc'
-  },
-  {
-    id: 'browser',
-    label: 'Browser Automation',
-    status: 'Sandbox gated',
-    detail: 'Legacy Puppeteer/browser code is not Vercel-safe as-is. Needs hosted browser or sandbox.',
-    Icon: Search,
+    id: 'conversation',
+    label: 'Conversation + Voice',
+    status: 'Live',
+    detail: 'Text chat, RGY classification, ElevenLabs voice cueing, and truthful runtime self-status are wired. Hosted LLM provider auth still needs valid keys.',
+    Icon: Activity,
     color: '#2dd4bf'
   },
   {
-    id: 'self-heal',
-    label: 'Self-Heal / NOC',
-    status: 'Read-only first',
-    detail: 'Diagnostics and reporting can move first; repair actions need owner approval.',
-    Icon: ShieldCheck,
-    color: '#93c5fd'
-  },
-  {
-    id: 'biometrics-camera',
-    label: 'Biometrics + Camera',
-    status: 'Consent gated',
-    detail: 'Legacy biometric and camera traces exist. Must be explicit opt-in with local-device privacy boundaries.',
-    Icon: Fingerprint,
-    color: '#facc15'
-  },
-  {
-    id: 'camera-awareness',
-    label: 'Visual Awareness',
-    status: 'Consent gated',
-    detail: 'Camera reaction should become a multimodal tool only after permission, purpose, and retention rules.',
-    Icon: Camera,
-    color: '#fb923c'
+    id: 'rgy-keywords',
+    label: 'RGY Keywords',
+    status: 'Live',
+    detail: 'Green, yellow, and red keyword capture works in-session and saves to user-owned Supabase keyword telemetry when signed in.',
+    Icon: SignalIcon,
+    color: '#a3e635'
   }
 ];
 
@@ -384,6 +321,13 @@ const JournalPage = () => {
 
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Journal sync failed');
+
+        if (payload.migrationPending) {
+          setSavedEntry(entry);
+          setJournalStatus("Journal saved on this device. Cloud journal sync is waiting on the database migration.");
+          setEditingEntryId(null);
+          return;
+        }
 
         const cloudEntry = payload.entry;
         if (cloudEntry) {
@@ -744,7 +688,7 @@ const DashboardPage = () => {
 
   const statusTone = (status) => {
     if (/live/i.test(status)) return '#34d399';
-    if (/ready|staged/i.test(status)) return '#fbbf24';
+    if (/device/i.test(status)) return '#fbbf24';
     return '#fb923c';
   };
 
@@ -774,8 +718,8 @@ const DashboardPage = () => {
           </div>
 
           <section style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, background: 'linear-gradient(180deg, rgba(16,16,25,0.74), rgba(6,6,12,0.56))', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', padding: '28px', boxShadow: '0 30px 90px rgba(0,0,0,0.32)' }}>
-            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.68rem', letterSpacing: 2.4, textTransform: 'uppercase' }}>QA Legacy Console</div>
-            <div style={{ marginTop: 10, fontSize: 'clamp(1.55rem, 3vw, 2.25rem)', fontWeight: 400, letterSpacing: 0 }}>Portable features are now tracked from one place.</div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.68rem', letterSpacing: 2.4, textTransform: 'uppercase' }}>QA Ready Console</div>
+            <div style={{ marginTop: 10, fontSize: 'clamp(1.55rem, 3vw, 2.25rem)', fontWeight: 400, letterSpacing: 0 }}>Only tested, usable surfaces are shown here.</div>
             {requiresAuth && !isLoadingStats && (
               <div style={{ marginTop: 18, border: '1px solid rgba(34,211,238,0.18)', borderRadius: 18, background: 'rgba(34,211,238,0.07)', padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
                 <div>
@@ -810,7 +754,7 @@ const DashboardPage = () => {
           </section>
 
           <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(245px, 1fr))', gap: 14 }}>
-            {LEGACY_FEATURES.map(feature => {
+            {READY_FEATURES.map(feature => {
               const Icon = feature.Icon;
               return (
                 <article key={feature.id} style={{ minHeight: 178, border: `1px solid rgba(255,255,255,0.1)`, borderRadius: 20, background: 'rgba(9,9,15,0.72)', padding: 18, display: 'grid', alignContent: 'space-between', gap: 16, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 48px rgba(0,0,0,0.18)` }}>
