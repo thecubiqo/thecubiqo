@@ -8,16 +8,22 @@ alter table public.conversation_events
 create table if not exists public.journal_entries (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null default 'Daily Journal',
   content text not null,
   responses jsonb not null default '[]'::jsonb,
   rgy_color text not null default 'yellow' check (rgy_color in ('green', 'yellow', 'red')),
   mood text,
+  tags text[] not null default '{}'::text[],
   word_count integer not null default 0 check (word_count >= 0),
   source text not null default 'daily_journal',
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.journal_entries
+  add column if not exists title text not null default 'Daily Journal',
+  add column if not exists tags text[] not null default '{}'::text[];
 
 create index if not exists idx_journal_entries_user_created
   on public.journal_entries(user_id, created_at desc);

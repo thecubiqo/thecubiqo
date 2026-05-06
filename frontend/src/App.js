@@ -192,6 +192,9 @@ const JournalPage = () => {
   const [isSavingJournal, setIsSavingJournal] = useState(false);
   const [savedEntry, setSavedEntry] = useState(null);
   const [journalHistory, setJournalHistory] = useState([]);
+  const [isLoadingJournalHistory, setIsLoadingJournalHistory] = useState(true);
+  const [journalError, setJournalError] = useState("");
+  const [editingEntryId, setEditingEntryId] = useState(null);
   const journalPrompts = [
     {
       label: "Signal",
@@ -215,23 +218,77 @@ const JournalPage = () => {
     }
   ];
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+  const normalizeJournalEntry = (entry) => {
+    if (!entry) return null;
+    const createdAt = entry.createdAt || entry.created_at || new Date().toISOString();
+    const responsesValue = Array.isArray(entry.responses) ? entry.responses : ["", "", "", ""];
+    const content = entry.content || journalPrompts
+      .map((item, index) => `${item.label}: ${responsesValue[index]?.trim() || ""}`)
+      .join("\n\n");
+    const wordCount = entry.wordCount ?? entry.word_count ?? content.split(/\s+/).filter(Boolean).length;
+
+    return {
+      id: entry.id || `journal-${Date.now()}`,
+      title: entry.title || responsesValue[0]?.slice(0, 80) || 'Daily Journal',
+      content,
+      responses: [...responsesValue, "", "", "", ""].slice(0, journalPrompts.length),
+      rgyColor: entry.rgyColor || entry.rgy_color || 'yellow',
+      mood: entry.mood || responsesValue[0]?.slice(0, 80) || '',
+      tags: Array.isArray(entry.tags) ? entry.tags : [],
+      wordCount,
+      createdAt,
+      updatedAt: entry.updatedAt || entry.updated_at || createdAt
+    };
+  };
+
+  const readLocalJournalHistory = () => {
+    if (typeof window === 'undefined') return [];
     try {
       const stored = JSON.parse(localStorage.getItem('cubiqo_daily_journal_latest') || 'null');
-      if (stored?.createdAt) setSavedEntry(stored);
+      const history = JSON.parse(localStorage.getItem('cubiqo_daily_journal_history') || '[]');
+      const entries = Array.isArray(history) ? history : [];
+      const normalized = entries
+        .map(normalizeJournalEntry)
+        .filter(Boolean);
+      const latest = normalizeJournalEntry(stored);
+      if (latest && !normalized.some(entry => entry.id === latest.id)) {
+        normalized.unshift(latest);
+      }
+      return normalized.slice(0, 30);
     } catch {
-      setSavedEntry(null);
+      return [];
     }
-  }, []);
+  };
+
+  const writeLocalJournalHistory = (entry) => {
+    if (typeof window === 'undefined') return [];
+    const normalized = normalizeJournalEntry(entry);
+    if (!normalized) return [];
+    const history = readLocalJournalHistory() || [];
+    const next = [normalized, ...history.filter(item => item.id !== normalized.id)].slice(0, 30);
+    localStorage.setItem('cubiqo_daily_journal_latest', JSON.stringify(normalized));
+    localStorage.setItem('cubiqo_daily_journal_history', JSON.stringify(next));
+    return next;
+  };
 
   useEffect(() => {
     let cancelled = false;
 
     const loadJournalHistory = async () => {
+      setIsLoadingJournalHistory(true);
+      setJournalError("");
+      const localEntries = readLocalJournalHistory() || [];
+      if (!cancelled) {
+        setJournalHistory(localEntries.slice(0, 5));
+        if (localEntries[0]) setSavedEntry(localEntries[0]);
+      }
+
       const { data } = await supabase.auth.getSession();
       const token = data?.session?.access_token;
-      if (!token) return;
+      if (!token) {
+        if (!cancelled) setIsLoadingJournalHistory(false);
+        return;
+      }
 
       const response = await fetch('/api/journal?limit=5', {
         headers: {
@@ -239,26 +296,26 @@ const JournalPage = () => {
         }
       });
 
-      if (!response.ok) return;
       const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Journal history unavailable');
       if (cancelled) return;
 
-      const entries = Array.isArray(payload.entries) ? payload.entries : [];
+      const entries = Array.isArray(payload.entries) ? payload.entries.map(normalizeJournalEntry).filter(Boolean) : [];
       setJournalHistory(entries);
       if (payload.latest) {
-        setSavedEntry({
-          id: payload.latest.id,
-          createdAt: payload.latest.created_at,
-          content: payload.latest.content,
-          responses: payload.latest.responses || [],
-          rgyColor: payload.latest.rgy_color,
-          wordCount: payload.latest.word_count || 0
-        });
+        setSavedEntry(normalizeJournalEntry(payload.latest));
+      } else if (!localEntries[0]) {
+        setSavedEntry(null);
       }
+      setIsLoadingJournalHistory(false);
     };
 
     loadJournalHistory().catch(error => {
       console.warn('Journal history load failed:', error.message);
+      if (!cancelled) {
+        setJournalError('Cloud journal history is unavailable. Local entries still work.');
+        setIsLoadingJournalHistory(false);
+      }
     });
 
     return () => {
@@ -280,40 +337,47 @@ const JournalPage = () => {
   const saveJournal = async (nextResponses) => {
     setIsSavingJournal(true);
     setJournalStatus("");
+    setJournalError("");
     const content = journalPrompts
       .map((item, index) => `${item.label}: ${nextResponses[index]?.trim() || ""}`)
       .join("\n\n");
     const wordCount = content.split(/\s+/).filter(Boolean).length;
     const color = detectJournalTone(content);
+    const title = nextResponses[0]?.trim().slice(0, 82) || 'Daily Journal';
+    const tags = ['daily-journal', color, nextResponses[3]?.trim() ? 'next-move' : 'reflection'];
     const entry = {
-      id: `journal-${Date.now()}`,
+      id: editingEntryId || `journal-${Date.now()}`,
+      title,
       createdAt: new Date().toISOString(),
       content,
       responses: nextResponses,
       rgyColor: color,
+      mood: nextResponses[0]?.trim().slice(0, 80) || '',
+      tags,
       wordCount
     };
 
     try {
-      if (typeof window !== 'undefined') {
-        const history = JSON.parse(localStorage.getItem('cubiqo_daily_journal_history') || '[]');
-        localStorage.setItem('cubiqo_daily_journal_latest', JSON.stringify(entry));
-        localStorage.setItem('cubiqo_daily_journal_history', JSON.stringify([entry, ...history].slice(0, 30)));
-      }
+      const localHistory = writeLocalJournalHistory(entry);
+      setJournalHistory(localHistory.slice(0, 5));
 
       const { data } = await supabase.auth.getSession();
       const token = data?.session?.access_token;
       if (token) {
-        const response = await fetch('/api/journal', {
-          method: 'POST',
+        const isCloudEdit = editingEntryId && !String(editingEntryId).startsWith('journal-');
+        const response = await fetch(isCloudEdit ? `/api/journal/${editingEntryId}` : '/api/journal', {
+          method: isCloudEdit ? 'PUT' : 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
+            title,
             content,
             responses: nextResponses,
             rgyColor: color,
+            mood: entry.mood,
+            tags,
             wordCount
           })
         });
@@ -323,23 +387,29 @@ const JournalPage = () => {
 
         const cloudEntry = payload.entry;
         if (cloudEntry) {
-          entry.id = cloudEntry.id;
-          entry.createdAt = cloudEntry.created_at;
-          entry.rgyColor = cloudEntry.rgy_color;
-          entry.wordCount = cloudEntry.word_count || wordCount;
-          setJournalHistory(history => [cloudEntry, ...history.filter(item => item.id !== cloudEntry.id)].slice(0, 5));
-          localStorage.setItem('cubiqo_daily_journal_latest', JSON.stringify(entry));
+          const normalizedCloudEntry = normalizeJournalEntry(cloudEntry);
+          const syncedHistory = [normalizedCloudEntry, ...localHistory.filter(item => item.id !== entry.id && item.id !== normalizedCloudEntry.id)].slice(0, 30);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('cubiqo_daily_journal_latest', JSON.stringify(normalizedCloudEntry));
+            localStorage.setItem('cubiqo_daily_journal_history', JSON.stringify(syncedHistory));
+          }
+          setJournalHistory(syncedHistory.slice(0, 5));
+          setSavedEntry(normalizedCloudEntry);
+        } else {
+          setSavedEntry(entry);
         }
-        setJournalStatus("Journal saved to your CubiQo memory.");
+        setJournalStatus(isCloudEdit ? "Journal updated in your CubiQo memory." : "Journal saved to your CubiQo memory.");
       } else {
         setJournalStatus("Journal saved on this device. Sign in to sync it.");
+        setSavedEntry(entry);
       }
 
-      setSavedEntry(entry);
+      setEditingEntryId(null);
     } catch (error) {
       console.warn('Journal save failed:', error.message);
       setJournalStatus("Saved on this device. Cloud sync is unavailable right now.");
       setSavedEntry(entry);
+      setEditingEntryId(null);
     } finally {
       setIsSavingJournal(false);
     }
@@ -352,6 +422,67 @@ const JournalPage = () => {
       return;
     }
     saveJournal(responses);
+  };
+
+  const startNewJournalEntry = () => {
+    setSavedEntry(null);
+    setEditingEntryId(null);
+    setPromptIndex(0);
+    setResponses(["", "", "", ""]);
+    setJournalStatus("");
+    setJournalError("");
+  };
+
+  const editJournalEntry = (entry) => {
+    const normalized = normalizeJournalEntry(entry);
+    if (!normalized) return;
+    setSavedEntry(null);
+    setEditingEntryId(normalized.id);
+    setResponses([...normalized.responses, "", "", "", ""].slice(0, journalPrompts.length));
+    setPromptIndex(0);
+    setJournalStatus("Editing journal entry.");
+    setJournalError("");
+  };
+
+  const deleteJournalEntry = async (entry) => {
+    const normalized = normalizeJournalEntry(entry);
+    if (!normalized) return;
+    const confirmed = typeof window === 'undefined' || window.confirm('Delete this journal entry?');
+    if (!confirmed) return;
+
+    setIsSavingJournal(true);
+    setJournalError("");
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data?.session?.access_token;
+      const isCloudEntry = token && !String(normalized.id).startsWith('journal-');
+      if (isCloudEntry) {
+        const response = await fetch(`/api/journal/${normalized.id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || 'Journal delete failed');
+      }
+
+      const history = (readLocalJournalHistory() || []).filter(item => item.id !== normalized.id);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cubiqo_daily_journal_history', JSON.stringify(history));
+        if (history[0]) {
+          localStorage.setItem('cubiqo_daily_journal_latest', JSON.stringify(history[0]));
+        } else {
+          localStorage.removeItem('cubiqo_daily_journal_latest');
+        }
+      }
+      setJournalHistory(history.slice(0, 5));
+      setSavedEntry(history[0] || null);
+      setJournalStatus("Journal entry deleted.");
+    } catch (error) {
+      console.warn('Journal delete failed:', error.message);
+      setJournalError("Delete failed. Please try again after the connection settles.");
+    } finally {
+      setIsSavingJournal(false);
+    }
   };
 
   return (
@@ -415,34 +546,60 @@ const JournalPage = () => {
           {savedEntry ? (
             <div style={{ display: 'grid', gap: 18, flex: 1, alignContent: 'center' }}>
               <div style={{ color: 'rgba(251,191,36,0.84)', fontSize: '0.72rem', letterSpacing: 2, textTransform: 'uppercase' }}>Saved</div>
+              <div style={{ color: 'rgba(255,255,255,0.92)', fontSize: '1.12rem', lineHeight: 1.25 }}>{savedEntry.title || 'Daily Journal'}</div>
               <div style={{ whiteSpace: 'pre-wrap', color: 'rgba(255,255,255,0.78)', fontSize: '0.95rem', lineHeight: 1.65, maxHeight: 220, overflow: 'auto' }}>{savedEntry.content}</div>
               <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.78rem' }}>{savedEntry.wordCount} words · {new Date(savedEntry.createdAt).toLocaleString()}</div>
+              {savedEntry.tags?.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {savedEntry.tags.map(tag => (
+                    <span key={tag} style={{ border: '1px solid rgba(255,255,255,0.09)', borderRadius: 999, padding: '6px 9px', color: 'rgba(255,255,255,0.48)', fontSize: '0.68rem' }}>{tag}</span>
+                  ))}
+                </div>
+              )}
               {journalHistory.length > 1 && (
                 <div style={{ display: 'grid', gap: 8 }}>
                   <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.68rem', letterSpacing: 1.8, textTransform: 'uppercase' }}>Recent</div>
                   {journalHistory.slice(1, 4).map(entry => (
-                    <div key={entry.id} style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '10px 12px', color: 'rgba(255,255,255,0.52)', fontSize: '0.74rem', lineHeight: 1.35 }}>
-                      {new Date(entry.created_at).toLocaleDateString()} · {entry.word_count || 0} words
-                    </div>
+                    <button
+                      key={entry.id}
+                      type="button"
+                      onClick={() => setSavedEntry(normalizeJournalEntry(entry))}
+                      style={{ textAlign: 'left', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '10px 12px', color: 'rgba(255,255,255,0.52)', fontSize: '0.74rem', lineHeight: 1.35, background: 'rgba(255,255,255,0.03)', cursor: 'pointer' }}
+                    >
+                      <span style={{ display: 'block', color: 'rgba(255,255,255,0.72)', marginBottom: 3 }}>{entry.title || 'Daily Journal'}</span>
+                      {new Date(entry.createdAt || entry.created_at).toLocaleDateString()} · {entry.wordCount || entry.word_count || 0} words
+                    </button>
                   ))}
                 </div>
               )}
-              <button
-                type="button"
-                onClick={() => {
-                  setSavedEntry(null);
-                  setPromptIndex(0);
-                  setResponses(["", "", "", ""]);
-                  setJournalStatus("");
-                }}
-                style={{ justifySelf: 'start', border: '1px solid rgba(251,191,36,0.26)', background: 'rgba(251,191,36,0.1)', color: 'rgba(251,191,36,0.92)', borderRadius: 14, padding: '12px 16px', cursor: 'pointer' }}
-              >
-                Start another entry
-              </button>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={startNewJournalEntry}
+                  style={{ border: '1px solid rgba(251,191,36,0.26)', background: 'rgba(251,191,36,0.1)', color: 'rgba(251,191,36,0.92)', borderRadius: 14, padding: '12px 16px', cursor: 'pointer' }}
+                >
+                  Start another entry
+                </button>
+                <button
+                  type="button"
+                  onClick={() => editJournalEntry(savedEntry)}
+                  style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.78)', borderRadius: 14, padding: '12px 16px', cursor: 'pointer' }}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteJournalEntry(savedEntry)}
+                  disabled={isSavingJournal}
+                  style={{ border: '1px solid rgba(248,113,113,0.22)', background: 'rgba(248,113,113,0.08)', color: 'rgba(254,202,202,0.82)', borderRadius: 14, padding: '12px 16px', cursor: isSavingJournal ? 'not-allowed' : 'pointer', opacity: isSavingJournal ? 0.55 : 1 }}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ) : (
             <div style={{ display: 'grid', gap: 16, flex: 1 }}>
-              <div style={{ color: 'rgba(251,191,36,0.84)', fontSize: '0.72rem', letterSpacing: 2, textTransform: 'uppercase' }}>{currentJournalPrompt.label} · {promptIndex + 1}/{journalPrompts.length}</div>
+              <div style={{ color: 'rgba(251,191,36,0.84)', fontSize: '0.72rem', letterSpacing: 2, textTransform: 'uppercase' }}>{editingEntryId ? 'Edit' : currentJournalPrompt.label} · {promptIndex + 1}/{journalPrompts.length}</div>
               <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '1.32rem', lineHeight: 1.35 }}>{currentJournalPrompt.prompt}</div>
               <textarea
                 value={responses[promptIndex]}
@@ -481,12 +638,23 @@ const JournalPage = () => {
                   disabled={!canAdvanceJournal || isSavingJournal}
                   style={{ border: '1px solid rgba(251,191,36,0.3)', background: canAdvanceJournal ? 'linear-gradient(135deg, rgba(251,191,36,0.9), rgba(249,115,22,0.84))' : 'rgba(255,255,255,0.06)', color: canAdvanceJournal ? '#111' : 'rgba(255,255,255,0.38)', borderRadius: 14, padding: '12px 18px', cursor: canAdvanceJournal ? 'pointer' : 'not-allowed', fontWeight: 700 }}
                 >
-                  {isSavingJournal ? 'Saving...' : promptIndex === journalPrompts.length - 1 ? 'Save entry' : 'Next'}
+                  {isSavingJournal ? 'Saving...' : promptIndex === journalPrompts.length - 1 ? (editingEntryId ? 'Update entry' : 'Save entry') : 'Next'}
                 </button>
               </div>
+              {!isLoadingJournalHistory && journalHistory.length === 0 && promptIndex === 0 && !responses.some(value => value.trim()) && (
+                <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 14px', color: 'rgba(255,255,255,0.42)', fontSize: '0.78rem', lineHeight: 1.45 }}>
+                  No journal entries yet. This first one will become your history.
+                </div>
+              )}
             </div>
           )}
 
+          {isLoadingJournalHistory && (
+            <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.76rem', lineHeight: 1.45 }}>Loading journal history...</div>
+          )}
+          {journalError && (
+            <div style={{ color: 'rgba(251,191,36,0.72)', fontSize: '0.78rem', lineHeight: 1.45 }}>{journalError}</div>
+          )}
           {journalStatus && (
             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.78rem', lineHeight: 1.45 }}>{journalStatus}</div>
           )}

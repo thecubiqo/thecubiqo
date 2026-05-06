@@ -25,7 +25,7 @@ Each feature moves through:
 |---|---|---|---|---|
 | P0 | QA launch/auth/RGY/voice baseline | current branch + `codex/cubiqo-ai-clean-baseline` | Done | Keep as foundation. |
 | P0 | Left panel essentials | Current QA, legacy dashboard/journal docs | Done | Theme, sign-in, journal CTA, and CubiQo size are present. |
-| P0 | Daily Journal | `src/app/journal/*`, `src/components/journal/*`, `DAILY_JOURNAL_*` docs | Code ready / DB pending | Guided flow, API, local fallback, history basics, and migration SQL are ready; Supabase needs the new migration applied. |
+| P0 | Daily Journal | `src/app/journal/*`, `src/components/journal/*`, `DAILY_JOURNAL_*` docs | Code complete / DB pending | Guided flow, API CRUD, local fallback, history, edit/delete, metadata, and migration SQL are ready; Supabase needs the new migration applied. |
 | P1 | Dashboard basics / legacy console | `src/app/dashboard/*`, `DashboardStats`, admin dashboard docs | Live shell | `/dashboard` now tracks account stats, journal fallback, and all legacy modules with gates. |
 | P1 | Runtime self-awareness | `src/lib/engine/*`, current `/api/converse` manifest | Partial | Extend model/tool/code awareness through tool layer. |
 | P1 | Live search | `src/lib/engine/web-tools.ts` | Missing | Add search as a separate tool from browser control. |
@@ -80,4 +80,11 @@ Each feature moves through:
 - Analysis: Supabase URL/anon configuration and profile/RLS migration already existed, but dashboard was visible to guests and magic-link callback routing was missing from the current Next shell.
 - Fix: Added magic-link auth from the CubiQo auth modal, added `/auth/callback`, protected `/dashboard` with a sign-in-required state, and added a regression guard that checks frontend files for server-only secret names.
 - Boundary: Service role remains server-side only. Current automated regression still fails on the already-known missing `journal_entries` migration until Supabase DB access is unblocked.
+
+### 6. Phase 2 Daily Journal Full Flow
+
+- Analysis: The previous pass had create/list basics, but the UI still behaved like a latest-entry card instead of a full journal feature.
+- Fix: Added title, mood, tags, loading/error/empty states, local guest history, cloud history normalization, edit, delete, and synced local/cloud replacement so successful cloud saves do not leave duplicate local placeholders.
+- Backend: Added shared journal auth/payload helpers and `/api/journal/[id]` PUT/DELETE. Updated the migration to include `title` and `tags` with RLS still user-owned.
+- Verification: `npm run build`, `npm run typecheck`, and local route smoke passed. `npm run verify:cqai` still fails only because `public.journal_entries` is not applied in Supabase yet.
 
