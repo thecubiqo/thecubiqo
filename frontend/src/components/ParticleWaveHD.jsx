@@ -502,14 +502,14 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
       });
     }
 
-    // Voice cuboid: plasma, not floating giant wireframe.
+    // Minimal voice aperture: keep a single ghosted outline so the V-wave remains dominant.
     const cuboidGroup = new THREE.Group();
     cuboidGroup.renderOrder = 6;
     scene.add(cuboidGroup);
 
     const cuboidTargetRotation = { x: -0.34, y: 0.58, z: 0.045 };
     const shellEdges = [];
-    const cuboidFrameCount = 8;
+    const cuboidFrameCount = 1;
     Array.from({ length: cuboidFrameCount }).forEach((_, i) => {
       const turn = i / Math.max(cuboidFrameCount - 1, 1);
       const size = 2.04 - Math.sin(turn * Math.PI) * 0.08;
@@ -534,7 +534,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
       });
     });
 
-    const shellParticlesCount = 1800;
+    const shellParticlesCount = 320;
     const shellPositions = new Float32Array(shellParticlesCount * 3);
     const shellColors = new Float32Array(shellParticlesCount * 3);
     const shellSeeds = new Float32Array(shellParticlesCount);
@@ -579,22 +579,23 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
     cuboidGroup.add(shellParticles);
 
     const voiceSignalGroup = new THREE.Group();
-    voiceSignalGroup.position.z = 0.72;
+    voiceSignalGroup.position.z = 0.82;
     voiceSignalGroup.renderOrder = 9;
-    cuboidGroup.add(voiceSignalGroup);
+    scene.add(voiceSignalGroup);
     const signalBars = [];
+    const bridgeWaves = [];
     const ruby = new THREE.Color("#b83b4f");
     const teal = new THREE.Color("#45c9c8");
     const paleYellow = new THREE.Color("#d8cf95");
     const mix = new THREE.Color();
-    const signalBarCount = 72;
+    const signalBarCount = 44;
     for (let i = 0; i < signalBarCount; i++) {
       const xNorm = i / (signalBarCount - 1);
-      const x = (xNorm - 0.5) * 3.25;
+      const x = (xNorm - 0.5) * 1.36;
       if (xNorm < 0.34) mix.copy(ruby).lerp(paleYellow, xNorm / 0.34);
       else if (xNorm < 0.68) mix.copy(paleYellow).lerp(teal, (xNorm - 0.34) / 0.34);
       else mix.copy(teal).lerp(ruby, (xNorm - 0.68) / 0.32);
-      const geo = new THREE.PlaneGeometry(0.028, 0.2);
+      const geo = new THREE.PlaneGeometry(0.018, 0.14);
       const mat = new THREE.MeshBasicMaterial({
         color: mix,
         transparent: true,
@@ -609,6 +610,47 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
       bar.renderOrder = 9;
       voiceSignalGroup.add(bar);
       signalBars.push({ mesh: bar, geometry: geo, material: mat, xNorm, phase: Math.random() * Math.PI * 2 });
+    }
+
+    const bridgeWaveCount = 5;
+    const bridgeSegments = 104;
+    const bridgePalette = [ruby, paleYellow, teal];
+    for (let w = 0; w < bridgeWaveCount; w++) {
+      const positions = new Float32Array(bridgeSegments * 3);
+      const colors = new Float32Array(bridgeSegments * 3);
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+      for (let s = 0; s < bridgeSegments; s++) {
+        const xNorm = s / Math.max(bridgeSegments - 1, 1);
+        if (xNorm < 0.5) mix.copy(bridgePalette[0]).lerp(bridgePalette[1], xNorm / 0.5);
+        else mix.copy(bridgePalette[1]).lerp(bridgePalette[2], (xNorm - 0.5) / 0.5);
+        const idx = s * 3;
+        colors[idx] = mix.r;
+        colors[idx + 1] = mix.g;
+        colors[idx + 2] = mix.b;
+      }
+
+      const material = new THREE.LineBasicMaterial({
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        depthTest: false,
+        vertexColors: true,
+      });
+      const line = new THREE.Line(geometry, material);
+      line.renderOrder = 10;
+      voiceSignalGroup.add(line);
+      bridgeWaves.push({
+        geometry,
+        material,
+        line,
+        offset: (w - (bridgeWaveCount - 1) / 2) * 0.055,
+        phase: Math.random() * Math.PI * 2,
+        width: 1.58 + w * 0.06,
+      });
     }
 
     const clock = new THREE.Clock();
@@ -729,8 +771,8 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
               freq: entry.freq,
               phase: entry.phase,
               time: t,
-              xMax: system.xMax,
-              centerGap: system.centerGap,
+              xMax: THREE.MathUtils.lerp(system.xMax, isLanding ? system.xMax : 2.32, voiceMorph),
+              centerGap: THREE.MathUtils.lerp(system.centerGap, isLanding ? system.centerGap : 0.72, voiceMorph),
               depth: entry.depth,
             });
             const dst = s * 3;
@@ -756,8 +798,8 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
             freq: line.freq,
             phase: line.phase + node.phase * 0.08,
             time: t,
-            xMax: system.xMax,
-            centerGap: system.centerGap,
+            xMax: THREE.MathUtils.lerp(system.xMax, isLanding ? system.xMax : 2.32, voiceMorph),
+            centerGap: THREE.MathUtils.lerp(system.centerGap, isLanding ? system.centerGap : 0.72, voiceMorph),
             depth: line.depth,
           });
           const idx = i * 3;
@@ -819,7 +861,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
         shell.lines.rotation.y = cuboidTargetRotation.y * shell.turn + Math.cos(t * 0.07 + i * 0.4) * 0.008 * voiceMorph;
         shell.lines.rotation.z = cuboidTargetRotation.z * shell.turn;
         shell.lines.scale.setScalar(0.98 + shell.turn * 0.035 + plasmaMode * 0.006);
-        shell.material.opacity = frameReveal * endpointWeight * (0.08 + phaseScan * 0.05 + (shell.endpoint ? 0.08 : 0));
+        shell.material.opacity = frameReveal * endpointWeight * (0.025 + phaseScan * 0.018 + (shell.endpoint ? 0.025 : 0));
       });
 
       const shellPos = shellParticleGeometry.attributes.position.array;
@@ -837,11 +879,12 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
         cuboidTargetRotation.y * shellResolve,
         cuboidTargetRotation.z * shellResolve
       );
-      shellParticleMaterial.opacity = voiceMorph * 0.12;
+      shellParticleMaterial.opacity = voiceMorph * 0.035;
       cuboidGroup.rotation.set(0, 0, 0);
 
-      // Subtle tri-color audio signal through cuboid.
+      // Subtle tri-color audio bridge across the V gap.
       const realAudio = audioLevelRef.current;
+      const speechBridgePresence = voiceMorph * smoothstep(0.045, 0.12, realAudio);
       const st = t * 0.35; // Slow down base autonomous movement
       const speakingPulse = 0.22 + (Math.pow((Math.sin(st * 2.4) + 1) * 0.5, 1.5) * 0.38) * (1 + realAudio * 1.8);
       signalBars.forEach((bar, i) => {
@@ -849,10 +892,29 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
         const wave = Math.sin(i * 0.34 - st * 5.8 + bar.phase) * 0.65 + Math.sin(i * 0.17 + st * 2.8) * 0.35;
         const heartbeat = Math.exp(-Math.pow(((((st * 1.35 + bar.xNorm * 0.95) % 1) - 0.17) / 0.05), 2)) * (0.42 + realAudio * 0.8);
         const amp = (0.08 + envelope * 0.18) * speakingPulse + heartbeat * 0.18;
-        bar.mesh.scale.y = 0.24 + Math.abs(wave) * amp * (2.2 + realAudio * 2.4);
+        bar.mesh.scale.y = 0.16 + Math.abs(wave) * amp * (1.35 + realAudio * 1.7);
         bar.mesh.position.y = Math.sin(i * 0.08 + st * 1.15) * 0.014;
         bar.mesh.position.z = Math.sin(i * 0.05 + st * 0.9) * 0.01;
-        bar.material.opacity = voiceMorph * (0.08 + envelope * 0.2 + realAudio * 0.08);
+        bar.material.opacity = speechBridgePresence * (0.03 + envelope * 0.08 + realAudio * 0.08);
+      });
+
+      bridgeWaves.forEach((bridge, bridgeIndex) => {
+        const pos = bridge.geometry.attributes.position.array;
+        for (let s = 0; s < bridgeSegments; s++) {
+          const xNorm = s / Math.max(bridgeSegments - 1, 1);
+          const x = (xNorm - 0.5) * bridge.width;
+          const centerEnvelope = Math.exp(-Math.pow((xNorm - 0.5) / 0.34, 2));
+          const edgeTaper = smoothstep(0, 0.12, xNorm) * (1 - smoothstep(0.88, 1, xNorm));
+          const fineWave = Math.sin(xNorm * Math.PI * 5.6 - st * 7.6 + bridge.phase) * 0.036;
+          const slowWave = Math.sin(xNorm * Math.PI * 2.2 + st * 3.1 + bridgeIndex * 0.62) * 0.052;
+          const audioWave = Math.sin(xNorm * Math.PI * 12 + st * 10 + bridge.phase) * realAudio * 0.075;
+          const idx = s * 3;
+          pos[idx] = x;
+          pos[idx + 1] = bridge.offset + (fineWave + slowWave + audioWave) * centerEnvelope * edgeTaper;
+          pos[idx + 2] = 0.02 + bridgeIndex * 0.018 + Math.sin(xNorm * Math.PI * 2 + st + bridge.phase) * 0.018;
+        }
+        bridge.geometry.attributes.position.needsUpdate = true;
+        bridge.material.opacity = speechBridgePresence * (0.16 + realAudio * 0.42) * (1 - bridgeIndex * 0.09);
       });
 
       coreLight.intensity = 8 + breathe * 2 + particleMode * 2 + voiceMorph * 9;
@@ -915,6 +977,10 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
       signalBars.forEach((bar) => {
         bar.geometry.dispose();
         bar.material.dispose();
+      });
+      bridgeWaves.forEach((bridge) => {
+        bridge.geometry.dispose();
+        bridge.material.dispose();
       });
       glowMap?.dispose();
       renderer.dispose();

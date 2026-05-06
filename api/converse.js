@@ -30,8 +30,8 @@ const ANTHROPIC_KEY = ANTHROPIC_ENV.value;
 const OPENAI_KEY = OPENAI_ENV.value;
 const OPENROUTER_KEY = OPENROUTER_ENV.value;
 const ELEVENLABS_KEY = ELEVENLABS_ENV.value;
-const ELEVENLABS_VOICE_ID = VOICE_ENV.value || 'SAz9YHcvj6GT2YYXdXww'; // River - relaxed, neutral, informative
-const ELEVENLABS_VOICE_NAME = process.env.ELEVENLABS_VOICE_NAME || process.env.ELEVEN_LABS_VOICE_NAME || 'River';
+const ELEVENLABS_VOICE_ID = VOICE_ENV.value || 'SAz9YHcvj6GT2YYXdXww'; // River - neutral, calm, informative
+const ELEVENLABS_VOICE_NAME = process.env.ELEVENLABS_VOICE_NAME || process.env.ELEVEN_LABS_VOICE_NAME || 'River neutral/androgynous';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || process.env.AI_MODEL || 'gpt-5.4';
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20241022';
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet';
@@ -478,12 +478,12 @@ function getProviderSequence(modelOverride) {
 
 function voiceSettingsForRgy(rgy = {}) {
   if (rgy.color === 'green') {
-    return { stability: 0.64, similarity_boost: 0.78, style: 0.16, use_speaker_boost: true };
+    return { stability: 0.7, similarity_boost: 0.6, style: 0.08, speed: 0.94, use_speaker_boost: false };
   }
   if (rgy.color === 'red') {
-    return { stability: 0.82, similarity_boost: 0.72, style: 0.04, use_speaker_boost: false };
+    return { stability: 0.82, similarity_boost: 0.56, style: 0.02, speed: 0.9, use_speaker_boost: false };
   }
-  return { stability: 0.72, similarity_boost: 0.76, style: 0.12, use_speaker_boost: true };
+  return { stability: 0.76, similarity_boost: 0.58, style: 0.05, speed: 0.92, use_speaker_boost: false };
 }
 
 async function generateElevenLabsAudio(text, rgy = {}) {

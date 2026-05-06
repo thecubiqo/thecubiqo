@@ -1,24 +1,26 @@
 import React, { useState, useEffect, useRef } from "react";
-import "@/App.css";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Canvas } from "@react-three/fiber";
 import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocessing";
 import { Suspense } from "react";
 import CubiQoVisual from "./components/CubiQoVisual";
 import ParticleWaveHD from "./components/ParticleWaveHD";
-import { Menu, Activity, X, Settings, Database, Shield, User, LogOut, Mail, Lock, Send, Plus } from "lucide-react";
+import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 const SignalIcon = ({ size = 18 }) => (
-  <div style={{
-    width: size * 0.9, height: size * 1.8, background: 'rgba(255,255,255,0.08)',
-    borderRadius: '100px', display: 'flex', flexDirection: 'column',
-    alignItems: 'center', justifyContent: 'center', gap: size * 0.2, border: '1px solid rgba(255,255,255,0.1)'
-  }}>
-    <div style={{ width: size * 0.35, height: size * 0.35, borderRadius: '50%', background: '#f87171', boxShadow: '0 0 8px rgba(248,113,113,0.4)' }} />
-    <div style={{ width: size * 0.35, height: size * 0.35, borderRadius: '50%', background: '#fbbf24', boxShadow: '0 0 8px rgba(251,191,36,0.4)' }} />
-    <div style={{ width: size * 0.35, height: size * 0.35, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 8px rgba(52,211,153,0.4)' }} />
-  </div>
+  <img
+    src="/assets/rgy-signal-mark.png"
+    alt=""
+    aria-hidden="true"
+    style={{
+      display: 'block',
+      height: size * 1.55,
+      width: 'auto',
+      objectFit: 'contain',
+      filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.12))'
+    }}
+  />
 );
 
 const LandingPage = () => {
@@ -36,6 +38,42 @@ const LandingPage = () => {
     </div>
   );
 };
+
+const VISITOR_MEMORY_KEY = 'cubiqo_visit_memory_v1';
+const MEMORY_EVENT_LIMIT = 10;
+
+const readVisitorMemory = () => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem(VISITOR_MEMORY_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed.slice(-MEMORY_EVENT_LIMIT) : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeVisitorMemory = (events) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(VISITOR_MEMORY_KEY, JSON.stringify(events.slice(-MEMORY_EVENT_LIMIT)));
+};
+
+const memoryEventsToHistory = (events = []) => events
+  .slice(-6)
+  .flatMap(event => [
+    { role: 'user', content: event.user_message || event.userMessage || '' },
+    { role: 'assistant', content: event.assistant_response || event.assistantResponse || '' }
+  ])
+  .filter(item => item.content);
+
+const normalizeKeywordRows = (keywords = {}, userId) => Object.entries(keywords)
+  .flatMap(([color, words]) => (Array.isArray(words) ? words : []).map(keyword => ({
+    user_id: userId,
+    color,
+    keyword: String(keyword).slice(0, 80),
+    source: 'conversation',
+    metadata: { captured_by: 'cubiqo-client' }
+  })))
+  .filter(row => ['green', 'yellow', 'red'].includes(row.color) && row.keyword);
 
 const JournalPage = () => {
   const navigate = useNavigate();
@@ -55,12 +93,49 @@ const JournalPage = () => {
           <X size={16} /> Close Journal
         </button>
       </div>
-      <div style={{ position: 'absolute', bottom: '15%', left: '50%', transform: 'translateX(-50%)', zIndex: 100, textAlign: 'center', width: '80%', maxWidth: '600px' }}>
-        <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '2rem', fontWeight: 300, letterSpacing: 2, marginBottom: 12, textShadow: '0 0 20px rgba(255,255,255,0.3)' }}>
-          Daily Journal
-        </div>
-        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', fontWeight: 300, lineHeight: 1.6 }}>
-          Speak naturally. Your thoughts are recorded in the energy field.
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 90,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        pointerEvents: 'none'
+      }}>
+        <div style={{
+          width: 'clamp(176px, 22vw, 260px)',
+          aspectRatio: '1 / 1',
+          borderRadius: '50%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
+          color: 'rgba(255,255,255,0.9)',
+          border: '1px solid rgba(255,255,255,0.16)',
+          background: 'radial-gradient(circle at 42% 32%, rgba(255,255,255,0.16), rgba(251,191,36,0.08) 36%, rgba(10,10,18,0.18) 72%)',
+          boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.18), inset 0 -22px 40px rgba(0,0,0,0.2), 0 0 46px rgba(251,191,36,0.18), 0 34px 90px rgba(0,0,0,0.34)',
+          backdropFilter: 'blur(26px) saturate(1.35)',
+          WebkitBackdropFilter: 'blur(26px) saturate(1.35)'
+        }}>
+          <div style={{
+            color: 'rgba(255,255,255,0.48)',
+            fontSize: '0.68rem',
+            fontWeight: 500,
+            letterSpacing: 2.8,
+            textTransform: 'uppercase'
+          }}>
+            Daily Journal
+          </div>
+          <div style={{
+            color: 'rgba(255,255,255,0.92)',
+            fontSize: 'clamp(1.15rem, 2.35vw, 1.65rem)',
+            fontWeight: 400,
+            letterSpacing: 0,
+            textShadow: '0 0 26px rgba(251,191,36,0.32)'
+          }}>
+            Coming soon
+          </div>
         </div>
       </div>
     </div>
@@ -99,10 +174,21 @@ const DemoPage = () => {
   const [profileSyncError, setProfileSyncError] = useState('');
   const [uiVisible, setUiVisible] = useState(true);
   const [chatInput, setChatInput] = useState('');
-  const [journalEntry, setJournalEntry] = useState('');
   const [lastUserMessage, setLastUserMessage] = useState('');
   const [conversationError, setConversationError] = useState('');
   const [speakingAudioLevel, setSpeakingAudioLevel] = useState(0);
+  const [visitMemory, setVisitMemory] = useState(() => readVisitorMemory());
+  const [userMemory, setUserMemory] = useState([]);
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const storedTheme = localStorage.getItem('cubiqo_page_theme') || localStorage.getItem('cubiqo_tray_theme');
+    return storedTheme !== 'light';
+  });
+  const [visualScale, setVisualScale] = useState(() => {
+    if (typeof window === 'undefined') return 100;
+    const saved = parseInt(localStorage.getItem('cubiqo_visual_scale') || '100', 10);
+    return Number.isFinite(saved) ? Math.min(130, Math.max(80, saved)) : 100;
+  });
 
   // Periodic UI Breathing (Back and Forth between functional and cinematic)
   useEffect(() => {
@@ -112,16 +198,29 @@ const DemoPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const aiState = isSpeaking ? 'speaking' : (speakerEnabled ? 'listening' : (isProcessing ? 'thinking' : 'neutral'));
-  const statusLabel = isSpeaking ? 'Speaking' : (speakerEnabled ? 'Listening' : (isProcessing ? 'Thinking' : 'Idle'));
+  useEffect(() => {
+    localStorage.setItem('cubiqo_page_theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
+  useEffect(() => {
+    localStorage.setItem('cubiqo_visual_scale', String(visualScale));
+  }, [visualScale]);
+
+  const aiState = isSpeaking ? 'speaking' : (speakerEnabled ? 'listening' : (isProcessing ? 'thinking' : 'neutral'));
   const recognitionRef = useRef(null);
   const audioRef = useRef(typeof Audio !== 'undefined' ? new Audio() : null);
   const audioAnalysisContextRef = useRef(null);
   const audioAnalysisSourceRef = useRef(null);
   const audioAnalyserRef = useRef(null);
   const audioAnalysisFrameRef = useRef(null);
+  const micAnalysisContextRef = useRef(null);
+  const micAnalysisSourceRef = useRef(null);
+  const micAnalyserRef = useRef(null);
+  const micStreamRef = useRef(null);
+  const micAnalysisFrameRef = useRef(null);
   const transcriptRef = useRef('');
+  const manualStopRef = useRef(false);
+  const listeningActiveRef = useRef(false);
   const callBackendRef = useRef(null);
 
   const ensureUserProfile = async (session) => {
@@ -146,18 +245,76 @@ const DemoPage = () => {
     return true;
   };
 
+  const loadUserMemory = async (sessionUser) => {
+    if (!sessionUser?.id) {
+      setUserMemory([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('conversation_events')
+      .select('user_message,assistant_response,rgy_color,rgy_intent,keywords,model_used,created_at')
+      .eq('user_id', sessionUser.id)
+      .order('created_at', { ascending: false })
+      .limit(MEMORY_EVENT_LIMIT);
+
+    if (error) {
+      console.warn('Memory load failed:', error.message);
+      return;
+    }
+
+    setUserMemory((data || []).reverse());
+  };
+
+  const rememberConversation = async (userMessage, assistantResponse, data = {}) => {
+    const event = {
+      user_message: userMessage,
+      assistant_response: assistantResponse,
+      rgy_color: normalizeKeywordColor(data.rgy?.color || 'yellow'),
+      rgy_intent: data.rgy?.intent || null,
+      keywords: normalizeKeywords(data.keywords || {}),
+      model_used: data.model_used || 'unknown',
+      created_at: new Date().toISOString()
+    };
+
+    const nextVisitMemory = [...visitMemory, event].slice(-MEMORY_EVENT_LIMIT);
+    setVisitMemory(nextVisitMemory);
+    writeVisitorMemory(nextVisitMemory);
+
+    if (!user?.id) return;
+
+    const dbEvent = { ...event, user_id: user.id };
+    const { error: eventError } = await supabase.from('conversation_events').insert(dbEvent);
+    if (eventError) {
+      console.warn('Conversation memory save failed:', eventError.message);
+      return;
+    }
+
+    const keywordRows = normalizeKeywordRows(event.keywords, user.id);
+    if (keywordRows.length) {
+      const { error: keywordError } = await supabase
+        .from('user_activity_keywords')
+        .insert(keywordRows.slice(0, 24));
+      if (keywordError) console.warn('Keyword memory save failed:', keywordError.message);
+    }
+
+    setUserMemory(prev => [...prev, event].slice(-MEMORY_EVENT_LIMIT));
+  };
+
   // Supabase auth session listener
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       setUser(data.session?.user ?? null);
       await ensureUserProfile(data.session);
+      await loadUserMemory(data.session?.user);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_e, session) => {
       setUser(session?.user ?? null);
       await ensureUserProfile(session);
+      await loadUserMemory(session?.user);
       if (session?.user) setActiveModal(null);
     });
-    // ensureUserProfile only depends on stable Supabase client module state.
+    // Profile and memory helpers only depend on stable Supabase client module state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     return () => subscription.unsubscribe();
   }, []);
@@ -199,17 +356,25 @@ const DemoPage = () => {
     };
     rec.onerror = (e) => {
       console.warn('Speech error:', e.error);
+      listeningActiveRef.current = false;
+      stopMicAnalysis();
       setSpeakerEnabled(false);
       setIsProcessing(false);
       setConversationError(e.error === 'not-allowed' ? 'Microphone permission denied. Use the text field instead.' : 'Voice input stopped. Use the text field or try again.');
     };
     rec.onend = () => {
       const text = transcriptRef.current.trim();
+      const wasManualStop = manualStopRef.current;
+      manualStopRef.current = false;
+      listeningActiveRef.current = false;
+      stopMicAnalysis();
       transcriptRef.current = '';
       setSpeakerEnabled(false);
       if (text) {
         setIsProcessing(true);
         callBackendRef.current?.(text);
+      } else if (wasManualStop) {
+        setConversationError('');
       } else {
         setConversationError('No speech detected. Tap again or type below.');
       }
@@ -237,6 +402,120 @@ const DemoPage = () => {
       audioAnalysisFrameRef.current = null;
     }
     setSpeakingAudioLevel(0);
+  };
+
+  const stopMicAnalysis = () => {
+    if (micAnalysisFrameRef.current) {
+      cancelAnimationFrame(micAnalysisFrameRef.current);
+      micAnalysisFrameRef.current = null;
+    }
+    micAnalysisSourceRef.current?.disconnect?.();
+    micAnalysisSourceRef.current = null;
+    micAnalyserRef.current = null;
+    micStreamRef.current?.getTracks?.().forEach(track => track.stop());
+    micStreamRef.current = null;
+    setSpeakingAudioLevel(0);
+  };
+
+  const startMicAnalysis = async () => {
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor || !navigator.mediaDevices?.getUserMedia) return;
+
+    try {
+      stopMicAnalysis();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      if (!listeningActiveRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+
+      if (!micAnalysisContextRef.current || micAnalysisContextRef.current.state === 'closed') {
+        micAnalysisContextRef.current = new AudioContextCtor();
+      }
+      const ctx = micAnalysisContextRef.current;
+      if (ctx.state === 'suspended') await ctx.resume();
+
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.72;
+      const source = ctx.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      micStreamRef.current = stream;
+      micAnalysisSourceRef.current = source;
+      micAnalyserRef.current = analyser;
+
+      const samples = new Uint8Array(analyser.fftSize);
+      const tick = () => {
+        if (!listeningActiveRef.current || !micAnalyserRef.current) {
+          stopMicAnalysis();
+          return;
+        }
+        micAnalyserRef.current.getByteTimeDomainData(samples);
+        let sum = 0;
+        for (let i = 0; i < samples.length; i++) {
+          const normalized = (samples[i] - 128) / 128;
+          sum += normalized * normalized;
+        }
+        const rms = Math.sqrt(sum / samples.length);
+        const voiceLevel = Math.max(0, Math.min(0.72, (rms - 0.018) * 5.2));
+        setSpeakingAudioLevel(prev => prev * 0.78 + voiceLevel * 0.22);
+        micAnalysisFrameRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+    } catch (error) {
+      console.warn('Mic analysis unavailable:', error.message);
+      setSpeakingAudioLevel(0);
+    }
+  };
+
+  const playListeningCue = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    stopAudioAnalysis();
+    setSpeakingAudioLevel(0);
+    try {
+      const res = await fetch('/api/voice-cue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cue: 'listening' })
+      });
+      const data = await res.json();
+      if (!data.audio_url) throw new Error(data.error || 'No listening cue audio');
+
+      await new Promise((resolve) => {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.onplay = null;
+        audio.onpause = null;
+        audio.src = data.audio_url;
+        audio.volume = 0.78;
+        audio.onended = resolve;
+        audio.onerror = resolve;
+        audio.play().catch(resolve);
+      });
+    } catch (error) {
+      if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
+      const utterance = new SpeechSynthesisUtterance('I am listening');
+      utterance.rate = 0.88;
+      utterance.pitch = 0.72;
+      utterance.volume = 0.62;
+      await new Promise((resolve) => {
+        utterance.onend = resolve;
+        utterance.onerror = resolve;
+        window.speechSynthesis?.speak(utterance);
+        setTimeout(resolve, 1600);
+      });
+    } finally {
+      setSpeakingAudioLevel(0);
+    }
   };
 
   const startAudioAnalysis = async () => {
@@ -286,7 +565,9 @@ const DemoPage = () => {
   useEffect(() => {
     return () => {
       stopAudioAnalysis();
+      stopMicAnalysis();
       audioAnalysisContextRef.current?.close?.();
+      micAnalysisContextRef.current?.close?.();
     };
   }, []);
 
@@ -301,7 +582,10 @@ const DemoPage = () => {
       const res = await fetch('/api/converse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: cleanInput })
+        body: JSON.stringify({
+          message: cleanInput,
+          history: memoryEventsToHistory(user?.id ? [...visitMemory, ...userMemory] : visitMemory)
+        })
       });
       if (!res.ok) throw new Error(`Conversation failed with ${res.status}`);
       const data = await res.json();
@@ -349,6 +633,7 @@ const DemoPage = () => {
         };
         window.speechSynthesis.speak(utterance);
       }
+      await rememberConversation(cleanInput, responseText, data);
     } catch (err) {
       // Fallback: local keyword extraction
       const words = cleanInput.toLowerCase().split(/\s+/).filter(w => w.length > 2);
@@ -377,8 +662,14 @@ const DemoPage = () => {
         color_is_ui_only: true
       });
       if (!colorLock) setSelectedKeywordColor('yellow');
-      setAiResponse("I am here, but the live model connection is degraded. I still caught your intent; try again in a moment or keep typing and I will keep tracking the signal.");
+      const fallbackResponse = "I am here, but the live model connection is degraded. I still caught your intent; try again in a moment or keep typing and I will keep tracking the signal.";
+      setAiResponse(fallbackResponse);
       setConversationError('Model connection degraded');
+      await rememberConversation(cleanInput, fallbackResponse, {
+        keywords: nk,
+        model_used: 'local-fallback',
+        rgy: { color: 'yellow', intent: 'degraded_connection' }
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -394,7 +685,7 @@ const DemoPage = () => {
     callBackend(text);
   };
 
-  const toggleListening = () => {
+  const toggleListening = async () => {
     // Unlock audio context for iOS/Safari
     if (audioRef.current) {
       audioRef.current.volume = 0;
@@ -402,15 +693,30 @@ const DemoPage = () => {
     }
     
     if (isProcessing) return;
+    if (speakerEnabled) {
+      manualStopRef.current = true;
+      listeningActiveRef.current = false;
+      transcriptRef.current = '';
+      setConversationError('');
+      setSpeakerEnabled(false);
+      stopMicAnalysis();
+      recognitionRef.current?.stop?.();
+      return;
+    }
     if (!speakerEnabled) {
       if (!recognitionRef.current) {
         setConversationError('Voice input unavailable in this browser. Use the text field instead.');
         return;
       }
       transcriptRef.current = '';
+      manualStopRef.current = false;
+      listeningActiveRef.current = true;
       setSpeakerEnabled(true);
       try {
+        await playListeningCue();
+        if (!listeningActiveRef.current) return;
         recognitionRef.current?.start();
+        startMicAnalysis();
       } catch (e) {
         // Fallback: simulate for browsers without mic/Speech API
         setSpeakerEnabled(true);
@@ -424,8 +730,6 @@ const DemoPage = () => {
           callBackend(fake);
         }, 3000);
       }
-    } else {
-      recognitionRef.current?.stop(); // triggers onend which handles the rest
     }
   };
 
@@ -438,12 +742,105 @@ const DemoPage = () => {
   const active = colorMap[activeColor] || colorMap.yellow;
   const signalColor = normalizeKeywordColor(colorLock || rgyCapsule.color || 'yellow');
   const signal = colorMap[signalColor] || colorMap.yellow;
-  const systemRows = [
-    { label: 'State', value: statusLabel, color: signal.hex },
-    { label: 'RGY', value: `${signal.label} · ${rgyCapsule.intent || 'session'}`, color: signal.hex },
-    { label: 'Router', value: rgyCapsule.routing_mode === 'direct' ? 'Direct' : 'Intelligent', color: '#60a5fa' },
-    { label: 'Backend', value: modelUsed, color: modelUsed.includes('fallback') ? '#f59e0b' : '#34d399' }
-  ];
+  const rgySelectorOrder = ['red', 'yellow', 'green'];
+  const showVoiceEnablePrompt = !speakerEnabled && !isProcessing && !isSpeaking;
+  const activeHeroScale = ((speakerEnabled || isProcessing || isSpeaking) ? 1.04 : 1) * (visualScale / 100);
+  const pageTheme = isDark ? {
+    background: '#08080f',
+    text: '#f8fafc',
+    toggleBg: 'rgba(255,255,255,0.045)',
+    toggleBgActive: 'rgba(255,255,255,0.12)',
+    toggleBorder: 'rgba(255,255,255,0.1)',
+    toggleColor: '#fff',
+    promptText: 'rgba(235,238,245,0.66)',
+    promptIcon: 'rgba(235,238,245,0.7)',
+    promptBubble: 'linear-gradient(145deg, rgba(255,255,255,0.14), rgba(255,255,255,0.035))',
+    responseBg: 'rgba(10,10,16,0.56)',
+    responseBorder: 'rgba(255,255,255,0.08)',
+    responseMuted: 'rgba(255,255,255,0.46)',
+    responseText: 'rgba(255,255,255,0.92)',
+    inputBg: 'rgba(20,20,25,0.5)',
+    inputBorder: 'rgba(255,255,255,0.08)',
+    inputText: '#fff',
+    inputPlaceholder: 'rgba(255,255,255,0.42)',
+    canvasFilter: 'none'
+  } : {
+    background: 'radial-gradient(circle at 50% 36%, #ffffff 0%, #f5f5f7 46%, #ececf2 100%)',
+    text: '#17171f',
+    toggleBg: 'rgba(255,255,255,0.58)',
+    toggleBgActive: 'rgba(255,255,255,0.9)',
+    toggleBorder: 'rgba(24,24,32,0.11)',
+    toggleColor: '#242630',
+    promptText: 'rgba(24,24,32,0.62)',
+    promptIcon: 'rgba(24,24,32,0.66)',
+    promptBubble: 'linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.52))',
+    responseBg: 'rgba(255,255,255,0.84)',
+    responseBorder: 'rgba(24,24,32,0.1)',
+    responseMuted: 'rgba(24,24,32,0.46)',
+    responseText: 'rgba(20,20,28,0.9)',
+    inputBg: 'rgba(255,255,255,0.86)',
+    inputBorder: 'rgba(24,24,32,0.1)',
+    inputText: '#191a22',
+    inputPlaceholder: 'rgba(24,24,32,0.46)',
+    canvasFilter: 'saturate(0.9) contrast(0.88) brightness(1.08)'
+  };
+  const trayTheme = isDark ? {
+    panel: 'linear-gradient(150deg, rgba(28,28,34,0.68), rgba(8,8,13,0.46))',
+    panelBorder: 'rgba(255,255,255,0.11)',
+    card: 'rgba(255,255,255,0.045)',
+    cardBorder: 'rgba(255,255,255,0.095)',
+    cardHover: 'rgba(255,255,255,0.075)',
+    title: 'rgba(255,255,255,0.52)',
+    text: 'rgba(255,255,255,0.72)',
+    muted: 'rgba(255,255,255,0.4)',
+    strong: '#fff',
+    pill: 'rgba(255,255,255,0.07)',
+    shadow: '0 34px 90px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.12)',
+    hairline: 'rgba(255,255,255,0.08)'
+  } : {
+    panel: 'linear-gradient(150deg, rgba(255,255,255,0.94), rgba(246,247,250,0.82))',
+    panelBorder: 'rgba(24,24,32,0.12)',
+    card: 'rgba(255,255,255,0.78)',
+    cardBorder: 'rgba(24,24,32,0.1)',
+    cardHover: 'rgba(255,255,255,0.96)',
+    title: 'rgba(24,24,32,0.58)',
+    text: 'rgba(24,24,32,0.76)',
+    muted: 'rgba(24,24,32,0.48)',
+    strong: '#111318',
+    pill: 'rgba(20,20,28,0.06)',
+    shadow: '0 30px 80px rgba(20,20,28,0.16), inset 0 1px 0 rgba(255,255,255,0.86)',
+    hairline: 'rgba(24,24,32,0.08)'
+  };
+  const authTheme = isDark ? {
+    shell: 'linear-gradient(150deg, rgba(22,22,28,0.86), rgba(8,8,13,0.72))',
+    border: 'rgba(255,255,255,0.11)',
+    text: '#fff',
+    muted: 'rgba(255,255,255,0.48)',
+    field: 'rgba(255,255,255,0.055)',
+    fieldBorder: 'rgba(255,255,255,0.1)',
+    segment: 'rgba(255,255,255,0.055)',
+    segmentActive: 'rgba(255,255,255,0.14)'
+  } : {
+    shell: 'linear-gradient(150deg, rgba(255,255,255,0.98), rgba(246,247,250,0.94))',
+    border: 'rgba(24,24,32,0.13)',
+    text: '#16171f',
+    muted: 'rgba(24,24,32,0.62)',
+    field: 'rgba(255,255,255,0.9)',
+    fieldBorder: 'rgba(24,24,32,0.12)',
+    segment: 'rgba(24,24,32,0.06)',
+    segmentActive: 'rgba(255,255,255,0.9)'
+  };
+
+  const adjustVisualScale = (delta) => {
+    setVisualScale(prev => Math.min(130, Math.max(80, prev + delta)));
+  };
+
+  const handleDemoPageClick = (event) => {
+    setUiVisible(true);
+    const target = event.target;
+    if (target.closest('button,input,textarea,select,a,form,[data-no-voice-enable="true"]')) return;
+    if (!isProcessing && !isSpeaking) toggleListening();
+  };
 
   const addKeyword = (value = keywordDraft) => {
     const next = value.trim().toLowerCase().replace(/[^a-z0-9 -]/g, '');
@@ -465,23 +862,16 @@ const DemoPage = () => {
     boxShadow: '0 40px 100px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.05)',
     zIndex: 10,
     transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-    overflow: 'hidden'
+    overflow: 'hidden',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", sans-serif'
   };
-
-  const navItems = [
-    { id: 'dimensions', label: 'My Dimensions', icon: Activity, sub: 'Explore your space' },
-    { id: 'journal', label: 'Daily Journal', icon: Activity, sub: 'Reflect and capture thoughts' },
-    { id: 'settings', label: 'Settings', icon: Settings, sub: 'Preferences & AI models' },
-    { id: 'integrations', label: 'Integrations', icon: Database, sub: 'Notion, Calendar, Health' },
-    { id: 'privacy', label: 'Data & Privacy', icon: Shield, sub: 'Zero retention policy' }
-  ];
 
   return (
     <>
       <div 
         data-testid="demo-page" 
-        onClick={() => setUiVisible(true)}
-        style={{ width: '100%', height: '100vh', background: '#08080f', position: 'relative', overflow: 'hidden', cursor: uiVisible ? 'default' : 'pointer' }}
+        onClick={handleDemoPageClick}
+        style={{ width: '100%', height: '100vh', background: pageTheme.background, color: pageTheme.text, position: 'relative', overflow: 'hidden', cursor: uiVisible ? 'default' : 'pointer', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", sans-serif', transition: 'background 0.45s ease, color 0.45s ease' }}
       >
 
         {/* Toggle buttons */}
@@ -491,12 +881,12 @@ const DemoPage = () => {
         ].map(({ side, open, toggle, Icon, offset }) => (
           <button key={side} onClick={toggle} style={{
             position: 'absolute', top: 28, [side]: offset, zIndex: 100,
-            background: open ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            backdropFilter: 'blur(20px)', color: '#fff', borderRadius: '16px',
+            background: open ? pageTheme.toggleBgActive : pageTheme.toggleBg,
+            border: `1px solid ${pageTheme.toggleBorder}`,
+            backdropFilter: 'blur(24px) saturate(1.35)', WebkitBackdropFilter: 'blur(24px) saturate(1.35)', color: pageTheme.toggleColor, borderRadius: '16px',
             width: 48, height: 58, display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
-            boxShadow: open ? '0 0 0 1px rgba(255,255,255,0.15)' : 'none',
+            boxShadow: open ? `0 0 0 1px ${pageTheme.toggleBorder}, 0 18px 42px rgba(0,0,0,0.16)` : 'none',
             opacity: uiVisible || open ? 1 : 0,
             pointerEvents: uiVisible || open ? 'auto' : 'none'
           }}>
@@ -506,58 +896,75 @@ const DemoPage = () => {
 
         {/* PERSISTENT BRAND LOCKUP (Top Left) */}
         <div style={{ 
-          position: 'absolute', top: 26, left: 100, zIndex: 100,
+          position: 'absolute', top: 18, left: 94, zIndex: 100,
           pointerEvents: 'none', transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
           opacity: uiVisible ? 1 : 0,
           transform: uiVisible ? 'translateX(0)' : 'translateX(-20px)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 0, fontFamily: "'SF Pro Display','Inter',sans-serif", letterSpacing: '-0.5px' }}>
-            <span style={{ fontSize: '1.8rem', fontWeight: 600, color: '#ff6b35' }}>C</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 500, color: '#fff' }}>ubi</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 600, color: '#ff6b35' }}>Q</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 500, color: '#fff' }}>o</span>
-            <sup style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', marginLeft: 4 }}>TM</sup>
-          </div>
-          <div style={{ 
-            fontSize: '0.58rem', color: 'rgba(255,255,255,0.45)', letterSpacing: 3.5, 
-            marginTop: 6, textTransform: 'uppercase', fontWeight: 500,
-            opacity: 0.9, whiteSpace: 'nowrap'
-          }}>
-            Home to General Intelligence
-          </div>
+          <img
+            src="/assets/cubiqo-brand-lockup-transparent.png"
+            alt="CubiQo - Home to General Intelligence"
+            style={{
+              display: 'block',
+              width: 'clamp(230px, 23vw, 390px)',
+              height: 'auto',
+              objectFit: 'contain'
+            }}
+          />
         </div>
 
         {/* Hero — centered with 25% margins each side */}
-        <div onClick={toggleListening} style={{
+        <div style={{
           position: 'absolute', top: 0, bottom: 0,
           left: '25%', right: '25%',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', zIndex: 0
         }}>
-          <div style={{ width: '100%', height: '100%', position: 'relative', transition: 'transform 0.6s ease', transform: speakerEnabled || isProcessing || isSpeaking ? 'scale(1.04)' : 'scale(1)' }}>
+          <div style={{ width: '100%', height: '100%', position: 'relative', transition: 'transform 0.6s ease', transform: `scale(${activeHeroScale})` }}>
             
             {/* SINGLE HERO VISUAL: Clean morphing system using provided prototype */}
-            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
-              <ParticleWaveHD isVoiceMode={speakerEnabled || isProcessing || isSpeaking} audioLevel={speakerEnabled ? 0.2 : speakingAudioLevel} />
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1, filter: pageTheme.canvasFilter, transition: 'filter 0.45s ease' }}>
+              <ParticleWaveHD isVoiceMode={speakerEnabled || isProcessing || isSpeaking} audioLevel={speakingAudioLevel} />
             </div>
           </div>
 
           <div style={{ position: 'absolute', bottom: '8%', width: 'min(92vw, 560px)', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'auto', textAlign: 'center', gap: 14, transition: 'opacity 0.8s ease', opacity: uiVisible ? 1 : 0 }}>
+            {showVoiceEnablePrompt && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                color: pageTheme.promptText, letterSpacing: 1.6,
+                textTransform: 'uppercase', fontSize: '0.72rem', fontWeight: 500,
+                textShadow: '0 0 22px rgba(255,255,255,0.12)'
+              }}>
+                <div aria-hidden="true" style={{
+                  width: 52, height: 52, borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: pageTheme.promptBubble,
+                  border: `1px solid ${pageTheme.toggleBorder}`,
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), 0 18px 42px rgba(0,0,0,0.18)',
+                  backdropFilter: 'blur(24px) saturate(1.25)', WebkitBackdropFilter: 'blur(24px) saturate(1.25)'
+                }}>
+                  <Volume2 size={22} strokeWidth={1.45} color={pageTheme.promptIcon} />
+                </div>
+                <span>Tap to enable</span>
+              </div>
+            )}
+
             {(lastUserMessage || aiResponse) && (
               <div style={{
                 width: '100%', maxHeight: '28vh', overflowY: 'auto',
-                background: 'rgba(10,10,16,0.56)', backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)',
-                border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18,
+                background: pageTheme.responseBg, backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)',
+                border: `1px solid ${pageTheme.responseBorder}`, borderRadius: 18,
                 padding: '14px 16px', boxShadow: '0 18px 40px rgba(0,0,0,0.35)',
                 textAlign: 'left'
               }}>
                 {lastUserMessage && (
-                  <div style={{ color: 'rgba(255,255,255,0.46)', fontSize: '0.76rem', lineHeight: 1.5, marginBottom: aiResponse ? 8 : 0 }}>
+                  <div style={{ color: pageTheme.responseMuted, fontSize: '0.76rem', lineHeight: 1.5, marginBottom: aiResponse ? 8 : 0 }}>
                     {lastUserMessage}
                   </div>
                 )}
                 {aiResponse && (
-                  <div style={{ color: 'rgba(255,255,255,0.92)', fontSize: '0.95rem', lineHeight: 1.55, fontWeight: 300 }}>
+                  <div style={{ color: pageTheme.responseText, fontSize: '0.95rem', lineHeight: 1.55, fontWeight: 300 }}>
                     {aiResponse}
                   </div>
                 )}
@@ -566,8 +973,8 @@ const DemoPage = () => {
 
             <form onSubmit={handleTextSubmit} onClick={e => e.stopPropagation()} style={{
               width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-              background: 'rgba(20,20,25,0.5)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
-              border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20,
+              background: pageTheme.inputBg, backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+              border: `1px solid ${pageTheme.inputBorder}`, borderRadius: 20,
               padding: 8, boxShadow: '0 20px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)'
             }}>
               <input
@@ -577,7 +984,7 @@ const DemoPage = () => {
                 placeholder="Type to CubiQo"
                 style={{
                   flex: 1, minWidth: 0, height: 42, border: 'none', outline: 'none',
-                  background: 'transparent', color: '#fff', padding: '0 10px',
+                  background: 'transparent', color: pageTheme.inputText, padding: '0 10px',
                   fontSize: '0.92rem'
                 }}
               />
@@ -598,115 +1005,205 @@ const DemoPage = () => {
               </div>
             )}
 
-            <div style={{
-              background: 'rgba(20,20,25,0.4)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
-              border: '1px solid rgba(255,255,255,0.08)', borderRadius: '40px',
-              padding: '14px 32px', display: 'flex', alignItems: 'center', gap: 12,
-              boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
-              transition: 'all 0.4s ease'
-            }}>
-              {isSpeaking ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: signal.hex, boxShadow: `0 0 12px ${signal.hex}`, animation: 'pulse 1s infinite' }} />
-                  <div style={{ color: '#fff', fontSize: '0.85rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 500 }}>Speaking</div>
-                </div>
-              ) : speakerEnabled ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: signal.hex, boxShadow: `0 0 12px ${signal.hex}`, animation: 'pulse 1s infinite' }} />
-                  <div style={{ color: '#fff', fontSize: '0.85rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 500 }}>Listening</div>
-                </div>
-              ) : isProcessing ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: signal.hex, boxShadow: `0 0 12px ${signal.hex}`, animation: 'pulse 1s infinite' }} />
-                  <div style={{ color: '#fff', fontSize: '0.85rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 500 }}>Thinking</div>
-                </div>
-              ) : (
-                <div style={{ color: 'rgba(255,255,255,0.58)', fontSize: '0.85rem', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 400 }}>
-                  Idle · {signal.label}
-                </div>
-              )}
-            </div>
-
           </div>
         </div>
 
         {/* LEFT PANEL */}
-        <div style={{ ...panelBase, left: '28px', transform: leftPanelOpen ? 'translateX(0)' : (uiVisible ? 'translateX(-130%)' : 'translateX(-130%)'), opacity: leftPanelOpen ? 1 : 0, pointerEvents: leftPanelOpen ? 'auto' : 'none', padding: '40px 24px' }}>
-          {/* Nav */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {navItems.map(({ id, label, icon: Icon, sub }) => (
-              <div key={id} onClick={() => id === 'journal' ? navigate('/journal') : setActiveModal(id)} style={{
-                display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px',
-                borderRadius: 12, cursor: 'pointer', transition: 'all 0.2s ease',
-                background: activeModal === id ? 'rgba(255,255,255,0.08)' : 'transparent',
+        <div style={{
+          ...panelBase,
+          left: '28px',
+          transform: leftPanelOpen ? 'translateX(0)' : (uiVisible ? 'translateX(-130%)' : 'translateX(-130%)'),
+          opacity: leftPanelOpen ? 1 : 0,
+          pointerEvents: leftPanelOpen ? 'auto' : 'none',
+          padding: '28px 22px',
+          gap: 18,
+          background: trayTheme.panel,
+          border: `1px solid ${trayTheme.panelBorder}`,
+          boxShadow: trayTheme.shadow
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+            <div>
+              <div style={{ color: trayTheme.strong, fontSize: '1.05rem', fontWeight: 500, letterSpacing: 0 }}>Settings</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsDark(v => !v)}
+              aria-label={isDark ? 'Switch CubiQo to light theme' : 'Switch CubiQo to dark theme'}
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 14,
+                border: `1px solid ${trayTheme.cardBorder}`,
+                background: trayTheme.card,
+                color: trayTheme.text,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
-                onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-                onMouseOut={e => e.currentTarget.style.background = activeModal === id ? 'rgba(255,255,255,0.08)' : 'transparent'}
-              >
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon size={16} color="rgba(255,255,255,0.6)" />
-                </div>
-                <div>
-                  <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.9rem', fontWeight: 500 }}>{label}</div>
-                  <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.72rem', marginTop: 1 }}>{sub}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ flex: 1 }} />
-
-          {/* AI model status */}
-          <div style={{ background: `rgba(${signal.rgb},0.07)`, border: `1px solid ${signal.hex}26`, borderRadius: 14, padding: '14px 16px', marginBottom: 16 }}>
-            <div style={{ fontSize: '0.68rem', color: signal.hex, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Active Systems</div>
-            {systemRows.map(({ label, value, color }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, minWidth: 0 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}` }} />
-                <span style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.72rem', width: 54, flexShrink: 0 }}>{label}</span>
-                <span style={{ color: 'rgba(255,255,255,0.68)', fontSize: '0.76rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Profile / Auth */}
-
-          <div style={{ marginTop: 14, marginBottom: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 12px' }}>
-            <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.78rem', marginBottom: 8, letterSpacing: 1.2, textTransform: 'uppercase' }}>Daily Journal</div>
-            <textarea
-              value={journalEntry}
-              onChange={e => setJournalEntry(e.target.value)}
-              placeholder="Personality notes for today (mood, energy, focus)..."
-              style={{ width: '100%', minHeight: 86, resize: 'vertical', borderRadius: 10, border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(0,0,0,0.2)', color: '#fff', padding: 10, fontSize: '0.78rem' }}
-            />
-          </div>
-
-          {user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <User size={17} color="#fff" />
-              </div>
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                <div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
-                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem' }}>Signed in</div>
-              </div>
-              <button onClick={handleSignOut} title="Sign out" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', padding: 4 }}>
-                <LogOut size={15} />
-              </button>
-            </div>
-          ) : (
-            <div onClick={() => setActiveModal('auth')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, cursor: 'pointer', background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.2)', transition: 'all 0.2s' }}
-              onMouseOver={e => e.currentTarget.style.background = 'rgba(0,212,255,0.12)'}
-              onMouseOut={e => e.currentTarget.style.background = 'rgba(0,212,255,0.06)'}
             >
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(0,212,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <User size={17} color="#00d4ff" />
+              {isDark ? <Moon size={17} /> : <Sun size={17} />}
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.5, textTransform: 'uppercase' }}>Journal</div>
+            <button
+              type="button"
+              onClick={() => navigate('/journal')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                width: '100%',
+                background: trayTheme.card,
+                border: `1px solid ${trayTheme.cardBorder}`,
+                borderRadius: 14,
+                padding: '12px 14px',
+                color: trayTheme.text,
+                cursor: 'pointer',
+                textAlign: 'left'
+              }}
+              onMouseOver={e => e.currentTarget.style.background = trayTheme.cardHover}
+              onMouseOut={e => e.currentTarget.style.background = trayTheme.card}
+            >
+              <span style={{ fontSize: '0.84rem' }}>Daily Journal</span>
+              <span aria-hidden="true" style={{
+                width: 22,
+                height: 22,
+                borderRadius: 8,
+                background: 'radial-gradient(circle at 35% 35%, rgba(251,191,36,0.92), rgba(249,115,22,0.35) 58%, rgba(255,255,255,0.04) 100%)',
+                border: '1px solid rgba(251,191,36,0.26)',
+                boxShadow: '0 0 18px rgba(251,191,36,0.22)'
+              }} />
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.5, textTransform: 'uppercase' }}>Display</div>
+            <button
+              type="button"
+              onClick={() => setIsDark(v => !v)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                width: '100%',
+                background: trayTheme.card,
+                border: `1px solid ${trayTheme.cardBorder}`,
+                borderRadius: 14,
+                padding: '12px 14px',
+                color: trayTheme.text,
+                cursor: 'pointer'
+              }}
+              onMouseOver={e => e.currentTarget.style.background = trayTheme.cardHover}
+              onMouseOut={e => e.currentTarget.style.background = trayTheme.card}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.84rem' }}>
+                {isDark ? <Moon size={15} /> : <Sun size={15} />}
+                Page Theme
+              </span>
+              <span style={{ color: trayTheme.muted, fontSize: '0.78rem' }}>{isDark ? 'Dark' : 'Light'}</span>
+            </button>
+
+            <div style={{ background: trayTheme.card, border: `1px solid ${trayTheme.cardBorder}`, borderRadius: 14, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span style={{ color: trayTheme.text, fontSize: '0.84rem' }}>CubiQo Size</span>
+                <span style={{ color: trayTheme.muted, fontSize: '0.78rem' }}>{visualScale}%</span>
               </div>
-              <div>
-                <div style={{ color: '#00d4ff', fontSize: '0.88rem', fontWeight: 500 }}>Sign In</div>
-                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.72rem' }}>Create or access account</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '42px 1fr 42px', alignItems: 'center', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => adjustVisualScale(-5)}
+                  aria-label="Decrease CubiQo size"
+                  disabled={visualScale <= 80}
+                  style={{
+                    width: 42,
+                    height: 36,
+                    borderRadius: 12,
+                    border: `1px solid ${trayTheme.cardBorder}`,
+                    background: trayTheme.pill,
+                    color: trayTheme.text,
+                    opacity: visualScale <= 80 ? 0.35 : 1,
+                    cursor: visualScale <= 80 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <Minus size={15} />
+                </button>
+                <div style={{ height: 4, borderRadius: 999, background: trayTheme.pill, overflow: 'hidden' }}>
+                  <div style={{ width: `${((visualScale - 80) / 50) * 100}%`, height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, rgba(0,212,255,0.76), rgba(139,92,246,0.76))' }} />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => adjustVisualScale(5)}
+                  aria-label="Increase CubiQo size"
+                  disabled={visualScale >= 130}
+                  style={{
+                    width: 42,
+                    height: 36,
+                    borderRadius: 12,
+                    border: `1px solid ${trayTheme.cardBorder}`,
+                    background: trayTheme.pill,
+                    color: trayTheme.text,
+                    opacity: visualScale >= 130 ? 0.35 : 1,
+                    cursor: visualScale >= 130 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <Plus size={15} />
+                </button>
               </div>
             </div>
-          )}
+          </div>
+
+          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.5, textTransform: 'uppercase' }}>Account</div>
+            {user ? (
+              <div style={{ background: trayTheme.card, border: `1px solid ${trayTheme.cardBorder}`, borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <User size={15} color="#fff" />
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ color: trayTheme.strong, fontSize: '0.78rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
+                  <div style={{ color: trayTheme.muted, fontSize: '0.68rem', marginTop: 2 }}>Signed in</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  title="Sign out"
+                  aria-label="Sign out"
+                  style={{ width: 32, height: 32, borderRadius: 10, border: `1px solid ${trayTheme.cardBorder}`, background: trayTheme.pill, color: trayTheme.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <LogOut size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setActiveModal('auth')}
+                style={{
+                  width: '100%',
+                  background: 'rgba(0,212,255,0.08)',
+                  border: '1px solid rgba(0,212,255,0.22)',
+                  borderRadius: 14,
+                  padding: '12px 14px',
+                  color: '#67e8f9',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.84rem' }}>
+                  <User size={15} />
+                  Sign in
+                </span>
+                <span style={{ color: 'rgba(103,232,249,0.55)', fontSize: '0.76rem' }}>Account</span>
+              </button>
+            )}
+          </div>
 
         </div>
 
@@ -720,16 +1217,26 @@ const DemoPage = () => {
               background: `radial-gradient(circle, ${active.aura} 0%, transparent 70%)`,
               filter: 'blur(10px)', transition: 'all 0.5s ease'
             }} />
-            <div style={{ display: 'flex', gap: 16, zIndex: 1 }}>
-              {Object.entries(colorMap).map(([id, { hex }]) => (
-                <div key={id} onClick={() => setSelectedKeywordColor(id)} style={{
-                  width: selectedKeywordColor === id ? 32 : 12,
-                  height: 12, borderRadius: 6, cursor: 'pointer', transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-                  background: hex,
-                  opacity: selectedKeywordColor === id ? 1 : 0.25,
-                  boxShadow: selectedKeywordColor === id ? `0 0 15px ${hex}80` : 'none'
+            <div style={{ display: 'flex', gap: 9, zIndex: 1, alignItems: 'center' }}>
+              {rgySelectorOrder.map((id) => {
+                const entry = colorMap[id];
+                const selected = activeColor === id;
+                return (
+                <button key={id} type="button" title={entry.label} aria-label={entry.label} onClick={() => setSelectedKeywordColor(id)} style={{
+                  width: selected ? 58 : 44,
+                  height: selected ? 24 : 20,
+                  border: `1px solid ${entry.hex}${selected ? '80' : '22'}`,
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  padding: 0,
+                  background: `linear-gradient(135deg, ${entry.hex} 0%, ${entry.hex}d6 100%)`,
+                  opacity: selected ? 1 : 0.26,
+                  boxShadow: selected ? `0 0 20px ${entry.hex}75, inset 0 1px 0 rgba(255,255,255,0.22)` : 'none',
+                  transform: selected ? 'skewX(-10deg) translateY(-1px)' : 'skewX(-10deg)',
+                  transition: 'all 0.36s cubic-bezier(0.16, 1, 0.3, 1)',
+                  outline: 'none'
                 }} />
-              ))}
+              )})}
             </div>
           </div>
 
@@ -802,12 +1309,13 @@ const DemoPage = () => {
 
         {/* MODALS */}
         {activeModal && (
-          <div onClick={() => setActiveModal(null)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.25s ease-out' }}>
-            <div onClick={e => e.stopPropagation()} style={{ background: 'rgba(14,14,22,0.95)', width: 480, maxWidth: '90%', borderRadius: 24, border: '1px solid rgba(255,255,255,0.08)', padding: '36px', position: 'relative', boxShadow: '0 40px 100px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.08)' }}>
-              <button onClick={() => setActiveModal(null)} style={{ position: 'absolute', top: 18, right: 18, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}>
+          <div onClick={() => setActiveModal(null)} style={{ position: 'absolute', inset: 0, background: isDark ? 'rgba(0,0,0,0.62)' : 'rgba(246,246,249,0.42)', backdropFilter: 'blur(18px) saturate(1.25)', WebkitBackdropFilter: 'blur(18px) saturate(1.25)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.25s ease-out' }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: activeModal === 'auth' ? authTheme.shell : 'rgba(14,14,22,0.95)', width: activeModal === 'auth' ? 430 : 480, maxWidth: '90%', borderRadius: activeModal === 'auth' ? 30 : 24, border: activeModal === 'auth' ? `1px solid ${authTheme.border}` : '1px solid rgba(255,255,255,0.08)', padding: activeModal === 'auth' ? '34px' : '36px', position: 'relative', boxShadow: activeModal === 'auth' ? '0 36px 100px rgba(0,0,0,0.36), inset 0 1px 0 rgba(255,255,255,0.16)' : '0 40px 100px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.08)', backdropFilter: activeModal === 'auth' ? 'blur(34px) saturate(1.45)' : undefined, WebkitBackdropFilter: activeModal === 'auth' ? 'blur(34px) saturate(1.45)' : undefined }}>
+              <button onClick={() => setActiveModal(null)} style={{ position: 'absolute', top: 18, right: 18, background: activeModal === 'auth' ? authTheme.segment : 'rgba(255,255,255,0.06)', border: activeModal === 'auth' ? `1px solid ${authTheme.fieldBorder}` : '1px solid rgba(255,255,255,0.08)', borderRadius: 12, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: activeModal === 'auth' ? authTheme.muted : 'rgba(255,255,255,0.5)' }}>
                 <X size={16} />
               </button>
-              <h2 style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 300, marginBottom: 8, letterSpacing: 0.5 }}>{activeModal === 'auth' ? (authView === 'login' ? 'Welcome back' : 'Create account') : activeModal.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</h2>
+              <h2 style={{ color: activeModal === 'auth' ? authTheme.text : '#fff', fontSize: activeModal === 'auth' ? '1.45rem' : '1.5rem', fontWeight: 500, marginBottom: 8, letterSpacing: 0 }}>{activeModal === 'auth' ? (authView === 'login' ? 'Sign in' : 'Create account') : activeModal.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</h2>
+              {activeModal === 'auth' && <p style={{ color: authTheme.muted, fontSize: '0.86rem', marginBottom: 24, lineHeight: 1.55 }}>Use your CubiQo account to sync settings and journal access.</p>}
               {activeModal !== 'auth' && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', marginBottom: 28, lineHeight: 1.7 }}>Configure your CubiQo experience. All changes sync across sessions.</p>}
 
               {activeModal === 'settings' && (
@@ -858,23 +1366,23 @@ const DemoPage = () => {
               )}
               {activeModal === 'auth' && (
                 <form onSubmit={authView === 'login' ? handleSignIn : handleSignUp} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 8, padding: 4, borderRadius: 16, background: authTheme.segment, border: `1px solid ${authTheme.fieldBorder}` }}>
                     {['login', 'signup'].map(v => (
-                      <button key={v} type="button" onClick={() => { setAuthView(v); setAuthError(''); }} style={{ flex: 1, padding: '8px', borderRadius: 10, cursor: 'pointer', border: 'none', background: authView === v ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)', color: authView === v ? '#00d4ff' : 'rgba(255,255,255,0.4)', fontSize: '0.82rem', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>
-                        {v === 'login' ? 'Sign In' : 'Sign Up'}
+                      <button key={v} type="button" onClick={() => { setAuthView(v); setAuthError(''); }} style={{ padding: '10px 8px', borderRadius: 12, cursor: 'pointer', border: 'none', background: authView === v ? authTheme.segmentActive : 'transparent', color: authView === v ? authTheme.text : authTheme.muted, fontSize: '0.86rem', fontWeight: 500, boxShadow: authView === v ? '0 8px 24px rgba(0,0,0,0.12)' : 'none' }}>
+                        {v === 'login' ? 'Sign in' : 'Sign up'}
                       </button>
                     ))}
                   </div>
                   {[{ label: 'Email', val: authEmail, set: setAuthEmail, type: 'email', Icon: Mail }, { label: 'Password', val: authPassword, set: setAuthPassword, type: 'password', Icon: Lock }].map(({ label, val, set, type, Icon }) => (
                     <div key={label} style={{ position: 'relative' }}>
-                      <Icon size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
-                      <input type={type} placeholder={label} value={val} onChange={e => set(e.target.value)} required style={{ width: '100%', padding: '13px 14px 13px 40px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: '#fff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }} />
+                      <Icon size={15} style={{ position: 'absolute', left: 15, top: '50%', transform: 'translateY(-50%)', color: authTheme.muted }} />
+                      <input type={type} placeholder={label} value={val} onChange={e => set(e.target.value)} required autoComplete={type === 'email' ? 'email' : authView === 'login' ? 'current-password' : 'new-password'} style={{ width: '100%', padding: '14px 14px 14px 42px', background: authTheme.field, border: `1px solid ${authTheme.fieldBorder}`, borderRadius: 15, color: authTheme.text, fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)' }} />
                     </div>
                   ))}
                   {authError && <div style={{ color: authError.includes('created') || authError.includes('synced') ? '#34d399' : '#f87171', fontSize: '0.8rem', padding: '8px 12px', background: authError.includes('created') || authError.includes('synced') ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', borderRadius: 8 }}>{authError}</div>}
                   {profileSyncError && <div style={{ color: '#f59e0b', fontSize: '0.8rem', padding: '8px 12px', background: 'rgba(245,158,11,0.1)', borderRadius: 8 }}>{profileSyncError}</div>}
-                  <button type="submit" disabled={authLoading} style={{ padding: '13px', background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)', border: 'none', borderRadius: 12, color: '#fff', fontSize: '0.9rem', fontWeight: 600, cursor: authLoading ? 'not-allowed' : 'pointer', opacity: authLoading ? 0.7 : 1, marginTop: 4 }}>
-                    {authLoading ? 'Loading...' : authView === 'login' ? 'Sign In' : 'Create Account'}
+                  <button type="submit" disabled={authLoading} style={{ padding: '14px', background: 'linear-gradient(135deg, rgba(34,211,238,0.92) 0%, rgba(124,58,237,0.92) 100%)', border: 'none', borderRadius: 15, color: '#fff', fontSize: '0.95rem', fontWeight: 600, cursor: authLoading ? 'not-allowed' : 'pointer', opacity: authLoading ? 0.7 : 1, marginTop: 6, boxShadow: '0 18px 36px rgba(34,211,238,0.16)' }}>
+                    {authLoading ? 'Working...' : authView === 'login' ? 'Continue' : 'Create account'}
                   </button>
                 </form>
               )}
@@ -883,9 +1391,11 @@ const DemoPage = () => {
                   <span style={{ color: 'rgba(255,255,255,0.3)', fontStyle: 'italic', fontSize: '0.85rem' }}>System connected. Ready.</span>
                 </div>
               )}
-              <button onClick={() => setActiveModal(null)} style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)', border: 'none', borderRadius: 14, color: '#fff', fontSize: '0.9rem', fontWeight: 600, marginTop: 28, cursor: 'pointer', letterSpacing: 0.5, boxShadow: '0 8px 24px rgba(0,212,255,0.25)' }}>
-                Done
-              </button>
+              {activeModal !== 'auth' && (
+                <button onClick={() => setActiveModal(null)} style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)', border: 'none', borderRadius: 14, color: '#fff', fontSize: '0.9rem', fontWeight: 600, marginTop: 28, cursor: 'pointer', letterSpacing: 0.5, boxShadow: '0 8px 24px rgba(0,212,255,0.25)' }}>
+                  Done
+                </button>
+              )}
             </div>
           </div>
         )}
