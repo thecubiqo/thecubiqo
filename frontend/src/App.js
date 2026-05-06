@@ -1031,6 +1031,46 @@ const DemoPage = () => {
     setKeywordDraft('');
   };
 
+  const titleizeSignal = (value = '') => value
+    .split(/[\s-]+/)
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+  const signalDefaults = {
+    green: ['job study', 'yoga', 'career'],
+    yellow: ['movie night', 'coffee chat', 'friends'],
+    red: ['adult apps', 'age-gated social', 'restricted trade']
+  };
+
+  const signalIntentByColor = {
+    green: 'Suggested: Collaborate',
+    yellow: 'Suggested: Socialize',
+    red: 'Age-gated review'
+  };
+
+  const signalActionByColor = {
+    green: 'Find practice partners, builders, coaches, rooms',
+    yellow: 'Find hangouts, groups, events, easy company',
+    red: 'Confirm age, consent, legality, and safety before matching'
+  };
+
+  const activeSignalWords = (keywords[activeColor]?.length ? keywords[activeColor] : signalDefaults[activeColor]).slice(0, 4);
+  const activeSignalCards = activeSignalWords.map((word, index) => ({
+    id: `${activeColor}-${word}-${index}`,
+    title: titleizeSignal(word),
+    status: index === 0 ? 'Caught request' : 'Signal shelf',
+    intent: signalIntentByColor[activeColor],
+    action: signalActionByColor[activeColor],
+    matches: activeColor === 'red' ? index + 1 : (index + 2) * 2
+  }));
+
+  const signalRooms = [
+    { label: 'Socialize', detail: `People around ${titleizeSignal(activeSignalWords[0] || activeColor)}` },
+    { label: 'Collaborate', detail: `Build or improve ${titleizeSignal(activeSignalWords[0] || activeColor)}` },
+    { label: 'Trade', detail: `Offers and services for ${titleizeSignal(activeSignalWords[0] || activeColor)}` }
+  ];
+
   const panelBase = {
     position: 'absolute', top: '100px', bottom: '40px', width: '320px',
     display: 'flex', flexDirection: 'column', borderRadius: '32px',
@@ -1387,10 +1427,10 @@ const DemoPage = () => {
         </div>
 
         {/* RIGHT PANEL */}
-        <div style={{ ...panelBase, right: '28px', transform: rightPanelOpen ? 'translateX(0)' : 'translateX(130%)', opacity: rightPanelOpen ? 1 : 0, pointerEvents: rightPanelOpen ? 'auto' : 'none', padding: '32px 24px' }}>
+        <div data-testid="signal-match-panel" style={{ ...panelBase, right: '28px', width: '372px', maxWidth: 'calc(100vw - 56px)', transform: rightPanelOpen ? 'translateX(0)' : 'translateX(130%)', opacity: rightPanelOpen ? 1 : 0, pointerEvents: rightPanelOpen ? 'auto' : 'none', padding: '28px 22px' }}>
 
           {/* Signal Aura Indicator (Replaces Tabs) */}
-          <div style={{ position: 'relative', height: '60px', marginBottom: 20, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ position: 'relative', height: '52px', marginBottom: 14, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <div style={{ 
               position: 'absolute', inset: 0, 
               background: `radial-gradient(circle, ${active.aura} 0%, transparent 70%)`,
@@ -1419,42 +1459,103 @@ const DemoPage = () => {
             </div>
           </div>
 
-          <div style={{ marginBottom: 18, padding: '12px 14px', borderRadius: 14, background: `rgba(${active.rgb},0.07)`, border: `1px solid ${active.hex}24` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ color: active.hex, fontSize: '0.68rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>{active.label}</span>
-              {colorLock && <span style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.68rem', letterSpacing: 1.5, textTransform: 'uppercase' }}>Locked</span>}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.64rem', letterSpacing: 2.4, textTransform: 'uppercase', fontWeight: 700 }}>SIGNAL</div>
+                <div style={{ color: '#fff', fontSize: '1.04rem', lineHeight: 1.15, fontWeight: 700, marginTop: 4 }}>Intelligent Chat & Match</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ color: active.hex, fontSize: '0.68rem', letterSpacing: 1.8, textTransform: 'uppercase', fontWeight: 800 }}>{activeColor}</div>
+                <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.68rem', marginTop: 4 }}>{activeSignalCards.length} signals</div>
+              </div>
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.86rem', lineHeight: 1.35 }}>{active.desc}</div>
-            <div style={{ color: 'rgba(255,255,255,0.34)', fontSize: '0.72rem', lineHeight: 1.45, marginTop: 8 }}>
-              {activeColor === normalizeKeywordColor(rgyCapsule.color || 'yellow') ? rgyCapsule.intent : 'keyword shelf'}
+            <div style={{ marginTop: 12, padding: '12px 13px', borderRadius: 16, background: `rgba(${active.rgb},0.07)`, border: `1px solid ${active.hex}24`, color: 'rgba(255,255,255,0.62)', fontSize: '0.76rem', lineHeight: 1.45 }}>
+              Requests move from <span style={{ color: '#fff' }}>caught</span> to <span style={{ color: '#fff' }}>discoverable</span> only after the user confirms visibility.
             </div>
           </div>
 
-          {/* Keywords */}
-          <div style={{ flex: 1, overflowY: 'auto' }}>
-            {keywords[activeColor]?.length > 0 ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {keywords[activeColor].map((k, i) => (
-                  <span key={i} style={{
-                    background: `rgba(${active.rgb},0.12)`, color: active.hex,
-                    border: `1px solid ${active.hex}30`, padding: '7px 14px',
-                    borderRadius: 24, fontSize: '0.82rem', fontWeight: 500,
-                    animation: 'fadeIn 0.3s ease-out'
-                  }}>{k}</span>
-                ))}
+          <div style={{ flex: 1, overflowY: 'auto', paddingRight: 2 }}>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {activeSignalCards.map((card, index) => (
+                <div key={card.id} style={{
+                  borderRadius: 18,
+                  padding: '13px 14px',
+                  background: index === 0 ? `linear-gradient(145deg, rgba(${active.rgb},0.16), rgba(255,255,255,0.035))` : 'rgba(255,255,255,0.035)',
+                  border: `1px solid ${index === 0 ? active.hex + '58' : 'rgba(255,255,255,0.075)'}`,
+                  boxShadow: index === 0 ? `0 14px 34px rgba(${active.rgb},0.08)` : 'none'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: index === 0 ? active.hex : 'rgba(255,255,255,0.46)', fontSize: '0.62rem', letterSpacing: 1.8, textTransform: 'uppercase', fontWeight: 800 }}>{card.status}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.36)', fontSize: '0.68rem' }}>{card.matches} matches</span>
+                  </div>
+                  <div style={{ color: '#fff', fontSize: '0.96rem', lineHeight: 1.2, fontWeight: 700, marginTop: 7 }}>{card.title}</div>
+                  <div style={{ color: active.hex, fontSize: '0.73rem', marginTop: 8 }}>{card.intent}</div>
+                  <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.72rem', lineHeight: 1.4, marginTop: 6 }}>{card.action}</div>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 11 }}>
+                    {['Private', 'Confirm', 'Match'].map((step, stepIndex) => (
+                      <span key={step} style={{
+                        flex: 1,
+                        textAlign: 'center',
+                        padding: '6px 0',
+                        borderRadius: 10,
+                        border: `1px solid ${stepIndex <= 1 ? active.hex + '24' : 'rgba(255,255,255,0.07)'}`,
+                        color: stepIndex <= 1 ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.32)',
+                        background: stepIndex === 1 ? `rgba(${active.rgb},0.08)` : 'rgba(255,255,255,0.025)',
+                        fontSize: '0.63rem',
+                        letterSpacing: 0.6,
+                        textTransform: 'uppercase'
+                      }}>{step}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '16px 0' }} />
+
+            <div style={{ color: 'rgba(255,255,255,0.48)', fontSize: '0.64rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 800, marginBottom: 10 }}>Match Spaces</div>
+            <div style={{ display: 'grid', gap: 8 }}>
+              {signalRooms.map((room) => (
+                <button key={room.label} type="button" style={{
+                  textAlign: 'left',
+                  border: `1px solid ${active.hex}22`,
+                  background: 'rgba(255,255,255,0.03)',
+                  borderRadius: 15,
+                  padding: '11px 12px',
+                  cursor: 'pointer'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                    <span style={{ color: '#fff', fontSize: '0.82rem', fontWeight: 700 }}>{room.label}</span>
+                    <span style={{ color: active.hex, fontSize: '0.68rem' }}>room</span>
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.71rem', lineHeight: 1.35, marginTop: 5 }}>{room.detail}</div>
+                </button>
+              ))}
+            </div>
+
+            <div style={{
+              marginTop: 14,
+              borderRadius: 18,
+              padding: '13px 14px',
+              background: 'linear-gradient(145deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025))',
+              border: '1px solid rgba(255,255,255,0.09)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                <div>
+                  <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 750 }}>CQ-to-CQ</div>
+                  <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.7rem', marginTop: 5, lineHeight: 1.35 }}>Known friends and permanent connections. Not public discovery.</div>
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.34)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 999, padding: '6px 9px', fontSize: '0.64rem', textTransform: 'uppercase', letterSpacing: 1 }}>Private</div>
               </div>
-            ) : (
-              <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.85rem', fontStyle: 'italic', textAlign: 'center', marginTop: 40, lineHeight: 1.8 }}>
-                Speak to CubiQo<br />Keywords will appear here
-              </div>
-            )}
+            </div>
           </div>
 
           <form onSubmit={e => { e.preventDefault(); addKeyword(); }} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16 }}>
             <input
               value={keywordDraft}
               onChange={e => setKeywordDraft(e.target.value)}
-              placeholder="company, trade, collaboration"
+              placeholder="add signal keyword"
               style={{
                 flex: 1, minWidth: 0, height: 38, borderRadius: 12,
                 border: `1px solid ${active.hex}24`, background: 'rgba(255,255,255,0.04)',
@@ -1471,7 +1572,7 @@ const DemoPage = () => {
           </form>
 
           <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-            {['company', 'collaboration', 'trade'].map(k => (
+            {['yoga', 'movie night', 'job study'].map(k => (
               <button key={k} onClick={() => addKeyword(k)} style={{
                 border: `1px solid ${active.hex}22`, background: 'rgba(255,255,255,0.03)',
                 color: 'rgba(255,255,255,0.48)', borderRadius: 999, padding: '6px 9px',
