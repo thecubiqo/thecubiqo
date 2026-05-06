@@ -78,8 +78,119 @@ const normalizeKeywordRows = (keywords = {}, userId) => Object.entries(keywords)
 const JournalPage = () => {
   const navigate = useNavigate();
   const [speakerEnabled, setSpeakerEnabled] = useState(false);
+  const [promptIndex, setPromptIndex] = useState(0);
+  const [responses, setResponses] = useState(["", "", "", ""]);
+  const [journalStatus, setJournalStatus] = useState("");
+  const [isSavingJournal, setIsSavingJournal] = useState(false);
+  const [savedEntry, setSavedEntry] = useState(null);
+  const journalPrompts = [
+    {
+      label: "Signal",
+      prompt: "What is the honest state of you today?",
+      placeholder: "Mood, energy, focus, pressure..."
+    },
+    {
+      label: "Moment",
+      prompt: "What happened that actually mattered?",
+      placeholder: "The moment, person, task, thought, or tension..."
+    },
+    {
+      label: "Meaning",
+      prompt: "What did it teach you or ask from you?",
+      placeholder: "A pattern, lesson, risk, or decision..."
+    },
+    {
+      label: "Move",
+      prompt: "What is the next small move?",
+      placeholder: "One clear action for tomorrow..."
+    }
+  ];
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = JSON.parse(localStorage.getItem('cubiqo_daily_journal_latest') || 'null');
+      if (stored?.createdAt) setSavedEntry(stored);
+    } catch {
+      setSavedEntry(null);
+    }
+  }, []);
+
+  const currentJournalPrompt = journalPrompts[promptIndex];
+  const journalProgress = Math.round(((promptIndex + 1) / journalPrompts.length) * 100);
+  const canAdvanceJournal = responses[promptIndex]?.trim().length > 0;
+
+  const detectJournalTone = (text) => {
+    const lower = text.toLowerCase();
+    if (/(stuck|hard|stress|angry|tired|afraid|pressure|anxious|sad|overwhelmed)/.test(lower)) return 'yellow';
+    if (/(career|build|ship|learn|health|focus|work|plan|train|wellness|grow)/.test(lower)) return 'green';
+    return 'yellow';
+  };
+
+  const saveJournal = async (nextResponses) => {
+    setIsSavingJournal(true);
+    setJournalStatus("");
+    const content = journalPrompts
+      .map((item, index) => `${item.label}: ${nextResponses[index]?.trim() || ""}`)
+      .join("\n\n");
+    const wordCount = content.split(/\s+/).filter(Boolean).length;
+    const color = detectJournalTone(content);
+    const entry = {
+      id: `journal-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      content,
+      responses: nextResponses,
+      rgyColor: color,
+      wordCount
+    };
+
+    try {
+      if (typeof window !== 'undefined') {
+        const history = JSON.parse(localStorage.getItem('cubiqo_daily_journal_history') || '[]');
+        localStorage.setItem('cubiqo_daily_journal_latest', JSON.stringify(entry));
+        localStorage.setItem('cubiqo_daily_journal_history', JSON.stringify([entry, ...history].slice(0, 30)));
+      }
+
+      const { data } = await supabase.auth.getSession();
+      const sessionUser = data?.session?.user;
+      if (sessionUser?.id) {
+        const { error } = await supabase.from('conversation_events').insert({
+          user_id: sessionUser.id,
+          user_message: 'Daily Journal entry',
+          assistant_response: content,
+          rgy_color: color,
+          rgy_intent: 'daily_journal',
+          keywords: { green: color === 'green' ? ['journal', 'next move'] : [], yellow: color === 'yellow' ? ['journal', 'reflection'] : [], red: [] },
+          model_used: 'journal-client',
+          metadata: { source: 'daily_journal', word_count: wordCount }
+        });
+        if (error) throw error;
+        setJournalStatus("Journal saved to your CubiQo memory.");
+      } else {
+        setJournalStatus("Journal saved on this device. Sign in to sync it.");
+      }
+
+      setSavedEntry(entry);
+    } catch (error) {
+      console.warn('Journal save failed:', error.message);
+      setJournalStatus("Saved on this device. Cloud sync is unavailable right now.");
+      setSavedEntry(entry);
+    } finally {
+      setIsSavingJournal(false);
+    }
+  };
+
+  const handleJournalNext = () => {
+    if (!canAdvanceJournal || isSavingJournal) return;
+    if (promptIndex < journalPrompts.length - 1) {
+      setPromptIndex(index => index + 1);
+      return;
+    }
+    saveJournal(responses);
+  };
+
   return (
-    <div data-testid="journal-page" onClick={() => setSpeakerEnabled(!speakerEnabled)} style={{ width: '100%', height: '100vh', background: '#020208', position: 'relative', overflow: 'hidden', cursor: 'pointer' }}>
+    <div data-testid="journal-page" style={{ width: '100%', minHeight: '100vh', background: '#020208', position: 'relative', overflow: 'hidden', color: '#fff' }}>
       <CubiQoVisual isEnabled={speakerEnabled} aiState={speakerEnabled ? "listening" : "neutral"} />
       <div style={{ position: 'absolute', top: 28, left: 28, zIndex: 100 }}>
         <button onClick={() => navigate('/app')} style={{
@@ -100,42 +211,110 @@ const JournalPage = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        pointerEvents: 'none'
+        padding: '88px 20px 32px'
       }}>
         <div style={{
-          width: 'clamp(176px, 22vw, 260px)',
-          aspectRatio: '1 / 1',
-          borderRadius: '50%',
+          width: 'min(720px, calc(100vw - 40px))',
+          minHeight: 460,
+          borderRadius: 28,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 10,
-          color: 'rgba(255,255,255,0.9)',
+          gap: 18,
+          color: 'rgba(255,255,255,0.92)',
           border: '1px solid rgba(255,255,255,0.16)',
-          background: 'radial-gradient(circle at 42% 32%, rgba(255,255,255,0.16), rgba(251,191,36,0.08) 36%, rgba(10,10,18,0.18) 72%)',
+          background: 'linear-gradient(180deg, rgba(18,18,28,0.76), rgba(6,6,12,0.62))',
           boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.18), inset 0 -22px 40px rgba(0,0,0,0.2), 0 0 46px rgba(251,191,36,0.18), 0 34px 90px rgba(0,0,0,0.34)',
           backdropFilter: 'blur(26px) saturate(1.35)',
-          WebkitBackdropFilter: 'blur(26px) saturate(1.35)'
+          WebkitBackdropFilter: 'blur(26px) saturate(1.35)',
+          padding: '32px'
         }}>
-          <div style={{
-            color: 'rgba(255,255,255,0.48)',
-            fontSize: '0.68rem',
-            fontWeight: 500,
-            letterSpacing: 2.8,
-            textTransform: 'uppercase'
-          }}>
-            Daily Journal
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ color: 'rgba(255,255,255,0.48)', fontSize: '0.68rem', fontWeight: 600, letterSpacing: 2.8, textTransform: 'uppercase' }}>Daily Journal</div>
+              <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.92)', fontSize: 'clamp(1.45rem, 3vw, 2rem)', fontWeight: 400, letterSpacing: 0 }}>Check in. Extract signal. Move cleanly.</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSpeakerEnabled(v => !v)}
+              aria-label="Toggle journal ambient cube"
+              style={{ width: 42, height: 42, borderRadius: 14, border: '1px solid rgba(255,255,255,0.14)', background: speakerEnabled ? 'rgba(251,191,36,0.16)' : 'rgba(255,255,255,0.06)', color: '#fff', cursor: 'pointer' }}
+            >
+              {speakerEnabled ? 'On' : 'Off'}
+            </button>
           </div>
-          <div style={{
-            color: 'rgba(255,255,255,0.92)',
-            fontSize: 'clamp(1.15rem, 2.35vw, 1.65rem)',
-            fontWeight: 400,
-            letterSpacing: 0,
-            textShadow: '0 0 26px rgba(251,191,36,0.32)'
-          }}>
-            Coming soon
+
+          <div style={{ height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+            <div style={{ width: `${journalProgress}%`, height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, rgba(251,191,36,0.84), rgba(34,211,238,0.68))', transition: 'width 220ms ease' }} />
           </div>
+
+          {savedEntry ? (
+            <div style={{ display: 'grid', gap: 18, flex: 1, alignContent: 'center' }}>
+              <div style={{ color: 'rgba(251,191,36,0.84)', fontSize: '0.72rem', letterSpacing: 2, textTransform: 'uppercase' }}>Saved</div>
+              <div style={{ whiteSpace: 'pre-wrap', color: 'rgba(255,255,255,0.78)', fontSize: '0.95rem', lineHeight: 1.65, maxHeight: 220, overflow: 'auto' }}>{savedEntry.content}</div>
+              <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.78rem' }}>{savedEntry.wordCount} words · {new Date(savedEntry.createdAt).toLocaleString()}</div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSavedEntry(null);
+                  setPromptIndex(0);
+                  setResponses(["", "", "", ""]);
+                  setJournalStatus("");
+                }}
+                style={{ justifySelf: 'start', border: '1px solid rgba(251,191,36,0.26)', background: 'rgba(251,191,36,0.1)', color: 'rgba(251,191,36,0.92)', borderRadius: 14, padding: '12px 16px', cursor: 'pointer' }}
+              >
+                Start another entry
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: 16, flex: 1 }}>
+              <div style={{ color: 'rgba(251,191,36,0.84)', fontSize: '0.72rem', letterSpacing: 2, textTransform: 'uppercase' }}>{currentJournalPrompt.label} · {promptIndex + 1}/{journalPrompts.length}</div>
+              <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '1.32rem', lineHeight: 1.35 }}>{currentJournalPrompt.prompt}</div>
+              <textarea
+                value={responses[promptIndex]}
+                onChange={(event) => {
+                  const next = [...responses];
+                  next[promptIndex] = event.target.value;
+                  setResponses(next);
+                }}
+                placeholder={currentJournalPrompt.placeholder}
+                style={{
+                  width: '100%',
+                  minHeight: 160,
+                  resize: 'vertical',
+                  borderRadius: 18,
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'rgba(0,0,0,0.24)',
+                  color: '#fff',
+                  outline: 'none',
+                  padding: '16px',
+                  fontSize: '1rem',
+                  lineHeight: 1.55
+                }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => setPromptIndex(index => Math.max(0, index - 1))}
+                  disabled={promptIndex === 0 || isSavingJournal}
+                  style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: '#fff', opacity: promptIndex === 0 ? 0.36 : 1, borderRadius: 14, padding: '12px 16px', cursor: promptIndex === 0 ? 'not-allowed' : 'pointer' }}
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleJournalNext}
+                  disabled={!canAdvanceJournal || isSavingJournal}
+                  style={{ border: '1px solid rgba(251,191,36,0.3)', background: canAdvanceJournal ? 'linear-gradient(135deg, rgba(251,191,36,0.9), rgba(249,115,22,0.84))' : 'rgba(255,255,255,0.06)', color: canAdvanceJournal ? '#111' : 'rgba(255,255,255,0.38)', borderRadius: 14, padding: '12px 18px', cursor: canAdvanceJournal ? 'pointer' : 'not-allowed', fontWeight: 700 }}
+                >
+                  {isSavingJournal ? 'Saving...' : promptIndex === journalPrompts.length - 1 ? 'Save entry' : 'Next'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {journalStatus && (
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.78rem', lineHeight: 1.45 }}>{journalStatus}</div>
+          )}
         </div>
       </div>
     </div>
