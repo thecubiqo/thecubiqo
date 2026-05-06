@@ -68,3 +68,10 @@ Each feature moves through:
 - Backend: Added `/api/dashboard` for authenticated stats and feature status. It intentionally reports `journalMigrationPending` until `journal_entries` exists in Supabase.
 - Boundary: This moves the modules into QA as visible, gated workstreams. It does not claim provider-backed flows are end-to-end until their schemas, secrets, consent, and sandboxing are finished.
 
+### 4. Completion Matrix + Job Hunt Scope
+
+- Analysis: The moved QA legacy dashboard is a tracking surface, not proof that every legacy module is complete.
+- Fix: Added `docs/legacy-feature-completion-matrix.md` with complete, code-ready, gated, and not-moved status.
+- Job Hunt: Added `docs/job-hunt-compliant-agent-scope.md`. Scope is a compliant job application copilot with user review and visible browser handoff, not an undetected bot or detection-evasion system.
+- Boundary: LinkedIn/Indeed/Dice-style direct automation must use official/allowed paths or explicit user handoff. No stealth, CAPTCHA bypass, proxy evasion, browser fingerprint spoofing, or mass automated apply.
+
