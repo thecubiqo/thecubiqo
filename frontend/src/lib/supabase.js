@@ -49,7 +49,9 @@ const disabledSupabaseClient = {
       }
     }),
     signInWithPassword: () => Promise.resolve({ data: null, error: supabaseConfigError }),
+    signInWithOtp: () => Promise.resolve({ data: null, error: supabaseConfigError }),
     signUp: () => Promise.resolve({ data: null, error: supabaseConfigError }),
+    exchangeCodeForSession: () => Promise.resolve({ data: null, error: supabaseConfigError }),
     signOut: () => Promise.resolve({ error: null })
   },
   from: () => disabledQuery

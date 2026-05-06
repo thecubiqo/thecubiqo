@@ -232,6 +232,37 @@ async function verifyRgy() {
   return results;
 }
 
+function verifyFrontendSecretBoundary() {
+  const filesToCheck = [
+    path.join(repoRoot, 'frontend', 'src', 'App.js'),
+    path.join(repoRoot, 'frontend', 'src', 'lib', 'supabase.js'),
+    path.join(repoRoot, 'src', 'components', 'CubiQoNextShell.tsx')
+  ];
+  const forbidden = [
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'service_role',
+    'OPENAI_API_KEY',
+    'ANTHROPIC_API_KEY',
+    'ELEVENLABS_API_KEY'
+  ];
+
+  const hits = [];
+  for (const file of filesToCheck) {
+    if (!fs.existsSync(file)) continue;
+    const source = fs.readFileSync(file, 'utf8');
+    for (const token of forbidden) {
+      if (source.includes(token)) {
+        hits.push({ file: path.relative(repoRoot, file), token });
+      }
+    }
+  }
+
+  return {
+    ok: hits.length === 0,
+    hits
+  };
+}
+
 async function main() {
   const config = readAppSupabaseConfig();
   if (!config.url || !config.anonKey) {
@@ -244,13 +275,15 @@ async function main() {
     tables.push(await verifyTable(config, table));
   }
   const rgy = await verifyRgy();
+  const frontendSecretBoundary = verifyFrontendSecretBoundary();
 
   const report = {
     supabaseProject: config.url,
     signup,
     tables,
     rgy,
-    passed: signup.ok && tables.every(table => table.ok) && rgy.every(item => item.ok)
+    frontendSecretBoundary,
+    passed: signup.ok && tables.every(table => table.ok) && rgy.every(item => item.ok) && frontendSecretBoundary.ok
   };
 
   console.log(JSON.stringify(report, null, 2));

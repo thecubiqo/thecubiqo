@@ -499,6 +499,7 @@ const JournalPage = () => {
 const DashboardPage = () => {
   const navigate = useNavigate();
   const [sessionUser, setSessionUser] = useState(null);
+  const [requiresAuth, setRequiresAuth] = useState(false);
   const [stats, setStats] = useState({
     conversations: 0,
     keywords: 0,
@@ -530,6 +531,7 @@ const DashboardPage = () => {
       setStats(current => ({ ...current, localJournals: readLocalJournalCount() }));
 
       if (!token) {
+        setRequiresAuth(true);
         setIsLoadingStats(false);
         return;
       }
@@ -541,6 +543,7 @@ const DashboardPage = () => {
       if (cancelled) return;
 
       if (response.ok) {
+        setRequiresAuth(false);
         setStats({
           conversations: payload.stats?.conversations || 0,
           keywords: payload.stats?.keywords || 0,
@@ -548,6 +551,9 @@ const DashboardPage = () => {
           localJournals: readLocalJournalCount(),
           migrationPending: Boolean(payload.stats?.journalMigrationPending)
         });
+      }
+      if (response.status === 401) {
+        setRequiresAuth(true);
       }
       setIsLoadingStats(false);
     };
@@ -602,6 +608,24 @@ const DashboardPage = () => {
           <section style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, background: 'linear-gradient(180deg, rgba(16,16,25,0.74), rgba(6,6,12,0.56))', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', padding: '28px', boxShadow: '0 30px 90px rgba(0,0,0,0.32)' }}>
             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.68rem', letterSpacing: 2.4, textTransform: 'uppercase' }}>QA Legacy Console</div>
             <div style={{ marginTop: 10, fontSize: 'clamp(1.55rem, 3vw, 2.25rem)', fontWeight: 400, letterSpacing: 0 }}>Portable features are now tracked from one place.</div>
+            {requiresAuth && !isLoadingStats && (
+              <div style={{ marginTop: 18, border: '1px solid rgba(34,211,238,0.18)', borderRadius: 18, background: 'rgba(34,211,238,0.07)', padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ color: 'rgba(255,255,255,0.86)', fontSize: '0.94rem', fontWeight: 650 }}>Sign in required</div>
+                  <div style={{ color: 'rgba(255,255,255,0.48)', fontSize: '0.78rem', lineHeight: 1.45, marginTop: 4 }}>Dashboard data is user-owned and protected. Sign in to see account stats and history.</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem('cubiqo_open_auth', '1');
+                    navigate('/app');
+                  }}
+                  style={{ border: '1px solid rgba(34,211,238,0.34)', background: 'rgba(34,211,238,0.12)', color: '#67e8f9', borderRadius: 13, padding: '10px 13px', cursor: 'pointer', fontWeight: 750 }}
+                >
+                  Sign in
+                </button>
+              </div>
+            )}
             <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
               {quickStats.map(item => (
                 <div key={item.label} style={{ border: '1px solid rgba(255,255,255,0.09)', borderRadius: 16, background: 'rgba(255,255,255,0.045)', padding: '14px 15px' }}>
@@ -650,6 +674,57 @@ const DashboardPage = () => {
   );
 };
 
+const AuthCallbackPage = () => {
+  const navigate = useNavigate();
+  const [status, setStatus] = useState('Completing sign in...');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const finishAuth = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          setStatus(error.message || 'Sign in link could not be completed.');
+          return;
+        }
+      }
+
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+
+      if (data?.session?.user) {
+        setStatus('Signed in. Opening CubiQo...');
+        setTimeout(() => navigate('/app', { replace: true }), 650);
+      } else {
+        setStatus('No active session found. Please sign in again.');
+        localStorage.setItem('cubiqo_open_auth', '1');
+        setTimeout(() => navigate('/app', { replace: true }), 1200);
+      }
+    };
+
+    finishAuth().catch(error => {
+      setStatus(error.message || 'Sign in callback failed.');
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
+
+  return (
+    <div data-testid="auth-callback-page" style={{ width: '100%', minHeight: '100vh', background: '#020208', color: '#fff', display: 'grid', placeItems: 'center', padding: 24 }}>
+      <div style={{ width: 'min(420px, 100%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 24, background: 'rgba(12,12,18,0.82)', padding: 28, textAlign: 'center', boxShadow: '0 28px 80px rgba(0,0,0,0.36)' }}>
+        <div style={{ color: 'rgba(34,211,238,0.9)', fontSize: '0.68rem', letterSpacing: 2.2, textTransform: 'uppercase' }}>Auth Callback</div>
+        <div style={{ marginTop: 12, color: 'rgba(255,255,255,0.86)', fontSize: '1.18rem', lineHeight: 1.4 }}>{status}</div>
+      </div>
+    </div>
+  );
+};
+
 const DemoPage = () => {
   const navigate = useNavigate();
   const [speakerEnabled, setSpeakerEnabled] = useState(false);
@@ -678,6 +753,7 @@ const DemoPage = () => {
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false);
   const [authError, setAuthError] = useState('');
   const [profileSyncError, setProfileSyncError] = useState('');
   const [uiVisible, setUiVisible] = useState(true);
@@ -713,6 +789,14 @@ const DemoPage = () => {
   useEffect(() => {
     localStorage.setItem('cubiqo_visual_scale', String(visualScale));
   }, [visualScale]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (localStorage.getItem('cubiqo_open_auth') === '1') {
+      localStorage.removeItem('cubiqo_open_auth');
+      setActiveModal('auth');
+    }
+  }, []);
 
   const aiState = isSpeaking ? 'speaking' : (speakerEnabled ? 'listening' : (isProcessing ? 'thinking' : 'neutral'));
   const recognitionRef = useRef(null);
@@ -849,6 +933,23 @@ const DemoPage = () => {
     setAuthLoading(false);
   };
   const handleSignOut = async () => { await supabase.auth.signOut(); };
+
+  const handleMagicLink = async () => {
+    setMagicLinkLoading(true);
+    setAuthError('');
+    setProfileSyncError('');
+    const redirectTo = typeof window !== 'undefined'
+      ? `${window.location.origin}/auth/callback`
+      : undefined;
+    const { error } = await supabase.auth.signInWithOtp({
+      email: authEmail,
+      options: {
+        emailRedirectTo: redirectTo
+      }
+    });
+    setAuthError(error ? error.message : 'Magic link sent. Check your email to continue.');
+    setMagicLinkLoading(false);
+  };
 
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2016,6 +2117,14 @@ const DemoPage = () => {
                   <button type="submit" disabled={authLoading} style={{ padding: '14px', background: 'linear-gradient(135deg, rgba(34,211,238,0.92) 0%, rgba(124,58,237,0.92) 100%)', border: 'none', borderRadius: 15, color: '#fff', fontSize: '0.95rem', fontWeight: 600, cursor: authLoading ? 'not-allowed' : 'pointer', opacity: authLoading ? 0.7 : 1, marginTop: 6, boxShadow: '0 18px 36px rgba(34,211,238,0.16)' }}>
                     {authLoading ? 'Working...' : authView === 'login' ? 'Continue' : 'Create account'}
                   </button>
+                  <button
+                    type="button"
+                    onClick={handleMagicLink}
+                    disabled={magicLinkLoading || !authEmail}
+                    style={{ padding: '13px', background: 'rgba(255,255,255,0.04)', border: `1px solid ${authTheme.fieldBorder}`, borderRadius: 15, color: !authEmail ? authTheme.muted : authTheme.text, fontSize: '0.86rem', fontWeight: 560, cursor: magicLinkLoading || !authEmail ? 'not-allowed' : 'pointer', opacity: magicLinkLoading || !authEmail ? 0.56 : 1 }}
+                  >
+                    {magicLinkLoading ? 'Sending magic link...' : 'Email me a magic link'}
+                  </button>
                 </form>
               )}
               {activeModal !== 'settings' && activeModal !== 'integrations' && activeModal !== 'auth' && (
@@ -2048,6 +2157,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/app" element={<DemoPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/journal" element={<JournalPage />} />
         </Routes>

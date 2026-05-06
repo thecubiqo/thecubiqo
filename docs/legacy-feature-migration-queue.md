@@ -75,3 +75,9 @@ Each feature moves through:
 - Job Hunt: Added `docs/job-hunt-compliant-agent-scope.md`. Scope is a compliant job application copilot with user review and visible browser handoff, not an undetected bot or detection-evasion system.
 - Boundary: LinkedIn/Indeed/Dice-style direct automation must use official/allowed paths or explicit user handoff. No stealth, CAPTCHA bypass, proxy evasion, browser fingerprint spoofing, or mass automated apply.
 
+### 5. Phase 1 Auth + Supabase Sanity
+
+- Analysis: Supabase URL/anon configuration and profile/RLS migration already existed, but dashboard was visible to guests and magic-link callback routing was missing from the current Next shell.
+- Fix: Added magic-link auth from the CubiQo auth modal, added `/auth/callback`, protected `/dashboard` with a sign-in-required state, and added a regression guard that checks frontend files for server-only secret names.
+- Boundary: Service role remains server-side only. Current automated regression still fails on the already-known missing `journal_entries` migration until Supabase DB access is unblocked.
+
