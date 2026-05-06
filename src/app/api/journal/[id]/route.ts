@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { safeTableMissing } from '../../_lib/supabase-admin';
 import { journalSelect, parseJournalPayload, requireJournalUser } from '../shared';
 
 type Params = {
@@ -43,6 +44,12 @@ export async function PUT(request: NextRequest, context: Params) {
     .single();
 
   if (error) {
+    if (safeTableMissing(error)) {
+      return NextResponse.json({
+        migrationPending: true,
+        error: 'journal_entries is not available in Supabase yet'
+      });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
@@ -65,6 +72,12 @@ export async function DELETE(request: NextRequest, context: Params) {
     .eq('user_id', auth.user.id);
 
   if (error) {
+    if (safeTableMissing(error)) {
+      return NextResponse.json({
+        migrationPending: true,
+        error: 'journal_entries is not available in Supabase yet'
+      });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

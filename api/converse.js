@@ -44,12 +44,49 @@ const RUNTIME_MANIFEST = {
   app_path: 'React frontend on Vercel with /api/converse serverless function',
   active_backend: 'Vercel Node.js function api/converse.js',
   inactive_backend_note: 'backend/server.py exists in the repo but is not the active QA/production route',
-  primary_llm: `OpenAI ${OPENAI_MODEL}`,
+  primary_llm: 'Provider order is evaluated at request time',
   provider_order: PROVIDER_ORDER,
   voice: `ElevenLabs ${ELEVENLABS_VOICE_NAME} (${ELEVENLABS_MODEL_ID})`,
   headless_browser: 'Not wired in this QA deployment; UI should not claim it is connected',
   storage: 'Supabase auth/profile/RGY tables are provisioned'
 };
+
+function providerConfigured(provider) {
+  return {
+    openai: Boolean(OPENAI_KEY),
+    anthropic: Boolean(ANTHROPIC_KEY),
+    openrouter: Boolean(OPENROUTER_KEY)
+  }[provider] || false;
+}
+
+function providerLabel(provider) {
+  return {
+    openai: `OpenAI ${OPENAI_MODEL}`,
+    anthropic: `Anthropic ${ANTHROPIC_MODEL}`,
+    openrouter: `OpenRouter ${OPENROUTER_MODEL}`
+  }[provider] || provider;
+}
+
+function configuredProviderLabels() {
+  return PROVIDER_ORDER.filter(providerConfigured).map(providerLabel);
+}
+
+function primaryRuntimeSummary() {
+  const configured = configuredProviderLabels();
+  if (!configured.length) {
+    return 'Local fallback only; no hosted LLM provider key is configured';
+  }
+  return `${configured.join(' -> ')}; local fallback if provider authentication or SLA fails`;
+}
+
+function runtimeManifestSnapshot() {
+  return {
+    ...RUNTIME_MANIFEST,
+    primary_llm: primaryRuntimeSummary(),
+    configured_providers: configuredProviderLabels(),
+    missing_providers: PROVIDER_ORDER.filter(provider => !providerConfigured(provider))
+  };
+}
 
 const SYSTEM_PROMPT = `You are CubiQo — a philosophical, deeply intelligent AI assistant.
 You speak with calm authority on any topic. 
@@ -242,17 +279,18 @@ function detectRgyCapsule(message, keywordHints = {}) {
 }
 
 function buildRuntimeContext() {
+  const manifest = runtimeManifestSnapshot();
   return [
     '[Runtime context]',
-    `Product: ${RUNTIME_MANIFEST.product}`,
-    `Active code path: ${RUNTIME_MANIFEST.app_path}`,
-    `Active backend: ${RUNTIME_MANIFEST.active_backend}`,
-    `Inactive backend note: ${RUNTIME_MANIFEST.inactive_backend_note}`,
-    `Primary LLM: ${RUNTIME_MANIFEST.primary_llm}`,
-    `Provider order: ${RUNTIME_MANIFEST.provider_order.join(' -> ')}`,
-    `Voice: ${RUNTIME_MANIFEST.voice}`,
-    `Headless browser connector: ${RUNTIME_MANIFEST.headless_browser}`,
-    `Storage: ${RUNTIME_MANIFEST.storage}`,
+    `Product: ${manifest.product}`,
+    `Active code path: ${manifest.app_path}`,
+    `Active backend: ${manifest.active_backend}`,
+    `Inactive backend note: ${manifest.inactive_backend_note}`,
+    `Primary LLM: ${manifest.primary_llm}`,
+    `Provider order: ${manifest.provider_order.join(' -> ')}`,
+    `Voice: ${manifest.voice}`,
+    `Headless browser connector: ${manifest.headless_browser}`,
+    `Storage: ${manifest.storage}`,
     'If the user asks what model, tools, voice, database, or backend you use, answer from this runtime context without hedging.'
   ].join('\n');
 }
@@ -265,8 +303,9 @@ function isRuntimeQuestion(message) {
 }
 
 function buildRuntimeStatusResponse() {
+  const manifest = runtimeManifestSnapshot();
   return {
-    response: `I am running the CubiQo QA flow through ${RUNTIME_MANIFEST.primary_llm} in ${RUNTIME_MANIFEST.active_backend}. Voice is ${RUNTIME_MANIFEST.voice}; Supabase auth/profile/RGY storage is provisioned. Headless browser is not wired in this QA deployment yet, so I should not claim it is connected.`,
+    response: `I am running the CubiQo QA flow through ${manifest.primary_llm} in ${manifest.active_backend}. Voice is ${manifest.voice}; Supabase auth/profile/RGY storage is provisioned. Headless browser is not wired in this QA deployment yet, so I should not claim it is connected.`,
     keywords: {
       green: ['model', 'runtime', 'supabase', 'voice'],
       yellow: ['qa', 'status'],
@@ -568,7 +607,7 @@ module.exports = async (req, res) => {
       };
       if (req.query?.diagnostics === '1' || req.body?.diagnostics === true) {
         payload.diagnostics = {
-          runtime: RUNTIME_MANIFEST,
+          runtime: runtimeManifestSnapshot(),
           tts: {
             configured: Boolean(ELEVENLABS_KEY),
             env: ELEVENLABS_ENV.name,
@@ -665,7 +704,7 @@ module.exports = async (req, res) => {
           openrouter: { configured: Boolean(OPENROUTER_KEY), name: OPENROUTER_ENV.name, model: OPENROUTER_MODEL },
           elevenlabs: { configured: Boolean(ELEVENLABS_KEY), name: ELEVENLABS_ENV.name, voice: ELEVENLABS_VOICE_ID, voice_name: ELEVENLABS_VOICE_NAME, model: ELEVENLABS_MODEL_ID }
         },
-        runtime: RUNTIME_MANIFEST,
+        runtime: runtimeManifestSnapshot(),
         provider_order: PROVIDER_ORDER,
         direct_model: directModel || null,
         attempts,
