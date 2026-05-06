@@ -25,7 +25,7 @@ Each feature moves through:
 |---|---|---|---|---|
 | P0 | QA launch/auth/RGY/voice baseline | current branch + `codex/cubiqo-ai-clean-baseline` | Done | Keep as foundation. |
 | P0 | Left panel essentials | Current QA, legacy dashboard/journal docs | Done | Theme, sign-in, journal CTA, and CubiQo size are present. |
-| P0 | Daily Journal | `src/app/journal/*`, `src/components/journal/*`, `DAILY_JOURNAL_*` docs | Done | Usable guided flow is live; dedicated `journal_entries` schema can come later. |
+| P0 | Daily Journal | `src/app/journal/*`, `src/components/journal/*`, `DAILY_JOURNAL_*` docs | Code ready / DB pending | Guided flow, API, local fallback, history basics, and migration SQL are ready; Supabase needs the new migration applied. |
 | P1 | Runtime self-awareness | `src/lib/engine/*`, current `/api/converse` manifest | Partial | Extend model/tool/code awareness through tool layer. |
 | P1 | Live search | `src/lib/engine/web-tools.ts` | Missing | Add search as a separate tool from browser control. |
 | P1 | SettingsCube | `src/app/settings-cube/*`, `src/components/settings-cube/*` | Missing | Rebuild after RGY/side-panel state is stable. |
@@ -48,8 +48,9 @@ Each feature moves through:
 ### 1. Daily Journal
 
 - Analysis: Legacy had a guided flow and richer schema, but current QA only has `profiles`, `conversation_events`, and `user_activity_keywords` provisioned.
-- Fix: Implemented a usable guided journal page in the current QA shell. Guest entries save locally; signed-in entries sync to `conversation_events` with `rgy_intent = daily_journal`.
-- Open question: Do we want a dedicated `journal_entries` table now, or keep journal entries in the existing memory/event stream until the dashboard work starts?
+- Fix: Implemented a usable guided journal page in the current QA shell. Guest entries save locally; signed-in entries sync through `/api/journal`.
+- Backend: Added `journal_entries` schema, RLS policies, authenticated GET/POST API, and `conversation_events.metadata` for journal traceability. Migration file is `supabase/migrations/20260506000000_daily_journal.sql`; application is blocked until we have a valid Supabase pooler URL or SQL editor run because the current direct DB host is IPv6-only from this environment.
+- Open question: Do we want daily journal email summaries now, or wait until dashboard basics are in?
 
 ### 2. Intelligent Chat & Match Signal Panel
 

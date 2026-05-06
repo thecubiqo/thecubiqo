@@ -240,7 +240,7 @@ async function main() {
 
   const signup = await verifySignup(config);
   const tables = [];
-  for (const table of ['profiles', 'user_activity_keywords', 'conversation_events']) {
+  for (const table of ['profiles', 'user_activity_keywords', 'conversation_events', 'journal_entries']) {
     tables.push(await verifyTable(config, table));
   }
   const rgy = await verifyRgy();
