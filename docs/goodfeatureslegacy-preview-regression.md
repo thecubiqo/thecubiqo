@@ -51,6 +51,7 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Updated typed chat routing so text submissions enter `/api/agent` first. Simple conversational messages are delegated back to the existing converse path, while repo/self-check/capability/action-boundary requests stay on the V1 agentic route.
 - Added V2 foundation APIs for approval requests/status, audit reads, tool settings, approved user tasks, in-app report schedules, and in-app daily reports.
 - Added V2 foundation migration for `action_approvals`, `action_audit_logs`, `user_tool_settings`, `user_tasks`, `report_schedules`, and `daily_reports`.
+- Added `/actions` as the V2 Action Console inside the CubiQo shell. It exposes only completed QA-backed actions: approval cards, approve/cancel, approved task creation, in-app report schedules, in-app self/daily reports, and audit viewing.
 - Updated the main CubiQo response surface with a component-library based "What I checked" collapsible that shows V1 tool activity inside the existing window.
 - Updated regression script to require `signals` table in addition to existing auth/journal tables.
 - Removed the incomplete `/signal` route from the visible/routable app surface.
@@ -147,13 +148,14 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - `task_write`: `/api/tasks`, create requires an approved `task_write` approval.
 - `cron_schedule_create`: `/api/reports/schedules`, creates in-app report schedules only and requires approval.
 - `self_report_create` / `daily_report_send`: `/api/reports/daily`, creates or stores in-app reports only and requires approval.
+- V2 Action Console: `/actions`, linked from the left tray and dashboard feature card.
 - Database triggers require matching approved approvals before task/report writes, so Supabase direct writes cannot bypass approval.
 - Browser/job/social/POD/payment/camera/coder execution tools remain intentionally hidden and unimplemented until their API/provider integrations and approval UX are ready.
 
 Current blocker:
 
 - No active Supabase schema blocker remains for the QA project. Base tables plus V2 approval/audit/task/report tables are applied and verified against `https://oszlufrjvibrdauuppzj.supabase.co`.
-- Browser/job/social/POD/payment/camera/coder execution tools are still intentionally hidden and unimplemented until their provider integrations and approval UX are ready.
+- Browser/job/social/POD/payment/camera/coder execution tools are still intentionally hidden and unimplemented until their provider integrations and action-specific approval UX are ready.
 
 ## Regression Gate Before Push
 
@@ -170,9 +172,9 @@ Latest result:
 
 - `node -c api/converse.js`: pass
 - `npm run typecheck`: pass
-- `npm run build`: pass; routes expose `/`, `/app`, `/auth/callback`, `/dashboard`, `/journal`, and API routes only. `/signal` is not routable.
+- `npm run build`: pass; routes expose `/`, `/app`, `/actions`, `/auth/callback`, `/dashboard`, `/journal`, and API routes only. `/signal` is not routable.
 - `npm run build`: known warning remains for `/api/agent` because V1 repo inspection performs runtime filesystem reads. This is intentional for read-only self-inspection and should be watched before production promotion.
-- Local route smoke on `127.0.0.1:3110`: `/`, `/app`, `/dashboard`, `/journal` returned `200`; `/signal` returned `404`.
+- Local route smoke on `127.0.0.1:3037`: `/`, `/app`, `/dashboard`, `/journal`, and `/actions` returned `200`.
 - `npm run verify:cqai`: pass against QA Supabase. The verifier now uses admin-created confirmed test users only and does not send public signup/magic-link emails.
 - E2E save/read/delete: pass for authenticated `journal_entries` and `signals`.
 - RLS denial: pass; anonymous writes to `journal_entries` and `signals` are denied.

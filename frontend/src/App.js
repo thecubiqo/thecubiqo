@@ -5,7 +5,7 @@ import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocess
 import { Suspense } from "react";
 import CubiQoVisual from "./components/CubiQoVisual";
 import ParticleWaveHD from "./components/ParticleWaveHD";
-import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut, LayoutDashboard, BookOpen, Briefcase, Rocket, ShoppingBag, Code2, ShieldCheck, Globe2, Camera, Fingerprint, Bot, Search, BrainCircuit, ChevronDown, CheckCircle2 } from "lucide-react";
+import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut, LayoutDashboard, BookOpen, Briefcase, Rocket, ShoppingBag, Code2, ShieldCheck, Globe2, Camera, Fingerprint, Bot, Search, BrainCircuit, ChevronDown, CheckCircle2, ClipboardList, FileText, Clock3, RefreshCw, AlertTriangle } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -128,6 +128,15 @@ const READY_FEATURES = [
     detail: 'The MVP capsule is color, keyword, and optional intent. Matching stays off until the user confirms Socialize, Collaborate, Trade, or any combination.',
     Icon: SignalIcon,
     color: '#a3e635'
+  },
+  {
+    id: 'v2-actions',
+    label: 'V2 Action Gate',
+    status: 'QA live',
+    detail: 'Approval cards, task writes, in-app report schedules, in-app self reports, and audit logs are wired with RLS in QA.',
+    Icon: ShieldCheck,
+    color: '#38bdf8',
+    path: '/actions'
   }
 ];
 
@@ -980,6 +989,377 @@ const DashboardPage = () => {
               );
             })}
           </section>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ActionConsolePage = () => {
+  const navigate = useNavigate();
+  const [sessionUser, setSessionUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [busyAction, setBusyAction] = useState('');
+  const [message, setMessage] = useState('');
+  const [approvals, setApprovals] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+
+  const actionCards = [
+    {
+      actionType: 'task_write',
+      toolName: 'task_write',
+      title: 'Create a task',
+      summary: 'CubiQo will create one user-owned task in QA. No external account is touched.',
+      Icon: ClipboardList,
+      runLabel: 'Create task',
+      riskLevel: 'low'
+    },
+    {
+      actionType: 'cron_schedule_create',
+      toolName: 'cron_schedule_create',
+      title: 'Schedule in-app report',
+      summary: 'CubiQo will create a daily in-app report schedule. No email or external delivery is sent.',
+      Icon: Clock3,
+      runLabel: 'Create schedule',
+      riskLevel: 'low'
+    },
+    {
+      actionType: 'self_report_create',
+      toolName: 'self_report_create',
+      title: 'Create self-report',
+      summary: 'CubiQo will store a truthful in-app status report for this account.',
+      Icon: FileText,
+      runLabel: 'Create report',
+      riskLevel: 'low'
+    },
+    {
+      actionType: 'daily_report_send',
+      toolName: 'daily_report_send',
+      title: 'Store daily report',
+      summary: 'CubiQo will store a daily report in-app. It will not send email or messages.',
+      Icon: FileText,
+      runLabel: 'Store report',
+      riskLevel: 'low'
+    }
+  ];
+
+  const futureBoundaries = [
+    'Browser control and extension workflows',
+    'LinkedIn, Indeed, Dice, and website-level job applications',
+    'POD, Shopify, Printify, Printful, GFXTools execution',
+    'Social posting, affiliate scheduling, and 10/10/10 automation',
+    'Camera awareness, biometrics, payments, coder/studio write mode'
+  ];
+
+  const getToken = async () => {
+    const { data } = await supabase.auth.getSession();
+    return data?.session?.access_token || '';
+  };
+
+  const apiJson = async (path, options = {}) => {
+    const token = await getToken();
+    if (!token) throw new Error('Sign in is required for V2 actions.');
+    const response = await fetch(path, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Action request failed');
+    return payload;
+  };
+
+  const loadActionState = async () => {
+    setLoading(true);
+    setMessage('');
+    try {
+      const { data } = await supabase.auth.getSession();
+      setSessionUser(data?.session?.user || null);
+      if (!data?.session?.access_token) {
+        setLoading(false);
+        return;
+      }
+      const [approvalData, taskData, scheduleData, reportData, auditData] = await Promise.all([
+        apiJson('/api/actions/approvals?limit=20'),
+        apiJson('/api/tasks?limit=20'),
+        apiJson('/api/reports/schedules?limit=10'),
+        apiJson('/api/reports/daily?limit=10'),
+        apiJson('/api/actions/audit?limit=25')
+      ]);
+      setApprovals(approvalData.approvals || []);
+      setTasks(taskData.tasks || []);
+      setSchedules(scheduleData.schedules || []);
+      setReports(reportData.reports || []);
+      setAuditLogs(auditData.auditLogs || []);
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!cancelled) await loadActionState();
+    };
+    load();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSessionUser(session?.user || null);
+      loadActionState();
+    });
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const latestApproval = (actionType) => approvals.find(item => item.actionType === actionType && ['requested', 'approved'].includes(item.status));
+
+  const requestApproval = async (card) => {
+    setBusyAction(card.actionType);
+    setMessage('');
+    try {
+      await apiJson('/api/actions/approvals', {
+        method: 'POST',
+        body: JSON.stringify({
+          actionType: card.actionType,
+          toolName: card.toolName,
+          title: card.title,
+          summary: card.summary,
+          riskLevel: card.riskLevel,
+          payload: {
+            preview: card.summary,
+            externalExecution: false
+          }
+        })
+      });
+      setMessage('Approval requested.');
+      await loadActionState();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const decideApproval = async (approval, status) => {
+    setBusyAction(approval.id);
+    setMessage('');
+    try {
+      await apiJson('/api/actions/approvals', {
+        method: 'PATCH',
+        body: JSON.stringify({ id: approval.id, status })
+      });
+      setMessage(status === 'approved' ? 'Approved. Run the action when ready.' : 'Action cancelled.');
+      await loadActionState();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const runApprovedAction = async (card, approval) => {
+    setBusyAction(`${card.actionType}-run`);
+    setMessage('');
+    try {
+      if (card.actionType === 'task_write') {
+        await apiJson('/api/tasks', {
+          method: 'POST',
+          body: JSON.stringify({
+            approvalId: approval.id,
+            title: 'CubiQo V2 approved task',
+            notes: 'Created through the V2 Action Console after explicit approval.',
+            metadata: { source_screen: 'actions' }
+          })
+        });
+      } else if (card.actionType === 'cron_schedule_create') {
+        await apiJson('/api/reports/schedules', {
+          method: 'POST',
+          body: JSON.stringify({
+            approvalId: approval.id,
+            name: 'Daily CubiQo in-app report',
+            cadence: 'daily',
+            deliveryMethod: 'in_app',
+            summaryScope: ['journal', 'signals', 'tasks'],
+            metadata: { source_screen: 'actions' }
+          })
+        });
+      } else {
+        await apiJson('/api/reports/daily', {
+          method: 'POST',
+          body: JSON.stringify({
+            approvalId: approval.id,
+            actionType: card.actionType,
+            title: card.actionType === 'daily_report_send' ? 'Daily CubiQo Report' : 'CubiQo Self-Report',
+            content: 'V2 action foundation is active. This report is stored in-app only; no external delivery connector is enabled.',
+            deliveryMethod: 'in_app',
+            metadata: { source_screen: 'actions' }
+          })
+        });
+      }
+      setMessage('Approved action completed.');
+      await loadActionState();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const shellBg = '#020208';
+  const cardStyle = {
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 20,
+    background: 'rgba(9,9,15,0.72)',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 48px rgba(0,0,0,0.18)'
+  };
+
+  return (
+    <div data-testid="actions-page" style={{ width: '100%', minHeight: '100vh', background: shellBg, position: 'relative', overflow: 'hidden', color: '#fff' }}>
+      <CubiQoVisual isEnabled={false} aiState="thinking" />
+      <div style={{ position: 'absolute', inset: 0, zIndex: 90, overflow: 'auto', padding: '28px clamp(18px, 4vw, 56px) 48px' }}>
+        <div style={{ maxWidth: 1180, margin: '0 auto', display: 'grid', gap: 22 }}>
+          <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18 }}>
+            <div>
+              <button type="button" onClick={() => navigate('/app')} style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: 999, background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.68)', padding: '8px 12px', cursor: 'pointer', marginBottom: 18 }}>
+                Back to CubiQo
+              </button>
+              <div style={{ color: 'rgba(56,189,248,0.88)', fontSize: '0.72rem', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>V2 Action Console</div>
+              <h1 style={{ fontSize: 'clamp(2rem, 5vw, 4.2rem)', lineHeight: 0.95, fontWeight: 300, letterSpacing: 0, margin: 0 }}>Approval before action.</h1>
+            </div>
+            <Button type="button" variant="outline" className="border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white" onClick={loadActionState} disabled={loading}>
+              <RefreshCw size={15} />
+              Refresh
+            </Button>
+          </header>
+
+          {!sessionUser ? (
+            <section style={{ ...cardStyle, padding: 22 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#fbbf24' }}>
+                <AlertTriangle size={20} />
+                <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 500 }}>Sign in required</h2>
+              </div>
+              <p style={{ margin: '10px 0 18px', color: 'rgba(255,255,255,0.62)', lineHeight: 1.6 }}>V2 actions are user-owned and audited. Sign in first so approvals, tasks, and reports stay attached to your account.</p>
+              <Button type="button" onClick={() => navigate('/app')}>Open CubiQo sign in</Button>
+            </section>
+          ) : (
+            <>
+              <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+                {actionCards.map(card => {
+                  const approval = latestApproval(card.actionType);
+                  const Icon = card.Icon;
+                  const isBusy = busyAction === card.actionType || busyAction === card.id || busyAction === approval?.id || busyAction === `${card.actionType}-run`;
+                  return (
+                    <article key={card.actionType} style={{ ...cardStyle, padding: 18, minHeight: 238, display: 'grid', gap: 14, alignContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 14, display: 'grid', placeItems: 'center', background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.28)', color: '#7dd3fc' }}>
+                          <Icon size={19} />
+                        </div>
+                        <Badge variant="outline" className="border-white/10 text-white/50">
+                          {approval?.status || 'ready'}
+                        </Badge>
+                      </div>
+                      <div>
+                        <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 500 }}>{card.title}</h2>
+                        <p style={{ margin: '8px 0 0', color: 'rgba(255,255,255,0.58)', fontSize: '0.86rem', lineHeight: 1.55 }}>{card.summary}</p>
+                      </div>
+                      <div style={{ display: 'grid', gap: 8 }}>
+                        {!approval && (
+                          <Button type="button" onClick={() => requestApproval(card)} disabled={isBusy} className="bg-cyan-400/90 text-slate-950 hover:bg-cyan-300">
+                            Request approval
+                          </Button>
+                        )}
+                        {approval?.status === 'requested' && (
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                            <Button type="button" onClick={() => decideApproval(approval, 'approved')} disabled={isBusy} className="bg-emerald-400/90 text-slate-950 hover:bg-emerald-300">
+                              Approve
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => decideApproval(approval, 'cancelled')} disabled={isBusy} className="border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08]">
+                              Cancel
+                            </Button>
+                          </div>
+                        )}
+                        {approval?.status === 'approved' && (
+                          <Button type="button" onClick={() => runApprovedAction(card, approval)} disabled={isBusy} className="bg-white text-slate-950 hover:bg-white/85">
+                            {card.runLabel}
+                          </Button>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </section>
+
+              {message && (
+                <div style={{ ...cardStyle, padding: '12px 14px', color: message.includes('failed') || message.includes('required') ? '#fca5a5' : '#a7f3d0', fontSize: '0.86rem' }}>
+                  {message}
+                </div>
+              )}
+
+              <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+                {[
+                  { label: 'Tasks', value: tasks.length, items: tasks.map(item => item.title) },
+                  { label: 'Schedules', value: schedules.length, items: schedules.map(item => `${item.name} · ${item.status}`) },
+                  { label: 'Reports', value: reports.length, items: reports.map(item => `${item.title} · ${item.status}`) }
+                ].map(section => (
+                  <article key={section.label} style={{ ...cardStyle, padding: 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>{section.label}</h2>
+                      <Badge variant="outline" className="border-white/10 text-white/50">{section.value}</Badge>
+                    </div>
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      {section.items.length ? section.items.slice(0, 4).map((item, index) => (
+                        <div key={`${section.label}-${index}`} style={{ color: 'rgba(255,255,255,0.62)', fontSize: '0.78rem', lineHeight: 1.45, borderTop: index ? '1px solid rgba(255,255,255,0.06)' : 'none', paddingTop: index ? 8 : 0 }}>
+                          {item}
+                        </div>
+                      )) : (
+                        <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem' }}>Nothing created yet.</div>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </section>
+
+              <section style={{ ...cardStyle, padding: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+                  <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Audit Trail</h2>
+                  <Badge variant="outline" className="border-white/10 text-white/50">{auditLogs.length}</Badge>
+                </div>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {auditLogs.length ? auditLogs.slice(0, 8).map(log => (
+                    <div key={log.id} style={{ display: 'grid', gridTemplateColumns: '110px minmax(0, 1fr) auto', gap: 10, alignItems: 'center', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '9px 10px', color: 'rgba(255,255,255,0.66)', fontSize: '0.76rem' }}>
+                      <span>{log.status}</span>
+                      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.message}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.36)' }}>{log.actionType}</span>
+                    </div>
+                  )) : (
+                    <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem' }}>No audit entries yet.</div>
+                  )}
+                </div>
+              </section>
+
+              <section style={{ ...cardStyle, padding: 18 }}>
+                <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Not Exposed Yet</h2>
+                <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+                  {futureBoundaries.map(item => (
+                    <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(255,255,255,0.46)', fontSize: '0.78rem' }}>
+                      <Lock size={13} />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -2348,6 +2728,29 @@ const DemoPage = () => {
                 boxShadow: '0 0 18px rgba(251,191,36,0.22)'
               }} />
             </button>
+            <button
+              type="button"
+              onClick={() => navigate('/actions')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                width: '100%',
+                background: trayTheme.card,
+                border: `1px solid ${trayTheme.cardBorder}`,
+                borderRadius: 14,
+                padding: '12px 14px',
+                color: trayTheme.text,
+                cursor: 'pointer',
+                textAlign: 'left'
+              }}
+              onMouseOver={e => e.currentTarget.style.background = trayTheme.cardHover}
+              onMouseOut={e => e.currentTarget.style.background = trayTheme.card}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><ShieldCheck size={15} /> V2 Actions</span>
+              <span style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.2, textTransform: 'uppercase' }}>QA</span>
+            </button>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -2762,6 +3165,7 @@ function App() {
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/journal" element={<JournalPage />} />
+          <Route path="/actions" element={<ActionConsolePage />} />
         </Routes>
       </BrowserRouter>
     </div>
