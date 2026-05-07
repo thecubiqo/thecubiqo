@@ -21,6 +21,7 @@ const ELEVENLABS_ENV = readEnv(['ELEVENLABS_API_KEY', 'ELEVEN_LABS_API_KEY', 'EL
 const VOICE_ENV = readEnv(['ELEVENLABS_VOICE_ID', 'ELEVEN_LABS_VOICE_ID', 'VOICE_ID']);
 const ELEVENLABS_KEY = ELEVENLABS_ENV.value;
 const ELEVENLABS_VOICE_ID = VOICE_ENV.value || 'SAz9YHcvj6GT2YYXdXww';
+const ELEVENLABS_VOICE_NAME = process.env.ELEVENLABS_VOICE_NAME || process.env.ELEVEN_LABS_VOICE_NAME || 'River neutral/androgynous';
 const ELEVENLABS_MODEL_ID = process.env.ELEVENLABS_MODEL_ID || process.env.ELEVEN_LABS_MODEL_ID || 'eleven_flash_v2_5';
 
 const CUES = {
@@ -60,7 +61,8 @@ function synthesizeCue(text) {
           const b64 = Buffer.concat(chunks).toString('base64');
           resolve({ audioUrl: `data:audio/mpeg;base64,${b64}`, error: null });
         } else {
-          resolve({ audioUrl: null, error: `HTTP ${res.statusCode}` });
+          const errorText = Buffer.concat(chunks).toString('utf8').slice(0, 220);
+          resolve({ audioUrl: null, error: `HTTP ${res.statusCode}: ${errorText}` });
         }
       });
     });
@@ -88,6 +90,8 @@ module.exports = async (req, res) => {
       text,
       audio_url: audio.audioUrl,
       provider: audio.audioUrl ? 'elevenlabs' : 'none',
+      voice: ELEVENLABS_VOICE_NAME,
+      model: ELEVENLABS_MODEL_ID,
       error: audio.error
     });
   } catch (error) {

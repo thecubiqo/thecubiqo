@@ -1242,17 +1242,7 @@ const DemoPage = () => {
         audio.play().catch(resolve);
       });
     } catch (error) {
-      if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
-      const utterance = new SpeechSynthesisUtterance('I am listening');
-      utterance.rate = 0.88;
-      utterance.pitch = 0.72;
-      utterance.volume = 0.62;
-      await new Promise((resolve) => {
-        utterance.onend = resolve;
-        utterance.onerror = resolve;
-        window.speechSynthesis?.speak(utterance);
-        setTimeout(resolve, 1600);
-      });
+      console.warn('ElevenLabs listening cue unavailable:', error.message);
     } finally {
       setSpeakingAudioLevel(0);
     }
