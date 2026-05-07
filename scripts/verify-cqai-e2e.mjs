@@ -214,6 +214,20 @@ async function verifyUserOwnedCrud(config) {
     userCreated: false,
     journal: { inserted: false, read: false, deleted: false },
     signals: { inserted: false, read: false, deleted: false },
+    v2: {
+      anonApprovalInsertDenied: false,
+      approvalRequested: false,
+      approvalDenied: false,
+      deniedActionDidNotExecute: false,
+      approvalApproved: false,
+      taskBlockedWithoutApproval: false,
+      taskInserted: false,
+      taskRead: false,
+      taskUpdated: false,
+      userAuditInsertDenied: false,
+      scheduleInserted: false,
+      reportInserted: false
+    },
     rls: { anonJournalInsertDenied: false, anonSignalInsertDenied: false },
     error: null
   };
@@ -310,6 +324,199 @@ async function verifyUserOwnedCrud(config) {
       headers: userHeaders(config, accessToken)
     }) : null;
     result.signals.deleted = Boolean(signalDelete?.response.ok);
+
+    const anonApproval = await requestJson(`${config.url}/rest/v1/action_approvals`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'task_write',
+        tool_name: 'task_write',
+        title: 'Anon should fail',
+        summary: 'RLS should reject this approval.'
+      })
+    });
+    result.v2.anonApprovalInsertDenied = !anonApproval.response.ok;
+
+    const deniedApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'task_write',
+        tool_name: 'task_write',
+        title: 'Denied task test',
+        summary: 'This approval will be denied to verify no action executes.',
+        payload: { title: 'Should not exist' }
+      })
+    });
+    const deniedApproval = Array.isArray(deniedApprovalInsert.body) ? deniedApprovalInsert.body[0] : null;
+    result.v2.approvalRequested = deniedApprovalInsert.response.ok && deniedApproval?.id && deniedApproval.user_id === userId;
+
+    const deniedApprovalUpdate = deniedApproval?.id ? await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${deniedApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+      method: 'PATCH',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({ status: 'denied', decided_at: new Date().toISOString() })
+    }) : null;
+    result.v2.approvalDenied = Boolean(deniedApprovalUpdate?.response.ok);
+
+    const deniedTaskAttempt = deniedApproval?.id ? await requestJson(`${config.url}/rest/v1/user_tasks`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: deniedApproval.id,
+        title: 'Denied approval should not allow task',
+        source: 'e2e_denied'
+      })
+    }) : null;
+    result.v2.deniedActionDidNotExecute = Boolean(deniedTaskAttempt && !deniedTaskAttempt.response.ok);
+
+    const approvedTaskApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'task_write',
+        tool_name: 'task_write',
+        title: 'Approved task test',
+        summary: 'Create one task after explicit approval.',
+        payload: { title: 'CubiQo V2 approved task' }
+      })
+    });
+    const approvedTaskApproval = Array.isArray(approvedTaskApprovalInsert.body) ? approvedTaskApprovalInsert.body[0] : null;
+    const approvedTaskUpdate = approvedTaskApproval?.id ? await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${approvedTaskApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+      method: 'PATCH',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+    }) : null;
+    result.v2.approvalApproved = Boolean(approvedTaskUpdate?.response.ok);
+
+    const taskBlocked = await requestJson(`${config.url}/rest/v1/user_tasks`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken),
+      body: JSON.stringify({
+        user_id: userId,
+        title: 'Missing approval should fail',
+        source: 'e2e_missing_approval'
+      })
+    });
+    result.v2.taskBlockedWithoutApproval = !taskBlocked.response.ok;
+
+    const taskInsert = approvedTaskApproval?.id ? await requestJson(`${config.url}/rest/v1/user_tasks?select=id,user_id,title,status`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: approvedTaskApproval.id,
+        title: 'CubiQo V2 approved task',
+        status: 'open',
+        source: 'e2e'
+      })
+    }) : null;
+    const taskRow = Array.isArray(taskInsert?.body) ? taskInsert.body[0] : null;
+    result.v2.taskInserted = Boolean(taskInsert?.response.ok && taskRow?.id && taskRow.user_id === userId);
+
+    const taskRead = taskRow?.id ? await requestJson(`${config.url}/rest/v1/user_tasks?id=eq.${taskRow.id}&select=id,user_id,title,status&limit=1`, {
+      headers: userHeaders(config, accessToken)
+    }) : null;
+    result.v2.taskRead = Boolean(taskRead?.response.ok && Array.isArray(taskRead.body) && taskRead.body[0]?.id === taskRow.id);
+
+    const taskUpdate = taskRow?.id ? await requestJson(`${config.url}/rest/v1/user_tasks?id=eq.${taskRow.id}&user_id=eq.${userId}&select=id,status`, {
+      method: 'PATCH',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({ status: 'done' })
+    }) : null;
+    result.v2.taskUpdated = Boolean(taskUpdate?.response.ok && Array.isArray(taskUpdate.body) && taskUpdate.body[0]?.status === 'done');
+
+    const auditInsert = approvedTaskApproval?.id ? await requestJson(`${config.url}/rest/v1/action_audit_logs?select=id,user_id,status`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: approvedTaskApproval.id,
+        action_type: 'task_write',
+        tool_name: 'task_write',
+        status: 'completed',
+        message: 'E2E task write completed',
+        result: { task_id: taskRow?.id || null }
+      })
+    }) : null;
+    result.v2.userAuditInsertDenied = Boolean(auditInsert && !auditInsert.response.ok);
+
+    const scheduleApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'cron_schedule_create',
+        tool_name: 'cron_schedule_create',
+        title: 'Report schedule test',
+        summary: 'Create an in-app report schedule.',
+        payload: { cadence: 'daily' }
+      })
+    });
+    const scheduleApproval = Array.isArray(scheduleApprovalInsert.body) ? scheduleApprovalInsert.body[0] : null;
+    if (scheduleApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${scheduleApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+    const scheduleInsert = scheduleApproval?.id ? await requestJson(`${config.url}/rest/v1/report_schedules?select=id,user_id,name,cadence,delivery_method`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: scheduleApproval.id,
+        name: 'E2E in-app report',
+        cadence: 'daily',
+        delivery_method: 'in_app',
+        status: 'active'
+      })
+    }) : null;
+    const scheduleRow = Array.isArray(scheduleInsert?.body) ? scheduleInsert.body[0] : null;
+    result.v2.scheduleInserted = Boolean(scheduleInsert?.response.ok && scheduleRow?.id && scheduleRow.user_id === userId && scheduleRow.delivery_method === 'in_app');
+
+    const reportApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'self_report_create',
+        tool_name: 'self_report_create',
+        title: 'Self report test',
+        summary: 'Create an in-app self report.',
+        payload: { delivery_method: 'in_app' }
+      })
+    });
+    const reportApproval = Array.isArray(reportApprovalInsert.body) ? reportApprovalInsert.body[0] : null;
+    if (reportApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${reportApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+    const reportInsert = reportApproval?.id ? await requestJson(`${config.url}/rest/v1/daily_reports?select=id,user_id,status,content`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: reportApproval.id,
+        schedule_id: scheduleRow?.id || null,
+        title: 'E2E self report',
+        content: 'Truthful in-app report. No external delivery was attempted.',
+        status: 'ready'
+      })
+    }) : null;
+    const reportRow = Array.isArray(reportInsert?.body) ? reportInsert.body[0] : null;
+    result.v2.reportInserted = Boolean(reportInsert?.response.ok && reportRow?.id && reportRow.user_id === userId);
   } catch (error) {
     result.error = error.message || String(error);
   } finally {
@@ -319,7 +526,8 @@ async function verifyUserOwnedCrud(config) {
   result.ok = result.userCreated &&
     result.journal.inserted && result.journal.read && result.journal.deleted &&
     result.signals.inserted && result.signals.read && result.signals.deleted &&
-    result.rls.anonJournalInsertDenied && result.rls.anonSignalInsertDenied;
+    result.rls.anonJournalInsertDenied && result.rls.anonSignalInsertDenied &&
+    Object.values(result.v2).every(Boolean);
 
   return result;
 }
@@ -442,7 +650,19 @@ async function main() {
 
   const signup = await verifySignup(config);
   const tables = [];
-  for (const table of ['profiles', 'user_activity_keywords', 'conversation_events', 'journal_entries', 'signals']) {
+  for (const table of [
+    'profiles',
+    'user_activity_keywords',
+    'conversation_events',
+    'journal_entries',
+    'signals',
+    'action_approvals',
+    'action_audit_logs',
+    'user_tool_settings',
+    'user_tasks',
+    'report_schedules',
+    'daily_reports'
+  ]) {
     tables.push(await verifyTable(config, table));
   }
   const userOwnedCrud = await verifyUserOwnedCrud(config);

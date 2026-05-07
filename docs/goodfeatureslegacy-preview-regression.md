@@ -49,6 +49,8 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Updated Daily Journal for quick intake -> Core guided journal -> 15-minute timer -> typed/speech-captured answers -> summary storage.
 - Added `/api/agent` for CubiQo V1 read-only agentic behavior: repo stack summary, route listing, repo search/read, runtime status, RGY classification, capability planning, and blocked check reporting.
 - Updated typed chat routing so text submissions enter `/api/agent` first. Simple conversational messages are delegated back to the existing converse path, while repo/self-check/capability/action-boundary requests stay on the V1 agentic route.
+- Added V2 foundation APIs for approval requests/status, audit reads, tool settings, approved user tasks, in-app report schedules, and in-app daily reports.
+- Added V2 foundation migration for `action_approvals`, `action_audit_logs`, `user_tool_settings`, `user_tasks`, `report_schedules`, and `daily_reports`.
 - Updated the main CubiQo response surface with a component-library based "What I checked" collapsible that shows V1 tool activity inside the existing window.
 - Updated regression script to require `signals` table in addition to existing auth/journal tables.
 - Removed the incomplete `/signal` route from the visible/routable app surface.
@@ -137,6 +139,21 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Required before browser/extension use: user-visible active indicator, stop button, domain allowlist, session isolation, screenshot/log redaction, and no hidden automation.
 - Required before coder/studio write mode: managed sandbox/API tool layer, allowlisted commands, no raw production terminal, patch preview, approve/cancel, and audit log.
 
+## V2 Foundation Implemented In Code
+
+- `approval_request` / `approval_status`: `/api/actions/approvals`.
+- `action_audit_log`: `/api/actions/audit` read endpoint; write is server/trigger controlled so users cannot forge audit logs.
+- Per-tool enable/disable controls: `/api/tools/settings`.
+- `task_write`: `/api/tasks`, create requires an approved `task_write` approval.
+- `cron_schedule_create`: `/api/reports/schedules`, creates in-app report schedules only and requires approval.
+- `self_report_create` / `daily_report_send`: `/api/reports/daily`, creates or stores in-app reports only and requires approval.
+- Database triggers require matching approved approvals before task/report writes, so Supabase direct writes cannot bypass approval.
+- Browser/job/social/POD/payment/camera/coder execution tools remain intentionally hidden and unimplemented until their API/provider integrations and approval UX are ready.
+
+Current blocker:
+
+- The migration file `supabase/migrations/20260507010000_v2_action_foundation.sql` is ready, but it is not yet applied to Supabase from this shell because the direct Supabase database host does not resolve here. Until applied, V2 endpoints return `migrationPending`/table-missing safe states and `npm run verify:cqai` fails on the new V2 table checks.
+
 ## Regression Gate Before Push
 
 Commands:
@@ -155,7 +172,7 @@ Latest result:
 - `npm run build`: pass; routes expose `/`, `/app`, `/auth/callback`, `/dashboard`, `/journal`, and API routes only. `/signal` is not routable.
 - `npm run build`: known warning remains for `/api/agent` because V1 repo inspection performs runtime filesystem reads. This is intentional for read-only self-inspection and should be watched before production promotion.
 - Local route smoke on `127.0.0.1:3110`: `/`, `/app`, `/dashboard`, `/journal` returned `200`; `/signal` returned `404`.
-- `npm run verify:cqai`: pass.
+- `npm run verify:cqai`: currently fails only on new V2 foundation table checks because `20260507010000_v2_action_foundation.sql` is not yet applied to Supabase. Existing auth, journal, signals, RGY, and frontend secret-boundary checks still pass.
 - E2E save/read/delete: pass for authenticated `journal_entries` and `signals`.
 - RLS denial: pass; anonymous writes to `journal_entries` and `signals` are denied.
 - Voice cue route: verified wired to ElevenLabs config (`River neutral/androgynous`, `eleven_flash_v2_5`) but audio generation is currently blocked by ElevenLabs quota; route returns `elevenlabs_error` when the key is present and provider fails.
