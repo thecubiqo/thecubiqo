@@ -44,29 +44,34 @@ const domains: CapabilityDomain[] = [
       'V1 can plan and prepare. V2 must use approved, user-visible, compliant browser/API actions; do not design stealth or evasion behavior.'
   },
   {
-    id: 'ecommerce_pod_business',
-    label: 'Ecomm + Fashion Brand + POD',
+    id: 'startup_business_growth',
+    label: 'Startup + Revenue + Business Growth',
     currentV1: [
-      'reason about brand positioning, niches, product drops, pricing, margins, bundles, ad concepts, and launch sequencing',
-      'draft product names, descriptions, design prompts, collection themes, ad copy, email copy, and social calendars',
-      'prepare GFXTools-ready creative briefs and Shopify/Printify/Printful setup checklists'
+      'reason about market need, customer segments, positioning, offers, pricing, revenue paths, investor narratives, and go-to-market sequencing',
+      'brainstorm startup ideas, validate business assumptions, map competitors, and turn rough ideas into experiments',
+      'draft product names, landing copy, sales scripts, investor blurbs, campaign ideas, email copy, social calendars, and AI-app workflows',
+      'prepare POD/ecomm-specific creative briefs and Shopify/Printify/Printful/GFXTools setup checklists when the business is fashion or merchandise'
     ],
     requiredContext: [
-      'brand name, audience, style direction, price point, and product categories',
-      'POD vendor preference: Printify, Printful, Shopify, Etsy, or other',
-      'design constraints, trademark exclusions, and asset formats',
-      'marketing channels, posting cadence, budget, and target geographies',
-      'fulfillment, returns, payment, and customer support preferences'
+      'business idea, target customer, pain point, market, geography, budget, and current assets',
+      'revenue goal, pricing assumptions, sales channel, distribution channel, and timeline',
+      'competitors, substitutes, investor/funding needs, and proof already collected',
+      'AI tools the user already has or wants to leverage for research, design, marketing, sales, support, or operations',
+      'for POD/ecomm: brand name, audience, style direction, product categories, vendor preference, trademark exclusions, fulfillment, returns, and customer support preferences'
     ],
     v2ToolsRequired: [
-      'connector status and secure token storage for Shopify, Printify/Printful, Stripe, and GFXTools',
-      'product/catalog tables for designs, products, variants, listings, campaigns, and sales metrics',
+      'live market/search connector and source ledger for market validation',
+      'CRM or lead tracker for prospects, outreach, sales pipeline, and customer discovery',
+      'business experiment tables for hypotheses, campaigns, offers, metrics, and learnings',
+      'connector status and secure token storage for Shopify, Printify/Printful, Stripe, GFXTools, email, calendar, and selected AI apps',
+      'product/catalog tables for designs, products, variants, listings, campaigns, and sales metrics when ecomm/POD is used',
       'approved image/design generation or GFXTools job creation',
-      'approved product listing creation/update',
-      'approved social/ad scheduling',
+      'approved product listing, outreach, ad, email, or social publishing',
       'daily business report and recommendation workflow'
     ],
     blockedUntilV2: [
+      'claiming fresh market research without a live source tool',
+      'sending investor/customer outreach',
       'creating live products',
       'publishing listings',
       'posting or scheduling ads',
@@ -74,7 +79,7 @@ const domains: CapabilityDomain[] = [
       'processing payments or orders'
     ],
     safeDefaultStrategy:
-      'V1 can decide and prepare. V2 must connect real accounts only through server-side secrets, explicit approval, and audit logs.'
+      'V1 can research from provided context, decide, draft, and prepare strategy. V2 must connect live sources/accounts only through server-side secrets, explicit approval, and audit logs.'
   },
   {
     id: 'personal_context',
@@ -227,34 +232,33 @@ const domains: CapabilityDomain[] = [
       'V1 can advise and prepare. V2 acts only through approved connectors and visible confirmations.'
   },
   {
-    id: 'cq_messaging_match',
-    label: 'CQ-to-CQ + Match',
+    id: 'cq_friend_messenger',
+    label: 'CQ-to-CQ Friend Messenger',
     currentV1: [
-      'understand social, collaboration, and trade intent from RGY capsules',
-      'explain match requirements and CQ identity needs',
-      'keep matching disabled until user confirms intent'
+      'explain CQ identity, friend/contact adding, and private friend-to-friend messaging requirements',
+      'plan a simple contact list and direct-message experience',
+      'keep CQ messenger separate from RGY matching and Signal/intent features'
     ],
     requiredContext: [
       'CQ identity rules and handle/number format',
-      'whether the user wants socialize, collaborate, trade, or a combination',
-      'geofence preference',
-      'block/report/privacy expectations'
+      'friend/contact add rules',
+      'message privacy, notification, block/report, and account recovery expectations',
+      'whether presence/read receipts are wanted'
     ],
     v2ToolsRequired: [
       'CQ profiles, contacts, messages, and presence tables',
       'Supabase realtime channels',
-      'match consent and geofence rules',
+      'friend request/add/remove flow',
       'block/report controls',
       'TURN/signaling design before calls'
     ],
     blockedUntilV2: [
-      'creating real CQ connections',
+      'creating real CQ friend connections',
       'sending CQ messages',
-      'matching users',
       'voice/video calls'
     ],
     safeDefaultStrategy:
-      'V1 captures intent. V2 enables matching only after explicit confirmation and safety controls.'
+      'V1 can plan CQ messenger. V2 enables friend connections and messages after auth, realtime, privacy, and abuse controls exist.'
   },
   {
     id: 'money_wallet_payments',
@@ -329,10 +333,9 @@ const domains: CapabilityDomain[] = [
       'deployment approval rules'
     ],
     v2ToolsRequired: [
-      'workspace sandbox',
-      'file write and patch tools with approval',
-      'restricted terminal runner',
-      'test/deploy approval flow',
+      'API or managed sandbox path first, such as Vercel Sandbox/SDK-style tool execution instead of a custom raw terminal product',
+      'file write and patch tools with approval inside isolated workspaces',
+      'allowlisted test runner and deploy proposal flow',
       'audit log for code actions'
     ],
     blockedUntilV2: [
@@ -342,7 +345,7 @@ const domains: CapabilityDomain[] = [
       'opening raw production terminal'
     ],
     safeDefaultStrategy:
-      'V1 explains and plans code. V2 needs a sandbox and approvals before CubiQo writes code.'
+      'V1 explains and plans code. V2 should use a managed API/sandbox/tooling layer before CubiQo writes code; avoid building a custom unrestricted coder terminal.'
   },
   {
     id: 'camera_biometrics_voice',
@@ -378,13 +381,13 @@ const domains: CapabilityDomain[] = [
 
 const matchers: Record<string, RegExp> = {
   career_job_hunt: /\b(job|jobs|career|resume|linkedin|indeed|dice|application|apply|interview|recruiter|salary|role|posting|posted)\b/i,
-  ecommerce_pod_business: /\b(ecomm|ecommerce|shopify|printify|printful|pod|fashion|brand|clothing|shirt|hoodie|store|sales|marketing|ads|gfx|gfxtools|product|launch)\b/i,
+  startup_business_growth: /\b(startup|business|market|revenue|investor|investors|funding|idea|ideas|brainstorm|validate|validation|customer|customers|sales|marketing|growth|gtm|go-to-market|competitor|competitors|offer|offers|ai apps|automation|ecomm|ecommerce|shopify|printify|printful|pod|fashion|brand|clothing|shirt|hoodie|store|ads|gfx|gfxtools|product|launch)\b/i,
   personal_context: /\b(routine|habit|journal|memory|daily|schedule|focus|mental|mood|context|personal|reminder|report)\b/i,
   research_knowledge: /\b(research|compare|analysis|analyze|lookup|look up|source|sources|news|market|competitor|recommendation|decision)\b/i,
   browser_extension_actions: /\b(browser|extension|tab|website|site|click|type|upload|submit|form|book|booking|headless|playwright)\b/i,
   social_affiliate_growth: /\b(social|affiliate|campaign|content|post|posts|10\/10\/10|101010|instagram|facebook|threads|tiktok|ad|ads|gfxtools)\b/i,
   shopping_connectors_life_ops: /\b(shopping|shop|buy|food|taxi|uber|ride|calendar|email|gmail|outlook|smart-home|smart home|device|order)\b/i,
-  cq_messaging_match: /\b(cq|cq-to-cq|message|messaging|match|matching|geofence|friend|contact|presence|call)\b/i,
+  cq_friend_messenger: /\b(cq|cq-to-cq|message|messaging|messenger|friend|friends|contact|contacts|presence|call)\b/i,
   money_wallet_payments: /\b(wallet|crypto|payment|payments|stripe|qr|release|escrow|ledger|refund|money|price|pricing|margin)\b/i,
   ops_self_reporting_security: /\b(self-heal|self heal|self-report|self report|diagnostic|noc|security|antivirus|health|uptime|cron|reporting|regression)\b/i,
   coder_studio_builder: /\b(coder|studio|code|build|repo|repository|file|terminal|sandbox|deploy|deployment|pr|github)\b/i,

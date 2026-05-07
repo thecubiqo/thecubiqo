@@ -1648,7 +1648,7 @@ const DemoPage = () => {
     setAgentTrace([]);
     setAgentMode('idle');
 
-    const shouldUseAgenticFlow = Boolean(options.agentFirst) || /(repo|code|stack|route|routes|built|framework|implementation|self|yourself|what model|test|tests|regression|diagnostic|runtime|provider|supabase|vercel|nextjs|next\.js|react|agentic|what did you check|what can you inspect|job|jobs|career|resume|linkedin|indeed|dice|application|apply|interview|recruiter|ecomm|ecommerce|shopify|printify|printful|pod|fashion|brand|clothing|sales|marketing|gfx|gfxtools|routine|memory|daily|context|research|browser|extension|social|affiliate|campaign|shopping|food|taxi|calendar|email|smart-home|smart home|cq|match|wallet|crypto|payment|self-heal|self heal|reporting|coder|studio|camera|biometric|voice|microphone)/i.test(cleanInput);
+    const shouldUseAgenticFlow = Boolean(options.agentFirst) || /(repo|code|stack|route|routes|built|framework|implementation|self|yourself|what model|test|tests|regression|diagnostic|runtime|provider|supabase|vercel|nextjs|next\.js|react|agentic|what did you check|what can you inspect|job|jobs|career|resume|linkedin|indeed|dice|application|apply|interview|recruiter|startup|business|market|revenue|investor|investors|funding|brainstorm|validate|validation|customer|competitor|growth|ecomm|ecommerce|shopify|printify|printful|pod|fashion|brand|clothing|sales|marketing|gfx|gfxtools|routine|memory|daily|context|research|browser|extension|social|affiliate|campaign|shopping|food|taxi|calendar|email|smart-home|smart home|cq|messenger|wallet|crypto|payment|self-heal|self heal|reporting|coder|studio|camera|biometric|voice|microphone)/i.test(cleanInput);
 
     try {
       if (shouldUseAgenticFlow) {

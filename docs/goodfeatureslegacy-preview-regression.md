@@ -36,6 +36,8 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 - Browser/coder/write-agent actions
 - Signal match route/button
 
+Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Signal match, RGY matching, or intent matching.
+
 ## Current Implementation In This Branch
 
 - Added Supabase migration for `signals`.
@@ -102,16 +104,17 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 | Agent write/deploy boundary | Closed | `/api/agent` blocks write/deploy/post/send/apply/buy requests and states V2 approval/audit is required. |
 | Agent regression boundary | Closed | `/api/agent` reports check execution as blocked in deployed/serverless runtime unless local checks are explicitly enabled. |
 | Job Hunt capability readiness | Closed for V1 planning | Capability map covers job context, resume strategy, new posting lookup requirements, one-button easy apply, employer-site applications, approval/audit, and required V2 browser/API tools. |
-| Ecomm/POD capability readiness | Closed for V1 planning | Capability map covers fashion brand decisions, POD setup, Shopify/Printify/Printful/GFXTools requirements, sales/marketing planning, and required V2 connector/action tools. |
-| Contextual functional understanding | Closed for V1 planning | Capability map covers career, ecomm/POD, personal routine, memory, daily reports, and permission-gated future actions. |
+| Startup/business growth readiness | Closed for V1 planning | Capability map covers market need, customer discovery, revenue generation, investor narratives, idea brainstorming, competitor research, sales/marketing, selected AI-app workflows, and POD/ecomm when relevant. |
+| Ecomm/POD capability readiness | Closed for V1 planning | Ecomm/POD remains a business-growth subcase covering fashion brand decisions, POD setup, Shopify/Printify/Printful/GFXTools requirements, sales/marketing planning, and required V2 connector/action tools. |
+| Contextual functional understanding | Closed for V1 planning | Capability map covers career, startup/business growth, ecomm/POD, personal routine, memory, daily reports, and permission-gated future actions. |
 | Research capability readiness | Closed for V1 planning | Capability map covers research briefs, source needs, live lookup requirements, citations, and source ledger needs. |
 | Browser/extension readiness | Closed for V1 planning | Capability map covers browser sessions, extension need, form workflows, approval points, screenshots/log redaction, and domain/session controls. |
 | Social/affiliate readiness | Closed for V1 planning | Capability map covers campaign planning, 10/10/10 requirements, GFXTools, affiliate context, and post approval/audit needs. |
 | Shopping/life connectors readiness | Closed for V1 planning | Capability map covers shopping, food, taxi, calendar, email, and smart-home connectors as V2 approved actions. |
-| CQ-to-CQ/match readiness | Closed for V1 planning | Capability map covers CQ identity, contacts, messages, realtime, geofence, match consent, and block/report requirements. |
+| CQ-to-CQ messenger readiness | Closed for V1 planning | Capability map covers CQ identity, friend/contact add, direct messages, realtime, presence, and block/report requirements. It is not coupled to RGY or Signal match. |
 | Wallet/payment readiness | Closed for V1 planning | Capability map covers wallet, crypto, QR release, Stripe separation, ledger, dispute, and compliance requirements. |
 | Ops/security/self-report readiness | Closed for V1 planning | Capability map covers self-reporting, diagnostics, cron/reporting, health checks, and repair approval requirements. |
-| Coder/studio readiness | Closed for V1 planning | Capability map covers read-only code inspection now and V2 sandbox/write/terminal/deploy approvals later. |
+| Coder/studio readiness | Closed for V1 planning | Capability map covers read-only code inspection now and recommends a managed API/sandbox/tooling path for V2 writes instead of a custom unrestricted coder terminal. |
 | Camera/biometrics/voice readiness | Closed for V1 planning | Capability map covers camera, passkeys/WebAuthn, proactive voice, interruption settings, DND, and sensor privacy controls. |
 
 ## Regression Gate Before Push
@@ -159,8 +162,8 @@ Latest local V1 agent smoke on `127.0.0.1:3033`:
 - Stack/routes question: `200`, answered from inspected repo facts, trace included `repo_stack_summary`.
 - Write/deploy request: `200`, blocked with `approval_boundary`, `write_actions_enabled: false`.
 - Regression request: `200`, reported `run_check: blocked` in runtime and did not pretend to run tests.
-- Job/ecomm planning request: covered by V1 `capability_plan`; it does not claim live job lookup, apply, publish, or post actions until V2 tools exist.
-- Expanded capability smoke: job, ecomm/POD, research, browser/extension, social/affiliate, shopping/life connectors, CQ/match, wallet/payments, ops/security, coder/studio, and camera/biometrics/voice all route to `capability_plan`.
+- Job/startup/business/ecomm planning request: covered by V1 `capability_plan`; it does not claim live job lookup, apply, publish, post, outreach, market-source lookup, or investor/customer messaging until V2 tools exist.
+- Expanded capability smoke: job, startup/business growth, ecomm/POD, research, browser/extension, social/affiliate, shopping/life connectors, CQ friend messenger, wallet/payments, ops/security, coder/studio, and camera/biometrics/voice all route to `capability_plan`.
 - Boundary smoke: immediate write/deploy requests still return `approval_boundary: blocked`; immediate regression execution still returns `run_check: blocked`.
 
 Latest typed-agent doorway smoke on `127.0.0.1:3034`:
@@ -169,6 +172,12 @@ Latest typed-agent doorway smoke on `127.0.0.1:3034`:
 - Repo/stack question: `/api/agent` returned `mode: agentic-read-only-v1`, trace `repo_stack_summary: completed`.
 - Job hunt planning: `/api/agent` returned `mode: agentic-read-only-v1`, trace `capability_plan: completed`.
 - Write/deploy request: `/api/agent` returned `mode: agentic-read-only-v1`, trace `approval_boundary: blocked`, `write_actions_enabled: false`.
+
+Latest capability correction smoke on `127.0.0.1:3035`:
+
+- Startup/business helper: `/api/agent` mapped to `Startup + Revenue + Business Growth` and `Research + Knowledge Work`.
+- CQ messenger: `/api/agent` mapped to `CQ-to-CQ Friend Messenger`; this is friend/contact messaging only and not RGY/Signal matching.
+- Coder/studio: `/api/agent` mapped to `Coder + Studio + Builder` and recommends managed API/sandbox tooling before write access.
 
 Prod voice check:
 
