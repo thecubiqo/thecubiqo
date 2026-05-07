@@ -112,9 +112,9 @@ const READY_FEATURES = [
   },
   {
     id: 'rgy-keywords',
-    label: 'RGY Keywords',
+    label: 'RGY Signals',
     status: 'Live',
-    detail: 'Green, yellow, and red keyword capture works in-session and saves to user-owned Supabase keyword telemetry when signed in.',
+    detail: 'The MVP capsule is color, keyword, and optional intent. Matching stays off until the user confirms Socialize, Collaborate, Trade, or any combination.',
     Icon: SignalIcon,
     color: '#a3e635'
   }
@@ -132,26 +132,33 @@ const JournalPage = () => {
   const [isLoadingJournalHistory, setIsLoadingJournalHistory] = useState(true);
   const [journalError, setJournalError] = useState("");
   const [editingEntryId, setEditingEntryId] = useState(null);
+  const [journalStartedAt, setJournalStartedAt] = useState(null);
+  const [journalRemainingSeconds, setJournalRemainingSeconds] = useState(15 * 60);
+  const [journalListening, setJournalListening] = useState(false);
+  const [journalVoiceAvailable, setJournalVoiceAvailable] = useState(false);
+  const [journalVoiceStatus, setJournalVoiceStatus] = useState("");
+  const journalRecognitionRef = useRef(null);
+  const journalPromptIndexRef = useRef(0);
   const journalPrompts = [
     {
-      label: "Signal",
-      prompt: "What is the honest state of you today?",
+      label: "Quick Intake",
+      prompt: "Before Core starts, what is the honest state of you today?",
       placeholder: "Mood, energy, focus, pressure..."
     },
     {
-      label: "Moment",
-      prompt: "What happened that actually mattered?",
+      label: "Core 1",
+      prompt: "What is most present for you right now?",
       placeholder: "The moment, person, task, thought, or tension..."
     },
     {
-      label: "Meaning",
-      prompt: "What did it teach you or ask from you?",
-      placeholder: "A pattern, lesson, risk, or decision..."
+      label: "Core 2",
+      prompt: "Where do you feel energy, pressure, or resistance today?",
+      placeholder: "A pattern, lesson, resistance, or decision..."
     },
     {
-      label: "Move",
-      prompt: "What is the next small move?",
-      placeholder: "One clear action for tomorrow..."
+      label: "Core 3",
+      prompt: "What would make the next 24 hours feel cleaner or more complete?",
+      placeholder: "One clear action, choice, or release..."
     }
   ];
 
@@ -260,9 +267,79 @@ const JournalPage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    journalPromptIndexRef.current = promptIndex;
+  }, [promptIndex]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setJournalVoiceAvailable(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        if (event.results[index].isFinal) {
+          finalTranscript += event.results[index][0].transcript;
+        }
+      }
+      const spoken = finalTranscript.trim();
+      if (!spoken) return;
+      setResponses(prev => {
+        const next = [...prev];
+        const activeIndex = journalPromptIndexRef.current;
+        next[activeIndex] = `${next[activeIndex] ? `${next[activeIndex].trim()} ` : ''}${spoken}`.trim();
+        return next;
+      });
+      setJournalVoiceStatus('Captured speech into this answer.');
+    };
+    recognition.onerror = (event) => {
+      setJournalListening(false);
+      setJournalVoiceStatus(event?.error === 'not-allowed' ? 'Microphone permission was not allowed.' : 'Voice capture paused. You can keep typing.');
+    };
+    recognition.onend = () => {
+      setJournalListening(false);
+    };
+
+    journalRecognitionRef.current = recognition;
+    setJournalVoiceAvailable(true);
+    return () => {
+      try {
+        recognition.stop();
+      } catch {
+        // Browser speech recognition may already be stopped.
+      }
+      journalRecognitionRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!journalStartedAt || savedEntry || promptIndex === 0) return;
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - journalStartedAt) / 1000);
+      const remaining = Math.max(0, (15 * 60) - elapsed);
+      setJournalRemainingSeconds(remaining);
+      if (remaining === 0) {
+        setJournalStatus('Fifteen-minute Core window is complete. Summarize when ready.');
+      }
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [journalStartedAt, promptIndex, savedEntry]);
+
   const currentJournalPrompt = journalPrompts[promptIndex];
   const journalProgress = Math.round(((promptIndex + 1) / journalPrompts.length) * 100);
   const canAdvanceJournal = responses[promptIndex]?.trim().length > 0;
+  const journalTimerLabel = `${String(Math.floor(journalRemainingSeconds / 60)).padStart(2, '0')}:${String(journalRemainingSeconds % 60).padStart(2, '0')}`;
+  const journalCoreActive = promptIndex > 0 && !savedEntry;
 
   const detectJournalTone = (text) => {
     const lower = text.toLowerCase();
@@ -273,15 +350,37 @@ const JournalPage = () => {
 
   const saveJournal = async (nextResponses) => {
     setIsSavingJournal(true);
-    setJournalStatus("");
+    setJournalStatus("Core is summarizing this journal...");
     setJournalError("");
-    const content = journalPrompts
+    let guideSummary = null;
+    try {
+      const guideResponse = await fetch('/api/journal/guide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'summary',
+          intake: nextResponses[0],
+          answers: journalPrompts.slice(1).map((item, index) => ({
+            question: item.prompt,
+            answer: nextResponses[index + 1] || ''
+          }))
+        })
+      });
+      const guidePayload = await guideResponse.json().catch(() => ({}));
+      if (guideResponse.ok) guideSummary = guidePayload.summary || null;
+    } catch (error) {
+      console.warn('Journal guide summary failed:', error.message);
+    }
+
+    const content = guideSummary?.content || journalPrompts
       .map((item, index) => `${item.label}: ${nextResponses[index]?.trim() || ""}`)
       .join("\n\n");
     const wordCount = content.split(/\s+/).filter(Boolean).length;
-    const color = detectJournalTone(content);
-    const title = nextResponses[0]?.trim().slice(0, 82) || 'Daily Journal';
-    const tags = ['daily-journal', color, nextResponses[3]?.trim() ? 'next-move' : 'reflection'];
+    const color = guideSummary?.rgyColor || detectJournalTone(content);
+    const title = guideSummary?.title || nextResponses[0]?.trim().slice(0, 82) || 'Daily Journal';
+    const tags = Array.isArray(guideSummary?.tags) && guideSummary.tags.length
+      ? guideSummary.tags.slice(0, 8)
+      : ['daily-journal', color, nextResponses[3]?.trim() ? 'next-move' : 'reflection'];
     const entry = {
       id: editingEntryId || `journal-${Date.now()}`,
       title,
@@ -289,7 +388,7 @@ const JournalPage = () => {
       content,
       responses: nextResponses,
       rgyColor: color,
-      mood: nextResponses[0]?.trim().slice(0, 80) || '',
+      mood: guideSummary?.mood || nextResponses[0]?.trim().slice(0, 80) || '',
       tags,
       wordCount
     };
@@ -362,10 +461,48 @@ const JournalPage = () => {
   const handleJournalNext = () => {
     if (!canAdvanceJournal || isSavingJournal) return;
     if (promptIndex < journalPrompts.length - 1) {
+      if (promptIndex === 0 && !journalStartedAt) {
+        setJournalStartedAt(Date.now());
+        setJournalRemainingSeconds(15 * 60);
+        setJournalStatus("Core started. You have a fifteen-minute guided lane.");
+      }
       setPromptIndex(index => index + 1);
       return;
     }
+    if (journalListening) {
+      try {
+        journalRecognitionRef.current?.stop?.();
+      } catch {
+        // Ignore already-stopped browser recognizer.
+      }
+      setJournalListening(false);
+    }
     saveJournal(responses);
+  };
+
+  const toggleJournalListening = () => {
+    if (!journalVoiceAvailable || !journalRecognitionRef.current) {
+      setJournalVoiceStatus('Voice capture is unavailable in this browser. Type your answer instead.');
+      return;
+    }
+    if (journalListening) {
+      try {
+        journalRecognitionRef.current.stop();
+      } catch {
+        // Ignore already-stopped browser recognizer.
+      }
+      setJournalListening(false);
+      setJournalVoiceStatus('Voice capture stopped.');
+      return;
+    }
+    try {
+      journalRecognitionRef.current.start();
+      setJournalListening(true);
+      setJournalVoiceStatus('Listening. Speak naturally; your words will be added below.');
+    } catch (error) {
+      setJournalVoiceStatus('Voice capture could not start. Type your answer instead.');
+      setJournalListening(false);
+    }
   };
 
   const startNewJournalEntry = () => {
@@ -373,6 +510,10 @@ const JournalPage = () => {
     setEditingEntryId(null);
     setPromptIndex(0);
     setResponses(["", "", "", ""]);
+    setJournalStartedAt(null);
+    setJournalRemainingSeconds(15 * 60);
+    setJournalListening(false);
+    setJournalVoiceStatus("");
     setJournalStatus("");
     setJournalError("");
   };
@@ -384,6 +525,10 @@ const JournalPage = () => {
     setEditingEntryId(normalized.id);
     setResponses([...normalized.responses, "", "", "", ""].slice(0, journalPrompts.length));
     setPromptIndex(0);
+    setJournalStartedAt(null);
+    setJournalRemainingSeconds(15 * 60);
+    setJournalListening(false);
+    setJournalVoiceStatus("");
     setJournalStatus("Editing journal entry.");
     setJournalError("");
   };
@@ -471,7 +616,7 @@ const JournalPage = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'flex-start' }}>
             <div>
               <div style={{ color: 'rgba(255,255,255,0.48)', fontSize: '0.68rem', fontWeight: 600, letterSpacing: 2.8, textTransform: 'uppercase' }}>Daily Journal</div>
-              <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.92)', fontSize: 'clamp(1.45rem, 3vw, 2rem)', fontWeight: 400, letterSpacing: 0 }}>Check in. Extract signal. Move cleanly.</div>
+              <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.92)', fontSize: 'clamp(1.45rem, 3vw, 2rem)', fontWeight: 400, letterSpacing: 0 }}>{promptIndex === 0 ? 'Quick intake before Core starts.' : 'Core guided journal. Fifteen-minute lane.'}</div>
             </div>
             <button
               type="button"
@@ -486,6 +631,16 @@ const JournalPage = () => {
           <div style={{ height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
             <div style={{ width: `${journalProgress}%`, height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, rgba(251,191,36,0.84), rgba(34,211,238,0.68))', transition: 'width 220ms ease' }} />
           </div>
+
+          {journalCoreActive && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 12, border: '1px solid rgba(251,191,36,0.14)', borderRadius: 18, background: 'rgba(251,191,36,0.06)', padding: '12px 14px' }}>
+              <div>
+                <div style={{ color: 'rgba(251,191,36,0.82)', fontSize: '0.68rem', letterSpacing: 1.8, textTransform: 'uppercase' }}>Core session</div>
+                <div style={{ color: 'rgba(255,255,255,0.56)', fontSize: '0.76rem', marginTop: 4 }}>Answer by voice or typing. Core will summarize and store the notes when you finish.</div>
+              </div>
+              <div style={{ color: journalRemainingSeconds === 0 ? '#fb7185' : 'rgba(255,255,255,0.9)', fontVariantNumeric: 'tabular-nums', fontSize: '1.1rem', fontWeight: 750 }}>{journalTimerLabel}</div>
+            </div>
+          )}
 
           {savedEntry ? (
             <div style={{ display: 'grid', gap: 18, flex: 1, alignContent: 'center' }}>
@@ -543,8 +698,33 @@ const JournalPage = () => {
             </div>
           ) : (
             <div style={{ display: 'grid', gap: 16, flex: 1 }}>
-              <div style={{ color: 'rgba(251,191,36,0.84)', fontSize: '0.72rem', letterSpacing: 2, textTransform: 'uppercase' }}>{editingEntryId ? 'Edit' : currentJournalPrompt.label} · {promptIndex + 1}/{journalPrompts.length}</div>
+              <div style={{ color: 'rgba(251,191,36,0.84)', fontSize: '0.72rem', letterSpacing: 2, textTransform: 'uppercase' }}>{editingEntryId ? 'Edit' : currentJournalPrompt.label} · {promptIndex === 0 ? 'intake' : `core ${promptIndex}/3`}</div>
               <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '1.32rem', lineHeight: 1.35 }}>{currentJournalPrompt.prompt}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={toggleJournalListening}
+                  disabled={!journalVoiceAvailable || isSavingJournal}
+                  style={{
+                    border: `1px solid ${journalListening ? 'rgba(34,211,238,0.42)' : 'rgba(255,255,255,0.12)'}`,
+                    background: journalListening ? 'rgba(34,211,238,0.12)' : 'rgba(255,255,255,0.055)',
+                    color: journalVoiceAvailable ? (journalListening ? '#67e8f9' : 'rgba(255,255,255,0.72)') : 'rgba(255,255,255,0.32)',
+                    borderRadius: 999,
+                    padding: '9px 12px',
+                    cursor: journalVoiceAvailable && !isSavingJournal ? 'pointer' : 'not-allowed',
+                    fontSize: '0.75rem',
+                    display: 'inline-flex',
+                    gap: 8,
+                    alignItems: 'center'
+                  }}
+                >
+                  <Volume2 size={14} />
+                  {journalListening ? 'Stop listening' : 'Speak answer'}
+                </button>
+                <span style={{ color: journalListening ? '#67e8f9' : 'rgba(255,255,255,0.42)', fontSize: '0.72rem' }}>
+                  {journalVoiceAvailable ? (journalVoiceStatus || 'Voice capture ready.') : 'Voice capture unavailable in this browser.'}
+                </span>
+              </div>
               <textarea
                 value={responses[promptIndex]}
                 onChange={(event) => {
@@ -582,7 +762,7 @@ const JournalPage = () => {
                   disabled={!canAdvanceJournal || isSavingJournal}
                   style={{ border: '1px solid rgba(251,191,36,0.3)', background: canAdvanceJournal ? 'linear-gradient(135deg, rgba(251,191,36,0.9), rgba(249,115,22,0.84))' : 'rgba(255,255,255,0.06)', color: canAdvanceJournal ? '#111' : 'rgba(255,255,255,0.38)', borderRadius: 14, padding: '12px 18px', cursor: canAdvanceJournal ? 'pointer' : 'not-allowed', fontWeight: 700 }}
                 >
-                  {isSavingJournal ? 'Saving...' : promptIndex === journalPrompts.length - 1 ? (editingEntryId ? 'Update entry' : 'Save entry') : 'Next'}
+                  {isSavingJournal ? 'Saving...' : promptIndex === journalPrompts.length - 1 ? (editingEntryId ? 'Update entry' : 'Summarize and save') : (promptIndex === 0 ? 'Start Core' : 'Next')}
                 </button>
               </div>
               {!isLoadingJournalHistory && journalHistory.length === 0 && promptIndex === 0 && !responses.some(value => value.trim()) && (
@@ -615,9 +795,11 @@ const DashboardPage = () => {
   const [stats, setStats] = useState({
     conversations: 0,
     keywords: 0,
+    signals: 0,
     journals: null,
     localJournals: 0,
-    migrationPending: false
+    migrationPending: false,
+    signalMigrationPending: false
   });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
@@ -659,9 +841,11 @@ const DashboardPage = () => {
         setStats({
           conversations: payload.stats?.conversations || 0,
           keywords: payload.stats?.keywords || 0,
+          signals: payload.stats?.signals || 0,
           journals: payload.stats?.journals ?? null,
           localJournals: readLocalJournalCount(),
-          migrationPending: Boolean(payload.stats?.journalMigrationPending)
+          migrationPending: Boolean(payload.stats?.journalMigrationPending),
+          signalMigrationPending: Boolean(payload.stats?.signalMigrationPending)
         });
       }
       if (response.status === 401) {
@@ -682,7 +866,7 @@ const DashboardPage = () => {
   const quickStats = [
     { label: 'Account', value: sessionUser ? 'Signed in' : 'Guest', color: sessionUser ? '#34d399' : '#fbbf24' },
     { label: 'Conversations', value: stats.conversations, color: '#60a5fa' },
-    { label: 'Keywords', value: stats.keywords, color: '#22c55e' },
+    { label: 'Signals', value: stats.signals || stats.keywords, color: '#22c55e' },
     { label: 'Journals', value: stats.journals ?? stats.localJournals, color: stats.migrationPending ? '#f97316' : '#fbbf24' }
   ];
 
@@ -749,6 +933,11 @@ const DashboardPage = () => {
             {stats.migrationPending && (
               <div style={{ marginTop: 14, color: 'rgba(251,146,60,0.9)', fontSize: '0.82rem', lineHeight: 1.5 }}>
                 Daily Journal cloud count is waiting on the Supabase `journal_entries` migration.
+              </div>
+            )}
+            {stats.signalMigrationPending && (
+              <div style={{ marginTop: 8, color: 'rgba(251,146,60,0.9)', fontSize: '0.82rem', lineHeight: 1.5 }}>
+                RGY signal cloud count is waiting on the Supabase `signals` migration.
               </div>
             )}
           </section>
@@ -847,6 +1036,8 @@ const DemoPage = () => {
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
   const [keywords, setKeywords] = useState({ green: [], yellow: [], red: [] });
+  const [signals, setSignals] = useState([]);
+  const [signalSyncStatus, setSignalSyncStatus] = useState('');
   const [selectedKeywordColor, setSelectedKeywordColor] = useState('green');
   const [rgyCapsule, setRgyCapsule] = useState({
     color: 'yellow',
@@ -925,6 +1116,7 @@ const DemoPage = () => {
   const transcriptRef = useRef('');
   const manualStopRef = useRef(false);
   const listeningActiveRef = useRef(false);
+  const listeningSilenceTimerRef = useRef(null);
   const callBackendRef = useRef(null);
 
   const ensureUserProfile = async (session) => {
@@ -1005,17 +1197,103 @@ const DemoPage = () => {
     setUserMemory(prev => [...prev, event].slice(-MEMORY_EVENT_LIMIT));
   };
 
+  const loadSignals = async () => {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (!token) {
+      setSignals([]);
+      return;
+    }
+
+    const response = await fetch('/api/signals', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setSignalSyncStatus(payload.migrationPending ? 'RGY signal table is waiting on the Supabase migration.' : 'RGY signal sync unavailable.');
+      return;
+    }
+    setSignals((payload.signals || []).map(normalizeSignal).filter(Boolean));
+    setSignalSyncStatus('');
+  };
+
+  const rememberSignal = async (signalInput, options = {}) => {
+    const signal = normalizeSignal(signalInput);
+    if (!signal) return null;
+
+    setSignals(prev => {
+      const existingIndex = prev.findIndex(item => item.id === signal.id || (
+        item.color === signal.color
+        && item.keyword.toLowerCase() === signal.keyword.toLowerCase()
+      ));
+      const next = [...prev];
+      if (existingIndex >= 0) next.splice(existingIndex, 1);
+      return [signal, ...next].filter(item => item.display_state !== 'deleted').slice(0, 30);
+    });
+
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (!token) {
+      setSignalSyncStatus('Sign in to save RGY signals.');
+      return signal;
+    }
+
+    const method = options.patch && !String(signal.id).startsWith('local-') ? 'PATCH' : 'POST';
+    const response = await fetch('/api/signals', {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(signal)
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setSignalSyncStatus(payload.migrationPending ? 'RGY signal table is waiting on the Supabase migration.' : 'RGY signal save unavailable.');
+      return signal;
+    }
+
+    const savedSignal = normalizeSignal(payload.signal);
+    if (savedSignal) {
+      setSignals(prev => [savedSignal, ...prev.filter(item => item.id !== signal.id && item.id !== savedSignal.id)].slice(0, 30));
+    }
+    setSignalSyncStatus('');
+    return savedSignal || signal;
+  };
+
+  const deleteSignal = async (signalInput) => {
+    const signal = normalizeSignal(signalInput);
+    if (!signal) return;
+    setSignals(prev => prev.filter(item => item.id !== signal.id));
+
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (!token || String(signal.id).startsWith('local-')) return;
+
+    const response = await fetch('/api/signals', {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ id: signal.id })
+    });
+    if (!response.ok) setSignalSyncStatus('RGY signal delete did not sync.');
+  };
+
   // Supabase auth session listener
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       setUser(data.session?.user ?? null);
       await ensureUserProfile(data.session);
       await loadUserMemory(data.session?.user);
+      await loadSignals();
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_e, session) => {
       setUser(session?.user ?? null);
       await ensureUserProfile(session);
       await loadUserMemory(session?.user);
+      await loadSignals();
       if (session?.user) setActiveModal(null);
     });
     // Profile and memory helpers only depend on stable Supabase client module state.
@@ -1070,13 +1348,30 @@ const DemoPage = () => {
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = 'en-US';
+    const clearListeningSilenceTimer = () => {
+      if (listeningSilenceTimerRef.current) {
+        clearTimeout(listeningSilenceTimerRef.current);
+        listeningSilenceTimerRef.current = null;
+      }
+    };
+
     rec.onresult = (e) => {
       let t = '';
       for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
       transcriptRef.current = t;
+      clearListeningSilenceTimer();
+      if (t.trim()) {
+        listeningSilenceTimerRef.current = setTimeout(() => {
+          if (!listeningActiveRef.current) return;
+          manualStopRef.current = false;
+          listeningActiveRef.current = false;
+          recognitionRef.current?.stop?.();
+        }, 1400);
+      }
     };
     rec.onerror = (e) => {
       console.warn('Speech error:', e.error);
+      clearListeningSilenceTimer();
       listeningActiveRef.current = false;
       stopMicAnalysis();
       setSpeakerEnabled(false);
@@ -1084,6 +1379,7 @@ const DemoPage = () => {
       setConversationError(e.error === 'not-allowed' ? 'Microphone permission denied. Use the text field instead.' : 'Voice input stopped. Use the text field or try again.');
     };
     rec.onend = () => {
+      clearListeningSilenceTimer();
       const text = transcriptRef.current.trim();
       const wasManualStop = manualStopRef.current;
       manualStopRef.current = false;
@@ -1110,6 +1406,49 @@ const DemoPage = () => {
     yellow: [...new Set(raw.yellow || [])].slice(-12),
     red: [...new Set(raw.red || [])].slice(-12)
   });
+  const intentChoices = ['socialize', 'collaborate', 'trade'];
+  const intentLabels = {
+    socialize: 'Socialize',
+    collaborate: 'Collaborate',
+    trade: 'Trade'
+  };
+  const normalizeIntentList = (value = []) => [...new Set((Array.isArray(value) ? value : [value])
+    .map(item => String(item || '').toLowerCase().trim())
+    .filter(item => intentChoices.includes(item)))];
+  const normalizeSignal = (raw = {}) => {
+    const color = normalizeKeywordColor(raw.color || raw.color_zone || 'yellow');
+    const keyword = String(raw.keyword || raw.keyword_label || '').trim().slice(0, 80);
+    if (!keyword) return null;
+    const confirmedIntents = normalizeIntentList(raw.confirmed_intents || raw.confirmedIntents || []);
+    const suggestedIntents = normalizeIntentList(raw.suggested_intents || raw.suggestedIntents || []);
+    return {
+      id: raw.id || `local-${color}-${keyword.toLowerCase().replace(/[^a-z0-9]+/g, '-') || Date.now()}`,
+      color,
+      keyword,
+      intent_status: confirmedIntents.length ? 'confirmed' : (suggestedIntents.length ? 'suggested' : (raw.intent_status || raw.intentStatus || 'pending')),
+      suggested_intents: suggestedIntents,
+      confirmed_intents: confirmedIntents,
+      source: raw.source || 'conversation',
+      display_state: raw.display_state || raw.displayState || 'visible',
+      created_at: raw.created_at || new Date().toISOString()
+    };
+  };
+  const signalFromRgy = (rgy = {}, keywordPayload = {}, fallbackText = '') => {
+    const color = normalizeKeywordColor(rgy.color || 'yellow');
+    const normalizedKeywords = normalizeKeywords(keywordPayload);
+    const keyword = rgy.keyword
+      || normalizedKeywords[color]?.[0]
+      || fallbackText.toLowerCase().split(/\s+/).find(word => word.replace(/[^a-z0-9-]/g, '').length > 2)
+      || color;
+    return normalizeSignal({
+      color,
+      keyword,
+      intent_status: rgy.intent_status || 'pending',
+      suggested_intents: rgy.suggested_intents || [],
+      confirmed_intents: rgy.confirmed_intents || [],
+      source: 'conversation'
+    });
+  };
 
   const speechProfileForRgy = (color) => {
     if (color === 'green') return { rate: 0.96, pitch: 0.92, volume: 0.95 };
@@ -1223,17 +1562,7 @@ const DemoPage = () => {
         audio.play().catch(resolve);
       });
     } catch (error) {
-      if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
-      const utterance = new SpeechSynthesisUtterance('I am listening');
-      utterance.rate = 0.88;
-      utterance.pitch = 0.72;
-      utterance.volume = 0.62;
-      await new Promise((resolve) => {
-        utterance.onend = resolve;
-        utterance.onerror = resolve;
-        window.speechSynthesis?.speak(utterance);
-        setTimeout(resolve, 1600);
-      });
+      console.warn('ElevenLabs listening cue unavailable:', error.message);
     } finally {
       setSpeakingAudioLevel(0);
     }
@@ -1285,6 +1614,10 @@ const DemoPage = () => {
 
   useEffect(() => {
     return () => {
+      if (listeningSilenceTimerRef.current) {
+        clearTimeout(listeningSilenceTimerRef.current);
+        listeningSilenceTimerRef.current = null;
+      }
       stopAudioAnalysis();
       stopMicAnalysis();
       audioAnalysisContextRef.current?.close?.();
@@ -1318,43 +1651,55 @@ const DemoPage = () => {
         const normalizedColor = normalizeKeywordColor(data.rgy.color);
         setRgyCapsule({ ...data.rgy, color: normalizedColor });
         if (!colorLock && data.rgy.color) setSelectedKeywordColor(normalizedColor);
+        const capturedSignal = signalFromRgy({ ...data.rgy, color: normalizedColor }, data.keywords || {}, cleanInput);
+        if (capturedSignal) await rememberSignal(capturedSignal);
       }
-      if (data.audio_url) {
-        if (!audioRef.current) audioRef.current = new Audio();
-        audioRef.current.src = data.audio_url;
-        audioRef.current.volume = 1;
-        audioRef.current.onplay = () => {
-          setIsSpeaking(true);
-          startAudioAnalysis();
-        };
-        audioRef.current.onpause = stopAudioAnalysis;
-        audioRef.current.onended = () => {
-          setIsSpeaking(false);
-          stopAudioAnalysis();
-        };
-        audioRef.current.play().catch(e => {
-          console.error("Audio play failed:", e);
-          setIsSpeaking(false);
-          stopAudioAnalysis();
-        });
-      } else if (window.speechSynthesis) {
-        // Fallback to browser TTS if no audio_url (e.g., missing API key)
-        const profile = speechProfileForRgy(data.rgy?.color || rgyCapsule.color);
-        const utterance = new SpeechSynthesisUtterance(responseText);
-        utterance.rate = profile.rate;
-        utterance.pitch = profile.pitch;
-        utterance.volume = profile.volume;
-        utterance.onstart = () => {
-          setIsSpeaking(true);
-          setSpeakingAudioLevel(data.rgy?.color === 'red' ? 0.12 : 0.18);
-        };
-        utterance.onend = () => {
-          setIsSpeaking(false);
-          setSpeakingAudioLevel(0);
-        };
-        window.speechSynthesis.speak(utterance);
+      try {
+        if (data.audio_url) {
+          if (!audioRef.current) audioRef.current = new Audio();
+          audioRef.current.src = data.audio_url;
+          audioRef.current.volume = 1;
+          audioRef.current.onplay = () => {
+            setIsSpeaking(true);
+            startAudioAnalysis();
+          };
+          audioRef.current.onpause = stopAudioAnalysis;
+          audioRef.current.onended = () => {
+            setIsSpeaking(false);
+            stopAudioAnalysis();
+          };
+          audioRef.current.play().catch(e => {
+            console.error("Audio play failed:", e);
+            setIsSpeaking(false);
+            stopAudioAnalysis();
+          });
+        } else if (window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined') {
+          // Response TTS fallback is optional; it must not overwrite a successful model response.
+          const profile = speechProfileForRgy(data.rgy?.color || rgyCapsule.color);
+          const utterance = new SpeechSynthesisUtterance(responseText);
+          utterance.rate = profile.rate;
+          utterance.pitch = profile.pitch;
+          utterance.volume = profile.volume;
+          utterance.onstart = () => {
+            setIsSpeaking(true);
+            setSpeakingAudioLevel(data.rgy?.color === 'red' ? 0.12 : 0.18);
+          };
+          utterance.onend = () => {
+            setIsSpeaking(false);
+            setSpeakingAudioLevel(0);
+          };
+          window.speechSynthesis.speak(utterance);
+        }
+      } catch (playbackError) {
+        console.warn('Optional response voice playback failed:', playbackError.message);
+        setIsSpeaking(false);
+        setSpeakingAudioLevel(0);
       }
-      await rememberConversation(cleanInput, responseText, data);
+      try {
+        await rememberConversation(cleanInput, responseText, data);
+      } catch (memoryError) {
+        console.warn('Optional conversation memory failed:', memoryError.message);
+      }
     } catch (err) {
       // Fallback: local keyword extraction
       const words = cleanInput.toLowerCase().split(/\s+/).filter(w => w.length > 2);
@@ -1377,12 +1722,17 @@ const DemoPage = () => {
         color: 'yellow',
         signal: 'YELLOW',
         label: 'Casual',
-        intent: 'degraded_connection',
+        intent: null,
+        intent_status: 'pending',
+        suggested_intents: [],
+        confirmed_intents: [],
         voice: 'friendly',
         routing_mode: 'local',
         color_is_ui_only: true
       });
       if (!colorLock) setSelectedKeywordColor('yellow');
+      const fallbackSignal = signalFromRgy({ color: 'yellow' }, nk, cleanInput);
+      if (fallbackSignal) await rememberSignal(fallbackSignal);
       const fallbackResponse = "I am here, but the live model connection is degraded. I still caught your intent; try again in a moment or keep typing and I will keep tracking the signal.";
       setAiResponse(fallbackResponse);
       setConversationError('Model connection degraded');
@@ -1417,7 +1767,6 @@ const DemoPage = () => {
     if (speakerEnabled) {
       manualStopRef.current = true;
       listeningActiveRef.current = false;
-      transcriptRef.current = '';
       setConversationError('');
       setSpeakerEnabled(false);
       stopMicAnalysis();
@@ -1570,6 +1919,14 @@ const DemoPage = () => {
       ...prev,
       [activeColor]: [...new Set([...(prev[activeColor] || []), next])].slice(-12)
     }));
+    void rememberSignal({
+      color: activeColor,
+      keyword: next,
+      intent_status: 'pending',
+      suggested_intents: [],
+      confirmed_intents: [],
+      source: 'manual'
+    });
     setKeywordDraft('');
   };
 
@@ -1579,39 +1936,24 @@ const DemoPage = () => {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 
-  const signalDefaults = {
-    green: ['job study', 'yoga', 'career'],
-    yellow: ['movie night', 'coffee chat', 'friends'],
-    red: ['adult apps', 'age-gated social', 'restricted trade']
+  const activeSignals = signals
+    .filter(item => normalizeKeywordColor(item.color) === activeColor && item.display_state !== 'deleted')
+    .slice(0, 6);
+  const visibleSignal = activeSignals[0] || signalFromRgy({ ...rgyCapsule, color: activeColor }, keywords, activeColor);
+  const activeSignalWords = (activeSignals.length ? activeSignals.map(item => item.keyword) : (keywords[activeColor] || [])).slice(0, 4);
+  const updateSignalIntent = (signalInput, intent) => {
+    const signal = normalizeSignal(signalInput);
+    if (!signal) return;
+    const current = normalizeIntentList(signal.confirmed_intents);
+    const nextConfirmed = current.includes(intent)
+      ? current.filter(item => item !== intent)
+      : [...current, intent];
+    void rememberSignal({
+      ...signal,
+      confirmed_intents: nextConfirmed,
+      intent_status: nextConfirmed.length ? 'confirmed' : (signal.suggested_intents?.length ? 'suggested' : 'pending')
+    }, { patch: true });
   };
-
-  const signalIntentByColor = {
-    green: 'Suggested: Collaborate',
-    yellow: 'Suggested: Socialize',
-    red: 'Age-gated review'
-  };
-
-  const signalActionByColor = {
-    green: 'Find practice partners, builders, coaches, rooms',
-    yellow: 'Find hangouts, groups, events, easy company',
-    red: 'Confirm age, consent, legality, and safety before matching'
-  };
-
-  const activeSignalWords = (keywords[activeColor]?.length ? keywords[activeColor] : signalDefaults[activeColor]).slice(0, 4);
-  const activeSignalCards = activeSignalWords.map((word, index) => ({
-    id: `${activeColor}-${word}-${index}`,
-    title: titleizeSignal(word),
-    status: index === 0 ? 'Caught request' : 'Signal shelf',
-    intent: signalIntentByColor[activeColor],
-    action: signalActionByColor[activeColor],
-    matches: activeColor === 'red' ? index + 1 : (index + 2) * 2
-  }));
-
-  const signalRooms = [
-    { label: 'Socialize', detail: `People around ${titleizeSignal(activeSignalWords[0] || activeColor)}` },
-    { label: 'Collaborate', detail: `Build or improve ${titleizeSignal(activeSignalWords[0] || activeColor)}` },
-    { label: 'Trade', detail: `Offers and services for ${titleizeSignal(activeSignalWords[0] || activeColor)}` }
-  ];
 
   const panelBase = {
     position: 'absolute', top: '100px', bottom: '40px', width: '320px',
@@ -2027,93 +2369,97 @@ const DemoPage = () => {
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
               <div>
-                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.64rem', letterSpacing: 2.4, textTransform: 'uppercase', fontWeight: 700 }}>SIGNAL</div>
-                <div style={{ color: '#fff', fontSize: '1.04rem', lineHeight: 1.15, fontWeight: 700, marginTop: 4 }}>Intelligent Chat & Match</div>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.64rem', letterSpacing: 2.4, textTransform: 'uppercase', fontWeight: 700 }}>RGY Capsule</div>
+                <div style={{ color: '#fff', fontSize: '1.04rem', lineHeight: 1.15, fontWeight: 700, marginTop: 4 }}>{titleizeSignal(visibleSignal?.keyword || activeColor)}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ color: active.hex, fontSize: '0.68rem', letterSpacing: 1.8, textTransform: 'uppercase', fontWeight: 800 }}>{activeColor}</div>
-                <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.68rem', marginTop: 4 }}>{activeSignalCards.length} signals</div>
+                <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.68rem', marginTop: 4 }}>color + keyword + intent</div>
               </div>
             </div>
             <div style={{ marginTop: 12, padding: '12px 13px', borderRadius: 16, background: `rgba(${active.rgb},0.07)`, border: `1px solid ${active.hex}24`, color: 'rgba(255,255,255,0.62)', fontSize: '0.76rem', lineHeight: 1.45 }}>
-              Requests move from <span style={{ color: '#fff' }}>caught</span> to <span style={{ color: '#fff' }}>discoverable</span> only after the user confirms visibility.
+              Intent is optional until you confirm one or more: Socialize, Collaborate, Trade.
             </div>
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', paddingRight: 2 }}>
             <div style={{ display: 'grid', gap: 10 }}>
-              {activeSignalCards.map((card, index) => (
-                <div key={card.id} style={{
-                  borderRadius: 18,
-                  padding: '13px 14px',
-                  background: index === 0 ? `linear-gradient(145deg, rgba(${active.rgb},0.16), rgba(255,255,255,0.035))` : 'rgba(255,255,255,0.035)',
-                  border: `1px solid ${index === 0 ? active.hex + '58' : 'rgba(255,255,255,0.075)'}`,
-                  boxShadow: index === 0 ? `0 14px 34px rgba(${active.rgb},0.08)` : 'none'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-                    <span style={{ color: index === 0 ? active.hex : 'rgba(255,255,255,0.46)', fontSize: '0.62rem', letterSpacing: 1.8, textTransform: 'uppercase', fontWeight: 800 }}>{card.status}</span>
-                    <span style={{ color: 'rgba(255,255,255,0.36)', fontSize: '0.68rem' }}>{card.matches} matches</span>
+              {(activeSignals.length ? activeSignals : [visibleSignal]).filter(Boolean).map((item, index) => {
+                const confirmed = normalizeIntentList(item.confirmed_intents);
+                const suggested = normalizeIntentList(item.suggested_intents);
+                return (
+                  <div key={item.id || `${item.color}-${item.keyword}-${index}`} style={{
+                    borderRadius: 18,
+                    padding: '13px 14px',
+                    background: index === 0 ? `linear-gradient(145deg, rgba(${active.rgb},0.16), rgba(255,255,255,0.035))` : 'rgba(255,255,255,0.035)',
+                    border: `1px solid ${index === 0 ? active.hex + '58' : 'rgba(255,255,255,0.075)'}`,
+                    boxShadow: index === 0 ? `0 14px 34px rgba(${active.rgb},0.08)` : 'none'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                      <span style={{ color: index === 0 ? active.hex : 'rgba(255,255,255,0.46)', fontSize: '0.62rem', letterSpacing: 1.8, textTransform: 'uppercase', fontWeight: 800 }}>{item.intent_status === 'confirmed' ? 'Confirmed' : suggested.length ? 'Suggested' : 'Needs confirm'}</span>
+                      <button type="button" onClick={() => deleteSignal(item)} style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.42)', borderRadius: 9, width: 26, height: 26, cursor: 'pointer', display: 'grid', placeItems: 'center' }} aria-label="Remove signal">
+                        <X size={12} />
+                      </button>
+                    </div>
+                    <input
+                      value={item.keyword}
+                      onChange={event => {
+                        const nextKeyword = event.target.value;
+                        setSignals(prev => prev.map(signalItem => signalItem.id === item.id ? { ...signalItem, keyword: nextKeyword } : signalItem));
+                      }}
+                      onBlur={event => rememberSignal({ ...item, keyword: event.target.value }, { patch: true })}
+                      style={{
+                        marginTop: 8,
+                        width: '100%',
+                        border: `1px solid ${active.hex}22`,
+                        background: 'rgba(0,0,0,0.18)',
+                        color: '#fff',
+                        borderRadius: 12,
+                        padding: '9px 10px',
+                        outline: 'none',
+                        fontSize: '0.9rem',
+                        fontWeight: 700
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: 6, marginTop: 11, flexWrap: 'wrap' }}>
+                      {intentChoices.map(intent => {
+                        const isConfirmed = confirmed.includes(intent);
+                        const isSuggested = suggested.includes(intent);
+                        return (
+                          <button
+                            key={intent}
+                            type="button"
+                            onClick={() => updateSignalIntent(item, intent)}
+                            style={{
+                              border: `1px solid ${isConfirmed ? active.hex + '70' : isSuggested ? active.hex + '32' : 'rgba(255,255,255,0.08)'}`,
+                              color: isConfirmed ? '#fff' : isSuggested ? active.hex : 'rgba(255,255,255,0.42)',
+                              background: isConfirmed ? `rgba(${active.rgb},0.18)` : 'rgba(255,255,255,0.025)',
+                              boxShadow: isConfirmed ? `0 0 16px rgba(${active.rgb},0.18)` : 'none',
+                              borderRadius: 999,
+                              padding: '7px 10px',
+                              fontSize: '0.68rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {intentLabels[intent]}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div style={{ color: '#fff', fontSize: '0.96rem', lineHeight: 1.2, fontWeight: 700, marginTop: 7 }}>{card.title}</div>
-                  <div style={{ color: active.hex, fontSize: '0.73rem', marginTop: 8 }}>{card.intent}</div>
-                  <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.72rem', lineHeight: 1.4, marginTop: 6 }}>{card.action}</div>
-                  <div style={{ display: 'flex', gap: 6, marginTop: 11 }}>
-                    {['Private', 'Confirm', 'Match'].map((step, stepIndex) => (
-                      <span key={step} style={{
-                        flex: 1,
-                        textAlign: 'center',
-                        padding: '6px 0',
-                        borderRadius: 10,
-                        border: `1px solid ${stepIndex <= 1 ? active.hex + '24' : 'rgba(255,255,255,0.07)'}`,
-                        color: stepIndex <= 1 ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.32)',
-                        background: stepIndex === 1 ? `rgba(${active.rgb},0.08)` : 'rgba(255,255,255,0.025)',
-                        fontSize: '0.63rem',
-                        letterSpacing: 0.6,
-                        textTransform: 'uppercase'
-                      }}>{step}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '16px 0' }} />
-
-            <div style={{ color: 'rgba(255,255,255,0.48)', fontSize: '0.64rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 800, marginBottom: 10 }}>Match Spaces</div>
-            <div style={{ display: 'grid', gap: 8 }}>
-              {signalRooms.map((room) => (
-                <button key={room.label} type="button" style={{
-                  textAlign: 'left',
-                  border: `1px solid ${active.hex}22`,
-                  background: 'rgba(255,255,255,0.03)',
-                  borderRadius: 15,
-                  padding: '11px 12px',
-                  cursor: 'pointer'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                    <span style={{ color: '#fff', fontSize: '0.82rem', fontWeight: 700 }}>{room.label}</span>
-                    <span style={{ color: active.hex, fontSize: '0.68rem' }}>room</span>
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.71rem', lineHeight: 1.35, marginTop: 5 }}>{room.detail}</div>
-                </button>
-              ))}
-            </div>
-
-            <div style={{
-              marginTop: 14,
-              borderRadius: 18,
-              padding: '13px 14px',
-              background: 'linear-gradient(145deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025))',
-              border: '1px solid rgba(255,255,255,0.09)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-                <div>
-                  <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 750 }}>CQ-to-CQ</div>
-                  <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.7rem', marginTop: 5, lineHeight: 1.35 }}>Known friends and permanent connections. Not public discovery.</div>
-                </div>
-                <div style={{ color: 'rgba(255,255,255,0.34)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 999, padding: '6px 9px', fontSize: '0.64rem', textTransform: 'uppercase', letterSpacing: 1 }}>Private</div>
+            {!activeSignals.length && !activeSignalWords.length && (
+              <div style={{ marginTop: 12, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 14px', color: 'rgba(255,255,255,0.42)', fontSize: '0.74rem', lineHeight: 1.45 }}>
+                No saved signal yet. Add a keyword below or speak to CubiQo.
               </div>
-            </div>
+            )}
+
+            {signalSyncStatus && (
+              <div style={{ marginTop: 12, color: 'rgba(251,191,36,0.72)', fontSize: '0.72rem', lineHeight: 1.4 }}>{signalSyncStatus}</div>
+            )}
           </div>
 
           <form onSubmit={e => { e.preventDefault(); addKeyword(); }} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16 }}>

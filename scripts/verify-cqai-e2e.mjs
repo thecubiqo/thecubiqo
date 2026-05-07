@@ -153,6 +153,177 @@ async function verifyTable({ url, anonKey, serviceRoleKey }, table) {
   };
 }
 
+async function createConfirmedTestUser({ url, anonKey, serviceRoleKey }) {
+  if (!serviceRoleKey) throw new Error('Service role key is required for CRUD verification');
+  const email = `codex-crud-${Date.now()}@cubiqo.ai`;
+  const password = `Cqai-${Date.now()}-crud!`;
+  const created = await requestJson(`${url}/auth/v1/admin/users`, {
+    method: 'POST',
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ email, password, email_confirm: true })
+  });
+  const userId = created.body?.user?.id || created.body?.id || null;
+  if (!created.response.ok || !userId) {
+    throw new Error(created.body?.message || created.body?.error || 'Could not create CRUD test user');
+  }
+
+  const signedIn = await requestJson(`${url}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ email, password })
+  });
+  const accessToken = signedIn.body?.access_token || null;
+  if (!signedIn.response.ok || !accessToken) {
+    throw new Error(signedIn.body?.message || signedIn.body?.error || 'Could not sign in CRUD test user');
+  }
+
+  return { email, password, userId, accessToken };
+}
+
+async function deleteTestUser({ url, serviceRoleKey }, userId) {
+  if (!serviceRoleKey || !userId) return;
+  await requestJson(`${url}/auth/v1/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`
+    }
+  });
+}
+
+function userHeaders({ anonKey }, accessToken, extra = {}) {
+  return {
+    apikey: anonKey,
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+    ...extra
+  };
+}
+
+async function verifyUserOwnedCrud(config) {
+  const result = {
+    ok: false,
+    userCreated: false,
+    journal: { inserted: false, read: false, deleted: false },
+    signals: { inserted: false, read: false, deleted: false },
+    rls: { anonJournalInsertDenied: false, anonSignalInsertDenied: false },
+    error: null
+  };
+
+  let testUser = null;
+  try {
+    testUser = await createConfirmedTestUser(config);
+    result.userCreated = true;
+    const { userId, accessToken } = testUser;
+
+    const anonJournal = await requestJson(`${config.url}/rest/v1/journal_entries`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        title: 'Anon should fail',
+        content: 'RLS should reject this write.'
+      })
+    });
+    result.rls.anonJournalInsertDenied = !anonJournal.response.ok;
+
+    const journalInsert = await requestJson(`${config.url}/rest/v1/journal_entries?select=id,user_id,title,content`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        title: 'CubiQo E2E Journal',
+        content: 'Quick intake and Core guided journal summary save/read test.',
+        responses: ['intake', 'core answer'],
+        rgy_color: 'green',
+        mood: 'focused',
+        tags: ['e2e', 'guided-journal'],
+        word_count: 9
+      })
+    });
+    const journalRow = Array.isArray(journalInsert.body) ? journalInsert.body[0] : null;
+    result.journal.inserted = journalInsert.response.ok && journalRow?.id && journalRow.user_id === userId;
+
+    const journalRead = journalRow?.id ? await requestJson(`${config.url}/rest/v1/journal_entries?id=eq.${journalRow.id}&select=id,user_id,title,content&limit=1`, {
+      headers: userHeaders(config, accessToken)
+    }) : null;
+    result.journal.read = Boolean(journalRead?.response.ok && Array.isArray(journalRead.body) && journalRead.body[0]?.id === journalRow.id);
+
+    const journalDelete = journalRow?.id ? await requestJson(`${config.url}/rest/v1/journal_entries?id=eq.${journalRow.id}`, {
+      method: 'DELETE',
+      headers: userHeaders(config, accessToken)
+    }) : null;
+    result.journal.deleted = Boolean(journalDelete?.response.ok);
+
+    const anonSignal = await requestJson(`${config.url}/rest/v1/signals`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        color: 'yellow',
+        keyword: 'anon should fail',
+        normalized_keyword: 'anon-should-fail'
+      })
+    });
+    result.rls.anonSignalInsertDenied = !anonSignal.response.ok;
+
+    const signalInsert = await requestJson(`${config.url}/rest/v1/signals?select=id,user_id,color,keyword,confirmed_intents`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        color: 'green',
+        keyword: 'career',
+        normalized_keyword: 'career',
+        intent_status: 'confirmed',
+        suggested_intents: ['collaborate'],
+        confirmed_intents: ['collaborate'],
+        source: 'e2e'
+      })
+    });
+    const signalRow = Array.isArray(signalInsert.body) ? signalInsert.body[0] : null;
+    result.signals.inserted = signalInsert.response.ok && signalRow?.id && signalRow.user_id === userId;
+
+    const signalRead = signalRow?.id ? await requestJson(`${config.url}/rest/v1/signals?id=eq.${signalRow.id}&select=id,user_id,color,keyword,confirmed_intents&limit=1`, {
+      headers: userHeaders(config, accessToken)
+    }) : null;
+    result.signals.read = Boolean(signalRead?.response.ok && Array.isArray(signalRead.body) && signalRead.body[0]?.id === signalRow.id);
+
+    const signalDelete = signalRow?.id ? await requestJson(`${config.url}/rest/v1/signals?id=eq.${signalRow.id}`, {
+      method: 'DELETE',
+      headers: userHeaders(config, accessToken)
+    }) : null;
+    result.signals.deleted = Boolean(signalDelete?.response.ok);
+  } catch (error) {
+    result.error = error.message || String(error);
+  } finally {
+    if (testUser?.userId) await deleteTestUser(config, testUser.userId);
+  }
+
+  result.ok = result.userCreated &&
+    result.journal.inserted && result.journal.read && result.journal.deleted &&
+    result.signals.inserted && result.signals.read && result.signals.deleted &&
+    result.rls.anonJournalInsertDenied && result.rls.anonSignalInsertDenied;
+
+  return result;
+}
+
 function makeMockResponse() {
   let resolveResult;
   const result = new Promise((resolve) => {
@@ -271,9 +442,10 @@ async function main() {
 
   const signup = await verifySignup(config);
   const tables = [];
-  for (const table of ['profiles', 'user_activity_keywords', 'conversation_events', 'journal_entries']) {
+  for (const table of ['profiles', 'user_activity_keywords', 'conversation_events', 'journal_entries', 'signals']) {
     tables.push(await verifyTable(config, table));
   }
+  const userOwnedCrud = await verifyUserOwnedCrud(config);
   const rgy = await verifyRgy();
   const frontendSecretBoundary = verifyFrontendSecretBoundary();
 
@@ -281,9 +453,10 @@ async function main() {
     supabaseProject: config.url,
     signup,
     tables,
+    userOwnedCrud,
     rgy,
     frontendSecretBoundary,
-    passed: signup.ok && tables.every(table => table.ok) && rgy.every(item => item.ok) && frontendSecretBoundary.ok
+    passed: signup.ok && tables.every(table => table.ok) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok
   };
 
   console.log(JSON.stringify(report, null, 2));

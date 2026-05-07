@@ -1,0 +1,145 @@
+# goodfeatureslegacy Preview Contract
+
+Date: 2026-05-07
+Branch: `goodfeatureslegacy`
+Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched except explicit bugfix work.
+
+## Visible UI Surfaces
+
+- Landing screen: existing CubiQo landing/particle experience remains the entry point.
+- Main CubiQo shell: voice/text input, left tray controls, right RGY panel, current visual state machine.
+- Auth entry: sign in/sign up UI remains available through the left tray.
+- Dashboard: shows only durable surfaces and counts: account, conversations, RGY signals/legacy keywords, journals.
+- Daily Journal: quick intake first, then a 15-minute Core-guided session with typed or browser speech-captured answers, then summary save.
+- RGY panel: MVP capsule only: color + keyword + optional confirmed intent.
+
+## RGY MVP Contract
+
+- Capsule fields: `color`, `keyword`, `intent`.
+- Valid colors: `green`, `yellow`, `red`.
+- Valid intents: `socialize`, `collaborate`, `trade`.
+- Intent can be pending, suggested, ambiguous, or confirmed.
+- No matching happens until the user confirms one or more intents.
+- Red itself is the restricted/adult-gated signal. There is no extra visible risk label.
+- The right panel must not show fake rooms, fake match counts, CQ claims, or generic status tags.
+
+## Hidden Until End-to-End Complete
+
+- Job Hunter
+- Website launcher
+- Ecomm launchpad
+- CQ-to-CQ
+- Social Army 10/10/10
+- BYO keys
+- Biometrics/camera awareness
+- Self-healer/full reporting
+- Agent/browser/coder
+- Signal match route/button
+
+## Current Implementation In This Branch
+
+- Added Supabase migration for `signals`.
+- Added `/api/signals` for user-owned RGY signal create/list/update/delete.
+- Added `/api/journal/guide` for guided-journal questions and LLM/local summary fallback.
+- Updated conversation RGY output to return keyword, suggested intents, confirmed intents, and `matching_enabled: false`.
+- Updated dashboard counts/features to expose only live/code-ready surfaces.
+- Updated the right panel to show editable signal capsules and user-confirmed intent chips.
+- Updated Daily Journal for quick intake -> Core guided journal -> 15-minute timer -> typed/speech-captured answers -> summary storage.
+- Updated regression script to require `signals` table in addition to existing auth/journal tables.
+- Removed the incomplete `/signal` route from the visible/routable app surface.
+
+## Closure Checklist
+
+- Supabase `journal_entries`: closed; table exists, RLS exists, authenticated create/read/delete passes.
+- Supabase `signals`: closed; table exists, RLS exists, authenticated create/read/delete passes.
+- RGY PDF MVP: closed for MVP; visible capsule is color + keyword + optional confirmed intent.
+- Red restricted/adult flag: closed; red is the restricted signal and no separate visible risk label is shown.
+- Right panel: closed for MVP; active signal, keyword edit, intent chips, and delete are visible; fake match/CQ surfaces are removed.
+- Generic status tags: closed; no bottom state tags or generic status tag UI are part of this branch contract.
+- Journal quick intake: closed.
+- Core guided journal: closed for MVP; timer is 15 minutes and Core asks guided questions.
+- Journal listening: closed for browser-supported speech recognition; speech appends into the active answer and typed fallback remains.
+- Journal summary/store: closed for simple LLM/local summary and Supabase/local storage save.
+- Repo self-inspection: deferred to agentic transformation; do not add FAQ/self-status substitutes.
+- Voice QA: partially closed; ElevenLabs cue path is wired and should be verified per deployment, final CubiQo voice design remains later.
+- Incomplete legacy features hidden: closed; unfinished product pages/routes remain hidden or unroutable.
+
+## Line-Item Test Checklist
+
+| Requirement | Status | Test / Evidence |
+| --- | --- | --- |
+| Fix Supabase schema gap | Closed | `npm run verify:cqai` passes; `journal_entries` and `signals` reachable. |
+| Apply/verify `journal_entries` | Closed | Regression table check passes; authenticated journal insert/read/delete passes. |
+| Add RGY signals table from deck | Closed | `signals` migration applied; regression table check passes. |
+| Confirm RLS and E2E save/read work | Closed | Regression verifies anonymous journal/signal inserts denied and authenticated CRUD passes. |
+| Make RGY match PDF MVP | Closed for MVP | `/api/converse` returns color, keyword, suggested/confirmed intents, and `matching_enabled: false`. |
+| Zone + Keyword + Intent | Closed | Right panel and API use color/keyword/intent capsule fields. |
+| Red itself is adult/restricted flag | Closed | Red classification sets age gate; no extra visible risk field/label in right panel. |
+| Right panel active signal/keyword/intent/edit/delete | Closed | `frontend/src/App.js` right panel renders editable keyword input, intent chips, and delete button. |
+| No generic status tags | Closed | No bottom generic state/status tag UI is part of the branch contract. |
+| Keep quick intake as step 1 | Closed | Journal prompt 1 is Quick Intake. |
+| Move user into Core landing/session after intake | Closed for MVP | `Start Core` advances from intake into Core questions. |
+| Core runs guided 15-minute journal | Closed | Journal timer initializes to `15 * 60` and renders `MM:SS`. |
+| It asks | Closed | Core has three guided prompts after intake. |
+| It listens | Closed for browser-supported speech | Browser `SpeechRecognition` captures final transcript into the active answer; typed fallback remains. |
+| It summarizes | Closed | `/api/journal/guide` returns structured summary via OpenAI when available, local fallback otherwise. |
+| It stores notes | Closed | Journal save posts to `/api/journal`; regression verifies Supabase CRUD. |
+| Simple LLM first, no special journaling API | Closed | Uses `/api/journal/guide` with OpenAI env when available and local fallback. |
+| Replace fake/self-status with real repo self-inspection | Deferred intentionally | Correct path is agentic read-only repo tool; no FAQ/self-status substitute added. |
+| CubiQo should not answer from FAQ | Closed for current branch | Fake runtime self-status was removed; no new FAQ self-status added. |
+| Add read-only repo inspection tool later | Deferred intentionally | To be implemented in agentic transformation: search repo, read files, list routes/package/framework, answer from inspected evidence. |
+| Keep ElevenLabs path | Closed | `/api/voice-cue` reaches ElevenLabs config. |
+| Verify prod is actually using ElevenLabs | Verified, blocked by quota | `https://www.cubiqo.ai/api/voice-cue` returns ElevenLabs quota error with configured voice/model. |
+| Tune neutral/androgynous voice | Partially closed | Voice metadata is `River neutral/androgynous`, model `eleven_flash_v2_5`; final tuning waits for credits/listening QA. |
+| Final voice of intelligence design after workflow stable | Deferred intentionally | Not part of this closure pass. |
+| Keep incomplete legacy features hidden | Closed | Preview exposes `/`, `/app`, `/dashboard`, `/journal`; `/signal` returns `404`; Job Hunter/launcher/CQ/Social Army/BYO/camera/coder/browser are not visible pages. |
+
+## Regression Gate Before Push
+
+Commands:
+
+```bash
+node -c api/converse.js
+npm run typecheck
+npm run build
+npm run verify:cqai
+```
+
+Latest result:
+
+- `node -c api/converse.js`: pass
+- `npm run typecheck`: pass
+- `npm run build`: pass; routes expose `/`, `/app`, `/auth/callback`, `/dashboard`, `/journal`, and API routes only. `/signal` is not routable.
+- Local route smoke on `127.0.0.1:3110`: `/`, `/app`, `/dashboard`, `/journal` returned `200`; `/signal` returned `404`.
+- `npm run verify:cqai`: pass.
+- E2E save/read/delete: pass for authenticated `journal_entries` and `signals`.
+- RLS denial: pass; anonymous writes to `journal_entries` and `signals` are denied.
+- Voice cue route: verified wired to ElevenLabs config (`River neutral/androgynous`, `eleven_flash_v2_5`) but audio generation is currently blocked by ElevenLabs quota; route returns `elevenlabs_error` when the key is present and provider fails.
+
+## Preview Deployment
+
+Preview URL: https://cubiqo-repo-dmvgdkydt-cubiqo-projects-d7156840.vercel.app
+
+Deployment ID: `dpl_BC5NTqF5ZKjTU49iiyh9Cx31Q4nQ`
+
+Preview smoke:
+
+- `/`: 200
+- `/app`: 200
+- `/dashboard`: 200
+- `/journal`: 200
+- `/signal`: 404
+- `/api/journal/guide`: summary response returned
+- `/api/converse`: RGY returned `green`, keyword `build`, `matching_enabled: false`
+- `/api/voice-cue`: returns `elevenlabs_error` due ElevenLabs quota, with configured neutral/androgynous voice metadata
+
+Prod voice check:
+
+- `https://www.cubiqo.ai/api/voice-cue`: reaches ElevenLabs and returns a quota error with `River neutral/androgynous` / `eleven_flash_v2_5`. Current prod code labels provider as `none`, while this branch labels the same condition as `elevenlabs_error`.
+
+Resolved schema blocker:
+
+- `journal_entries` exists and is reachable.
+- `signals` exists and is reachable.
+
+Do not push this branch for review unless this contract stays current and regression remains green.

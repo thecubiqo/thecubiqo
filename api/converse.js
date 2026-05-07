@@ -91,10 +91,12 @@ function runtimeManifestSnapshot() {
 const SYSTEM_PROMPT = `You are CubiQo — a philosophical, deeply intelligent AI assistant.
 You speak with calm authority on any topic. 
 For EVERY response, after your main reply, output a JSON block like:
-<keywords>{"green": ["linkedin","career"], "yellow": ["instagram","comfort"], "red": ["grindr","tinder"]}</keywords>
-Green = productive/help-oriented user activity and system help: verbs or platforms around LinkedIn, yoga, wellness, career, planning, building, writing, shipping, focus, growth, and professional vibe.
-Yellow = laid-back comfort and social chat: Facebook, Instagram, casual posting, checking in, reassurance, mood, friends, and easy conversation.
-Red = adult-gated or explicit-intent contexts: Grindr, Tinder, hookup, NSFW, intimate, private dating, kink, fetish, and similar adult/age-gated signals.
+<keywords>{"green": ["linkedin","career"], "yellow": ["instagram","friends"], "red": ["adult apps","explicit"]}</keywords>
+RGY matching capsule = color + keyword + intent.
+Green = productive/help-oriented user activity: LinkedIn, yoga, wellness, career, planning, building, writing, shipping, focus, growth, and professional vibe.
+Yellow = casual/social/general activity: Facebook, Instagram, casual posting, checking in, reassurance, mood, friends, movies, and easy conversation.
+Red = adult-gated or explicit contexts: Grindr, Tinder, hookup, NSFW, intimate, private dating, kink, fetish, and similar age-gated signals.
+Intent is only Socialize, Collaborate, or Trade; suggest it only when obvious, and do not imply matching has happened.
 Keywords should describe user activities and the nature of help the system is giving.
 Keep your main response under 3 sentences. Be profound but concise.`;
 
@@ -135,6 +137,20 @@ const RED_TERMS = [
   'explicit', 'adult', 'sex', 'porn', 'nsfw', 'hookup', 'fetish', 'kink', 'dating',
   'intimate', 'private', 'grindr', 'tinder', 'bumble', 'hinge', 'onlyfans',
   'escort', 'bdsm', 'sext', 'sexting'
+];
+const SOCIALIZE_TERMS = [
+  'friend', 'friends', 'chat', 'coffee', 'movie', 'movies', 'hang', 'hangout',
+  'hangouts', 'date', 'dating', 'party', 'social', 'meet', 'meetup', 'conversation'
+];
+const COLLABORATE_TERMS = [
+  'build', 'collaborate', 'collaboration', 'study', 'practice', 'project', 'career',
+  'interview', 'learn', 'train', 'plan', 'write', 'review', 'gym', 'yoga', 'journal',
+  'launch', 'ship', 'code', 'design'
+];
+const TRADE_TERMS = [
+  'buy', 'sell', 'trade', 'paid', 'service', 'services', 'marketplace', 'shop',
+  'purchase', 'sale', 'coach', 'coaching', 'tutor', 'tutoring', 'offer', 'barter',
+  'wallet', 'payment', 'stripe'
 ];
 const SELF_HARM_TERMS = [
   'kill myself', 'suicide', 'self harm', 'self-harm', 'hurt myself', 'end my life',
@@ -255,6 +271,43 @@ function mergeKeywords(primary = {}, fallback = {}) {
   };
 }
 
+function titleizeKeyword(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .split(/[\s-]+/)
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function inferSuggestedIntents(message, color) {
+  const lower = String(message || '').toLowerCase();
+  const intents = [];
+  if (includesAny(lower, SOCIALIZE_TERMS)) intents.push('socialize');
+  if (includesAny(lower, COLLABORATE_TERMS)) intents.push('collaborate');
+  if (includesAny(lower, TRADE_TERMS)) intents.push('trade');
+  if (!intents.length) {
+    if (color === 'green') intents.push('collaborate');
+    if (color === 'yellow') intents.push('socialize');
+  }
+  return [...new Set(intents)].slice(0, 3);
+}
+
+function primaryKeywordForColor(keywords, color, message) {
+  const chosen = keywords[color]?.[0]
+    || keywords.green?.[0]
+    || keywords.yellow?.[0]
+    || keywords.red?.[0];
+  if (chosen) return chosen;
+  const fallback = String(message || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .split(/\s+/)
+    .find(word => word.length > 3);
+  return fallback || 'conversation';
+}
+
 function detectRgyCapsule(message, keywordHints = {}) {
   const lower = String(message || '').toLowerCase();
   const selfHarm = includesAny(lower, SELF_HARM_TERMS);
@@ -264,12 +317,21 @@ function detectRgyCapsule(message, keywordHints = {}) {
   const selected = selfHarm ? 'yellow' : (explicit ? 'red' : (goal ? 'green' : (casual ? 'yellow' : 'yellow')));
   const meta = RGY_META[selected];
   const keywords = mergeKeywords(keywordHints, classifyMessageKeywords(message));
+  const primaryKeyword = primaryKeywordForColor(keywords, selected, message);
+  const suggestedIntents = inferSuggestedIntents(message, selected);
+  const intentStatus = suggestedIntents.length > 1 ? 'ambiguous' : (suggestedIntents.length === 1 ? 'suggested' : 'pending');
 
   return {
     color: selected,
     signal: meta.color,
     label: meta.label,
-    intent: selfHarm ? 'support' : meta.intent,
+    keyword: primaryKeyword,
+    keyword_label: titleizeKeyword(primaryKeyword),
+    intent: null,
+    intent_status: selfHarm ? 'pending' : intentStatus,
+    suggested_intents: selfHarm ? [] : suggestedIntents,
+    confirmed_intents: [],
+    matching_enabled: false,
     voice: selfHarm ? 'supportive' : meta.voice,
     age_gate_required: explicit && !selfHarm,
     self_harm_support: selfHarm,
@@ -450,7 +512,7 @@ function buildSafetyResponse(message) {
     keywords: {
       green: fallback.keywords.green,
       yellow: ['reframe', 'boundary'],
-      red: ['risk']
+      red: ['restricted']
     }
   };
 }
