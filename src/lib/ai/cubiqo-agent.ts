@@ -8,6 +8,7 @@ import {
   runCheck,
   runtimeStatus
 } from './repo-inspection';
+import { capabilityPlanForText } from './capability-map';
 
 export type AgentTraceItem = {
   tool: string;
@@ -44,6 +45,10 @@ function summarizeOutput(toolName: string, output: unknown) {
     return `${result.check || 'check'} ${result.status || 'completed'}`;
   }
   if (toolName === 'classify_rgy') return 'classified RGY keywords';
+  if (toolName === 'capability_plan') {
+    const domains = (output as { matchedDomains?: unknown[] }).matchedDomains || [];
+    return `${domains.length} capability domain${domains.length === 1 ? '' : 's'} mapped`;
+  }
   return 'completed';
 }
 
@@ -145,6 +150,15 @@ export function createCubiQoAgent(trace: AgentTraceItem[]) {
         yellow: hits(text, casualTerms),
         red: hits(text, gatedTerms)
       })
+    }),
+    capability_plan: tracedTool({
+      trace,
+      name: 'capability_plan',
+      description: 'Map user functional needs to CubiQo V1/V2 capabilities for job hunt, ecomm/POD business, routine, memory, and contextual support.',
+      inputSchema: z.object({
+        text: z.string().min(1).max(3000)
+      }),
+      execute: async ({ text }) => capabilityPlanForText(text)
     })
   };
 
@@ -154,6 +168,7 @@ export function createCubiQoAgent(trace: AgentTraceItem[]) {
     instructions: [
       'You are CubiQo V1 inside cq.ai.',
       'Default to conversation, but use tools for repo, stack, route, runtime, test, dashboard, implementation, or self-awareness questions.',
+      'For job hunt, career, resume, new job postings, easy apply, website applications, ecomm, fashion brands, POD, sales, marketing, routine, memory, or contextual support, use capability_plan before answering.',
       'Never answer repo facts from memory. If the user asks what CubiQo is built with, what routes exist, whether a feature exists, or what was implemented, inspect the repo first.',
       'V1 is read-only. Do not claim you changed code, deployed, submitted applications, posted content, bought anything, or controlled a browser.',
       'When a tool is unavailable or blocked, say that clearly.',
@@ -165,6 +180,13 @@ export function createCubiQoAgent(trace: AgentTraceItem[]) {
 
 export async function buildFallbackAgentAnswer(message: string, trace: AgentTraceItem[]) {
   const lower = message.toLowerCase();
+  if (/(job|jobs|career|resume|linkedin|indeed|dice|application|apply|interview|recruiter|ecomm|ecommerce|shopify|printify|printful|pod|fashion|brand|clothing|sales|marketing|gfx|gfxtools|routine|memory|daily|context)/.test(lower)) {
+    const plan = capabilityPlanForText(message);
+    trace.push({ tool: 'capability_plan', status: 'completed', summary: `${plan.matchedDomains.length} capability domains mapped` });
+    const labels = plan.matchedDomains.map(domain => domain.label).join(', ');
+    const v2Tools = [...new Set(plan.matchedDomains.flatMap(domain => domain.v2ToolsRequired))].slice(0, 6).join('; ');
+    return `I mapped this to ${labels}. V1 can understand context, plan strategy, draft assets, and prepare structured workflows. V2 must add approved action tools for: ${v2Tools}.`;
+  }
   if (/(change|edit|write|commit|push|deploy|apply|submit|post|send|buy|purchase|delete|update).*(file|code|app|site|prod|production|branch|job|application|social|content)?/.test(lower)) {
     trace.push({ tool: 'approval_boundary', status: 'blocked', summary: 'V1 cannot perform write or external actions' });
     return 'V1 is read-only. I can inspect and explain, but I cannot change files, deploy, submit applications, post content, or send anything until the V2 approval and audit system exists.';

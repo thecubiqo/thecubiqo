@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
         'repo_search',
         'repo_read_file',
         'run_check',
-        'classify_rgy'
+        'classify_rgy',
+        'capability_plan'
       ],
       write_actions_enabled: false
     });
@@ -93,7 +94,8 @@ export async function POST(request: NextRequest) {
       'repo_search',
       'repo_read_file',
       'run_check',
-      'classify_rgy'
+      'classify_rgy',
+      'capability_plan'
     ],
     write_actions_enabled: false
   });

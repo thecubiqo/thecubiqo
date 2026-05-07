@@ -45,7 +45,7 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 - Updated dashboard counts/features to expose only live/code-ready surfaces.
 - Updated the right panel to show editable signal capsules and user-confirmed intent chips.
 - Updated Daily Journal for quick intake -> Core guided journal -> 15-minute timer -> typed/speech-captured answers -> summary storage.
-- Added `/api/agent` for CubiQo V1 read-only agentic behavior: repo stack summary, route listing, repo search/read, runtime status, RGY classification, and blocked check reporting.
+- Added `/api/agent` for CubiQo V1 read-only agentic behavior: repo stack summary, route listing, repo search/read, runtime status, RGY classification, capability planning, and blocked check reporting.
 - Updated the main CubiQo response surface with a component-library based "What I checked" collapsible that shows V1 tool activity inside the existing window.
 - Updated regression script to require `signals` table in addition to existing auth/journal tables.
 - Removed the incomplete `/signal` route from the visible/routable app surface.
@@ -99,6 +99,9 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 | Agentic V1 UI activity | Closed | Main CubiQo response panel shows component-library "What I checked" collapsible when agent route is used. |
 | Agent write/deploy boundary | Closed | `/api/agent` blocks write/deploy/post/send/apply/buy requests and states V2 approval/audit is required. |
 | Agent regression boundary | Closed | `/api/agent` reports check execution as blocked in deployed/serverless runtime unless local checks are explicitly enabled. |
+| Job Hunt capability readiness | Closed for V1 planning | Capability map covers job context, resume strategy, new posting lookup requirements, one-button easy apply, employer-site applications, approval/audit, and required V2 browser/API tools. |
+| Ecomm/POD capability readiness | Closed for V1 planning | Capability map covers fashion brand decisions, POD setup, Shopify/Printify/Printful/GFXTools requirements, sales/marketing planning, and required V2 connector/action tools. |
+| Contextual functional understanding | Closed for V1 planning | Capability map covers career, ecomm/POD, personal routine, memory, daily reports, and permission-gated future actions. |
 
 ## Regression Gate Before Push
 
@@ -145,6 +148,7 @@ Latest local V1 agent smoke on `127.0.0.1:3033`:
 - Stack/routes question: `200`, answered from inspected repo facts, trace included `repo_stack_summary`.
 - Write/deploy request: `200`, blocked with `approval_boundary`, `write_actions_enabled: false`.
 - Regression request: `200`, reported `run_check: blocked` in runtime and did not pretend to run tests.
+- Job/ecomm planning request: covered by V1 `capability_plan`; it does not claim live job lookup, apply, publish, or post actions until V2 tools exist.
 
 Prod voice check:
 
