@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCubiQoAgent, buildFallbackAgentAnswer, type AgentTraceItem } from '@/next/lib/ai/cubiqo-agent';
 import { isCapabilityPlanningRequest } from '@/next/lib/ai/capability-map';
+import { runLegacyVercelHandler } from '@/next/lib/legacy-vercel-adapter';
+
+const legacyConverse = require('../../../../api/converse.js');
 
 export const maxDuration = 30;
 export const runtime = 'nodejs';
@@ -23,6 +26,56 @@ function normalizeRgy(message: string) {
   };
 }
 
+function agentToolsNeeded(message: string) {
+  const lower = message.toLowerCase();
+  return (
+    /(repo|code|stack|route|routes|built|framework|implementation|self|yourself|what model|test|tests|regression|diagnostic|runtime|provider|supabase|vercel|nextjs|next\.js|react|agentic|what did you check|what can you inspect)/i.test(lower)
+    || isCapabilityPlanningRequest(message)
+    || /(change|edit|write|commit|push|deploy|apply|submit|post|send|buy|purchase|delete|update)/i.test(lower)
+  );
+}
+
+async function delegateToConversation(request: NextRequest, body: Record<string, unknown>, message: string, trace: AgentTraceItem[]) {
+  trace.push({
+    tool: 'conversation_router',
+    status: 'completed',
+    summary: 'delegated simple chat to existing converse path'
+  });
+
+  const legacyRequest = new Request(request.url, {
+    method: 'POST',
+    headers: request.headers,
+    body: JSON.stringify({
+      message,
+      history: Array.isArray(body.history) ? body.history : [],
+      model: body.model
+    })
+  });
+  const legacyResponse = await runLegacyVercelHandler(legacyConverse, legacyRequest, 'POST');
+  const legacyPayload = await legacyResponse.json().catch(() => ({}));
+
+  return NextResponse.json({
+    ...legacyPayload,
+    mode: 'conversation-via-agent-v1',
+    trace,
+    rgy: legacyPayload && typeof legacyPayload === 'object' && 'rgy' in legacyPayload
+      ? (legacyPayload as { rgy?: unknown }).rgy
+      : normalizeRgy(message),
+    tools_available: [
+      'conversation_router',
+      'runtime_status',
+      'repo_stack_summary',
+      'repo_list_routes',
+      'repo_search',
+      'repo_read_file',
+      'run_check',
+      'classify_rgy',
+      'capability_plan'
+    ],
+    write_actions_enabled: false
+  }, { status: legacyResponse.status });
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const message = String(body.message || '').trim();
@@ -43,6 +96,10 @@ export async function POST(request: NextRequest) {
     || strongWriteRequest
     || (/(change|edit|write|commit|push|deploy|apply|submit|post|send|buy|purchase|delete|update)/.test(lower)
       && !isCapabilityPlanningRequest(message));
+
+  if (!agentToolsNeeded(message)) {
+    return delegateToConversation(request, body, message, trace);
+  }
 
   if (deterministicBoundary) {
     response = await buildFallbackAgentAnswer(message, trace);

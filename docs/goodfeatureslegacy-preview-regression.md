@@ -46,6 +46,7 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 - Updated the right panel to show editable signal capsules and user-confirmed intent chips.
 - Updated Daily Journal for quick intake -> Core guided journal -> 15-minute timer -> typed/speech-captured answers -> summary storage.
 - Added `/api/agent` for CubiQo V1 read-only agentic behavior: repo stack summary, route listing, repo search/read, runtime status, RGY classification, capability planning, and blocked check reporting.
+- Updated typed chat routing so text submissions enter `/api/agent` first. Simple conversational messages are delegated back to the existing converse path, while repo/self-check/capability/action-boundary requests stay on the V1 agentic route.
 - Updated the main CubiQo response surface with a component-library based "What I checked" collapsible that shows V1 tool activity inside the existing window.
 - Updated regression script to require `signals` table in addition to existing auth/journal tables.
 - Removed the incomplete `/signal` route from the visible/routable app surface.
@@ -96,6 +97,7 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 | Final voice of intelligence design after workflow stable | Deferred intentionally | Not part of this closure pass. |
 | Keep incomplete legacy features hidden | Closed | Preview exposes `/`, `/app`, `/dashboard`, `/journal`; `/signal` returns `404`; Job Hunter/launcher/CQ/Social Army/BYO/camera/coder/browser write actions are not visible pages. |
 | Agentic V1 read-only route | Closed | `/api/agent` returns `mode: agentic-read-only-v1`, `write_actions_enabled: false`, and tool trace. |
+| Typed chat agent doorway | Closed | Text submissions call `/api/agent` first; simple chat delegates to converse, preserving existing conversational/voice behavior. |
 | Agentic V1 UI activity | Closed | Main CubiQo response panel shows component-library "What I checked" collapsible when agent route is used. |
 | Agent write/deploy boundary | Closed | `/api/agent` blocks write/deploy/post/send/apply/buy requests and states V2 approval/audit is required. |
 | Agent regression boundary | Closed | `/api/agent` reports check execution as blocked in deployed/serverless runtime unless local checks are explicitly enabled. |
@@ -160,6 +162,13 @@ Latest local V1 agent smoke on `127.0.0.1:3033`:
 - Job/ecomm planning request: covered by V1 `capability_plan`; it does not claim live job lookup, apply, publish, or post actions until V2 tools exist.
 - Expanded capability smoke: job, ecomm/POD, research, browser/extension, social/affiliate, shopping/life connectors, CQ/match, wallet/payments, ops/security, coder/studio, and camera/biometrics/voice all route to `capability_plan`.
 - Boundary smoke: immediate write/deploy requests still return `approval_boundary: blocked`; immediate regression execution still returns `run_check: blocked`.
+
+Latest typed-agent doorway smoke on `127.0.0.1:3034`:
+
+- Simple typed chat: `/api/agent` returned `mode: conversation-via-agent-v1`, trace `conversation_router: completed`, preserving the existing converse path.
+- Repo/stack question: `/api/agent` returned `mode: agentic-read-only-v1`, trace `repo_stack_summary: completed`.
+- Job hunt planning: `/api/agent` returned `mode: agentic-read-only-v1`, trace `capability_plan: completed`.
+- Write/deploy request: `/api/agent` returned `mode: agentic-read-only-v1`, trace `approval_boundary: blocked`, `write_actions_enabled: false`.
 
 Prod voice check:
 

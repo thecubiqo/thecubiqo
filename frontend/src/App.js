@@ -1639,7 +1639,7 @@ const DemoPage = () => {
     };
   }, []);
 
-  const callBackend = async (text) => {
+  const callBackend = async (text, options = {}) => {
     const cleanInput = text.trim();
     if (!cleanInput) return;
     setLastUserMessage(cleanInput);
@@ -1648,7 +1648,7 @@ const DemoPage = () => {
     setAgentTrace([]);
     setAgentMode('idle');
 
-    const shouldUseAgenticFlow = /(repo|code|stack|route|routes|built|framework|implementation|self|yourself|what model|test|tests|regression|diagnostic|runtime|provider|supabase|vercel|nextjs|next\.js|react|agentic|what did you check|what can you inspect|job|jobs|career|resume|linkedin|indeed|dice|application|apply|interview|recruiter|ecomm|ecommerce|shopify|printify|printful|pod|fashion|brand|clothing|sales|marketing|gfx|gfxtools|routine|memory|daily|context|research|browser|extension|social|affiliate|campaign|shopping|food|taxi|calendar|email|smart-home|smart home|cq|match|wallet|crypto|payment|self-heal|self heal|reporting|coder|studio|camera|biometric|voice|microphone)/i.test(cleanInput);
+    const shouldUseAgenticFlow = Boolean(options.agentFirst) || /(repo|code|stack|route|routes|built|framework|implementation|self|yourself|what model|test|tests|regression|diagnostic|runtime|provider|supabase|vercel|nextjs|next\.js|react|agentic|what did you check|what can you inspect|job|jobs|career|resume|linkedin|indeed|dice|application|apply|interview|recruiter|ecomm|ecommerce|shopify|printify|printful|pod|fashion|brand|clothing|sales|marketing|gfx|gfxtools|routine|memory|daily|context|research|browser|extension|social|affiliate|campaign|shopping|food|taxi|calendar|email|smart-home|smart home|cq|match|wallet|crypto|payment|self-heal|self heal|reporting|coder|studio|camera|biometric|voice|microphone)/i.test(cleanInput);
 
     try {
       if (shouldUseAgenticFlow) {
@@ -1669,10 +1669,12 @@ const DemoPage = () => {
         const agentData = await agentRes.json().catch(() => ({}));
         if (!agentRes.ok) throw new Error(agentData.error || `Agent failed with ${agentRes.status}`);
         const responseText = agentData.response || 'I checked what I could, but I do not have enough evidence to answer that yet.';
+        const isConversationDelegated = agentData.mode === 'conversation-via-agent-v1';
+        const nextAgentTrace = Array.isArray(agentData.trace) && !isConversationDelegated ? agentData.trace : [];
         setAiResponse(responseText);
-        setAgentTrace(Array.isArray(agentData.trace) ? agentData.trace : []);
-        setAgentTraceOpen(Boolean(agentData.trace?.length));
-        setAgentMode(agentData.write_actions_enabled ? 'write-enabled' : 'read-only');
+        setAgentTrace(nextAgentTrace);
+        setAgentTraceOpen(Boolean(nextAgentTrace.length));
+        setAgentMode(isConversationDelegated ? 'idle' : agentData.write_actions_enabled ? 'write-enabled' : 'read-only');
         if (agentData.model_used) setModelUsed(agentData.model_used);
         if (agentData.rgy) {
           const normalizedColor = normalizeKeywordColor(agentData.rgy.color);
@@ -1680,6 +1682,31 @@ const DemoPage = () => {
           if (!colorLock && agentData.rgy.color) setSelectedKeywordColor(normalizedColor);
           const capturedSignal = signalFromRgy({ ...agentData.rgy, color: normalizedColor }, {}, cleanInput);
           if (capturedSignal) await rememberSignal(capturedSignal);
+        }
+        try {
+          if (agentData.audio_url) {
+            if (!audioRef.current) audioRef.current = new Audio();
+            audioRef.current.src = agentData.audio_url;
+            audioRef.current.volume = 1;
+            audioRef.current.onplay = () => {
+              setIsSpeaking(true);
+              startAudioAnalysis();
+            };
+            audioRef.current.onpause = stopAudioAnalysis;
+            audioRef.current.onended = () => {
+              setIsSpeaking(false);
+              stopAudioAnalysis();
+            };
+            audioRef.current.play().catch(e => {
+              console.error("Audio play failed:", e);
+              setIsSpeaking(false);
+              stopAudioAnalysis();
+            });
+          }
+        } catch (playbackError) {
+          console.warn('Optional response voice playback failed:', playbackError.message);
+          setIsSpeaking(false);
+          setSpeakingAudioLevel(0);
         }
         await rememberConversation(cleanInput, responseText, {
           model_used: agentData.model_used || 'agentic-read-only-v1',
@@ -1810,7 +1837,7 @@ const DemoPage = () => {
     if (!text || isProcessing) return;
     setChatInput('');
     setIsProcessing(true);
-    callBackend(text);
+    callBackend(text, { agentFirst: true });
   };
 
   const toggleListening = async () => {
