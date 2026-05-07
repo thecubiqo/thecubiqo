@@ -1,5 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import { repoListRoutes, repoReadFile, repoSearch, repoStackSummary, runtimeStatus } from './repo-inspection';
 
 const goalTerms = ['linkedin', 'career', 'yoga', 'wellness', 'build', 'ship', 'launch', 'job', 'resume'];
 const casualTerms = ['instagram', 'facebook', 'fb', 'insta', 'comfort', 'chat', 'friends', 'mood'];
@@ -12,15 +13,33 @@ function hits(input: string, terms: string[]) {
 
 export const cubiqoTools = {
   runtimeStatus: tool({
-    description: 'Report the current CubiQo QA runtime stack and major enabled capabilities.',
+    description: 'Inspect the current CubiQo runtime stack and major enabled capabilities without exposing secrets.',
     inputSchema: z.object({}),
-    execute: async () => ({
-      app: 'cq.ai / CubiQo QA',
-      stack: 'Next.js App Router + TypeScript + Supabase client + Vercel route handlers',
-      aiLayer: 'Vercel AI SDK tool layer with legacy /api/converse retained for regression',
-      currentLegacyModules: ['daily-journal-cta', 'rgy-keywords', 'voice-cue', 'supabase-auth-client'],
-      migrationBranch: 'QA/lagacy_feature_branch'
-    })
+    execute: async () => runtimeStatus()
+  }),
+  repoStackSummary: tool({
+    description: 'Inspect package.json, framework dependencies, scripts, and actual Next.js routes.',
+    inputSchema: z.object({}),
+    execute: async () => repoStackSummary()
+  }),
+  repoListRoutes: tool({
+    description: 'List actual Next.js page and API routes from src/app.',
+    inputSchema: z.object({}),
+    execute: async () => repoListRoutes()
+  }),
+  repoSearch: tool({
+    description: 'Search readable repo files. Secret-like files and build artifacts are excluded.',
+    inputSchema: z.object({
+      query: z.string().min(2).max(80)
+    }),
+    execute: async ({ query }) => repoSearch(query)
+  }),
+  repoReadFile: tool({
+    description: 'Read one non-secret repo file by relative path.',
+    inputSchema: z.object({
+      path: z.string().min(1).max(180)
+    }),
+    execute: async ({ path }) => repoReadFile(path)
   }),
   classifyRGY: tool({
     description: 'Classify text into CubiQo RGY operational keyword bands.',

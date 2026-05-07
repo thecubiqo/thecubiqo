@@ -5,8 +5,11 @@ import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocess
 import { Suspense } from "react";
 import CubiQoVisual from "./components/CubiQoVisual";
 import ParticleWaveHD from "./components/ParticleWaveHD";
-import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut, LayoutDashboard, BookOpen, Briefcase, Rocket, ShoppingBag, Code2, ShieldCheck, Globe2, Camera, Fingerprint, Bot, Search } from "lucide-react";
+import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut, LayoutDashboard, BookOpen, Briefcase, Rocket, ShoppingBag, Code2, ShieldCheck, Globe2, Camera, Fingerprint, Bot, Search, BrainCircuit, ChevronDown, CheckCircle2 } from "lucide-react";
 import { supabase } from "./lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const SignalIcon = ({ size = 18 }) => (
   <img
@@ -106,9 +109,17 @@ const READY_FEATURES = [
     id: 'conversation',
     label: 'Conversation + Voice',
     status: 'Live',
-    detail: 'Text chat, RGY classification, and voice playback are wired. Repo self-inspection is not exposed until a real read-only code tool exists.',
+    detail: 'Text chat, RGY classification, and voice playback are wired. Repo self-inspection now uses the V1 read-only agent path.',
     Icon: Activity,
     color: '#2dd4bf'
+  },
+  {
+    id: 'agentic-v1',
+    label: 'Agentic V1',
+    status: 'Live',
+    detail: 'CubiQo can inspect readable repo files, list routes, summarize stack, and report blocked checks without write access.',
+    Icon: BrainCircuit,
+    color: '#a78bfa'
   },
   {
     id: 'rgy-keywords',
@@ -1063,6 +1074,9 @@ const DemoPage = () => {
   const [chatInput, setChatInput] = useState('');
   const [lastUserMessage, setLastUserMessage] = useState('');
   const [conversationError, setConversationError] = useState('');
+  const [agentMode, setAgentMode] = useState('idle');
+  const [agentTrace, setAgentTrace] = useState([]);
+  const [agentTraceOpen, setAgentTraceOpen] = useState(false);
   const [speakingAudioLevel, setSpeakingAudioLevel] = useState(0);
   const [visitMemory, setVisitMemory] = useState(() => readVisitorMemory());
   const [userMemory, setUserMemory] = useState([]);
@@ -1631,8 +1645,50 @@ const DemoPage = () => {
     setLastUserMessage(cleanInput);
     setAiResponse('');
     setConversationError('');
+    setAgentTrace([]);
+    setAgentMode('idle');
+
+    const shouldUseAgenticFlow = /(repo|code|stack|route|routes|built|framework|implementation|self|yourself|what model|test|tests|regression|diagnostic|runtime|provider|supabase|vercel|nextjs|next\.js|react|agentic|what did you check|what can you inspect)/i.test(cleanInput);
 
     try {
+      if (shouldUseAgenticFlow) {
+        setAgentMode('working');
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        const agentRes = await fetch('/api/agent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            message: cleanInput,
+            history: memoryEventsToHistory(user?.id ? [...visitMemory, ...userMemory] : visitMemory)
+          })
+        });
+        const agentData = await agentRes.json().catch(() => ({}));
+        if (!agentRes.ok) throw new Error(agentData.error || `Agent failed with ${agentRes.status}`);
+        const responseText = agentData.response || 'I checked what I could, but I do not have enough evidence to answer that yet.';
+        setAiResponse(responseText);
+        setAgentTrace(Array.isArray(agentData.trace) ? agentData.trace : []);
+        setAgentTraceOpen(Boolean(agentData.trace?.length));
+        setAgentMode(agentData.write_actions_enabled ? 'write-enabled' : 'read-only');
+        if (agentData.model_used) setModelUsed(agentData.model_used);
+        if (agentData.rgy) {
+          const normalizedColor = normalizeKeywordColor(agentData.rgy.color);
+          setRgyCapsule({ ...agentData.rgy, color: normalizedColor });
+          if (!colorLock && agentData.rgy.color) setSelectedKeywordColor(normalizedColor);
+          const capturedSignal = signalFromRgy({ ...agentData.rgy, color: normalizedColor }, {}, cleanInput);
+          if (capturedSignal) await rememberSignal(capturedSignal);
+        }
+        await rememberConversation(cleanInput, responseText, {
+          model_used: agentData.model_used || 'agentic-read-only-v1',
+          rgy: agentData.rgy || { color: 'yellow', intent: 'agentic_read_only' },
+          keywords: keywords
+        });
+        return;
+      }
+
       const res = await fetch('/api/converse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1735,7 +1791,8 @@ const DemoPage = () => {
       if (fallbackSignal) await rememberSignal(fallbackSignal);
       const fallbackResponse = "I am here, but the live model connection is degraded. I still caught your intent; try again in a moment or keep typing and I will keep tracking the signal.";
       setAiResponse(fallbackResponse);
-      setConversationError('Model connection degraded');
+      setAgentMode('idle');
+      setConversationError(shouldUseAgenticFlow ? 'Agent path degraded' : 'Model connection degraded');
       await rememberConversation(cleanInput, fallbackResponse, {
         keywords: nk,
         model_used: 'local-fallback',
@@ -1955,6 +2012,12 @@ const DemoPage = () => {
     }, { patch: true });
   };
 
+  const agentTraceTone = {
+    completed: { label: 'Checked', color: '#34d399' },
+    blocked: { label: 'Blocked', color: '#fbbf24' },
+    failed: { label: 'Failed', color: '#fb7185' }
+  };
+
   const panelBase = {
     position: 'absolute', top: '100px', bottom: '40px', width: '320px',
     display: 'flex', flexDirection: 'column', borderRadius: '32px',
@@ -2070,6 +2133,60 @@ const DemoPage = () => {
                   <div style={{ color: pageTheme.responseText, fontSize: '0.95rem', lineHeight: 1.55, fontWeight: 300 }}>
                     {aiResponse}
                   </div>
+                )}
+                {(agentMode !== 'idle' || agentTrace.length > 0) && (
+                  <Collapsible open={agentTraceOpen} onOpenChange={setAgentTraceOpen} style={{ marginTop: 12 }}>
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-between border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white"
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <BrainCircuit size={14} />
+                          What I checked
+                          <Badge variant="outline" className="border-white/10 text-white/45">
+                            {agentMode === 'working' ? 'Working' : 'Read-only V1'}
+                          </Badge>
+                        </span>
+                        <ChevronDown size={14} />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                        {agentTrace.length ? agentTrace.map((item, index) => {
+                          const tone = agentTraceTone[item.status] || agentTraceTone.completed;
+                          return (
+                            <div key={`${item.tool}-${index}`} style={{
+                              display: 'grid',
+                              gridTemplateColumns: '18px minmax(0, 1fr) auto',
+                              alignItems: 'center',
+                              gap: 8,
+                              border: '1px solid rgba(255,255,255,0.08)',
+                              background: 'rgba(255,255,255,0.035)',
+                              borderRadius: 12,
+                              padding: '8px 10px',
+                              color: pageTheme.responseText
+                            }}>
+                              <CheckCircle2 size={14} color={tone.color} />
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ color: pageTheme.responseText, fontSize: '0.72rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.tool}</div>
+                                <div style={{ color: pageTheme.responseMuted, fontSize: '0.68rem', marginTop: 2 }}>{item.summary}</div>
+                              </div>
+                              <Badge variant="outline" className="border-white/10 text-white/45">
+                                {tone.label}
+                              </Badge>
+                            </div>
+                          );
+                        }) : (
+                          <div style={{ color: pageTheme.responseMuted, fontSize: '0.72rem', lineHeight: 1.45 }}>
+                            CubiQo used the agentic read-only path. No repo tool was required for this answer.
+                          </div>
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
               </div>
             )}

@@ -33,7 +33,7 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 - BYO keys
 - Biometrics/camera awareness
 - Self-healer/full reporting
-- Agent/browser/coder
+- Browser/coder/write-agent actions
 - Signal match route/button
 
 ## Current Implementation In This Branch
@@ -45,6 +45,8 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 - Updated dashboard counts/features to expose only live/code-ready surfaces.
 - Updated the right panel to show editable signal capsules and user-confirmed intent chips.
 - Updated Daily Journal for quick intake -> Core guided journal -> 15-minute timer -> typed/speech-captured answers -> summary storage.
+- Added `/api/agent` for CubiQo V1 read-only agentic behavior: repo stack summary, route listing, repo search/read, runtime status, RGY classification, and blocked check reporting.
+- Updated the main CubiQo response surface with a component-library based "What I checked" collapsible that shows V1 tool activity inside the existing window.
 - Updated regression script to require `signals` table in addition to existing auth/journal tables.
 - Removed the incomplete `/signal` route from the visible/routable app surface.
 
@@ -60,7 +62,7 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 - Core guided journal: closed for MVP; timer is 15 minutes and Core asks guided questions.
 - Journal listening: closed for browser-supported speech recognition; speech appends into the active answer and typed fallback remains.
 - Journal summary/store: closed for simple LLM/local summary and Supabase/local storage save.
-- Repo self-inspection: deferred to agentic transformation; do not add FAQ/self-status substitutes.
+- Repo self-inspection: closed for V1 read-only; `/api/agent` inspects repo facts and refuses write/deploy/external actions.
 - Voice QA: partially closed; ElevenLabs cue path is wired and should be verified per deployment, final CubiQo voice design remains later.
 - Incomplete legacy features hidden: closed; unfinished product pages/routes remain hidden or unroutable.
 
@@ -85,14 +87,18 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 | It summarizes | Closed | `/api/journal/guide` returns structured summary via OpenAI when available, local fallback otherwise. |
 | It stores notes | Closed | Journal save posts to `/api/journal`; regression verifies Supabase CRUD. |
 | Simple LLM first, no special journaling API | Closed | Uses `/api/journal/guide` with OpenAI env when available and local fallback. |
-| Replace fake/self-status with real repo self-inspection | Deferred intentionally | Correct path is agentic read-only repo tool; no FAQ/self-status substitute added. |
-| CubiQo should not answer from FAQ | Closed for current branch | Fake runtime self-status was removed; no new FAQ self-status added. |
-| Add read-only repo inspection tool later | Deferred intentionally | To be implemented in agentic transformation: search repo, read files, list routes/package/framework, answer from inspected evidence. |
+| Replace fake/self-status with real repo self-inspection | Closed for V1 | `/api/agent` uses read-only repo tools and deterministic fallback facts from inspected files. |
+| CubiQo should not answer from FAQ | Closed | Self/stack/route answers come from repo inspection, not FAQ text. |
+| Add read-only repo inspection tool later | Closed for V1 | Implemented repo stack summary, route listing, repo search, safe file read, runtime status, and blocked check reporting. |
 | Keep ElevenLabs path | Closed | `/api/voice-cue` reaches ElevenLabs config. |
 | Verify prod is actually using ElevenLabs | Verified, blocked by quota | `https://www.cubiqo.ai/api/voice-cue` returns ElevenLabs quota error with configured voice/model. |
 | Tune neutral/androgynous voice | Partially closed | Voice metadata is `River neutral/androgynous`, model `eleven_flash_v2_5`; final tuning waits for credits/listening QA. |
 | Final voice of intelligence design after workflow stable | Deferred intentionally | Not part of this closure pass. |
-| Keep incomplete legacy features hidden | Closed | Preview exposes `/`, `/app`, `/dashboard`, `/journal`; `/signal` returns `404`; Job Hunter/launcher/CQ/Social Army/BYO/camera/coder/browser are not visible pages. |
+| Keep incomplete legacy features hidden | Closed | Preview exposes `/`, `/app`, `/dashboard`, `/journal`; `/signal` returns `404`; Job Hunter/launcher/CQ/Social Army/BYO/camera/coder/browser write actions are not visible pages. |
+| Agentic V1 read-only route | Closed | `/api/agent` returns `mode: agentic-read-only-v1`, `write_actions_enabled: false`, and tool trace. |
+| Agentic V1 UI activity | Closed | Main CubiQo response panel shows component-library "What I checked" collapsible when agent route is used. |
+| Agent write/deploy boundary | Closed | `/api/agent` blocks write/deploy/post/send/apply/buy requests and states V2 approval/audit is required. |
+| Agent regression boundary | Closed | `/api/agent` reports check execution as blocked in deployed/serverless runtime unless local checks are explicitly enabled. |
 
 ## Regression Gate Before Push
 
@@ -110,6 +116,7 @@ Latest result:
 - `node -c api/converse.js`: pass
 - `npm run typecheck`: pass
 - `npm run build`: pass; routes expose `/`, `/app`, `/auth/callback`, `/dashboard`, `/journal`, and API routes only. `/signal` is not routable.
+- `npm run build`: known warning remains for `/api/agent` because V1 repo inspection performs runtime filesystem reads. This is intentional for read-only self-inspection and should be watched before production promotion.
 - Local route smoke on `127.0.0.1:3110`: `/`, `/app`, `/dashboard`, `/journal` returned `200`; `/signal` returned `404`.
 - `npm run verify:cqai`: pass.
 - E2E save/read/delete: pass for authenticated `journal_entries` and `signals`.
@@ -132,6 +139,12 @@ Preview smoke:
 - `/api/journal/guide`: summary response returned
 - `/api/converse`: RGY returned `green`, keyword `build`, `matching_enabled: false`
 - `/api/voice-cue`: returns `elevenlabs_error` due ElevenLabs quota, with configured neutral/androgynous voice metadata
+
+Latest local V1 agent smoke on `127.0.0.1:3033`:
+
+- Stack/routes question: `200`, answered from inspected repo facts, trace included `repo_stack_summary`.
+- Write/deploy request: `200`, blocked with `approval_boundary`, `write_actions_enabled: false`.
+- Regression request: `200`, reported `run_check: blocked` in runtime and did not pretend to run tests.
 
 Prod voice check:
 
