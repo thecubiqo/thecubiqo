@@ -102,6 +102,15 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 | Job Hunt capability readiness | Closed for V1 planning | Capability map covers job context, resume strategy, new posting lookup requirements, one-button easy apply, employer-site applications, approval/audit, and required V2 browser/API tools. |
 | Ecomm/POD capability readiness | Closed for V1 planning | Capability map covers fashion brand decisions, POD setup, Shopify/Printify/Printful/GFXTools requirements, sales/marketing planning, and required V2 connector/action tools. |
 | Contextual functional understanding | Closed for V1 planning | Capability map covers career, ecomm/POD, personal routine, memory, daily reports, and permission-gated future actions. |
+| Research capability readiness | Closed for V1 planning | Capability map covers research briefs, source needs, live lookup requirements, citations, and source ledger needs. |
+| Browser/extension readiness | Closed for V1 planning | Capability map covers browser sessions, extension need, form workflows, approval points, screenshots/log redaction, and domain/session controls. |
+| Social/affiliate readiness | Closed for V1 planning | Capability map covers campaign planning, 10/10/10 requirements, GFXTools, affiliate context, and post approval/audit needs. |
+| Shopping/life connectors readiness | Closed for V1 planning | Capability map covers shopping, food, taxi, calendar, email, and smart-home connectors as V2 approved actions. |
+| CQ-to-CQ/match readiness | Closed for V1 planning | Capability map covers CQ identity, contacts, messages, realtime, geofence, match consent, and block/report requirements. |
+| Wallet/payment readiness | Closed for V1 planning | Capability map covers wallet, crypto, QR release, Stripe separation, ledger, dispute, and compliance requirements. |
+| Ops/security/self-report readiness | Closed for V1 planning | Capability map covers self-reporting, diagnostics, cron/reporting, health checks, and repair approval requirements. |
+| Coder/studio readiness | Closed for V1 planning | Capability map covers read-only code inspection now and V2 sandbox/write/terminal/deploy approvals later. |
+| Camera/biometrics/voice readiness | Closed for V1 planning | Capability map covers camera, passkeys/WebAuthn, proactive voice, interruption settings, DND, and sensor privacy controls. |
 
 ## Regression Gate Before Push
 
@@ -149,6 +158,8 @@ Latest local V1 agent smoke on `127.0.0.1:3033`:
 - Write/deploy request: `200`, blocked with `approval_boundary`, `write_actions_enabled: false`.
 - Regression request: `200`, reported `run_check: blocked` in runtime and did not pretend to run tests.
 - Job/ecomm planning request: covered by V1 `capability_plan`; it does not claim live job lookup, apply, publish, or post actions until V2 tools exist.
+- Expanded capability smoke: job, ecomm/POD, research, browser/extension, social/affiliate, shopping/life connectors, CQ/match, wallet/payments, ops/security, coder/studio, and camera/biometrics/voice all route to `capability_plan`.
+- Boundary smoke: immediate write/deploy requests still return `approval_boundary: blocked`; immediate regression execution still returns `run_check: blocked`.
 
 Prod voice check:
 

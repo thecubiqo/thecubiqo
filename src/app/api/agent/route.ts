@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCubiQoAgent, buildFallbackAgentAnswer, type AgentTraceItem } from '@/next/lib/ai/cubiqo-agent';
+import { isCapabilityPlanningRequest } from '@/next/lib/ai/capability-map';
 
 export const maxDuration = 30;
 export const runtime = 'nodejs';
@@ -33,9 +34,15 @@ export async function POST(request: NextRequest) {
   let response = '';
   let modelUsed = process.env.AI_GATEWAY_MODEL || process.env.OPENAI_MODEL || 'openai/gpt-5.4';
   const lower = message.toLowerCase();
+  const strongCheckRequest = /\b(run|execute|start)\b.*\b(test|tests|regression|typecheck|verify|check)\b/.test(lower);
+  const strongWriteRequest =
+    /\b(change|edit|write|commit|push|deploy)\b.*\b(now|this app|file|code|prod|production|branch)\b/.test(lower)
+    || /\b(submit|send|buy|purchase|post)\b.*\b(now|for me|this)\b/.test(lower);
   const deterministicBoundary =
-    /(change|edit|write|commit|push|deploy|apply|submit|post|send|buy|purchase|delete|update)/.test(lower)
-    || /(test|tests|regression|typecheck|verify|check)/.test(lower);
+    strongCheckRequest
+    || strongWriteRequest
+    || (/(change|edit|write|commit|push|deploy|apply|submit|post|send|buy|purchase|delete|update)/.test(lower)
+      && !isCapabilityPlanningRequest(message));
 
   if (deterministicBoundary) {
     response = await buildFallbackAgentAnswer(message, trace);

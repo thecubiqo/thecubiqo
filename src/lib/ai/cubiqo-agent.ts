@@ -8,7 +8,7 @@ import {
   runCheck,
   runtimeStatus
 } from './repo-inspection';
-import { capabilityPlanForText } from './capability-map';
+import { capabilityPlanForText, isCapabilityPlanningRequest } from './capability-map';
 
 export type AgentTraceItem = {
   tool: string;
@@ -180,18 +180,11 @@ export function createCubiQoAgent(trace: AgentTraceItem[]) {
 
 export async function buildFallbackAgentAnswer(message: string, trace: AgentTraceItem[]) {
   const lower = message.toLowerCase();
-  if (/(job|jobs|career|resume|linkedin|indeed|dice|application|apply|interview|recruiter|ecomm|ecommerce|shopify|printify|printful|pod|fashion|brand|clothing|sales|marketing|gfx|gfxtools|routine|memory|daily|context)/.test(lower)) {
-    const plan = capabilityPlanForText(message);
-    trace.push({ tool: 'capability_plan', status: 'completed', summary: `${plan.matchedDomains.length} capability domains mapped` });
-    const labels = plan.matchedDomains.map(domain => domain.label).join(', ');
-    const v2Tools = [...new Set(plan.matchedDomains.flatMap(domain => domain.v2ToolsRequired))].slice(0, 6).join('; ');
-    return `I mapped this to ${labels}. V1 can understand context, plan strategy, draft assets, and prepare structured workflows. V2 must add approved action tools for: ${v2Tools}.`;
-  }
-  if (/(change|edit|write|commit|push|deploy|apply|submit|post|send|buy|purchase|delete|update).*(file|code|app|site|prod|production|branch|job|application|social|content)?/.test(lower)) {
-    trace.push({ tool: 'approval_boundary', status: 'blocked', summary: 'V1 cannot perform write or external actions' });
-    return 'V1 is read-only. I can inspect and explain, but I cannot change files, deploy, submit applications, post content, or send anything until the V2 approval and audit system exists.';
-  }
-  if (/(test|tests|regression|typecheck|verify|check)/.test(lower)) {
+  const strongCheckRequest = /\b(run|execute|start)\b.*\b(test|tests|regression|typecheck|verify|check)\b/.test(lower);
+  const strongWriteRequest =
+    /\b(change|edit|write|commit|push|deploy)\b.*\b(now|this app|file|code|prod|production|branch)\b/.test(lower)
+    || /\b(submit|send|buy|purchase|post)\b.*\b(now|for me|this)\b/.test(lower);
+  if (strongCheckRequest) {
     const check = /(verify|regression|cqai)/.test(lower) ? 'verify:cqai' : 'typecheck';
     const result = await runCheck(check);
     trace.push({
@@ -202,6 +195,21 @@ export async function buildFallbackAgentAnswer(message: string, trace: AgentTrac
     if (result.status === 'passed') return `${check} passed.`;
     if (result.status === 'blocked') return `I checked the V1 boundary: ${check} is blocked in this runtime. Codex must run workspace regression from the branch, and CubiQo will report that result instead of pretending it ran it.`;
     return `${check} failed. ${String(result.stderr || '').slice(0, 240)}`;
+  }
+  if (strongWriteRequest) {
+    trace.push({ tool: 'approval_boundary', status: 'blocked', summary: 'V1 cannot perform write or external actions' });
+    return 'V1 is read-only. I can inspect and explain, but I cannot change files, deploy, submit applications, post content, or send anything until the V2 approval and audit system exists.';
+  }
+  if (isCapabilityPlanningRequest(message)) {
+    const plan = capabilityPlanForText(message);
+    trace.push({ tool: 'capability_plan', status: 'completed', summary: `${plan.matchedDomains.length} capability domains mapped` });
+    const labels = plan.matchedDomains.map(domain => domain.label).join(', ');
+    const v2Tools = [...new Set(plan.matchedDomains.flatMap(domain => domain.v2ToolsRequired))].slice(0, 6).join('; ');
+    return `I mapped this to ${labels}. V1 can understand context, plan strategy, draft assets, and prepare structured workflows. V2 must add approved action tools for: ${v2Tools}.`;
+  }
+  if (/(change|edit|write|commit|push|deploy|apply|submit|post|send|buy|purchase|delete|update).*(file|code|app|site|prod|production|branch|job|application|social|content)?/.test(lower)) {
+    trace.push({ tool: 'approval_boundary', status: 'blocked', summary: 'V1 cannot perform write or external actions' });
+    return 'V1 is read-only. I can inspect and explain, but I cannot change files, deploy, submit applications, post content, or send anything until the V2 approval and audit system exists.';
   }
   if (/(stack|built|framework|next|react|routes|repo|code|self|yourself|implementation)/.test(lower)) {
     const stack = await repoStackSummary();
