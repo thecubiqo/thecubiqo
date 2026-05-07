@@ -152,7 +152,8 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 
 Current blocker:
 
-- The migration file `supabase/migrations/20260507010000_v2_action_foundation.sql` is ready, but it is not yet applied to Supabase from this shell because the direct Supabase database host does not resolve here. Until applied, V2 endpoints return `migrationPending`/table-missing safe states and `npm run verify:cqai` fails on the new V2 table checks.
+- No active Supabase schema blocker remains for the QA project. Base tables plus V2 approval/audit/task/report tables are applied and verified against `https://oszlufrjvibrdauuppzj.supabase.co`.
+- Browser/job/social/POD/payment/camera/coder execution tools are still intentionally hidden and unimplemented until their provider integrations and approval UX are ready.
 
 ## Regression Gate Before Push
 
@@ -172,7 +173,7 @@ Latest result:
 - `npm run build`: pass; routes expose `/`, `/app`, `/auth/callback`, `/dashboard`, `/journal`, and API routes only. `/signal` is not routable.
 - `npm run build`: known warning remains for `/api/agent` because V1 repo inspection performs runtime filesystem reads. This is intentional for read-only self-inspection and should be watched before production promotion.
 - Local route smoke on `127.0.0.1:3110`: `/`, `/app`, `/dashboard`, `/journal` returned `200`; `/signal` returned `404`.
-- `npm run verify:cqai`: currently fails only on new V2 foundation table checks because `20260507010000_v2_action_foundation.sql` is not yet applied to Supabase. Existing auth, journal, signals, RGY, and frontend secret-boundary checks still pass.
+- `npm run verify:cqai`: pass against QA Supabase. The verifier now uses admin-created confirmed test users only and does not send public signup/magic-link emails.
 - E2E save/read/delete: pass for authenticated `journal_entries` and `signals`.
 - RLS denial: pass; anonymous writes to `journal_entries` and `signals` are denied.
 - Voice cue route: verified wired to ElevenLabs config (`River neutral/androgynous`, `eleven_flash_v2_5`) but audio generation is currently blocked by ElevenLabs quota; route returns `elevenlabs_error` when the key is present and provider fails.
@@ -230,5 +231,8 @@ Resolved schema blocker:
 
 - `journal_entries` exists and is reachable.
 - `signals` exists and is reachable.
+- `profiles`, `user_activity_keywords`, and `conversation_events` exist and are reachable.
+- V2 tables exist and are reachable: `action_approvals`, `action_audit_logs`, `user_tool_settings`, `user_tasks`, `report_schedules`, `daily_reports`.
+- V2 approval-gated writes passed: denied actions do not execute, approved task writes execute, report schedule/report writes execute, and user-forged audit inserts are denied.
 
 Do not push this branch for review unless this contract stays current and regression remains green.

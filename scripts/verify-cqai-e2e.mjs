@@ -67,41 +67,39 @@ async function requestJson(url, options = {}) {
 }
 
 async function verifySignup({ url, anonKey, serviceRoleKey }) {
-  const email = process.env.E2E_EMAIL || `codex-e2e-${Date.now()}@cubiqo.ai`;
+  if (!serviceRoleKey) {
+    return {
+      ok: false,
+      status: 0,
+      mode: 'admin-confirmed-user-required',
+      email: null,
+      userId: null,
+      profileCreated: null,
+      confirmedSessionReturned: false,
+      cleanup: 'not available',
+      error: 'Service role key is required for auth/profile verification without sending email'
+    };
+  }
+
+  const email = process.env.E2E_EMAIL || `codex-e2e-${Date.now()}@example.invalid`;
   const password = process.env.E2E_PASSWORD || `Cqai-${Date.now()}-test!`;
-  const { response, body } = await requestJson(`${url}/auth/v1/signup`, {
+  const { response, body } = await requestJson(`${url}/auth/v1/admin/users`, {
     method: 'POST',
     headers: {
-      apikey: anonKey,
-      Authorization: `Bearer ${anonKey}`,
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, password, email_confirm: true })
   });
 
   let userId = body?.user?.id || body?.id || null;
   let ok = response.ok && Boolean(userId);
-  let mode = 'public-signup';
+  let mode = 'admin-confirmed-no-email';
   let error = ok ? null : (body?.msg || body?.message || body?.error_description || body?.error || body?.raw || 'unknown');
 
-  if (!ok && serviceRoleKey && response.status === 429) {
-    mode = 'admin-create-fallback-after-rate-limit';
-    const fallback = await requestJson(`${url}/auth/v1/admin/users`, {
-      method: 'POST',
-      headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ email, password, email_confirm: true })
-    });
-    userId = fallback.body?.user?.id || fallback.body?.id || null;
-    ok = fallback.response.ok && Boolean(userId);
-    error = ok ? 'public signup rate-limited; admin user create succeeded' : (fallback.body?.message || fallback.body?.error || fallback.body?.raw || error);
-  }
-
   let profileCreated = null;
-  if (serviceRoleKey && userId) {
+  if (userId) {
     const profile = await requestJson(`${url}/rest/v1/profiles?id=eq.${userId}&select=id&limit=1`, {
       headers: {
         apikey: serviceRoleKey,
@@ -113,7 +111,7 @@ async function verifySignup({ url, anonKey, serviceRoleKey }) {
     if (!profileCreated) error = 'auth user was created, but matching profile row was not found';
   }
 
-  if (serviceRoleKey && userId && !process.env.E2E_KEEP_USER) {
+  if (userId && !process.env.E2E_KEEP_USER) {
     await requestJson(`${url}/auth/v1/admin/users/${userId}`, {
       method: 'DELETE',
       headers: {
@@ -130,8 +128,8 @@ async function verifySignup({ url, anonKey, serviceRoleKey }) {
     email,
     userId,
     profileCreated,
-    confirmedSessionReturned: Boolean(body?.session),
-    cleanup: serviceRoleKey && userId && !process.env.E2E_KEEP_USER ? 'attempted' : 'not available',
+    confirmedSessionReturned: false,
+    cleanup: userId && !process.env.E2E_KEEP_USER ? 'attempted' : 'not available',
     error
   };
 }
@@ -155,7 +153,7 @@ async function verifyTable({ url, anonKey, serviceRoleKey }, table) {
 
 async function createConfirmedTestUser({ url, anonKey, serviceRoleKey }) {
   if (!serviceRoleKey) throw new Error('Service role key is required for CRUD verification');
-  const email = `codex-crud-${Date.now()}@cubiqo.ai`;
+  const email = `codex-crud-${Date.now()}@example.invalid`;
   const password = `Cqai-${Date.now()}-crud!`;
   const created = await requestJson(`${url}/auth/v1/admin/users`, {
     method: 'POST',
