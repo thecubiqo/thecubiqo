@@ -3,6 +3,7 @@ export type CapabilityDomain = {
   label: string;
   currentV1: string[];
   requiredContext: string[];
+  preferredV2Path: string[];
   v2ToolsRequired: string[];
   blockedUntilV2: string[];
   safeDefaultStrategy: string;
@@ -24,6 +25,11 @@ const domains: CapabilityDomain[] = [
       'visa/work authorization constraints when relevant',
       'application rules: easy apply only, direct site apply, recruiter outreach, or all',
       'approval preference before any submission or message'
+    ],
+    preferredV2Path: [
+      'use job/search APIs or approved partner connectors first',
+      'use browser/extension only when a target site has no suitable API and the user approves the visible session',
+      'store only job tracker state in CubiQo; do not custom-build a job-board crawler'
     ],
     v2ToolsRequired: [
       'job source connectors or compliant search APIs for fresh postings',
@@ -58,6 +64,11 @@ const domains: CapabilityDomain[] = [
       'competitors, substitutes, investor/funding needs, and proof already collected',
       'AI tools the user already has or wants to leverage for research, design, marketing, sales, support, or operations',
       'for POD/ecomm: brand name, audience, style direction, product categories, vendor preference, trademark exclusions, fulfillment, returns, and customer support preferences'
+    ],
+    preferredV2Path: [
+      'use search/research APIs for market validation instead of custom crawling',
+      'use CRM/email/calendar APIs for outreach and follow-up instead of building a CRM first',
+      'use Shopify, Printify/Printful, Stripe, GFXTools, and selected AI app APIs for execution'
     ],
     v2ToolsRequired: [
       'live market/search connector and source ledger for market validation',
@@ -95,6 +106,11 @@ const domains: CapabilityDomain[] = [
       'notification/report cadence',
       'boundaries for sensitive topics and external actions'
     ],
+    preferredV2Path: [
+      'use managed cron/workflow for reminders and reports',
+      'use calendar/email connectors only after approval',
+      'keep CubiQo storage limited to user-owned memory, preferences, and audit records'
+    ],
     v2ToolsRequired: [
       'explicit user memory model with edit/delete controls',
       'cron/reporting jobs',
@@ -126,6 +142,11 @@ const domains: CapabilityDomain[] = [
       'decision criteria, budget, geography, and deadlines',
       'whether web search, documents, email, or browser inspection is needed'
     ],
+    preferredV2Path: [
+      'use live search/research APIs before browser extraction',
+      'use document/email connectors only when the user explicitly connects them',
+      'save source ledgers and decisions in CubiQo rather than building a custom research crawler'
+    ],
     v2ToolsRequired: [
       'live web/search connector',
       'browser page reader with citation capture',
@@ -154,6 +175,11 @@ const domains: CapabilityDomain[] = [
       'exact task: read, click, type, upload, submit, buy, book, or message',
       'which steps require user confirmation',
       'data that may be entered into forms'
+    ],
+    preferredV2Path: [
+      'use provider APIs first where available',
+      'use managed browser sessions or a user-visible extension only for API gaps',
+      'avoid hidden browser automation and avoid custom stealth/evasion behavior'
     ],
     v2ToolsRequired: [
       'approved browser session runtime',
@@ -185,6 +211,11 @@ const domains: CapabilityDomain[] = [
       'affiliate products, payout rules, disclosure requirements, and link tracking',
       'creative style, compliance rules, and approval flow'
     ],
+    preferredV2Path: [
+      'use social platform APIs where available',
+      'use GFXTools or image-generation APIs for creative work',
+      'use managed scheduler/cron only after explicit account connection and approval'
+    ],
     v2ToolsRequired: [
       'social account connectors or approved browser sessions',
       'GFXTools integration',
@@ -213,6 +244,11 @@ const domains: CapabilityDomain[] = [
       'service provider, account, location, budget, timing, and preferences',
       'approval rules before booking, ordering, sending, or changing devices',
       'privacy boundaries for calendar/email/home data'
+    ],
+    preferredV2Path: [
+      'use provider APIs or official connectors first',
+      'use browser sessions only when the provider has no suitable API',
+      'keep booking/payment actions behind approve/cancel cards'
     ],
     v2ToolsRequired: [
       'email and calendar connectors',
@@ -245,6 +281,11 @@ const domains: CapabilityDomain[] = [
       'message privacy, notification, block/report, and account recovery expectations',
       'whether presence/read receipts are wanted'
     ],
+    preferredV2Path: [
+      'use Supabase auth and realtime for the first CQ messenger implementation',
+      'keep it as simple friend/contact messaging',
+      'defer calls until signaling/TURN and abuse controls are designed'
+    ],
     v2ToolsRequired: [
       'CQ profiles, contacts, messages, and presence tables',
       'Supabase realtime channels',
@@ -272,6 +313,11 @@ const domains: CapabilityDomain[] = [
       'payment type, custody model, amount, recipient, release rules, refund/dispute model',
       'Stripe versus crypto separation',
       'jurisdiction and compliance constraints'
+    ],
+    preferredV2Path: [
+      'use Stripe APIs first for conventional payments',
+      'defer crypto movement until legal/compliance and custody decisions are complete',
+      'store only ledger/audit state in CubiQo unless a regulated provider is selected'
     ],
     v2ToolsRequired: [
       'Stripe connector',
@@ -301,6 +347,11 @@ const domains: CapabilityDomain[] = [
       'report cadence and recipient',
       'which checks matter: build, Supabase, Vercel, voice, routes, uptime',
       'what is allowed as automatic repair versus recommendation only'
+    ],
+    preferredV2Path: [
+      'use Vercel/Supabase status APIs and managed cron/workflow',
+      'recommend fixes before mutation',
+      'require explicit approval before any repair action'
     ],
     v2ToolsRequired: [
       'cron/reporting scheduler',
@@ -332,6 +383,11 @@ const domains: CapabilityDomain[] = [
       'sandbox model',
       'deployment approval rules'
     ],
+    preferredV2Path: [
+      'use managed sandbox/API tool execution first',
+      'avoid a custom unrestricted terminal',
+      'keep file writes, tests, and deploys behind approval and audit'
+    ],
     v2ToolsRequired: [
       'API or managed sandbox path first, such as Vercel Sandbox/SDK-style tool execution instead of a custom raw terminal product',
       'file write and patch tools with approval inside isolated workspaces',
@@ -360,6 +416,11 @@ const domains: CapabilityDomain[] = [
       'biometric auth provider',
       'when CubiQo may speak first or interrupt',
       'DND, volume, consent, and privacy rules'
+    ],
+    preferredV2Path: [
+      'use browser/platform permission APIs',
+      'use WebAuthn/passkeys for biometrics instead of custom biometric handling',
+      'keep sensor usage visible and session-scoped unless the user explicitly saves context'
     ],
     v2ToolsRequired: [
       'browser camera permission flow',
@@ -405,9 +466,10 @@ export function capabilityPlanForText(text: string) {
   return {
     mode: 'agentic-readiness-v1',
     summary:
-      'CubiQo V1 can understand, plan, draft, classify, and inspect. Real external actions move to V2 with approved tools, browser/API connectors, and audit logs.',
+      'CubiQo V1 can understand, plan, draft, classify, and inspect. Real external actions move to V2 with API/provider integrations first, custom engineering only as fallback, approved tools, and audit logs.',
     matchedDomains: selected,
     globalV2Requirements: [
+      'API/provider path first; custom engineering only when no suitable API or managed tool exists',
       'approval before every write/action',
       'server-side secret storage only',
       'per-tool feature flags',

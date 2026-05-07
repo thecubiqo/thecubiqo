@@ -53,6 +53,16 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Updated regression script to require `signals` table in addition to existing auth/journal tables.
 - Removed the incomplete `/signal` route from the visible/routable app surface.
 
+## V2 API-First Readiness Rule
+
+- V2 must prefer API/provider integrations before custom engineering.
+- Custom engineering is allowed only when no suitable API, managed connector, or sandbox/tool provider exists.
+- CubiQo should own orchestration, approvals, audit logs, feature flags, user-owned state, and visibility.
+- CubiQo should not custom-build job-board crawlers, social posting engines, payment rails, raw coder terminals, browser stealth layers, CRM systems, or worker farms unless the API/provider path fails a documented review.
+- V2 write/action tools must stay hidden until approval UI, feature flags, audit logging, safe failure states, and regression tests exist.
+- Browser/extension fallback is allowed only for user-visible, approved sessions with stop/cancel controls and domain boundaries.
+- External account integrations require server-side token storage and must never show fake connected statuses.
+
 ## Closure Checklist
 
 - Supabase `journal_entries`: closed; table exists, RLS exists, authenticated create/read/delete passes.
@@ -116,6 +126,16 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 | Ops/security/self-report readiness | Closed for V1 planning | Capability map covers self-reporting, diagnostics, cron/reporting, health checks, and repair approval requirements. |
 | Coder/studio readiness | Closed for V1 planning | Capability map covers read-only code inspection now and recommends a managed API/sandbox/tooling path for V2 writes instead of a custom unrestricted coder terminal. |
 | Camera/biometrics/voice readiness | Closed for V1 planning | Capability map covers camera, passkeys/WebAuthn, proactive voice, interruption settings, DND, and sensor privacy controls. |
+| V2 API-first rule | Closed for planning | Capability map now includes preferred V2 path per domain and global rule: API/provider first, custom engineering only as fallback. |
+
+## V2 Security Review Notes
+
+- Current V1 exposes no write/action tools, no deploy tool, no browser control, and no arbitrary terminal.
+- Current V1 action-like requests are blocked or converted to planning; this should remain true until V2 approval cards exist.
+- Required before any V2 action endpoint: explicit approval request/status, action audit log, action type permissions, feature flag, safe cancel path, and denied-action no-op test.
+- Required before any external integration: server-side token storage, masked frontend display, missing-credential safe error, no fake connected state, and per-user ownership checks.
+- Required before browser/extension use: user-visible active indicator, stop button, domain allowlist, session isolation, screenshot/log redaction, and no hidden automation.
+- Required before coder/studio write mode: managed sandbox/API tool layer, allowlisted commands, no raw production terminal, patch preview, approve/cancel, and audit log.
 
 ## Regression Gate Before Push
 
@@ -178,6 +198,12 @@ Latest capability correction smoke on `127.0.0.1:3035`:
 - Startup/business helper: `/api/agent` mapped to `Startup + Revenue + Business Growth` and `Research + Knowledge Work`.
 - CQ messenger: `/api/agent` mapped to `CQ-to-CQ Friend Messenger`; this is friend/contact messaging only and not RGY/Signal matching.
 - Coder/studio: `/api/agent` mapped to `Coder + Studio + Builder` and recommends managed API/sandbox tooling before write access.
+
+Latest V2 API-first smoke on `127.0.0.1:3036`:
+
+- Multi-domain V2 prompt mapped to job, startup/business, research, browser, social, and coder domains.
+- `/api/agent` remained `agentic-read-only-v1` with `write_actions_enabled: false`.
+- Capability fallback response now includes the preferred V2 path before required tools, so CubiQo leads with API/provider integrations instead of custom engineering.
 
 Prod voice check:
 

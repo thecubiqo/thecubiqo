@@ -206,8 +206,9 @@ export async function buildFallbackAgentAnswer(message: string, trace: AgentTrac
     const plan = capabilityPlanForText(message);
     trace.push({ tool: 'capability_plan', status: 'completed', summary: `${plan.matchedDomains.length} capability domains mapped` });
     const labels = plan.matchedDomains.map(domain => domain.label).join(', ');
+    const preferredPath = [...new Set(plan.matchedDomains.flatMap(domain => domain.preferredV2Path))].slice(0, 4).join('; ');
     const v2Tools = [...new Set(plan.matchedDomains.flatMap(domain => domain.v2ToolsRequired))].slice(0, 6).join('; ');
-    return `I mapped this to ${labels}. V1 can understand context, plan strategy, draft assets, and prepare structured workflows. V2 must add approved action tools for: ${v2Tools}.`;
+    return `I mapped this to ${labels}. V1 can understand context, plan strategy, draft assets, and prepare structured workflows. Preferred V2 path: ${preferredPath}. Approved action tools still needed for: ${v2Tools}.`;
   }
   if (/(change|edit|write|commit|push|deploy|apply|submit|post|send|buy|purchase|delete|update).*(file|code|app|site|prod|production|branch|job|application|social|content)?/.test(lower)) {
     trace.push({ tool: 'approval_boundary', status: 'blocked', summary: 'V1 cannot perform write or external actions' });
