@@ -1332,42 +1332,52 @@ const DemoPage = () => {
         setRgyCapsule({ ...data.rgy, color: normalizedColor });
         if (!colorLock && data.rgy.color) setSelectedKeywordColor(normalizedColor);
       }
-      if (data.audio_url) {
-        if (!audioRef.current) audioRef.current = new Audio();
-        audioRef.current.src = data.audio_url;
-        audioRef.current.volume = 1;
-        audioRef.current.onplay = () => {
-          setIsSpeaking(true);
-          startAudioAnalysis();
-        };
-        audioRef.current.onpause = stopAudioAnalysis;
-        audioRef.current.onended = () => {
-          setIsSpeaking(false);
-          stopAudioAnalysis();
-        };
-        audioRef.current.play().catch(e => {
-          console.error("Audio play failed:", e);
-          setIsSpeaking(false);
-          stopAudioAnalysis();
-        });
-      } else if (window.speechSynthesis) {
-        // Fallback to browser TTS if no audio_url (e.g., missing API key)
-        const profile = speechProfileForRgy(data.rgy?.color || rgyCapsule.color);
-        const utterance = new SpeechSynthesisUtterance(responseText);
-        utterance.rate = profile.rate;
-        utterance.pitch = profile.pitch;
-        utterance.volume = profile.volume;
-        utterance.onstart = () => {
-          setIsSpeaking(true);
-          setSpeakingAudioLevel(data.rgy?.color === 'red' ? 0.12 : 0.18);
-        };
-        utterance.onend = () => {
-          setIsSpeaking(false);
-          setSpeakingAudioLevel(0);
-        };
-        window.speechSynthesis.speak(utterance);
+      try {
+        if (data.audio_url) {
+          if (!audioRef.current) audioRef.current = new Audio();
+          audioRef.current.src = data.audio_url;
+          audioRef.current.volume = 1;
+          audioRef.current.onplay = () => {
+            setIsSpeaking(true);
+            startAudioAnalysis();
+          };
+          audioRef.current.onpause = stopAudioAnalysis;
+          audioRef.current.onended = () => {
+            setIsSpeaking(false);
+            stopAudioAnalysis();
+          };
+          audioRef.current.play().catch(e => {
+            console.error("Audio play failed:", e);
+            setIsSpeaking(false);
+            stopAudioAnalysis();
+          });
+        } else if (window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined') {
+          // Response TTS is optional; it must not overwrite a successful model response.
+          const profile = speechProfileForRgy(data.rgy?.color || rgyCapsule.color);
+          const utterance = new SpeechSynthesisUtterance(responseText);
+          utterance.rate = profile.rate;
+          utterance.pitch = profile.pitch;
+          utterance.volume = profile.volume;
+          utterance.onstart = () => {
+            setIsSpeaking(true);
+            setSpeakingAudioLevel(data.rgy?.color === 'red' ? 0.12 : 0.18);
+          };
+          utterance.onend = () => {
+            setIsSpeaking(false);
+            setSpeakingAudioLevel(0);
+          };
+          window.speechSynthesis.speak(utterance);
+        }
+      } catch (playbackError) {
+        console.warn('Optional response voice playback failed:', playbackError.message);
+        setIsSpeaking(false);
+        setSpeakingAudioLevel(0);
       }
-      await rememberConversation(cleanInput, responseText, data);
+      try {
+        await rememberConversation(cleanInput, responseText, data);
+      } catch (memoryError) {
+        console.warn('Optional conversation memory failed:', memoryError.message);
+      }
     } catch (err) {
       // Fallback: local keyword extraction
       const words = cleanInput.toLowerCase().split(/\s+/).filter(w => w.length > 2);
