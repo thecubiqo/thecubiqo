@@ -925,6 +925,7 @@ const DemoPage = () => {
   const transcriptRef = useRef('');
   const manualStopRef = useRef(false);
   const listeningActiveRef = useRef(false);
+  const listeningSilenceTimerRef = useRef(null);
   const callBackendRef = useRef(null);
 
   const ensureUserProfile = async (session) => {
@@ -1070,13 +1071,30 @@ const DemoPage = () => {
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = 'en-US';
+    const clearListeningSilenceTimer = () => {
+      if (listeningSilenceTimerRef.current) {
+        clearTimeout(listeningSilenceTimerRef.current);
+        listeningSilenceTimerRef.current = null;
+      }
+    };
+
     rec.onresult = (e) => {
       let t = '';
       for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
       transcriptRef.current = t;
+      clearListeningSilenceTimer();
+      if (t.trim()) {
+        listeningSilenceTimerRef.current = setTimeout(() => {
+          if (!listeningActiveRef.current) return;
+          manualStopRef.current = false;
+          listeningActiveRef.current = false;
+          recognitionRef.current?.stop?.();
+        }, 1400);
+      }
     };
     rec.onerror = (e) => {
       console.warn('Speech error:', e.error);
+      clearListeningSilenceTimer();
       listeningActiveRef.current = false;
       stopMicAnalysis();
       setSpeakerEnabled(false);
@@ -1084,6 +1102,7 @@ const DemoPage = () => {
       setConversationError(e.error === 'not-allowed' ? 'Microphone permission denied. Use the text field instead.' : 'Voice input stopped. Use the text field or try again.');
     };
     rec.onend = () => {
+      clearListeningSilenceTimer();
       const text = transcriptRef.current.trim();
       const wasManualStop = manualStopRef.current;
       manualStopRef.current = false;
@@ -1285,6 +1304,10 @@ const DemoPage = () => {
 
   useEffect(() => {
     return () => {
+      if (listeningSilenceTimerRef.current) {
+        clearTimeout(listeningSilenceTimerRef.current);
+        listeningSilenceTimerRef.current = null;
+      }
       stopAudioAnalysis();
       stopMicAnalysis();
       audioAnalysisContextRef.current?.close?.();
@@ -1417,7 +1440,6 @@ const DemoPage = () => {
     if (speakerEnabled) {
       manualStopRef.current = true;
       listeningActiveRef.current = false;
-      transcriptRef.current = '';
       setConversationError('');
       setSpeakerEnabled(false);
       stopMicAnalysis();
