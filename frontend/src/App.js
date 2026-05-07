@@ -106,7 +106,7 @@ const READY_FEATURES = [
     id: 'conversation',
     label: 'Conversation + Voice',
     status: 'Live',
-    detail: 'Text chat, RGY classification, ElevenLabs voice cueing, and truthful runtime self-status are wired. Hosted LLM provider auth still needs valid keys.',
+    detail: 'Text chat, RGY classification, and voice playback are wired. Repo self-inspection is not exposed until a real read-only code tool exists.',
     Icon: Activity,
     color: '#2dd4bf'
   },
@@ -2165,7 +2165,7 @@ const DemoPage = () => {
 
               {activeModal === 'settings' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {[{ label: 'Voice', value: rgyCapsule.voice || 'friendly', color: signal.hex }, { label: 'Primary', value: 'OpenAI first', color: '#60a5fa' }, { label: 'Fallback', value: 'Anthropic / OpenRouter / local', color: '#f59e0b' }, { label: 'Storage', value: 'Session keywords only', color: '#34d399' }].map(({ label, value, color }) => (
+                  {[{ label: 'Voice', value: rgyCapsule.voice || 'friendly', color: signal.hex }, { label: 'Provider', value: modelUsed || 'server-routed', color: '#60a5fa' }, { label: 'Fallback', value: 'local if providers fail', color: '#f59e0b' }, { label: 'Storage', value: user ? 'signed-in telemetry' : 'session only', color: '#34d399' }].map(({ label, value, color }) => (
                     <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
                       <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>{label}</span>
                       <span style={{ color, fontSize: '0.85rem', fontWeight: 500 }}>{value}</span>
