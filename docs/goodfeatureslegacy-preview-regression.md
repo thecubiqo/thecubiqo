@@ -52,6 +52,9 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Added V2 foundation APIs for approval requests/status, audit reads, tool settings, approved user tasks, in-app report schedules, and in-app daily reports.
 - Added V2 foundation migration for `action_approvals`, `action_audit_logs`, `user_tool_settings`, `user_tasks`, `report_schedules`, and `daily_reports`.
 - Added `/actions` as the V2 Action Console inside the CubiQo shell. It exposes only completed QA-backed actions: approval cards, approve/cancel, approved task creation, in-app report schedules, in-app self/daily reports, and audit viewing.
+- Added `/api/actions/capabilities` as the V2 capability manifest. It marks active, read-only, and locked tools explicitly so incomplete workflows cannot look connected.
+- Added `/api/actions/execute` as the generic V2 action boundary. Locked tools return `501`, write a blocked audit entry, and do not execute.
+- Updated approval requests so non-end-to-end tools cannot receive fake approvals.
 - Updated the main CubiQo response surface with a component-library based "What I checked" collapsible that shows V1 tool activity inside the existing window.
 - Updated regression script to require `signals` table in addition to existing auth/journal tables.
 - Removed the incomplete `/signal` route from the visible/routable app surface.
@@ -137,6 +140,11 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 | Coder/studio readiness | Closed for V1 planning | Capability map covers read-only code inspection now and recommends a managed API/sandbox/tooling path for V2 writes instead of a custom unrestricted coder terminal. |
 | Camera/biometrics/voice readiness | Closed for V1 planning | Capability map covers camera, passkeys/WebAuthn, proactive voice, interruption settings, DND, and sensor privacy controls. |
 | V2 API-first rule | Closed for planning | Capability map now includes preferred V2 path per domain and global rule: API/provider first, custom engineering only as fallback. |
+| V2 capability manifest | Closed | `/api/actions/capabilities` lists active, read-only, and locked tools with requirements. |
+| V2 fake approval prevention | Closed | `/api/actions/approvals` blocks non-end-to-end tools; locked tools cannot be approved. |
+| V2 locked execution boundary | Closed | `/api/actions/execute` returns `501` and writes blocked audit logs for locked tools. |
+| V2 active action visibility | Closed | `/actions` renders active/read-only/locked capability states from the manifest. |
+| Browser/job/POD/social/camera/coder execution | Deferred intentionally | Locked until provider/API/browser integrations, approval-specific UX, and regression tests exist. |
 
 ## V2 Security Review Notes
 
@@ -155,14 +163,17 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - `task_write`: `/api/tasks`, create requires an approved `task_write` approval.
 - `cron_schedule_create`: `/api/reports/schedules`, creates in-app report schedules only and requires approval.
 - `self_report_create` / `daily_report_send`: `/api/reports/daily`, creates or stores in-app reports only and requires approval.
+- V2 capability manifest: `/api/actions/capabilities`, lists all active/read-only/locked tools and requirements.
+- V2 generic action boundary: `/api/actions/execute`, blocks locked tools with `501` and writes a blocked audit log.
 - V2 Action Console: `/actions`, linked from the left tray and dashboard feature card.
+- V2 Action Console now shows the capability boundary from the manifest instead of vague future-work text.
 - Database triggers require matching approved approvals before task/report writes, so Supabase direct writes cannot bypass approval.
-- Browser/job/social/POD/payment/camera/coder execution tools remain intentionally hidden and unimplemented until their API/provider integrations and approval UX are ready.
+- Browser/job/social/POD/payment/camera/coder execution tools remain intentionally locked until their API/provider integrations and approval UX are ready.
 
 Current blocker:
 
 - No active Supabase schema blocker remains for the QA project. Base tables plus V2 approval/audit/task/report tables are applied and verified against `https://oszlufrjvibrdauuppzj.supabase.co`.
-- Browser/job/social/POD/payment/camera/coder execution tools are still intentionally hidden and unimplemented until their provider integrations and action-specific approval UX are ready.
+- Browser/job/social/POD/payment/camera/coder execution tools are intentionally locked in the capability manifest until their provider integrations and action-specific approval UX are ready.
 
 ## Regression Gate Before Push
 
@@ -248,6 +259,15 @@ Latest V1 formal tool smoke on `127.0.0.1:3038`:
 - Write/deploy boundary: passed; `approval_boundary` blocked deployment and external writes.
 - Run-check boundary: passed; `run_check` reported blocked in the server runtime instead of pretending tests ran.
 - Test user was admin-created with `@example.invalid`, no public signup/magic-link email was sent, and cleanup was attempted.
+
+Latest V2 capability boundary smoke on `127.0.0.1:3040`:
+
+- `/api/actions/capabilities`: passed; returned 7 active, 4 read-only, and 16 locked capabilities.
+- Active approval path: passed; `task_write` approval request returned `201`.
+- Fake approval prevention: passed; `browser_open` approval request returned `501`, `approvalCreated: false`.
+- Locked execution boundary: passed; `/api/actions/execute` for `browser_open` returned `501`, `executed: false`.
+- Active generic execution boundary: passed; `/api/actions/execute` for `task_write` returned `409` and pointed callers to the dedicated endpoint.
+- Audit log: passed; blocked attempts were recorded in user-owned audit logs.
 
 Prod voice check:
 

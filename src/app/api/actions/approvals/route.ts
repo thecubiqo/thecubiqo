@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { missingMigrationResponse, requireApiUser, safeTableMissing } from '../../_lib/supabase-admin';
+import { getActionCapability, isApprovalRequestable } from '../../_lib/v2-capabilities';
 import {
   mapApproval,
   normalizeActionType,
   normalizePayload,
-  normalizeToolName
+  normalizeToolName,
+  writeAudit
 } from '../../_lib/v2-actions';
 
 const approvalSelect =
@@ -46,6 +48,28 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const actionType = normalizeActionType(body.actionType ?? body.action_type);
   if (!actionType) return NextResponse.json({ error: 'Valid actionType is required' }, { status: 400 });
+  const capability = getActionCapability(actionType);
+  if (!capability || !isApprovalRequestable(actionType)) {
+    await writeAudit(auth, {
+      actionType,
+      toolName: normalizeToolName(body.toolName ?? body.tool_name, actionType),
+      status: 'blocked',
+      message: 'Approval request blocked because this V2 capability is not end-to-end enabled',
+      input: { actionType },
+      result: {
+        capabilityStatus: capability?.status || 'unknown',
+        requirements: capability?.requirements || []
+      }
+    });
+    return NextResponse.json(
+      {
+        error: 'This V2 capability is not end-to-end enabled yet',
+        capability,
+        approvalCreated: false
+      },
+      { status: 501 }
+    );
+  }
 
   const toolName = normalizeToolName(body.toolName ?? body.tool_name, actionType);
   const title = String(body.title || `${actionType} approval`).trim().slice(0, 140);

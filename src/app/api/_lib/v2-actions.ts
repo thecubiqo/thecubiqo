@@ -1,47 +1,19 @@
 import { NextResponse } from 'next/server';
 import { ApiUserContext, missingMigrationResponse, safeTableMissing } from './supabase-admin';
+import { ACTION_TYPES, FOUNDATION_ACTION_TYPES } from './v2-capabilities';
 
-export const ACTION_TYPES = [
-  'approval_request',
-  'approval_status',
-  'action_audit_log',
-  'task_write',
-  'cron_schedule_create',
-  'daily_report_send',
-  'self_report_create',
-  'job_profile_write',
-  'job_search_save',
-  'job_application_prepare',
-  'job_application_submit_approved',
-  'resume_version_write',
-  'pod_design_brief_create',
-  'gfxtools_job_create',
-  'shopify_connector_status',
-  'printify_connector_status',
-  'social_post_prepare',
-  'social_post_schedule_approved',
-  'camera_permission_check',
-  'camera_context_read',
-  'diagnostics_run'
-] as const;
-
-export const FOUNDATION_ACTION_TYPES = [
-  'task_write',
-  'cron_schedule_create',
-  'daily_report_send',
-  'self_report_create'
-] as const;
+export { ACTION_TYPES, FOUNDATION_ACTION_TYPES };
 
 export type ActionStatus = 'requested' | 'approved' | 'denied' | 'cancelled' | 'expired' | 'completed' | 'failed';
 
 export function normalizeActionType(value: unknown) {
   const actionType = String(value || '').trim();
-  return ACTION_TYPES.includes(actionType as (typeof ACTION_TYPES)[number]) ? actionType : null;
+  return ACTION_TYPES.includes(actionType) ? actionType : null;
 }
 
 export function normalizeFoundationActionType(value: unknown) {
   const actionType = normalizeActionType(value);
-  return FOUNDATION_ACTION_TYPES.includes(actionType as (typeof FOUNDATION_ACTION_TYPES)[number]) ? actionType : null;
+  return actionType && FOUNDATION_ACTION_TYPES.includes(actionType) ? actionType : null;
 }
 
 export function normalizeToolName(value: unknown, fallback = 'cubiqo_v2') {

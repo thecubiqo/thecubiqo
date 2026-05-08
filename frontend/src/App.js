@@ -1006,6 +1006,7 @@ const ActionConsolePage = () => {
   const [schedules, setSchedules] = useState([]);
   const [reports, setReports] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [capabilities, setCapabilities] = useState([]);
 
   const actionCards = [
     {
@@ -1046,14 +1047,6 @@ const ActionConsolePage = () => {
     }
   ];
 
-  const futureBoundaries = [
-    'Browser control and extension workflows',
-    'LinkedIn, Indeed, Dice, and website-level job applications',
-    'POD, Shopify, Printify, Printful, GFXTools execution',
-    'Social posting, affiliate scheduling, and 10/10/10 automation',
-    'Camera awareness, biometrics, payments, coder/studio write mode'
-  ];
-
   const getToken = async () => {
     const { data } = await supabase.auth.getSession();
     return data?.session?.access_token || '';
@@ -1085,18 +1078,20 @@ const ActionConsolePage = () => {
         setLoading(false);
         return;
       }
-      const [approvalData, taskData, scheduleData, reportData, auditData] = await Promise.all([
+      const [approvalData, taskData, scheduleData, reportData, auditData, capabilityData] = await Promise.all([
         apiJson('/api/actions/approvals?limit=20'),
         apiJson('/api/tasks?limit=20'),
         apiJson('/api/reports/schedules?limit=10'),
         apiJson('/api/reports/daily?limit=10'),
-        apiJson('/api/actions/audit?limit=25')
+        apiJson('/api/actions/audit?limit=25'),
+        apiJson('/api/actions/capabilities')
       ]);
       setApprovals(approvalData.approvals || []);
       setTasks(taskData.tasks || []);
       setSchedules(scheduleData.schedules || []);
       setReports(reportData.reports || []);
       setAuditLogs(auditData.auditLogs || []);
+      setCapabilities(capabilityData.capabilities || []);
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -1348,14 +1343,37 @@ const ActionConsolePage = () => {
               </section>
 
               <section style={{ ...cardStyle, padding: 18 }}>
-                <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Not Exposed Yet</h2>
-                <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
-                  {futureBoundaries.map(item => (
-                    <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(255,255,255,0.46)', fontSize: '0.78rem' }}>
-                      <Lock size={13} />
-                      {item}
-                    </div>
-                  ))}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>V2 Capability Boundary</h2>
+                  <Badge variant="outline" className="border-white/10 text-white/50">
+                    {capabilities.filter(item => item.status === 'active').length} active
+                  </Badge>
+                </div>
+                <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
+                  {capabilities.length ? capabilities.map(item => {
+                    const isActive = item.status === 'active';
+                    const isReadOnly = item.status === 'read_only';
+                    const tone = isActive ? '#34d399' : isReadOnly ? '#7dd3fc' : '#fbbf24';
+                    return (
+                      <div key={item.actionType} style={{ border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.035)', minHeight: 126 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: tone }}>
+                            {isActive ? <CheckCircle2 size={14} /> : <Lock size={14} />}
+                            <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{item.label}</span>
+                          </div>
+                          <span style={{ color: tone, fontSize: '0.62rem', letterSpacing: 1.2, textTransform: 'uppercase' }}>{item.status}</span>
+                        </div>
+                        <div style={{ marginTop: 7, color: 'rgba(255,255,255,0.46)', fontSize: '0.72rem', lineHeight: 1.45 }}>{item.summary}</div>
+                        {!isActive && (
+                          <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.34)', fontSize: '0.68rem', lineHeight: 1.35 }}>
+                            Needs: {(item.requirements || []).slice(0, 2).join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }) : (
+                    <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem' }}>Capability manifest unavailable.</div>
+                  )}
                 </div>
               </section>
             </>
