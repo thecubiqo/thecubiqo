@@ -2136,22 +2136,6 @@ const DemoPage = () => {
             setIsSpeaking(false);
             stopAudioAnalysis();
           });
-        } else if (window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined') {
-          // Response TTS fallback is optional; it must not overwrite a successful model response.
-          const profile = speechProfileForRgy(data.rgy?.color || rgyCapsule.color);
-          const utterance = new SpeechSynthesisUtterance(responseText);
-          utterance.rate = profile.rate;
-          utterance.pitch = profile.pitch;
-          utterance.volume = profile.volume;
-          utterance.onstart = () => {
-            setIsSpeaking(true);
-            setSpeakingAudioLevel(data.rgy?.color === 'red' ? 0.12 : 0.18);
-          };
-          utterance.onend = () => {
-            setIsSpeaking(false);
-            setSpeakingAudioLevel(0);
-          };
-          window.speechSynthesis.speak(utterance);
         }
       } catch (playbackError) {
         console.warn('Optional response voice playback failed:', playbackError.message);
