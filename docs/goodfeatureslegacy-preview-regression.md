@@ -47,7 +47,7 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Updated dashboard counts/features to expose only live/code-ready surfaces.
 - Updated the right panel to show editable signal capsules and user-confirmed intent chips.
 - Updated Daily Journal for quick intake -> Core guided journal -> 15-minute timer -> typed/speech-captured answers -> summary storage.
-- Added `/api/agent` for CubiQo V1 read-only agentic behavior: repo stack summary, route listing, repo search/read, runtime status, RGY classification, capability planning, and blocked check reporting.
+- Added `/api/agent` for CubiQo V1 agentic behavior: repo stack summary, route listing, repo search/read, runtime status, RGY classification, capability planning, dashboard summary, journal read/write-summary, RGY signal read/write, memory read/write-safe-summary, task plan creation, content brief creation, and blocked check reporting.
 - Updated typed chat routing so text submissions enter `/api/agent` first. Simple conversational messages are delegated back to the existing converse path, while repo/self-check/capability/action-boundary requests stay on the V1 agentic route.
 - Added V2 foundation APIs for approval requests/status, audit reads, tool settings, approved user tasks, in-app report schedules, and in-app daily reports.
 - Added V2 foundation migration for `action_approvals`, `action_audit_logs`, `user_tool_settings`, `user_tasks`, `report_schedules`, and `daily_reports`.
@@ -112,6 +112,13 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 | Final voice of intelligence design after workflow stable | Deferred intentionally | Not part of this closure pass. |
 | Keep incomplete legacy features hidden | Closed | Preview exposes `/`, `/app`, `/dashboard`, `/journal`; `/signal` returns `404`; Job Hunter/launcher/CQ/Social Army/BYO/camera/coder/browser write actions are not visible pages. |
 | Agentic V1 read-only route | Closed | `/api/agent` returns `mode: agentic-read-only-v1`, `write_actions_enabled: false`, and tool trace. |
+| V1 formal tool list | Closed | `/api/agent` exposes repo, runtime, check, journal, RGY signal, dashboard, memory, task plan, and content brief tools. |
+| V1 dashboard summary | Closed | Signed-in local smoke returned `dashboard_summary: completed`. |
+| V1 journal read/write-summary | Closed | Signed-in local smoke saved and read a user-owned journal summary. |
+| V1 RGY signal read/write | Closed | Signed-in local smoke saved and read `green:career`; matching remains off until intent is confirmed. |
+| V1 memory read/write-safe-summary | Closed | Signed-in local smoke saved and read user-owned safe memory without credential-like content. |
+| V1 task plan creation | Closed | Local smoke created an in-session plan without persisting tasks. |
+| V1 content brief creation | Closed | Local smoke created an in-session GFXTools/POD brief without external API calls. |
 | Typed chat agent doorway | Closed | Text submissions call `/api/agent` first; simple chat delegates to converse, preserving existing conversational/voice behavior. |
 | Agentic V1 UI activity | Closed | Main CubiQo response panel shows component-library "What I checked" collapsible when agent route is used. |
 | Agent write/deploy boundary | Closed | `/api/agent` blocks write/deploy/post/send/apply/buy requests and states V2 approval/audit is required. |
@@ -133,8 +140,8 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 
 ## V2 Security Review Notes
 
-- Current V1 exposes no write/action tools, no deploy tool, no browser control, and no arbitrary terminal.
-- Current V1 action-like requests are blocked or converted to planning; this should remain true until V2 approval cards exist.
+- Current V1 exposes no external write/action tools, no deploy tool, no browser control, and no arbitrary terminal.
+- Current V1 allows only signed-in user-owned CubiQo state writes for journal summaries, RGY capsules, and safe memory summaries. External actions remain blocked or converted to planning until V2 approval cards exist.
 - Required before any V2 action endpoint: explicit approval request/status, action audit log, action type permissions, feature flag, safe cancel path, and denied-action no-op test.
 - Required before any external integration: server-side token storage, masked frontend display, missing-credential safe error, no fake connected state, and per-user ownership checks.
 - Required before browser/extension use: user-visible active indicator, stop button, domain allowlist, session isolation, screenshot/log redaction, and no hidden automation.
@@ -224,6 +231,23 @@ Latest V2 API-first smoke on `127.0.0.1:3036`:
 - Multi-domain V2 prompt mapped to job, startup/business, research, browser, social, and coder domains.
 - `/api/agent` remained `agentic-read-only-v1` with `write_actions_enabled: false`.
 - Capability fallback response now includes the preferred V2 path before required tools, so CubiQo leads with API/provider integrations instead of custom engineering.
+
+Latest V1 formal tool smoke on `127.0.0.1:3038`:
+
+- Stack/routes question: passed; `/api/agent` answered from inspected repo files/routes and returned the full V1 tool list.
+- `dashboard_summary`: passed with a signed-in test user.
+- `rgy_signal_write`: passed; saved `green:career` with matching off until intent confirmation.
+- `rgy_signal_read`: passed; read the saved capsule as color + keyword + optional/confirmed intent.
+- `memory_write_safe_summary`: passed; saved user-owned safe memory summary only.
+- `memory_read`: passed; read recent user-owned memory and did not invent profile facts.
+- `journal_write_summary`: passed; saved a user-owned journal summary.
+- `journal_read`: passed; read the saved journal summary.
+- `content_brief_create`: passed; created an in-session GFXTools/POD brief and did not call external APIs.
+- `task_plan_create`: passed; created an in-session task plan and did not persist tasks.
+- `capability_plan`: passed for job hunt/easy apply/employer-site application planning.
+- Write/deploy boundary: passed; `approval_boundary` blocked deployment and external writes.
+- Run-check boundary: passed; `run_check` reported blocked in the server runtime instead of pretending tests ran.
+- Test user was admin-created with `@example.invalid`, no public signup/magic-link email was sent, and cleanup was attempted.
 
 Prod voice check:
 

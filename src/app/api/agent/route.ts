@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createCubiQoAgent, buildFallbackAgentAnswer, type AgentTraceItem } from '@/next/lib/ai/cubiqo-agent';
+import { createCubiQoAgent, buildFallbackAgentAnswer, V1_AGENT_TOOLS, type AgentTraceItem } from '@/next/lib/ai/cubiqo-agent';
 import { isCapabilityPlanningRequest } from '@/next/lib/ai/capability-map';
 import { runLegacyVercelHandler } from '@/next/lib/legacy-vercel-adapter';
 
@@ -29,10 +29,16 @@ function normalizeRgy(message: string) {
 function agentToolsNeeded(message: string) {
   const lower = message.toLowerCase();
   return (
-    /(repo|code|stack|route|routes|built|framework|implementation|self|yourself|what model|test|tests|regression|diagnostic|runtime|provider|supabase|vercel|nextjs|next\.js|react|agentic|what did you check|what can you inspect)/i.test(lower)
+    /(repo|code|stack|route|routes|built|framework|implementation|self|yourself|what model|test|tests|regression|diagnostic|runtime|provider|supabase|vercel|nextjs|next\.js|react|agentic|what did you check|what can you inspect|dashboard|journal|rgy|signal|signals|keyword|keywords|memory|remembered|content brief|creative brief|gfx|gfxtools|task plan|routine plan|daily plan)/i.test(lower)
     || isCapabilityPlanningRequest(message)
     || /(change|edit|write|commit|push|deploy|apply|submit|post|send|buy|purchase|delete|update)/i.test(lower)
   );
+}
+
+function getBearerToken(request: NextRequest) {
+  const header = request.headers.get('authorization') || '';
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match?.[1] || '';
 }
 
 async function delegateToConversation(request: NextRequest, body: Record<string, unknown>, message: string, trace: AgentTraceItem[]) {
@@ -63,14 +69,7 @@ async function delegateToConversation(request: NextRequest, body: Record<string,
       : normalizeRgy(message),
     tools_available: [
       'conversation_router',
-      'runtime_status',
-      'repo_stack_summary',
-      'repo_list_routes',
-      'repo_search',
-      'repo_read_file',
-      'run_check',
-      'classify_rgy',
-      'capability_plan'
+      ...V1_AGENT_TOOLS
     ],
     write_actions_enabled: false
   }, { status: legacyResponse.status });
@@ -84,6 +83,7 @@ export async function POST(request: NextRequest) {
   }
 
   const trace: AgentTraceItem[] = [];
+  const authToken = getBearerToken(request);
   let response = '';
   let modelUsed = process.env.AI_GATEWAY_MODEL || process.env.OPENAI_MODEL || 'openai/gpt-5.4';
   const lower = message.toLowerCase();
@@ -102,29 +102,20 @@ export async function POST(request: NextRequest) {
   }
 
   if (deterministicBoundary) {
-    response = await buildFallbackAgentAnswer(message, trace);
+    response = await buildFallbackAgentAnswer(message, trace, { authToken });
     return NextResponse.json({
       response,
       mode: 'agentic-read-only-v1',
       model_used: 'agent-local-boundary',
       trace,
       rgy: normalizeRgy(message),
-      tools_available: [
-        'runtime_status',
-        'repo_stack_summary',
-        'repo_list_routes',
-        'repo_search',
-        'repo_read_file',
-        'run_check',
-        'classify_rgy',
-        'capability_plan'
-      ],
+      tools_available: V1_AGENT_TOOLS,
       write_actions_enabled: false
     });
   }
 
   try {
-    const agent = createCubiQoAgent(trace);
+    const agent = createCubiQoAgent(trace, { authToken });
     const result = await agent.generate({
       prompt: [
         `User message: ${message}`,
@@ -137,7 +128,7 @@ export async function POST(request: NextRequest) {
     if (!response) throw new Error('Agent returned no text');
   } catch (error) {
     modelUsed = 'agent-local-fallback';
-    response = await buildFallbackAgentAnswer(message, trace);
+    response = await buildFallbackAgentAnswer(message, trace, { authToken });
     trace.push({
       tool: 'agent_model',
       status: 'blocked',
@@ -151,16 +142,7 @@ export async function POST(request: NextRequest) {
     model_used: modelUsed,
     trace,
     rgy: normalizeRgy(message),
-    tools_available: [
-      'runtime_status',
-      'repo_stack_summary',
-      'repo_list_routes',
-      'repo_search',
-      'repo_read_file',
-      'run_check',
-      'classify_rgy',
-      'capability_plan'
-    ],
+    tools_available: V1_AGENT_TOOLS,
     write_actions_enabled: false
   });
 }

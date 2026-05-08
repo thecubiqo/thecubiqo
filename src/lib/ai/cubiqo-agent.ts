@@ -9,11 +9,26 @@ import {
   runtimeStatus
 } from './repo-inspection';
 import { capabilityPlanForText, isCapabilityPlanningRequest } from './capability-map';
+import {
+  contentBriefCreate,
+  dashboardSummary,
+  journalRead,
+  journalWriteSummary,
+  memoryRead,
+  memoryWriteSafeSummary,
+  rgySignalRead,
+  rgySignalWrite,
+  taskPlanCreate
+} from './user-context-tools';
 
 export type AgentTraceItem = {
   tool: string;
   status: 'completed' | 'blocked' | 'failed';
   summary: string;
+};
+
+export type CubiQoAgentOptions = {
+  authToken?: string;
 };
 
 const goalTerms = ['linkedin', 'career', 'yoga', 'wellness', 'build', 'ship', 'launch', 'job', 'resume', 'routine', 'business', 'pod'];
@@ -49,6 +64,24 @@ function summarizeOutput(toolName: string, output: unknown) {
     const domains = (output as { matchedDomains?: unknown[] }).matchedDomains || [];
     return `${domains.length} capability domain${domains.length === 1 ? '' : 's'} mapped`;
   }
+  if (toolName === 'dashboard_summary') return 'summarized user-owned dashboard state';
+  if (toolName === 'journal_read') {
+    const entries = (output as { entries?: unknown[] }).entries || [];
+    return `${entries.length} journal entr${entries.length === 1 ? 'y' : 'ies'} read`;
+  }
+  if (toolName === 'journal_write_summary') return 'saved a user-owned journal summary';
+  if (toolName === 'rgy_signal_read') {
+    const signals = (output as { signals?: unknown[] }).signals || [];
+    return `${signals.length} RGY signal${signals.length === 1 ? '' : 's'} read`;
+  }
+  if (toolName === 'rgy_signal_write') return 'saved RGY capsule';
+  if (toolName === 'memory_read') {
+    const memory = (output as { memory?: unknown[] }).memory || [];
+    return `${memory.length} memory item${memory.length === 1 ? '' : 's'} read`;
+  }
+  if (toolName === 'memory_write_safe_summary') return 'saved safe user-owned memory summary';
+  if (toolName === 'task_plan_create') return 'created an in-session task plan';
+  if (toolName === 'content_brief_create') return 'created an in-session content brief';
   return 'completed';
 }
 
@@ -88,7 +121,27 @@ function tracedTool<TInput extends z.ZodTypeAny>({
   });
 }
 
-export function createCubiQoAgent(trace: AgentTraceItem[]) {
+export const V1_AGENT_TOOLS = [
+  'runtime_status',
+  'repo_stack_summary',
+  'repo_list_routes',
+  'repo_search',
+  'repo_read_file',
+  'run_check',
+  'classify_rgy',
+  'capability_plan',
+  'dashboard_summary',
+  'journal_read',
+  'journal_write_summary',
+  'rgy_signal_read',
+  'rgy_signal_write',
+  'memory_read',
+  'memory_write_safe_summary',
+  'task_plan_create',
+  'content_brief_create'
+];
+
+export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentOptions = {}) {
   const tools = {
     runtime_status: tracedTool({
       trace,
@@ -159,6 +212,93 @@ export function createCubiQoAgent(trace: AgentTraceItem[]) {
         text: z.string().min(1).max(3000)
       }),
       execute: async ({ text }) => capabilityPlanForText(text)
+    }),
+    dashboard_summary: tracedTool({
+      trace,
+      name: 'dashboard_summary',
+      description: 'Read the signed-in user dashboard counts and live feature state from Supabase.',
+      inputSchema: z.object({}),
+      execute: async () => dashboardSummary(options.authToken)
+    }),
+    journal_read: tracedTool({
+      trace,
+      name: 'journal_read',
+      description: 'Read recent signed-in user journal entries from Supabase. Requires auth.',
+      inputSchema: z.object({
+        limit: z.number().int().min(1).max(10).optional()
+      }),
+      execute: async ({ limit }) => journalRead(options.authToken, limit || 5)
+    }),
+    journal_write_summary: tracedTool({
+      trace,
+      name: 'journal_write_summary',
+      description: 'Save a constrained, user-owned journal summary. Requires auth and never writes files or external systems.',
+      inputSchema: z.object({
+        title: z.string().max(120).optional(),
+        summary: z.string().min(1).max(4000),
+        tags: z.array(z.string().max(40)).max(10).optional()
+      }),
+      execute: async (input) => journalWriteSummary(options.authToken, input)
+    }),
+    rgy_signal_read: tracedTool({
+      trace,
+      name: 'rgy_signal_read',
+      description: 'Read signed-in user RGY capsules: color, keyword, optional/confirmed intent. Requires auth.',
+      inputSchema: z.object({
+        limit: z.number().int().min(1).max(25).optional()
+      }),
+      execute: async ({ limit }) => rgySignalRead(options.authToken, limit || 12)
+    }),
+    rgy_signal_write: tracedTool({
+      trace,
+      name: 'rgy_signal_write',
+      description: 'Save one signed-in user RGY capsule: color, keyword, optional/confirmed intent. Requires auth.',
+      inputSchema: z.object({
+        color: z.enum(['green', 'yellow', 'red']),
+        keyword: z.string().min(1).max(80),
+        suggestedIntents: z.array(z.enum(['socialize', 'collaborate', 'trade'])).max(3).optional(),
+        confirmedIntents: z.array(z.enum(['socialize', 'collaborate', 'trade'])).max(3).optional()
+      }),
+      execute: async (input) => rgySignalWrite(options.authToken, input)
+    }),
+    memory_read: tracedTool({
+      trace,
+      name: 'memory_read',
+      description: 'Read recent signed-in user-owned conversation memory summaries from Supabase. Requires auth.',
+      inputSchema: z.object({
+        limit: z.number().int().min(1).max(12).optional()
+      }),
+      execute: async ({ limit }) => memoryRead(options.authToken, limit || 6)
+    }),
+    memory_write_safe_summary: tracedTool({
+      trace,
+      name: 'memory_write_safe_summary',
+      description: 'Save a short safe memory summary to signed-in user-owned memory. Rejects credential-like content.',
+      inputSchema: z.object({
+        summary: z.string().min(1).max(4000)
+      }),
+      execute: async ({ summary }) => memoryWriteSafeSummary(options.authToken, summary)
+    }),
+    task_plan_create: tracedTool({
+      trace,
+      name: 'task_plan_create',
+      description: 'Create an in-session task plan. Does not persist tasks or perform external actions in V1.',
+      inputSchema: z.object({
+        goal: z.string().min(1).max(500),
+        horizon: z.string().max(80).optional()
+      }),
+      execute: async (input) => taskPlanCreate(input)
+    }),
+    content_brief_create: tracedTool({
+      trace,
+      name: 'content_brief_create',
+      description: 'Create an in-session content or GFXTools-ready creative brief. Does not call external APIs in V1.',
+      inputSchema: z.object({
+        topic: z.string().min(1).max(500),
+        channel: z.string().max(80).optional(),
+        audience: z.string().max(120).optional()
+      }),
+      execute: async (input) => contentBriefCreate(input)
     })
   };
 
@@ -173,6 +313,8 @@ export function createCubiQoAgent(trace: AgentTraceItem[]) {
       'For coder/studio, prefer managed API/sandbox/tool layers before custom raw terminal engineering.',
       'Never answer repo facts from memory. If the user asks what CubiQo is built with, what routes exist, whether a feature exists, or what was implemented, inspect the repo first.',
       'V1 is read-only. Do not claim you changed code, deployed, submitted applications, posted content, bought anything, or controlled a browser.',
+      'The only V1 writes allowed are signed-in, user-owned CubiQo state: journal summaries, RGY capsules, and safe memory summaries. External actions still require V2 approval.',
+      'For dashboard, journal, RGY signal, or memory questions, use the matching auth-aware tool. If auth is missing, say sign-in is required.',
       'When a tool is unavailable or blocked, say that clearly.',
       'Keep answers concise and specific.'
     ].join('\n'),
@@ -180,7 +322,11 @@ export function createCubiQoAgent(trace: AgentTraceItem[]) {
   });
 }
 
-export async function buildFallbackAgentAnswer(message: string, trace: AgentTraceItem[]) {
+export async function buildFallbackAgentAnswer(
+  message: string,
+  trace: AgentTraceItem[],
+  options: CubiQoAgentOptions = {}
+) {
   const lower = message.toLowerCase();
   const strongCheckRequest = /\b(run|execute|start)\b.*\b(test|tests|regression|typecheck|verify|check)\b/.test(lower);
   const strongWriteRequest =
@@ -201,6 +347,83 @@ export async function buildFallbackAgentAnswer(message: string, trace: AgentTrac
   if (strongWriteRequest) {
     trace.push({ tool: 'approval_boundary', status: 'blocked', summary: 'V1 cannot perform write or external actions' });
     return 'V1 is read-only. I can inspect and explain, but I cannot change files, deploy, submit applications, post content, or send anything until the V2 approval and audit system exists.';
+  }
+  if (/(save|store).*(journal summary|journal note|journal notes)/.test(lower)) {
+    const result = await journalWriteSummary(options.authToken, {
+      title: 'CubiQo Journal Summary',
+      summary: message,
+      tags: ['agent-v1-summary']
+    });
+    const journalResult = result as any;
+    trace.push({ tool: 'journal_write_summary', status: journalResult.status === 'completed' ? 'completed' : 'blocked', summary: 'saved a user-owned journal summary' });
+    if (journalResult.status !== 'completed') return `${journalResult.reason || 'Journal summary save needs a signed-in session and valid journal schema.'}`;
+    return `Saved a user-owned journal summary as "${journalResult.entry.title}".`;
+  }
+  if (/(save|store|capture).*(rgy|signal|keyword)/.test(lower)) {
+    const color = lower.includes('red') ? 'red' : lower.includes('green') || lower.includes('teal') ? 'green' : 'yellow';
+    const keywordMatch = lower.match(/keyword\s+["']?([a-z0-9 -]{2,80})["']?/i);
+    const fallbackKeyword = lower.includes('career') ? 'career' : lower.includes('pod') ? 'pod' : lower.includes('business') ? 'business' : 'signal';
+    const keyword = (keywordMatch?.[1] || fallbackKeyword).replace(/\s+as\s+(red|green|yellow).*$/i, '').trim();
+    const result = await rgySignalWrite(options.authToken, {
+      color,
+      keyword,
+      suggestedIntents: [],
+      confirmedIntents: []
+    });
+    const signalResult = result as any;
+    trace.push({ tool: 'rgy_signal_write', status: signalResult.status === 'completed' ? 'completed' : 'blocked', summary: 'saved RGY capsule' });
+    if (signalResult.status !== 'completed') return `${signalResult.reason || 'RGY signal save needs a signed-in session and valid signals schema.'}`;
+    return `Saved the RGY capsule ${signalResult.signal.color}:${signalResult.signal.keyword}. Matching remains off until intent is confirmed.`;
+  }
+  if (/(remember|save memory|store memory|save context)/.test(lower)) {
+    const result = await memoryWriteSafeSummary(options.authToken, message);
+    const memoryResult = result as any;
+    trace.push({ tool: 'memory_write_safe_summary', status: memoryResult.status === 'completed' ? 'completed' : 'blocked', summary: 'saved safe user-owned memory summary' });
+    if (memoryResult.status !== 'completed') return `${memoryResult.reason || 'Memory save needs a signed-in session and safe content.'}`;
+    return 'Saved a safe user-owned memory summary.';
+  }
+  if (/(dashboard|stats|counts|account summary|what.*dashboard)/.test(lower)) {
+    const summary = await dashboardSummary(options.authToken);
+    const summaryResult = summary as any;
+    trace.push({ tool: 'dashboard_summary', status: summaryResult.status === 'completed' ? 'completed' : 'blocked', summary: 'summarized user-owned dashboard state' });
+    if (summaryResult.status !== 'completed') return `${summaryResult.reason || 'Dashboard needs a signed-in session before I can read user-owned data.'}`;
+    return `I checked the signed-in dashboard state: ${summaryResult.stats.journals} journals, ${summaryResult.stats.signals} RGY signals, ${summaryResult.stats.keywords} legacy keywords, ${summaryResult.stats.conversations} conversation events, ${summaryResult.stats.tasks} tasks, and ${summaryResult.stats.reports} reports.`;
+  }
+  if (/(journal|journals|guided journal).*(read|show|latest|history|entries|summary)|\b(read|show|latest)\b.*\bjournal/.test(lower)) {
+    const result = await journalRead(options.authToken, 5);
+    const journalResult = result as any;
+    trace.push({ tool: 'journal_read', status: journalResult.status === 'completed' ? 'completed' : 'blocked', summary: 'read recent journal entries' });
+    if (journalResult.status !== 'completed') return `${journalResult.reason || 'Journal history needs a signed-in session before I can read user-owned data.'}`;
+    if (!journalResult.entries.length) return 'I checked journal history. There are no saved journal entries yet.';
+    const latest = journalResult.entries[0];
+    return `I checked journal history. Latest entry: "${latest.title}" from ${latest.created_at}. It is tagged ${Array.isArray(latest.tags) && latest.tags.length ? latest.tags.join(', ') : 'with no tags yet'}.`;
+  }
+  if (/(rgy|signal|signals|keyword|keywords).*(read|show|list|saved|history)|\b(read|show|list)\b.*\b(rgy|signal|keyword)/.test(lower)) {
+    const result = await rgySignalRead(options.authToken, 12);
+    const signalResult = result as any;
+    trace.push({ tool: 'rgy_signal_read', status: signalResult.status === 'completed' ? 'completed' : 'blocked', summary: 'read RGY capsules' });
+    if (signalResult.status !== 'completed') return `${signalResult.reason || 'RGY signal history needs a signed-in session before I can read user-owned data.'}`;
+    if (!signalResult.signals.length) return 'I checked saved RGY capsules. There are no saved signals yet.';
+    const preview = signalResult.signals.slice(0, 5).map((signal: any) => `${signal.color}:${signal.keyword}`).join(', ');
+    return `I checked saved RGY capsules. Recent signals: ${preview}. Capsule scope is color + keyword + optional/confirmed intent.`;
+  }
+  if (/(memory|remembered|context).*(read|show|what do you know|saved|history)|\b(read|show)\b.*\bmemory/.test(lower)) {
+    const result = await memoryRead(options.authToken, 6);
+    const memoryResult = result as any;
+    trace.push({ tool: 'memory_read', status: memoryResult.status === 'completed' ? 'completed' : 'blocked', summary: 'read user-owned memory summaries' });
+    if (memoryResult.status !== 'completed') return `${memoryResult.reason || 'Memory history needs a signed-in session before I can read user-owned data.'}`;
+    if (!memoryResult.memory.length) return 'I checked memory. There are no saved conversation memory items yet.';
+    return `I checked memory and found ${memoryResult.memory.length} recent item${memoryResult.memory.length === 1 ? '' : 's'}. I can summarize them, but I will not invent profile facts beyond saved user-owned records.`;
+  }
+  if (/(content brief|creative brief|gfx|gfxtools|ad copy|pod design|campaign brief)/.test(lower)) {
+    const brief = contentBriefCreate({ topic: message });
+    trace.push({ tool: 'content_brief_create', status: 'completed', summary: 'created an in-session content brief' });
+    return `I created a V1 brief structure for ${brief.brief.topic}. It stays in-session: ${brief.brief.deliverables.join(', ')}. External GFXTools or posting requires V2 approval and credentials.`;
+  }
+  if (/(task plan|plan tasks|routine plan|daily plan|action plan)/.test(lower)) {
+    const plan = taskPlanCreate({ goal: message });
+    trace.push({ tool: 'task_plan_create', status: 'completed', summary: 'created an in-session task plan' });
+    return `I created a V1 task plan for: ${plan.plan.goal}. First steps: ${plan.plan.steps.slice(0, 3).join(' ')}`;
   }
   if (isCapabilityPlanningRequest(message)) {
     const plan = capabilityPlanForText(message);
