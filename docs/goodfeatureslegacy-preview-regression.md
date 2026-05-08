@@ -200,9 +200,9 @@ Latest result:
 
 ## Preview Deployment
 
-Preview URL: https://cubiqo-repo-nhawtc13c-cubiqo-projects-d7156840.vercel.app
+Preview URL: https://cubiqo-repo-gpau5cw4o-cubiqo-projects-d7156840.vercel.app
 
-Deployment ID: `dpl_Dy3i8pUT94asJsdeF5dzZQQAvcib`
+Deployment ID: `dpl_6rqeG6swC14iHFQScQHUbBB8YSBv`
 
 Preview smoke:
 
