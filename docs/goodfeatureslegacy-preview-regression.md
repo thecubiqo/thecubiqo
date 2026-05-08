@@ -200,20 +200,24 @@ Latest result:
 
 ## Preview Deployment
 
-Preview URL: https://cubiqo-repo-dmvgdkydt-cubiqo-projects-d7156840.vercel.app
+Preview URL: https://cubiqo-repo-nhawtc13c-cubiqo-projects-d7156840.vercel.app
 
-Deployment ID: `dpl_BC5NTqF5ZKjTU49iiyh9Cx31Q4nQ`
+Deployment ID: `dpl_Dy3i8pUT94asJsdeF5dzZQQAvcib`
 
 Preview smoke:
 
 - `/`: 200
 - `/app`: 200
+- `/actions`: 200
 - `/dashboard`: 200
 - `/journal`: 200
-- `/signal`: 404
+- `/api/actions/capabilities`: 200, returned 7 active, 4 read-only, and 16 locked capabilities.
+- `/api/diagnostics`: 200, Supabase configured and `profiles` reachable.
 - `/api/journal/guide`: summary response returned
 - `/api/converse`: RGY returned `green`, keyword `build`, `matching_enabled: false`
 - `/api/voice-cue`: returns `elevenlabs_error` due ElevenLabs quota, with configured neutral/androgynous voice metadata
+- Authenticated V2 preview smoke: pass; `task_write` approval returned `201`; `browser_open` approval returned `501`; `browser_open` execution returned `501`; active generic `task_write` execution returned `409` with dedicated endpoint boundary; audit logs returned blocked attempts.
+- Preview env fix: goodfeatureslegacy preview now has Supabase public/server env vars scoped to Preview (`goodfeatureslegacy`) only. No production env was changed.
 
 Latest local V1 agent smoke on `127.0.0.1:3033`:
 
