@@ -1,9 +1,5 @@
-import { execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { promisify } from 'node:util';
-
-const execFileAsync = promisify(execFile);
 
 const rootDir = process.cwd();
 const deniedSegments = new Set([
@@ -36,7 +32,7 @@ const searchableExtensions = new Set([
   '.css',
   '.sql'
 ]);
-const searchRoots = ['api', 'src', 'frontend/src', 'supabase', 'scripts', 'docs'];
+const searchRoots = ['api', 'src', 'frontend/src', 'supabase', 'docs'];
 
 type RouteInfo = {
   route: string;
@@ -196,7 +192,6 @@ export async function repoStackSummary() {
       ai: dependencies.ai || null,
       ui: 'React app shell with shadcn/Radix UI primitives and lucide icons'
     },
-    scripts: packageJson.scripts || {},
     routes: routes.routes,
     branch: process.env.VERCEL_GIT_COMMIT_REF || null
   };
@@ -219,39 +214,4 @@ export async function runtimeStatus() {
     stack: stack.stack,
     routes: stack.routes.map(route => route.route)
   };
-}
-
-export async function runCheck(check: 'typecheck' | 'verify:cqai') {
-  const enabled = process.env.CUBIQO_AGENT_ALLOW_LOCAL_CHECKS === '1' && process.env.VERCEL !== '1';
-  if (!enabled) {
-    return {
-      check,
-      status: 'blocked',
-      reason: 'V1 agent checks are disabled in deployed/serverless runtime. Codex runs the regression suite from the workspace instead.'
-    };
-  }
-
-  const script = check === 'typecheck' ? ['run', 'typecheck'] : ['run', 'verify:cqai'];
-  const command = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-  try {
-    const result = await execFileAsync(command, script, {
-      cwd: rootDir,
-      timeout: 120_000,
-      maxBuffer: 1_000_000
-    });
-    return {
-      check,
-      status: 'passed',
-      stdout: result.stdout.slice(-6000),
-      stderr: result.stderr.slice(-3000)
-    };
-  } catch (error) {
-    const err = error as { stdout?: string; stderr?: string; message?: string };
-    return {
-      check,
-      status: 'failed',
-      stdout: String(err.stdout || '').slice(-6000),
-      stderr: String(err.stderr || err.message || '').slice(-3000)
-    };
-  }
 }

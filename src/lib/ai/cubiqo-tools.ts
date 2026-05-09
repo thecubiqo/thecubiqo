@@ -18,7 +18,7 @@ export const cubiqoTools = {
     execute: async () => runtimeStatus()
   }),
   repoStackSummary: tool({
-    description: 'Inspect package.json, framework dependencies, scripts, and actual Next.js routes.',
+    description: 'Inspect package.json, framework dependencies, and actual Next.js routes.',
     inputSchema: z.object({}),
     execute: async () => repoStackSummary()
   }),

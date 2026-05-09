@@ -55,7 +55,7 @@ const domains: CapabilityDomain[] = [
     currentV1: [
       'reason about market need, customer segments, positioning, offers, pricing, revenue paths, investor narratives, and go-to-market sequencing',
       'brainstorm startup ideas, validate business assumptions, map competitors, and turn rough ideas into experiments',
-      'draft product names, landing copy, sales scripts, investor blurbs, campaign ideas, email copy, social calendars, and AI-app workflows',
+      'draft product names, landing copy, sales copy, investor blurbs, campaign ideas, email copy, social calendars, and AI-app workflows',
       'prepare POD/ecomm-specific creative briefs and Shopify/Printify/Printful/GFXTools setup checklists when the business is fashion or merchandise'
     ],
     requiredContext: [

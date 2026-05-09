@@ -47,7 +47,7 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Updated dashboard counts/features to expose only live/code-ready surfaces.
 - Updated the right panel to show editable signal capsules and user-confirmed intent chips.
 - Updated Daily Journal for quick intake -> Core guided journal -> 15-minute timer -> typed/speech-captured answers -> summary storage.
-- Added `/api/agent` for CubiQo V1 agentic behavior: repo stack summary, route listing, repo search/read, runtime status, RGY classification, capability planning, dashboard summary, journal read/write-summary, RGY signal read/write, memory read/write-safe-summary, task plan creation, content brief creation, and blocked check reporting.
+- Added `/api/agent` for CubiQo V1 agentic behavior: repo stack summary, route listing, repo search/read, runtime status, RGY classification, capability planning, dashboard summary, journal read/write-summary, RGY signal read/write, memory read/write-safe-summary, task plan creation, and content brief creation. CubiQo does not run workspace commands at runtime.
 - Updated typed chat routing so text submissions enter `/api/agent` first. Simple conversational messages are delegated back to the existing converse path, while repo/self-check/capability/action-boundary requests stay on the V1 agentic route.
 - Added V2 foundation APIs for approval requests/status, audit reads, tool settings, approved user tasks, in-app report schedules, and in-app daily reports.
 - Added V2 foundation migration for `action_approvals`, `action_audit_logs`, `user_tool_settings`, `user_tasks`, `report_schedules`, and `daily_reports`.
@@ -56,7 +56,9 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Added `/api/actions/execute` as the generic V2 action boundary. Locked tools return `501`, write a blocked audit entry, and do not execute.
 - Updated approval requests so non-end-to-end tools cannot receive fake approvals.
 - Updated the main CubiQo response surface with a component-library based "What I checked" collapsible that shows V1 tool activity inside the existing window.
-- Updated regression script to require `signals` table in addition to existing auth/journal tables.
+- Removed CubiQo runtime command execution. V1 no longer exposes `run_check`, no longer reads from the repo `scripts` directory, and no longer reports package scripts as product capability.
+- Removed old legacy helper scripts for frontend build, db debug/setup, Supabase probing, and Social Army verification from the branch. The remaining `scripts/verify-cqai-e2e.mjs` is a Codex regression harness, not a CubiQo runtime dependency.
+- Updated the regression verifier to require `signals` table in addition to existing auth/journal tables.
 - Removed the incomplete `/signal` route from the visible/routable app surface.
 
 ## V2 API-First Readiness Rule
@@ -108,14 +110,14 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 | Simple LLM first, no special journaling API | Closed | Uses `/api/journal/guide` with OpenAI env when available and local fallback. |
 | Replace fake/self-status with real repo self-inspection | Closed for V1 | `/api/agent` uses read-only repo tools and deterministic fallback facts from inspected files. |
 | CubiQo should not answer from FAQ | Closed | Self/stack/route answers come from repo inspection, not FAQ text. |
-| Add read-only repo inspection tool later | Closed for V1 | Implemented repo stack summary, route listing, repo search, safe file read, runtime status, and blocked check reporting. |
+| Add read-only repo inspection tool later | Closed for V1 | Implemented repo stack summary, route listing, repo search, safe file read, and runtime status. CubiQo does not run workspace commands. |
 | Keep ElevenLabs path | Closed | `/api/voice-cue` reaches ElevenLabs config. |
 | Verify prod is actually using ElevenLabs | Verified, blocked by quota | `https://www.cubiqo.ai/api/voice-cue` returns ElevenLabs quota error with configured voice/model. |
 | Tune neutral/androgynous voice | Partially closed | Voice metadata is `River neutral/androgynous`, model `eleven_flash_v2_5`; final tuning waits for credits/listening QA. |
 | Final voice of intelligence design after workflow stable | Deferred intentionally | Not part of this closure pass. |
 | Keep incomplete legacy features hidden | Closed | Preview exposes `/`, `/app`, `/dashboard`, `/journal`; `/signal` returns `404`; Job Hunter/launcher/CQ/Social Army/BYO/camera/coder/browser write actions are not visible pages. |
 | Agentic V1 read-only route | Closed | `/api/agent` returns `mode: agentic-read-only-v1`, `write_actions_enabled: false`, and tool trace. |
-| V1 formal tool list | Closed | `/api/agent` exposes repo, runtime, check, journal, RGY signal, dashboard, memory, task plan, and content brief tools. |
+| V1 formal tool list | Closed | `/api/agent` exposes repo, runtime, journal, RGY signal, dashboard, memory, task plan, and content brief tools. Runtime command execution is not exposed. |
 | V1 dashboard summary | Closed | Signed-in local smoke returned `dashboard_summary: completed`. |
 | V1 journal read/write-summary | Closed | Signed-in local smoke saved and read a user-owned journal summary. |
 | V1 RGY signal read/write | Closed | Signed-in local smoke saved and read `green:career`; matching remains off until intent is confirmed. |
@@ -125,7 +127,7 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 | Typed chat agent doorway | Closed | Text submissions call `/api/agent` first; simple chat delegates to converse, preserving existing conversational/voice behavior. |
 | Agentic V1 UI activity | Closed | Main CubiQo response panel shows component-library "What I checked" collapsible when agent route is used. |
 | Agent write/deploy boundary | Closed | `/api/agent` blocks write/deploy/post/send/apply/buy requests and states V2 approval/audit is required. |
-| Agent regression boundary | Closed | `/api/agent` reports check execution as blocked in deployed/serverless runtime unless local checks are explicitly enabled. |
+| Agent regression boundary | Closed | `/api/agent` does not execute workspace commands. Codex runs regression outside the product runtime and records results here. |
 | Job Hunt capability readiness | Closed for V1 planning | Capability map covers job context, resume strategy, new posting lookup requirements, one-button easy apply, employer-site applications, approval/audit, and required V2 browser/API tools. |
 | Startup/business growth readiness | Closed for V1 planning | Capability map covers market need, customer discovery, revenue generation, investor narratives, idea brainstorming, competitor research, sales/marketing, selected AI-app workflows, and POD/ecomm when relevant. |
 | Ecomm/POD capability readiness | Closed for V1 planning | Ecomm/POD remains a business-growth subcase covering fashion brand decisions, POD setup, Shopify/Printify/Printful/GFXTools requirements, sales/marketing planning, and required V2 connector/action tools. |
@@ -223,10 +225,16 @@ Latest local V1 agent smoke on `127.0.0.1:3033`:
 
 - Stack/routes question: `200`, answered from inspected repo facts, trace included `repo_stack_summary`.
 - Write/deploy request: `200`, blocked with `approval_boundary`, `write_actions_enabled: false`.
-- Regression request: `200`, reported `run_check: blocked` in runtime and did not pretend to run tests.
+- Regression request: `200`, reported `workspace_check_boundary: blocked` in runtime and did not pretend to run tests.
 - Job/startup/business/ecomm planning request: covered by V1 `capability_plan`; it does not claim live job lookup, apply, publish, post, outreach, market-source lookup, or investor/customer messaging until V2 tools exist.
 - Expanded capability smoke: job, startup/business growth, ecomm/POD, research, browser/extension, social/affiliate, shopping/life connectors, CQ friend messenger, wallet/payments, ops/security, coder/studio, and camera/biometrics/voice all route to `capability_plan`.
-- Boundary smoke: immediate write/deploy requests still return `approval_boundary: blocked`; immediate regression execution still returns `run_check: blocked`.
+- Boundary smoke: immediate write/deploy requests still return `approval_boundary: blocked`; immediate regression execution returns `workspace_check_boundary: blocked`.
+
+Latest runtime-command cleanup smoke on `127.0.0.1:3041`:
+
+- Test/regression request: passed; `/api/agent` returned `workspace_check_boundary: blocked` and stated CubiQo does not run workspace commands.
+- Stack/routes question: passed; `/api/agent` answered from repo dependencies and routes without exposing package scripts.
+- Tool list: passed; `run_check` is no longer listed in `tools_available`.
 
 Latest typed-agent doorway smoke on `127.0.0.1:3034`:
 
@@ -261,7 +269,7 @@ Latest V1 formal tool smoke on `127.0.0.1:3038`:
 - `task_plan_create`: passed; created an in-session task plan and did not persist tasks.
 - `capability_plan`: passed for job hunt/easy apply/employer-site application planning.
 - Write/deploy boundary: passed; `approval_boundary` blocked deployment and external writes.
-- Run-check boundary: passed; `run_check` reported blocked in the server runtime instead of pretending tests ran.
+- Workspace check boundary: passed; CubiQo reported blocked in the server runtime instead of pretending tests ran.
 - Test user was admin-created with `@example.invalid`, no public signup/magic-link email was sent, and cleanup was attempted.
 
 Latest V2 capability boundary smoke on `127.0.0.1:3040`:

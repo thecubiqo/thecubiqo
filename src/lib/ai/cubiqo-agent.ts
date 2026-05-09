@@ -5,7 +5,6 @@ import {
   repoReadFile,
   repoSearch,
   repoStackSummary,
-  runCheck,
   runtimeStatus
 } from './repo-inspection';
 import { capabilityPlanForText, isCapabilityPlanningRequest } from './capability-map';
@@ -53,12 +52,8 @@ function summarizeOutput(toolName: string, output: unknown) {
     const routes = (output as { routes?: unknown[] }).routes || [];
     return `${routes.length} app route${routes.length === 1 ? '' : 's'} listed`;
   }
-  if (toolName === 'repo_stack_summary') return 'inspected package, stack, scripts, and routes';
+  if (toolName === 'repo_stack_summary') return 'inspected package, stack, dependencies, and routes';
   if (toolName === 'runtime_status') return 'checked runtime provider and stack state';
-  if (toolName === 'run_check') {
-    const result = output as { check?: string; status?: string };
-    return `${result.check || 'check'} ${result.status || 'completed'}`;
-  }
   if (toolName === 'classify_rgy') return 'classified RGY keywords';
   if (toolName === 'capability_plan') {
     const domains = (output as { matchedDomains?: unknown[] }).matchedDomains || [];
@@ -127,7 +122,6 @@ export const V1_AGENT_TOOLS = [
   'repo_list_routes',
   'repo_search',
   'repo_read_file',
-  'run_check',
   'classify_rgy',
   'capability_plan',
   'dashboard_summary',
@@ -153,7 +147,7 @@ export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentO
     repo_stack_summary: tracedTool({
       trace,
       name: 'repo_stack_summary',
-      description: 'Inspect package.json, framework dependencies, scripts, and actual Next.js routes.',
+      description: 'Inspect package.json, framework dependencies, and actual Next.js routes.',
       inputSchema: z.object({}),
       execute: async () => repoStackSummary()
     }),
@@ -181,15 +175,6 @@ export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentO
         path: z.string().min(1).max(180)
       }),
       execute: async ({ path }) => repoReadFile(path)
-    }),
-    run_check: tracedTool({
-      trace,
-      name: 'run_check',
-      description: 'Run an allowlisted non-mutating check only when local agent checks are explicitly enabled.',
-      inputSchema: z.object({
-        check: z.enum(['typecheck', 'verify:cqai'])
-      }),
-      execute: async ({ check }) => runCheck(check)
     }),
     classify_rgy: tracedTool({
       trace,
@@ -307,7 +292,7 @@ export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentO
     tools,
     instructions: [
       'You are CubiQo V1 inside cq.ai.',
-      'Default to conversation, but use tools for repo, stack, route, runtime, test, dashboard, implementation, or self-awareness questions.',
+      'Default to conversation, but use tools for repo, stack, route, runtime, dashboard, implementation, or self-awareness questions.',
       'For job hunt, career, resume, new job postings, easy apply, website applications, startup ideas, market need, revenue generation, investors, business growth, ecomm, fashion brands, POD, sales, marketing, routine, memory, or contextual support, use capability_plan before answering.',
       'Treat CQ-to-CQ as friend/contact messaging only. Do not tie CQ messenger to Signal matching, RGY matching, or intent matching.',
       'For coder/studio, prefer managed API/sandbox/tool layers before custom raw terminal engineering.',
@@ -334,15 +319,12 @@ export async function buildFallbackAgentAnswer(
     || /\b(submit|send|buy|purchase|post)\b.*\b(now|for me|this)\b/.test(lower);
   if (strongCheckRequest) {
     const check = /(verify|regression|cqai)/.test(lower) ? 'verify:cqai' : 'typecheck';
-    const result = await runCheck(check);
     trace.push({
-      tool: 'run_check',
-      status: result.status === 'passed' ? 'completed' : result.status === 'blocked' ? 'blocked' : 'failed',
-      summary: `${check} ${result.status}`
+      tool: 'workspace_check_boundary',
+      status: 'blocked',
+      summary: `CubiQo does not run ${check} or workspace commands`
     });
-    if (result.status === 'passed') return `${check} passed.`;
-    if (result.status === 'blocked') return `I checked the V1 boundary: ${check} is blocked in this runtime. Codex must run workspace regression from the branch, and CubiQo will report that result instead of pretending it ran it.`;
-    return `${check} failed. ${String(result.stderr || '').slice(0, 240)}`;
+    return `CubiQo does not run ${check} or workspace commands. Codex runs regression from the workspace and CubiQo can report those results only after they exist.`;
   }
   if (strongWriteRequest) {
     trace.push({ tool: 'approval_boundary', status: 'blocked', summary: 'V1 cannot perform write or external actions' });
@@ -439,7 +421,7 @@ export async function buildFallbackAgentAnswer(
   }
   if (/(stack|built|framework|next|react|routes|repo|code|self|yourself|implementation)/.test(lower)) {
     const stack = await repoStackSummary();
-    trace.push({ tool: 'repo_stack_summary', status: 'completed', summary: 'inspected package, stack, scripts, and routes' });
+    trace.push({ tool: 'repo_stack_summary', status: 'completed', summary: 'inspected package, stack, dependencies, and routes' });
     return `I inspected the repo. CubiQo is currently ${stack.stack.framework} with React ${stack.stack.react}, Supabase ${stack.stack.supabase}, and AI SDK ${stack.stack.ai}. The active app routes include ${stack.routes.map(route => route.route).join(', ')}.`;
   }
   const rgy = {
