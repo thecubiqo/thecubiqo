@@ -57,6 +57,9 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Added browser-control foundation through `/api/actions/execute`: approved `browser_open` creates an isolated `browser_sessions` row, approved browser click/type/extract/screenshot intents are recorded against that session, and every browser audit row carries `browser_session_id` when a session exists.
 - Added the active `/api/actions/capabilities` parent capability `browser_control`; browser action approvals are only requestable while that manifest marks the control plane active.
 - Added a visible active browser session strip and Stop session button in `/actions`. Stop closes the user-owned session through `/api/actions/execute` and writes a cancel audit row.
+- Added V2 job application workflow tools through `/api/actions/execute`: approved `job_search_save` stores extracted LinkedIn/Indeed/Dice listings, approved `job_application_prepare` creates an exact review card payload, and approved `job_application_submit_approved` marks the prepared package approved for visible submission without auto-submitting externally.
+- Added user-owned, server-controlled Supabase tables `job_listings` and `job_application_reviews`. Users can read their own rows; direct browser-client inserts/updates are denied so approval/audit cannot be bypassed.
+- Added job workflow UI inside `/actions`: saved jobs, application review cards, and approval cards remain in the same CubiQo Action Console.
 - Updated approval requests so non-end-to-end tools cannot receive fake approvals.
 - Updated the main CubiQo response surface with a component-library based "What I checked" collapsible that shows V1 tool activity inside the existing window.
 - Removed CubiQo runtime command execution. V1 no longer exposes `run_check`, no longer reads from the repo `scripts` directory, and no longer reports package scripts as product capability.
@@ -155,7 +158,11 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 | Browser click/type/extract/screenshot boundary | Closed for foundation | Each action requires its own approval and active `browser_session_id`; execution records the intent and audit trail only. |
 | Browser audit session ID | Closed | `action_audit_logs.browser_session_id` is populated for session-scoped browser approval/audit rows. |
 | Browser stop/cancel button | Closed | `/actions` shows a visible active-session strip with Stop session, routed through `/api/actions/execute`. |
-| Live browser/job/POD/social/camera/coder execution | Deferred intentionally | Locked until provider/API/browser runtime integrations, approval-specific UX, and regression tests exist. |
+| Job search save | Closed for V2 foundation | Approved `job_search_save` saves LinkedIn, Indeed, and Dice extracted listings to `job_listings` through `/api/actions/execute`. |
+| Job application prepare | Closed for V2 foundation | Approved `job_application_prepare` creates a review card showing the exact candidate/job/cover letter/answers payload before submission approval. |
+| Job application submit approved | Closed for V2 foundation | Approved `job_application_submit_approved` marks a prepared package approved for visible submission and audits it; it does not auto-submit to job boards. |
+| Job workflow RLS | Closed | Anonymous and direct client writes are denied for `job_listings` and `job_application_reviews`; server-boundary writes pass after approval. |
+| Live browser/POD/social/camera/coder execution | Deferred intentionally | Locked until provider/API/browser runtime integrations, action-specific approval UX, and regression tests exist. |
 
 ## V2 Security Review Notes
 
@@ -177,6 +184,7 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - V2 capability manifest: `/api/actions/capabilities`, lists all active/read-only/locked tools and requirements.
 - V2 generic action boundary: `/api/actions/execute`, blocks locked tools with `501` and writes a blocked audit log.
 - V2 browser session manager: `/api/actions/execute`, `browser_sessions`, and `action_audit_logs.browser_session_id`. This opens/tracks/stops isolated browser workflow containers and records approved browser intents only.
+- V2 job workflow tools: `/api/actions/execute`, `job_listings`, and `job_application_reviews`. This saves extracted job listings, prepares application review cards, and approves packages for visible submission only.
 - V2 Action Console: `/actions`, linked from the left tray and dashboard feature card.
 - V2 Action Console now shows the capability boundary from the manifest instead of vague future-work text.
 - Database triggers require matching approved approvals before task/report writes, so Supabase direct writes cannot bypass approval.
@@ -301,6 +309,16 @@ Latest browser-control foundation smoke on `127.0.0.1:3044`:
 - Stop session: passed; `browser_close` cancelled the active session through `/api/actions/execute`.
 - Audit: passed; `browser_open`, `browser_click`, and `browser_close` audit rows included the same `browserSessionId`.
 
+Latest job workflow foundation smoke on `127.0.0.1:3045`:
+
+- `/api/actions/capabilities`: passed; `browser_control`, `job_search_save`, `job_application_prepare`, and `job_application_submit_approved` returned active.
+- `/api/actions/execute` without approval: passed; `job_search_save` returned `403`.
+- Approved `job_search_save`: passed; saved three extracted listings across LinkedIn, Indeed, and Dice.
+- Approved `job_application_prepare`: passed; created a review card with exact job, candidate, resume summary, cover letter, answers, and target URL payload.
+- Approved `job_application_submit_approved`: passed; review became `approved_for_submission` and `performedExternalSubmission` stayed `false`.
+- `/api/actions/execute?job_state=1`: passed; returned user-owned saved jobs and review cards.
+- Audit: passed; completed audit rows existed for `job_search_save`, `job_application_prepare`, and `job_application_submit_approved`.
+
 Prod voice check:
 
 - `https://www.cubiqo.ai/api/voice-cue`: reaches ElevenLabs and returns a quota error with `River neutral/androgynous` / `eleven_flash_v2_5`. Current prod code labels provider as `none`, while this branch labels the same condition as `elevenlabs_error`.
@@ -313,5 +331,6 @@ Resolved schema blocker:
 - V2 tables exist and are reachable: `action_approvals`, `action_audit_logs`, `user_tool_settings`, `user_tasks`, `report_schedules`, `daily_reports`.
 - V2 approval-gated writes passed: denied actions do not execute, approved task writes execute, report schedule/report writes execute, and user-forged audit inserts are denied.
 - V2 browser foundation passed: anonymous browser session writes are denied, direct user browser session writes are denied even after approval, server-boundary insert with an approved `browser_open` passes, and `browser_sessions` is reachable in QA Supabase.
+- V2 job workflow foundation passed: `job_listings` and `job_application_reviews` are reachable, anonymous/direct client writes are denied, server-boundary writes pass after approval, and approved application package state keeps `external_submission_performed = false`.
 
 Do not push this branch for review unless this contract stays current and regression remains green.

@@ -1008,6 +1008,8 @@ const ActionConsolePage = () => {
   const [auditLogs, setAuditLogs] = useState([]);
   const [capabilities, setCapabilities] = useState([]);
   const [browserSessions, setBrowserSessions] = useState([]);
+  const [jobListings, setJobListings] = useState([]);
+  const [jobReviews, setJobReviews] = useState([]);
   const [browserUrl, setBrowserUrl] = useState('https://example.com/');
 
   const baseActionCards = [
@@ -1080,14 +1082,15 @@ const ActionConsolePage = () => {
         setLoading(false);
         return;
       }
-      const [approvalData, taskData, scheduleData, reportData, auditData, capabilityData, browserData] = await Promise.all([
+      const [approvalData, taskData, scheduleData, reportData, auditData, capabilityData, browserData, jobData] = await Promise.all([
         apiJson('/api/actions/approvals?limit=20'),
         apiJson('/api/tasks?limit=20'),
         apiJson('/api/reports/schedules?limit=10'),
         apiJson('/api/reports/daily?limit=10'),
         apiJson('/api/actions/audit?limit=25'),
         apiJson('/api/actions/capabilities'),
-        apiJson('/api/actions/execute?browser_sessions=active')
+        apiJson('/api/actions/execute?browser_sessions=active'),
+        apiJson('/api/actions/execute?job_state=1')
       ]);
       setApprovals(approvalData.approvals || []);
       setTasks(taskData.tasks || []);
@@ -1096,6 +1099,8 @@ const ActionConsolePage = () => {
       setAuditLogs(auditData.auditLogs || []);
       setCapabilities(capabilityData.capabilities || []);
       setBrowserSessions(browserData.browserSessions || []);
+      setJobListings(jobData.listings || []);
+      setJobReviews(jobData.reviews || []);
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -1121,7 +1126,11 @@ const ActionConsolePage = () => {
   }, []);
 
   const browserControlUnlocked = capabilities.some(item => item.actionType === 'browser_control' && item.status === 'active');
+  const jobWorkflowUnlocked = browserControlUnlocked && ['job_search_save', 'job_application_prepare', 'job_application_submit_approved']
+    .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
   const activeBrowserSession = browserSessions.find(item => item.status === 'active') || null;
+  const latestJobListing = jobListings.find(item => ['saved', 'reviewing', 'prepared'].includes(item.status)) || jobListings[0] || null;
+  const latestPreparedReview = jobReviews.find(item => item.status === 'prepared') || null;
 
   const browserActionCards = browserControlUnlocked ? (
     activeBrowserSession ? [
@@ -1202,11 +1211,100 @@ const ActionConsolePage = () => {
     ]
   ) : [];
 
-  const actionCards = [...baseActionCards, ...browserActionCards];
+  const jobActionCards = jobWorkflowUnlocked ? [
+    {
+      actionType: 'job_search_save',
+      toolName: 'job_search_save',
+      title: 'Save extracted job listings',
+      summary: 'CubiQo will save extracted LinkedIn, Indeed, and Dice job listings to your account. It will not apply or submit anything.',
+      Icon: Briefcase,
+      runLabel: 'Save listings',
+      riskLevel: 'medium',
+      payload: () => ({
+        browser_session_id: activeBrowserSession?.id || null,
+        sourcePlatform: 'linkedin',
+        listings: [
+          {
+            sourcePlatform: 'linkedin',
+            title: 'Product Operations Manager',
+            company: 'Example Growth Labs',
+            location: 'Remote',
+            description: 'Sample extracted listing for QA. Replace with extracted LinkedIn/Indeed/Dice listings when the browser runtime attaches.',
+            employmentType: 'Full-time',
+            compensation: '$120k-$150k',
+            sourceUrl: 'https://www.linkedin.com/jobs/view/example-product-ops',
+            applyUrl: 'https://www.linkedin.com/jobs/view/example-product-ops'
+          },
+          {
+            sourcePlatform: 'indeed',
+            title: 'AI Program Manager',
+            company: 'Example Systems',
+            location: 'New York, NY',
+            description: 'Sample extracted listing for QA.',
+            employmentType: 'Full-time',
+            sourceUrl: 'https://www.indeed.com/viewjob?jk=example-ai-program-manager',
+            applyUrl: 'https://www.indeed.com/viewjob?jk=example-ai-program-manager'
+          },
+          {
+            sourcePlatform: 'dice',
+            title: 'Technical Product Lead',
+            company: 'Example Cloud',
+            location: 'Hybrid',
+            description: 'Sample extracted listing for QA.',
+            employmentType: 'Contract',
+            sourceUrl: 'https://www.dice.com/job-detail/example-technical-product-lead',
+            applyUrl: 'https://www.dice.com/job-detail/example-technical-product-lead'
+          }
+        ]
+      })
+    },
+    ...(latestJobListing ? [{
+      actionType: 'job_application_prepare',
+      toolName: 'job_application_prepare',
+      title: 'Prepare application review',
+      summary: `CubiQo will prepare a review card for ${latestJobListing.title} at ${latestJobListing.company}. You see the exact payload before any submission approval.`,
+      Icon: FileText,
+      runLabel: 'Prepare review',
+      riskLevel: 'medium',
+      jobListingId: latestJobListing.id,
+      payload: () => ({
+        browser_session_id: activeBrowserSession?.id || latestJobListing.browserSessionId || null,
+        job_listing_id: latestJobListing.id,
+        candidate: {
+          name: sessionUser?.user_metadata?.full_name || 'Review before submit',
+          email: sessionUser?.email || ''
+        },
+        resumeSummary: 'Review-card sample: tailor resume summary to the saved job before approval.',
+        coverLetter: `Review-card sample for ${latestJobListing.company}: confirm this text before any approved submission package is created.`,
+        answers: [
+          { question: 'Why this role?', answer: 'Relevant experience and interest to be reviewed by the user.' }
+        ]
+      })
+    }] : []),
+    ...(latestPreparedReview ? [{
+      actionType: 'job_application_submit_approved',
+      toolName: 'job_application_submit_approved',
+      title: 'Approve application package',
+      summary: `CubiQo will mark review ${latestPreparedReview.id.slice(0, 8)} approved for visible submission. It will not auto-submit to a job board.`,
+      Icon: CheckCircle2,
+      runLabel: 'Approve package',
+      riskLevel: 'high',
+      reviewId: latestPreparedReview.id,
+      payload: () => ({
+        review_id: latestPreparedReview.id,
+        externalSubmission: false,
+        visibleUserSubmissionRequired: true
+      })
+    }] : [])
+  ] : [];
+
+  const actionCards = [...baseActionCards, ...browserActionCards, ...jobActionCards];
 
   const latestApproval = (card) => approvals.find(item => {
     const matchesAction = item.actionType === card.actionType && ['requested', 'approved'].includes(item.status);
     if (!matchesAction) return false;
+    if (card.jobListingId && item.payload?.job_listing_id !== card.jobListingId && item.payload?.jobListingId !== card.jobListingId) return false;
+    if (card.reviewId && item.payload?.review_id !== card.reviewId && item.payload?.reviewId !== card.reviewId) return false;
     if (!card.browserSessionId) return true;
     return item.payload?.browser_session_id === card.browserSessionId || item.payload?.browserSessionId === card.browserSessionId;
   });
@@ -1226,7 +1324,7 @@ const ActionConsolePage = () => {
           payload: {
             ...(typeof card.payload === 'function' ? card.payload() : {}),
             preview: card.summary,
-            externalExecution: card.actionType.startsWith('browser_')
+            externalExecution: card.actionType.startsWith('browser_') || card.actionType === 'job_application_submit_approved'
           }
         })
       });
@@ -1290,6 +1388,16 @@ const ActionConsolePage = () => {
             actionType: card.actionType,
             toolName: card.toolName,
             browserSessionId: card.browserSessionId,
+            payload: typeof card.payload === 'function' ? card.payload() : {}
+          })
+        });
+      } else if (card.actionType.startsWith('job_')) {
+        await apiJson('/api/actions/execute', {
+          method: 'POST',
+          body: JSON.stringify({
+            approvalId: approval.id,
+            actionType: card.actionType,
+            toolName: card.toolName,
             payload: typeof card.payload === 'function' ? card.payload() : {}
           })
         });
@@ -1459,6 +1567,61 @@ const ActionConsolePage = () => {
                   {message}
                 </div>
               )}
+
+              <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Saved Jobs</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{jobListings.length}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {jobListings.length ? jobListings.slice(0, 5).map(item => (
+                      <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                        <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.title}</div>
+                        <div style={{ marginTop: 4, color: 'rgba(255,255,255,0.56)', fontSize: '0.76rem' }}>{item.company} · {item.location || item.sourcePlatform}</div>
+                        <div style={{ marginTop: 7, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <Badge variant="outline" className="border-white/10 text-white/45">{item.sourcePlatform}</Badge>
+                          <Badge variant="outline" className="border-white/10 text-white/45">{item.status}</Badge>
+                        </div>
+                      </div>
+                    )) : (
+                      <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                        No saved listings yet. Use the approved save action with LinkedIn, Indeed, or Dice extracted listings.
+                      </div>
+                    )}
+                  </div>
+                </article>
+
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Application Review Cards</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{jobReviews.length}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {jobReviews.length ? jobReviews.slice(0, 4).map(item => {
+                      const payload = item.submissionPayload || {};
+                      return (
+                        <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                            <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{payload.job?.title || 'Prepared application'}</div>
+                            <Badge variant="outline" className="border-white/10 text-white/45">{item.status}</Badge>
+                          </div>
+                          <div style={{ marginTop: 6, color: 'rgba(255,255,255,0.56)', fontSize: '0.76rem' }}>
+                            {payload.job?.company || item.sourcePlatform} · external submit: {item.externalSubmissionPerformed ? 'yes' : 'no'}
+                          </div>
+                          <div style={{ marginTop: 9, padding: 10, borderRadius: 10, background: 'rgba(0,0,0,0.24)', color: 'rgba(255,255,255,0.58)', fontSize: '0.72rem', lineHeight: 1.45 }}>
+                            Candidate: {payload.candidate?.name || 'not set'} · Target: {payload.targetUrl || 'not set'}
+                          </div>
+                        </div>
+                      );
+                    }) : (
+                      <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                        No review cards yet. Prepare one from a saved listing to see the exact submission payload.
+                      </div>
+                    )}
+                  </div>
+                </article>
+              </section>
 
               <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
                 {[

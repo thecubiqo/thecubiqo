@@ -229,7 +229,13 @@ async function verifyUserOwnedCrud(config) {
       browserBlockedWithoutApproval: false,
       browserApprovalApproved: false,
       browserDirectInsertDeniedAfterApproval: false,
-      browserSessionServerInsertWithApproval: false
+      browserSessionServerInsertWithApproval: false,
+      anonJobListingInsertDenied: false,
+      jobListingDirectInsertDenied: false,
+      jobListingServerInsertWithApproval: false,
+      jobReviewDirectInsertDenied: false,
+      jobReviewServerInsertWithApproval: false,
+      jobReviewServerApproveWithSubmitApproval: false
     },
     rls: { anonJournalInsertDenied: false, anonSignalInsertDenied: false },
     error: null
@@ -239,7 +245,7 @@ async function verifyUserOwnedCrud(config) {
   try {
     testUser = await createConfirmedTestUser(config);
     result.userCreated = true;
-    const { userId, accessToken } = testUser;
+    const { userId, accessToken, email } = testUser;
 
     const anonJournal = await requestJson(`${config.url}/rest/v1/journal_entries`, {
       method: 'POST',
@@ -610,6 +616,208 @@ async function verifyUserOwnedCrud(config) {
       browserSessionRow.user_id === userId &&
       browserSessionRow.approval_id === browserApproval.id
     );
+
+    const anonJobListing = await requestJson(`${config.url}/rest/v1/job_listings`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        source_platform: 'linkedin',
+        title: 'Anon blocked role',
+        company: 'Blocked Co'
+      })
+    });
+    result.v2.anonJobListingInsertDenied = !anonJobListing.response.ok;
+
+    const jobSearchApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'job_search_save',
+        tool_name: 'job_search_save',
+        title: 'Save job search test',
+        summary: 'Save extracted LinkedIn, Indeed, and Dice listings.',
+        payload: { sourcePlatform: 'linkedin' },
+        risk_level: 'medium'
+      })
+    });
+    const jobSearchApproval = Array.isArray(jobSearchApprovalInsert.body) ? jobSearchApprovalInsert.body[0] : null;
+    if (jobSearchApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${jobSearchApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+
+    const directJobListing = jobSearchApproval?.id ? await requestJson(`${config.url}/rest/v1/job_listings?select=id,user_id,approval_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: jobSearchApproval.id,
+        browser_session_id: browserSessionRow?.id || null,
+        source_platform: 'linkedin',
+        title: 'Direct client should fail',
+        company: 'Blocked Co',
+        source_url: 'https://www.linkedin.com/jobs/view/direct-fail',
+        apply_url: 'https://www.linkedin.com/jobs/view/direct-fail'
+      })
+    }) : null;
+    result.v2.jobListingDirectInsertDenied = Boolean(directJobListing && !directJobListing.response.ok);
+
+    const serverJobListing = jobSearchApproval?.id ? await requestJson(`${config.url}/rest/v1/job_listings?select=id,user_id,approval_id,source_platform,title,company`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: jobSearchApproval.id,
+        browser_session_id: browserSessionRow?.id || null,
+        source_platform: 'linkedin',
+        title: 'E2E Product Manager',
+        company: 'Example Jobs Co',
+        location: 'Remote',
+        source_url: 'https://www.linkedin.com/jobs/view/e2e-product-manager',
+        apply_url: 'https://www.linkedin.com/jobs/view/e2e-product-manager',
+        raw: { source: 'verify:cqai' }
+      })
+    }) : null;
+    const jobListingRow = Array.isArray(serverJobListing?.body) ? serverJobListing.body[0] : null;
+    result.v2.jobListingServerInsertWithApproval = Boolean(
+      serverJobListing?.response.ok &&
+      jobListingRow?.id &&
+      jobListingRow.user_id === userId &&
+      jobListingRow.approval_id === jobSearchApproval?.id &&
+      jobListingRow.source_platform === 'linkedin'
+    );
+
+    const prepareApprovalInsert = jobListingRow?.id ? await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'job_application_prepare',
+        tool_name: 'job_application_prepare',
+        title: 'Prepare job application test',
+        summary: 'Prepare a review card before submission.',
+        payload: { job_listing_id: jobListingRow.id },
+        risk_level: 'medium'
+      })
+    }) : null;
+    const prepareApproval = Array.isArray(prepareApprovalInsert?.body) ? prepareApprovalInsert.body[0] : null;
+    if (prepareApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${prepareApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+
+    const directReview = prepareApproval?.id ? await requestJson(`${config.url}/rest/v1/job_application_reviews?select=id,user_id,approval_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: prepareApproval.id,
+        browser_session_id: browserSessionRow?.id || null,
+        job_listing_id: jobListingRow.id,
+        source_platform: 'linkedin',
+        status: 'prepared',
+        submission_payload: { job: { title: 'Direct client should fail' } }
+      })
+    }) : null;
+    result.v2.jobReviewDirectInsertDenied = Boolean(directReview && !directReview.response.ok);
+
+    const serverReview = prepareApproval?.id ? await requestJson(`${config.url}/rest/v1/job_application_reviews?select=id,user_id,approval_id,job_listing_id,status,external_submission_performed`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: prepareApproval.id,
+        browser_session_id: browserSessionRow?.id || null,
+        job_listing_id: jobListingRow.id,
+        source_platform: 'linkedin',
+        status: 'prepared',
+        candidate_name: 'E2E Candidate',
+        candidate_email: email,
+        resume_summary: 'E2E resume summary',
+        cover_letter: 'E2E cover letter',
+        answers: [{ question: 'Why this role?', answer: 'E2E answer' }],
+        submission_payload: {
+          job: { title: jobListingRow.title, company: jobListingRow.company },
+          candidate: { name: 'E2E Candidate', email },
+          coverLetter: 'E2E cover letter'
+        }
+      })
+    }) : null;
+    const reviewRow = Array.isArray(serverReview?.body) ? serverReview.body[0] : null;
+    result.v2.jobReviewServerInsertWithApproval = Boolean(
+      serverReview?.response.ok &&
+      reviewRow?.id &&
+      reviewRow.user_id === userId &&
+      reviewRow.approval_id === prepareApproval?.id &&
+      reviewRow.status === 'prepared' &&
+      reviewRow.external_submission_performed === false
+    );
+
+    const submitApprovalInsert = reviewRow?.id ? await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'job_application_submit_approved',
+        tool_name: 'job_application_submit_approved',
+        title: 'Approve prepared application test',
+        summary: 'Approve a prepared application package without external auto-submit.',
+        payload: { review_id: reviewRow.id },
+        risk_level: 'high'
+      })
+    }) : null;
+    const submitApproval = Array.isArray(submitApprovalInsert?.body) ? submitApprovalInsert.body[0] : null;
+    if (submitApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${submitApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+    const reviewApprove = submitApproval?.id ? await requestJson(`${config.url}/rest/v1/job_application_reviews?id=eq.${reviewRow.id}&user_id=eq.${userId}&select=id,status,submit_approval_id,external_submission_performed,approved_at`, {
+      method: 'PATCH',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        status: 'approved_for_submission',
+        submit_approval_id: submitApproval.id,
+        approved_at: new Date().toISOString(),
+        external_submission_performed: false
+      })
+    }) : null;
+    const approvedReviewRow = Array.isArray(reviewApprove?.body) ? reviewApprove.body[0] : null;
+    result.v2.jobReviewServerApproveWithSubmitApproval = Boolean(
+      reviewApprove?.response.ok &&
+      approvedReviewRow?.status === 'approved_for_submission' &&
+      approvedReviewRow.submit_approval_id === submitApproval?.id &&
+      approvedReviewRow.external_submission_performed === false
+    );
   } catch (error) {
     result.error = error.message || String(error);
   } finally {
@@ -755,7 +963,9 @@ async function main() {
     'user_tasks',
     'report_schedules',
     'daily_reports',
-    'browser_sessions'
+    'browser_sessions',
+    'job_listings',
+    'job_application_reviews'
   ]) {
     tables.push(await verifyTable(config, table));
   }
