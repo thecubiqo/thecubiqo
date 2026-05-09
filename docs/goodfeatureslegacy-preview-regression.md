@@ -212,9 +212,9 @@ Latest result:
 
 ## Preview Deployment
 
-Preview URL: https://cubiqo-repo-gpau5cw4o-cubiqo-projects-d7156840.vercel.app
+Preview URL: https://cubiqo-repo-8vpxguwv2-cubiqo-projects-d7156840.vercel.app
 
-Deployment ID: `dpl_6rqeG6swC14iHFQScQHUbBB8YSBv`
+Deployment ID: `dpl_2XNrw9ozh4eMnKhYrPbmY6phSS6s`
 
 Preview smoke:
 
@@ -223,12 +223,12 @@ Preview smoke:
 - `/actions`: 200
 - `/dashboard`: 200
 - `/journal`: 200
-- `/api/actions/capabilities`: 200, returned 7 active, 4 read-only, and 16 locked capabilities.
+- `/api/actions/capabilities`: 200, returned 14 active, 4 read-only, and 11 locked capabilities; `browser_control` and `browser_open` are active.
 - `/api/diagnostics`: 200, Supabase configured and `profiles` reachable.
 - `/api/journal/guide`: summary response returned
 - `/api/converse`: RGY returned `green`, keyword `build`, `matching_enabled: false`
 - `/api/voice-cue`: returns `elevenlabs_error` due ElevenLabs quota, with configured neutral/androgynous voice metadata
-- Authenticated V2 preview smoke: pass; `task_write` approval returned `201`; `browser_open` approval returned `501`; `browser_open` execution returned `501`; active generic `task_write` execution returned `409` with dedicated endpoint boundary; audit logs returned blocked attempts.
+- Authenticated V2 preview smoke: previous pass covered `task_write` approval, locked-tool execution boundary, and audit reads. Browser-control foundation is now additionally covered by local authenticated smoke and QA Supabase RLS checks.
 - Preview env fix: goodfeatureslegacy preview now has Supabase public/server env vars scoped to Preview (`goodfeatureslegacy`) only. No production env was changed.
 
 Latest local V1 agent smoke on `127.0.0.1:3033`:
