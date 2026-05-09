@@ -5,7 +5,7 @@ import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocess
 import { Suspense } from "react";
 import CubiQoVisual from "./components/CubiQoVisual";
 import ParticleWaveHD from "./components/ParticleWaveHD";
-import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut, LayoutDashboard, BookOpen, Briefcase, Rocket, ShoppingBag, Code2, ShieldCheck, Globe2, Camera, Fingerprint, Bot, Search, BrainCircuit, ChevronDown, CheckCircle2, ClipboardList, FileText, Clock3, RefreshCw, AlertTriangle } from "lucide-react";
+import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut, LayoutDashboard, BookOpen, Briefcase, Rocket, ShoppingBag, Code2, ShieldCheck, Globe2, Camera, Fingerprint, Bot, Search, BrainCircuit, ChevronDown, CheckCircle2, ClipboardList, FileText, Clock3, RefreshCw, AlertTriangle, Monitor, MousePointerClick, Keyboard, Eye, Image as ImageIcon } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1007,8 +1007,10 @@ const ActionConsolePage = () => {
   const [reports, setReports] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [capabilities, setCapabilities] = useState([]);
+  const [browserSessions, setBrowserSessions] = useState([]);
+  const [browserUrl, setBrowserUrl] = useState('https://example.com/');
 
-  const actionCards = [
+  const baseActionCards = [
     {
       actionType: 'task_write',
       toolName: 'task_write',
@@ -1078,13 +1080,14 @@ const ActionConsolePage = () => {
         setLoading(false);
         return;
       }
-      const [approvalData, taskData, scheduleData, reportData, auditData, capabilityData] = await Promise.all([
+      const [approvalData, taskData, scheduleData, reportData, auditData, capabilityData, browserData] = await Promise.all([
         apiJson('/api/actions/approvals?limit=20'),
         apiJson('/api/tasks?limit=20'),
         apiJson('/api/reports/schedules?limit=10'),
         apiJson('/api/reports/daily?limit=10'),
         apiJson('/api/actions/audit?limit=25'),
-        apiJson('/api/actions/capabilities')
+        apiJson('/api/actions/capabilities'),
+        apiJson('/api/actions/execute?browser_sessions=active')
       ]);
       setApprovals(approvalData.approvals || []);
       setTasks(taskData.tasks || []);
@@ -1092,6 +1095,7 @@ const ActionConsolePage = () => {
       setReports(reportData.reports || []);
       setAuditLogs(auditData.auditLogs || []);
       setCapabilities(capabilityData.capabilities || []);
+      setBrowserSessions(browserData.browserSessions || []);
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -1116,7 +1120,96 @@ const ActionConsolePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const latestApproval = (actionType) => approvals.find(item => item.actionType === actionType && ['requested', 'approved'].includes(item.status));
+  const browserControlUnlocked = capabilities.some(item => item.actionType === 'browser_control' && item.status === 'active');
+  const activeBrowserSession = browserSessions.find(item => item.status === 'active') || null;
+
+  const browserActionCards = browserControlUnlocked ? (
+    activeBrowserSession ? [
+      {
+        actionType: 'browser_click',
+        toolName: 'browser_click',
+        title: 'Record browser click',
+        summary: `CubiQo will record an approved click intent inside session ${activeBrowserSession.id.slice(0, 8)}. No hidden browser click runs yet.`,
+        Icon: MousePointerClick,
+        runLabel: 'Record click',
+        riskLevel: 'medium',
+        browserSessionId: activeBrowserSession.id,
+        payload: () => ({
+          browser_session_id: activeBrowserSession.id,
+          selector: 'approved-target',
+          description: 'Foundation click action recorded for the active browser session.'
+        })
+      },
+      {
+        actionType: 'browser_type',
+        toolName: 'browser_type',
+        title: 'Record browser type',
+        summary: 'CubiQo will record approved text-entry intent after showing the payload. No credential typing is enabled.',
+        Icon: Keyboard,
+        runLabel: 'Record type',
+        riskLevel: 'medium',
+        browserSessionId: activeBrowserSession.id,
+        payload: () => ({
+          browser_session_id: activeBrowserSession.id,
+          selector: 'approved-field',
+          input_preview: 'Visible user-approved text only',
+          description: 'Foundation type action recorded for the active browser session.'
+        })
+      },
+      {
+        actionType: 'browser_extract',
+        toolName: 'browser_extract',
+        title: 'Record browser extract',
+        summary: 'CubiQo will record approved extraction intent and source context. No hidden page read occurs in this foundation.',
+        Icon: Eye,
+        runLabel: 'Record extract',
+        riskLevel: 'medium',
+        browserSessionId: activeBrowserSession.id,
+        payload: () => ({
+          browser_session_id: activeBrowserSession.id,
+          description: 'Extract visible page facts from the active session after runtime attachment.'
+        })
+      },
+      {
+        actionType: 'browser_screenshot',
+        toolName: 'browser_screenshot',
+        title: 'Record screenshot intent',
+        summary: 'CubiQo will record approved screenshot intent with session tracking. No image capture occurs until visible runtime is attached.',
+        Icon: ImageIcon,
+        runLabel: 'Record screenshot',
+        riskLevel: 'medium',
+        browserSessionId: activeBrowserSession.id,
+        payload: () => ({
+          browser_session_id: activeBrowserSession.id,
+          description: 'Screenshot intent for the active browser session.'
+        })
+      }
+    ] : [
+      {
+        actionType: 'browser_open',
+        toolName: 'browser_open',
+        title: 'Open browser session',
+        summary: 'CubiQo will open an isolated browser-control session container for the URL below. No hidden automation runs.',
+        Icon: Monitor,
+        runLabel: 'Open session',
+        riskLevel: 'medium',
+        payload: () => ({
+          url: browserUrl,
+          visible_session: true,
+          externalExecution: false
+        })
+      }
+    ]
+  ) : [];
+
+  const actionCards = [...baseActionCards, ...browserActionCards];
+
+  const latestApproval = (card) => approvals.find(item => {
+    const matchesAction = item.actionType === card.actionType && ['requested', 'approved'].includes(item.status);
+    if (!matchesAction) return false;
+    if (!card.browserSessionId) return true;
+    return item.payload?.browser_session_id === card.browserSessionId || item.payload?.browserSessionId === card.browserSessionId;
+  });
 
   const requestApproval = async (card) => {
     setBusyAction(card.actionType);
@@ -1131,8 +1224,9 @@ const ActionConsolePage = () => {
           summary: card.summary,
           riskLevel: card.riskLevel,
           payload: {
+            ...(typeof card.payload === 'function' ? card.payload() : {}),
             preview: card.summary,
-            externalExecution: false
+            externalExecution: card.actionType.startsWith('browser_')
           }
         })
       });
@@ -1188,6 +1282,17 @@ const ActionConsolePage = () => {
             metadata: { source_screen: 'actions' }
           })
         });
+      } else if (card.actionType.startsWith('browser_')) {
+        await apiJson('/api/actions/execute', {
+          method: 'POST',
+          body: JSON.stringify({
+            approvalId: approval.id,
+            actionType: card.actionType,
+            toolName: card.toolName,
+            browserSessionId: card.browserSessionId,
+            payload: typeof card.payload === 'function' ? card.payload() : {}
+          })
+        });
       } else {
         await apiJson('/api/reports/daily', {
           method: 'POST',
@@ -1202,6 +1307,28 @@ const ActionConsolePage = () => {
         });
       }
       setMessage('Approved action completed.');
+      await loadActionState();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const stopBrowserSession = async () => {
+    if (!activeBrowserSession) return;
+    setBusyAction('browser_close');
+    setMessage('');
+    try {
+      await apiJson('/api/actions/execute', {
+        method: 'POST',
+        body: JSON.stringify({
+          actionType: 'browser_close',
+          toolName: 'browser_close',
+          browserSessionId: activeBrowserSession.id
+        })
+      });
+      setMessage('Browser session stopped.');
       await loadActionState();
     } catch (error) {
       setMessage(error.message);
@@ -1248,9 +1375,34 @@ const ActionConsolePage = () => {
             </section>
           ) : (
             <>
+              {browserControlUnlocked && activeBrowserSession && (
+                <section style={{ ...cardStyle, padding: 18, borderColor: 'rgba(34,211,238,0.24)', background: 'linear-gradient(135deg, rgba(14,116,144,0.18), rgba(9,9,15,0.72))' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                      <div style={{ width: 42, height: 42, borderRadius: 14, display: 'grid', placeItems: 'center', background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.28)', color: '#67e8f9' }}>
+                        <Monitor size={19} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 500 }}>Browser session active</h2>
+                        <div style={{ marginTop: 4, color: 'rgba(255,255,255,0.55)', fontSize: '0.78rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 680 }}>
+                          {activeBrowserSession.currentUrl}
+                        </div>
+                        <div style={{ marginTop: 4, color: 'rgba(255,255,255,0.34)', fontSize: '0.7rem' }}>
+                          session {activeBrowserSession.id.slice(0, 8)} · approval {activeBrowserSession.approvalId?.slice?.(0, 8) || 'recorded'}
+                        </div>
+                      </div>
+                    </div>
+                    <Button type="button" variant="outline" onClick={stopBrowserSession} disabled={busyAction === 'browser_close'} className="border-red-300/20 bg-red-400/10 text-red-100 hover:bg-red-400/18">
+                      <X size={15} />
+                      Stop session
+                    </Button>
+                  </div>
+                </section>
+              )}
+
               <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
                 {actionCards.map(card => {
-                  const approval = latestApproval(card.actionType);
+                  const approval = latestApproval(card);
                   const Icon = card.Icon;
                   const isBusy = busyAction === card.actionType || busyAction === card.id || busyAction === approval?.id || busyAction === `${card.actionType}-run`;
                   return (
@@ -1266,6 +1418,14 @@ const ActionConsolePage = () => {
                       <div>
                         <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 500 }}>{card.title}</h2>
                         <p style={{ margin: '8px 0 0', color: 'rgba(255,255,255,0.58)', fontSize: '0.86rem', lineHeight: 1.55 }}>{card.summary}</p>
+                        {card.actionType === 'browser_open' && (
+                          <input
+                            value={browserUrl}
+                            onChange={event => setBrowserUrl(event.target.value)}
+                            placeholder="https://example.com/"
+                            style={{ marginTop: 12, width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem' }}
+                          />
+                        )}
                       </div>
                       <div style={{ display: 'grid', gap: 8 }}>
                         {!approval && (

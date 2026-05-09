@@ -224,7 +224,12 @@ async function verifyUserOwnedCrud(config) {
       taskUpdated: false,
       userAuditInsertDenied: false,
       scheduleInserted: false,
-      reportInserted: false
+      reportInserted: false,
+      anonBrowserSessionInsertDenied: false,
+      browserBlockedWithoutApproval: false,
+      browserApprovalApproved: false,
+      browserDirectInsertDeniedAfterApproval: false,
+      browserSessionServerInsertWithApproval: false
     },
     rls: { anonJournalInsertDenied: false, anonSignalInsertDenied: false },
     error: null
@@ -515,6 +520,96 @@ async function verifyUserOwnedCrud(config) {
     }) : null;
     const reportRow = Array.isArray(reportInsert?.body) ? reportInsert.body[0] : null;
     result.v2.reportInserted = Boolean(reportInsert?.response.ok && reportRow?.id && reportRow.user_id === userId);
+
+    const anonBrowserSession = await requestJson(`${config.url}/rest/v1/browser_sessions`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        target_url: 'https://example.com/',
+        current_url: 'https://example.com/',
+        allowed_origin: 'https://example.com'
+      })
+    });
+    result.v2.anonBrowserSessionInsertDenied = !anonBrowserSession.response.ok;
+
+    const browserBlocked = await requestJson(`${config.url}/rest/v1/browser_sessions`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken),
+      body: JSON.stringify({
+        user_id: userId,
+        target_url: 'https://example.com/',
+        current_url: 'https://example.com/',
+        allowed_origin: 'https://example.com'
+      })
+    });
+    result.v2.browserBlockedWithoutApproval = !browserBlocked.response.ok;
+
+    const browserApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'browser_open',
+        tool_name: 'browser_open',
+        title: 'Browser session test',
+        summary: 'Open an isolated browser-control session container.',
+        payload: { url: 'https://example.com/' },
+        risk_level: 'medium'
+      })
+    });
+    const browserApproval = Array.isArray(browserApprovalInsert.body) ? browserApprovalInsert.body[0] : null;
+    const browserApprovalUpdate = browserApproval?.id ? await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${browserApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+      method: 'PATCH',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+    }) : null;
+    result.v2.browserApprovalApproved = Boolean(browserApprovalUpdate?.response.ok);
+
+    const browserDirectInsertAfterApproval = browserApproval?.id ? await requestJson(`${config.url}/rest/v1/browser_sessions?select=id,user_id,approval_id,status,target_url,allowed_origin`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: browserApproval.id,
+        status: 'active',
+        target_url: 'https://example.com/',
+        current_url: 'https://example.com/',
+        allowed_origin: 'https://example.com',
+        metadata: { source: 'e2e' }
+      })
+    }) : null;
+    result.v2.browserDirectInsertDeniedAfterApproval = Boolean(browserDirectInsertAfterApproval && !browserDirectInsertAfterApproval.response.ok);
+
+    const browserServerInsert = browserApproval?.id ? await requestJson(`${config.url}/rest/v1/browser_sessions?select=id,user_id,approval_id,status,target_url,allowed_origin`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: browserApproval.id,
+        status: 'active',
+        target_url: 'https://example.com/',
+        current_url: 'https://example.com/',
+        allowed_origin: 'https://example.com',
+        metadata: { source: 'e2e-server-boundary' }
+      })
+    }) : null;
+    const browserSessionRow = Array.isArray(browserServerInsert?.body) ? browserServerInsert.body[0] : null;
+    result.v2.browserSessionServerInsertWithApproval = Boolean(
+      browserServerInsert?.response.ok &&
+      browserSessionRow?.id &&
+      browserSessionRow.user_id === userId &&
+      browserSessionRow.approval_id === browserApproval.id
+    );
   } catch (error) {
     result.error = error.message || String(error);
   } finally {
@@ -659,7 +754,8 @@ async function main() {
     'user_tool_settings',
     'user_tasks',
     'report_schedules',
-    'daily_reports'
+    'daily_reports',
+    'browser_sessions'
   ]) {
     tables.push(await verifyTable(config, table));
   }

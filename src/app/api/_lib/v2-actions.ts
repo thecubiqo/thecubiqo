@@ -50,6 +50,7 @@ export function mapAudit(row: Record<string, any>) {
   return {
     id: row.id,
     approvalId: row.approval_id,
+    browserSessionId: row.browser_session_id,
     actionType: row.action_type,
     toolName: row.tool_name,
     status: row.status,
@@ -64,6 +65,7 @@ export async function writeAudit(
   auth: ApiUserContext,
   input: {
     approvalId?: string | null;
+    browserSessionId?: string | null;
     actionType: string;
     toolName: string;
     status: 'requested' | 'approved' | 'denied' | 'cancelled' | 'blocked' | 'completed' | 'failed';
@@ -75,6 +77,7 @@ export async function writeAudit(
   const { error } = await auth.supabase.from('action_audit_logs').insert({
     user_id: auth.user.id,
     approval_id: input.approvalId || null,
+    ...(input.browserSessionId !== undefined ? { browser_session_id: input.browserSessionId || null } : {}),
     action_type: input.actionType,
     tool_name: input.toolName,
     status: input.status,

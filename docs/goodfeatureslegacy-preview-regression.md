@@ -33,7 +33,7 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 - BYO keys
 - Biometrics/camera awareness
 - Self-healer/full reporting
-- Browser/coder/write-agent actions
+- Live browser execution, coder/write-agent actions
 - Signal match route/button
 
 Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Signal match, RGY matching, or intent matching.
@@ -54,6 +54,9 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Added `/actions` as the V2 Action Console inside the CubiQo shell. It exposes only completed QA-backed actions: approval cards, approve/cancel, approved task creation, in-app report schedules, in-app self/daily reports, and audit viewing.
 - Added `/api/actions/capabilities` as the V2 capability manifest. It marks active, read-only, and locked tools explicitly so incomplete workflows cannot look connected.
 - Added `/api/actions/execute` as the generic V2 action boundary. Locked tools return `501`, write a blocked audit entry, and do not execute.
+- Added browser-control foundation through `/api/actions/execute`: approved `browser_open` creates an isolated `browser_sessions` row, approved browser click/type/extract/screenshot intents are recorded against that session, and every browser audit row carries `browser_session_id` when a session exists.
+- Added the active `/api/actions/capabilities` parent capability `browser_control`; browser action approvals are only requestable while that manifest marks the control plane active.
+- Added a visible active browser session strip and Stop session button in `/actions`. Stop closes the user-owned session through `/api/actions/execute` and writes a cancel audit row.
 - Updated approval requests so non-end-to-end tools cannot receive fake approvals.
 - Updated the main CubiQo response surface with a component-library based "What I checked" collapsible that shows V1 tool activity inside the existing window.
 - Removed CubiQo runtime command execution. V1 no longer exposes `run_check`, no longer reads from the repo `scripts` directory, and no longer reports package scripts as product capability.
@@ -146,15 +149,21 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 | V2 fake approval prevention | Closed | `/api/actions/approvals` blocks non-end-to-end tools; locked tools cannot be approved. |
 | V2 locked execution boundary | Closed | `/api/actions/execute` returns `501` and writes blocked audit logs for locked tools. |
 | V2 active action visibility | Closed | `/actions` renders active/read-only/locked capability states from the manifest. |
-| Browser/job/POD/social/camera/coder execution | Deferred intentionally | Locked until provider/API/browser integrations, approval-specific UX, and regression tests exist. |
+| Browser control parent capability | Closed | `/api/actions/capabilities` exposes active `browser_control`; browser actions are approved through the existing action boundary. |
+| Browser session manager | Closed for foundation | `browser_sessions` tracks user-owned active/cancelled sessions with target/current URL, allowed origin, timestamps, metadata, and RLS. |
+| Browser open boundary | Closed for foundation | `browser_open` requires a requested/approved approval card before `/api/actions/execute` creates a session. |
+| Browser click/type/extract/screenshot boundary | Closed for foundation | Each action requires its own approval and active `browser_session_id`; execution records the intent and audit trail only. |
+| Browser audit session ID | Closed | `action_audit_logs.browser_session_id` is populated for session-scoped browser approval/audit rows. |
+| Browser stop/cancel button | Closed | `/actions` shows a visible active-session strip with Stop session, routed through `/api/actions/execute`. |
+| Live browser/job/POD/social/camera/coder execution | Deferred intentionally | Locked until provider/API/browser runtime integrations, approval-specific UX, and regression tests exist. |
 
 ## V2 Security Review Notes
 
-- Current V1 exposes no external write/action tools, no deploy tool, no browser control, and no arbitrary terminal.
+- Current V1 exposes no external write/action tools, no deploy tool, no live browser runtime, and no arbitrary terminal.
 - Current V1 allows only signed-in user-owned CubiQo state writes for journal summaries, RGY capsules, and safe memory summaries. External actions remain blocked or converted to planning until V2 approval cards exist.
 - Required before any V2 action endpoint: explicit approval request/status, action audit log, action type permissions, feature flag, safe cancel path, and denied-action no-op test.
 - Required before any external integration: server-side token storage, masked frontend display, missing-credential safe error, no fake connected state, and per-user ownership checks.
-- Required before browser/extension use: user-visible active indicator, stop button, domain allowlist, session isolation, screenshot/log redaction, and no hidden automation.
+- Required before live browser/extension use: user-visible active indicator, stop button, domain allowlist, session isolation, screenshot/log redaction, and no hidden automation. The current branch implements the visible session/audit container first.
 - Required before coder/studio write mode: managed sandbox/API tool layer, allowlisted commands, no raw production terminal, patch preview, approve/cancel, and audit log.
 
 ## V2 Foundation Implemented In Code
@@ -167,15 +176,16 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - `self_report_create` / `daily_report_send`: `/api/reports/daily`, creates or stores in-app reports only and requires approval.
 - V2 capability manifest: `/api/actions/capabilities`, lists all active/read-only/locked tools and requirements.
 - V2 generic action boundary: `/api/actions/execute`, blocks locked tools with `501` and writes a blocked audit log.
+- V2 browser session manager: `/api/actions/execute`, `browser_sessions`, and `action_audit_logs.browser_session_id`. This opens/tracks/stops isolated browser workflow containers and records approved browser intents only.
 - V2 Action Console: `/actions`, linked from the left tray and dashboard feature card.
 - V2 Action Console now shows the capability boundary from the manifest instead of vague future-work text.
 - Database triggers require matching approved approvals before task/report writes, so Supabase direct writes cannot bypass approval.
-- Browser/job/social/POD/payment/camera/coder execution tools remain intentionally locked until their API/provider integrations and approval UX are ready.
+- Live browser/job/social/POD/payment/camera/coder execution tools remain intentionally locked until their API/provider integrations and approval UX are ready.
 
 Current blocker:
 
 - No active Supabase schema blocker remains for the QA project. Base tables plus V2 approval/audit/task/report tables are applied and verified against `https://oszlufrjvibrdauuppzj.supabase.co`.
-- Browser/job/social/POD/payment/camera/coder execution tools are intentionally locked in the capability manifest until their provider integrations and action-specific approval UX are ready.
+- Live browser/job/social/POD/payment/camera/coder execution tools are intentionally locked in the capability manifest until their provider integrations and action-specific approval UX are ready.
 
 ## Regression Gate Before Push
 
@@ -281,6 +291,16 @@ Latest V2 capability boundary smoke on `127.0.0.1:3040`:
 - Active generic execution boundary: passed; `/api/actions/execute` for `task_write` returned `409` and pointed callers to the dedicated endpoint.
 - Audit log: passed; blocked attempts were recorded in user-owned audit logs.
 
+Latest browser-control foundation smoke on `127.0.0.1:3044`:
+
+- `/api/actions/capabilities`: passed; `browser_control` returned active.
+- `/api/actions/execute` without approval: passed; `browser_open` returned `403` and did not create a session.
+- `browser_open` approval card: passed; requested and approved before execution.
+- Approved `browser_open` execution: passed; created a user-owned `browser_sessions` row.
+- Approved `browser_click` execution: passed; recorded click intent against the active `browser_session_id` without hidden browser execution.
+- Stop session: passed; `browser_close` cancelled the active session through `/api/actions/execute`.
+- Audit: passed; `browser_open`, `browser_click`, and `browser_close` audit rows included the same `browserSessionId`.
+
 Prod voice check:
 
 - `https://www.cubiqo.ai/api/voice-cue`: reaches ElevenLabs and returns a quota error with `River neutral/androgynous` / `eleven_flash_v2_5`. Current prod code labels provider as `none`, while this branch labels the same condition as `elevenlabs_error`.
@@ -292,5 +312,6 @@ Resolved schema blocker:
 - `profiles`, `user_activity_keywords`, and `conversation_events` exist and are reachable.
 - V2 tables exist and are reachable: `action_approvals`, `action_audit_logs`, `user_tool_settings`, `user_tasks`, `report_schedules`, `daily_reports`.
 - V2 approval-gated writes passed: denied actions do not execute, approved task writes execute, report schedule/report writes execute, and user-forged audit inserts are denied.
+- V2 browser foundation passed: anonymous browser session writes are denied, direct user browser session writes are denied even after approval, server-boundary insert with an approved `browser_open` passes, and `browser_sessions` is reachable in QA Supabase.
 
 Do not push this branch for review unless this contract stays current and regression remains green.
