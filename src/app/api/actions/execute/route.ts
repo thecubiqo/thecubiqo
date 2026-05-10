@@ -44,6 +44,31 @@ import {
   prepareSocialPost,
   scheduleSocialPost
 } from '../../_lib/social-workflows';
+import {
+  assignShopifyCollection,
+  connectAfterShip,
+  connectDirectProvider,
+  connectShopifyStore,
+  createBundle,
+  createProviderDesign,
+  createShopifyCollection,
+  createShopifyProduct,
+  isShopifyPodOperationAction,
+  listCommerceState,
+  mutateShopifyProduct,
+  readAfterShipReturns,
+  readAfterShipTracking,
+  readAnalytics,
+  readBundles,
+  readFulfilmentProviders,
+  readInventory,
+  readMarketplaceStatus,
+  readOrderSummary,
+  readProviderProductStatus,
+  readShopifyStoreStatus,
+  syncProviderProduct,
+  updateInventory
+} from '../../_lib/shopify-pod-operations';
 
 export const runtime = 'nodejs';
 
@@ -76,6 +101,12 @@ export async function GET(request: NextRequest) {
   if (request.nextUrl.searchParams.get('social_state') === '1') {
     const result = await listSocialState(auth);
     if ('error' in result && result.error) return result.error instanceof Response ? result.error : NextResponse.json({ error: result.error.message }, { status: 500 });
+    return NextResponse.json(result);
+  }
+
+  if (request.nextUrl.searchParams.get('commerce_state') === '1') {
+    const result = await listCommerceState(auth);
+    if ('error' in result && result.error) return result.error instanceof Response ? result.error : NextResponse.json({ error: result.error instanceof Error ? result.error.message : 'Commerce state failed' }, { status: 500 });
     return NextResponse.json(result);
   }
 
@@ -475,6 +506,146 @@ async function handlePodAction(
       input: payload
     });
     return NextResponse.json({ error: error instanceof Error ? error.message : 'POD workflow failed', executed: false }, { status: 400 });
+  }
+}
+
+const COMMERCE_READ_ACTIONS = new Set([
+  'shopify_store_status',
+  'fulfilment_provider_read',
+  'provider_product_status',
+  'shopify_inventory_read',
+  'shopify_orders_read',
+  'shopify_order_summary',
+  'aftership_tracking_read',
+  'aftership_returns_read',
+  'shopify_analytics_read',
+  'shopify_bundles_read',
+  'marketplace_status_read'
+]);
+
+async function handleShopifyPodOperationAction(
+  auth: ApiUserContext,
+  actionType: string,
+  toolName: string,
+  body: Record<string, any>
+) {
+  if (!isShopifyPodOperationAction(actionType)) {
+    return null;
+  }
+
+  const capability = getActionCapability(actionType);
+  if (!capability || (!COMMERCE_READ_ACTIONS.has(actionType) && capability.status !== 'active')) {
+    await writeAudit(auth, {
+      actionType,
+      toolName,
+      status: 'blocked',
+      message: 'Commerce workflow blocked because the capability is locked',
+      input: { actionType },
+      result: {
+        capabilityStatus: capability?.status || 'missing',
+        requirements: capability?.requirements || []
+      }
+    });
+    return NextResponse.json({ error: 'Commerce workflow is locked until this capability is active', executed: false, capability }, { status: 501 });
+  }
+
+  if (COMMERCE_READ_ACTIONS.has(actionType)) {
+    const payload = normalizePayload(body.payload);
+    const readMap: Record<string, () => Promise<any>> = {
+      shopify_store_status: () => readShopifyStoreStatus(auth),
+      fulfilment_provider_read: () => readFulfilmentProviders(auth),
+      provider_product_status: () => readProviderProductStatus(auth),
+      shopify_inventory_read: () => readInventory(auth),
+      shopify_orders_read: () => readOrderSummary(auth, payload),
+      shopify_order_summary: () => readOrderSummary(auth, payload),
+      aftership_tracking_read: () => readAfterShipTracking(auth),
+      aftership_returns_read: () => readAfterShipReturns(auth),
+      shopify_analytics_read: () => readAnalytics(auth, payload),
+      shopify_bundles_read: () => readBundles(auth),
+      marketplace_status_read: () => readMarketplaceStatus(auth)
+    };
+    const result = await readMap[actionType]();
+    if ('error' in result && result.error) return result.error instanceof Response ? result.error : NextResponse.json({ error: result.error.message }, { status: 500 });
+    await writeAudit(auth, {
+      actionType,
+      toolName,
+      status: 'completed',
+      message: 'Commerce read-only action completed without customer PII or external mutation',
+      input: payload,
+      result: { ...result, performedExternalAction: false }
+    });
+    return NextResponse.json({ executed: true, readOnly: true, result, performedExternalAction: false });
+  }
+
+  const approvalId = String(body.approvalId ?? body.approval_id ?? '').trim();
+  const approvalCheck = await requireApprovedAction(auth, approvalId, actionType);
+  if (approvalCheck.error) return approvalCheck.error;
+
+  const payload = normalizePayload(approvalCheck.approval?.payload);
+  const previewCard = getPodApprovalPreviewCard(approvalCheck.approval);
+  try {
+    const writeMap: Record<string, () => Promise<any>> = {
+      shopify_store_connect: () => connectShopifyStore(auth, approvalId, payload, previewCard),
+      pod_provider_connect: () => connectDirectProvider(auth, approvalId, payload, previewCard),
+      aftership_connect: () => connectAfterShip(auth, approvalId, payload, previewCard),
+      shopify_product_create: () => createShopifyProduct(auth, approvalId, payload, previewCard),
+      shopify_product_publish: () => mutateShopifyProduct(auth, approvalId, 'shopify_product_publish', payload, previewCard),
+      shopify_product_update: () => mutateShopifyProduct(auth, approvalId, 'shopify_product_update', payload, previewCard),
+      shopify_product_archive: () => mutateShopifyProduct(auth, approvalId, 'shopify_product_archive', payload, previewCard),
+      design_create: () => createProviderDesign(auth, approvalId, payload, previewCard),
+      product_sync: () => syncProviderProduct(auth, approvalId, payload, previewCard),
+      shopify_collection_create: () => createShopifyCollection(auth, approvalId, payload, previewCard),
+      shopify_collection_assign: () => assignShopifyCollection(auth, approvalId, payload, previewCard),
+      shopify_inventory_update: () => updateInventory(auth, approvalId, payload, previewCard),
+      shopify_bundle_create: () => createBundle(auth, approvalId, payload, previewCard)
+    };
+
+    const runner = writeMap[actionType];
+    if (!runner) return null;
+    const result = await runner();
+    if ('error' in result && result.error) return result.error instanceof Response ? result.error : NextResponse.json({ error: result.error.message }, { status: 500 });
+    if ('blocked' in result && result.blocked) {
+      await writeAudit(auth, {
+        approvalId,
+        actionType,
+        toolName,
+        status: 'blocked',
+        message: result.blocked,
+        input: payload,
+        result: result.details || {}
+      });
+      return NextResponse.json({ error: result.blocked, executed: false, details: result.details || {} }, { status: result.status || 400 });
+    }
+
+    const productId = result.product?.productId || result.product?.product_id || payload.productId || payload.product_id || null;
+    const provider = result.provider || payload.provider || payload.fulfillmentProvider || payload.fulfillment_provider || null;
+    await writeAudit(auth, {
+      approvalId,
+      actionType,
+      toolName,
+      status: 'completed',
+      message: 'Approved commerce operation completed through the server action boundary',
+      input: {
+        productId,
+        provider,
+        assetId: payload.assetId || payload.asset_id,
+        service: payload.service || null
+      },
+      result
+    });
+    await completeApproval(auth, approvalId, true);
+    return NextResponse.json({ executed: true, result });
+  } catch (error) {
+    await completeApproval(auth, approvalId, false);
+    await writeAudit(auth, {
+      approvalId,
+      actionType,
+      toolName,
+      status: 'failed',
+      message: error instanceof Error ? error.message : 'Commerce workflow failed',
+      input: payload
+    });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Commerce workflow failed', executed: false }, { status: 400 });
   }
 }
 
@@ -902,6 +1073,9 @@ export async function POST(request: NextRequest) {
 
   const podResponse = await handlePodAction(auth, actionType, toolName, body);
   if (podResponse) return podResponse;
+
+  const commerceResponse = await handleShopifyPodOperationAction(auth, actionType, toolName, body);
+  if (commerceResponse) return commerceResponse;
 
   const socialResponse = await handleSocialAction(auth, actionType, toolName, body);
   if (socialResponse) return socialResponse;

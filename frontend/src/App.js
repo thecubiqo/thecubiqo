@@ -5,7 +5,7 @@ import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocess
 import { Suspense } from "react";
 import CubiQoVisual from "./components/CubiQoVisual";
 import ParticleWaveHD from "./components/ParticleWaveHD";
-import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut, LayoutDashboard, BookOpen, Briefcase, Rocket, ShoppingBag, Package, Code2, ShieldCheck, Globe2, Camera, Fingerprint, Bot, Search, BrainCircuit, ChevronDown, CheckCircle2, ClipboardList, FileText, Clock3, RefreshCw, AlertTriangle, Monitor, MousePointerClick, Keyboard, Eye, Image as ImageIcon } from "lucide-react";
+import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut, LayoutDashboard, BookOpen, Briefcase, Rocket, ShoppingBag, Package, Code2, ShieldCheck, Globe2, Camera, Fingerprint, Bot, Search, BrainCircuit, ChevronDown, CheckCircle2, ClipboardList, FileText, Clock3, RefreshCw, AlertTriangle, Monitor, MousePointerClick, Keyboard, Eye, Archive, Layers, SlidersHorizontal, Image as ImageIcon } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1019,6 +1019,11 @@ const ActionConsolePage = () => {
   const [assetReadyEvents, setAssetReadyEvents] = useState([]);
   const [shopifyPreparations, setShopifyPreparations] = useState([]);
   const [printifyPreparations, setPrintifyPreparations] = useState([]);
+  const [commerceState, setCommerceState] = useState(null);
+  const [shopifyProducts, setShopifyProducts] = useState([]);
+  const [providerDesigns, setProviderDesigns] = useState([]);
+  const [commerceEvents, setCommerceEvents] = useState([]);
+  const [fulfillmentProviders, setFulfillmentProviders] = useState([]);
   const [socialConnectors, setSocialConnectors] = useState([]);
   const [socialDrafts, setSocialDrafts] = useState([]);
   const [socialDistributionRules, setSocialDistributionRules] = useState([]);
@@ -1096,7 +1101,7 @@ const ActionConsolePage = () => {
         setLoading(false);
         return;
       }
-      const [approvalData, taskData, scheduleData, reportData, auditData, capabilityData, browserData, jobData, podData, socialData] = await Promise.all([
+      const [approvalData, taskData, scheduleData, reportData, auditData, capabilityData, browserData, jobData, podData, socialData, commerceData] = await Promise.all([
         apiJson('/api/actions/approvals?limit=20'),
         apiJson('/api/tasks?limit=20'),
         apiJson('/api/reports/schedules?limit=10'),
@@ -1106,7 +1111,8 @@ const ActionConsolePage = () => {
         apiJson('/api/actions/execute?browser_sessions=active'),
         apiJson('/api/actions/execute?job_state=1'),
         apiJson('/api/actions/execute?pod_state=1'),
-        apiJson('/api/actions/execute?social_state=1')
+        apiJson('/api/actions/execute?social_state=1'),
+        apiJson('/api/actions/execute?commerce_state=1')
       ]);
       setApprovals(approvalData.approvals || []);
       setTasks(taskData.tasks || []);
@@ -1126,6 +1132,11 @@ const ActionConsolePage = () => {
       setAssetReadyEvents(podData.assetReadyEvents || []);
       setShopifyPreparations(podData.shopifyPreparations || []);
       setPrintifyPreparations(podData.printifyPreparations || []);
+      setCommerceState(commerceData || null);
+      setShopifyProducts(commerceData.shopifyProducts || []);
+      setProviderDesigns(commerceData.providerDesigns || []);
+      setCommerceEvents(commerceData.commerceEvents || []);
+      setFulfillmentProviders(commerceData.fulfillmentProviders || []);
       setSocialConnectors(socialData.connectors || []);
       setSocialDrafts(socialData.drafts || []);
       setSocialDistributionRules(socialData.distributionRules || []);
@@ -1162,6 +1173,8 @@ const ActionConsolePage = () => {
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
   const podWorkflowUnlocked = ['pod_design_brief_create', 'gfxtools_job_create', 'gfxtools_asset_resize', 'shopify_product_prepare', 'printify_design_prepare']
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
+  const commerceWorkflowUnlocked = ['shopify_product_create', 'shopify_product_publish', 'shopify_product_update', 'shopify_product_archive', 'design_create', 'product_sync', 'shopify_collection_create', 'shopify_collection_assign', 'shopify_inventory_update', 'shopify_bundle_create']
+    .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
   const socialWorkflowUnlocked = ['social_post_prepare', 'social_post_schedule_approved']
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
   const activeBrowserSession = browserSessions.find(item => item.status === 'active') || null;
@@ -1172,6 +1185,8 @@ const ActionConsolePage = () => {
   const latestUnresizedReadyAsset = gfxAssets.find(item => item.status === 'ready' && !(item.platformVariants || []).length) || null;
   const latestAssetReadyEvent = latestReadyAsset ? assetReadyEvents.find(item => item.assetId === latestReadyAsset.id) || null : null;
   const latestSocialDraft = socialDrafts[0] || null;
+  const latestShopifyProduct = shopifyProducts[0] || null;
+  const latestProviderDesign = providerDesigns[0] || null;
 
   const browserActionCards = browserControlUnlocked ? (
     activeBrowserSession ? [
@@ -1576,6 +1591,200 @@ const ActionConsolePage = () => {
     }] : [])
   ] : [];
 
+  const commerceActionCards = commerceWorkflowUnlocked ? [
+    ...(latestReadyAsset ? [{
+      actionType: 'shopify_product_create',
+      toolName: 'shopify_product_create',
+      title: 'Create Shopify draft product',
+      summary: `CubiQo will create or prepare a Shopify draft product for carlophillips.myshopify.com from ready asset ${latestReadyAsset.id.slice(0, 8)}. It uses server-side credentials only and records a blocked state if Shopify is not connected.`,
+      Icon: ShoppingBag,
+      runLabel: 'Create product',
+      riskLevel: 'high',
+      assetId: latestReadyAsset.id,
+      payload: () => ({
+        store_url: 'carlophillips.myshopify.com',
+        asset_id: latestReadyAsset.id,
+        title: latestPodBrief?.title || 'CubiQo signal-wave POD tee',
+        description: latestPodBrief?.description || 'Premium POD apparel generated from a ready CubiQo/GFXTools asset.',
+        fulfillment_provider: 'printify',
+        variants: [
+          { title: 'S / Black', price: 29, sku: 'CQ-SIGNAL-S-BLK', inventory_quantity: 25, provider_product_id: '' },
+          { title: 'M / Black', price: 29, sku: 'CQ-SIGNAL-M-BLK', inventory_quantity: 25, provider_product_id: '' },
+          { title: 'L / Black', price: 29, sku: 'CQ-SIGNAL-L-BLK', inventory_quantity: 25, provider_product_id: '' }
+        ],
+        tags: ['CubiQo', 'AI', 'POD', 'Signal Wave'],
+        collections: ['CubiQo Studio'],
+        previewCard: {
+          title: 'Shopify product creation preview',
+          store: 'carlophillips.myshopify.com',
+          provider: 'printify',
+          assetId: latestReadyAsset.id,
+          changes: ['Create Shopify draft product if connector is verified', 'Otherwise store truthful blocked local product record'],
+          submittedData: {
+            title: latestPodBrief?.title || 'CubiQo signal-wave POD tee',
+            status: 'draft',
+            variants: ['S / Black', 'M / Black', 'L / Black'],
+            tags: ['CubiQo', 'AI', 'POD', 'Signal Wave']
+          },
+          willWriteTo: ['Supabase shopify_products', 'Shopify Admin API only if server connector is verified'],
+          willNotDo: ['No client-side Shopify call', 'No publish without another approval', 'No fake connected state']
+        }
+      })
+    }, {
+      actionType: 'design_create',
+      toolName: 'design_create',
+      title: 'Create direct POD provider design',
+      summary: `CubiQo will submit ready asset ${latestReadyAsset.id.slice(0, 8)} to a direct POD provider only if Printify/Printful/Gelato credentials are configured server-side.`,
+      Icon: Package,
+      runLabel: 'Create design',
+      riskLevel: 'high',
+      assetId: latestReadyAsset.id,
+      payload: () => ({
+        provider: 'printify',
+        asset_id: latestReadyAsset.id,
+        product_type: latestPodBrief?.productType || 'premium cotton t-shirt',
+        template_id: 'review-before-submit',
+        previewCard: {
+          title: 'Direct POD design submission preview',
+          provider: 'printify',
+          assetId: latestReadyAsset.id,
+          changes: ['Submit design payload to direct provider only if connected', 'Store provider_designs state'],
+          willWriteTo: ['Supabase provider_designs', 'Provider API only if server connector is verified'],
+          willNotDo: ['No Shopify-app provider direct calls', 'No fake provider_product_id']
+        }
+      })
+    }] : []),
+    ...(latestShopifyProduct ? [{
+      actionType: 'shopify_product_publish',
+      toolName: 'shopify_product_publish',
+      title: 'Publish Shopify product',
+      summary: `CubiQo will move ${latestShopifyProduct.title} from draft to active after approval and emit product_published for social handoff.`,
+      Icon: Rocket,
+      runLabel: 'Publish',
+      riskLevel: 'high',
+      productId: latestShopifyProduct.productId,
+      payload: () => ({
+        product_id: latestShopifyProduct.productId,
+        status: 'active',
+        previewCard: {
+          title: 'Publish product approval preview',
+          store: 'carlophillips.myshopify.com',
+          productId: latestShopifyProduct.productId,
+          before: { status: latestShopifyProduct.status },
+          after: { status: 'active' },
+          changes: ['Set product active', 'Emit product_published event'],
+          willWriteTo: ['Supabase shopify_products', 'Supabase commerce_events'],
+          irreversible: false
+        }
+      })
+    }, {
+      actionType: 'shopify_product_archive',
+      toolName: 'shopify_product_archive',
+      title: 'Archive Shopify product',
+      summary: `CubiQo will archive ${latestShopifyProduct.title}. The approval card flags this as irreversible before it runs.`,
+      Icon: Archive,
+      runLabel: 'Archive',
+      riskLevel: 'high',
+      productId: latestShopifyProduct.productId,
+      payload: () => ({
+        product_id: latestShopifyProduct.productId,
+        status: 'archived',
+        previewCard: {
+          title: 'Archive product approval preview',
+          store: 'carlophillips.myshopify.com',
+          productId: latestShopifyProduct.productId,
+          before: { status: latestShopifyProduct.status },
+          after: { status: 'archived' },
+          changes: ['Archive product'],
+          irreversible: true,
+          willWriteTo: 'Supabase shopify_products'
+        }
+      })
+    }, {
+      actionType: 'shopify_collection_create',
+      toolName: 'shopify_collection_create',
+      title: 'Create Shopify collection',
+      summary: 'CubiQo will prepare a Shopify collection for the product catalog after approval.',
+      Icon: Layers,
+      runLabel: 'Create collection',
+      riskLevel: 'medium',
+      payload: () => ({
+        title: 'CubiQo Studio Drop',
+        collection_type: 'manual',
+        previewCard: {
+          title: 'Collection creation preview',
+          store: 'carlophillips.myshopify.com',
+          collectionType: 'manual',
+          title: 'CubiQo Studio Drop',
+          willWriteTo: 'Supabase shopify_collections',
+          willNotDo: ['No collection publish without connector verification']
+        }
+      })
+    }, {
+      actionType: 'shopify_inventory_update',
+      toolName: 'shopify_inventory_update',
+      title: 'Record inventory adjustment',
+      summary: 'CubiQo will record a before/after inventory adjustment after approval.',
+      Icon: SlidersHorizontal,
+      runLabel: 'Adjust stock',
+      riskLevel: 'high',
+      productId: latestShopifyProduct.productId,
+      payload: () => ({
+        product_id: latestShopifyProduct.productId,
+        variant_id: latestShopifyProduct.variants?.[0]?.variant_id || latestShopifyProduct.variants?.[0]?.sku || 'review-variant',
+        before_quantity: latestShopifyProduct.variants?.[0]?.inventory_quantity || 0,
+        after_quantity: Number(latestShopifyProduct.variants?.[0]?.inventory_quantity || 0) + 10,
+        previewCard: {
+          title: 'Inventory update preview',
+          productId: latestShopifyProduct.productId,
+          before: latestShopifyProduct.variants?.[0]?.inventory_quantity || 0,
+          after: Number(latestShopifyProduct.variants?.[0]?.inventory_quantity || 0) + 10,
+          willWriteTo: 'Supabase shopify_inventory_adjustments'
+        }
+      })
+    }, {
+      actionType: 'shopify_bundle_create',
+      toolName: 'shopify_bundle_create',
+      title: 'Create product bundle',
+      summary: 'CubiQo will create a bundle configuration from existing products after showing contents and pricing.',
+      Icon: Package,
+      runLabel: 'Create bundle',
+      riskLevel: 'high',
+      payload: () => ({
+        title: 'CubiQo Founder Drop Bundle',
+        product_ids: [latestShopifyProduct.productId],
+        pricing: { strategy: 'bundle_discount', discountPercent: 12 },
+        previewCard: {
+          title: 'Bundle creation preview',
+          products: [latestShopifyProduct.title],
+          pricing: { strategy: 'bundle_discount', discountPercent: 12 },
+          willWriteTo: 'Supabase shopify_bundles',
+          willNotDo: ['No Shopify bundle app mutation without connector verification']
+        }
+      })
+    }] : []),
+    ...(latestProviderDesign && latestShopifyProduct ? [{
+      actionType: 'product_sync',
+      toolName: 'product_sync',
+      title: 'Sync provider product',
+      summary: 'CubiQo will prepare provider-to-Shopify sync state after approval. Missing provider IDs block truthfully.',
+      Icon: RefreshCw,
+      runLabel: 'Sync product',
+      riskLevel: 'high',
+      payload: () => ({
+        provider_design_id: latestProviderDesign.id,
+        product_id: latestShopifyProduct.productId,
+        previewCard: {
+          title: 'Provider product sync preview',
+          providerDesignId: latestProviderDesign.id,
+          productId: latestShopifyProduct.productId,
+          willWriteTo: 'Supabase provider_product_syncs',
+          willNotDo: ['No fake provider sync', 'No silent retry']
+        }
+      })
+    }] : [])
+  ] : [];
+
   const socialActionCards = socialWorkflowUnlocked && latestAssetReadyEvent && latestReadyAsset ? [
     {
       actionType: 'social_post_prepare',
@@ -1653,7 +1862,7 @@ const ActionConsolePage = () => {
     }] : [])
   ] : [];
 
-  const actionCards = [...baseActionCards, ...browserActionCards, ...jobActionCards, ...profileActionCards, ...podActionCards, ...socialActionCards];
+  const actionCards = [...baseActionCards, ...browserActionCards, ...jobActionCards, ...profileActionCards, ...podActionCards, ...commerceActionCards, ...socialActionCards];
 
   const latestApproval = (card) => approvals.find(item => {
     const matchesAction = item.actionType === card.actionType && ['requested', 'approved'].includes(item.status);
@@ -1681,7 +1890,7 @@ const ActionConsolePage = () => {
           payload: {
             ...(typeof card.payload === 'function' ? card.payload() : {}),
             preview: card.summary,
-            externalExecution: card.actionType.startsWith('browser_') || card.actionType === 'job_application_submit_approved' || card.actionType.startsWith('gfxtools_') || card.actionType.startsWith('shopify_') || card.actionType.startsWith('printify_') || card.actionType === 'social_post_schedule_approved'
+            externalExecution: card.actionType.startsWith('browser_') || card.actionType === 'job_application_submit_approved' || card.actionType.startsWith('gfxtools_') || card.actionType.startsWith('shopify_') || card.actionType.startsWith('printify_') || ['design_create', 'product_sync', 'aftership_connect'].includes(card.actionType) || card.actionType === 'social_post_schedule_approved'
           }
         })
       });
@@ -1748,7 +1957,7 @@ const ActionConsolePage = () => {
             payload: typeof card.payload === 'function' ? card.payload() : {}
           })
         });
-      } else if (card.actionType.startsWith('job_') || card.actionType === 'resume_version_write' || card.actionType.startsWith('pod_') || card.actionType.startsWith('gfxtools_') || card.actionType.startsWith('shopify_') || card.actionType.startsWith('printify_') || card.actionType.startsWith('social_')) {
+      } else if (card.actionType.startsWith('job_') || card.actionType === 'resume_version_write' || card.actionType.startsWith('pod_') || card.actionType.startsWith('gfxtools_') || card.actionType.startsWith('shopify_') || card.actionType.startsWith('printify_') || ['design_create', 'product_sync', 'aftership_connect'].includes(card.actionType) || card.actionType.startsWith('social_')) {
         await apiJson('/api/actions/execute', {
           method: 'POST',
           body: JSON.stringify({
@@ -2162,6 +2371,78 @@ const ActionConsolePage = () => {
                     ) : (
                       <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
                         No Shopify or Printify payloads yet. These appear only after a ready asset is approved for connector preparation.
+                      </div>
+                    )}
+                  </div>
+                </article>
+
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Shopify Products</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{shopifyProducts.length}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {shopifyProducts.length ? shopifyProducts.slice(0, 5).map(item => (
+                      <div key={item.productId} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                          <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.title}</div>
+                          <Badge variant="outline" className="border-white/10 text-white/45">{item.status}</Badge>
+                        </div>
+                        <div style={{ marginTop: 7, color: 'rgba(255,255,255,0.56)', fontSize: '0.76rem', lineHeight: 1.5 }}>
+                          provider: {item.fulfillmentProvider} · sync: {item.syncStatus} · external call: {item.externalCallPerformed ? 'yes' : 'no'}
+                        </div>
+                      </div>
+                    )) : (
+                      <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                        No Shopify product records yet. Product creation starts only from a ready GFX asset and an approval card.
+                      </div>
+                    )}
+                  </div>
+                </article>
+
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Fulfilment Providers</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{fulfillmentProviders.length}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {fulfillmentProviders.length ? fulfillmentProviders.slice(0, 8).map(item => {
+                      const tone = item.status === 'active' || item.status === 'connected' ? '#34d399' : item.status === 'configured_unverified' ? '#fbbf24' : '#94a3b8';
+                      return (
+                        <div key={item.provider} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                            <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.provider}</div>
+                            <Badge variant="outline" style={{ borderColor: 'rgba(255,255,255,0.1)', color: tone }}>{item.status}</Badge>
+                          </div>
+                          <div style={{ marginTop: 7, color: 'rgba(255,255,255,0.52)', fontSize: '0.73rem', lineHeight: 1.45 }}>
+                            {item.connection_type || item.connectionType} · {item.shopify_app_url || 'direct API connector'}
+                          </div>
+                        </div>
+                      );
+                    }) : (
+                      <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                        Provider manifest appears after the fulfilment read action runs. Shopify-app providers are routing-only in V2.
+                      </div>
+                    )}
+                  </div>
+                </article>
+
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Commerce Events</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{commerceEvents.length}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {commerceEvents.length ? commerceEvents.slice(0, 5).map(item => (
+                      <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                        <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.event_type || item.eventType}</div>
+                        <div style={{ marginTop: 7, color: 'rgba(255,255,255,0.52)', fontSize: '0.73rem', lineHeight: 1.45 }}>
+                          provider: {item.provider || 'n/a'} · asset: {(item.asset_id || item.assetId || '').slice(0, 8) || 'n/a'}
+                        </div>
+                      </div>
+                    )) : (
+                      <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                        No commerce handoff events yet. product_published and store_summary events appear only after approved operations.
                       </div>
                     )}
                   </div>

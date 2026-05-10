@@ -72,6 +72,10 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Added approved `gfxtools_asset_resize`, `shopify_product_prepare`, and `printify_design_prepare` actions. All route through `/api/actions/execute`, require an approved action card, and write audit rows.
 - Tightened the social pipeline contract: `social_post_prepare` now starts from a ready GFX asset with populated platform variants and an `asset_ready` event. Pending or failed assets are blocked.
 - Added social connector, draft, distribution rule, scheduled post, and fire-log UI inside `/actions`. Connector status never shows connected unless real provider verification exists, and missing credentials create blocked logs rather than fake posts.
+- Added V2 Shopify/POD operations schema for full commerce state: server-only connector secrets, Shopify store connections, fulfillment provider manifests, Shopify products, provider designs, provider syncs, collections, inventory, order/analytics summaries, AfterShip snapshots, bundles, marketplace status, and commerce handoff events.
+- Added V2 Shopify/POD operations tools through `/api/actions/execute`: `shopify_store_connect`, `shopify_store_status`, `shopify_product_create`, `shopify_product_publish`, `shopify_product_update`, `shopify_product_archive`, `fulfilment_provider_read`, `pod_provider_connect`, `design_create`, `product_sync`, `provider_product_status`, collection tools, inventory tools, orders/analytics reads, AfterShip reads, bundles, and marketplace status reads.
+- Added Shopify/POD operations UI inside `/actions`: approved product creation/publish/archive, direct POD design creation, provider sync, collection creation, inventory adjustment, bundle creation, Shopify products, fulfillment provider manifest, and commerce handoff events.
+- Connector safety rule is enforced in the operations layer: credentials stay server-side; missing credentials return disconnected or blocked states; Shopify-app POD providers are read/routing-only; direct API providers are Printify, Printful, and Gelato; AfterShip is read-only in V2.
 - Updated approval requests so non-end-to-end tools cannot receive fake approvals.
 - Updated the main CubiQo response surface with a component-library based "What I checked" collapsible that shows V1 tool activity inside the existing window.
 - Removed CubiQo runtime command execution. V1 no longer exposes `run_check`, no longer reads from the repo `scripts` directory, and no longer reports package scripts as product capability.
@@ -190,6 +194,15 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 | Shopify product preparation | Closed for V2 foundation | Approved `shopify_product_prepare` saves a Shopify product payload from a ready asset. Missing credentials produce blocked/disconnected state; no fake connected status. |
 | Printify design preparation | Closed for V2 foundation | Approved `printify_design_prepare` saves a Printify design/template payload from a ready asset. Missing credentials produce blocked/disconnected state; no fake connected status. |
 | Asset-to-social handoff | Closed | Social draft preparation requires `asset_id` plus `asset_ready` event. Pending/failed assets and direct URL-only handoff are blocked in the action path. |
+| Shopify store connect/status | Closed for V2 foundation | `shopify_store_connect` validates/stores credentials server-side only when connector encryption is configured; `shopify_store_status` returns real state and counts or disconnected/blocked state. QA schema is applied and table reachability passes. |
+| Shopify product create | Closed for V2 foundation | Approved `shopify_product_create` creates/prepares a draft product from a ready asset and selected provider; missing Shopify credentials create blocked local state, not fake external success. |
+| Shopify product lifecycle | Closed for V2 foundation | Approved publish/update/archive actions require preview cards, write audit rows, and publish emits `product_published` event. |
+| POD provider management | Closed for V2 foundation | `fulfilment_provider_read` returns direct API providers plus Shopify-app provider manifest; app providers are routing-only, direct providers require server-side credentials. |
+| Direct POD design/sync | Closed for V2 foundation | Approved `design_create` targets Printify/Printful/Gelato only; approved `product_sync` records provider-to-Shopify sync state without fake provider ids. |
+| Collections/inventory | Closed for V2 foundation | Approved collection create/assign and inventory update record before/after state through `/api/actions/execute`. |
+| Orders/analytics read-only | Closed for V2 foundation | Order and analytics reads store aggregate-only summaries and no raw customer PII. |
+| AfterShip read-only | Closed for V2 foundation | `aftership_connect` stores server-side credentials when encrypted; tracking/returns reads are read-only snapshots. |
+| Bundles/marketplaces | Closed for V2 foundation | Bundle create requires approval; marketplace status remains read-only in V2. |
 | Live browser/POD/social/camera/coder execution | Deferred intentionally | Locked until provider/API/browser runtime integrations, action-specific approval UX, and regression tests exist. |
 
 ## V2 Security Review Notes
@@ -215,6 +228,7 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - V2 job workflow tools: `/api/actions/execute`, `job_listings`, and `job_application_reviews`. This saves extracted job listings, prepares application review cards, and approves packages for visible submission only.
 - V2 job profile/resume tools: `/api/actions/execute`, `job_profiles`, and `resume_versions`. This stores approved career profile context and append-only resume versions in Supabase only.
 - V2 POD business connector tools: `/api/actions/execute`, `pod_design_briefs`, `gfxtools_jobs`, `gfx_assets`, `asset_ready_events`, `shopify_product_preparations`, and `printify_design_preparations`. This reports read-only connector state, stores approved POD creative briefs, submits approved GFXTools jobs when configured, stores asset status truthfully, creates platform variants, and prepares Shopify/Printify payloads.
+- V2 Shopify/POD operations tools: `/api/actions/execute`, `commerce_connector_secrets`, `shopify_store_connections`, `fulfillment_provider_statuses`, `shopify_products`, `provider_designs`, `provider_product_syncs`, `shopify_collections`, `shopify_inventory_*`, `shopify_order_summaries`, `aftership_*`, `shopify_analytics_snapshots`, `shopify_bundles`, `marketplace_status_snapshots`, and `commerce_events`. This keeps credentials server-side, blocks missing providers truthfully, and emits commerce handoff events for later social/daily-report use.
 - V2 social content/distribution tools: `/api/actions/execute`, `social_content_drafts`, `social_distribution_rules`, `social_scheduled_posts`, and `social_post_fire_logs`. This prepares platform-aware draft variants, stores approved cadence rules, records scheduled post rows, and blocks missing-credential platforms truthfully without client-side platform API calls.
 - V2 Action Console: `/actions`, linked from the left tray and dashboard feature card.
 - V2 Action Console now shows the capability boundary from the manifest instead of vague future-work text.
@@ -223,8 +237,8 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 
 Current blocker:
 
-- No active Supabase schema blocker remains for the QA project. Base tables plus V2 approval/audit/task/report/browser/job/profile/resume/POD tables are applied and verified against `https://oszlufrjvibrdauuppzj.supabase.co`.
-- Live browser/job external submission/POD external call/social platform posting/payment/camera/coder execution tools are intentionally locked in the capability manifest until their provider integrations and action-specific approval UX are ready.
+- No active Supabase schema blocker remains for the QA project. Base tables plus V2 approval/audit/task/report/browser/job/profile/resume/POD/social/commerce tables are applied and verified against `https://oszlufrjvibrdauuppzj.supabase.co`.
+- Live browser/job external submission/POD external call/social platform posting/payment/camera/coder execution tools are intentionally locked or blocked unless their provider integrations, credentials, and action-specific approval UX are present.
 
 ## Regression Gate Before Push
 
@@ -244,13 +258,14 @@ Latest result:
 - `npm run build`: pass; routes expose `/`, `/app`, `/actions`, `/auth/callback`, `/dashboard`, `/journal`, and API routes only. `/signal` is not routable.
 - `npm run build`: known warning remains for `/api/agent` because V1 repo inspection performs runtime filesystem reads. This is intentional for read-only self-inspection and should be watched before production promotion.
 - Local route smoke on `127.0.0.1:3037`: `/`, `/app`, `/dashboard`, `/journal`, and `/actions` returned `200`.
-- `npm run verify:cqai`: pass against QA Supabase. The verifier now uses admin-created confirmed test users only and does not send public signup/magic-link emails.
+- `npm run verify:cqai`: pass against QA Supabase. The verifier now checks the Shopify/POD operations tables in addition to the prior V2 schema.
 - E2E save/read/delete: pass for authenticated `journal_entries` and `signals`.
 - RLS denial: pass; anonymous writes to `journal_entries` and `signals` are denied.
 - V2 job profile/resume regression: pass; `job_profiles` and `resume_versions` are reachable, anonymous/direct client writes are denied, approved server-boundary writes pass, and two resume versions can coexist without overwrite.
 - V2 POD connector regression: pass; `pod_design_briefs` and `gfxtools_jobs` are reachable, anonymous/direct client writes are denied, approved server-boundary writes pass, connector status does not fake connected state, and GFXTools preparation keeps `externalCallPerformed = false`.
 - V2 social distribution regression: pass; `social_content_drafts`, `social_distribution_rules`, `social_scheduled_posts`, and `social_post_fire_logs` are reachable, anonymous/direct client writes are denied, approved server-boundary writes pass, schedule cadence is user-configurable, missing platform credentials produce blocked logs, and external platform calls remain false.
 - V2 POD asset regression: pass; `gfx_assets`, `asset_ready_events`, `shopify_product_preparations`, and `printify_design_preparations` are reachable. Anonymous/direct client writes are denied, service-boundary writes with approval pass, and social draft creation is tied to ready asset handoff state.
+- V2 Shopify/POD operations regression: pass; `commerce_connector_secrets`, `shopify_store_connections`, `fulfillment_provider_statuses`, `shopify_products`, `provider_designs`, `provider_product_syncs`, `shopify_collections`, `shopify_collection_assignments`, `shopify_inventory_levels`, `shopify_inventory_adjustments`, `shopify_order_summaries`, `aftership_connections`, `aftership_tracking_snapshots`, `aftership_return_snapshots`, `shopify_analytics_snapshots`, `shopify_bundles`, `marketplace_status_snapshots`, and `commerce_events` are reachable in QA.
 - Voice cue route: verified wired to ElevenLabs config (`River neutral/androgynous`, `eleven_flash_v2_5`) but audio generation is currently blocked by ElevenLabs quota; route returns `elevenlabs_error` when the key is present and provider fails.
 
 ## Preview Deployment
