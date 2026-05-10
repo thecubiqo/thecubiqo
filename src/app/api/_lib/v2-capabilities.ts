@@ -341,16 +341,29 @@ export const V2_CAPABILITIES: V2Capability[] = [
     externalAction: false
   },
   {
+    actionType: 'social_connector_status',
+    toolName: 'social_connector_status',
+    label: 'Social connector status',
+    category: 'Social/Affiliate',
+    status: 'read_only',
+    approvalRequired: false,
+    approvalRequestable: false,
+    endpoint: '/api/actions/execute',
+    summary: 'Read-only server-side social platform connector state. Missing credentials return disconnected and never fake connected.',
+    requirements: ['server-side credential check only', 'no frontend key exposure', 'no fake connected state'],
+    externalAction: false
+  },
+  {
     actionType: 'social_post_prepare',
     toolName: 'social_post_prepare',
     label: 'Social post prepare',
     category: 'Social/Affiliate',
-    status: 'locked',
+    status: 'active',
     approvalRequired: true,
-    approvalRequestable: false,
-    endpoint: null,
-    summary: 'Locked for persistence/execution. V1 can draft in-session content only.',
-    requirements: ['campaign schema', 'platform rules', 'approval card'],
+    approvalRequestable: true,
+    endpoint: '/api/actions/execute',
+    summary: 'Creates platform-aware social draft variants from an approved asset and stores them in user-owned Supabase state.',
+    requirements: ['signed-in user', 'approved social_post_prepare approval', 'image/video URL or GFXTools output asset', 'platform-aware preview card'],
     externalAction: false
   },
   {
@@ -358,12 +371,12 @@ export const V2_CAPABILITIES: V2Capability[] = [
     toolName: 'social_post_schedule_approved',
     label: 'Schedule social post',
     category: 'Social/Affiliate',
-    status: 'locked',
+    status: 'active',
     approvalRequired: true,
-    approvalRequestable: false,
-    endpoint: null,
-    summary: 'Locked until platform APIs or approved browser fallback are integrated.',
-    requirements: ['platform connector', 'account connection', 'post preview', 'approval card', 'audit log'],
+    approvalRequestable: true,
+    endpoint: '/api/actions/execute',
+    summary: 'Creates an approved, user-configurable distribution rule and scheduled post rows. Missing platform credentials block firing instead of faking connection.',
+    requirements: ['signed-in user', 'approved social_post_schedule_approved approval', 'full platform content preview', 'cadence preview', 'connector status check'],
     externalAction: true
   },
   {

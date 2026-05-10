@@ -248,7 +248,15 @@ async function verifyUserOwnedCrud(config) {
       podBriefServerInsertWithApproval: false,
       anonGfxToolsJobInsertDenied: false,
       gfxToolsJobDirectInsertDenied: false,
-      gfxToolsJobServerInsertWithApproval: false
+      gfxToolsJobServerInsertWithApproval: false,
+      anonSocialDraftInsertDenied: false,
+      socialDraftDirectInsertDenied: false,
+      socialDraftServerInsertWithApproval: false,
+      anonSocialRuleInsertDenied: false,
+      socialRuleDirectInsertDenied: false,
+      socialRuleServerInsertWithApproval: false,
+      socialScheduledPostServerInsertWithApproval: false,
+      socialFireLogServerInsertWithApproval: false
     },
     rls: { anonJournalInsertDenied: false, anonSignalInsertDenied: false },
     error: null
@@ -1214,6 +1222,252 @@ async function verifyUserOwnedCrud(config) {
       gfxJobRow.approval_id === gfxApproval?.id &&
       gfxJobRow.external_call_performed === false
     );
+
+    const anonSocialDraft = await requestJson(`${config.url}/rest/v1/social_content_drafts`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        asset_url: 'https://example.com/anon.png',
+        platforms: ['linkedin'],
+        variants: { linkedin: [{ caption: 'RLS should reject this.' }] }
+      })
+    });
+    result.v2.anonSocialDraftInsertDenied = !anonSocialDraft.response.ok;
+
+    const socialPrepareApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'social_post_prepare',
+        tool_name: 'social_post_prepare',
+        title: 'Prepare social draft test',
+        summary: 'Approve platform-aware social draft preparation.',
+        payload: {
+          previewCard: {
+            title: 'Social draft preparation preview',
+            assetUrl: 'https://example.com/e2e-social.png',
+            platforms: ['linkedin', 'instagram', 'x']
+          }
+        },
+        risk_level: 'medium'
+      })
+    });
+    const socialPrepareApproval = Array.isArray(socialPrepareApprovalInsert.body) ? socialPrepareApprovalInsert.body[0] : null;
+    if (socialPrepareApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${socialPrepareApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+
+    const directSocialDraft = socialPrepareApproval?.id ? await requestJson(`${config.url}/rest/v1/social_content_drafts?select=id,user_id,approval_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: socialPrepareApproval.id,
+        asset_url: 'https://example.com/direct-social.png',
+        asset_type: 'image',
+        asset_source: 'url',
+        platforms: ['linkedin'],
+        variants: { linkedin: [{ caption: 'Direct client should fail' }] },
+        preview_card: { title: 'Direct client should fail' }
+      })
+    }) : null;
+    result.v2.socialDraftDirectInsertDenied = Boolean(directSocialDraft && !directSocialDraft.response.ok);
+
+    const serverSocialDraft = socialPrepareApproval?.id ? await requestJson(`${config.url}/rest/v1/social_content_drafts?select=id,user_id,approval_id,asset_url,platforms,status`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: socialPrepareApproval.id,
+        asset_url: 'https://example.com/e2e-social.png',
+        asset_type: 'image',
+        asset_source: 'url',
+        platforms: ['linkedin', 'instagram', 'x'],
+        variants: {
+          linkedin: [{ platform: 'linkedin', variantIndex: 0, caption: 'E2E LinkedIn caption', hashtags: ['#AI'], cta: 'Review' }],
+          instagram: [{ platform: 'instagram', variantIndex: 0, caption: 'E2E Instagram caption', hashtags: ['#POD'], cta: 'Save' }],
+          x: [{ platform: 'x', variantIndex: 0, caption: 'E2E X caption', hashtags: ['#Build'], cta: 'Reply' }]
+        },
+        content_context: { source: 'verify:cqai' },
+        preview_card: { title: 'Social draft preparation preview' }
+      })
+    }) : null;
+    const socialDraftRow = Array.isArray(serverSocialDraft?.body) ? serverSocialDraft.body[0] : null;
+    result.v2.socialDraftServerInsertWithApproval = Boolean(
+      serverSocialDraft?.response.ok &&
+      socialDraftRow?.id &&
+      socialDraftRow.user_id === userId &&
+      socialDraftRow.approval_id === socialPrepareApproval?.id &&
+      Array.isArray(socialDraftRow.platforms) &&
+      socialDraftRow.platforms.includes('linkedin')
+    );
+
+    const anonSocialRule = await requestJson(`${config.url}/rest/v1/social_distribution_rules`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        name: 'Anon social rule should fail',
+        interval_minutes: 10,
+        platforms: ['linkedin']
+      })
+    });
+    result.v2.anonSocialRuleInsertDenied = !anonSocialRule.response.ok;
+
+    const socialScheduleApprovalInsert = socialDraftRow?.id ? await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'social_post_schedule_approved',
+        tool_name: 'social_post_schedule_approved',
+        title: 'Schedule social cadence test',
+        summary: 'Approve a user-configurable social distribution rule.',
+        payload: {
+          previewCard: {
+            title: 'Social distribution approval preview',
+            draftId: socialDraftRow.id,
+            platforms: ['linkedin', 'instagram', 'x'],
+            cadence: { intervalMinutes: 10, variantRotationCount: 1 }
+          }
+        },
+        risk_level: 'high'
+      })
+    }) : null;
+    const socialScheduleApproval = Array.isArray(socialScheduleApprovalInsert?.body) ? socialScheduleApprovalInsert.body[0] : null;
+    if (socialScheduleApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${socialScheduleApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+
+    const directSocialRule = socialScheduleApproval?.id ? await requestJson(`${config.url}/rest/v1/social_distribution_rules?select=id,user_id,approval_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: socialScheduleApproval.id,
+        social_content_draft_id: socialDraftRow.id,
+        name: 'Direct client should fail',
+        interval_minutes: 10,
+        platforms: ['linkedin'],
+        variant_rotation_count: 1,
+        preview_card: { title: 'Direct client should fail' }
+      })
+    }) : null;
+    result.v2.socialRuleDirectInsertDenied = Boolean(directSocialRule && !directSocialRule.response.ok);
+
+    const serverSocialRule = socialScheduleApproval?.id ? await requestJson(`${config.url}/rest/v1/social_distribution_rules?select=id,user_id,approval_id,social_content_draft_id,interval_minutes,platforms,status`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: socialScheduleApproval.id,
+        social_content_draft_id: socialDraftRow.id,
+        name: 'E2E social cadence',
+        interval_minutes: 10,
+        platforms: ['linkedin', 'instagram', 'x'],
+        variant_rotation_count: 1,
+        timezone: 'UTC',
+        start_at: new Date().toISOString(),
+        status: 'paused_missing_credentials',
+        rule_payload: { source: 'verify:cqai', externalCallsPerformed: false },
+        preview_card: { title: 'Social distribution approval preview' }
+      })
+    }) : null;
+    const socialRuleRow = Array.isArray(serverSocialRule?.body) ? serverSocialRule.body[0] : null;
+    result.v2.socialRuleServerInsertWithApproval = Boolean(
+      serverSocialRule?.response.ok &&
+      socialRuleRow?.id &&
+      socialRuleRow.user_id === userId &&
+      socialRuleRow.approval_id === socialScheduleApproval?.id &&
+      socialRuleRow.interval_minutes === 10
+    );
+
+    const serverSocialScheduledPost = socialRuleRow?.id ? await requestJson(`${config.url}/rest/v1/social_scheduled_posts?select=id,user_id,approval_id,distribution_rule_id,platform,status,connector_state`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: socialScheduleApproval.id,
+        distribution_rule_id: socialRuleRow.id,
+        social_content_draft_id: socialDraftRow.id,
+        platform: 'linkedin',
+        variant_index: 0,
+        scheduled_for: new Date().toISOString(),
+        status: 'blocked_missing_credentials',
+        connector_state: 'disconnected',
+        asset_url: socialDraftRow.asset_url,
+        content_payload: { caption: 'E2E LinkedIn caption', externalCallPerformed: false }
+      })
+    }) : null;
+    const socialScheduledRow = Array.isArray(serverSocialScheduledPost?.body) ? serverSocialScheduledPost.body[0] : null;
+    result.v2.socialScheduledPostServerInsertWithApproval = Boolean(
+      serverSocialScheduledPost?.response.ok &&
+      socialScheduledRow?.id &&
+      socialScheduledRow.user_id === userId &&
+      socialScheduledRow.approval_id === socialScheduleApproval?.id &&
+      socialScheduledRow.status === 'blocked_missing_credentials'
+    );
+
+    const serverSocialFireLog = socialScheduledRow?.id ? await requestJson(`${config.url}/rest/v1/social_post_fire_logs?select=id,user_id,approval_id,scheduled_post_id,platform,status`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: socialScheduleApproval.id,
+        scheduled_post_id: socialScheduledRow.id,
+        platform: 'linkedin',
+        asset_url: socialDraftRow.asset_url,
+        status: 'blocked',
+        message: 'E2E social post blocked because connector credentials are missing.',
+        result: { connectorState: 'disconnected', externalCallPerformed: false }
+      })
+    }) : null;
+    const socialFireLogRow = Array.isArray(serverSocialFireLog?.body) ? serverSocialFireLog.body[0] : null;
+    result.v2.socialFireLogServerInsertWithApproval = Boolean(
+      serverSocialFireLog?.response.ok &&
+      socialFireLogRow?.id &&
+      socialFireLogRow.user_id === userId &&
+      socialFireLogRow.approval_id === socialScheduleApproval?.id &&
+      socialFireLogRow.status === 'blocked'
+    );
   } catch (error) {
     result.error = error.message || String(error);
   } finally {
@@ -1365,7 +1619,11 @@ async function main() {
     'job_profiles',
     'resume_versions',
     'pod_design_briefs',
-    'gfxtools_jobs'
+    'gfxtools_jobs',
+    'social_content_drafts',
+    'social_distribution_rules',
+    'social_scheduled_posts',
+    'social_post_fire_logs'
   ]) {
     tables.push(await verifyTable(config, table));
   }

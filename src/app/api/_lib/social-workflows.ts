@@ -1,0 +1,542 @@
+import { NextResponse } from 'next/server';
+import { ApiUserContext, missingMigrationResponse, safeTableMissing } from './supabase-admin';
+
+export const SOCIAL_ACTION_TYPES = [
+  'social_post_prepare',
+  'social_post_schedule_approved'
+] as const;
+
+export type SocialActionType = typeof SOCIAL_ACTION_TYPES[number];
+
+type SocialErrorResult = { error: Response | Error };
+type SocialBlockedResult = { blocked: string; status?: number };
+
+const SOCIAL_PLATFORMS = ['linkedin', 'instagram', 'x', 'tiktok', 'facebook', 'pinterest'] as const;
+type SocialPlatform = typeof SOCIAL_PLATFORMS[number];
+
+type ConnectorState = 'disconnected' | 'configured_unverified' | 'connected';
+
+export function isSocialAction(actionType: string): actionType is SocialActionType {
+  return SOCIAL_ACTION_TYPES.includes(actionType as SocialActionType);
+}
+
+function cleanEnv(...values: Array<string | undefined>) {
+  const value = values.find(Boolean);
+  return value ? value.trim().replace(/^['"]|['"]$/g, '') : '';
+}
+
+function normalizeText(value: unknown, max = 1000) {
+  return String(value || '').trim().slice(0, max);
+}
+
+function normalizeNullableText(value: unknown, max = 1000) {
+  const text = normalizeText(value, max);
+  return text || null;
+}
+
+function normalizeJsonObject(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function normalizeStringArray(value: unknown, maxItems = 20, maxLength = 120) {
+  const input = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(',')
+      : [];
+  return input
+    .map(item => normalizeText(item, maxLength))
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+function getPayloadField(payload: Record<string, unknown>, camel: string, snake: string) {
+  return payload[camel] ?? payload[snake];
+}
+
+function normalizePlatform(value: unknown): SocialPlatform | null {
+  const raw = normalizeText(value, 40).toLowerCase().replace(/^twitter$/, 'x');
+  return SOCIAL_PLATFORMS.includes(raw as SocialPlatform) ? raw as SocialPlatform : null;
+}
+
+function normalizePlatforms(value: unknown) {
+  const platforms = normalizeStringArray(value, 10, 40)
+    .map(normalizePlatform)
+    .filter(Boolean) as SocialPlatform[];
+  return Array.from(new Set(platforms)).slice(0, 10);
+}
+
+function normalizeUrl(value: unknown) {
+  const raw = normalizeText(value, 1600);
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (!['http:', 'https:'].includes(url.protocol)) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function normalizePositiveInt(value: unknown, fallback: number, max = 1000) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(Math.floor(parsed), max);
+}
+
+function normalizePreviewCard(value: unknown) {
+  const preview = normalizeJsonObject(value);
+  return Object.keys(preview).length ? preview : null;
+}
+
+export function getSocialApprovalPreviewCard(approval: Record<string, any> | undefined | null) {
+  const payload = normalizeJsonObject(approval?.payload);
+  return normalizePreviewCard(payload.previewCard || payload.preview_card);
+}
+
+function connectorStatus(provider: SocialPlatform) {
+  const configs = {
+    linkedin: { label: 'LinkedIn', present: [cleanEnv(process.env.LINKEDIN_ACCESS_TOKEN)] },
+    instagram: { label: 'Instagram', present: [cleanEnv(process.env.INSTAGRAM_ACCESS_TOKEN, process.env.META_ACCESS_TOKEN)] },
+    x: { label: 'X/Twitter', present: [cleanEnv(process.env.X_ACCESS_TOKEN, process.env.TWITTER_ACCESS_TOKEN)] },
+    tiktok: { label: 'TikTok', present: [cleanEnv(process.env.TIKTOK_ACCESS_TOKEN)] },
+    facebook: { label: 'Facebook', present: [cleanEnv(process.env.FACEBOOK_ACCESS_TOKEN, process.env.META_ACCESS_TOKEN)] },
+    pinterest: { label: 'Pinterest', present: [cleanEnv(process.env.PINTEREST_ACCESS_TOKEN)] }
+  }[provider];
+
+  const state: ConnectorState = configs.present.every(Boolean) ? 'configured_unverified' : 'disconnected';
+  return {
+    provider,
+    label: configs.label,
+    state,
+    connected: false,
+    credentialStatus: state === 'disconnected' ? 'missing' : 'present_server_side_unverified',
+    checkedAt: new Date().toISOString(),
+    source: 'server_env_only',
+    note: state === 'disconnected'
+      ? `${configs.label} credentials are not configured server-side.`
+      : `${configs.label} credentials exist server-side, but no provider verification call has confirmed connection yet.`
+  };
+}
+
+export function getSocialConnectorStatuses(platforms?: SocialPlatform[]) {
+  const list = (platforms?.length ? platforms : SOCIAL_PLATFORMS).map(connectorStatus);
+  return { connectors: list };
+}
+
+function mapSocialDraft(row: Record<string, any>) {
+  return {
+    id: row.id,
+    approvalId: row.approval_id,
+    gfxToolsJobId: row.gfx_tools_job_id,
+    assetUrl: row.asset_url,
+    assetType: row.asset_type,
+    assetSource: row.asset_source,
+    platforms: row.platforms || [],
+    variants: row.variants || {},
+    contentContext: row.content_context || {},
+    previewCard: row.preview_card || {},
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function mapDistributionRule(row: Record<string, any>) {
+  return {
+    id: row.id,
+    approvalId: row.approval_id,
+    socialContentDraftId: row.social_content_draft_id,
+    name: row.name,
+    intervalMinutes: row.interval_minutes,
+    platforms: row.platforms || [],
+    variantRotationCount: row.variant_rotation_count,
+    timezone: row.timezone,
+    startAt: row.start_at,
+    endAt: row.end_at,
+    status: row.status,
+    rulePayload: row.rule_payload || {},
+    previewCard: row.preview_card || {},
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function mapScheduledPost(row: Record<string, any>) {
+  return {
+    id: row.id,
+    approvalId: row.approval_id,
+    distributionRuleId: row.distribution_rule_id,
+    socialContentDraftId: row.social_content_draft_id,
+    platform: row.platform,
+    variantIndex: row.variant_index,
+    scheduledFor: row.scheduled_for,
+    status: row.status,
+    connectorState: row.connector_state,
+    assetUrl: row.asset_url,
+    contentPayload: row.content_payload || {},
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function mapFireLog(row: Record<string, any>) {
+  return {
+    id: row.id,
+    approvalId: row.approval_id,
+    scheduledPostId: row.scheduled_post_id,
+    platform: row.platform,
+    assetUrl: row.asset_url,
+    status: row.status,
+    message: row.message,
+    result: row.result || {},
+    createdAt: row.created_at
+  };
+}
+
+export async function listSocialState(auth: ApiUserContext): Promise<{
+  connectors: ReturnType<typeof connectorStatus>[];
+  drafts: ReturnType<typeof mapSocialDraft>[];
+  distributionRules: ReturnType<typeof mapDistributionRule>[];
+  scheduledPosts: ReturnType<typeof mapScheduledPost>[];
+  fireLogs: ReturnType<typeof mapFireLog>[];
+} | SocialErrorResult> {
+  const [draftsResult, rulesResult, scheduledResult, logsResult] = await Promise.all([
+    auth.supabase
+      .from('social_content_drafts')
+      .select('id,approval_id,gfx_tools_job_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
+      .eq('user_id', auth.user.id)
+      .order('created_at', { ascending: false })
+      .limit(12),
+    auth.supabase
+      .from('social_distribution_rules')
+      .select('id,approval_id,social_content_draft_id,name,interval_minutes,platforms,variant_rotation_count,timezone,start_at,end_at,status,rule_payload,preview_card,created_at,updated_at')
+      .eq('user_id', auth.user.id)
+      .order('created_at', { ascending: false })
+      .limit(12),
+    auth.supabase
+      .from('social_scheduled_posts')
+      .select('id,approval_id,distribution_rule_id,social_content_draft_id,platform,variant_index,scheduled_for,status,connector_state,asset_url,content_payload,created_at,updated_at')
+      .eq('user_id', auth.user.id)
+      .order('scheduled_for', { ascending: true })
+      .limit(24),
+    auth.supabase
+      .from('social_post_fire_logs')
+      .select('id,approval_id,scheduled_post_id,platform,asset_url,status,message,result,created_at')
+      .eq('user_id', auth.user.id)
+      .order('created_at', { ascending: false })
+      .limit(24)
+  ]);
+
+  for (const result of [draftsResult, rulesResult, scheduledResult, logsResult]) {
+    if (result.error) {
+      if (safeTableMissing(result.error)) return { error: missingMigrationResponse('social', 'social_content_distribution') };
+      return { error: result.error };
+    }
+  }
+
+  return {
+    ...getSocialConnectorStatuses(),
+    drafts: (draftsResult.data || []).map(mapSocialDraft),
+    distributionRules: (rulesResult.data || []).map(mapDistributionRule),
+    scheduledPosts: (scheduledResult.data || []).map(mapScheduledPost),
+    fireLogs: (logsResult.data || []).map(mapFireLog)
+  };
+}
+
+async function loadGfxToolsOutput(auth: ApiUserContext, id: string) {
+  const { data, error } = await auth.supabase
+    .from('gfxtools_jobs')
+    .select('id,job_payload,external_job_id,external_call_performed,status')
+    .eq('id', id)
+    .eq('user_id', auth.user.id)
+    .maybeSingle();
+  if (error) {
+    if (safeTableMissing(error)) return { error: missingMigrationResponse('social', 'gfxtools_jobs') };
+    return { error };
+  }
+  if (!data) return { blocked: 'GFXTools job not found for this user.', status: 404 };
+  const jobPayload = normalizeJsonObject(data.job_payload);
+  const outputUrl = normalizeUrl(jobPayload.outputUrl || jobPayload.output_url || jobPayload.generatedAssetUrl || jobPayload.generated_asset_url || jobPayload.imageUrl || jobPayload.videoUrl);
+  if (!outputUrl) {
+    return {
+      blocked: 'GFXTools job output is missing. Prepare content with an image/video URL or attach a GFXTools job that has a real output asset.',
+      status: 400
+    };
+  }
+  return { gfxToolsJobId: data.id, outputUrl, jobPayload };
+}
+
+function platformVariant(platform: SocialPlatform, base: { topic: string; product: string; audience: string; cta: string; assetUrl: string }, index: number) {
+  const n = index + 1;
+  const table: Record<SocialPlatform, { caption: string; hashtags: string[]; cta: string }> = {
+    linkedin: {
+      caption: `${base.topic}\n\nFor ${base.audience}, this ${base.product} is positioned around practical identity: what you build, how you show up, and why the work matters. Variant ${n} keeps the tone professional and useful.`,
+      hashtags: ['#AI', '#Founders', '#ProductStrategy', '#BuildInPublic'],
+      cta: base.cta || 'Comment if this should become a full launch collection.'
+    },
+    instagram: {
+      caption: `${base.product} energy for ${base.audience}. Clean signal, premium feel, made to look quiet but intentional. Variant ${n}.`,
+      hashtags: ['#AIStyle', '#PODBrand', '#FounderWear', '#DesignDrop'],
+      cta: base.cta || 'Save this and vote on the next colorway.'
+    },
+    x: {
+      caption: `${base.topic} for ${base.audience}: a ${base.product} with quiet signal-wave energy. Variant ${n}.`,
+      hashtags: ['#AI', '#POD', '#BrandBuild'],
+      cta: base.cta || 'Reply with the next drop idea.'
+    },
+    tiktok: {
+      caption: `Drop concept ${n}: ${base.product} for ${base.audience}. Hook: the uniform for people building with AI before everyone else catches up.`,
+      hashtags: ['#AITok', '#ClothingBrand', '#POD', '#StartupLife'],
+      cta: base.cta || 'Follow for the design process.'
+    },
+    facebook: {
+      caption: `New concept for ${base.audience}: ${base.product} built around ${base.topic}. Variant ${n} is meant to feel premium, wearable, and easy to explain.`,
+      hashtags: ['#SmallBusiness', '#AI', '#ClothingBrand'],
+      cta: base.cta || 'Tell me which audience this should target first.'
+    },
+    pinterest: {
+      caption: `${base.product} concept board: ${base.topic} for ${base.audience}. Minimal, premium, AI-native apparel direction. Variant ${n}.`,
+      hashtags: ['#ApparelDesign', '#PODDesign', '#AIArt', '#BrandMoodboard'],
+      cta: base.cta || 'Pin this for the launch moodboard.'
+    }
+  };
+  return table[platform];
+}
+
+function buildVariants(payload: Record<string, unknown>, platforms: SocialPlatform[], assetUrl: string) {
+  const variantCount = normalizePositiveInt(getPayloadField(payload, 'variantCount', 'variant_count'), 3, 10);
+  const base = {
+    topic: normalizeText(payload.topic, 180) || 'AI-native product energy',
+    product: normalizeText(getPayloadField(payload, 'productName', 'product_name'), 180) || 'POD apparel drop',
+    audience: normalizeText(getPayloadField(payload, 'targetAudience', 'target_audience'), 220) || 'builders and founders',
+    cta: normalizeText(payload.cta, 220),
+    assetUrl
+  };
+
+  return Object.fromEntries(platforms.map(platform => [
+    platform,
+    Array.from({ length: variantCount }, (_item, index) => ({
+      platform,
+      variantIndex: index,
+      caption: platformVariant(platform, base, index).caption,
+      hashtags: platformVariant(platform, base, index).hashtags,
+      cta: platformVariant(platform, base, index).cta,
+      assetUrl
+    }))
+  ]));
+}
+
+export async function prepareSocialPost(
+  auth: ApiUserContext,
+  approvalId: string,
+  payload: Record<string, unknown>,
+  approvalPreviewCard: Record<string, unknown> | null
+): Promise<{ draft: ReturnType<typeof mapSocialDraft>; previewCard: Record<string, unknown> } | SocialErrorResult | SocialBlockedResult> {
+  if (!approvalPreviewCard) return { blocked: 'social_post_prepare requires a preview_card in the approved action payload before writing.', status: 400 };
+  const platforms = normalizePlatforms(payload.platforms);
+  if (!platforms.length) return { blocked: 'At least one supported platform is required.', status: 400 };
+
+  const gfxToolsJobId = normalizeNullableText(getPayloadField(payload, 'gfxToolsJobId', 'gfx_tools_job_id'), 80);
+  let assetUrl = normalizeUrl(getPayloadField(payload, 'assetUrl', 'asset_url'));
+  let assetSource = 'url';
+  let assetType = normalizeText(getPayloadField(payload, 'assetType', 'asset_type'), 40) || 'image';
+
+  if (gfxToolsJobId) {
+    const output = await loadGfxToolsOutput(auth, gfxToolsJobId);
+    if ('error' in output) return { error: output.error };
+    if ('blocked' in output && output.blocked) return { blocked: output.blocked, status: output.status };
+    if (!output.outputUrl) return { blocked: 'GFXTools job output is missing.', status: 400 };
+    assetUrl = String(output.outputUrl);
+    assetSource = 'gfx_tools_job';
+    assetType = 'gfx_tools_job';
+  }
+
+  if (!assetUrl) return { blocked: 'A real image/video asset URL or GFXTools job output is required before preparing social content.', status: 400 };
+
+  const variants = buildVariants(payload, platforms, assetUrl);
+  const contentContext = {
+    topic: normalizeNullableText(payload.topic, 220),
+    productName: normalizeNullableText(getPayloadField(payload, 'productName', 'product_name'), 220),
+    targetAudience: normalizeNullableText(getPayloadField(payload, 'targetAudience', 'target_audience'), 500),
+    cta: normalizeNullableText(payload.cta, 300),
+    variantCount: normalizePositiveInt(getPayloadField(payload, 'variantCount', 'variant_count'), 3, 10)
+  };
+
+  const { data, error } = await auth.supabase
+    .from('social_content_drafts')
+    .insert({
+      user_id: auth.user.id,
+      approval_id: approvalId,
+      gfx_tools_job_id: gfxToolsJobId,
+      asset_url: assetUrl,
+      asset_type: assetType,
+      asset_source: assetSource,
+      platforms,
+      variants,
+      content_context: contentContext,
+      preview_card: approvalPreviewCard
+    })
+    .select('id,approval_id,gfx_tools_job_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
+    .single();
+
+  if (error) {
+    if (safeTableMissing(error)) return { error: missingMigrationResponse('social', 'social_content_drafts') };
+    return { error };
+  }
+
+  return { draft: mapSocialDraft(data), previewCard: approvalPreviewCard };
+}
+
+async function loadSocialDraft(auth: ApiUserContext, id: string) {
+  const { data, error } = await auth.supabase
+    .from('social_content_drafts')
+    .select('id,approval_id,gfx_tools_job_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
+    .eq('id', id)
+    .eq('user_id', auth.user.id)
+    .maybeSingle();
+  if (error) {
+    if (safeTableMissing(error)) return { error: missingMigrationResponse('social', 'social_content_drafts') };
+    return { error };
+  }
+  if (!data) return { blocked: 'Social content draft not found for this user.', status: 404 };
+  return { draft: mapSocialDraft(data) };
+}
+
+export async function scheduleSocialPost(
+  auth: ApiUserContext,
+  approvalId: string,
+  payload: Record<string, unknown>,
+  approvalPreviewCard: Record<string, unknown> | null
+): Promise<{
+  rule: ReturnType<typeof mapDistributionRule>;
+  scheduledPosts: ReturnType<typeof mapScheduledPost>[];
+  fireLogs: ReturnType<typeof mapFireLog>[];
+  connectors: ReturnType<typeof connectorStatus>[];
+  previewCard: Record<string, unknown>;
+} | SocialErrorResult | SocialBlockedResult> {
+  if (!approvalPreviewCard) return { blocked: 'social_post_schedule_approved requires a preview_card with full platform content and cadence before scheduling.', status: 400 };
+  const draftId = normalizeText(getPayloadField(payload, 'socialContentDraftId', 'social_content_draft_id'), 80);
+  if (!draftId) return { blocked: 'social_content_draft_id is required.', status: 400 };
+  const loaded = await loadSocialDraft(auth, draftId);
+  if (!('draft' in loaded) || !loaded.draft) return loaded;
+  const draft = loaded.draft as ReturnType<typeof mapSocialDraft>;
+
+  const requestedPlatforms = normalizePlatforms(payload.platforms);
+  const platforms = requestedPlatforms.length ? requestedPlatforms : normalizePlatforms(draft.platforms);
+  if (!platforms.length) return { blocked: 'At least one supported platform is required for scheduling.', status: 400 };
+  const intervalMinutes = normalizePositiveInt(getPayloadField(payload, 'intervalMinutes', 'interval_minutes'), 10, 1440);
+  const variantRotationCount = normalizePositiveInt(getPayloadField(payload, 'variantRotationCount', 'variant_rotation_count'), 1, 50);
+  const timezone = normalizeText(payload.timezone, 80) || 'UTC';
+  const name = normalizeText(payload.name, 180) || `Social distribution ${new Date().toISOString()}`;
+  const startAtRaw = normalizeText(getPayloadField(payload, 'startAt', 'start_at'), 100);
+  const startAt = startAtRaw && !Number.isNaN(new Date(startAtRaw).getTime())
+    ? new Date(startAtRaw)
+    : new Date();
+  const connectors = getSocialConnectorStatuses(platforms).connectors;
+  const missing = connectors.filter(item => item.state === 'disconnected').map(item => item.provider);
+  const status = missing.length ? 'paused_missing_credentials' : 'active';
+  const rulePayload = {
+    intervalMinutes,
+    platforms,
+    variantRotationCount,
+    timezone,
+    startAt: startAt.toISOString(),
+    missingCredentialPlatforms: missing,
+    fullContentByPlatform: Object.fromEntries(platforms.map(platform => [platform, normalizeJsonObject(draft.variants)[platform] || []])),
+    assetUrl: draft.assetUrl,
+    gfxToolsJobId: draft.gfxToolsJobId,
+    noClientPlatformCalls: true
+  };
+
+  const { data: ruleData, error: ruleError } = await auth.supabase
+    .from('social_distribution_rules')
+    .insert({
+      user_id: auth.user.id,
+      approval_id: approvalId,
+      social_content_draft_id: draft.id,
+      name,
+      interval_minutes: intervalMinutes,
+      platforms,
+      variant_rotation_count: variantRotationCount,
+      timezone,
+      start_at: startAt.toISOString(),
+      status,
+      rule_payload: rulePayload,
+      preview_card: approvalPreviewCard
+    })
+    .select('id,approval_id,social_content_draft_id,name,interval_minutes,platforms,variant_rotation_count,timezone,start_at,end_at,status,rule_payload,preview_card,created_at,updated_at')
+    .single();
+
+  if (ruleError) {
+    if (safeTableMissing(ruleError)) return { error: missingMigrationResponse('social', 'social_distribution_rules') };
+    return { error: ruleError };
+  }
+
+  const variants = normalizeJsonObject(draft.variants);
+  const scheduledRows = platforms.flatMap((platform, platformIndex) => {
+    const platformVariants = Array.isArray(variants[platform]) ? variants[platform] as Array<Record<string, unknown>> : [];
+    const connector = connectors.find(item => item.provider === platform);
+    return Array.from({ length: Math.min(variantRotationCount, Math.max(platformVariants.length, 1)) }, (_item, variantIndex) => ({
+      user_id: auth.user.id,
+      approval_id: approvalId,
+      distribution_rule_id: ruleData.id,
+      social_content_draft_id: draft.id,
+      platform,
+      variant_index: variantIndex,
+      scheduled_for: new Date(startAt.getTime() + (platformIndex + variantIndex) * intervalMinutes * 60000).toISOString(),
+      status: connector?.state === 'disconnected' ? 'blocked_missing_credentials' : 'pending',
+      connector_state: connector?.state || 'disconnected',
+      asset_url: draft.assetUrl,
+      content_payload: platformVariants[variantIndex % Math.max(platformVariants.length, 1)] || { platform, assetUrl: draft.assetUrl }
+    }));
+  });
+
+  const { data: scheduledData, error: scheduledError } = await auth.supabase
+    .from('social_scheduled_posts')
+    .insert(scheduledRows)
+    .select('id,approval_id,distribution_rule_id,social_content_draft_id,platform,variant_index,scheduled_for,status,connector_state,asset_url,content_payload,created_at,updated_at');
+
+  if (scheduledError) {
+    if (safeTableMissing(scheduledError)) return { error: missingMigrationResponse('social', 'social_scheduled_posts') };
+    return { error: scheduledError };
+  }
+
+  await auth.supabase
+    .from('social_content_drafts')
+    .update({ status: 'scheduled' })
+    .eq('id', draft.id)
+    .eq('user_id', auth.user.id);
+
+  const blockedRows = (scheduledData || []).filter((row: Record<string, any>) => row.status === 'blocked_missing_credentials');
+  let fireLogs: ReturnType<typeof mapFireLog>[] = [];
+  if (blockedRows.length) {
+    const { data: logData, error: logError } = await auth.supabase
+      .from('social_post_fire_logs')
+      .insert(blockedRows.map((row: Record<string, any>) => ({
+        user_id: auth.user.id,
+        approval_id: approvalId,
+        scheduled_post_id: row.id,
+        platform: row.platform,
+        asset_url: row.asset_url,
+        status: 'blocked',
+        message: `${row.platform} post blocked because connector credentials are missing.`,
+        result: { connectorState: row.connector_state, externalCallPerformed: false }
+      })))
+      .select('id,approval_id,scheduled_post_id,platform,asset_url,status,message,result,created_at');
+    if (logError) {
+      if (safeTableMissing(logError)) return { error: missingMigrationResponse('social', 'social_post_fire_logs') };
+      return { error: logError };
+    }
+    fireLogs = (logData || []).map(mapFireLog);
+  }
+
+  return {
+    rule: mapDistributionRule(ruleData),
+    scheduledPosts: (scheduledData || []).map(mapScheduledPost),
+    fireLogs,
+    connectors,
+    previewCard: approvalPreviewCard
+  };
+}

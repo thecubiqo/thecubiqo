@@ -66,6 +66,9 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Added V2 POD business connector layer through `/api/actions/execute`: read-only GFXTools/Shopify/Printify connector status, approved `pod_design_brief_create`, and approved `gfxtools_job_create` payload preparation.
 - Added user-owned, server-controlled Supabase tables `pod_design_briefs` and `gfxtools_jobs`. Users can read their own rows; direct browser-client writes are denied so approval/audit cannot be bypassed.
 - Added POD connector, design brief, and GFXTools payload UI inside `/actions`. Connector status never shows connected unless a real server-side verification path exists.
+- Added V2 social content pipeline through `/api/actions/execute`: read-only social connector state, approved `social_post_prepare`, and approved `social_post_schedule_approved`.
+- Added user-owned, server-controlled Supabase tables `social_content_drafts`, `social_distribution_rules`, `social_scheduled_posts`, and `social_post_fire_logs`. Users can read their own rows; direct browser-client writes are denied so approval/audit cannot be bypassed.
+- Added social connector, draft, distribution rule, scheduled post, and fire-log UI inside `/actions`. Connector status never shows connected unless real provider verification exists, and missing credentials create blocked logs rather than fake posts.
 - Updated approval requests so non-end-to-end tools cannot receive fake approvals.
 - Updated the main CubiQo response surface with a component-library based "What I checked" collapsible that shows V1 tool activity inside the existing window.
 - Removed CubiQo runtime command execution. V1 no longer exposes `run_check`, no longer reads from the repo `scripts` directory, and no longer reports package scripts as product capability.
@@ -175,6 +178,10 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 | POD design brief create | Closed for V2 foundation | Approved `pod_design_brief_create` saves structured creative brief data to `pod_design_briefs` through `/api/actions/execute`. |
 | GFXTools job create | Closed for V2 foundation | Approved `gfxtools_job_create` prepares and saves a provider payload in `gfxtools_jobs`; no external API call is performed in this step. |
 | POD/GFX RLS | Closed | Anonymous and direct client writes are denied for `pod_design_briefs` and `gfxtools_jobs`; server-boundary writes pass after approval. |
+| Social connector status | Closed for V2 foundation | `/api/actions/execute?social_state=1` returns LinkedIn, Instagram, X/Twitter, TikTok, Facebook, and Pinterest state from server-side configuration only. Missing credentials return `disconnected`; configured but unverified credentials return `configured_unverified`, never fake connected. |
+| Social post prepare | Closed for V2 foundation | Approved `social_post_prepare` generates platform-aware drafts from an approved asset URL or GFXTools output and saves them to `social_content_drafts`. |
+| Social cadence/schedule | Closed for V2 foundation | Approved `social_post_schedule_approved` creates user-configurable interval/platform/variant rules, scheduled post rows, and blocked fire logs when credentials are missing. |
+| Social workflow RLS | Closed | Anonymous and direct client writes are denied for `social_content_drafts`, `social_distribution_rules`, `social_scheduled_posts`, and `social_post_fire_logs`; server-boundary writes pass after approval. |
 | Live browser/POD/social/camera/coder execution | Deferred intentionally | Locked until provider/API/browser runtime integrations, action-specific approval UX, and regression tests exist. |
 
 ## V2 Security Review Notes
@@ -200,15 +207,16 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - V2 job workflow tools: `/api/actions/execute`, `job_listings`, and `job_application_reviews`. This saves extracted job listings, prepares application review cards, and approves packages for visible submission only.
 - V2 job profile/resume tools: `/api/actions/execute`, `job_profiles`, and `resume_versions`. This stores approved career profile context and append-only resume versions in Supabase only.
 - V2 POD business connector tools: `/api/actions/execute`, `pod_design_briefs`, and `gfxtools_jobs`. This reports read-only connector state, stores approved POD creative briefs, and prepares GFXTools payloads without external calls.
+- V2 social content/distribution tools: `/api/actions/execute`, `social_content_drafts`, `social_distribution_rules`, `social_scheduled_posts`, and `social_post_fire_logs`. This prepares platform-aware draft variants, stores approved cadence rules, records scheduled post rows, and blocks missing-credential platforms truthfully without client-side platform API calls.
 - V2 Action Console: `/actions`, linked from the left tray and dashboard feature card.
 - V2 Action Console now shows the capability boundary from the manifest instead of vague future-work text.
 - Database triggers require matching approved approvals before task/report writes, so Supabase direct writes cannot bypass approval.
-- Live browser/job/social/POD/payment/camera/coder execution tools remain intentionally locked until their API/provider integrations and approval UX are ready.
+- Live browser/job/social/POD/payment/camera/coder external execution tools remain intentionally locked until their API/provider integrations and approval UX are ready. The current social layer prepares/schedules internal state only and performs no platform posting.
 
 Current blocker:
 
 - No active Supabase schema blocker remains for the QA project. Base tables plus V2 approval/audit/task/report/browser/job/profile/resume/POD tables are applied and verified against `https://oszlufrjvibrdauuppzj.supabase.co`.
-- Live browser/job/social/POD/payment/camera/coder execution tools are intentionally locked in the capability manifest until their provider integrations and action-specific approval UX are ready.
+- Live browser/job external submission/POD external call/social platform posting/payment/camera/coder execution tools are intentionally locked in the capability manifest until their provider integrations and action-specific approval UX are ready.
 
 ## Regression Gate Before Push
 
@@ -233,6 +241,7 @@ Latest result:
 - RLS denial: pass; anonymous writes to `journal_entries` and `signals` are denied.
 - V2 job profile/resume regression: pass; `job_profiles` and `resume_versions` are reachable, anonymous/direct client writes are denied, approved server-boundary writes pass, and two resume versions can coexist without overwrite.
 - V2 POD connector regression: pass; `pod_design_briefs` and `gfxtools_jobs` are reachable, anonymous/direct client writes are denied, approved server-boundary writes pass, connector status does not fake connected state, and GFXTools preparation keeps `externalCallPerformed = false`.
+- V2 social distribution regression: pass; `social_content_drafts`, `social_distribution_rules`, `social_scheduled_posts`, and `social_post_fire_logs` are reachable, anonymous/direct client writes are denied, approved server-boundary writes pass, schedule cadence is user-configurable, missing platform credentials produce blocked logs, and external platform calls remain false.
 - Voice cue route: verified wired to ElevenLabs config (`River neutral/androgynous`, `eleven_flash_v2_5`) but audio generation is currently blocked by ElevenLabs quota; route returns `elevenlabs_error` when the key is present and provider fails.
 
 ## Preview Deployment

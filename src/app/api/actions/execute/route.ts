@@ -33,6 +33,14 @@ import {
   isPodAction,
   listPodBusinessState
 } from '../../_lib/pod-business-workflows';
+import {
+  getSocialApprovalPreviewCard,
+  getSocialConnectorStatuses,
+  isSocialAction,
+  listSocialState,
+  prepareSocialPost,
+  scheduleSocialPost
+} from '../../_lib/social-workflows';
 
 export const runtime = 'nodejs';
 
@@ -62,7 +70,140 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   }
 
+  if (request.nextUrl.searchParams.get('social_state') === '1') {
+    const result = await listSocialState(auth);
+    if ('error' in result && result.error) return result.error instanceof Response ? result.error : NextResponse.json({ error: result.error.message }, { status: 500 });
+    return NextResponse.json(result);
+  }
+
   return NextResponse.json({ error: 'Unsupported execute query' }, { status: 400 });
+}
+
+async function handleSocialConnectorStatusAction(auth: ApiUserContext, actionType: string, toolName: string) {
+  if (actionType !== 'social_connector_status') return null;
+  const statuses = getSocialConnectorStatuses().connectors;
+  await writeAudit(auth, {
+    actionType,
+    toolName,
+    status: 'completed',
+    message: 'Social connector status checked without exposing credentials',
+    result: { connectors: statuses, performedExternalAction: false }
+  });
+  return NextResponse.json({ executed: true, readOnly: true, connectors: statuses, performedExternalAction: false });
+}
+
+async function handleSocialAction(
+  auth: ApiUserContext,
+  actionType: string,
+  toolName: string,
+  body: Record<string, any>
+) {
+  if (!isSocialAction(actionType)) return null;
+
+  const capability = getActionCapability(actionType);
+  if (!capability || capability.status !== 'active') {
+    await writeAudit(auth, {
+      actionType,
+      toolName,
+      status: 'blocked',
+      message: 'Social workflow blocked because the capability is locked',
+      input: { actionType },
+      result: { capabilityStatus: capability?.status || 'missing', requirements: capability?.requirements || [] }
+    });
+    return NextResponse.json({ error: 'Social workflow is locked until this capability is active', executed: false, capability }, { status: 501 });
+  }
+
+  const approvalId = String(body.approvalId ?? body.approval_id ?? '').trim();
+  const approvalCheck = await requireApprovedAction(auth, approvalId, actionType);
+  if (approvalCheck.error) return approvalCheck.error;
+
+  const payload = normalizePayload(approvalCheck.approval?.payload);
+  const previewCard = getSocialApprovalPreviewCard(approvalCheck.approval);
+  try {
+    if (actionType === 'social_post_prepare') {
+      const prepared = await prepareSocialPost(auth, approvalId, payload, previewCard);
+      if ('error' in prepared && prepared.error) return prepared.error instanceof Response ? prepared.error : NextResponse.json({ error: prepared.error.message }, { status: 500 });
+      if ('blocked' in prepared && prepared.blocked) {
+        await writeAudit(auth, {
+          approvalId,
+          actionType,
+          toolName,
+          status: 'blocked',
+          message: prepared.blocked,
+          input: { platforms: payload.platforms, assetUrl: payload.assetUrl || payload.asset_url, gfxToolsJobId: payload.gfxToolsJobId || payload.gfx_tools_job_id }
+        });
+        return NextResponse.json({ error: prepared.blocked, executed: false }, { status: prepared.status || 400 });
+      }
+      if (!('draft' in prepared)) return NextResponse.json({ error: 'Social post draft could not be saved', executed: false }, { status: 500 });
+      await writeAudit(auth, {
+        approvalId,
+        actionType,
+        toolName,
+        status: 'completed',
+        message: 'Prepared platform-aware social post variants',
+        input: { platforms: prepared.draft.platforms, assetUrl: prepared.draft.assetUrl },
+        result: { draft: prepared.draft, previewCard: prepared.previewCard, performedExternalAction: false }
+      });
+      await completeApproval(auth, approvalId, true);
+      return NextResponse.json({ executed: true, draft: prepared.draft, previewCard: prepared.previewCard, performedExternalAction: false });
+    }
+
+    if (actionType === 'social_post_schedule_approved') {
+      const scheduled = await scheduleSocialPost(auth, approvalId, payload, previewCard);
+      if ('error' in scheduled && scheduled.error) return scheduled.error instanceof Response ? scheduled.error : NextResponse.json({ error: scheduled.error.message }, { status: 500 });
+      if ('blocked' in scheduled && scheduled.blocked) {
+        await writeAudit(auth, {
+          approvalId,
+          actionType,
+          toolName,
+          status: 'blocked',
+          message: scheduled.blocked,
+          input: { socialContentDraftId: payload.socialContentDraftId || payload.social_content_draft_id, platforms: payload.platforms }
+        });
+        return NextResponse.json({ error: scheduled.blocked, executed: false }, { status: scheduled.status || 400 });
+      }
+      if (!('rule' in scheduled)) return NextResponse.json({ error: 'Social distribution schedule could not be saved', executed: false }, { status: 500 });
+      await writeAudit(auth, {
+        approvalId,
+        actionType,
+        toolName,
+        status: 'completed',
+        message: 'Created approved social distribution rule and scheduled post rows',
+        input: { socialContentDraftId: payload.socialContentDraftId || payload.social_content_draft_id, platforms: scheduled.rule.platforms, intervalMinutes: scheduled.rule.intervalMinutes },
+        result: {
+          rule: scheduled.rule,
+          scheduledPosts: scheduled.scheduledPosts,
+          fireLogs: scheduled.fireLogs,
+          connectors: scheduled.connectors,
+          previewCard: scheduled.previewCard,
+          externalCallsPerformed: false
+        }
+      });
+      await completeApproval(auth, approvalId, true);
+      return NextResponse.json({
+        executed: true,
+        rule: scheduled.rule,
+        scheduledPosts: scheduled.scheduledPosts,
+        fireLogs: scheduled.fireLogs,
+        connectors: scheduled.connectors,
+        previewCard: scheduled.previewCard,
+        externalCallsPerformed: false
+      });
+    }
+
+    return null;
+  } catch (error) {
+    await completeApproval(auth, approvalId, false);
+    await writeAudit(auth, {
+      approvalId,
+      actionType,
+      toolName,
+      status: 'failed',
+      message: error instanceof Error ? error.message : 'Social workflow failed',
+      input: payload
+    });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Social workflow failed', executed: false }, { status: 400 });
+  }
 }
 
 async function handleConnectorStatusAction(auth: ApiUserContext, actionType: string, toolName: string) {
@@ -618,6 +759,9 @@ export async function POST(request: NextRequest) {
   const capability = getActionCapability(actionType);
   const toolName = normalizeToolName(body.toolName ?? body.tool_name, actionType);
 
+  const socialConnectorStatusResponse = await handleSocialConnectorStatusAction(auth, actionType, toolName);
+  if (socialConnectorStatusResponse) return socialConnectorStatusResponse;
+
   const connectorStatusResponse = await handleConnectorStatusAction(auth, actionType, toolName);
   if (connectorStatusResponse) return connectorStatusResponse;
 
@@ -632,6 +776,9 @@ export async function POST(request: NextRequest) {
 
   const podResponse = await handlePodAction(auth, actionType, toolName, body);
   if (podResponse) return podResponse;
+
+  const socialResponse = await handleSocialAction(auth, actionType, toolName, body);
+  if (socialResponse) return socialResponse;
 
   if (!capability) {
     await writeAudit(auth, {
