@@ -418,6 +418,14 @@ Latest job workflow foundation smoke on `127.0.0.1:3045`:
 - `/api/actions/execute?job_state=1`: passed; returned user-owned saved jobs and review cards.
 - Audit: passed; completed audit rows existed for `job_search_save`, `job_application_prepare`, and `job_application_submit_approved`.
 
+Latest Stagehand/Browserbase live smoke on `127.0.0.1:3032`:
+
+- Vercel env: Browserbase values added to Development and Preview branch `goodfeatureslegacy`; Production was not touched.
+- Local env: `.env.local` has Browserbase project/key and `SUPABASE_STORAGE_BUCKET=browser-screenshots`; `.env.local` remains uncommitted.
+- `/api/actions/browser-demo`: passed; created pending approval, required explicit approval, opened a real Browserbase/Stagehand session, navigated to `https://example.com`, extracted the title/paragraph, uploaded a screenshot receipt to Supabase Storage, returned a signed URL, and closed the session.
+- Schema compatibility: passed; browser-open approvals no longer pre-write `browser_session_id` before the matching `browser_sessions` row exists, preserving the audit FK.
+- Stagehand model: passed with default `openai/gpt-4.1-mini`; override is documented as `STAGEHAND_MODEL_NAME`.
+
 Prod voice check:
 
 - `https://www.cubiqo.ai/api/voice-cue`: reaches ElevenLabs and returns a quota error with `River neutral/androgynous` / `eleven_flash_v2_5`. Current prod code labels provider as `none`, while this branch labels the same condition as `elevenlabs_error`.

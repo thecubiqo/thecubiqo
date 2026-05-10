@@ -41,6 +41,10 @@ function getStorageBucket() {
   return process.env.SUPABASE_STORAGE_BUCKET || 'browser-screenshots';
 }
 
+function getStagehandModelName() {
+  return process.env.STAGEHAND_MODEL_NAME || 'openai/gpt-4.1-mini';
+}
+
 function getStagehand(browser_session_id: string) {
   const stagehand = activeSessions.get(browser_session_id);
   if (!stagehand) {
@@ -69,7 +73,7 @@ export async function openSession(input: StagehandOpenSessionInput) {
       projectId
     },
     model: {
-      modelName: 'openai/gpt-4o-mini',
+      modelName: getStagehandModelName(),
       apiKey: process.env.OPENAI_API_KEY
     },
     disablePino: true,

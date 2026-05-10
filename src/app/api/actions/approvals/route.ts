@@ -109,6 +109,9 @@ export async function POST(request: NextRequest) {
   if ((actionType === 'browser_open' || actionType === 'browser_demo') && !browserSessionId) {
     browserSessionId = crypto.randomUUID();
   }
+  if (browserSessionId) {
+    nextPayload.browser_session_id = browserSessionId;
+  }
 
   const urlDecision = actionType === 'browser_open' ? getUrlAllowlistDecision(nextPayload) : null;
   const needsSecondaryConfirmation =
@@ -137,6 +140,13 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  const sessionStartsAfterApproval = actionType === 'browser_open' || actionType === 'browser_demo';
+  const approvalBrowserSessionId = sessionStartsAfterApproval ? null : browserSessionId;
+  const insertPayload = { ...nextPayload };
+  if (sessionStartsAfterApproval) {
+    delete insertPayload.browser_session_id;
+  }
+
   const insertRow = {
     user_id: auth.user.id,
     action_type: actionType,
@@ -144,9 +154,9 @@ export async function POST(request: NextRequest) {
     status: 'requested',
     title,
     summary,
-    payload: nextPayload,
+    payload: insertPayload,
     risk_level: normalizeRisk(body.riskLevel ?? body.risk_level),
-    browser_session_id: browserSessionId,
+    browser_session_id: approvalBrowserSessionId,
     requires_user_confirmation: needsSecondaryConfirmation,
     user_confirmation_state: needsSecondaryConfirmation ? 'pending' : 'not_required',
     warning_message: warningMessage
@@ -168,7 +178,7 @@ export async function POST(request: NextRequest) {
     } = insertRow;
     const retry = await auth.supabase
       .from('action_approvals')
-      .insert(legacyInsertRow)
+      .insert({ ...legacyInsertRow, payload: sessionStartsAfterApproval ? insertPayload : nextPayload })
       .select(approvalSelect)
       .single();
     data = retry.data;

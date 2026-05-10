@@ -830,7 +830,10 @@ async function handleBrowserAction(
   if (approvalCheck.error) return approvalCheck.error;
 
   const approval = approvalCheck.approval;
-  const payload = normalizeBrowserPayload(body.payload);
+  const payload = {
+    ...normalizeBrowserPayload(body.payload),
+    ...normalizeBrowserPayload(approval?.payload)
+  };
   const approvedBrowserSessionId = normalizeBrowserSessionId(
     approval?.browser_session_id ?? approval?.payload?.browser_session_id
   );
@@ -889,6 +892,11 @@ async function handleBrowserAction(
       const opened = await createBrowserSession(auth, approvalId, openPayload);
       if ('error' in opened && opened.error) return opened.error instanceof Response ? opened.error : NextResponse.json({ error: opened.error.message }, { status: 500 });
       if (!('session' in opened)) return NextResponse.json({ error: 'Browser session could not be opened', executed: false }, { status: 500 });
+      await auth.supabase
+        .from('action_approvals')
+        .update({ browser_session_id: opened.session.id, updated_at: new Date().toISOString() })
+        .eq('id', approvalId)
+        .eq('user_id', auth.user.id);
       await writeAudit(auth, {
         approvalId,
         browserSessionId: opened.session.id,

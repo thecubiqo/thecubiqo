@@ -28,21 +28,20 @@ function isMissingColumn(error: { message?: string } | null) {
 }
 
 async function createDemoApproval(auth: ApiUserContext) {
-  const browserSessionId = crypto.randomUUID();
   const payload = {
     url: DEMO_URL,
     session_mode: 'disposable'
   };
   const insertRow = {
     user_id: auth.user.id,
-    action_type: 'browser_demo',
+    action_type: 'browser_open',
     tool_name: 'browser_demo',
     status: 'requested',
     title: 'Run safe browser demo',
     summary: 'Open example.com, extract the title and first paragraph, capture a signed screenshot receipt, then close the session.',
     payload,
     risk_level: 'low',
-    browser_session_id: browserSessionId,
+    browser_session_id: null,
     requires_user_confirmation: false,
     user_confirmation_state: 'not_required',
     warning_message: null
@@ -62,7 +61,14 @@ async function createDemoApproval(auth: ApiUserContext) {
       warning_message,
       ...legacyInsertRow
     } = insertRow;
-    const retry = await auth.supabase.from('action_approvals').insert(legacyInsertRow).select('*').single();
+    const retry = await auth.supabase
+      .from('action_approvals')
+      .insert({
+        ...legacyInsertRow,
+        payload
+      })
+      .select('*')
+      .single();
     data = retry.data;
     error = retry.error;
   }
@@ -95,7 +101,7 @@ export async function POST(request: NextRequest) {
     }, { status: 202 });
   }
 
-  const approvalCheck = await requireApprovedAction(auth, approvalId, 'browser_demo');
+  const approvalCheck = await requireApprovedAction(auth, approvalId, 'browser_open');
   if (approvalCheck.error) return approvalCheck.error;
 
   const approval = approvalCheck.approval;
@@ -104,18 +110,7 @@ export async function POST(request: NextRequest) {
     url: DEMO_URL,
     session_mode: 'disposable'
   };
-  const browserSessionId = String(approval?.browser_session_id || payload.browser_session_id || '').trim();
-  if (!browserSessionId) {
-    await writeAudit(auth, {
-      approvalId,
-      actionType: 'browser_demo',
-      toolName: 'browser_demo',
-      status: 'blocked',
-      message: 'Browser demo blocked because the approval has no browser_session_id',
-      blockReason: 'no_approval_record'
-    });
-    return NextResponse.json({ error: 'browser_session_id is required on the approval record' }, { status: 403 });
-  }
+  const browserSessionId = String(approval?.browser_session_id || payload.browser_session_id || crypto.randomUUID()).trim();
   payload.browser_session_id = browserSessionId;
 
   const allowlist = getUrlAllowlistDecision(payload);
@@ -143,6 +138,11 @@ export async function POST(request: NextRequest) {
     if (!('session' in opened)) {
       return NextResponse.json({ error: 'Browser session could not be opened' }, { status: 500 });
     }
+    await auth.supabase
+      .from('action_approvals')
+      .update({ browser_session_id: browserSessionId, updated_at: new Date().toISOString() })
+      .eq('id', approvalId)
+      .eq('user_id', auth.user.id);
 
     const extracted = await recordBrowserAction(auth, browserSessionId, 'browser_extract', {
       instruction: 'Extract the page title and first paragraph from this page.'
