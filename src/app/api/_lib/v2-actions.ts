@@ -111,7 +111,7 @@ export async function requireApprovedAction(
 
   const { data, error } = await auth.supabase
     .from('action_approvals')
-    .select('id,action_type,tool_name,status,expires_at')
+    .select('id,action_type,tool_name,status,expires_at,payload')
     .eq('id', approvalId)
     .eq('user_id', auth.user.id)
     .maybeSingle();

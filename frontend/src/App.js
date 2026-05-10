@@ -1010,6 +1010,8 @@ const ActionConsolePage = () => {
   const [browserSessions, setBrowserSessions] = useState([]);
   const [jobListings, setJobListings] = useState([]);
   const [jobReviews, setJobReviews] = useState([]);
+  const [jobProfile, setJobProfile] = useState(null);
+  const [resumeVersions, setResumeVersions] = useState([]);
   const [browserUrl, setBrowserUrl] = useState('https://example.com/');
 
   const baseActionCards = [
@@ -1101,6 +1103,8 @@ const ActionConsolePage = () => {
       setBrowserSessions(browserData.browserSessions || []);
       setJobListings(jobData.listings || []);
       setJobReviews(jobData.reviews || []);
+      setJobProfile(jobData.profile || null);
+      setResumeVersions(jobData.resumeVersions || []);
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -1127,6 +1131,8 @@ const ActionConsolePage = () => {
 
   const browserControlUnlocked = capabilities.some(item => item.actionType === 'browser_control' && item.status === 'active');
   const jobWorkflowUnlocked = browserControlUnlocked && ['job_search_save', 'job_application_prepare', 'job_application_submit_approved']
+    .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
+  const jobProfileUnlocked = ['job_profile_write', 'resume_version_write']
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
   const activeBrowserSession = browserSessions.find(item => item.status === 'active') || null;
   const latestJobListing = jobListings.find(item => ['saved', 'reviewing', 'prepared'].includes(item.status)) || jobListings[0] || null;
@@ -1298,7 +1304,81 @@ const ActionConsolePage = () => {
     }] : [])
   ] : [];
 
-  const actionCards = [...baseActionCards, ...browserActionCards, ...jobActionCards];
+  const profileActionCards = jobProfileUnlocked ? [
+    {
+      actionType: 'job_profile_write',
+      toolName: 'job_profile_write',
+      title: 'Save job profile',
+      summary: 'CubiQo will save your target roles, skills, and experience profile to Supabase after this preview is approved.',
+      Icon: User,
+      runLabel: 'Save profile',
+      riskLevel: 'medium',
+      payload: () => ({
+        targetRoles: ['Product Manager', 'AI Program Manager', 'Startup Operator'],
+        skills: ['AI workflows', 'product strategy', 'operations', 'growth marketing'],
+        experienceSummary: 'Profile preview for QA: user can replace this with their real career history before approval.',
+        yearsExperience: 10,
+        preferredLocations: ['Remote', 'New York, NY'],
+        workModes: ['remote', 'hybrid'],
+        salaryExpectation: 'Review before sharing externally',
+        previewCard: {
+          title: 'Job profile write preview',
+          before: jobProfile ? {
+            targetRoles: jobProfile.targetRoles,
+            skills: jobProfile.skills,
+            experienceSummary: jobProfile.experienceSummary
+          } : null,
+          after: {
+            targetRoles: ['Product Manager', 'AI Program Manager', 'Startup Operator'],
+            skills: ['AI workflows', 'product strategy', 'operations', 'growth marketing'],
+            experienceSummary: 'Profile preview for QA: user can replace this with their real career history before approval.'
+          },
+          changes: jobProfile ? ['Update target roles', 'Update skills', 'Update experience summary'] : ['Create first job profile'],
+          willWriteTo: 'Supabase job_profiles',
+          willNotDo: ['No file writes', 'No external submission', 'No job-board action']
+        }
+      })
+    },
+    {
+      actionType: 'resume_version_write',
+      toolName: 'resume_version_write',
+      title: 'Save resume version',
+      summary: 'CubiQo will append a new named resume version. It never overwrites an existing version.',
+      Icon: FileText,
+      runLabel: 'Save version',
+      riskLevel: 'medium',
+      payload: () => ({
+        job_profile_id: jobProfile?.id || null,
+        name: `QA Resume Version ${resumeVersions.length + 1}`,
+        targetRole: jobProfile?.targetRoles?.[0] || 'Product Manager',
+        resumeFormat: 'plain_text',
+        resumeContent: [
+          'QA resume version preview.',
+          `Target role: ${jobProfile?.targetRoles?.[0] || 'Product Manager'}.`,
+          'Highlights: AI workflows, product strategy, operations, growth marketing.'
+        ].join('\n'),
+        changeSummary: 'Created a new append-only resume version for review.',
+        previewCard: {
+          title: 'Resume version diff preview',
+          before: resumeVersions[0] ? {
+            name: resumeVersions[0].name,
+            targetRole: resumeVersions[0].targetRole,
+            contentPreview: `${resumeVersions[0].resumeContent || ''}`.slice(0, 220)
+          } : null,
+          after: {
+            name: `QA Resume Version ${resumeVersions.length + 1}`,
+            targetRole: jobProfile?.targetRoles?.[0] || 'Product Manager',
+            contentPreview: 'QA resume version preview. Highlights: AI workflows, product strategy, operations, growth marketing.'
+          },
+          changes: ['Append a new resume version record', 'Keep older versions unchanged'],
+          willWriteTo: 'Supabase resume_versions',
+          willNotDo: ['No file writes', 'No overwrite', 'No external submission']
+        }
+      })
+    }
+  ] : [];
+
+  const actionCards = [...baseActionCards, ...browserActionCards, ...jobActionCards, ...profileActionCards];
 
   const latestApproval = (card) => approvals.find(item => {
     const matchesAction = item.actionType === card.actionType && ['requested', 'approved'].includes(item.status);
@@ -1391,7 +1471,7 @@ const ActionConsolePage = () => {
             payload: typeof card.payload === 'function' ? card.payload() : {}
           })
         });
-      } else if (card.actionType.startsWith('job_')) {
+      } else if (card.actionType.startsWith('job_') || card.actionType === 'resume_version_write') {
         await apiJson('/api/actions/execute', {
           method: 'POST',
           body: JSON.stringify({
@@ -1617,6 +1697,61 @@ const ActionConsolePage = () => {
                     }) : (
                       <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
                         No review cards yet. Prepare one from a saved listing to see the exact submission payload.
+                      </div>
+                    )}
+                  </div>
+                </article>
+              </section>
+
+              <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Job Profile</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{jobProfile ? 'saved' : 'empty'}</Badge>
+                  </div>
+                  {jobProfile ? (
+                    <div style={{ display: 'grid', gap: 10 }}>
+                      <div style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                        <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>
+                          {(jobProfile.targetRoles || []).slice(0, 3).join(' · ') || 'Target roles saved'}
+                        </div>
+                        <div style={{ marginTop: 7, color: 'rgba(255,255,255,0.56)', fontSize: '0.76rem', lineHeight: 1.5 }}>
+                          {(jobProfile.skills || []).slice(0, 6).join(', ') || 'No skills listed yet'}
+                        </div>
+                        <div style={{ marginTop: 9, padding: 10, borderRadius: 10, background: 'rgba(0,0,0,0.24)', color: 'rgba(255,255,255,0.58)', fontSize: '0.72rem', lineHeight: 1.45 }}>
+                          {jobProfile.experienceSummary || 'No experience summary yet'}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                      No profile saved yet. Use the approved profile write action to create target roles, skills, and experience context.
+                    </div>
+                  )}
+                </article>
+
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Resume Versions</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{resumeVersions.length}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {resumeVersions.length ? resumeVersions.slice(0, 5).map(item => (
+                      <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                          <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.name}</div>
+                          <Badge variant="outline" className="border-white/10 text-white/45">append-only</Badge>
+                        </div>
+                        <div style={{ marginTop: 6, color: 'rgba(255,255,255,0.56)', fontSize: '0.76rem' }}>
+                          {item.targetRole || 'General'} · {item.resumeFormat}
+                        </div>
+                        <div style={{ marginTop: 9, padding: 10, borderRadius: 10, background: 'rgba(0,0,0,0.24)', color: 'rgba(255,255,255,0.58)', fontSize: '0.72rem', lineHeight: 1.45 }}>
+                          {(item.resumeContent || '').slice(0, 180)}
+                        </div>
+                      </div>
+                    )) : (
+                      <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                        No resume versions yet. Each approved save creates a new version and leaves old versions untouched.
                       </div>
                     )}
                   </div>

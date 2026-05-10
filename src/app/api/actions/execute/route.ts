@@ -18,6 +18,13 @@ import {
   prepareJobApplication,
   saveJobSearch
 } from '../../_lib/job-workflows';
+import {
+  getApprovalPreviewCard,
+  isJobProfileAction,
+  listJobProfileState,
+  writeJobProfile,
+  writeResumeVersion
+} from '../../_lib/job-profile-workflows';
 
 export const runtime = 'nodejs';
 
@@ -32,12 +39,127 @@ export async function GET(request: NextRequest) {
   }
 
   if (request.nextUrl.searchParams.get('job_state') === '1') {
-    const result = await listJobWorkflowState(auth);
-    if ('error' in result && result.error) return result.error instanceof Response ? result.error : NextResponse.json({ error: result.error.message }, { status: 500 });
-    return NextResponse.json(result);
+    const [jobResult, profileResult] = await Promise.all([
+      listJobWorkflowState(auth),
+      listJobProfileState(auth)
+    ]);
+    if ('error' in jobResult && jobResult.error) return jobResult.error instanceof Response ? jobResult.error : NextResponse.json({ error: jobResult.error.message }, { status: 500 });
+    if ('error' in profileResult && profileResult.error) return profileResult.error instanceof Response ? profileResult.error : NextResponse.json({ error: profileResult.error.message }, { status: 500 });
+    return NextResponse.json({ ...jobResult, ...profileResult });
   }
 
   return NextResponse.json({ error: 'Unsupported execute query' }, { status: 400 });
+}
+
+async function handleJobProfileAction(
+  auth: ApiUserContext,
+  actionType: string,
+  toolName: string,
+  body: Record<string, any>
+) {
+  if (!isJobProfileAction(actionType)) {
+    return null;
+  }
+
+  const capability = getActionCapability(actionType);
+  if (!capability || capability.status !== 'active') {
+    await writeAudit(auth, {
+      actionType,
+      toolName,
+      status: 'blocked',
+      message: 'Job profile workflow blocked because the capability is locked',
+      input: { actionType },
+      result: {
+        capabilityStatus: capability?.status || 'missing',
+        requirements: capability?.requirements || []
+      }
+    });
+    return NextResponse.json(
+      {
+        error: 'Job profile workflow is locked until this capability is active',
+        executed: false,
+        capability
+      },
+      { status: 501 }
+    );
+  }
+
+  const approvalId = String(body.approvalId ?? body.approval_id ?? '').trim();
+  const approvalCheck = await requireApprovedAction(auth, approvalId, actionType);
+  if (approvalCheck.error) return approvalCheck.error;
+
+  const payload = normalizePayload(approvalCheck.approval?.payload);
+  const previewCard = getApprovalPreviewCard(approvalCheck.approval);
+  try {
+    if (actionType === 'job_profile_write') {
+      const written = await writeJobProfile(auth, approvalId, payload, previewCard);
+      if ('error' in written && written.error) return written.error instanceof Response ? written.error : NextResponse.json({ error: written.error.message }, { status: 500 });
+      if ('blocked' in written && written.blocked) {
+        await writeAudit(auth, {
+          approvalId,
+          actionType,
+          toolName,
+          status: 'blocked',
+          message: written.blocked,
+          input: payload
+        });
+        return NextResponse.json({ error: written.blocked, executed: false }, { status: written.status || 400 });
+      }
+      if (!('profile' in written)) return NextResponse.json({ error: 'Job profile could not be saved', executed: false }, { status: 500 });
+      await writeAudit(auth, {
+        approvalId,
+        actionType,
+        toolName,
+        status: 'completed',
+        message: 'Saved approved job profile preview',
+        input: { targetRoles: payload.targetRoles || payload.target_roles, skills: payload.skills },
+        result: { profile: written.profile, previewCard: written.previewCard, performedExternalAction: false }
+      });
+      await completeApproval(auth, approvalId, true);
+      return NextResponse.json({ executed: true, profile: written.profile, previewCard: written.previewCard, performedExternalAction: false });
+    }
+
+    if (actionType === 'resume_version_write') {
+      const written = await writeResumeVersion(auth, approvalId, payload, previewCard);
+      if ('error' in written && written.error) return written.error instanceof Response ? written.error : NextResponse.json({ error: written.error.message }, { status: 500 });
+      if ('blocked' in written && written.blocked) {
+        await writeAudit(auth, {
+          approvalId,
+          actionType,
+          toolName,
+          status: 'blocked',
+          message: written.blocked,
+          input: { name: payload.name || payload.versionName || payload.version_name }
+        });
+        return NextResponse.json({ error: written.blocked, executed: false }, { status: written.status || 400 });
+      }
+      if (!('resumeVersion' in written)) return NextResponse.json({ error: 'Resume version could not be saved', executed: false }, { status: 500 });
+      await writeAudit(auth, {
+        approvalId,
+        actionType,
+        toolName,
+        status: 'completed',
+        message: 'Appended approved resume version; no existing resume was overwritten',
+        input: { name: payload.name || payload.versionName || payload.version_name, targetRole: payload.targetRole || payload.target_role },
+        result: { resumeVersion: written.resumeVersion, previewCard: written.previewCard, appendOnly: true, performedExternalAction: false }
+      });
+      await completeApproval(auth, approvalId, true);
+      return NextResponse.json({ executed: true, resumeVersion: written.resumeVersion, previewCard: written.previewCard, appendOnly: true, performedExternalAction: false });
+    }
+
+    return null;
+  } catch (error) {
+    await completeApproval(auth, approvalId, false);
+    await writeAudit(auth, {
+      approvalId,
+      actionType,
+      toolName,
+      status: 'failed',
+      message: error instanceof Error ? error.message : 'Job profile workflow failed',
+      input: payload
+    });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Job profile workflow failed', executed: false }, { status: 400 });
+  }
 }
 
 async function handleBrowserAction(
@@ -341,6 +463,9 @@ export async function POST(request: NextRequest) {
 
   const jobResponse = await handleJobAction(auth, actionType, toolName, body);
   if (jobResponse) return jobResponse;
+
+  const jobProfileResponse = await handleJobProfileAction(auth, actionType, toolName, body);
+  if (jobProfileResponse) return jobProfileResponse;
 
   if (!capability) {
     await writeAudit(auth, {

@@ -235,7 +235,14 @@ async function verifyUserOwnedCrud(config) {
       jobListingServerInsertWithApproval: false,
       jobReviewDirectInsertDenied: false,
       jobReviewServerInsertWithApproval: false,
-      jobReviewServerApproveWithSubmitApproval: false
+      jobReviewServerApproveWithSubmitApproval: false,
+      anonJobProfileInsertDenied: false,
+      jobProfileDirectUpsertDenied: false,
+      jobProfileServerUpsertWithApproval: false,
+      anonResumeVersionInsertDenied: false,
+      resumeVersionDirectInsertDenied: false,
+      resumeVersionServerAppendWithApproval: false,
+      secondResumeVersionAppended: false
     },
     rls: { anonJournalInsertDenied: false, anonSignalInsertDenied: false },
     error: null
@@ -818,6 +825,214 @@ async function verifyUserOwnedCrud(config) {
       approvedReviewRow.submit_approval_id === submitApproval?.id &&
       approvedReviewRow.external_submission_performed === false
     );
+
+    const anonJobProfile = await requestJson(`${config.url}/rest/v1/job_profiles`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        target_roles: ['Anon should fail'],
+        skills: ['blocked']
+      })
+    });
+    result.v2.anonJobProfileInsertDenied = !anonJobProfile.response.ok;
+
+    const profileApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'job_profile_write',
+        tool_name: 'job_profile_write',
+        title: 'Write job profile test',
+        summary: 'Approve a job profile preview before saving.',
+        payload: {
+          previewCard: {
+            before: null,
+            after: { targetRoles: ['Product Manager'], skills: ['AI workflows'] },
+            changes: ['Create first job profile']
+          }
+        },
+        risk_level: 'medium'
+      })
+    });
+    const profileApproval = Array.isArray(profileApprovalInsert.body) ? profileApprovalInsert.body[0] : null;
+    if (profileApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${profileApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+
+    const directProfileUpsert = profileApproval?.id ? await requestJson(`${config.url}/rest/v1/job_profiles?on_conflict=user_id&select=id,user_id,approval_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'resolution=merge-duplicates,return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: profileApproval.id,
+        target_roles: ['Direct client should fail'],
+        skills: ['blocked'],
+        preview_card: { after: { targetRoles: ['Direct client should fail'] } }
+      })
+    }) : null;
+    result.v2.jobProfileDirectUpsertDenied = Boolean(directProfileUpsert && !directProfileUpsert.response.ok);
+
+    const serverProfileUpsert = profileApproval?.id ? await requestJson(`${config.url}/rest/v1/job_profiles?on_conflict=user_id&select=id,user_id,approval_id,target_roles,skills`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates,return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: profileApproval.id,
+        target_roles: ['Product Manager', 'AI Program Manager'],
+        skills: ['AI workflows', 'product strategy'],
+        experience_summary: 'E2E job profile summary',
+        years_experience: 10,
+        preferred_locations: ['Remote'],
+        work_modes: ['remote'],
+        salary_expectation: 'Review before sharing',
+        profile_payload: { source: 'verify:cqai' },
+        preview_card: { before: null, after: { targetRoles: ['Product Manager', 'AI Program Manager'] } }
+      })
+    }) : null;
+    const profileRow = Array.isArray(serverProfileUpsert?.body) ? serverProfileUpsert.body[0] : null;
+    result.v2.jobProfileServerUpsertWithApproval = Boolean(
+      serverProfileUpsert?.response.ok &&
+      profileRow?.id &&
+      profileRow.user_id === userId &&
+      profileRow.approval_id === profileApproval?.id &&
+      Array.isArray(profileRow.target_roles) &&
+      profileRow.target_roles.includes('Product Manager')
+    );
+
+    const anonResumeVersion = await requestJson(`${config.url}/rest/v1/resume_versions`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        name: 'Anon should fail',
+        resume_content: 'RLS should reject this resume version.'
+      })
+    });
+    result.v2.anonResumeVersionInsertDenied = !anonResumeVersion.response.ok;
+
+    const resumeApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'resume_version_write',
+        tool_name: 'resume_version_write',
+        title: 'Write resume version test',
+        summary: 'Approve a resume diff before appending a version.',
+        payload: {
+          previewCard: {
+            before: null,
+            after: { name: 'E2E Resume Version 1' },
+            changes: ['Append first resume version']
+          }
+        },
+        risk_level: 'medium'
+      })
+    });
+    const resumeApproval = Array.isArray(resumeApprovalInsert.body) ? resumeApprovalInsert.body[0] : null;
+    if (resumeApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${resumeApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+
+    const directResumeVersion = resumeApproval?.id ? await requestJson(`${config.url}/rest/v1/resume_versions?select=id,user_id,approval_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: resumeApproval.id,
+        job_profile_id: profileRow?.id || null,
+        name: 'Direct client should fail',
+        resume_content: 'RLS should reject direct client resume writes.',
+        diff_preview: { after: { name: 'Direct client should fail' } }
+      })
+    }) : null;
+    result.v2.resumeVersionDirectInsertDenied = Boolean(directResumeVersion && !directResumeVersion.response.ok);
+
+    const serverResumeVersion = resumeApproval?.id ? await requestJson(`${config.url}/rest/v1/resume_versions?select=id,user_id,approval_id,job_profile_id,name,resume_content`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: resumeApproval.id,
+        job_profile_id: profileRow?.id || null,
+        name: 'E2E Resume Version 1',
+        resume_content: 'E2E resume content version one.',
+        resume_format: 'plain_text',
+        target_role: 'Product Manager',
+        change_summary: 'Append first version.',
+        diff_preview: { before: null, after: { name: 'E2E Resume Version 1' } },
+        source_payload: { source: 'verify:cqai' }
+      })
+    }) : null;
+    const resumeRow = Array.isArray(serverResumeVersion?.body) ? serverResumeVersion.body[0] : null;
+    result.v2.resumeVersionServerAppendWithApproval = Boolean(
+      serverResumeVersion?.response.ok &&
+      resumeRow?.id &&
+      resumeRow.user_id === userId &&
+      resumeRow.approval_id === resumeApproval?.id &&
+      resumeRow.name === 'E2E Resume Version 1'
+    );
+
+    const secondResumeVersion = resumeApproval?.id ? await requestJson(`${config.url}/rest/v1/resume_versions?select=id,user_id,approval_id,name`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: resumeApproval.id,
+        job_profile_id: profileRow?.id || null,
+        name: 'E2E Resume Version 2',
+        resume_content: 'E2E resume content version two.',
+        resume_format: 'plain_text',
+        target_role: 'AI Program Manager',
+        change_summary: 'Append second version.',
+        diff_preview: { before: { name: 'E2E Resume Version 1' }, after: { name: 'E2E Resume Version 2' } },
+        source_payload: { source: 'verify:cqai', appendOnly: true }
+      })
+    }) : null;
+    const secondResumeRow = Array.isArray(secondResumeVersion?.body) ? secondResumeVersion.body[0] : null;
+    const resumeRead = secondResumeRow?.id ? await requestJson(`${config.url}/rest/v1/resume_versions?user_id=eq.${userId}&select=id,name`, {
+      headers: userHeaders(config, accessToken)
+    }) : null;
+    result.v2.secondResumeVersionAppended = Boolean(
+      secondResumeVersion?.response.ok &&
+      secondResumeRow?.id &&
+      Array.isArray(resumeRead?.body) &&
+      resumeRead.body.some(row => row.name === 'E2E Resume Version 1') &&
+      resumeRead.body.some(row => row.name === 'E2E Resume Version 2')
+    );
   } catch (error) {
     result.error = error.message || String(error);
   } finally {
@@ -965,7 +1180,9 @@ async function main() {
     'daily_reports',
     'browser_sessions',
     'job_listings',
-    'job_application_reviews'
+    'job_application_reviews',
+    'job_profiles',
+    'resume_versions'
   ]) {
     tables.push(await verifyTable(config, table));
   }
