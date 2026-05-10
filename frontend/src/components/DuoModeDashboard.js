@@ -288,8 +288,22 @@ function DuoChat({ token, persona, capsule, accentColor }) {
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [streamText, setStreamText] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+
+  const fetchSuggestions = useCallback(async (lastMsg) => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/agent/suggest', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ capsule, persona, lastMessage: lastMsg })
+      });
+      const data = await res.json();
+      if (Array.isArray(data.suggestions)) setSuggestions(data.suggestions);
+    } catch {}
+  }, [token, capsule, persona]);
 
   // Greeting on mount
   useEffect(() => {
@@ -302,6 +316,7 @@ function DuoChat({ token, persona, capsule, accentColor }) {
       general:  `CubiQo ready — **${capsule.keyword || 'general'}** mode. What are we working on?`,
     };
     setMessages([{ role: 'assistant', content: greetings[persona] || greetings.general }]);
+    fetchSuggestions('');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -350,6 +365,7 @@ Stay focused on this context. Be concise — max 3 short paragraphs unless more 
       }
 
       setMessages(m => [...m, { role: 'assistant', content: full || '…' }]);
+      fetchSuggestions(full);
     } catch {
       setMessages(m => [...m, { role: 'assistant', content: 'Could not reach the agent. Try again.' }]);
     } finally {
@@ -357,7 +373,7 @@ Stay focused on this context. Be concise — max 3 short paragraphs unless more 
       setStreamText('');
       inputRef.current?.focus();
     }
-  }, [input, streaming, token, persona, capsule]);
+  }, [input, streaming, token, persona, capsule, fetchSuggestions]);
 
   const renderContent = (text) => {
     // minimal markdown — bold and line breaks
@@ -411,6 +427,67 @@ Stay focused on this context. Be concise — max 3 short paragraphs unless more 
 
       {/* Input */}
       <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+        {suggestions.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+            {suggestions.map((s, i) => (
+              <button key={i} onClick={() => {
+                setSuggestions([]);
+                setInput(s);
+                // send directly with this suggestion text
+                if (streaming || !token) return;
+                setInput('');
+                setMessages(m => [...m, { role: 'user', content: s }]);
+                setStreaming(true);
+                setStreamText('');
+                const systemContext = `${PERSONA_PROMPTS[persona] || PERSONA_PROMPTS.general}
+
+Active capsule: color=${capsule.color || 'green'}, keyword="${capsule.keyword || ''}", intents=[${[...(capsule.confirmed_intents||[]), ...(capsule.suggested_intents||[])].join(', ')}].
+Stay focused on this context. Be concise — max 3 short paragraphs unless more detail is explicitly needed.`;
+                fetch('/api/agent/stream', {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ message: s, systemContext })
+                }).then(async res => {
+                  if (!res.ok || !res.body) throw new Error('Stream failed');
+                  const reader = res.body.getReader();
+                  const decoder = new TextDecoder();
+                  let buf = '', full = '';
+                  while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buf += decoder.decode(value, { stream: true });
+                    const lines = buf.split('\n');
+                    buf = lines.pop() || '';
+                    for (const line of lines) {
+                      const t = line.trim();
+                      if (t.startsWith('0:')) {
+                        try { const chunk = JSON.parse(t.slice(2)); full += chunk; setStreamText(full); } catch {}
+                      }
+                    }
+                  }
+                  setMessages(m => [...m, { role: 'assistant', content: full || '…' }]);
+                  fetchSuggestions(full);
+                }).catch(() => {
+                  setMessages(m => [...m, { role: 'assistant', content: 'Could not reach the agent. Try again.' }]);
+                }).finally(() => {
+                  setStreaming(false);
+                  setStreamText('');
+                  inputRef.current?.focus();
+                });
+              }}
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${accentColor}44`,
+                  borderRadius: 20, padding: '5px 11px',
+                  color: 'rgba(255,255,255,0.65)', fontSize: '0.68rem',
+                  cursor: 'pointer', transition: 'all 0.15s'
+                }}
+                onMouseOver={e => { e.currentTarget.style.background = `${accentColor}22`; e.currentTarget.style.color = '#fff'; }}
+                onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'rgba(255,255,255,0.65)'; }}
+              >{s}</button>
+            ))}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
           <textarea
             ref={inputRef}
