@@ -13,6 +13,16 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 - Daily Journal: quick intake first, then a 15-minute Core-guided session with typed or browser speech-captured answers, then summary save.
 - RGY panel: MVP capsule only: color + keyword + optional confirmed intent.
 
+## V2 UI Reality
+
+- Job hunt, social distribution, and business/POD work stay inside CubiQo's existing chat and approval cards.
+- The only additional durable V2 surfaces are:
+  - Job tracker panel: Supabase-backed table of applications, statuses, resume version, cover letter version, and approval id.
+  - Content calendar view: Supabase-backed view of scheduled, posted, failed, and pending-approval content.
+  - Daily/weekly report delivery in the existing CubiQo chat.
+- No separate agent dashboard is required for V2.
+- No incomplete workflow buttons should be shown for job submission, browser execution, posting, platform analytics, or provider writes until the exact approval path and provider integration are tested.
+
 ## RGY MVP Contract
 
 - Capsule fields: `color`, `keyword`, `intent`.
@@ -92,6 +102,29 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - V2 write/action tools must stay hidden until approval UI, feature flags, audit logging, safe failure states, and regression tests exist.
 - Browser/extension fallback is allowed only for user-visible, approved sessions with stop/cancel controls and domain boundaries.
 - External account integrations require server-side token storage and must never show fake connected statuses.
+
+## V2 Job Hunt Additions To Prompt Scope
+
+- Per user job-search profile, CubiQo should support a managed 12-hour scan schedule after approval.
+- Supported target sources: LinkedIn, Indeed, Dice, Workday, Greenhouse, Lever, ZipRecruiter, and Wellfound, using compliant APIs/connectors first.
+- Each JD must be scored against the saved profile and base resume; only roles above the user-set threshold are surfaced.
+- For each matched role, CubiQo should pull full JD text where permitted, generate a tailored resume version, and generate a role-specific cover letter.
+- Resume and cover-letter outputs are append-only Supabase versions; the base resume is never overwritten.
+- Complex company-site forms use browser control only after approval, pre-fill from saved profile, screenshot every step to the audit log, and flag custom essays or salary fields for user input.
+- Application tracking stores company, role, JD URL, resume version, cover letter version, applied_at, status, and approval_id.
+- Status flow: `applied` -> `response` -> `interview` -> `offer` -> `rejected` -> `withdrawn`.
+- Daily reports include a pipeline summary.
+- CubiQo never applies or submits without an approval card and approval audit record.
+
+## V2 Social Calendar Additions To Prompt Scope
+
+- Weekly content calendars should be built from active Shopify products, ready GFXTools assets, and user-set posting frequency/platforms.
+- Calendar state is stored in Supabase and rendered in the content calendar view.
+- Batch approval should surface the full week in one approval card.
+- The user can approve all, edit individual posts, or remove individual posts before scheduling fires.
+- Weekly reporting should pull platform analytics where connected: impressions, engagement, reach, and top post.
+- Weekly report output should be plain language and include a recommendation for the best-performing content type.
+- Missing platform credentials or missing GFXTools ready assets block scheduling/reporting truthfully; no fake connected state and no fake analytics.
 
 ## Closure Checklist
 
