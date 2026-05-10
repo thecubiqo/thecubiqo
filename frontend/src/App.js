@@ -5,6 +5,7 @@ import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocess
 import { Suspense } from "react";
 import CubiQoVisual from "./components/CubiQoVisual";
 import ParticleWaveHD from "./components/ParticleWaveHD";
+import JobPipeline from "./components/JobPipeline";
 import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut, LayoutDashboard, BookOpen, Briefcase, Rocket, ShoppingBag, Package, Code2, ShieldCheck, Globe2, Camera, Fingerprint, Bot, Search, BrainCircuit, ChevronDown, CheckCircle2, ClipboardList, FileText, Clock3, RefreshCw, AlertTriangle, Monitor, MousePointerClick, Keyboard, Eye, Archive, Layers, SlidersHorizontal, Image as ImageIcon } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -3430,6 +3431,7 @@ const DemoPage = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [jobPipelineOpen, setJobPipelineOpen] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
   const [keywords, setKeywords] = useState({ green: [], yellow: [], red: [] });
   const [signals, setSignals] = useState([]);
@@ -3448,6 +3450,7 @@ const DemoPage = () => {
   const [keywordDraft, setKeywordDraft] = useState('');
   const [colorLock, setColorLock] = useState(null);
   const [user, setUser] = useState(null);
+  const [accessToken, setAccessToken] = useState(null);
   const [authView, setAuthView] = useState('login'); // 'login' | 'signup'
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -3684,12 +3687,14 @@ const DemoPage = () => {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       setUser(data.session?.user ?? null);
+      setAccessToken(data.session?.access_token ?? null);
       await ensureUserProfile(data.session);
       await loadUserMemory(data.session?.user);
       await loadSignals();
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_e, session) => {
       setUser(session?.user ?? null);
+      setAccessToken(session?.access_token ?? null);
       await ensureUserProfile(session);
       await loadUserMemory(session?.user);
       await loadSignals();
@@ -4865,6 +4870,29 @@ const DemoPage = () => {
               <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><ShieldCheck size={15} /> V2 Actions</span>
               <span style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.2, textTransform: 'uppercase' }}>QA</span>
             </button>
+            <button
+              type="button"
+              onClick={() => { setJobPipelineOpen(true); setLeftPanelOpen(false); }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                width: '100%',
+                background: trayTheme.card,
+                border: `1px solid rgba(34,197,94,0.28)`,
+                borderRadius: 14,
+                padding: '12px 14px',
+                color: trayTheme.text,
+                cursor: 'pointer',
+                textAlign: 'left'
+              }}
+              onMouseOver={e => e.currentTarget.style.background = trayTheme.cardHover}
+              onMouseOut={e => e.currentTarget.style.background = trayTheme.card}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><Briefcase size={15} style={{ color: '#22c55e' }} /> Job Pipeline</span>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
+            </button>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -5292,6 +5320,13 @@ const DemoPage = () => {
             </div>
           </div>
         )}
+
+        {/* JOB PIPELINE MODAL */}
+        <JobPipeline
+          token={accessToken || null}
+          visible={jobPipelineOpen}
+          onClose={() => setJobPipelineOpen(false)}
+        />
       </div>
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
