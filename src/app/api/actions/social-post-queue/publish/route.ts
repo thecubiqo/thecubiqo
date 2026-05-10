@@ -3,6 +3,7 @@ import { closeBrowserSession, createBrowserSession } from '../../../_lib/browser
 import { getActionCapability } from '../../../_lib/v2-capabilities';
 import { type ApiUserContext, missingMigrationResponse, requireApiUser, safeTableMissing } from '../../../_lib/supabase-admin';
 import { normalizePayload, writeAudit } from '../../../_lib/v2-actions';
+import { postViaSocialApi, socialApiCredentialStatus, type SocialApiPlatform } from '../../../_lib/social-api-client';
 import {
   auditedSocialAct,
   canonicalPlatform,
@@ -237,6 +238,57 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Instagram requires media before publish', blockReason: 'media_required' }, { status: 400 });
   }
 
+  // Prefer direct API publish over Stagehand browser automation
+  const canonical = canonicalPlatform(platform);
+  const apiStatus = socialApiCredentialStatus(canonical as SocialApiPlatform);
+
+  if (apiStatus.configured) {
+    // Direct API path
+    const apiResult = await postViaSocialApi({
+      platform: canonical as SocialApiPlatform,
+      content: post.content,
+      mediaUrls,
+      userId: auth.user.id
+    });
+
+    const now = new Date().toISOString();
+    const newStatus = apiResult.posted ? 'published' : 'failed';
+    await updatePost(auth, post.id, {
+      status: newStatus,
+      published_at: apiResult.posted ? now : null,
+      published_url: apiResult.postUrl || null,
+      metadata: {
+        ...(normalizePayload(post.metadata)),
+        user_publish_confirmed_at: now,
+        publish_method: 'direct_api',
+        api_post_id: apiResult.postId || null,
+        autonomous_publish: false,
+        error: apiResult.error || null
+      }
+    });
+
+    await writeAudit(auth, {
+      approvalId: originalApprovalId,
+      actionType: 'social_post_user_confirmed_publish',
+      toolName: 'social_post_queue',
+      status: apiResult.posted ? 'completed' : 'failed',
+      message: apiResult.posted ? `Published to ${canonical} via direct API` : `API publish failed: ${apiResult.error}`,
+      result: { postId: apiResult.postId, postUrl: apiResult.postUrl, method: 'direct_api' }
+    });
+
+    return NextResponse.json({
+      executed: true,
+      published: apiResult.posted,
+      method: 'direct_api',
+      platform: canonical,
+      postId: apiResult.postId,
+      postUrl: apiResult.postUrl,
+      error: apiResult.error || null,
+      autonomous_publish: false
+    });
+  }
+
+  // Fallback: Stagehand browser automation
   const publishBrowserSessionId = crypto.randomUUID();
   const publishApproval = await createPublishApproval(auth, post, publishBrowserSessionId);
   if ('error' in publishApproval && publishApproval.error) {
@@ -273,6 +325,7 @@ export async function POST(request: NextRequest) {
         user_publish_confirmed_at: now,
         published_screenshot_url: receipt.screenshot,
         published_storage_path: receipt.storagePath || null,
+        publish_method: 'browser_automation',
         autonomous_publish: false
       }
     });

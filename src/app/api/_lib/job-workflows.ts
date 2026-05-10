@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ApiUserContext, missingMigrationResponse, safeTableMissing } from './supabase-admin';
 import { getActiveBrowserSession, normalizeBrowserSessionId } from './browser-sessions';
+import { tailorApplicationForJob } from './llm-tailoring';
 
 export const JOB_ACTION_TYPES = [
   'job_search_save',
@@ -346,6 +347,45 @@ export async function prepareJobApplication(
   const sessionCheck = await requireActiveBrowserSessionIfProvided(auth, browserSessionId);
   if (!('browserSessionId' in sessionCheck)) return sessionCheck;
 
+  // Auto-tailor resume and cover letter with LLM if not provided
+  let autoTailoring: { score?: number; scoreSummary?: string; tailoredResumeSummary?: string; coverLetter?: string; tailoringSource?: string } = {};
+  const hasResume = Boolean(payload.resumeSummary || payload.resume_summary);
+  const hasCoverLetter = Boolean(payload.coverLetter || payload.cover_letter);
+  if (!hasResume || !hasCoverLetter) {
+    try {
+      const { data: profile } = await auth.supabase
+        .from('job_profiles')
+        .select('target_roles,skills,experience_summary,metadata')
+        .eq('user_id', auth.user.id)
+        .maybeSingle();
+      const { data: latestResume } = await auth.supabase
+        .from('resume_versions')
+        .select('content')
+        .eq('user_id', auth.user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (profile) {
+        autoTailoring = await tailorApplicationForJob({
+          jobTitle: listing.title,
+          jobCompany: listing.company,
+          jobDescription: listing.description || '',
+          profileRoles: Array.isArray(profile.target_roles) ? profile.target_roles : [],
+          profileSkills: Array.isArray(profile.skills) ? profile.skills : [],
+          profileExperience: profile.experience_summary || '',
+          baseResume: latestResume?.content || ''
+        });
+      }
+    } catch { /* auto-tailoring is best-effort */ }
+  }
+
+  if (!hasResume && autoTailoring.tailoredResumeSummary) {
+    payload = { ...payload, resumeSummary: autoTailoring.tailoredResumeSummary };
+  }
+  if (!hasCoverLetter && autoTailoring.coverLetter) {
+    payload = { ...payload, coverLetter: autoTailoring.coverLetter };
+  }
+
   const submissionPayload = buildSubmissionPayload(listing, payload);
   const { data, error } = await auth.supabase
     .from('job_application_reviews')
@@ -391,7 +431,12 @@ export async function prepareJobApplication(
       attachments: submissionPayload.attachments,
       targetUrl: submissionPayload.targetUrl,
       willSubmitExternally: false,
-      nextRequiredAction: 'Approve job_application_submit_approved after reviewing this exact payload.'
+      nextRequiredAction: 'Approve job_application_submit_approved after reviewing this exact payload.',
+      autoTailoring: autoTailoring.tailoringSource ? {
+        score: autoTailoring.score,
+        scoreSummary: autoTailoring.scoreSummary,
+        source: autoTailoring.tailoringSource
+      } : null
     }
   };
 }

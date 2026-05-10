@@ -3177,10 +3177,54 @@ const ActionConsolePage = () => {
                 </article>
               </section>
 
+              {/* Automations management panel */}
+              <section style={{ ...cardStyle, padding: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+                  <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Automations</h2>
+                  <Badge variant="outline" className="border-white/10 text-white/50">{schedules.length} scheduled</Badge>
+                </div>
+                {schedules.length === 0 ? (
+                  <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.8rem' }}>
+                    No automations yet. Ask CubiQo to create a daily or weekly report schedule.
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    {schedules.map((s, i) => (
+                      <div key={s.id} style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 12px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto auto', gap: 10, alignItems: 'center', borderTop: i ? undefined : undefined }}>
+                        <div>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}>{s.name}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.42)', marginTop: 2 }}>
+                            {s.cadence} · {s.status} {s.nextRunAt ? `· next ${new Date(s.nextRunAt).toLocaleString()}` : ''}
+                          </div>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            const newStatus = s.status === 'active' ? 'paused' : 'active';
+                            await apiJson('/api/reports/schedules', { method: 'PATCH', body: JSON.stringify({ id: s.id, status: newStatus }) });
+                            setSchedules(prev => prev.map(x => x.id === s.id ? { ...x, status: newStatus } : x));
+                          }}
+                          style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.14)', background: 'transparent', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}
+                        >
+                          {s.status === 'active' ? 'Pause' : 'Resume'}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            await apiJson('/api/reports/schedules', { method: 'PATCH', body: JSON.stringify({ id: s.id, status: 'cancelled' }) });
+                            setSchedules(prev => prev.filter(x => x.id !== s.id));
+                          }}
+                          style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'transparent', color: 'rgba(239,68,68,0.7)', cursor: 'pointer' }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
               <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
                 {[
                   { label: 'Tasks', value: tasks.length, items: tasks.map(item => item.title) },
-                  { label: 'Schedules', value: schedules.length, items: schedules.map(item => `${item.name} · ${item.status}`) },
                   { label: 'Reports', value: reports.length, items: reports.map(item => `${item.title} · ${item.status}`) }
                 ].map(section => (
                   <article key={section.label} style={{ ...cardStyle, padding: 18 }}>
