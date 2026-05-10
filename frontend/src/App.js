@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import CubiQoVisual from "./components/CubiQoVisual";
 import ParticleWaveHD from "./components/ParticleWaveHD";
 import JobPipeline from "./components/JobPipeline";
+import DuoModeDashboard from "./components/DuoModeDashboard";
 import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut, LayoutDashboard, BookOpen, Briefcase, Rocket, ShoppingBag, Package, Code2, ShieldCheck, Globe2, Camera, Fingerprint, Bot, Search, BrainCircuit, ChevronDown, CheckCircle2, ClipboardList, FileText, Clock3, RefreshCw, AlertTriangle, Monitor, MousePointerClick, Keyboard, Eye, Archive, Layers, SlidersHorizontal, Image as ImageIcon } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -3432,6 +3433,8 @@ const DemoPage = () => {
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [jobPipelineOpen, setJobPipelineOpen] = useState(false);
+  const [duoModeOpen, setDuoModeOpen] = useState(false);
+  const [duoModeCapsule, setDuoModeCapsule] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const [keywords, setKeywords] = useState({ green: [], yellow: [], red: [] });
   const [signals, setSignals] = useState([]);
@@ -5168,6 +5171,34 @@ const DemoPage = () => {
                         Intent confirmation is hidden until age-gate checks pass.
                       </div>
                     )}
+                    {/* DUO MODE button — available on all non-red capsules */}
+                    {item.color !== 'red' && (
+                      <button
+                        type="button"
+                        onClick={() => { setDuoModeCapsule(item); setDuoModeOpen(true); setRightPanelOpen(false); }}
+                        style={{
+                          marginTop: 10,
+                          width: '100%',
+                          background: 'linear-gradient(90deg, rgba(124,58,237,0.18) 0%, rgba(168,85,247,0.10) 100%)',
+                          border: '1px solid rgba(139,92,246,0.38)',
+                          borderRadius: 10,
+                          padding: '7px 0',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                          cursor: 'pointer',
+                          transition: 'all 0.18s'
+                        }}
+                        onMouseOver={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.32)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.6)'; }}
+                        onMouseOut={e => { e.currentTarget.style.background = 'linear-gradient(90deg, rgba(124,58,237,0.18) 0%, rgba(168,85,247,0.10) 100%)'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.38)'; }}
+                      >
+                        <span style={{
+                          background: 'linear-gradient(135deg, #7c3aed, #c084fc)',
+                          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                          fontWeight: 900, fontSize: '0.7rem', letterSpacing: 1.5, fontStyle: 'italic'
+                        }}>DUO</span>
+                        <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.7rem', letterSpacing: 1.5 }}>MODE</span>
+                        <span style={{ color: '#a855f7', fontSize: '0.75rem' }}>▶</span>
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -5327,6 +5358,15 @@ const DemoPage = () => {
           visible={jobPipelineOpen}
           onClose={() => setJobPipelineOpen(false)}
         />
+
+        {/* DUO MODE DASHBOARD */}
+        {duoModeOpen && duoModeCapsule && (
+          <DuoModeDashboard
+            capsule={duoModeCapsule}
+            token={accessToken || null}
+            onClose={() => { setDuoModeOpen(false); setDuoModeCapsule(null); }}
+          />
+        )}
       </div>
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
