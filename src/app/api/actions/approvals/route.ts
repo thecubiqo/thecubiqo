@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
   let browserSessionId =
     typeof nextPayload.browser_session_id === 'string' ? nextPayload.browser_session_id : null;
 
-  if ((actionType === 'browser_open' || actionType === 'browser_demo' || actionType === 'job_apply') && !browserSessionId) {
+  if ((actionType === 'browser_open' || actionType === 'browser_demo' || actionType === 'job_apply' || actionType === 'social_post_queue') && !browserSessionId) {
     browserSessionId = crypto.randomUUID();
   }
   if (browserSessionId) {
@@ -146,8 +146,8 @@ export async function POST(request: NextRequest) {
   if (sessionStartsAfterApproval) {
     delete insertPayload.browser_session_id;
   }
-  if (actionType === 'job_apply') {
-    // Reserve the job_apply session id on the approval row, not inside payload.
+  if (actionType === 'job_apply' || actionType === 'social_post_queue') {
+    // Reserve browser workflow session ids on the approval row, not inside payload.
     // The DB audit trigger reads payload.browser_session_id and would otherwise
     // require a browser_sessions row before the approval exists.
     delete insertPayload.browser_session_id;

@@ -809,6 +809,19 @@ export const V2_CAPABILITIES: V2Capability[] = [
     externalAction: false
   },
   {
+    actionType: 'social_post_queue',
+    toolName: 'social_post_queue',
+    label: 'Queue social post',
+    category: 'Social/Affiliate',
+    status: 'active',
+    approvalRequired: true,
+    approvalRequestable: true,
+    endpoint: '/api/actions/social-post-queue',
+    summary: 'Runs the approved social composer container. Platform scripts compose the post and stop at preview; the user must press Publish.',
+    requirements: ['signed-in user', 'approved social_post_queue approval', 'active platform flag', 'browser receipt', 'user publish gate'],
+    externalAction: true
+  },
+  {
     actionType: 'social_post_prepare',
     toolName: 'social_post_prepare',
     label: 'Social post prepare',

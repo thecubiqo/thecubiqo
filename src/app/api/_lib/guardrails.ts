@@ -1,5 +1,9 @@
 export const WHITELIST_DOMAINS = [
   'linkedin.com',
+  'x.com',
+  'twitter.com',
+  'instagram.com',
+  'threads.net',
   'indeed.com',
   'dice.com',
   'wellfound.com',

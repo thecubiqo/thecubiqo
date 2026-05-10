@@ -197,14 +197,36 @@ function mapFireLog(row: Record<string, any>) {
   };
 }
 
+function mapQueuedSocialPost(row: Record<string, any>) {
+  return {
+    id: row.id,
+    approvalId: row.approval_id,
+    browserSessionId: row.browser_session_id,
+    platform: row.platform,
+    content: row.content,
+    mediaUrls: row.media_urls || [],
+    status: row.status,
+    previewScreenshotUrl: row.preview_screenshot_url,
+    publishedUrl: row.published_url,
+    accessibilityTreeSnapshot: row.accessibility_tree_snapshot || null,
+    error: row.error,
+    metadata: row.metadata || {},
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    publishedAt: row.published_at,
+    cancelledAt: row.cancelled_at
+  };
+}
+
 export async function listSocialState(auth: ApiUserContext): Promise<{
   connectors: ReturnType<typeof connectorStatus>[];
   drafts: ReturnType<typeof mapSocialDraft>[];
   distributionRules: ReturnType<typeof mapDistributionRule>[];
   scheduledPosts: ReturnType<typeof mapScheduledPost>[];
   fireLogs: ReturnType<typeof mapFireLog>[];
+  queuedPosts: ReturnType<typeof mapQueuedSocialPost>[];
 } | SocialErrorResult> {
-  const [draftsResult, rulesResult, scheduledResult, logsResult] = await Promise.all([
+  const [draftsResult, rulesResult, scheduledResult, logsResult, queuedPostsResult] = await Promise.all([
     auth.supabase
       .from('social_content_drafts')
       .select('id,approval_id,gfx_tools_job_id,gfx_asset_id,asset_ready_event_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
@@ -228,10 +250,16 @@ export async function listSocialState(auth: ApiUserContext): Promise<{
       .select('id,approval_id,scheduled_post_id,platform,asset_url,status,message,result,created_at')
       .eq('user_id', auth.user.id)
       .order('created_at', { ascending: false })
+      .limit(24),
+    auth.supabase
+      .from('social_posts')
+      .select('id,approval_id,browser_session_id,platform,content,media_urls,status,preview_screenshot_url,published_url,accessibility_tree_snapshot,error,metadata,created_at,updated_at,published_at,cancelled_at')
+      .eq('user_id', auth.user.id)
+      .order('created_at', { ascending: false })
       .limit(24)
   ]);
 
-  for (const result of [draftsResult, rulesResult, scheduledResult, logsResult]) {
+  for (const result of [draftsResult, rulesResult, scheduledResult, logsResult, queuedPostsResult]) {
     if (result.error) {
       if (safeTableMissing(result.error)) return { error: missingMigrationResponse('social', 'social_content_distribution') };
       return { error: result.error };
@@ -243,7 +271,8 @@ export async function listSocialState(auth: ApiUserContext): Promise<{
     drafts: (draftsResult.data || []).map(mapSocialDraft),
     distributionRules: (rulesResult.data || []).map(mapDistributionRule),
     scheduledPosts: (scheduledResult.data || []).map(mapScheduledPost),
-    fireLogs: (logsResult.data || []).map(mapFireLog)
+    fireLogs: (logsResult.data || []).map(mapFireLog),
+    queuedPosts: (queuedPostsResult.data || []).map(mapQueuedSocialPost)
   };
 }
 

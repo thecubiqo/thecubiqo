@@ -1030,8 +1030,12 @@ const ActionConsolePage = () => {
   const [socialDistributionRules, setSocialDistributionRules] = useState([]);
   const [socialScheduledPosts, setSocialScheduledPosts] = useState([]);
   const [socialFireLogs, setSocialFireLogs] = useState([]);
+  const [socialQueuedPosts, setSocialQueuedPosts] = useState([]);
   const [browserUrl, setBrowserUrl] = useState('https://example.com/');
   const [jobApplyUrl, setJobApplyUrl] = useState('https://www.linkedin.com/jobs/view/example-product-ops');
+  const [socialQueuePlatform, setSocialQueuePlatform] = useState('linkedin');
+  const [socialQueueContent, setSocialQueueContent] = useState('CubiQo is preparing a new founder workflow update. Review this draft before it ever publishes.');
+  const [socialQueueMediaUrls, setSocialQueueMediaUrls] = useState('');
 
   const baseActionCards = [
     {
@@ -1145,6 +1149,7 @@ const ActionConsolePage = () => {
       setSocialDistributionRules(socialData.distributionRules || []);
       setSocialScheduledPosts(socialData.scheduledPosts || []);
       setSocialFireLogs(socialData.fireLogs || []);
+      setSocialQueuedPosts(socialData.queuedPosts || []);
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -1181,6 +1186,7 @@ const ActionConsolePage = () => {
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
   const socialWorkflowUnlocked = ['social_post_prepare', 'social_post_schedule_approved']
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
+  const socialQueueUnlocked = browserControlUnlocked && capabilities.some(item => item.actionType === 'social_post_queue' && item.status === 'active');
   const activeBrowserSession = browserSessions.find(item => item.status === 'active') || null;
   const latestJobListing = jobListings.find(item => ['saved', 'reviewing', 'prepared'].includes(item.status)) || jobListings[0] || null;
   const latestPreparedReview = jobReviews.find(item => item.status === 'prepared') || null;
@@ -1190,6 +1196,7 @@ const ActionConsolePage = () => {
   const latestUnresizedReadyAsset = gfxAssets.find(item => item.status === 'ready' && !(item.platformVariants || []).length) || null;
   const latestAssetReadyEvent = latestReadyAsset ? assetReadyEvents.find(item => item.assetId === latestReadyAsset.id) || null : null;
   const latestSocialDraft = socialDrafts[0] || null;
+  const latestReadySocialPost = socialQueuedPosts.find(item => item.status === 'ready') || null;
   const latestShopifyProduct = shopifyProducts[0] || null;
   const latestProviderDesign = providerDesigns[0] || null;
   const latestBrowserReceipt = auditLogs.find(log => log.screenshotUrl || log.result?.screenshotUrl) || null;
@@ -1337,6 +1344,39 @@ const ActionConsolePage = () => {
         finalSubmitAutonomous: false,
         stopBeforeSubmit: true
       })
+    }
+  ] : [];
+
+  const socialQueueCards = socialQueueUnlocked ? [
+    {
+      actionType: 'social_post_queue',
+      toolName: 'social_post_queue',
+      title: 'Queue social post',
+      summary: 'CubiQo will open the selected social platform, compose the post, stop at the preview state, and show a visual receipt. The final Publish button is a separate user action.',
+      Icon: Send,
+      runLabel: 'Compose preview',
+      riskLevel: 'high',
+      payload: () => {
+        const mediaUrls = socialQueueMediaUrls
+          .split(/[\n,]+/)
+          .map(item => item.trim())
+          .filter(Boolean);
+        return {
+          platform: socialQueuePlatform,
+          content: socialQueueContent,
+          media_urls: mediaUrls,
+          finalPublishAutonomous: false,
+          stopBeforePublish: true,
+          previewCard: {
+            title: 'Social queue preview',
+            platform: socialQueuePlatform,
+            content: socialQueueContent,
+            mediaUrls,
+            willWriteTo: 'Supabase social_posts',
+            willNotDo: ['No autonomous publish', 'No client-side platform call', 'No credential exposure']
+          }
+        };
+      }
     }
   ] : [];
 
@@ -1935,7 +1975,7 @@ const ActionConsolePage = () => {
     }] : [])
   ] : [];
 
-  const actionCards = [...baseActionCards, ...browserActionCards, ...jobApplyCards, ...jobActionCards, ...profileActionCards, ...podActionCards, ...commerceActionCards, ...socialActionCards];
+  const actionCards = [...baseActionCards, ...browserActionCards, ...jobApplyCards, ...socialQueueCards, ...jobActionCards, ...profileActionCards, ...podActionCards, ...commerceActionCards, ...socialActionCards];
 
   const latestApproval = (card) => approvals.find(item => {
     const matchesAction = item.actionType === card.actionType && ['requested', 'approved'].includes(item.status);
@@ -1963,7 +2003,7 @@ const ActionConsolePage = () => {
           payload: {
             ...(typeof card.payload === 'function' ? card.payload() : {}),
             preview: card.summary,
-            externalExecution: card.actionType.startsWith('browser_') || card.actionType === 'job_apply' || card.actionType === 'job_application_submit_approved' || card.actionType.startsWith('gfxtools_') || card.actionType.startsWith('shopify_') || card.actionType.startsWith('printify_') || ['design_create', 'product_sync', 'aftership_connect'].includes(card.actionType) || card.actionType === 'social_post_schedule_approved'
+            externalExecution: card.actionType.startsWith('browser_') || card.actionType === 'job_apply' || card.actionType === 'social_post_queue' || card.actionType === 'job_application_submit_approved' || card.actionType.startsWith('gfxtools_') || card.actionType.startsWith('shopify_') || card.actionType.startsWith('printify_') || ['design_create', 'product_sync', 'aftership_connect'].includes(card.actionType) || card.actionType === 'social_post_schedule_approved'
           }
         })
       });
@@ -2035,6 +2075,19 @@ const ActionConsolePage = () => {
             browser_session_id: approval.browserSessionId || approval.payload?.browser_session_id,
             job_url: payload.job_url,
             platform: payload.platform,
+            payload
+          })
+        });
+      } else if (card.actionType === 'social_post_queue') {
+        const payload = typeof card.payload === 'function' ? card.payload() : {};
+        await apiJson('/api/actions/social-post-queue', {
+          method: 'POST',
+          body: JSON.stringify({
+            approvalId: approval.id,
+            browser_session_id: approval.browserSessionId || approval.payload?.browser_session_id,
+            platform: payload.platform,
+            content: payload.content,
+            media_urls: payload.media_urls,
             payload
           })
         });
@@ -2115,6 +2168,27 @@ const ActionConsolePage = () => {
         })
       });
       setMessage(decision === 'submit' ? 'Application submitted by user confirmation.' : 'Application cancelled.');
+      await loadActionState();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const confirmSocialPost = async (post, decision) => {
+    setBusyAction(`${decision}-${post.id}`);
+    setMessage('');
+    try {
+      await apiJson('/api/actions/social-post-queue/publish', {
+        method: 'POST',
+        body: JSON.stringify({
+          postId: post.id,
+          decision,
+          ...(decision === 'publish' ? { confirm: 'user_confirmed_publish' } : {})
+        })
+      });
+      setMessage(decision === 'publish' ? 'Social post published after user confirmation.' : 'Queued social post cancelled.');
       await loadActionState();
     } catch (error) {
       setMessage(error.message);
@@ -2231,6 +2305,37 @@ const ActionConsolePage = () => {
                             </div>
                           </div>
                         )}
+                        {card.actionType === 'social_post_queue' && (
+                          <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+                            <select
+                              value={socialQueuePlatform}
+                              onChange={event => setSocialQueuePlatform(event.target.value)}
+                              style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem' }}
+                            >
+                              <option value="linkedin">LinkedIn</option>
+                              <option value="x">X</option>
+                              <option value="instagram">Instagram</option>
+                              <option value="threads">Threads</option>
+                            </select>
+                            <textarea
+                              value={socialQueueContent}
+                              onChange={event => setSocialQueueContent(event.target.value)}
+                              placeholder="Draft post content"
+                              rows={4}
+                              style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem', resize: 'vertical' }}
+                            />
+                            <textarea
+                              value={socialQueueMediaUrls}
+                              onChange={event => setSocialQueueMediaUrls(event.target.value)}
+                              placeholder="Optional media URLs, one per line. Required for Instagram."
+                              rows={2}
+                              style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem', resize: 'vertical' }}
+                            />
+                            <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.72rem' }}>
+                              Compose only. Publish is blocked until the separate user button.
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div style={{ display: 'grid', gap: 8 }}>
                         {!approval && (
@@ -2298,6 +2403,34 @@ const ActionConsolePage = () => {
                         Submit application
                       </Button>
                       <Button type="button" variant="outline" onClick={() => confirmJobApplication(latestReadyJobApplication, 'cancel')} disabled={busyAction === `cancel-${latestReadyJobApplication.id}`} className="border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08]">
+                        <X size={15} />
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {latestReadySocialPost && (
+                <section style={{ ...cardStyle, padding: 18, borderColor: 'rgba(56,189,248,0.26)', background: 'linear-gradient(135deg, rgba(56,189,248,0.12), rgba(9,9,15,0.72))' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+                    <div>
+                      <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 500 }}>Social post ready for your publish button</h2>
+                      <div style={{ marginTop: 6, color: 'rgba(255,255,255,0.58)', fontSize: '0.8rem', lineHeight: 1.5 }}>
+                        {latestReadySocialPost.platform} · {(latestReadySocialPost.content || '').slice(0, 140)}
+                      </div>
+                      {latestReadySocialPost.previewScreenshotUrl && (
+                        <a href={latestReadySocialPost.previewScreenshotUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 9, color: '#7dd3fc', fontSize: '0.78rem' }}>
+                          Open composed-post visual receipt
+                        </a>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <Button type="button" onClick={() => confirmSocialPost(latestReadySocialPost, 'publish')} disabled={busyAction === `publish-${latestReadySocialPost.id}`} className="bg-emerald-400/90 text-slate-950 hover:bg-emerald-300">
+                        <CheckCircle2 size={15} />
+                        Publish
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => confirmSocialPost(latestReadySocialPost, 'cancel')} disabled={busyAction === `cancel-${latestReadySocialPost.id}`} className="border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08]">
                         <X size={15} />
                         Cancel
                       </Button>
@@ -2714,6 +2847,56 @@ const ActionConsolePage = () => {
                     )) : (
                       <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
                         No social drafts yet. Prepare drafts from an approved asset before creating a cadence.
+                      </div>
+                    )}
+                  </div>
+                </article>
+
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Queued Social Posts</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{socialQueuedPosts.length}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {socialQueuedPosts.length ? socialQueuedPosts.slice(0, 5).map(item => (
+                      <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                          <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.platform}</div>
+                          <Badge variant="outline" className="border-white/10 text-white/45">{item.status}</Badge>
+                        </div>
+                        <div style={{ marginTop: 7, color: 'rgba(255,255,255,0.56)', fontSize: '0.76rem', lineHeight: 1.5 }}>
+                          {(item.content || '').slice(0, 150) || 'No content'}
+                        </div>
+                        <div style={{ marginTop: 8, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          {item.previewScreenshotUrl && (
+                            <a href={item.previewScreenshotUrl} target="_blank" rel="noreferrer" style={{ color: '#7dd3fc', fontSize: '0.74rem' }}>
+                              Preview receipt
+                            </a>
+                          )}
+                          {item.metadata?.published_screenshot_url && (
+                            <a href={item.metadata.published_screenshot_url} target="_blank" rel="noreferrer" style={{ color: '#7dd3fc', fontSize: '0.74rem' }}>
+                              Published receipt
+                            </a>
+                          )}
+                        </div>
+                        {item.status === 'failed' && (
+                          <Collapsible>
+                            <CollapsibleTrigger asChild>
+                              <button type="button" style={{ marginTop: 9, border: '1px solid rgba(248,113,113,0.22)', borderRadius: 10, background: 'rgba(248,113,113,0.08)', color: '#fecaca', padding: '7px 9px', fontSize: '0.72rem', cursor: 'pointer' }}>
+                                What the browser saw
+                              </button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <pre style={{ marginTop: 8, maxHeight: 180, overflow: 'auto', whiteSpace: 'pre-wrap', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 10, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.58)', fontSize: '0.68rem' }}>
+                                {JSON.stringify(item.accessibilityTreeSnapshot || item.error || {}, null, 2)}
+                              </pre>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        )}
+                      </div>
+                    )) : (
+                      <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                        No queued posts yet. Compose creates a preview receipt first; publishing stays a separate user button.
                       </div>
                     )}
                   </div>

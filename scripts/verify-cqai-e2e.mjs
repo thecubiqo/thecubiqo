@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { randomUUID } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -267,7 +268,10 @@ async function verifyUserOwnedCrud(config) {
       socialRuleDirectInsertDenied: false,
       socialRuleServerInsertWithApproval: false,
       socialScheduledPostServerInsertWithApproval: false,
-      socialFireLogServerInsertWithApproval: false
+      socialFireLogServerInsertWithApproval: false,
+      anonSocialPostInsertDenied: false,
+      socialPostDirectInsertDenied: false,
+      socialPostServerInsertWithApproval: false
     },
     rls: { anonJournalInsertDenied: false, anonSignalInsertDenied: false },
     error: null
@@ -1682,6 +1686,94 @@ async function verifyUserOwnedCrud(config) {
       socialDraftRow.platforms.includes('linkedin')
     );
 
+    const anonSocialPost = await requestJson(`${config.url}/rest/v1/social_posts`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        platform: 'linkedin',
+        content: 'Anon social post should fail.'
+      })
+    });
+    result.v2.anonSocialPostInsertDenied = !anonSocialPost.response.ok;
+
+    const socialQueueApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type,browser_session_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'social_post_queue',
+        tool_name: 'social_post_queue',
+        title: 'Queue social post test',
+        summary: 'Approve browser-based social post composition.',
+        payload: {
+          platform: 'linkedin',
+          content: 'E2E social queue draft',
+          previewCard: {
+            title: 'Social queue preview',
+            platform: 'linkedin',
+            willNotDo: ['No autonomous publish']
+          }
+        },
+        browser_session_id: randomUUID(),
+        risk_level: 'high'
+      })
+    });
+    const socialQueueApproval = Array.isArray(socialQueueApprovalInsert.body) ? socialQueueApprovalInsert.body[0] : null;
+    if (socialQueueApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${socialQueueApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+
+    const directSocialPost = socialQueueApproval?.id ? await requestJson(`${config.url}/rest/v1/social_posts?select=id,user_id,approval_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: socialQueueApproval.id,
+        browser_session_id: socialQueueApproval.browser_session_id,
+        platform: 'linkedin',
+        content: 'Direct client social queue insert should fail.'
+      })
+    }) : null;
+    result.v2.socialPostDirectInsertDenied = Boolean(directSocialPost && !directSocialPost.response.ok);
+
+    const serverSocialPost = socialQueueApproval?.id ? await requestJson(`${config.url}/rest/v1/social_posts?select=id,user_id,approval_id,browser_session_id,platform,content,status,preview_screenshot_url`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: socialQueueApproval.id,
+        browser_session_id: socialQueueApproval.browser_session_id,
+        platform: 'linkedin',
+        content: 'E2E queued LinkedIn post',
+        status: 'ready',
+        preview_screenshot_url: 'https://example.com/social-preview.png',
+        metadata: { finalPublishAutonomous: false, source: 'verify:cqai' }
+      })
+    }) : null;
+    const socialPostRow = Array.isArray(serverSocialPost?.body) ? serverSocialPost.body[0] : null;
+    result.v2.socialPostServerInsertWithApproval = Boolean(
+      serverSocialPost?.response.ok &&
+      socialPostRow?.id &&
+      socialPostRow.user_id === userId &&
+      socialPostRow.approval_id === socialQueueApproval?.id &&
+      socialPostRow.status === 'ready' &&
+      socialPostRow.platform === 'linkedin'
+    );
+
     const anonSocialRule = await requestJson(`${config.url}/rest/v1/social_distribution_rules`, {
       method: 'POST',
       headers: {
@@ -2011,7 +2103,8 @@ async function main() {
     'social_content_drafts',
     'social_distribution_rules',
     'social_scheduled_posts',
-    'social_post_fire_logs'
+    'social_post_fire_logs',
+    'social_posts'
   ]) {
     tables.push(await verifyTable(config, table));
   }
