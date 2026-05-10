@@ -3432,6 +3432,7 @@ const DemoPage = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [diagHealth, setDiagHealth] = useState(null); // null=unknown, true=ok, false=warn
   const [jobPipelineOpen, setJobPipelineOpen] = useState(false);
   const [duoModeOpen, setDuoModeOpen] = useState(false);
   const [duoModeCapsule, setDuoModeCapsule] = useState(null);
@@ -3505,6 +3506,19 @@ const DemoPage = () => {
       setActiveModal('auth');
     }
   }, []);
+
+  // Fetch system health when left panel opens (no auth needed)
+  useEffect(() => {
+    if (!leftPanelOpen || diagHealth !== null) return;
+    fetch('/api/diagnostics')
+      .then(r => r.json())
+      .then(d => {
+        const checks = d.checks || {};
+        const ok = checks.supabase?.ok && checks.openai || checks.anthropic || checks.openrouter;
+        setDiagHealth(Boolean(ok));
+      })
+      .catch(() => setDiagHealth(false));
+  }, [leftPanelOpen, diagHealth]);
 
   const aiState = isSpeaking ? 'speaking' : (speakerEnabled ? 'listening' : (isProcessing ? 'thinking' : 'neutral'));
   const recognitionRef = useRef(null);
@@ -4921,6 +4935,45 @@ const DemoPage = () => {
             </button>
           </div>
 
+          {/* ── Settings section ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.5, textTransform: 'uppercase' }}>Settings</div>
+
+            {/* Preferences → settings modal (voice, AI provider, ColorLock) */}
+            <button
+              type="button"
+              onClick={() => { setActiveModal('settings'); setLeftPanelOpen(false); }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%', background: trayTheme.card, border: `1px solid ${trayTheme.cardBorder}`, borderRadius: 14, padding: '12px 14px', color: trayTheme.text, cursor: 'pointer', textAlign: 'left' }}
+              onMouseOver={e => e.currentTarget.style.background = trayTheme.cardHover}
+              onMouseOut={e => e.currentTarget.style.background = trayTheme.card}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><SlidersHorizontal size={15} /> Preferences</span>
+              <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>Voice · AI · Thresholds</span>
+            </button>
+
+            {/* Connectors → integrations modal (Gmail, Calendar, Shopify…) */}
+            <button
+              type="button"
+              onClick={() => { setActiveModal('integrations'); setLeftPanelOpen(false); }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%', background: trayTheme.card, border: `1px solid ${trayTheme.cardBorder}`, borderRadius: 14, padding: '12px 14px', color: trayTheme.text, cursor: 'pointer', textAlign: 'left' }}
+              onMouseOver={e => e.currentTarget.style.background = trayTheme.cardHover}
+              onMouseOut={e => e.currentTarget.style.background = trayTheme.card}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><Globe2 size={15} /> Connectors</span>
+              <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>Gmail · Calendar · Shopify</span>
+            </button>
+
+            {/* System Health — live dot from /api/diagnostics */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: trayTheme.card, border: `1px solid ${trayTheme.cardBorder}`, borderRadius: 14, padding: '12px 14px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem', color: trayTheme.text }}><Activity size={15} /> System Health</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: diagHealth === null ? '#f59e0b' : diagHealth ? '#22c55e' : '#ef4444', boxShadow: `0 0 6px ${diagHealth === null ? '#f59e0b' : diagHealth ? '#22c55e' : '#ef4444'}` }} />
+                <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>{diagHealth === null ? 'checking…' : diagHealth ? 'All OK' : 'Issue detected'}</span>
+              </span>
+            </div>
+          </div>
+
+          {/* ── Display section ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.5, textTransform: 'uppercase' }}>Display</div>
             <button
