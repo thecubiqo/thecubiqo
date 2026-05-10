@@ -242,7 +242,13 @@ async function verifyUserOwnedCrud(config) {
       anonResumeVersionInsertDenied: false,
       resumeVersionDirectInsertDenied: false,
       resumeVersionServerAppendWithApproval: false,
-      secondResumeVersionAppended: false
+      secondResumeVersionAppended: false,
+      anonPodBriefInsertDenied: false,
+      podBriefDirectInsertDenied: false,
+      podBriefServerInsertWithApproval: false,
+      anonGfxToolsJobInsertDenied: false,
+      gfxToolsJobDirectInsertDenied: false,
+      gfxToolsJobServerInsertWithApproval: false
     },
     rls: { anonJournalInsertDenied: false, anonSignalInsertDenied: false },
     error: null
@@ -1033,6 +1039,181 @@ async function verifyUserOwnedCrud(config) {
       resumeRead.body.some(row => row.name === 'E2E Resume Version 1') &&
       resumeRead.body.some(row => row.name === 'E2E Resume Version 2')
     );
+
+    const anonPodBrief = await requestJson(`${config.url}/rest/v1/pod_design_briefs`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        product_type: 'Anon blocked shirt',
+        prompt: 'RLS should reject this POD brief.'
+      })
+    });
+    result.v2.anonPodBriefInsertDenied = !anonPodBrief.response.ok;
+
+    const podBriefApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'pod_design_brief_create',
+        tool_name: 'pod_design_brief_create',
+        title: 'Create POD brief test',
+        summary: 'Approve a POD brief preview before saving.',
+        payload: {
+          previewCard: {
+            before: null,
+            after: { productType: 'premium t-shirt', prompt: 'E2E POD prompt' },
+            changes: ['Create POD brief']
+          }
+        },
+        risk_level: 'medium'
+      })
+    });
+    const podBriefApproval = Array.isArray(podBriefApprovalInsert.body) ? podBriefApprovalInsert.body[0] : null;
+    if (podBriefApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${podBriefApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+
+    const directPodBrief = podBriefApproval?.id ? await requestJson(`${config.url}/rest/v1/pod_design_briefs?select=id,user_id,approval_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: podBriefApproval.id,
+        product_type: 'Direct client should fail',
+        prompt: 'RLS should reject direct POD brief writes.',
+        creative_brief: { source: 'direct-client' },
+        preview_card: { after: { productType: 'Direct client should fail' } }
+      })
+    }) : null;
+    result.v2.podBriefDirectInsertDenied = Boolean(directPodBrief && !directPodBrief.response.ok);
+
+    const serverPodBrief = podBriefApproval?.id ? await requestJson(`${config.url}/rest/v1/pod_design_briefs?select=id,user_id,approval_id,product_type,prompt`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: podBriefApproval.id,
+        brand_name: 'E2E Brand',
+        product_type: 'premium t-shirt',
+        target_audience: 'Founders',
+        style_keywords: ['minimal', 'premium'],
+        color_palette: ['black', 'teal'],
+        placement: 'front chest',
+        prompt: 'E2E POD prompt',
+        negative_prompt: 'No clutter',
+        fulfillment_targets: ['Printify'],
+        marketing_angles: ['AI founder apparel'],
+        creative_brief: { prompt: 'E2E POD prompt' },
+        preview_card: { after: { productType: 'premium t-shirt' } }
+      })
+    }) : null;
+    const podBriefRow = Array.isArray(serverPodBrief?.body) ? serverPodBrief.body[0] : null;
+    result.v2.podBriefServerInsertWithApproval = Boolean(
+      serverPodBrief?.response.ok &&
+      podBriefRow?.id &&
+      podBriefRow.user_id === userId &&
+      podBriefRow.approval_id === podBriefApproval?.id &&
+      podBriefRow.product_type === 'premium t-shirt'
+    );
+
+    const anonGfxToolsJob = await requestJson(`${config.url}/rest/v1/gfxtools_jobs`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        job_payload: { prompt: 'RLS should reject this GFXTools job.' }
+      })
+    });
+    result.v2.anonGfxToolsJobInsertDenied = !anonGfxToolsJob.response.ok;
+
+    const gfxApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'gfxtools_job_create',
+        tool_name: 'gfxtools_job_create',
+        title: 'Prepare GFXTools job test',
+        summary: 'Approve a GFXTools job payload before saving.',
+        payload: {
+          previewCard: {
+            before: null,
+            after: { provider: 'GFXTools', prompt: 'E2E POD prompt' },
+            changes: ['Prepare payload only']
+          }
+        },
+        risk_level: 'high'
+      })
+    });
+    const gfxApproval = Array.isArray(gfxApprovalInsert.body) ? gfxApprovalInsert.body[0] : null;
+    if (gfxApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${gfxApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+
+    const directGfxJob = gfxApproval?.id ? await requestJson(`${config.url}/rest/v1/gfxtools_jobs?select=id,user_id,approval_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: gfxApproval.id,
+        pod_design_brief_id: podBriefRow?.id || null,
+        connector_state: 'disconnected',
+        job_payload: { prompt: 'Direct client should fail' },
+        preview_card: { after: { provider: 'GFXTools' } }
+      })
+    }) : null;
+    result.v2.gfxToolsJobDirectInsertDenied = Boolean(directGfxJob && !directGfxJob.response.ok);
+
+    const serverGfxJob = gfxApproval?.id ? await requestJson(`${config.url}/rest/v1/gfxtools_jobs?select=id,user_id,approval_id,pod_design_brief_id,status,connector_state,external_call_performed`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: gfxApproval.id,
+        pod_design_brief_id: podBriefRow?.id || null,
+        status: 'blocked_missing_credentials',
+        connector_state: 'disconnected',
+        job_payload: { provider: 'gfxtools', prompt: 'E2E POD prompt', externalCallPerformed: false },
+        preview_card: { after: { provider: 'GFXTools', prompt: 'E2E POD prompt' } },
+        external_call_performed: false
+      })
+    }) : null;
+    const gfxJobRow = Array.isArray(serverGfxJob?.body) ? serverGfxJob.body[0] : null;
+    result.v2.gfxToolsJobServerInsertWithApproval = Boolean(
+      serverGfxJob?.response.ok &&
+      gfxJobRow?.id &&
+      gfxJobRow.user_id === userId &&
+      gfxJobRow.approval_id === gfxApproval?.id &&
+      gfxJobRow.external_call_performed === false
+    );
   } catch (error) {
     result.error = error.message || String(error);
   } finally {
@@ -1182,7 +1363,9 @@ async function main() {
     'job_listings',
     'job_application_reviews',
     'job_profiles',
-    'resume_versions'
+    'resume_versions',
+    'pod_design_briefs',
+    'gfxtools_jobs'
   ]) {
     tables.push(await verifyTable(config, table));
   }

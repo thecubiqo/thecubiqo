@@ -1012,6 +1012,9 @@ const ActionConsolePage = () => {
   const [jobReviews, setJobReviews] = useState([]);
   const [jobProfile, setJobProfile] = useState(null);
   const [resumeVersions, setResumeVersions] = useState([]);
+  const [podConnectors, setPodConnectors] = useState([]);
+  const [podDesignBriefs, setPodDesignBriefs] = useState([]);
+  const [gfxToolsJobs, setGfxToolsJobs] = useState([]);
   const [browserUrl, setBrowserUrl] = useState('https://example.com/');
 
   const baseActionCards = [
@@ -1084,7 +1087,7 @@ const ActionConsolePage = () => {
         setLoading(false);
         return;
       }
-      const [approvalData, taskData, scheduleData, reportData, auditData, capabilityData, browserData, jobData] = await Promise.all([
+      const [approvalData, taskData, scheduleData, reportData, auditData, capabilityData, browserData, jobData, podData] = await Promise.all([
         apiJson('/api/actions/approvals?limit=20'),
         apiJson('/api/tasks?limit=20'),
         apiJson('/api/reports/schedules?limit=10'),
@@ -1092,7 +1095,8 @@ const ActionConsolePage = () => {
         apiJson('/api/actions/audit?limit=25'),
         apiJson('/api/actions/capabilities'),
         apiJson('/api/actions/execute?browser_sessions=active'),
-        apiJson('/api/actions/execute?job_state=1')
+        apiJson('/api/actions/execute?job_state=1'),
+        apiJson('/api/actions/execute?pod_state=1')
       ]);
       setApprovals(approvalData.approvals || []);
       setTasks(taskData.tasks || []);
@@ -1105,6 +1109,9 @@ const ActionConsolePage = () => {
       setJobReviews(jobData.reviews || []);
       setJobProfile(jobData.profile || null);
       setResumeVersions(jobData.resumeVersions || []);
+      setPodConnectors(podData.connectors || []);
+      setPodDesignBriefs(podData.podDesignBriefs || []);
+      setGfxToolsJobs(podData.gfxToolsJobs || []);
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -1134,9 +1141,12 @@ const ActionConsolePage = () => {
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
   const jobProfileUnlocked = ['job_profile_write', 'resume_version_write']
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
+  const podWorkflowUnlocked = ['pod_design_brief_create', 'gfxtools_job_create']
+    .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
   const activeBrowserSession = browserSessions.find(item => item.status === 'active') || null;
   const latestJobListing = jobListings.find(item => ['saved', 'reviewing', 'prepared'].includes(item.status)) || jobListings[0] || null;
   const latestPreparedReview = jobReviews.find(item => item.status === 'prepared') || null;
+  const latestPodBrief = podDesignBriefs[0] || null;
 
   const browserActionCards = browserControlUnlocked ? (
     activeBrowserSession ? [
@@ -1378,7 +1388,78 @@ const ActionConsolePage = () => {
     }
   ] : [];
 
-  const actionCards = [...baseActionCards, ...browserActionCards, ...jobActionCards, ...profileActionCards];
+  const podActionCards = podWorkflowUnlocked ? [
+    {
+      actionType: 'pod_design_brief_create',
+      toolName: 'pod_design_brief_create',
+      title: 'Create POD design brief',
+      summary: 'CubiQo will save a structured POD creative brief to Supabase. No GFXTools, Shopify, or Printify action runs.',
+      Icon: ShoppingBag,
+      runLabel: 'Save brief',
+      riskLevel: 'medium',
+      payload: () => ({
+        brandName: 'CubiQo Studio',
+        productType: 'premium cotton t-shirt',
+        targetAudience: 'AI builders, founders, and operators who like subtle futuristic apparel.',
+        styleKeywords: ['minimal', 'premium', 'signal wave', 'monochrome', 'electric accent'],
+        colorPalette: ['black', 'soft white', 'teal accent'],
+        placement: 'center chest print with small sleeve mark',
+        prompt: 'Create a premium POD apparel graphic with a subtle RGY signal wave, clean CubiQo intelligence aesthetic, no clutter, suitable for a black t-shirt.',
+        negativePrompt: 'No cheap clipart, no crowded typography, no fake logos, no low-resolution artifacts.',
+        fulfillmentTargets: ['Printify', 'Shopify'],
+        marketingAngles: ['AI-native founder wear', 'quiet premium intelligence', 'build mode uniform'],
+        deliverables: ['front print prompt', 'ad caption angle', 'product positioning note'],
+        previewCard: {
+          title: 'POD creative brief preview',
+          after: {
+            brandName: 'CubiQo Studio',
+            productType: 'premium cotton t-shirt',
+            prompt: 'Create a premium POD apparel graphic with a subtle RGY signal wave.'
+          },
+          changes: ['Create structured creative brief', 'Store in Supabase only'],
+          willWriteTo: 'Supabase pod_design_briefs',
+          willNotDo: ['No GFXTools API call', 'No Shopify product creation', 'No Printify product creation']
+        }
+      })
+    },
+    {
+      actionType: 'gfxtools_job_create',
+      toolName: 'gfxtools_job_create',
+      title: 'Prepare GFXTools payload',
+      summary: 'CubiQo will prepare and save a GFXTools-ready job payload. It will not call GFXTools unless a later verified connector execution is approved.',
+      Icon: Rocket,
+      runLabel: 'Prepare payload',
+      riskLevel: 'high',
+      podDesignBriefId: latestPodBrief?.id || null,
+      payload: () => ({
+        pod_design_brief_id: latestPodBrief?.id || null,
+        brandName: latestPodBrief?.brandName || 'CubiQo Studio',
+        productType: latestPodBrief?.productType || 'premium cotton t-shirt',
+        prompt: latestPodBrief?.prompt || 'Create a premium POD apparel graphic with a subtle RGY signal wave.',
+        negativePrompt: latestPodBrief?.negativePrompt || 'No cheap clipart, no crowded typography.',
+        styleKeywords: latestPodBrief?.styleKeywords || ['minimal', 'premium', 'signal wave'],
+        colorPalette: latestPodBrief?.colorPalette || ['black', 'soft white', 'teal accent'],
+        output: {
+          format: 'png',
+          aspectRatio: '1:1',
+          transparentBackground: true
+        },
+        previewCard: {
+          title: 'GFXTools job payload preview',
+          after: {
+            provider: 'GFXTools',
+            briefId: latestPodBrief?.id || null,
+            prompt: latestPodBrief?.prompt || 'Create a premium POD apparel graphic with a subtle RGY signal wave.'
+          },
+          changes: ['Prepare provider payload', 'Record connector state', 'Store in Supabase only'],
+          willWriteTo: 'Supabase gfxtools_jobs',
+          willNotDo: ['No external API call in this step', 'No product publish', 'No credential exposure']
+        }
+      })
+    }
+  ] : [];
+
+  const actionCards = [...baseActionCards, ...browserActionCards, ...jobActionCards, ...profileActionCards, ...podActionCards];
 
   const latestApproval = (card) => approvals.find(item => {
     const matchesAction = item.actionType === card.actionType && ['requested', 'approved'].includes(item.status);
@@ -1404,7 +1485,7 @@ const ActionConsolePage = () => {
           payload: {
             ...(typeof card.payload === 'function' ? card.payload() : {}),
             preview: card.summary,
-            externalExecution: card.actionType.startsWith('browser_') || card.actionType === 'job_application_submit_approved'
+            externalExecution: card.actionType.startsWith('browser_') || card.actionType === 'job_application_submit_approved' || card.actionType === 'gfxtools_job_create'
           }
         })
       });
@@ -1471,7 +1552,7 @@ const ActionConsolePage = () => {
             payload: typeof card.payload === 'function' ? card.payload() : {}
           })
         });
-      } else if (card.actionType.startsWith('job_') || card.actionType === 'resume_version_write') {
+      } else if (card.actionType.startsWith('job_') || card.actionType === 'resume_version_write' || card.actionType.startsWith('pod_') || card.actionType === 'gfxtools_job_create') {
         await apiJson('/api/actions/execute', {
           method: 'POST',
           body: JSON.stringify({
@@ -1752,6 +1833,86 @@ const ActionConsolePage = () => {
                     )) : (
                       <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
                         No resume versions yet. Each approved save creates a new version and leaves old versions untouched.
+                      </div>
+                    )}
+                  </div>
+                </article>
+              </section>
+
+              <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>POD Connectors</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{podConnectors.length}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {podConnectors.length ? podConnectors.map(item => {
+                      const tone = item.state === 'connected' ? '#34d399' : item.state === 'configured_unverified' ? '#fbbf24' : '#94a3b8';
+                      return (
+                        <div key={item.provider} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                            <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.label}</div>
+                            <Badge variant="outline" style={{ borderColor: 'rgba(255,255,255,0.1)', color: tone }}>{item.state}</Badge>
+                          </div>
+                          <div style={{ marginTop: 7, color: 'rgba(255,255,255,0.52)', fontSize: '0.73rem', lineHeight: 1.45 }}>
+                            {item.note || 'Connector status unavailable.'}
+                          </div>
+                        </div>
+                      );
+                    }) : (
+                      <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                        Connector status is unavailable. Refresh after signing in.
+                      </div>
+                    )}
+                  </div>
+                </article>
+
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>POD Design Briefs</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{podDesignBriefs.length}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {podDesignBriefs.length ? podDesignBriefs.slice(0, 4).map(item => (
+                      <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                        <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.brandName || 'POD brief'} · {item.productType}</div>
+                        <div style={{ marginTop: 7, color: 'rgba(255,255,255,0.56)', fontSize: '0.76rem', lineHeight: 1.5 }}>
+                          {(item.styleKeywords || []).slice(0, 6).join(', ') || 'No style keywords'}
+                        </div>
+                        <div style={{ marginTop: 9, padding: 10, borderRadius: 10, background: 'rgba(0,0,0,0.24)', color: 'rgba(255,255,255,0.58)', fontSize: '0.72rem', lineHeight: 1.45 }}>
+                          {(item.prompt || '').slice(0, 190)}
+                        </div>
+                      </div>
+                    )) : (
+                      <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                        No POD briefs yet. Save a brief before preparing provider payloads.
+                      </div>
+                    )}
+                  </div>
+                </article>
+
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>GFXTools Jobs</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{gfxToolsJobs.length}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {gfxToolsJobs.length ? gfxToolsJobs.slice(0, 4).map(item => (
+                      <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                          <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.jobPayload?.productType || 'GFXTools payload'}</div>
+                          <Badge variant="outline" className="border-white/10 text-white/45">{item.status}</Badge>
+                        </div>
+                        <div style={{ marginTop: 6, color: 'rgba(255,255,255,0.56)', fontSize: '0.76rem' }}>
+                          connector: {item.connectorState} · external call: {item.externalCallPerformed ? 'yes' : 'no'}
+                        </div>
+                        <div style={{ marginTop: 9, padding: 10, borderRadius: 10, background: 'rgba(0,0,0,0.24)', color: 'rgba(255,255,255,0.58)', fontSize: '0.72rem', lineHeight: 1.45 }}>
+                          {(item.jobPayload?.prompt || '').slice(0, 190)}
+                        </div>
+                      </div>
+                    )) : (
+                      <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                        No GFXTools payloads yet. Prepared payloads stay in Supabase until a verified connector execution exists.
                       </div>
                     )}
                   </div>

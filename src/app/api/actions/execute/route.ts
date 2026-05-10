@@ -25,6 +25,14 @@ import {
   writeJobProfile,
   writeResumeVersion
 } from '../../_lib/job-profile-workflows';
+import {
+  createGfxToolsJob,
+  createPodDesignBrief,
+  getPodApprovalPreviewCard,
+  getPodConnectorStatuses,
+  isPodAction,
+  listPodBusinessState
+} from '../../_lib/pod-business-workflows';
 
 export const runtime = 'nodejs';
 
@@ -48,7 +56,159 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ...jobResult, ...profileResult });
   }
 
+  if (request.nextUrl.searchParams.get('pod_state') === '1') {
+    const result = await listPodBusinessState(auth);
+    if ('error' in result && result.error) return result.error instanceof Response ? result.error : NextResponse.json({ error: result.error.message }, { status: 500 });
+    return NextResponse.json(result);
+  }
+
   return NextResponse.json({ error: 'Unsupported execute query' }, { status: 400 });
+}
+
+async function handleConnectorStatusAction(auth: ApiUserContext, actionType: string, toolName: string) {
+  if (!['gfxtools_connector_status', 'shopify_connector_status', 'printify_connector_status'].includes(actionType)) {
+    return null;
+  }
+
+  const statuses = getPodConnectorStatuses().connectors;
+  const provider = actionType.replace('_connector_status', '');
+  const connector = statuses.find(item => item.provider === provider);
+  await writeAudit(auth, {
+    actionType,
+    toolName,
+    status: 'completed',
+    message: `${connector?.label || provider} connector status checked without exposing credentials`,
+    result: { connector, performedExternalAction: false }
+  });
+  return NextResponse.json({
+    executed: true,
+    readOnly: true,
+    connector,
+    connectors: statuses,
+    performedExternalAction: false
+  });
+}
+
+async function handlePodAction(
+  auth: ApiUserContext,
+  actionType: string,
+  toolName: string,
+  body: Record<string, any>
+) {
+  if (!isPodAction(actionType)) {
+    return null;
+  }
+
+  const capability = getActionCapability(actionType);
+  if (!capability || capability.status !== 'active') {
+    await writeAudit(auth, {
+      actionType,
+      toolName,
+      status: 'blocked',
+      message: 'POD workflow blocked because the capability is locked',
+      input: { actionType },
+      result: {
+        capabilityStatus: capability?.status || 'missing',
+        requirements: capability?.requirements || []
+      }
+    });
+    return NextResponse.json(
+      {
+        error: 'POD workflow is locked until this capability is active',
+        executed: false,
+        capability
+      },
+      { status: 501 }
+    );
+  }
+
+  const approvalId = String(body.approvalId ?? body.approval_id ?? '').trim();
+  const approvalCheck = await requireApprovedAction(auth, approvalId, actionType);
+  if (approvalCheck.error) return approvalCheck.error;
+
+  const payload = normalizePayload(approvalCheck.approval?.payload);
+  const previewCard = getPodApprovalPreviewCard(approvalCheck.approval);
+  try {
+    if (actionType === 'pod_design_brief_create') {
+      const created = await createPodDesignBrief(auth, approvalId, payload, previewCard);
+      if ('error' in created && created.error) return created.error instanceof Response ? created.error : NextResponse.json({ error: created.error.message }, { status: 500 });
+      if ('blocked' in created && created.blocked) {
+        await writeAudit(auth, {
+          approvalId,
+          actionType,
+          toolName,
+          status: 'blocked',
+          message: created.blocked,
+          input: { productType: payload.productType || payload.product_type }
+        });
+        return NextResponse.json({ error: created.blocked, executed: false }, { status: created.status || 400 });
+      }
+      if (!('brief' in created)) return NextResponse.json({ error: 'POD design brief could not be saved', executed: false }, { status: 500 });
+      await writeAudit(auth, {
+        approvalId,
+        actionType,
+        toolName,
+        status: 'completed',
+        message: 'Saved approved POD design brief',
+        input: { brandName: payload.brandName || payload.brand_name, productType: payload.productType || payload.product_type },
+        result: { brief: created.brief, previewCard: created.previewCard, performedExternalAction: false }
+      });
+      await completeApproval(auth, approvalId, true);
+      return NextResponse.json({ executed: true, brief: created.brief, previewCard: created.previewCard, performedExternalAction: false });
+    }
+
+    if (actionType === 'gfxtools_job_create') {
+      const created = await createGfxToolsJob(auth, approvalId, payload, previewCard);
+      if ('error' in created && created.error) return created.error instanceof Response ? created.error : NextResponse.json({ error: created.error.message }, { status: 500 });
+      if ('blocked' in created && created.blocked) {
+        await writeAudit(auth, {
+          approvalId,
+          actionType,
+          toolName,
+          status: 'blocked',
+          message: created.blocked,
+          input: { podDesignBriefId: payload.podDesignBriefId || payload.pod_design_brief_id }
+        });
+        return NextResponse.json({ error: created.blocked, executed: false }, { status: created.status || 400 });
+      }
+      if (!('job' in created)) return NextResponse.json({ error: 'GFXTools job payload could not be saved', executed: false }, { status: 500 });
+      await writeAudit(auth, {
+        approvalId,
+        actionType,
+        toolName,
+        status: 'completed',
+        message: 'Prepared approved GFXTools job payload; no external call was performed',
+        input: { podDesignBriefId: payload.podDesignBriefId || payload.pod_design_brief_id },
+        result: {
+          job: created.job,
+          previewCard: created.previewCard,
+          connector: created.connector,
+          externalCallPerformed: false
+        }
+      });
+      await completeApproval(auth, approvalId, true);
+      return NextResponse.json({
+        executed: true,
+        job: created.job,
+        previewCard: created.previewCard,
+        connector: created.connector,
+        externalCallPerformed: false
+      });
+    }
+
+    return null;
+  } catch (error) {
+    await completeApproval(auth, approvalId, false);
+    await writeAudit(auth, {
+      approvalId,
+      actionType,
+      toolName,
+      status: 'failed',
+      message: error instanceof Error ? error.message : 'POD workflow failed',
+      input: payload
+    });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'POD workflow failed', executed: false }, { status: 400 });
+  }
 }
 
 async function handleJobProfileAction(
@@ -458,6 +618,9 @@ export async function POST(request: NextRequest) {
   const capability = getActionCapability(actionType);
   const toolName = normalizeToolName(body.toolName ?? body.tool_name, actionType);
 
+  const connectorStatusResponse = await handleConnectorStatusAction(auth, actionType, toolName);
+  if (connectorStatusResponse) return connectorStatusResponse;
+
   const browserResponse = await handleBrowserAction(auth, actionType, toolName, body);
   if (browserResponse) return browserResponse;
 
@@ -466,6 +629,9 @@ export async function POST(request: NextRequest) {
 
   const jobProfileResponse = await handleJobProfileAction(auth, actionType, toolName, body);
   if (jobProfileResponse) return jobProfileResponse;
+
+  const podResponse = await handlePodAction(auth, actionType, toolName, body);
+  if (podResponse) return podResponse;
 
   if (!capability) {
     await writeAudit(auth, {
