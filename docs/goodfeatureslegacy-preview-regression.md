@@ -428,12 +428,12 @@ Latest Stagehand/Browserbase live smoke on `127.0.0.1:3032`:
 
 Hosted goodfeatureslegacy preview smoke:
 
-- Preview URL: `https://cubiqo-repo-awpxwxf1w-cubiqo-projects-d7156840.vercel.app`.
+- Preview URL: `https://cubiqo-repo-pbjxcf3ua-cubiqo-projects-d7156840.vercel.app`.
 - `/api/actions/capabilities`: passed; hosted preview returns the V2 action manifest, with `browser_open`, `browser_extract`, `browser_screenshot`, and `browser_act` active.
 - `/actions`: passed; hosted preview returns HTTP 200.
 - `/api/actions/browser-demo`: passed; pending approval returned HTTP 202, approval update returned HTTP 200, approved execution returned HTTP 200 with `executed: true`.
-- Browser session proof: `browser_session_id=c730dfb3-5131-4e92-b8e1-6aab9394485b`; extracted `Example Domain` content from `https://example.com`.
-- Screenshot proof: signed Supabase Storage URL returned from `browser-screenshots/c730dfb3-5131-4e92-b8e1-6aab9394485b/1778410323516.png`.
+- Browser session proof: `browser_session_id=7c0ecd8e-9f33-45fa-bf0c-e7cfb304d206`; extracted `Example Domain` content from `https://example.com`.
+- Screenshot proof: signed Supabase Storage URL returned from `browser-screenshots/7c0ecd8e-9f33-45fa-bf0c-e7cfb304d206/1778410720348.png`.
 - Audit proof: `action_audit_logs` contains completed `browser_demo` and `browser_close` rows with the same `browser_session_id`; `browser_demo` row has the screenshot URL.
 - Hard stop proof: hosted `send_email` action returned HTTP 403 and wrote `blocked_email_send` to the audit log.
 
