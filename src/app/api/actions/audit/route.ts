@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { missingMigrationResponse, requireApiUser, safeTableMissing } from '../../_lib/supabase-admin';
 import { mapAudit } from '../../_lib/v2-actions';
 
-const auditSelect = 'id,approval_id,browser_session_id,action_type,tool_name,status,message,input,result,created_at';
+const auditSelect = '*';
 
 export async function GET(request: NextRequest) {
   const auth = await requireApiUser(request);

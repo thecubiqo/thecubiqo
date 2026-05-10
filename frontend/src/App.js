@@ -1187,14 +1187,29 @@ const ActionConsolePage = () => {
   const latestSocialDraft = socialDrafts[0] || null;
   const latestShopifyProduct = shopifyProducts[0] || null;
   const latestProviderDesign = providerDesigns[0] || null;
+  const latestBrowserReceipt = auditLogs.find(log => log.screenshotUrl || log.result?.screenshotUrl) || null;
 
   const browserActionCards = browserControlUnlocked ? (
     activeBrowserSession ? [
       {
+        actionType: 'browser_act',
+        toolName: 'browser_act',
+        title: 'Run browser action',
+        summary: `CubiQo will run one approved Stagehand action inside session ${activeBrowserSession.id.slice(0, 8)} and record what happened.`,
+        Icon: MousePointerClick,
+        runLabel: 'Run action',
+        riskLevel: 'medium',
+        browserSessionId: activeBrowserSession.id,
+        payload: () => ({
+          browser_session_id: activeBrowserSession.id,
+          action: 'Observe the visible page and report the main content without submitting forms.'
+        })
+      },
+      {
         actionType: 'browser_click',
         toolName: 'browser_click',
         title: 'Record browser click',
-        summary: `CubiQo will record an approved click intent inside session ${activeBrowserSession.id.slice(0, 8)}. No hidden browser click runs yet.`,
+        summary: `CubiQo will run an approved Stagehand click intent inside session ${activeBrowserSession.id.slice(0, 8)}.`,
         Icon: MousePointerClick,
         runLabel: 'Record click',
         riskLevel: 'medium',
@@ -1209,7 +1224,7 @@ const ActionConsolePage = () => {
         actionType: 'browser_type',
         toolName: 'browser_type',
         title: 'Record browser type',
-        summary: 'CubiQo will record approved text-entry intent after showing the payload. No credential typing is enabled.',
+        summary: 'CubiQo will run approved text entry only after showing the exact payload. Credential typing stays approval-bound.',
         Icon: Keyboard,
         runLabel: 'Record type',
         riskLevel: 'medium',
@@ -1225,7 +1240,7 @@ const ActionConsolePage = () => {
         actionType: 'browser_extract',
         toolName: 'browser_extract',
         title: 'Record browser extract',
-        summary: 'CubiQo will record approved extraction intent and source context. No hidden page read occurs in this foundation.',
+        summary: 'CubiQo will extract visible page facts through the approved Stagehand session.',
         Icon: Eye,
         runLabel: 'Record extract',
         riskLevel: 'medium',
@@ -1239,7 +1254,7 @@ const ActionConsolePage = () => {
         actionType: 'browser_screenshot',
         toolName: 'browser_screenshot',
         title: 'Record screenshot intent',
-        summary: 'CubiQo will record approved screenshot intent with session tracking. No image capture occurs until visible runtime is attached.',
+        summary: 'CubiQo will capture a signed visual receipt from the approved Stagehand session.',
         Icon: ImageIcon,
         runLabel: 'Record screenshot',
         riskLevel: 'medium',
@@ -1254,7 +1269,7 @@ const ActionConsolePage = () => {
         actionType: 'browser_open',
         toolName: 'browser_open',
         title: 'Open browser session',
-        summary: 'CubiQo will open an isolated browser-control session container for the URL below. No hidden automation runs.',
+        summary: 'CubiQo will open an isolated Stagehand Browserbase session for the URL below.',
         Icon: Monitor,
         runLabel: 'Open session',
         riskLevel: 'medium',
@@ -1262,6 +1277,20 @@ const ActionConsolePage = () => {
           url: browserUrl,
           visible_session: true,
           externalExecution: false
+        })
+      },
+      {
+        actionType: 'browser_demo',
+        toolName: 'browser_demo',
+        title: 'Run safe browser demo',
+        summary: 'CubiQo will open example.com, extract visible content, capture a signed screenshot receipt, then close the session.',
+        Icon: Eye,
+        runLabel: 'Run demo',
+        riskLevel: 'low',
+        payload: () => ({
+          url: 'https://example.com',
+          session_mode: 'disposable',
+          externalExecution: true
         })
       }
     ]
@@ -1907,11 +1936,11 @@ const ActionConsolePage = () => {
     setBusyAction(approval.id);
     setMessage('');
     try {
-      await apiJson('/api/actions/approvals', {
+      const result = await apiJson('/api/actions/approvals', {
         method: 'PATCH',
         body: JSON.stringify({ id: approval.id, status })
       });
-      setMessage(status === 'approved' ? 'Approved. Run the action when ready.' : 'Action cancelled.');
+      setMessage(result.secondaryConfirmationComplete ? result.message : status === 'approved' ? 'Approved. Run the action when ready.' : 'Action cancelled.');
       await loadActionState();
     } catch (error) {
       setMessage(error.message);
@@ -1944,6 +1973,13 @@ const ActionConsolePage = () => {
             deliveryMethod: 'in_app',
             summaryScope: ['journal', 'signals', 'tasks'],
             metadata: { source_screen: 'actions' }
+          })
+        });
+      } else if (card.actionType === 'browser_demo') {
+        await apiJson('/api/actions/browser-demo', {
+          method: 'POST',
+          body: JSON.stringify({
+            approvalId: approval.id
           })
         });
       } else if (card.actionType.startsWith('browser_')) {
@@ -2092,6 +2128,12 @@ const ActionConsolePage = () => {
                       <div>
                         <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 500 }}>{card.title}</h2>
                         <p style={{ margin: '8px 0 0', color: 'rgba(255,255,255,0.58)', fontSize: '0.86rem', lineHeight: 1.55 }}>{card.summary}</p>
+                        {approval?.warningMessage && (
+                          <div style={{ marginTop: 10, border: '1px solid rgba(251,191,36,0.22)', borderRadius: 12, padding: '9px 10px', background: 'rgba(251,191,36,0.08)', color: '#fde68a', fontSize: '0.74rem', lineHeight: 1.45 }}>
+                            {approval.warningMessage}
+                            {approval.userConfirmationState === 'confirmed' ? ' Confirmation captured; approve again to run.' : ' First approval confirms this warning.'}
+                          </div>
+                        )}
                         {card.actionType === 'browser_open' && (
                           <input
                             value={browserUrl}
@@ -2132,6 +2174,21 @@ const ActionConsolePage = () => {
                 <div style={{ ...cardStyle, padding: '12px 14px', color: message.includes('failed') || message.includes('required') ? '#fca5a5' : '#a7f3d0', fontSize: '0.86rem' }}>
                   {message}
                 </div>
+              )}
+
+              {latestBrowserReceipt && (
+                <section style={{ ...cardStyle, padding: 18, borderColor: 'rgba(125,211,252,0.18)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Latest Browser Visual Receipt</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{latestBrowserReceipt.actionType}</Badge>
+                  </div>
+                  <a href={latestBrowserReceipt.screenshotUrl || latestBrowserReceipt.result?.screenshotUrl} target="_blank" rel="noreferrer" style={{ color: '#7dd3fc', fontSize: '0.78rem' }}>
+                    Open signed screenshot
+                  </a>
+                  <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.46)', fontSize: '0.74rem', lineHeight: 1.5 }}>
+                    {latestBrowserReceipt.message}
+                  </div>
+                </section>
               )}
 
               <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
@@ -2610,10 +2667,26 @@ const ActionConsolePage = () => {
                 </div>
                 <div style={{ display: 'grid', gap: 8 }}>
                   {auditLogs.length ? auditLogs.slice(0, 8).map(log => (
-                    <div key={log.id} style={{ display: 'grid', gridTemplateColumns: '110px minmax(0, 1fr) auto', gap: 10, alignItems: 'center', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '9px 10px', color: 'rgba(255,255,255,0.66)', fontSize: '0.76rem' }}>
-                      <span>{log.status}</span>
-                      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.message}</span>
-                      <span style={{ color: 'rgba(255,255,255,0.36)' }}>{log.actionType}</span>
+                    <div key={log.id} style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '9px 10px', color: 'rgba(255,255,255,0.66)', fontSize: '0.76rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '110px minmax(0, 1fr) auto', gap: 10, alignItems: 'center' }}>
+                        <span>{log.status}</span>
+                        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.message}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.36)' }}>{log.actionType}</span>
+                      </div>
+                      {(log.screenshotUrl || log.blockReason || log.accessibilityTreeSnapshot) && (
+                        <div style={{ marginTop: 8, display: 'grid', gap: 6, color: 'rgba(255,255,255,0.42)', fontSize: '0.68rem' }}>
+                          {log.blockReason && <span>block: {log.blockReason}</span>}
+                          {log.screenshotUrl && <a href={log.screenshotUrl} target="_blank" rel="noreferrer" style={{ color: '#7dd3fc' }}>signed screenshot receipt</a>}
+                          {log.accessibilityTreeSnapshot && (
+                            <details>
+                              <summary style={{ cursor: 'pointer', color: '#fde68a' }}>What the browser saw</summary>
+                              <pre style={{ margin: '8px 0 0', maxHeight: 180, overflow: 'auto', whiteSpace: 'pre-wrap', color: 'rgba(255,255,255,0.58)' }}>
+                                {JSON.stringify(log.accessibilityTreeSnapshot, null, 2)}
+                              </pre>
+                            </details>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )) : (
                     <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem' }}>No audit entries yet.</div>

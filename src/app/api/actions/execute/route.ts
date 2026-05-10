@@ -3,6 +3,10 @@ import { requireApiUser, type ApiUserContext } from '../../_lib/supabase-admin';
 import { getActionCapability } from '../../_lib/v2-capabilities';
 import { completeApproval, normalizeActionType, normalizePayload, normalizeToolName, requireApprovedAction, writeAudit } from '../../_lib/v2-actions';
 import {
+  getHardStopReason,
+  getUrlAllowlistDecision
+} from '../../_lib/guardrails';
+import {
   closeBrowserSession,
   createBrowserSession,
   isBrowserAction,
@@ -825,10 +829,64 @@ async function handleBrowserAction(
   const approvalCheck = await requireApprovedAction(auth, approvalId, actionType);
   if (approvalCheck.error) return approvalCheck.error;
 
+  const approval = approvalCheck.approval;
   const payload = normalizeBrowserPayload(body.payload);
+  const approvedBrowserSessionId = normalizeBrowserSessionId(
+    approval?.browser_session_id ?? approval?.payload?.browser_session_id
+  );
+  if (actionType !== 'browser_open') {
+    if (!browserSessionId || !approvedBrowserSessionId || browserSessionId !== approvedBrowserSessionId) {
+      await writeAudit(auth, {
+        approvalId,
+        browserSessionId: browserSessionId || null,
+        actionType,
+        toolName,
+        status: 'blocked',
+        message: 'Browser action blocked because the session id did not match the approval record',
+        input: { browserSessionId, approvedBrowserSessionId },
+        blockReason: browserSessionId ? 'session_hijack_attempt' : 'no_approval_record'
+      });
+      return NextResponse.json(
+        { error: 'Browser session approval mismatch', executed: false, blockReason: 'session_hijack_attempt' },
+        { status: 403 }
+      );
+    }
+  }
+
   try {
     if (actionType === 'browser_open') {
-      const opened = await createBrowserSession(auth, approvalId, payload);
+      const openPayload = {
+        ...payload,
+        browser_session_id: approvedBrowserSessionId || payload.browser_session_id
+      };
+      const urlDecision = getUrlAllowlistDecision(openPayload);
+      const untrustedUrlConfirmed = Boolean(
+        (approval?.requires_user_confirmation || approval?.payload?.requires_user_confirmation) &&
+          (approval?.user_confirmation_state || approval?.payload?.user_confirmation_state) === 'confirmed'
+      );
+      if (!urlDecision.ok && !untrustedUrlConfirmed) {
+        await writeAudit(auth, {
+          approvalId,
+          browserSessionId: approvedBrowserSessionId || null,
+          actionType,
+          toolName,
+          status: 'blocked',
+          message: 'Browser open blocked because the URL is not allowlisted',
+          input: { url: urlDecision.rawUrl, hostname: urlDecision.hostname },
+          blockReason: urlDecision.reason || 'suspicious_url'
+        });
+        return NextResponse.json(
+          {
+            error: 'This domain is not on your trusted list. Request an approval with extra confirmation before navigating there.',
+            executed: false,
+            requiresUserConfirmation: true,
+            blockReason: urlDecision.reason || 'suspicious_url'
+          },
+          { status: 403 }
+        );
+      }
+
+      const opened = await createBrowserSession(auth, approvalId, openPayload);
       if ('error' in opened && opened.error) return opened.error instanceof Response ? opened.error : NextResponse.json({ error: opened.error.message }, { status: 500 });
       if (!('session' in opened)) return NextResponse.json({ error: 'Browser session could not be opened', executed: false }, { status: 500 });
       await writeAudit(auth, {
@@ -837,12 +895,12 @@ async function handleBrowserAction(
         actionType,
         toolName,
         status: 'completed',
-        message: 'Browser session container opened',
+        message: 'Stagehand Browserbase session opened',
         input: { url: opened.session.targetUrl },
-        result: { session: opened.session, performedExternalBrowserAction: false }
+        result: { session: opened.session, performedExternalBrowserAction: true }
       });
       await completeApproval(auth, approvalId, true);
-      return NextResponse.json({ executed: true, browserSession: opened.session, performedExternalBrowserAction: false });
+      return NextResponse.json({ executed: true, browserSession: opened.session, performedExternalBrowserAction: true });
     }
 
     if (!browserSessionId) {
@@ -878,9 +936,10 @@ async function handleBrowserAction(
       actionType,
       toolName,
       status: 'completed',
-      message: 'Browser action recorded in isolated session container',
+      message: 'Browser action executed in isolated Stagehand session',
       input: normalizePayload(body.payload),
-      result: recorded.action
+      result: recorded.action,
+      screenshotUrl: typeof recorded.action.screenshotUrl === 'string' ? recorded.action.screenshotUrl : null
     });
     await completeApproval(auth, approvalId, true);
     return NextResponse.json({ executed: true, browserSession: recorded.session, action: recorded.action });
@@ -1055,6 +1114,22 @@ export async function POST(request: NextRequest) {
 
   const capability = getActionCapability(actionType);
   const toolName = normalizeToolName(body.toolName ?? body.tool_name, actionType);
+  const payload = normalizePayload(body.payload);
+  const hardStopReason = getHardStopReason(actionType, payload);
+  if (hardStopReason) {
+    await writeAudit(auth, {
+      actionType,
+      toolName,
+      status: 'blocked',
+      message: `Action blocked by hard stop: ${hardStopReason}`,
+      input: { actionType, payload },
+      blockReason: hardStopReason
+    });
+    return NextResponse.json(
+      { error: 'This action is blocked by non-overridable safety guardrails', executed: false, blockReason: hardStopReason },
+      { status: 403 }
+    );
+  }
 
   const socialConnectorStatusResponse = await handleSocialConnectorStatusAction(auth, actionType, toolName);
   if (socialConnectorStatusResponse) return socialConnectorStatusResponse;

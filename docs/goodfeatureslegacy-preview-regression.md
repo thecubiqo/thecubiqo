@@ -43,7 +43,7 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 - BYO keys
 - Biometrics/camera awareness
 - Self-healer/full reporting
-- Live browser execution, coder/write-agent actions
+- Browser workflows beyond the Stagehand demo/action container, coder/write-agent actions
 - Signal match route/button
 
 Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Signal match, RGY matching, or intent matching.
@@ -67,9 +67,13 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Added `/actions` as the V2 Action Console inside the CubiQo shell. It exposes only completed QA-backed actions: approval cards, approve/cancel, approved task creation, in-app report schedules, in-app self/daily reports, and audit viewing.
 - Added `/api/actions/capabilities` as the V2 capability manifest. It marks active, read-only, and locked tools explicitly so incomplete workflows cannot look connected.
 - Added `/api/actions/execute` as the generic V2 action boundary. Locked tools return `501`, write a blocked audit entry, and do not execute.
-- Added browser-control foundation through `/api/actions/execute`: approved `browser_open` creates an isolated `browser_sessions` row, approved browser click/type/extract/screenshot intents are recorded against that session, and every browser audit row carries `browser_session_id` when a session exists.
+- Added Stagehand/Browserbase browser automation through the existing `/api/actions/execute` boundary: approved `browser_open` creates an isolated Browserbase session, approved `browser_act`/click/type/extract/screenshot run through Stagehand, and every browser audit row carries `browser_session_id` when a session exists.
+- Added hard browser guardrails: prod/QA targets, payment/billing/checkout, `send_email`, autonomous social publish, and deploy are blocked with non-overridable audit entries. Untrusted URLs require an extra warning confirmation before navigation.
+- Added signed browser visual receipts: screenshots are uploaded to Supabase Storage and returned to the client only as 1-hour signed URLs.
+- Added `/api/actions/browser-demo` as the first safe real browser workflow: approval -> example.com open -> accessibility-tree extraction -> signed screenshot -> audit -> session close.
 - Added the active `/api/actions/capabilities` parent capability `browser_control`; browser action approvals are only requestable while that manifest marks the control plane active.
-- Added a visible active browser session strip and Stop session button in `/actions`. Stop closes the user-owned session through `/api/actions/execute` and writes a cancel audit row.
+- Added a visible active browser session strip and Stop session button in `/actions`. Stop closes the user-owned Stagehand session through `/api/actions/execute` and writes a cancel audit row.
+- Added browser audit debug UI: failed browser actions can show the captured accessibility snapshot under "What the browser saw"; successful screenshots appear as signed visual receipt links.
 - Added V2 job application workflow tools through `/api/actions/execute`: approved `job_search_save` stores extracted LinkedIn/Indeed/Dice listings, approved `job_application_prepare` creates an exact review card payload, and approved `job_application_submit_approved` marks the prepared package approved for visible submission without auto-submitting externally.
 - Added user-owned, server-controlled Supabase tables `job_listings` and `job_application_reviews`. Users can read their own rows; direct browser-client inserts/updates are denied so approval/audit cannot be bypassed.
 - Added job workflow UI inside `/actions`: saved jobs, application review cards, and approval cards remain in the same CubiQo Action Console.
@@ -205,11 +209,18 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 | V2 locked execution boundary | Closed | `/api/actions/execute` returns `501` and writes blocked audit logs for locked tools. |
 | V2 active action visibility | Closed | `/actions` renders active/read-only/locked capability states from the manifest. |
 | Browser control parent capability | Closed | `/api/actions/capabilities` exposes active `browser_control`; browser actions are approved through the existing action boundary. |
-| Browser session manager | Closed for foundation | `browser_sessions` tracks user-owned active/cancelled sessions with target/current URL, allowed origin, timestamps, metadata, and RLS. |
-| Browser open boundary | Closed for foundation | `browser_open` requires a requested/approved approval card before `/api/actions/execute` creates a session. |
-| Browser click/type/extract/screenshot boundary | Closed for foundation | Each action requires its own approval and active `browser_session_id`; execution records the intent and audit trail only. |
+| Stagehand dependency | Closed | `@browserbasehq/stagehand` is installed directly; Puppeteer, Playwright, and Selenium were not added as direct app dependencies. |
+| Stagehand wrapper | Closed | `src/app/api/_lib/stagehand-client.ts` owns the raw Stagehand instance and exports only typed open/act/extract/screenshot/close helpers. |
+| Browser session manager | Closed | `browser_sessions` tracks user-owned active/cancelled/closed sessions with mode, target/current URL, allowed origin, heartbeat timestamps, provider session id, metadata, and RLS. |
+| Browser open boundary | Closed | `browser_open` requires a requested/approved approval card before `/api/actions/execute` creates a real Stagehand Browserbase session. |
+| Browser act/extract/screenshot boundary | Closed | Each action requires its own approval and matching active `browser_session_id`; execution runs through Stagehand and writes audit. |
+| Browser URL allowlist | Closed | `example.com`, LinkedIn, Indeed, Dice, Wellfound, Greenhouse, and Lever are allowlisted; unlisted domains require secondary confirmation and suspicious URL audit. |
+| Browser hard stops | Closed | Prod/QA target URLs, payments/billing/checkout, email send, autonomous social publish, and deploy are blocked regardless of approval/capability flags. |
 | Browser audit session ID | Closed | `action_audit_logs.browser_session_id` is populated for session-scoped browser approval/audit rows. |
+| Browser screenshot receipt | Closed | `browser_screenshot` stores private Supabase Storage screenshots and returns only a 1-hour signed URL. |
+| Browser accessibility debug | Closed | Stagehand action failures capture an accessibility snapshot to `action_audit_logs.accessibility_tree_snapshot`; `/actions` renders it in an expandable debug panel. |
 | Browser stop/cancel button | Closed | `/actions` shows a visible active-session strip with Stop session, routed through `/api/actions/execute`. |
+| Safe browser demo | Closed | `/api/actions/browser-demo` creates an approval card, opens example.com, extracts visible content, stores a screenshot receipt, audits the run, and closes the session. |
 | Job search save | Closed for V2 foundation | Approved `job_search_save` saves LinkedIn, Indeed, and Dice extracted listings to `job_listings` through `/api/actions/execute`. |
 | Job application prepare | Closed for V2 foundation | Approved `job_application_prepare` creates a review card showing the exact candidate/job/cover letter/answers payload before submission approval. |
 | Job application submit approved | Closed for V2 foundation | Approved `job_application_submit_approved` marks a prepared package approved for visible submission and audits it; it does not auto-submit to job boards. |

@@ -38,6 +38,10 @@ export function mapApproval(row: Record<string, any>) {
     title: row.title,
     summary: row.summary,
     payload: row.payload || {},
+    browserSessionId: row.browser_session_id || row.payload?.browser_session_id || null,
+    requiresUserConfirmation: Boolean(row.requires_user_confirmation || row.payload?.requires_user_confirmation),
+    userConfirmationState: row.user_confirmation_state || row.payload?.user_confirmation_state || 'not_required',
+    warningMessage: row.warning_message || row.payload?.warning_message || null,
     riskLevel: row.risk_level,
     expiresAt: row.expires_at,
     decidedAt: row.decided_at,
@@ -57,6 +61,9 @@ export function mapAudit(row: Record<string, any>) {
     message: row.message,
     input: row.input || {},
     result: row.result || {},
+    accessibilityTreeSnapshot: row.accessibility_tree_snapshot || null,
+    blockReason: row.block_reason || null,
+    screenshotUrl: row.screenshot_url || row.result?.screenshotUrl || row.result?.screenshot_url || null,
     createdAt: row.created_at
   };
 }
@@ -72,9 +79,12 @@ export async function writeAudit(
     message: string;
     input?: Record<string, unknown>;
     result?: Record<string, unknown>;
+    accessibilityTreeSnapshot?: Record<string, unknown> | unknown[] | string | null;
+    blockReason?: string | null;
+    screenshotUrl?: string | null;
   }
 ) {
-  const { error } = await auth.supabase.from('action_audit_logs').insert({
+  const auditRow = {
     user_id: auth.user.id,
     approval_id: input.approvalId || null,
     ...(input.browserSessionId !== undefined ? { browser_session_id: input.browserSessionId || null } : {}),
@@ -83,8 +93,19 @@ export async function writeAudit(
     status: input.status,
     message: input.message.slice(0, 500),
     input: input.input || {},
-    result: input.result || {}
-  });
+    result: input.result || {},
+    ...(input.accessibilityTreeSnapshot !== undefined
+      ? { accessibility_tree_snapshot: input.accessibilityTreeSnapshot }
+      : {}),
+    ...(input.blockReason !== undefined ? { block_reason: input.blockReason } : {}),
+    ...(input.screenshotUrl !== undefined ? { screenshot_url: input.screenshotUrl } : {})
+  };
+
+  const { error } = await auth.supabase.from('action_audit_logs').insert(auditRow);
+  if (error && /column .* does not exist|Could not find .* column/i.test(error.message)) {
+    const { accessibility_tree_snapshot, block_reason, screenshot_url, ...legacyAuditRow } = auditRow;
+    return auth.supabase.from('action_audit_logs').insert(legacyAuditRow);
+  }
 
   return { error };
 }
@@ -99,7 +120,8 @@ export async function requireApprovedAction(
       actionType,
       toolName: actionType,
       status: 'blocked',
-      message: 'Action blocked because approval_id was missing'
+      message: 'Action blocked because approval_id was missing',
+      blockReason: 'no_approval_record'
     });
     return {
       error: NextResponse.json(
@@ -111,7 +133,7 @@ export async function requireApprovedAction(
 
   const { data, error } = await auth.supabase
     .from('action_approvals')
-    .select('id,action_type,tool_name,status,expires_at,payload')
+    .select('*')
     .eq('id', approvalId)
     .eq('user_id', auth.user.id)
     .maybeSingle();
@@ -130,11 +152,35 @@ export async function requireApprovedAction(
       toolName: actionType,
       status: 'blocked',
       message: 'Action blocked because approval was missing, mismatched, or not approved',
+      blockReason: !data ? 'no_approval_record' : 'approval_not_approved',
       result: { approvalStatus: data?.status || null, approvalActionType: data?.action_type || null }
     });
     return {
       error: NextResponse.json(
         { error: 'Approved action request not found for this operation', approvalRequired: true },
+        { status: 403 }
+      )
+    };
+  }
+
+  const requiresUserConfirmation = Boolean(data.requires_user_confirmation || data.payload?.requires_user_confirmation);
+  const userConfirmationState = data.user_confirmation_state || data.payload?.user_confirmation_state || 'not_required';
+  if (requiresUserConfirmation && userConfirmationState !== 'confirmed') {
+    await writeAudit(auth, {
+      approvalId,
+      actionType,
+      toolName: data.tool_name || actionType,
+      status: 'blocked',
+      message: 'Action blocked because the extra user confirmation was not completed',
+      blockReason: 'missing_secondary_confirmation',
+      result: {
+        userConfirmationState,
+        warningMessage: data.warning_message || data.payload?.warning_message || null
+      }
+    });
+    return {
+      error: NextResponse.json(
+        { error: 'Secondary user confirmation is required before this action can run', approvalRequired: true },
         { status: 403 }
       )
     };
