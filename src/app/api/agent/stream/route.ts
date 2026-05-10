@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { streamText, tool } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import {
   repoListRoutes,
@@ -47,16 +48,34 @@ export async function POST(request: NextRequest) {
   }
 
   const authToken = getBearerToken(request);
+  const history: { role: 'user' | 'assistant'; content: string }[] = Array.isArray(body.history) ? body.history : [];
+
+  // Resolve model: OpenAI key → OpenRouter (OpenAI-compatible) → bare string fallback
+  const openaiKey = (process.env['OPENAI_API_KEY'] || '').trim();
+  const orKey = (process.env['OPENROUTER_API_KEY'] || process.env['OPENROUTER_KEY'] || '').trim();
+  const model = openaiKey
+    ? createOpenAI({ apiKey: openaiKey })(process.env['OPENAI_MODEL'] || 'gpt-4.1-mini')
+    : orKey
+    ? createOpenAI({ baseURL: 'https://openrouter.ai/api/v1', apiKey: orKey })(process.env['OPENROUTER_MODEL'] || 'anthropic/claude-3.5-sonnet')
+    : createOpenAI({ apiKey: 'placeholder' })('gpt-4.1-mini'); // will fail gracefully
+
+  const systemPrompt = [
+    'You are CubiQo — a calm, deeply intelligent personal AI. You are curious, warm, and precise.',
+    'You are a companion for thinking, planning, building, and growing.',
+    'Use tools for real-time or factual information; never invent facts.',
+    'Respond in 2–5 sentences. Be specific, not generic. Be honest, not merely reassuring.',
+    'Never use filler phrases like "Great question", "Certainly", or "Absolutely".',
+    'For repo or system questions, use inspection tools. For live info, use web_search.',
+    'Write: journal summaries, RGY capsules, memory summaries only. Other actions need user confirmation.',
+  ].join(' ');
+
+  const historyMessages = history.slice(-8).map(h => ({ role: h.role as 'user' | 'assistant', content: h.content }));
 
   const result = streamText({
-    model: process.env.AI_GATEWAY_MODEL || process.env.OPENAI_MODEL || 'openai/gpt-5.4',
-    system: [
-      'You are CubiQo — a personal ops AI. Use tools for real information; never invent facts.',
-      'V1 writes: journal summaries, RGY capsules, memory summaries only. All other actions need V2 approval.',
-      'For repo self-awareness questions, inspect the repo. For current events or research, use web_search.',
-      'Be concise.'
-    ].join(' '),
-    messages: [{ role: 'user', content: message }],
+    model,
+    temperature: 0.7,
+    system: systemPrompt,
+    messages: [...historyMessages, { role: 'user' as const, content: message }],
     tools: {
       runtime_status: tool({
         description: 'Check live CubiQo runtime and stack state.',

@@ -4098,7 +4098,10 @@ const DemoPage = () => {
             'Content-Type': 'application/json',
             ...(initialToken ? { Authorization: `Bearer ${initialToken}` } : {})
           },
-          body: JSON.stringify({ message: cleanInput })
+          body: JSON.stringify({
+            message: cleanInput,
+            history: memoryEventsToHistory(user?.id ? [...visitMemory, ...userMemory] : visitMemory)
+          })
         });
 
         let responseText = '';
@@ -4151,6 +4154,26 @@ const DemoPage = () => {
         if (!liveTrace.length) setAgentTrace([]);
         setAgentMode('read-only');
         if (streamRes.ok) setModelUsed('agent-stream-v1');
+
+        // ── Speak the agentic response via ElevenLabs if voice mode is on ──
+        if (speakerEnabled && responseText) {
+          fetch('/api/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: responseText.slice(0, 500) })
+          }).then(r => r.json()).then(ttsData => {
+            if (ttsData.audio_url) {
+              if (!audioRef.current) audioRef.current = new Audio();
+              audioRef.current.src = ttsData.audio_url;
+              audioRef.current.volume = 1;
+              audioRef.current.onplay = () => { setIsSpeaking(true); startAudioAnalysis(); };
+              audioRef.current.onpause = stopAudioAnalysis;
+              audioRef.current.onended = () => { setIsSpeaking(false); stopAudioAnalysis(); };
+              audioRef.current.play().catch(() => { setIsSpeaking(false); stopAudioAnalysis(); });
+            }
+          }).catch(() => null);
+        }
+
         const agentData = { rgy: null, audio_url: null };
         if (agentData.rgy && !rgyClassifiedThisTurn) {
           const normalizedColor = normalizeKeywordColor(agentData.rgy.color);

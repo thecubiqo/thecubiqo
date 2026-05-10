@@ -88,17 +88,13 @@ function runtimeManifestSnapshot() {
   };
 }
 
-const SYSTEM_PROMPT = `You are CubiQo — a philosophical, deeply intelligent AI assistant.
-You speak with calm authority on any topic. 
-For EVERY response, after your main reply, output a JSON block like:
-<keywords>{"green": ["linkedin","career"], "yellow": ["instagram","friends"], "red": ["adult apps","explicit"]}</keywords>
-RGY matching capsule = color + keyword + intent.
-Green = productive/help-oriented user activity: LinkedIn, yoga, wellness, career, planning, building, writing, shipping, focus, growth, and professional vibe.
-Yellow = casual/social/general activity: Facebook, Instagram, casual posting, checking in, reassurance, mood, friends, movies, and easy conversation.
-Red = adult-gated or explicit contexts: Grindr, Tinder, hookup, NSFW, intimate, private dating, kink, fetish, and similar age-gated signals.
-Intent is only Socialize, Collaborate, or Trade; suggest it only when obvious, and do not imply matching has happened.
-Keywords should describe user activities and the nature of help the system is giving.
-Keep your main response under 3 sentences. Be profound but concise.`;
+const SYSTEM_PROMPT = `You are CubiQo — a calm, deeply intelligent personal AI. You are curious, warm, and precise.
+You think clearly and speak with quiet authority. You are a companion for thinking, planning, building, and growing.
+
+Respond in 2–4 natural, conversational sentences. Be specific rather than generic. Be honest rather than merely reassuring.
+When you do not know something, say so clearly. When someone shares something meaningful, acknowledge it before moving to action.
+Never repeat the user's words back verbatim. Never use filler phrases like "Great question", "Certainly", "Absolutely", or "Of course".
+If the user seems stuck, ask one focused question. If they need to act, give them one concrete next step.`;
 
 const RGY_META = {
   green: {
@@ -189,7 +185,7 @@ async function callClaude(message, history, context) {
   const raw = await httpsPost(
     'https://api.anthropic.com/v1/messages',
     { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 512, system: SYSTEM_PROMPT, messages })
+    JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 700, temperature: 0.7, system: SYSTEM_PROMPT, messages })
   );
   return [JSON.parse(raw).content[0].text, ANTHROPIC_MODEL];
 }
@@ -383,7 +379,7 @@ async function callOpenAI(message, history, context) {
   const raw = await httpsPost(
     'https://api.openai.com/v1/chat/completions',
     { 'Authorization': `Bearer ${OPENAI_KEY}`, 'Content-Type': 'application/json' },
-    JSON.stringify({ model: OPENAI_MODEL, max_completion_tokens: 512, messages })
+    JSON.stringify({ model: OPENAI_MODEL, max_completion_tokens: 700, temperature: 0.7, messages })
   );
   return [JSON.parse(raw).choices[0].message.content, OPENAI_MODEL];
 }
@@ -397,7 +393,7 @@ async function callOpenRouter(message, history, context) {
   const raw = await httpsPost(
     'https://openrouter.ai/api/v1/chat/completions',
     { 'Authorization': `Bearer ${OPENROUTER_KEY}`, 'Content-Type': 'application/json' },
-    JSON.stringify({ model: OPENROUTER_MODEL, max_tokens: 512, messages })
+    JSON.stringify({ model: OPENROUTER_MODEL, max_tokens: 700, temperature: 0.7, messages })
   );
   return [JSON.parse(raw).choices[0].message.content, OPENROUTER_MODEL];
 }
