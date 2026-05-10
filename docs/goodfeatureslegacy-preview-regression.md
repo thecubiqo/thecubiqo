@@ -1,6 +1,6 @@
 # goodfeatureslegacy Preview Contract
 
-Date: 2026-05-07
+Date: 2026-05-10
 Branch: `goodfeatureslegacy`
 Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched except explicit bugfix work.
 
@@ -16,6 +16,7 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 ## V2 UI Reality
 
 - Job hunt, social distribution, and business/POD work stay inside CubiQo's existing chat and approval cards.
+- Shopify/Printify direct API connectors are visible only inside `/actions`; they are not browser automation and they do not expose raw tokens.
 - The only additional durable V2 surfaces are:
   - Job tracker panel: Supabase-backed table of applications, statuses, resume version, cover letter version, and approval id.
   - Content calendar view: Supabase-backed view of scheduled, posted, failed, and pending-approval content.
@@ -37,7 +38,7 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 
 - Job Hunter
 - Website launcher
-- Ecomm launchpad
+- Full Ecomm launchpad as a polished end-to-end product launcher
 - CQ-to-CQ
 - Social Army 10/10/10
 - BYO keys
@@ -45,6 +46,8 @@ Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched 
 - Self-healer/full reporting
 - Browser workflows beyond the Stagehand demo/action container, coder/write-agent actions
 - Signal match route/button
+
+Visible now: the Shopify connector card, Printify connector card, and POD product approval cards are allowed in `/actions` because they are backed by server routes, encrypted token storage, approval gates, and regression tests.
 
 Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Signal match, RGY matching, or intent matching.
 
@@ -93,6 +96,11 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Added V2 Shopify/POD operations tools through `/api/actions/execute`: `shopify_store_connect`, `shopify_store_status`, `shopify_product_create`, `shopify_product_publish`, `shopify_product_update`, `shopify_product_archive`, `fulfilment_provider_read`, `pod_provider_connect`, `design_create`, `product_sync`, `provider_product_status`, collection tools, inventory tools, orders/analytics reads, AfterShip reads, bundles, and marketplace status reads.
 - Added Shopify/POD operations UI inside `/actions`: approved product creation/publish/archive, direct POD design creation, provider sync, collection creation, inventory adjustment, bundle creation, Shopify products, fulfillment provider manifest, and commerce handoff events.
 - Connector safety rule is enforced in the operations layer: credentials stay server-side; missing credentials return disconnected or blocked states; Shopify-app POD providers are read/routing-only; direct API providers are Printify, Printful, and Gelato; AfterShip is read-only in V2.
+- Added the direct Shopify/Printify API connector silo, separate from browser automation: Shopify OAuth start/callback, Printify key validation, encrypted server-side token storage, sanitized connector status, and approval-gated POD product creation/publish routes.
+- Added `store_connections`, `connector_oauth_states`, and `pod_products` for direct API connector state. Direct client writes are denied; server-boundary writes are verified; connector status never returns `access_token`.
+- Added `token-vault.ts` with AES-256-GCM encryption for Shopify/Printify tokens at rest.
+- Added `shopify-client.ts` and `printify-client.ts` for server-only provider calls. Shopify billing/payment/checkout/transaction endpoints are hard-blocked and audit-logged.
+- Added `/actions` UI cards for Shopify connection, Printify connection, POD API product creation, and POD publish gate. Product publish remains a separate user approval and is never autonomous.
 - Updated approval requests so non-end-to-end tools cannot receive fake approvals.
 - Updated the main CubiQo response surface with a component-library based "What I checked" collapsible that shows V1 tool activity inside the existing window.
 - Removed CubiQo runtime command execution. V1 no longer exposes `run_check`, no longer reads from the repo `scripts` directory, and no longer reports package scripts as product capability.
