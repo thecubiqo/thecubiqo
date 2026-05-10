@@ -271,7 +271,15 @@ async function verifyUserOwnedCrud(config) {
       socialFireLogServerInsertWithApproval: false,
       anonSocialPostInsertDenied: false,
       socialPostDirectInsertDenied: false,
-      socialPostServerInsertWithApproval: false
+      socialPostServerInsertWithApproval: false,
+      anonStoreConnectionInsertDenied: false,
+      storeConnectionDirectInsertDenied: false,
+      storeConnectionServerInsertWithToken: false,
+      storeConnectionTokenHiddenFromUserRead: false,
+      connectorOauthStateServerInsert: false,
+      podProductDirectInsertDenied: false,
+      podProductServerInsertWithApproval: false,
+      podProductRead: false
     },
     rls: { anonJournalInsertDenied: false, anonSignalInsertDenied: false },
     error: null
@@ -1925,6 +1933,178 @@ async function verifyUserOwnedCrud(config) {
       socialFireLogRow.approval_id === socialScheduleApproval?.id &&
       socialFireLogRow.status === 'blocked'
     );
+
+    const anonStoreConnection = await requestJson(`${config.url}/rest/v1/store_connections`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        platform: 'shopify',
+        shop_domain: 'anon-should-fail.myshopify.com',
+        access_token: 'anon-token-should-fail',
+        scope: 'read_products'
+      })
+    });
+    result.v2.anonStoreConnectionInsertDenied = !anonStoreConnection.response.ok;
+
+    const directStoreConnection = await requestJson(`${config.url}/rest/v1/store_connections`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken),
+      body: JSON.stringify({
+        user_id: userId,
+        platform: 'shopify',
+        shop_domain: 'direct-should-fail.myshopify.com',
+        access_token: 'direct-token-should-fail',
+        scope: 'read_products'
+      })
+    });
+    result.v2.storeConnectionDirectInsertDenied = !directStoreConnection.response.ok;
+
+    const serverStoreConnection = await requestJson(`${config.url}/rest/v1/store_connections?select=id,user_id,platform,shop_domain,access_token,status`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        platform: 'shopify',
+        shop_domain: 'verify-cqai.myshopify.com',
+        access_token: 'v1:verify-cqai-encrypted-placeholder',
+        scope: 'read_products,write_products',
+        metadata: { token_hint: 'v1:...', source: 'verify:cqai' }
+      })
+    });
+    const storeConnectionRow = Array.isArray(serverStoreConnection.body) ? serverStoreConnection.body[0] : null;
+    result.v2.storeConnectionServerInsertWithToken = Boolean(
+      serverStoreConnection.response.ok &&
+      storeConnectionRow?.id &&
+      storeConnectionRow.user_id === userId &&
+      storeConnectionRow.platform === 'shopify' &&
+      typeof storeConnectionRow.access_token === 'string' &&
+      storeConnectionRow.access_token !== 'direct-token-should-fail'
+    );
+
+    const userStoreConnectionRead = storeConnectionRow?.id ? await requestJson(`${config.url}/rest/v1/store_connections?id=eq.${storeConnectionRow.id}&select=id,platform,shop_domain,access_token`, {
+      headers: userHeaders(config, accessToken)
+    }) : null;
+    result.v2.storeConnectionTokenHiddenFromUserRead = Boolean(
+      userStoreConnectionRead?.response.ok &&
+      Array.isArray(userStoreConnectionRead.body) &&
+      userStoreConnectionRead.body.length === 0
+    );
+
+    const serverOauthState = await requestJson(`${config.url}/rest/v1/connector_oauth_states?select=id,user_id,platform,state,shop_domain`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        platform: 'shopify',
+        state: `verify-${randomUUID()}`,
+        shop_domain: 'verify-cqai.myshopify.com',
+        redirect_uri: 'http://localhost:3000/api/connectors/shopify/callback',
+        expires_at: new Date(Date.now() + 300000).toISOString()
+      })
+    });
+    const oauthStateRow = Array.isArray(serverOauthState.body) ? serverOauthState.body[0] : null;
+    result.v2.connectorOauthStateServerInsert = Boolean(
+      serverOauthState.response.ok &&
+      oauthStateRow?.id &&
+      oauthStateRow.user_id === userId &&
+      oauthStateRow.platform === 'shopify'
+    );
+
+    const podProductApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'pod_product_create',
+        tool_name: 'pod_product_create',
+        title: 'POD product API connector test',
+        summary: 'Create a POD product only after explicit approval.',
+        payload: {
+          previewCard: {
+            title: 'Verify POD product preview',
+            willCreate: ['Printify product draft', 'Shopify product draft']
+          }
+        },
+        risk_level: 'high'
+      })
+    });
+    const podProductApproval = Array.isArray(podProductApprovalInsert.body) ? podProductApprovalInsert.body[0] : null;
+    if (podProductApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${podProductApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+
+    const directPodProduct = podProductApproval?.id ? await requestJson(`${config.url}/rest/v1/pod_products?select=id,user_id,approval_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: podProductApproval.id,
+        title: 'Direct client should fail',
+        description: 'Client-side POD writes are blocked.',
+        status: 'ready'
+      })
+    }) : null;
+    result.v2.podProductDirectInsertDenied = Boolean(directPodProduct && !directPodProduct.response.ok);
+
+    const serverPodProduct = podProductApproval?.id ? await requestJson(`${config.url}/rest/v1/pod_products?select=id,user_id,approval_id,title,status,shopify_product_id,printify_product_id`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: podProductApproval.id,
+        title: 'E2E POD product',
+        description: 'Server-boundary POD product connector test.',
+        print_provider_id: '29',
+        blueprint_id: '12',
+        media_assets: ['https://example.com/e2e-pod.png'],
+        shop_domain: 'verify-cqai.myshopify.com',
+        shopify_product_id: 'shopify-verify-product',
+        printify_product_id: 'printify-verify-product',
+        status: 'ready',
+        preview_payload: { source: 'verify:cqai', publishRequiresUser: true }
+      })
+    }) : null;
+    const podProductRow = Array.isArray(serverPodProduct?.body) ? serverPodProduct.body[0] : null;
+    result.v2.podProductServerInsertWithApproval = Boolean(
+      serverPodProduct?.response.ok &&
+      podProductRow?.id &&
+      podProductRow.user_id === userId &&
+      podProductRow.approval_id === podProductApproval?.id &&
+      podProductRow.status === 'ready'
+    );
+
+    const podProductRead = podProductRow?.id ? await requestJson(`${config.url}/rest/v1/pod_products?id=eq.${podProductRow.id}&select=id,user_id,title,status&limit=1`, {
+      headers: userHeaders(config, accessToken)
+    }) : null;
+    result.v2.podProductRead = Boolean(
+      podProductRead?.response.ok &&
+      Array.isArray(podProductRead.body) &&
+      podProductRead.body[0]?.id === podProductRow.id
+    );
   } catch (error) {
     result.error = error.message || String(error);
   } finally {
@@ -2104,7 +2284,10 @@ async function main() {
     'social_distribution_rules',
     'social_scheduled_posts',
     'social_post_fire_logs',
-    'social_posts'
+    'social_posts',
+    'store_connections',
+    'connector_oauth_states',
+    'pod_products'
   ]) {
     tables.push(await verifyTable(config, table));
   }

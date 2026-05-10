@@ -1031,11 +1031,20 @@ const ActionConsolePage = () => {
   const [socialScheduledPosts, setSocialScheduledPosts] = useState([]);
   const [socialFireLogs, setSocialFireLogs] = useState([]);
   const [socialQueuedPosts, setSocialQueuedPosts] = useState([]);
+  const [apiConnections, setApiConnections] = useState([]);
+  const [apiPodProducts, setApiPodProducts] = useState([]);
   const [browserUrl, setBrowserUrl] = useState('https://example.com/');
   const [jobApplyUrl, setJobApplyUrl] = useState('https://www.linkedin.com/jobs/view/example-product-ops');
   const [socialQueuePlatform, setSocialQueuePlatform] = useState('linkedin');
   const [socialQueueContent, setSocialQueueContent] = useState('CubiQo is preparing a new founder workflow update. Review this draft before it ever publishes.');
   const [socialQueueMediaUrls, setSocialQueueMediaUrls] = useState('');
+  const [shopifyDomain, setShopifyDomain] = useState('carlophillips.myshopify.com');
+  const [printifyApiKey, setPrintifyApiKey] = useState('');
+  const [podProductTitle, setPodProductTitle] = useState('CubiQo Signal Tee');
+  const [podProductDescription, setPodProductDescription] = useState('Premium POD product drafted by CubiQo. Review pricing, fulfillment, and assets before publishing.');
+  const [podPrintProviderId, setPodPrintProviderId] = useState('');
+  const [podBlueprintId, setPodBlueprintId] = useState('');
+  const [podMediaAssets, setPodMediaAssets] = useState('');
 
   const baseActionCards = [
     {
@@ -1107,7 +1116,7 @@ const ActionConsolePage = () => {
         setLoading(false);
         return;
       }
-      const [approvalData, taskData, scheduleData, reportData, auditData, capabilityData, browserData, jobData, podData, socialData, commerceData] = await Promise.all([
+      const [approvalData, taskData, scheduleData, reportData, auditData, capabilityData, browserData, jobData, podData, socialData, commerceData, connectorData] = await Promise.all([
         apiJson('/api/actions/approvals?limit=20'),
         apiJson('/api/tasks?limit=20'),
         apiJson('/api/reports/schedules?limit=10'),
@@ -1118,7 +1127,8 @@ const ActionConsolePage = () => {
         apiJson('/api/actions/execute?job_state=1'),
         apiJson('/api/actions/execute?pod_state=1'),
         apiJson('/api/actions/execute?social_state=1'),
-        apiJson('/api/actions/execute?commerce_state=1')
+        apiJson('/api/actions/execute?commerce_state=1'),
+        apiJson('/api/connectors/status')
       ]);
       setApprovals(approvalData.approvals || []);
       setTasks(taskData.tasks || []);
@@ -1150,6 +1160,8 @@ const ActionConsolePage = () => {
       setSocialScheduledPosts(socialData.scheduledPosts || []);
       setSocialFireLogs(socialData.fireLogs || []);
       setSocialQueuedPosts(socialData.queuedPosts || []);
+      setApiConnections(connectorData.connections || []);
+      setApiPodProducts(connectorData.podProducts || []);
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -1187,6 +1199,8 @@ const ActionConsolePage = () => {
   const socialWorkflowUnlocked = ['social_post_prepare', 'social_post_schedule_approved']
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
   const socialQueueUnlocked = browserControlUnlocked && capabilities.some(item => item.actionType === 'social_post_queue' && item.status === 'active');
+  const podApiConnectorUnlocked = ['shopify_read', 'shopify_write', 'printify_read', 'printify_write', 'pod_product_create', 'pod_product_publish']
+    .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
   const activeBrowserSession = browserSessions.find(item => item.status === 'active') || null;
   const latestJobListing = jobListings.find(item => ['saved', 'reviewing', 'prepared'].includes(item.status)) || jobListings[0] || null;
   const latestPreparedReview = jobReviews.find(item => item.status === 'prepared') || null;
@@ -1197,6 +1211,9 @@ const ActionConsolePage = () => {
   const latestAssetReadyEvent = latestReadyAsset ? assetReadyEvents.find(item => item.assetId === latestReadyAsset.id) || null : null;
   const latestSocialDraft = socialDrafts[0] || null;
   const latestReadySocialPost = socialQueuedPosts.find(item => item.status === 'ready') || null;
+  const shopifyApiConnection = apiConnections.find(item => item.platform === 'shopify') || null;
+  const printifyApiConnection = apiConnections.find(item => item.platform === 'printify') || null;
+  const latestReadyPodProduct = apiPodProducts.find(item => ['ready', 'draft'].includes(item.status)) || null;
   const latestShopifyProduct = shopifyProducts[0] || null;
   const latestProviderDesign = providerDesigns[0] || null;
   const latestBrowserReceipt = auditLogs.find(log => log.screenshotUrl || log.result?.screenshotUrl) || null;
@@ -1378,6 +1395,63 @@ const ActionConsolePage = () => {
         };
       }
     }
+  ] : [];
+
+  const podApiProductCards = podApiConnectorUnlocked ? [
+    {
+      actionType: 'pod_product_create',
+      toolName: 'pod_product_create',
+      title: 'Create POD product',
+      summary: 'CubiQo will create a draft Printify product and a draft Shopify product through server-side API connectors only. Publish remains a separate approval.',
+      Icon: Package,
+      runLabel: 'Create draft',
+      riskLevel: 'high',
+      payload: () => {
+        const mediaAssets = podMediaAssets
+          .split(/[\n,]+/)
+          .map(item => item.trim())
+          .filter(Boolean);
+        return {
+          title: podProductTitle,
+          description: podProductDescription,
+          print_provider_id: podPrintProviderId,
+          blueprint_id: podBlueprintId,
+          media_assets: mediaAssets,
+          shop_domain: shopifyDomain,
+          previewCard: {
+            title: 'POD product creation preview',
+            productTitle: podProductTitle,
+            shopDomain: shopifyDomain,
+            printProviderId: podPrintProviderId,
+            blueprintId: podBlueprintId,
+            mediaAssetCount: mediaAssets.length,
+            willWriteTo: ['Printify draft product', 'Shopify draft product', 'Supabase pod_products'],
+            willNotDo: ['No billing or payment API', 'No publish without a separate approval', 'No token exposure']
+          }
+        };
+      }
+    },
+    ...(latestReadyPodProduct ? [{
+      actionType: 'pod_product_publish',
+      toolName: 'pod_product_publish',
+      title: 'Publish POD product',
+      summary: `CubiQo will publish ${latestReadyPodProduct.title || 'the selected POD product'} only after this separate approval.`,
+      Icon: Rocket,
+      runLabel: 'Publish product',
+      riskLevel: 'high',
+      podProductId: latestReadyPodProduct.id,
+      payload: () => ({
+        product_id: latestReadyPodProduct.id,
+        previewCard: {
+          title: 'POD product publish preview',
+          productId: latestReadyPodProduct.id,
+          shopifyProductId: latestReadyPodProduct.shopifyProductId,
+          printifyProductId: latestReadyPodProduct.printifyProductId,
+          willWriteTo: ['Printify publish endpoint', 'Shopify product active status', 'Supabase pod_products'],
+          willNotDo: ['No billing or payment API', 'No publish without this user approval']
+        }
+      })
+    }] : [])
   ] : [];
 
   const jobActionCards = jobWorkflowUnlocked ? [
@@ -1975,7 +2049,7 @@ const ActionConsolePage = () => {
     }] : [])
   ] : [];
 
-  const actionCards = [...baseActionCards, ...browserActionCards, ...jobApplyCards, ...socialQueueCards, ...jobActionCards, ...profileActionCards, ...podActionCards, ...commerceActionCards, ...socialActionCards];
+  const actionCards = [...baseActionCards, ...browserActionCards, ...jobApplyCards, ...socialQueueCards, ...podApiProductCards, ...jobActionCards, ...profileActionCards, ...podActionCards, ...commerceActionCards, ...socialActionCards];
 
   const latestApproval = (card) => approvals.find(item => {
     const matchesAction = item.actionType === card.actionType && ['requested', 'approved'].includes(item.status);
@@ -1983,6 +2057,7 @@ const ActionConsolePage = () => {
     if (card.jobListingId && item.payload?.job_listing_id !== card.jobListingId && item.payload?.jobListingId !== card.jobListingId) return false;
     if (card.reviewId && item.payload?.review_id !== card.reviewId && item.payload?.reviewId !== card.reviewId) return false;
     if (card.socialContentDraftId && item.payload?.social_content_draft_id !== card.socialContentDraftId && item.payload?.socialContentDraftId !== card.socialContentDraftId) return false;
+    if (card.podProductId && item.payload?.product_id !== card.podProductId && item.payload?.productId !== card.podProductId) return false;
     if (card.assetId && item.payload?.asset_id !== card.assetId && item.payload?.assetId !== card.assetId) return false;
     if (!card.browserSessionId) return true;
     return item.payload?.browser_session_id === card.browserSessionId || item.payload?.browserSessionId === card.browserSessionId;
@@ -2003,7 +2078,7 @@ const ActionConsolePage = () => {
           payload: {
             ...(typeof card.payload === 'function' ? card.payload() : {}),
             preview: card.summary,
-            externalExecution: card.actionType.startsWith('browser_') || card.actionType === 'job_apply' || card.actionType === 'social_post_queue' || card.actionType === 'job_application_submit_approved' || card.actionType.startsWith('gfxtools_') || card.actionType.startsWith('shopify_') || card.actionType.startsWith('printify_') || ['design_create', 'product_sync', 'aftership_connect'].includes(card.actionType) || card.actionType === 'social_post_schedule_approved'
+            externalExecution: card.actionType.startsWith('browser_') || card.actionType === 'job_apply' || card.actionType === 'social_post_queue' || card.actionType === 'pod_product_create' || card.actionType === 'pod_product_publish' || card.actionType === 'job_application_submit_approved' || card.actionType.startsWith('gfxtools_') || card.actionType.startsWith('shopify_') || card.actionType.startsWith('printify_') || ['design_create', 'product_sync', 'aftership_connect'].includes(card.actionType) || card.actionType === 'social_post_schedule_approved'
           }
         })
       });
@@ -2088,6 +2163,24 @@ const ActionConsolePage = () => {
             platform: payload.platform,
             content: payload.content,
             media_urls: payload.media_urls,
+            payload
+          })
+        });
+      } else if (card.actionType === 'pod_product_create') {
+        const payload = typeof card.payload === 'function' ? card.payload() : {};
+        await apiJson('/api/actions/pod-product', {
+          method: 'POST',
+          body: JSON.stringify({
+            approvalId: approval.id,
+            payload
+          })
+        });
+      } else if (card.actionType === 'pod_product_publish') {
+        const payload = typeof card.payload === 'function' ? card.payload() : {};
+        await apiJson('/api/actions/pod-product/publish', {
+          method: 'POST',
+          body: JSON.stringify({
+            approvalId: approval.id,
             payload
           })
         });
@@ -2197,6 +2290,37 @@ const ActionConsolePage = () => {
     }
   };
 
+  const connectShopifyStore = async () => {
+    setBusyAction('connect-shopify');
+    setMessage('');
+    try {
+      const result = await apiJson(`/api/connectors/shopify/auth?shop=${encodeURIComponent(shopifyDomain)}`, { method: 'GET' });
+      window.location.href = result.authUrl;
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const connectPrintify = async () => {
+    setBusyAction('connect-printify');
+    setMessage('');
+    try {
+      await apiJson('/api/connectors/printify/connect', {
+        method: 'POST',
+        body: JSON.stringify({ apiKey: printifyApiKey })
+      });
+      setPrintifyApiKey('');
+      setMessage('Printify connected. API key stored encrypted server-side.');
+      await loadActionState();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusyAction('');
+    }
+  };
+
   const shellBg = '#020208';
   const cardStyle = {
     border: '1px solid rgba(255,255,255,0.1)',
@@ -2259,6 +2383,47 @@ const ActionConsolePage = () => {
                   </div>
                 </section>
               )}
+
+              <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Shopify API Connector</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{shopifyApiConnection?.status || 'not connected'}</Badge>
+                  </div>
+                  <input
+                    value={shopifyDomain}
+                    onChange={event => setShopifyDomain(event.target.value)}
+                    placeholder="carlophillips.myshopify.com"
+                    style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem' }}
+                  />
+                  <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.48)', fontSize: '0.74rem', lineHeight: 1.45 }}>
+                    {shopifyApiConnection ? `${shopifyApiConnection.shopDomain} · scopes: ${shopifyApiConnection.scope || 'recorded'} · token hidden` : 'OAuth stores the Admin API token encrypted server-side. Billing scopes are never requested.'}
+                  </div>
+                  <Button type="button" onClick={connectShopifyStore} disabled={busyAction === 'connect-shopify'} className="mt-3 bg-white text-slate-950 hover:bg-white/85">
+                    Connect Shopify store
+                  </Button>
+                </article>
+
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Printify API Connector</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{printifyApiConnection?.status || 'not connected'}</Badge>
+                  </div>
+                  <input
+                    type="password"
+                    value={printifyApiKey}
+                    onChange={event => setPrintifyApiKey(event.target.value)}
+                    placeholder={printifyApiConnection ? 'API key stored encrypted' : 'Paste Printify API key'}
+                    style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem' }}
+                  />
+                  <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.48)', fontSize: '0.74rem', lineHeight: 1.45 }}>
+                    {printifyApiConnection ? `Printify shop ${printifyApiConnection.shopDomain || 'recorded'} · key hidden` : 'The key is validated before storage and never echoed back to the browser.'}
+                  </div>
+                  <Button type="button" onClick={connectPrintify} disabled={busyAction === 'connect-printify' || !printifyApiKey.trim()} className="mt-3 bg-white text-slate-950 hover:bg-white/85">
+                    Connect Printify
+                  </Button>
+                </article>
+              </section>
 
               <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
                 {actionCards.map(card => {
@@ -2334,6 +2499,17 @@ const ActionConsolePage = () => {
                             <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.72rem' }}>
                               Compose only. Publish is blocked until the separate user button.
                             </div>
+                          </div>
+                        )}
+                        {card.actionType === 'pod_product_create' && (
+                          <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+                            <input value={podProductTitle} onChange={event => setPodProductTitle(event.target.value)} placeholder="Product title" style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem' }} />
+                            <textarea value={podProductDescription} onChange={event => setPodProductDescription(event.target.value)} placeholder="Product description" rows={3} style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem', resize: 'vertical' }} />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                              <input value={podPrintProviderId} onChange={event => setPodPrintProviderId(event.target.value)} placeholder="Print provider id" style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem' }} />
+                              <input value={podBlueprintId} onChange={event => setPodBlueprintId(event.target.value)} placeholder="Blueprint id" style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem' }} />
+                            </div>
+                            <textarea value={podMediaAssets} onChange={event => setPodMediaAssets(event.target.value)} placeholder="Media asset URLs, one per line" rows={2} style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem', resize: 'vertical' }} />
                           </div>
                         )}
                       </div>
@@ -2791,6 +2967,30 @@ const ActionConsolePage = () => {
                     )) : (
                       <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
                         No commerce handoff events yet. product_published and store_summary events appear only after approved operations.
+                      </div>
+                    )}
+                  </div>
+                </article>
+
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>POD API Products</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{apiPodProducts.length}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {apiPodProducts.length ? apiPodProducts.slice(0, 5).map(item => (
+                      <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                          <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.title || 'POD product'}</div>
+                          <Badge variant="outline" className="border-white/10 text-white/45">{item.status}</Badge>
+                        </div>
+                        <div style={{ marginTop: 7, color: 'rgba(255,255,255,0.52)', fontSize: '0.73rem', lineHeight: 1.45 }}>
+                          Shopify {item.shopifyProductId || 'pending'} · Printify {item.printifyProductId || 'pending'}
+                        </div>
+                      </div>
+                    )) : (
+                      <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                        No API-created POD products yet. Product creation stops at ready; publishing needs a separate approval.
                       </div>
                     )}
                   </div>

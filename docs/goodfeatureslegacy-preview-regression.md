@@ -483,4 +483,19 @@ Latest social_post_queue workflow smoke on `127.0.0.1:3046`:
 - `/actions` rendered after sign-in and shows the social queue card, platform selector, queued social post tracker, and copy that final publish remains a separate user button.
 - `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the social queue implementation.
 
+Latest Shopify/POD API connector smoke:
+
+- Architecture boundary: direct API connector silo only. No Stagehand, Browserbase, browser sessions, or browser automation were added for Shopify/Printify.
+- Supabase migration `20260510000003_shopify_pod_connectors.sql` applied to the goodfeatureslegacy QA database.
+- New tables verified reachable by the server boundary: `store_connections`, `connector_oauth_states`, and `pod_products`.
+- Token safety: anonymous and signed-in direct writes to `store_connections` are denied; server-boundary insert passes; user reads cannot retrieve `access_token`.
+- Capabilities: `shopify_read`, `shopify_write`, `printify_read`, and `printify_write` are active. `shopify_billing`, `payment`, `send_email`, and `deploy` remain locked or hard-stopped.
+- Shopify OAuth: auth and callback routes exist; requested scopes are product/order/inventory only and do not include billing or payment scopes.
+- Shopify client: Admin API calls retrieve/decrypt tokens server-side only. Billing/payment/checkout paths are hard-blocked and audit-logged as `blocked_shopify_billing`.
+- Printify client: API keys are validated server-side, encrypted before storage, and never echoed back to the client.
+- POD product flow: `pod_product_create` requires an approved action and writes linked Printify/Shopify draft IDs to `pod_products`; direct client writes are denied.
+- Publish gate: `pod_product_publish` is a separate approved action. CubiQo does not publish products autonomously.
+- `/actions` includes Shopify connection, Printify connection, and POD API product creation cards without showing raw tokens.
+- `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Shopify/POD connector implementation.
+
 Do not push this branch for review unless this contract stays current and regression remains green.
