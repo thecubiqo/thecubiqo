@@ -7,9 +7,6 @@ import { tailorApplicationForJob } from '../../_lib/llm-tailoring';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// Supported platforms for Easy Apply / one-click flows
-const EASY_APPLY_PLATFORMS = ['linkedin', 'indeed', 'dice', 'monster'];
-
 function detectPlatform(url: string): string {
   const h = new URL(url).hostname.toLowerCase();
   if (h.includes('linkedin')) return 'linkedin';
@@ -19,7 +16,9 @@ function detectPlatform(url: string): string {
   if (h.includes('greenhouse')) return 'greenhouse';
   if (h.includes('lever')) return 'lever';
   if (h.includes('workday')) return 'workday';
-  return 'ats';
+  if (h.includes('ziprecruiter')) return 'ziprecruiter';
+  if (h.includes('wellfound')) return 'wellfound';
+  return 'company_site';
 }
 
 async function getProfileData(auth: any) {
@@ -83,7 +82,8 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const listingId = body.listing_id ? String(body.listing_id) : null;
   const jobUrl = body.job_url ? String(body.job_url) : null;
-  const mode = (body.mode === 'submit') ? 'submit' : 'review'; // review = stop before submit
+  const requestedMode = body.mode === 'submit' ? 'submit' : 'review';
+  const mode = 'review'; // hard stop: this route prepares the application and never clicks final submit
 
   if (!listingId && !jobUrl) {
     return NextResponse.json({ error: 'listing_id or job_url required' }, { status: 400 });
@@ -187,11 +187,10 @@ export async function POST(request: NextRequest) {
   }
 
   let screenshotUrl: string | null = null;
-  let applyStatus: 'ready_to_submit' | 'submitted' | 'failed' = 'ready_to_submit';
+  let applyStatus: 'ready_to_submit' | 'failed' = 'ready_to_submit';
   let applyError: string | null = null;
 
   try {
-    const { auditedSocialAct, captureQueueReceipt } = await import('../../actions/social-post-queue/platforms/shared');
     const { Stagehand } = await import('@browserbasehq/stagehand');
     const stagehand = new Stagehand({ env: 'BROWSERBASE', apiKey: bbKey, projectId: bbProject, verbose: 0 } as any);
     await stagehand.init();
@@ -204,34 +203,18 @@ export async function POST(request: NextRequest) {
       await (stagehand as any).act('Find and click the Easy Apply button. Do not click the final Submit button yet.');
       await (stagehand as any).act(`Fill in all visible application form fields using this profile data:\n${profileInstruction}\nDo not submit yet.`);
       await (stagehand as any).act('Click Next or Continue until you reach the final Review step. Stop before Submit application.');
-
-      if (mode === 'submit') {
-        await (stagehand as any).act('Click Submit application now. This is explicitly authorized.');
-        applyStatus = 'submitted';
-      }
     } else if (platform === 'indeed') {
       await (stagehand as any).act('Find and click the Apply Now or Indeed Apply button.');
       await (stagehand as any).act(`Fill all required fields:\n${profileInstruction}`);
-      await (stagehand as any).act('Proceed through all steps until the final review.');
-      if (mode === 'submit') {
-        await (stagehand as any).act('Submit the application now. This is explicitly authorized.');
-        applyStatus = 'submitted';
-      }
+      await (stagehand as any).act('Proceed through all steps until the final review. Stop before submitting.');
     } else if (platform === 'dice') {
       await (stagehand as any).act('Click Apply or Easy Apply button.');
-      await (stagehand as any).act(`Complete all required fields:\n${profileInstruction}`);
-      if (mode === 'submit') {
-        await (stagehand as any).act('Submit the application. This is explicitly authorized.');
-        applyStatus = 'submitted';
-      }
+      await (stagehand as any).act(`Complete all required fields using this profile data:\n${profileInstruction}\nStop before the final submit button.`);
     } else {
-      // Generic ATS fallback
+      // Generic ATS/company-site fallback. This is intentionally broad so the
+      // user can bring any career-site URL; the final submit still stays human.
       await (stagehand as any).act('Find and click the Apply button or Apply for this job.');
-      await (stagehand as any).act(`Fill all required application fields:\n${profileInstruction}`);
-      if (mode === 'submit') {
-        await (stagehand as any).act('Submit the application now. This is explicitly authorized.');
-        applyStatus = 'submitted';
-      }
+      await (stagehand as any).act(`Fill all required application fields using this profile data:\n${profileInstruction}\nStop at the final review or submit screen without submitting.`);
     }
 
     // Capture screenshot
@@ -261,12 +244,22 @@ export async function POST(request: NextRequest) {
       user_id: auth.user.id,
       listing_id: listingId || null,
       platform,
+      browser_session_id: sessionId,
+      job_url: targetUrl,
+      job_title: listing?.title || null,
+      company: listing?.company || null,
       apply_url: targetUrl,
       status: applyStatus,
       screenshot_url: screenshotUrl,
       error: applyError,
-      submitted_at: applyStatus === 'submitted' ? new Date().toISOString() : null,
-      metadata: { mode, session_id: sessionId, tailored_resume_id: tailoredResume?.id }
+      submitted_at: null,
+      metadata: {
+        mode,
+        requested_mode: requestedMode,
+        final_submit_blocked: requestedMode === 'submit',
+        session_id: sessionId,
+        tailored_resume_id: tailoredResume?.id
+      }
     })
     .select('id, status, screenshot_url, submitted_at')
     .single();
@@ -276,7 +269,7 @@ export async function POST(request: NextRequest) {
     await auth.supabase
       .from('job_listings')
       .update({
-        status: applyStatus === 'submitted' ? 'submitted' : applyStatus === 'failed' ? 'failed' : 'ready',
+        status: applyStatus === 'failed' ? 'failed' : 'ready',
         updated_at: new Date().toISOString()
       })
       .eq('id', listingId);
@@ -286,9 +279,7 @@ export async function POST(request: NextRequest) {
     actionType: 'job_easy_apply',
     toolName: 'job_easy_apply',
     status: applyStatus === 'failed' ? 'failed' : 'completed',
-    message: applyStatus === 'submitted'
-      ? `Auto-applied to ${listing?.title || 'job'} @ ${listing?.company || 'company'} via ${platform}`
-      : `Application staged for review on ${platform}`,
+    message: `Application staged for review on ${platform}; final submit requires a user action`,
     result: { applicationId: application?.id, screenshotUrl, platform, mode },
     screenshotUrl: screenshotUrl || undefined
   });
@@ -299,13 +290,15 @@ export async function POST(request: NextRequest) {
   }).catch(() => null);
 
   return NextResponse.json({
-    applied: applyStatus === 'submitted',
+    applied: false,
     status: applyStatus,
     platform,
     application: application || null,
     screenshotUrl,
     error: applyError,
     listingId,
-    mode
+    mode,
+    requestedMode,
+    finalSubmitBlocked: requestedMode === 'submit'
   });
 }

@@ -529,8 +529,7 @@ function DuoModePanel({ job, onClose, token, onApplied }) {
                 <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>Apply mode</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   {[
-                    { key: 'review', label: 'Stage & Review', desc: 'Fill the form, stop at final screen — you click Submit', color: '#7c3aed' },
-                    { key: 'submit', label: 'Auto-Submit', desc: 'Fill and submit automatically — no confirmation', color: '#16a34a' }
+                    { key: 'review', label: 'Stage & Review', desc: 'Fill the form and stop at final screen — you click Submit', color: '#7c3aed' }
                   ].map(({ key, label, desc, color }) => (
                     <button key={key} onClick={() => setMode(key)}
                       style={{
@@ -607,7 +606,7 @@ function DuoModePanel({ job, onClose, token, onApplied }) {
                 letterSpacing: 0.5, boxShadow: '0 8px 28px rgba(124,58,237,0.3)'
               }}
             >
-              {mode === 'submit' ? '🚀 Apply Now — Auto-Submit' : '🎯 Stage Application — I\'ll Review & Submit'}
+              Stage Application — I&apos;ll Review & Submit
             </button>
           </div>
         )}

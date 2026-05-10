@@ -80,9 +80,30 @@ const GREEN_TAXONOMY = [
   'growth',
   'wellness',
   'career',
+  'job',
+  'apply',
+  'job application',
+  'job search',
+  'remote job',
+  'remote jobs',
   'job study',
   'resume',
   'interview',
+  'business analyst',
+  'scrum master',
+  'product owner',
+  'ba',
+  'sm',
+  'po',
+  'linkedin',
+  'indeed',
+  'dice',
+  'monster',
+  'workday',
+  'greenhouse',
+  'lever',
+  'ziprecruiter',
+  'wellfound',
   'learning',
   'gym',
   'meditation',
@@ -214,6 +235,12 @@ function normalizeIntentArray(value: unknown): RgyIntent[] {
 
 function keywordForMatch(input: string, term: string, color: RgyColor) {
   const lower = input.toLowerCase();
+  if (color === 'green' && /\b(apply|application|job|jobs|career|resume|interview|linkedin|indeed|dice|monster|workday|greenhouse|lever)\b/.test(lower)) {
+    if (/\b(remote)\b/.test(lower) && /\b(job|jobs|apply|application)\b/.test(lower)) return 'Remote Job Search';
+    if (/\b(resume)\b/.test(lower)) return 'Resume Tailoring';
+    if (/\b(apply|application)\b/.test(lower)) return 'Job Applications';
+    return 'Job Search';
+  }
   if (color === 'green' && lower.includes('startup') && /\b(build|building|create|launch)\b/.test(lower)) {
     return 'Startup Build';
   }
@@ -231,7 +258,8 @@ function suggestedForTaxonomy(input: string, color: RgyColor, keyword: string): 
   if (color === 'red') return [];
   if (/\b(sell|buy|deal|trade|client|customer|revenue|shop|store)\b/.test(lower)) return ['trade'];
   if (/\b(friend|friends|meet|hangout|hang out|movie|party|coffee|dating|social)\b/.test(lower)) return ['socialize'];
-  if (/\b(startup|build|building|coding|career|job|resume|interview|collaborate|team|partner)\b/.test(lower)) return ['collaborate'];
+  if (/\b(apply|application|job|jobs|career|resume|interview|linkedin|indeed|dice|monster|workday|greenhouse|lever)\b/.test(lower)) return ['trade'];
+  if (/\b(startup|build|building|coding|collaborate|team|partner)\b/.test(lower)) return ['collaborate'];
   if (color === 'yellow' && ['Movie Night', 'Hangout'].includes(keyword)) return ['socialize'];
   return [];
 }

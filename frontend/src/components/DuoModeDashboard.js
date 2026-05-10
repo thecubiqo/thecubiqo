@@ -5,7 +5,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 // Maps capsule (color + keyword + intent) → panel type + AI persona
 // ─────────────────────────────────────────────────────────────────────────────
 
-const JOB_KEYS   = ['job', 'career', 'apply', 'resume', 'hire', 'linkedin', 'ba', 'scrum', 'pm', 'analyst'];
+const JOB_KEYS   = [
+  'job', 'career', 'apply', 'application', 'resume', 'hire',
+  'linkedin', 'indeed', 'dice', 'monster', 'workday', 'greenhouse',
+  'lever', 'ziprecruiter', 'wellfound', 'remote', 'ba', 'business analyst',
+  'scrum', 'scrum master', 'pm', 'po', 'product owner', 'analyst'
+];
 const BUILD_KEYS = ['build', 'code', 'ship', 'dev', 'project', 'deploy', 'product', 'sprint'];
 const SOCIAL_KEYS = ['post', 'social', 'instagram', 'linkedin', 'content', 'brand', 'thread', 'tweet'];
 const WELLNESS_KEYS = ['health', 'wellness', 'yoga', 'journal', 'meditation', 'fitness', 'sleep', 'habit'];
@@ -26,6 +31,19 @@ function resolveContext(capsule = {}) {
   if (TRADE_KEYS.some(k => combined.includes(k)))   return { panel: 'trade',    persona: 'trade' };
   return { panel: 'generic', persona: 'general' };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PERSONA REGISTRY — visible, switchable, auto-assigned from capsule context
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PERSONAS = {
+  career:   { emoji: '💼', label: 'Career Coach',       desc: 'ATS, LinkedIn, interviews, job market',         color: '#22c55e' },
+  builder:  { emoji: '🛠️',  label: 'Technical PM',       desc: 'Sprints, architecture, shipping decisions',     color: '#60a5fa' },
+  social:   { emoji: '📣', label: 'Social Strategist',  desc: 'Posts, content calendars, audience growth',     color: '#a855f7' },
+  wellness: { emoji: '🌿', label: 'Wellness Coach',     desc: 'Reflection, habits, mental clarity',            color: '#34d399' },
+  trade:    { emoji: '📈', label: 'Commerce Analyst',   desc: 'Pricing, market gaps, product-market fit',      color: '#f59e0b' },
+  general:  { emoji: '⚡', label: 'CubiQo',             desc: 'General assistant — adaptive to any context',   color: '#e2e8f0' },
+};
 
 const PERSONA_PROMPTS = {
   career:   'You are a senior career coach and job application strategist. You know ATS optimisation, LinkedIn, interview prep, and the BA/PM/Scrum Master job market. Be direct, tactical, and specific.',
@@ -266,6 +284,124 @@ function GenericPanel({ token, accent }) {
           {a.summary && <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', marginTop: 4, lineHeight: 1.4 }}>{a.summary}</div>}
         </PanelCard>
       ))}
+    </div>
+  );
+}
+
+// ── Connectors + Plugins panel ─────────────────────────────────────────────
+const CONNECTORS = [
+  { id: 'google',   label: 'Gmail + Calendar', emoji: '📧', route: '/api/connectors/google/auth',    checkRoute: '/api/connectors/google/gmail?action=list' },
+  { id: 'linkedin', label: 'LinkedIn',         emoji: '🔵', route: null,                              checkRoute: null },
+  { id: 'shopify',  label: 'Shopify',          emoji: '🛍️',  route: '/api/connectors/shopify/auth',   checkRoute: '/api/connectors/shopify/status' },
+  { id: 'slack',    label: 'Slack',            emoji: '💬', route: null,                              checkRoute: null },
+  { id: 'notion',   label: 'Notion',           emoji: '📝', route: null,                              checkRoute: null },
+];
+
+const PLUGINS = [
+  { id: 'web_search',   label: 'Web Search',       emoji: '🔍', desc: 'Live search via Tavily / Brave',      built: true  },
+  { id: 'scraper',      label: 'Content Scraper',   emoji: '📄', desc: 'Extract text from any URL',           built: true  },
+  { id: 'context',      label: 'Context Engine',    emoji: '🧠', desc: 'Entities, claims, topic extraction',  built: true  },
+  { id: 'job_scanner',  label: 'Job Scanner',       emoji: '💼', desc: 'Scan LinkedIn / Indeed / Dice',       built: true  },
+  { id: 'easy_apply',   label: 'Easy Apply',        emoji: '✍️',  desc: 'Browser-fill + submit applications',  built: true  },
+  { id: 'social_post',  label: 'Social Poster',     emoji: '📣', desc: 'Queue posts to LinkedIn / X / IG',    built: true  },
+  { id: 'file_upload',  label: 'File Upload',       emoji: '📎', desc: 'Resume PDF + asset storage',          built: true  },
+  { id: 'push_notify',  label: 'Push Notifications',emoji: '🔔', desc: 'Web push alerts',                     built: true  },
+  { id: 'video',        label: 'Video Analysis',    emoji: '🎬', desc: 'Frame capture + scene analysis',      built: false },
+  { id: 'voice',        label: 'Voice I/O',         emoji: '🎙️',  desc: 'Speech synthesis + recognition',     built: false },
+];
+
+function ConnectorsPanel({ token, accent }) {
+  const [connStatus, setConnStatus] = useState({});
+
+  useEffect(() => {
+    if (!token) return;
+    fetch('/api/connectors/status', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => {
+        // API returns { connections: [{ platform, status, ... }] }
+        // Build a map: { google: true, shopify: true, ... }
+        const map = {};
+        (d.connections || []).forEach(c => {
+          if (c.platform && (c.status === 'active' || c.status === 'connected')) {
+            map[c.platform] = true;
+          }
+        });
+        setConnStatus(map);
+      })
+      .catch(() => null);
+  }, [token]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Connectors */}
+      <div>
+        <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.62rem', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10, fontWeight: 700 }}>
+          Connectors — external services
+        </div>
+        <div style={{ display: 'grid', gap: 8 }}>
+          {CONNECTORS.map(c => {
+            const connected = !!connStatus[c.id];
+            return (
+              <div key={c.id} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: connected ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${connected ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.08)'}`,
+                borderRadius: 12, padding: '11px 14px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: '1rem' }}>{c.emoji}</span>
+                  <div>
+                    <div style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600 }}>{c.label}</div>
+                  </div>
+                </div>
+                {c.route ? (
+                  <a href={c.route} style={{
+                    background: connected ? 'rgba(34,197,94,0.15)' : `${accent}22`,
+                    color: connected ? '#34d399' : accent,
+                    border: `1px solid ${connected ? 'rgba(34,197,94,0.3)' : accent + '44'}`,
+                    borderRadius: 8, padding: '4px 12px',
+                    fontSize: '0.62rem', fontWeight: 700, textDecoration: 'none',
+                    textTransform: 'uppercase', letterSpacing: 0.8
+                  }}>{connected ? '✓ Connected' : 'Connect'}</a>
+                ) : (
+                  <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.62rem', fontWeight: 700, letterSpacing: 0.8 }}>SOON</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Plugins */}
+      <div>
+        <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.62rem', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10, fontWeight: 700 }}>
+          Plugins — AI capabilities
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {PLUGINS.map(p => (
+            <div key={p.id} style={{
+              background: p.built ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${p.built ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)'}`,
+              borderRadius: 12, padding: '10px 12px',
+              opacity: p.built ? 1 : 0.5
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <span style={{ fontSize: '0.85rem' }}>{p.emoji}</span>
+                <span style={{ color: p.built ? '#fff' : 'rgba(255,255,255,0.4)', fontSize: '0.72rem', fontWeight: 700 }}>{p.label}</span>
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.62rem', lineHeight: 1.35 }}>{p.desc}</div>
+              <div style={{ marginTop: 6 }}>
+                <span style={{
+                  fontSize: '0.58rem', fontWeight: 700, padding: '2px 7px', borderRadius: 999,
+                  background: p.built ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.06)',
+                  color: p.built ? '#34d399' : 'rgba(255,255,255,0.3)',
+                  letterSpacing: 0.8, textTransform: 'uppercase'
+                }}>{p.built ? 'Active' : 'Coming'}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -530,10 +666,17 @@ Stay focused on this context. Be concise — max 3 short paragraphs unless more 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function DuoModeDashboard({ capsule, token, onClose }) {
-  const { panel, persona } = resolveContext(capsule);
+  const resolved = resolveContext(capsule);
   const color = COLOR_MAP[capsule?.color] || COLOR_MAP.yellow;
+
+  // Persona is state — auto-assigned from context, manually overridable
+  const [persona, setPersona] = useState(resolved.persona);
+  const [panel] = useState(resolved.panel);
+  const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'board' | 'plugins'
+  const [showPersonaPicker, setShowPersonaPicker] = useState(false);
+
   const PanelComponent = PANEL_COMPONENTS[panel] || GenericPanel;
-  const [activeTab, setActiveTab] = useState('chat'); // mobile: 'chat' | 'board'
+  const activePersona = PERSONAS[persona] || PERSONAS.general;
 
   if (!capsule) return null;
 
@@ -551,57 +694,86 @@ export default function DuoModeDashboard({ capsule, token, onClose }) {
         borderBottom: '1px solid rgba(255,255,255,0.08)',
         background: `linear-gradient(90deg, ${color.aura} 0%, rgba(0,0,0,0) 50%)`,
         display: 'flex', alignItems: 'center',
-        padding: '0 20px', gap: 14
+        padding: '0 20px', gap: 12, position: 'relative'
       }}>
-        {/* Capsule identity */}
-        <div style={{
-          width: 10, height: 10, borderRadius: '50%',
-          background: color.hex, boxShadow: `0 0 12px ${color.hex}`
-        }} />
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flex: 1, minWidth: 0 }}>
-          <span style={{
-            background: `linear-gradient(135deg, #7c3aed, #c084fc)`,
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            fontWeight: 900, fontSize: '0.95rem', letterSpacing: 2, textTransform: 'uppercase', fontStyle: 'italic'
-          }}>DUO</span>
+        {/* Capsule dot */}
+        <div style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: color.hex, boxShadow: `0 0 12px ${color.hex}` }} />
+
+        {/* DUO MODE wordmark + keyword */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+          <span style={{ background: 'linear-gradient(135deg, #7c3aed, #c084fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900, fontSize: '0.95rem', letterSpacing: 2, textTransform: 'uppercase', fontStyle: 'italic' }}>DUO</span>
           <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.95rem', letterSpacing: 2, textTransform: 'uppercase' }}>MODE</span>
           <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.72rem' }}>·</span>
-          <span style={{ color: color.hex, fontWeight: 700, fontSize: '0.82rem', textTransform: 'capitalize' }}>
-            {capsule.keyword || color.label}
-          </span>
-          {capsule.confirmed_intents?.length > 0 && capsule.confirmed_intents.map(intent => (
-            <span key={intent} style={{
-              background: `${color.hex}22`, color: color.hex,
-              fontSize: '0.58rem', fontWeight: 700, padding: '2px 7px', borderRadius: 999,
-              textTransform: 'uppercase', letterSpacing: 0.8
-            }}>{intent}</span>
+          <span style={{ color: color.hex, fontWeight: 700, fontSize: '0.82rem', textTransform: 'capitalize' }}>{capsule.keyword || color.label}</span>
+          {capsule.confirmed_intents?.map(intent => (
+            <span key={intent} style={{ background: `${color.hex}22`, color: color.hex, fontSize: '0.55rem', fontWeight: 700, padding: '2px 6px', borderRadius: 999, textTransform: 'uppercase', letterSpacing: 0.8 }}>{intent}</span>
           ))}
         </div>
 
-        {/* Mobile tab switcher */}
-        <div style={{ display: 'flex', gap: 4 }}>
-          {['chat', 'board'].map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
+        <div style={{ flex: 1 }} />
+
+        {/* Persona pill — click to switch */}
+        <button
+          onClick={() => setShowPersonaPicker(v => !v)}
+          title="Switch AI personality"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: `${activePersona.color}18`,
+            border: `1px solid ${activePersona.color}44`,
+            borderRadius: 20, padding: '4px 10px',
+            cursor: 'pointer', flexShrink: 0
+          }}
+        >
+          <span style={{ fontSize: '0.85rem' }}>{activePersona.emoji}</span>
+          <span style={{ color: activePersona.color, fontSize: '0.65rem', fontWeight: 700 }}>{activePersona.label}</span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.6rem' }}>▾</span>
+        </button>
+
+        {/* Persona picker dropdown */}
+        {showPersonaPicker && (
+          <div style={{
+            position: 'absolute', top: 52, right: 60, zIndex: 10,
+            background: 'rgba(10,8,24,0.98)', border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 14, padding: 8, width: 230,
+            boxShadow: '0 16px 48px rgba(0,0,0,0.6)'
+          }}>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.58rem', letterSpacing: 2, textTransform: 'uppercase', padding: '4px 8px 8px', fontWeight: 700 }}>
+              AI Personality — auto-assigned · tap to override
+            </div>
+            {Object.entries(PERSONAS).map(([key, p]) => (
+              <button key={key} onClick={() => { setPersona(key); setShowPersonaPicker(false); }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'flex-start', gap: 10,
+                  background: persona === key ? `${p.color}18` : 'transparent',
+                  border: `1px solid ${persona === key ? p.color + '44' : 'transparent'}`,
+                  borderRadius: 10, padding: '8px 10px', cursor: 'pointer', marginBottom: 4, textAlign: 'left'
+                }}>
+                <span style={{ fontSize: '1rem', marginTop: 1 }}>{p.emoji}</span>
+                <div>
+                  <div style={{ color: persona === key ? p.color : '#fff', fontWeight: 700, fontSize: '0.75rem' }}>{p.label}</div>
+                  <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.62rem', marginTop: 2 }}>{p.desc}</div>
+                </div>
+                {persona === key && <span style={{ color: p.color, marginLeft: 'auto', fontSize: '0.7rem' }}>✓</span>}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: 3 }}>
+          {[{ key: 'chat', label: 'Chat' }, { key: 'board', label: 'Board' }, { key: 'plugins', label: '⚡ Plugins' }].map(t => (
+            <button key={t.key} onClick={() => setActiveTab(t.key)}
               style={{
-                background: activeTab === tab ? 'rgba(255,255,255,0.1)' : 'transparent',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8, padding: '4px 10px',
-                color: activeTab === tab ? '#fff' : 'rgba(255,255,255,0.4)',
-                fontSize: '0.65rem', cursor: 'pointer', fontWeight: 600,
-                textTransform: 'capitalize'
-              }}>{tab}</button>
+                background: activeTab === t.key ? 'rgba(255,255,255,0.1)' : 'transparent',
+                border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8,
+                padding: '4px 9px', color: activeTab === t.key ? '#fff' : 'rgba(255,255,255,0.4)',
+                fontSize: '0.62rem', cursor: 'pointer', fontWeight: 600
+              }}>{t.label}</button>
           ))}
         </div>
 
         {/* Close */}
-        <button onClick={onClose} style={{
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 10, width: 34, height: 34,
-          color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '0.9rem', transition: 'all 0.15s'
-        }}>✕</button>
+        <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 34, height: 34, color: 'rgba(255,255,255,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', flexShrink: 0 }}>✕</button>
       </div>
 
       {/* ── Body — two-column on desktop, tab-switched on mobile ── */}
@@ -616,35 +788,37 @@ export default function DuoModeDashboard({ capsule, token, onClose }) {
           // On narrow screens, show only active tab
           ...(window.innerWidth < 760 ? { display: activeTab === 'chat' ? 'flex' : 'none', width: '100%' } : {})
         }}>
-          {/* Chat header */}
+          {/* Chat header — shows active persona */}
           <div style={{
             padding: '10px 16px 8px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
             display: 'flex', alignItems: 'center', gap: 8
           }}>
             <div style={{
-              width: 26, height: 26, borderRadius: '50%',
-              background: `linear-gradient(135deg, #7c3aed, ${color.hex})`,
+              width: 28, height: 28, borderRadius: '50%',
+              background: `linear-gradient(135deg, #7c3aed, ${activePersona.color})`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.6rem', fontWeight: 900, color: '#fff'
-            }}>AI</div>
-            <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.7rem' }}>
-              {persona.charAt(0).toUpperCase() + persona.slice(1)} specialist · context-locked
-            </span>
+              fontSize: '0.75rem'
+            }}>{activePersona.emoji}</div>
+            <div>
+              <div style={{ color: activePersona.color, fontSize: '0.72rem', fontWeight: 700 }}>{activePersona.label}</div>
+              <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.6rem' }}>auto-assigned from capsule · tap persona to switch</div>
+            </div>
           </div>
 
           <DuoChat
+            key={persona}
             token={token}
             persona={persona}
             capsule={capsule}
-            accentColor={color.hex}
+            accentColor={activePersona.color}
           />
         </div>
 
-        {/* RIGHT: Dynamic content board */}
+        {/* RIGHT: Dynamic content board OR plugins panel */}
         <div style={{
           flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column',
-          ...(window.innerWidth < 760 ? { display: activeTab === 'board' ? 'flex' : 'none' } : {})
+          ...(window.innerWidth < 760 ? { display: (activeTab === 'board' || activeTab === 'plugins') ? 'flex' : 'none' } : {})
         }}>
           {/* Board header */}
           <div style={{
@@ -653,7 +827,7 @@ export default function DuoModeDashboard({ capsule, token, onClose }) {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between'
           }}>
             <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', letterSpacing: 1.2, textTransform: 'uppercase', fontWeight: 700 }}>
-              {PANEL_TITLES[panel] || 'Activity'}
+              {activeTab === 'plugins' ? 'Connectors & Plugins' : (PANEL_TITLES[panel] || 'Activity')}
             </span>
             <span style={{
               background: `${color.hex}22`, color: color.hex,
@@ -663,7 +837,10 @@ export default function DuoModeDashboard({ capsule, token, onClose }) {
 
           {/* Scrollable board */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
-            <PanelComponent token={token} accent={color.hex} capsule={capsule} />
+            {activeTab === 'plugins'
+              ? <ConnectorsPanel token={token} accent={color.hex} />
+              : <PanelComponent token={token} accent={color.hex} capsule={capsule} />
+            }
           </div>
         </div>
       </div>

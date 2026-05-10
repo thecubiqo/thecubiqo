@@ -11,7 +11,20 @@ export const JOB_ACTION_TYPES = [
 
 export type JobActionType = typeof JOB_ACTION_TYPES[number];
 
-const JOB_SOURCES = ['linkedin', 'indeed', 'dice'] as const;
+export const JOB_SOURCES = [
+  'linkedin',
+  'indeed',
+  'dice',
+  'monster',
+  'greenhouse',
+  'lever',
+  'workday',
+  'ziprecruiter',
+  'wellfound',
+  'company_site',
+  'ats',
+  'other'
+] as const;
 type JobSource = typeof JOB_SOURCES[number];
 
 type JobErrorResult = { error: Response | Error };
@@ -48,6 +61,13 @@ export function normalizeJobSource(value: unknown, urlValue?: unknown): JobSourc
   if (url.includes('linkedin.')) return 'linkedin';
   if (url.includes('indeed.')) return 'indeed';
   if (url.includes('dice.')) return 'dice';
+  if (url.includes('monster.')) return 'monster';
+  if (url.includes('greenhouse.')) return 'greenhouse';
+  if (url.includes('lever.')) return 'lever';
+  if (url.includes('workday.')) return 'workday';
+  if (url.includes('ziprecruiter.')) return 'ziprecruiter';
+  if (url.includes('wellfound.')) return 'wellfound';
+  if (url) return 'company_site';
   return null;
 }
 
@@ -219,7 +239,7 @@ export async function saveJobSearch(
 
   if (!rows.length) {
     return {
-      blocked: 'No valid LinkedIn, Indeed, or Dice job listings were found in the payload. Each listing needs source, title, and company.',
+      blocked: 'No valid job listings were found in the payload. Each listing needs a title, company, and recognizable job URL or platform.',
       status: 400
     };
   }
