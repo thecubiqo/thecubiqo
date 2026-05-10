@@ -25,6 +25,11 @@ export type RgySafetyStop = {
   reason: string;
 };
 
+type RgySafetyContinue = {
+  status: 'continue';
+  age_gate_required: boolean;
+};
+
 type TaxonomyMatch = {
   color: RgyColor;
   keyword: string;
@@ -34,10 +39,12 @@ type TaxonomyMatch = {
   reasoning: string;
 };
 
-const COLORS = ['green', 'yellow', 'red'] as const;
-const INTENTS = ['socialize', 'collaborate', 'trade'] as const;
+const RGY_COLORS = ['green', 'yellow', 'red'] as const;
+const RGY_INTENTS = ['socialize', 'collaborate', 'trade'] as const;
 
-const crisisPatterns = [
+// Section 1: safety. These checks always run before taxonomy or LLM work.
+// Crisis and hard-block paths intentionally create no capsule and no DB row.
+const CRISIS_PATTERNS = [
   /\bkill myself\b/i,
   /\bsuicide\b/i,
   /\bend my life\b/i,
@@ -45,7 +52,7 @@ const crisisPatterns = [
   /\bi want to die\b/i
 ];
 
-const hardBlockPatterns = [
+const HARD_BLOCK_PATTERNS = [
   /\billegal drugs?\b/i,
   /\bdrug trafficking\b/i,
   /\bmake (?:a )?bomb\b/i,
@@ -53,7 +60,7 @@ const hardBlockPatterns = [
   /\bcredit card fraud\b/i
 ];
 
-const ageGatePatterns = [
+const AGE_GATE_PATTERNS = [
   /\badult\b/i,
   /\bexplicit\b/i,
   /\bnsfw\b/i,
@@ -66,7 +73,10 @@ const ageGatePatterns = [
   /\btinder\b/i
 ];
 
-const greenTaxonomy = [
+// Section 2: deterministic taxonomy. These are mode signals, not labels for
+// people. The same surface word can still be re-read by the LLM when context
+// is not clear enough for taxonomy.
+const GREEN_TAXONOMY = [
   'growth',
   'wellness',
   'career',
@@ -89,7 +99,7 @@ const greenTaxonomy = [
   'productivity'
 ];
 
-const yellowTaxonomy = [
+const YELLOW_TAXONOMY = [
   'movie night',
   'friends',
   'hangout',
@@ -111,7 +121,7 @@ const yellowTaxonomy = [
   'drinks'
 ];
 
-const redTaxonomy = [
+const RED_TAXONOMY = [
   'adult',
   'explicit',
   'hookup',
@@ -123,6 +133,12 @@ const redTaxonomy = [
   'adult content'
 ];
 
+const TAXONOMY_BY_COLOR: Array<[RgyColor, string[]]> = [
+  ['red', RED_TAXONOMY],
+  ['green', GREEN_TAXONOMY],
+  ['yellow', YELLOW_TAXONOMY]
+];
+
 function cleanEnv(...values: Array<string | undefined>) {
   const value = values.find(Boolean);
   return value
@@ -130,6 +146,8 @@ function cleanEnv(...values: Array<string | undefined>) {
     : undefined;
 }
 
+// Narrow HTTP helper for the one classifier fallback call. Keeping it here
+// avoids pulling more orchestration code into this safety-sensitive path.
 function httpsPost(url: string, headers: Record<string, string>, body: string) {
   return new Promise<string>((resolve, reject) => {
     const urlObj = new URL(url);
@@ -190,7 +208,7 @@ function normalizeIntentArray(value: unknown): RgyIntent[] {
   const raw = Array.isArray(value) ? value : [];
   return [...new Set(raw
     .map(item => String(item || '').trim().toLowerCase())
-    .filter((item): item is RgyIntent => INTENTS.includes(item as RgyIntent)))]
+    .filter((item): item is RgyIntent => RGY_INTENTS.includes(item as RgyIntent)))]
     .slice(0, 3);
 }
 
@@ -219,11 +237,7 @@ function suggestedForTaxonomy(input: string, color: RgyColor, keyword: string): 
 }
 
 function taxonomyMatch(input: string, forcedRed: boolean): TaxonomyMatch | null {
-  const ordered: Array<[RgyColor, string[]]> = forcedRed
-    ? [['red', redTaxonomy], ['green', greenTaxonomy], ['yellow', yellowTaxonomy]]
-    : [['red', redTaxonomy], ['green', greenTaxonomy], ['yellow', yellowTaxonomy]];
-
-  for (const [color, terms] of ordered) {
+  for (const [color, terms] of TAXONOMY_BY_COLOR) {
     for (const term of terms) {
       if (!phraseRegex(term).test(input)) continue;
       const finalColor = forcedRed ? 'red' : color;
@@ -254,8 +268,8 @@ function taxonomyMatch(input: string, forcedRed: boolean): TaxonomyMatch | null 
   return null;
 }
 
-export function runSafetyLayer(input: string): RgySafetyStop | { status: 'continue'; age_gate_required: boolean } {
-  if (includesPattern(input, crisisPatterns)) {
+export function runSafetyLayer(input: string): RgySafetyStop | RgySafetyContinue {
+  if (includesPattern(input, CRISIS_PATTERNS)) {
     return {
       status: 'crisis',
       capsule: null,
@@ -267,7 +281,7 @@ export function runSafetyLayer(input: string): RgySafetyStop | { status: 'contin
     };
   }
 
-  if (includesPattern(input, hardBlockPatterns)) {
+  if (includesPattern(input, HARD_BLOCK_PATTERNS)) {
     return {
       status: 'blocked',
       capsule: null,
@@ -279,10 +293,14 @@ export function runSafetyLayer(input: string): RgySafetyStop | { status: 'contin
 
   return {
     status: 'continue',
-    age_gate_required: includesPattern(input, ageGatePatterns)
+    age_gate_required: includesPattern(input, AGE_GATE_PATTERNS)
   };
 }
 
+export const runRgySafetyLayer = runSafetyLayer;
+
+// Section 3: LLM fallback. Keep this prompt text aligned with the product
+// spec; taxonomy should handle the fast/common cases before this is called.
 function buildLlmPrompt(input: string) {
   return `You are reading the mode of human activity 
 behind this input.
@@ -323,7 +341,7 @@ Rules:
 - never add fields
 - never return text outside the JSON
 
-User input: [INPUT]"`.replace('[INPUT]', input);
+User input: [INPUT]`.replace('[INPUT]', input);
 }
 
 function parseClassifierJson(text: string) {
@@ -334,7 +352,7 @@ function parseClassifierJson(text: string) {
   const suggested_intents = normalizeIntentArray(parsed.suggested_intents);
   let intent_status = String(parsed.intent_status || '').toLowerCase();
 
-  if (!COLORS.includes(color as RgyColor)) throw new Error('Invalid RGY color');
+  if (!RGY_COLORS.includes(color as RgyColor)) throw new Error('Invalid RGY color');
   if (!['pending', 'suggested', 'ambiguous'].includes(intent_status)) throw new Error('Invalid RGY intent_status');
   if (confidence < 0.6) intent_status = 'ambiguous';
 

@@ -8,7 +8,9 @@ export const maxDuration = 30;
 const signalSelect =
   'id,signal_id,user_id,color,keyword,normalized_keyword,intent_status,suggested_intents,confirmed_intents,matching_enabled,confidence,shown_in_panel,editable_by_user,source,display_state,metadata,created_at,updated_at,corrected_at,raw_input';
 
-function normalizedKeyword(keyword: string) {
+type AuthenticatedApiUser = Awaited<ReturnType<typeof requireApiUser>> & { error?: undefined };
+
+function toNormalizedKeyword(keyword: string) {
   return keyword
     .trim()
     .toLowerCase()
@@ -42,15 +44,17 @@ function mapSignal(row: Record<string, any>) {
 }
 
 async function saveClassification(
-  auth: Awaited<ReturnType<typeof requireApiUser>> & { error?: undefined },
+  auth: AuthenticatedApiUser,
   input: string,
   result: RgyClassification
 ) {
+  // The classifier may suggest intent, but never confirms intent and never
+  // enables matching. The DB trigger enforces the same gate as a backstop.
   const payload = {
     user_id: auth.user.id,
     color: result.color,
     keyword: result.keyword,
-    normalized_keyword: normalizedKeyword(result.keyword),
+    normalized_keyword: toNormalizedKeyword(result.keyword),
     intent_status: result.intent_status,
     suggested_intents: result.color === 'red' ? [] : result.suggested_intents,
     confirmed_intents: [],
@@ -116,6 +120,7 @@ export async function POST(request: NextRequest) {
 
   const result = await classifyRgyActivity(input);
 
+  // Safety stops are terminal by design: no Supabase row, no panel capsule.
   if ('status' in result) {
     return NextResponse.json(result);
   }

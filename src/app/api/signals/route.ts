@@ -8,6 +8,9 @@ const INTENT_STATUSES = ['pending', 'suggested', 'ambiguous', 'confirmed'] as co
 const signalSelect =
   'id,signal_id,color,keyword,normalized_keyword,intent_status,suggested_intents,confirmed_intents,matching_enabled,confidence,shown_in_panel,editable_by_user,source,display_state,metadata,created_at,updated_at,corrected_at,raw_input';
 
+// This route is the panel/edit surface. Classification creation lives in
+// /api/rgy/classify; corrections here update the existing signal and mark it
+// as user_correction so future agents can tell machine reads from user edits.
 function normalizeKeyword(value: unknown) {
   return String(value || '')
     .trim()
@@ -76,6 +79,8 @@ function mapSignal(row: Record<string, any>) {
     normalizedKeyword: row.normalized_keyword,
     intentStatus: row.intent_status,
     intent_status: row.intent_status,
+    // Keep camelCase and snake_case during the transition: existing React code
+    // consumes snake_case, while some older API callers still expect camelCase.
     suggestedIntents,
     suggested_intents: suggestedIntents,
     confirmedIntents,
