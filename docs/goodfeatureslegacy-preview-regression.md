@@ -292,7 +292,7 @@ Current blocker:
 Commands:
 
 ```bash
-node -c api/converse.js
+node -c src/server/legacy/converse.cjs
 npm run typecheck
 npm run build
 npm run verify:cqai
@@ -300,7 +300,7 @@ npm run verify:cqai
 
 Latest result:
 
-- `node -c api/converse.js`: pass
+- `node -c src/server/legacy/converse.cjs`: pass
 - `npm run typecheck`: pass
 - `npm run build`: pass; routes expose `/`, `/app`, `/actions`, `/auth/callback`, `/dashboard`, `/journal`, and API routes only. `/signal` is not routable.
 - `npm run build`: known warning remains for `/api/agent` because V1 repo inspection performs runtime filesystem reads. This is intentional for read-only self-inspection and should be watched before production promotion.
@@ -425,6 +425,12 @@ Latest Stagehand/Browserbase live smoke on `127.0.0.1:3032`:
 - `/api/actions/browser-demo`: passed; created pending approval, required explicit approval, opened a real Browserbase/Stagehand session, navigated to `https://example.com`, extracted the title/paragraph, uploaded a screenshot receipt to Supabase Storage, returned a signed URL, and closed the session.
 - Schema compatibility: passed; browser-open approvals no longer pre-write `browser_session_id` before the matching `browser_sessions` row exists, preserving the audit FK.
 - Stagehand model: passed with default `openai/gpt-4.1-mini`; override is documented as `STAGEHAND_MODEL_NAME`.
+
+Live DB migration status:
+
+- `20260510000000_stagehand_browser_automation.sql` applied to `https://oszlufrjvibrdauuppzj.supabase.co`.
+- Verified durable columns: `action_approvals.browser_session_id`, `requires_user_confirmation`, `user_confirmation_state`, `warning_message`; `action_audit_logs.browser_session_id`, `accessibility_tree_snapshot`, `block_reason`, `screenshot_url`; `browser_sessions.session_mode`, `last_active_at`, `expired_at`, `provider_session_id`.
+- Legacy root `api/` functions moved to `src/server/legacy` so Vercel preview routes `/api/actions/*` to the Next.js App Router handlers instead of the old voice cue function.
 
 Prod voice check:
 

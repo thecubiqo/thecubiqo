@@ -1782,7 +1782,7 @@ function makeMockResponse() {
 }
 
 async function callLocalConverse(message) {
-  const handler = require(path.join(repoRoot, 'api', 'converse.js'));
+  const handler = require(path.join(repoRoot, 'src', 'server', 'legacy', 'converse.cjs'));
   const { res, result } = makeMockResponse();
   await handler(
     { method: 'POST', body: { message, model: 'local', diagnostics: true }, query: {} },

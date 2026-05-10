@@ -42,7 +42,7 @@ const PROVIDER_ORDER = parseProviderOrder(process.env.PROVIDER_ORDER);
 const RUNTIME_MANIFEST = {
   product: 'cq.ai / CubiQo QA',
   app_path: 'React frontend on Vercel with /api/converse serverless function',
-  active_backend: 'Vercel Node.js function api/converse.js',
+  active_backend: 'Next.js App Router /api/converse using src/server/legacy/converse.cjs',
   inactive_backend_note: 'backend/server.py exists in the repo but is not the active QA/production route',
   primary_llm: 'Provider order is evaluated at request time',
   provider_order: PROVIDER_ORDER,

@@ -3,7 +3,7 @@ import { createCubiQoAgent, buildFallbackAgentAnswer, V1_AGENT_TOOLS, type Agent
 import { isCapabilityPlanningRequest } from '@/next/lib/ai/capability-map';
 import { runLegacyVercelHandler } from '@/next/lib/legacy-vercel-adapter';
 
-const legacyConverse = require('../../../../api/converse.js');
+const legacyConverse = require('../../../server/legacy/converse.cjs');
 
 export const maxDuration = 30;
 export const runtime = 'nodejs';

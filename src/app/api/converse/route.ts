@@ -1,6 +1,6 @@
 import { runLegacyVercelHandler } from '@/next/lib/legacy-vercel-adapter';
 
-const legacyConverse = require('../../../../api/converse.js');
+const legacyConverse = require('../../../server/legacy/converse.cjs');
 
 export async function POST(request: Request) {
   return runLegacyVercelHandler(legacyConverse, request, 'POST');
