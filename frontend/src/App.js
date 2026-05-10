@@ -1171,16 +1171,65 @@ const ActionConsolePage = () => {
 
   useEffect(() => {
     let cancelled = false;
+    let sseAbort = null;
+
     const load = async () => {
       if (!cancelled) await loadActionState();
     };
     load();
+
+    // SSE real-time approval updates
+    const startSSE = async () => {
+      const { data: sd } = await supabase.auth.getSession();
+      const token = sd?.session?.access_token;
+      if (!token || cancelled) return;
+      sseAbort = new AbortController();
+      const since = new Date(Date.now() - 60000).toISOString();
+      try {
+        const res = await fetch(`/api/actions/events?since=${encodeURIComponent(since)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: sseAbort.signal
+        });
+        if (!res.ok || !res.body) return;
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let buf = '';
+        while (!cancelled) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() || '';
+          for (const line of lines) {
+            if (line.startsWith('data:')) {
+              try {
+                const ev = JSON.parse(line.slice(5).trim());
+                if (ev.id) {
+                  setApprovals(prev => {
+                    const idx = prev.findIndex(a => a.id === ev.id);
+                    if (idx >= 0) { const next = [...prev]; next[idx] = { ...next[idx], ...ev }; return next; }
+                    return [ev, ...prev].slice(0, 30);
+                  });
+                }
+                if (ev.status && ev.id && ['completed', 'failed', 'published'].includes(ev.status)) {
+                  // silently reload full state after a terminal event
+                  setTimeout(() => { if (!cancelled) loadActionState(); }, 800);
+                }
+              } catch {}
+            }
+          }
+        }
+      } catch {}
+    };
+    startSSE();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSessionUser(session?.user || null);
       loadActionState();
     });
     return () => {
       cancelled = true;
+      sseAbort?.abort();
       subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -3376,6 +3425,7 @@ const DemoPage = () => {
   const navigate = useNavigate();
   const [speakerEnabled, setSpeakerEnabled] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [aiResponse, setAiResponse] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
@@ -4033,27 +4083,67 @@ const DemoPage = () => {
 
       if (shouldUseAgenticFlow) {
         setAgentMode('working');
-        const agentRes = await fetch('/api/agent', {
+        setIsStreaming(true);
+        const streamRes = await fetch('/api/agent/stream', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             ...(initialToken ? { Authorization: `Bearer ${initialToken}` } : {})
           },
-          body: JSON.stringify({
-            message: cleanInput,
-            history: memoryEventsToHistory(user?.id ? [...visitMemory, ...userMemory] : visitMemory)
-          })
+          body: JSON.stringify({ message: cleanInput })
         });
-        const agentData = await agentRes.json().catch(() => ({}));
-        if (!agentRes.ok) throw new Error(agentData.error || `Agent failed with ${agentRes.status}`);
-        const responseText = agentData.response || 'I checked what I could, but I do not have enough evidence to answer that yet.';
-        const isConversationDelegated = agentData.mode === 'conversation-via-agent-v1';
-        const nextAgentTrace = Array.isArray(agentData.trace) && !isConversationDelegated ? agentData.trace : [];
-        setAiResponse(responseText);
-        setAgentTrace(nextAgentTrace);
-        setAgentTraceOpen(Boolean(nextAgentTrace.length));
-        setAgentMode(isConversationDelegated ? 'idle' : agentData.write_actions_enabled ? 'write-enabled' : 'read-only');
-        if (agentData.model_used) setModelUsed(agentData.model_used);
+
+        let responseText = '';
+        const liveTrace = [];
+
+        if (streamRes.ok && streamRes.body) {
+          const reader = streamRes.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+              const t = line.trim();
+              if (t.startsWith('0:')) {
+                try { responseText += JSON.parse(t.slice(2)); setAiResponse(responseText); } catch {}
+              } else if (t.startsWith('9:')) {
+                // tool call start — show live in trace
+                try {
+                  const toolInfo = JSON.parse(t.slice(2));
+                  const toolName = toolInfo?.toolName || toolInfo?.tool || 'tool';
+                  liveTrace.push({ tool: toolName, status: 'completed', summary: 'running…' });
+                  setAgentTrace([...liveTrace]);
+                  setAgentTraceOpen(true);
+                } catch {}
+              }
+            }
+          }
+        } else {
+          // Fallback to JSON agent
+          const agentRes = await fetch('/api/agent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...(initialToken ? { Authorization: `Bearer ${initialToken}` } : {}) },
+            body: JSON.stringify({ message: cleanInput, history: memoryEventsToHistory(user?.id ? [...visitMemory, ...userMemory] : visitMemory) })
+          });
+          const agentData = await agentRes.json().catch(() => ({}));
+          responseText = agentData.response || '';
+          setAiResponse(responseText);
+          if (Array.isArray(agentData.trace)) { setAgentTrace(agentData.trace); setAgentTraceOpen(Boolean(agentData.trace.length)); }
+          if (agentData.model_used) setModelUsed(agentData.model_used);
+        }
+
+        setIsStreaming(false);
+        if (!responseText) responseText = 'I checked what I could, but I do not have enough evidence to answer that yet.';
+        const isConversationDelegated = false;
+        const nextAgentTrace = liveTrace;
+        if (!liveTrace.length) setAgentTrace([]);
+        setAgentMode('read-only');
+        if (streamRes.ok) setModelUsed('agent-stream-v1');
+        const agentData = { rgy: null, audio_url: null };
         if (agentData.rgy && !rgyClassifiedThisTurn) {
           const normalizedColor = normalizeKeywordColor(agentData.rgy.color);
           setRgyCapsule({ ...agentData.rgy, color: normalizedColor });
@@ -4533,7 +4623,7 @@ const DemoPage = () => {
               </div>
             )}
 
-            {(lastUserMessage || aiResponse) && (
+            {(lastUserMessage || aiResponse || isProcessing || isStreaming) && (
               <div style={{
                 width: '100%', maxHeight: '28vh', overflowY: 'auto',
                 background: pageTheme.responseBg, backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)',
@@ -4541,14 +4631,28 @@ const DemoPage = () => {
                 padding: '14px 16px', boxShadow: '0 18px 40px rgba(0,0,0,0.35)',
                 textAlign: 'left'
               }}>
+                <style>{`
+                  @keyframes cq-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+                  @keyframes cq-dot { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+                  .cq-cursor { display:inline-block; width:2px; height:0.85em; background:currentColor; margin-left:2px; vertical-align:text-bottom; animation:cq-blink 0.9s step-end infinite; }
+                  .cq-thinking span { animation:cq-dot 1.4s infinite; display:inline-block; }
+                  .cq-thinking span:nth-child(2) { animation-delay:0.2s; }
+                  .cq-thinking span:nth-child(3) { animation-delay:0.4s; }
+                `}</style>
                 {lastUserMessage && (
-                  <div style={{ color: pageTheme.responseMuted, fontSize: '0.76rem', lineHeight: 1.5, marginBottom: aiResponse ? 8 : 0 }}>
+                  <div style={{ color: pageTheme.responseMuted, fontSize: '0.76rem', lineHeight: 1.5, marginBottom: (aiResponse || isProcessing) ? 8 : 0 }}>
                     {lastUserMessage}
                   </div>
                 )}
-                {aiResponse && (
+                {isProcessing && !aiResponse && !isStreaming && (
+                  <div className="cq-thinking" style={{ color: pageTheme.responseMuted, fontSize: '0.88rem' }}>
+                    <span>•</span><span>•</span><span>•</span>
+                  </div>
+                )}
+                {(aiResponse || isStreaming) && (
                   <div style={{ color: pageTheme.responseText, fontSize: '0.95rem', lineHeight: 1.55, fontWeight: 300 }}>
                     {aiResponse}
+                    {isStreaming && <span className="cq-cursor" aria-hidden="true" />}
                   </div>
                 )}
                 {(agentMode !== 'idle' || agentTrace.length > 0) && (
