@@ -457,4 +457,18 @@ Resolved schema blocker:
 - V2 browser foundation passed: anonymous browser session writes are denied, direct user browser session writes are denied even after approval, server-boundary insert with an approved `browser_open` passes, and `browser_sessions` is reachable in QA Supabase.
 - V2 job workflow foundation passed: `job_listings` and `job_application_reviews` are reachable, anonymous/direct client writes are denied, server-boundary writes pass after approval, and approved application package state keeps `external_submission_performed = false`.
 
+Latest job_apply workflow smoke on `127.0.0.1:3032`:
+
+- Supabase migration `20260510000001_job_apply_workflow.sql` applied to the goodfeatureslegacy QA database; `job_applications` is reachable with user-owned read RLS and server-boundary writes only.
+- `/api/actions/capabilities`: passed; `job_apply`, `browser_open`, `browser_extract`, `browser_screenshot`, and `browser_act` are active. `send_email`, `social_post_publish`, `deploy`, `payment`, and `linkedin_automation` remain locked or hard-stopped.
+- `job_apply` approval card: passed; approval now reserves `browser_session_id` on the approval row and keeps it out of approval payload so the DB audit trigger does not require a browser session before approval exists.
+- Platform flag gate: passed; LinkedIn apply returned `403 platform_not_enabled` while `JOB_APPLY_LINKEDIN_ENABLED` is not set.
+- Session integrity: passed; mismatched `browser_session_id` returned `403 session_hijack_attempt`.
+- Hard stop regression: passed; `send_email` still returned `403 blocked_email_send`.
+- Suspicious URL warning: passed; non-allowlisted job URL created a pending second-confirmation approval and first approval captured `secondaryConfirmationComplete: true`.
+- Ghost session expiry: passed; stale persistent browser session auto-closed and recorded expiry before browser extraction ran.
+- `job_apply` browser-session anchor: passed; an approved `job_apply` row can now create a persistent `browser_sessions` row, so platform-enabled apply workflows will not fail the `browser_open` trigger at session creation.
+- `/actions`: passed; page returned HTTP 200 and includes job apply approval/tracker UI states.
+- Final submit safety: implemented as a separate `/api/actions/job-apply/confirm` route. Platform scripts stop at review/ready-to-submit and do not click final submit; the user confirmation button is the only path to final submit.
+
 Do not push this branch for review unless this contract stays current and regression remains green.

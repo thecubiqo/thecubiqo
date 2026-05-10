@@ -106,14 +106,14 @@ export async function POST(request: NextRequest) {
   let browserSessionId =
     typeof nextPayload.browser_session_id === 'string' ? nextPayload.browser_session_id : null;
 
-  if ((actionType === 'browser_open' || actionType === 'browser_demo') && !browserSessionId) {
+  if ((actionType === 'browser_open' || actionType === 'browser_demo' || actionType === 'job_apply') && !browserSessionId) {
     browserSessionId = crypto.randomUUID();
   }
   if (browserSessionId) {
     nextPayload.browser_session_id = browserSessionId;
   }
 
-  const urlDecision = actionType === 'browser_open' ? getUrlAllowlistDecision(nextPayload) : null;
+  const urlDecision = actionType === 'browser_open' || actionType === 'job_apply' ? getUrlAllowlistDecision(nextPayload) : null;
   const needsSecondaryConfirmation =
     Boolean(urlDecision && !urlDecision.ok) || requiresSoftConfirmation(actionType, nextPayload);
   const warningMessage =
@@ -144,6 +144,12 @@ export async function POST(request: NextRequest) {
   const approvalBrowserSessionId = sessionStartsAfterApproval ? null : browserSessionId;
   const insertPayload = { ...nextPayload };
   if (sessionStartsAfterApproval) {
+    delete insertPayload.browser_session_id;
+  }
+  if (actionType === 'job_apply') {
+    // Reserve the job_apply session id on the approval row, not inside payload.
+    // The DB audit trigger reads payload.browser_session_id and would otherwise
+    // require a browser_sessions row before the approval exists.
     delete insertPayload.browser_session_id;
   }
 

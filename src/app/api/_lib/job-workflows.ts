@@ -119,6 +119,27 @@ function mapApplicationReview(row: Record<string, any>) {
   };
 }
 
+export function mapJobApplication(row: Record<string, any>) {
+  return {
+    id: row.id,
+    approvalId: row.approval_id,
+    browserSessionId: row.browser_session_id,
+    platform: row.platform,
+    jobUrl: row.job_url,
+    jobTitle: row.job_title,
+    company: row.company,
+    status: row.status,
+    screenshotUrl: row.screenshot_url,
+    accessibilityTreeSnapshot: row.accessibility_tree_snapshot || null,
+    error: row.error,
+    metadata: row.metadata || {},
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    submittedAt: row.submitted_at,
+    cancelledAt: row.cancelled_at
+  };
+}
+
 async function requireActiveBrowserSessionIfProvided(
   auth: ApiUserContext,
   browserSessionId: string
@@ -221,8 +242,9 @@ export async function saveJobSearch(
 export async function listJobWorkflowState(auth: ApiUserContext): Promise<{
   listings: ReturnType<typeof mapJobListing>[];
   reviews: ReturnType<typeof mapApplicationReview>[];
+  applications: ReturnType<typeof mapJobApplication>[];
 } | JobErrorResult> {
-  const [listingsResult, reviewsResult] = await Promise.all([
+  const [listingsResult, reviewsResult, applicationsResult] = await Promise.all([
     auth.supabase
       .from('job_listings')
       .select('id,approval_id,browser_session_id,source_platform,source_url,external_id,title,company,location,description,employment_type,compensation,posted_at,discovered_at,apply_url,status,raw,created_at,updated_at')
@@ -232,6 +254,12 @@ export async function listJobWorkflowState(auth: ApiUserContext): Promise<{
     auth.supabase
       .from('job_application_reviews')
       .select('id,approval_id,submit_approval_id,browser_session_id,job_listing_id,source_platform,target_url,status,candidate_name,candidate_email,candidate_phone,resume_summary,cover_letter,answers,submission_payload,external_submission_performed,prepared_at,approved_at,submitted_at,created_at,updated_at')
+      .eq('user_id', auth.user.id)
+      .order('created_at', { ascending: false })
+      .limit(20),
+    auth.supabase
+      .from('job_applications')
+      .select('id,approval_id,browser_session_id,platform,job_url,job_title,company,status,screenshot_url,accessibility_tree_snapshot,error,metadata,created_at,updated_at,submitted_at,cancelled_at')
       .eq('user_id', auth.user.id)
       .order('created_at', { ascending: false })
       .limit(20)
@@ -245,10 +273,15 @@ export async function listJobWorkflowState(auth: ApiUserContext): Promise<{
     if (safeTableMissing(reviewsResult.error)) return { error: missingMigrationResponse('job-workflows', 'job_application_reviews') };
     return { error: reviewsResult.error };
   }
+  if (applicationsResult.error) {
+    if (safeTableMissing(applicationsResult.error)) return { error: missingMigrationResponse('job-apply', 'job_applications') };
+    return { error: applicationsResult.error };
+  }
 
   return {
     listings: (listingsResult.data || []).map(mapJobListing),
-    reviews: (reviewsResult.data || []).map(mapApplicationReview)
+    reviews: (reviewsResult.data || []).map(mapApplicationReview),
+    applications: (applicationsResult.data || []).map(mapJobApplication)
   };
 }
 

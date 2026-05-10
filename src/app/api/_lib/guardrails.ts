@@ -11,8 +11,7 @@ export const WHITELIST_DOMAINS = [
 export const HARD_STOP_ACTION_TYPES: Record<string, string> = {
   send_email: 'blocked_email_send',
   social_post_publish: 'blocked_social_publish',
-  deploy: 'blocked_deploy',
-  job_apply: 'blocked_job_apply'
+  deploy: 'blocked_deploy'
 };
 
 export const SOFT_CONFIRMATION_ACTION_TYPES = new Set([
@@ -34,7 +33,9 @@ export function extractUrlFromPayload(payload: Record<string, unknown>) {
     payload.target_url,
     payload.href,
     payload.destinationUrl,
-    payload.destination_url
+    payload.destination_url,
+    payload.jobUrl,
+    payload.job_url
   ];
 
   for (const candidate of candidates) {
@@ -103,4 +104,3 @@ export function requiresSoftConfirmation(actionType: string, payload: Record<str
   if (SOFT_CONFIRMATION_ACTION_TYPES.has(actionType)) return true;
   return Boolean(payload.irreversible || payload.publicAction || payload.public_action);
 }
-

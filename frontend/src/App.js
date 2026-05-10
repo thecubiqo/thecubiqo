@@ -1010,6 +1010,7 @@ const ActionConsolePage = () => {
   const [browserSessions, setBrowserSessions] = useState([]);
   const [jobListings, setJobListings] = useState([]);
   const [jobReviews, setJobReviews] = useState([]);
+  const [jobApplications, setJobApplications] = useState([]);
   const [jobProfile, setJobProfile] = useState(null);
   const [resumeVersions, setResumeVersions] = useState([]);
   const [podConnectors, setPodConnectors] = useState([]);
@@ -1030,6 +1031,7 @@ const ActionConsolePage = () => {
   const [socialScheduledPosts, setSocialScheduledPosts] = useState([]);
   const [socialFireLogs, setSocialFireLogs] = useState([]);
   const [browserUrl, setBrowserUrl] = useState('https://example.com/');
+  const [jobApplyUrl, setJobApplyUrl] = useState('https://www.linkedin.com/jobs/view/example-product-ops');
 
   const baseActionCards = [
     {
@@ -1123,6 +1125,7 @@ const ActionConsolePage = () => {
       setBrowserSessions(browserData.browserSessions || []);
       setJobListings(jobData.listings || []);
       setJobReviews(jobData.reviews || []);
+      setJobApplications(jobData.applications || []);
       setJobProfile(jobData.profile || null);
       setResumeVersions(jobData.resumeVersions || []);
       setPodConnectors(podData.connectors || []);
@@ -1169,6 +1172,7 @@ const ActionConsolePage = () => {
   const browserControlUnlocked = capabilities.some(item => item.actionType === 'browser_control' && item.status === 'active');
   const jobWorkflowUnlocked = browserControlUnlocked && ['job_search_save', 'job_application_prepare', 'job_application_submit_approved']
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
+  const jobApplyUnlocked = browserControlUnlocked && capabilities.some(item => item.actionType === 'job_apply' && item.status === 'active');
   const jobProfileUnlocked = ['job_profile_write', 'resume_version_write']
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
   const podWorkflowUnlocked = ['pod_design_brief_create', 'gfxtools_job_create', 'gfxtools_asset_resize', 'shopify_product_prepare', 'printify_design_prepare']
@@ -1180,6 +1184,7 @@ const ActionConsolePage = () => {
   const activeBrowserSession = browserSessions.find(item => item.status === 'active') || null;
   const latestJobListing = jobListings.find(item => ['saved', 'reviewing', 'prepared'].includes(item.status)) || jobListings[0] || null;
   const latestPreparedReview = jobReviews.find(item => item.status === 'prepared') || null;
+  const latestReadyJobApplication = jobApplications.find(item => item.status === 'ready_to_submit') || null;
   const latestPodBrief = podDesignBriefs[0] || null;
   const latestReadyAsset = gfxAssets.find(item => item.status === 'ready') || null;
   const latestUnresizedReadyAsset = gfxAssets.find(item => item.status === 'ready' && !(item.platformVariants || []).length) || null;
@@ -1188,6 +1193,16 @@ const ActionConsolePage = () => {
   const latestShopifyProduct = shopifyProducts[0] || null;
   const latestProviderDesign = providerDesigns[0] || null;
   const latestBrowserReceipt = auditLogs.find(log => log.screenshotUrl || log.result?.screenshotUrl) || null;
+
+  const detectJobApplyPlatform = (url) => {
+    const value = String(url || '').toLowerCase();
+    if (value.includes('linkedin.')) return 'linkedin';
+    if (value.includes('indeed.')) return 'indeed';
+    if (value.includes('dice.')) return 'dice';
+    if (value.includes('greenhouse.io')) return 'greenhouse';
+    if (value.includes('lever.co')) return 'lever';
+    return 'unknown';
+  };
 
   const browserActionCards = browserControlUnlocked ? (
     activeBrowserSession ? [
@@ -1295,6 +1310,35 @@ const ActionConsolePage = () => {
       }
     ]
   ) : [];
+
+  const jobApplyCards = jobApplyUnlocked ? [
+    {
+      actionType: 'job_apply',
+      toolName: 'job_apply',
+      title: 'Prepare job application',
+      summary: 'CubiQo will open the job URL in an approved persistent browser session, fill only approved profile data, stop at the review screen, and show a visual receipt. Final submit is a separate user button.',
+      Icon: Briefcase,
+      runLabel: 'Prepare application',
+      riskLevel: 'high',
+      jobApplyUrl,
+      payload: () => ({
+        job_url: jobApplyUrl,
+        platform: detectJobApplyPlatform(jobApplyUrl),
+        job_title: latestJobListing?.title || null,
+        company: latestJobListing?.company || null,
+        profileData: {
+          name: sessionUser?.user_metadata?.full_name || '',
+          email: sessionUser?.email || '',
+          targetRoles: jobProfile?.targetRoles || [],
+          skills: jobProfile?.skills || [],
+          experienceSummary: jobProfile?.experienceSummary || '',
+          resumeVersion: resumeVersions[0]?.name || null
+        },
+        finalSubmitAutonomous: false,
+        stopBeforeSubmit: true
+      })
+    }
+  ] : [];
 
   const jobActionCards = jobWorkflowUnlocked ? [
     {
@@ -1891,7 +1935,7 @@ const ActionConsolePage = () => {
     }] : [])
   ] : [];
 
-  const actionCards = [...baseActionCards, ...browserActionCards, ...jobActionCards, ...profileActionCards, ...podActionCards, ...commerceActionCards, ...socialActionCards];
+  const actionCards = [...baseActionCards, ...browserActionCards, ...jobApplyCards, ...jobActionCards, ...profileActionCards, ...podActionCards, ...commerceActionCards, ...socialActionCards];
 
   const latestApproval = (card) => approvals.find(item => {
     const matchesAction = item.actionType === card.actionType && ['requested', 'approved'].includes(item.status);
@@ -1919,7 +1963,7 @@ const ActionConsolePage = () => {
           payload: {
             ...(typeof card.payload === 'function' ? card.payload() : {}),
             preview: card.summary,
-            externalExecution: card.actionType.startsWith('browser_') || card.actionType === 'job_application_submit_approved' || card.actionType.startsWith('gfxtools_') || card.actionType.startsWith('shopify_') || card.actionType.startsWith('printify_') || ['design_create', 'product_sync', 'aftership_connect'].includes(card.actionType) || card.actionType === 'social_post_schedule_approved'
+            externalExecution: card.actionType.startsWith('browser_') || card.actionType === 'job_apply' || card.actionType === 'job_application_submit_approved' || card.actionType.startsWith('gfxtools_') || card.actionType.startsWith('shopify_') || card.actionType.startsWith('printify_') || ['design_create', 'product_sync', 'aftership_connect'].includes(card.actionType) || card.actionType === 'social_post_schedule_approved'
           }
         })
       });
@@ -1982,6 +2026,18 @@ const ActionConsolePage = () => {
             approvalId: approval.id
           })
         });
+      } else if (card.actionType === 'job_apply') {
+        const payload = typeof card.payload === 'function' ? card.payload() : {};
+        await apiJson('/api/actions/job-apply', {
+          method: 'POST',
+          body: JSON.stringify({
+            approvalId: approval.id,
+            browser_session_id: approval.browserSessionId || approval.payload?.browser_session_id,
+            job_url: payload.job_url,
+            platform: payload.platform,
+            payload
+          })
+        });
       } else if (card.actionType.startsWith('browser_')) {
         await apiJson('/api/actions/execute', {
           method: 'POST',
@@ -2039,6 +2095,26 @@ const ActionConsolePage = () => {
         })
       });
       setMessage('Browser session stopped.');
+      await loadActionState();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const confirmJobApplication = async (application, decision) => {
+    setBusyAction(`${decision}-${application.id}`);
+    setMessage('');
+    try {
+      await apiJson('/api/actions/job-apply/confirm', {
+        method: 'POST',
+        body: JSON.stringify({
+          applicationId: application.id,
+          decision
+        })
+      });
+      setMessage(decision === 'submit' ? 'Application submitted by user confirmation.' : 'Application cancelled.');
       await loadActionState();
     } catch (error) {
       setMessage(error.message);
@@ -2142,6 +2218,19 @@ const ActionConsolePage = () => {
                             style={{ marginTop: 12, width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem' }}
                           />
                         )}
+                        {card.actionType === 'job_apply' && (
+                          <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+                            <input
+                              value={jobApplyUrl}
+                              onChange={event => setJobApplyUrl(event.target.value)}
+                              placeholder="Paste LinkedIn, Indeed, Dice, Greenhouse, or Lever job URL"
+                              style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem' }}
+                            />
+                            <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.72rem' }}>
+                              Detected: {detectJobApplyPlatform(jobApplyUrl)} · stop-before-submit enforced
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div style={{ display: 'grid', gap: 8 }}>
                         {!approval && (
@@ -2187,6 +2276,32 @@ const ActionConsolePage = () => {
                   </a>
                   <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.46)', fontSize: '0.74rem', lineHeight: 1.5 }}>
                     {latestBrowserReceipt.message}
+                  </div>
+                </section>
+              )}
+
+              {latestReadyJobApplication && (
+                <section style={{ ...cardStyle, padding: 18, borderColor: 'rgba(16,185,129,0.26)', background: 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(9,9,15,0.72))' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+                    <div>
+                      <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 500 }}>Application ready for your final submit</h2>
+                      <div style={{ marginTop: 6, color: 'rgba(255,255,255,0.58)', fontSize: '0.8rem', lineHeight: 1.5 }}>
+                        {latestReadyJobApplication.jobTitle || 'Job application'} · {latestReadyJobApplication.company || latestReadyJobApplication.platform}
+                      </div>
+                      <a href={latestReadyJobApplication.screenshotUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 9, color: '#7dd3fc', fontSize: '0.78rem' }}>
+                        Open review-screen visual receipt
+                      </a>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <Button type="button" onClick={() => confirmJobApplication(latestReadyJobApplication, 'submit')} disabled={busyAction === `submit-${latestReadyJobApplication.id}`} className="bg-emerald-400/90 text-slate-950 hover:bg-emerald-300">
+                        <CheckCircle2 size={15} />
+                        Submit application
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => confirmJobApplication(latestReadyJobApplication, 'cancel')} disabled={busyAction === `cancel-${latestReadyJobApplication.id}`} className="border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08]">
+                        <X size={15} />
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
                 </section>
               )}
@@ -2240,6 +2355,49 @@ const ActionConsolePage = () => {
                     }) : (
                       <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
                         No review cards yet. Prepare one from a saved listing to see the exact submission payload.
+                      </div>
+                    )}
+                  </div>
+                </article>
+
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Job Apply Tracker</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{jobApplications.length}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {jobApplications.length ? jobApplications.slice(0, 5).map(item => (
+                      <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                          <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.jobTitle || 'Application workflow'}</div>
+                          <Badge variant="outline" className="border-white/10 text-white/45">{item.status}</Badge>
+                        </div>
+                        <div style={{ marginTop: 6, color: 'rgba(255,255,255,0.56)', fontSize: '0.76rem' }}>
+                          {item.company || item.platform} · session {item.browserSessionId?.slice?.(0, 8) || 'recorded'}
+                        </div>
+                        {item.screenshotUrl && (
+                          <a href={item.screenshotUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, color: '#7dd3fc', fontSize: '0.74rem' }}>
+                            Open visual receipt
+                          </a>
+                        )}
+                        {item.status === 'failed' && (
+                          <Collapsible>
+                            <CollapsibleTrigger asChild>
+                              <button type="button" style={{ marginTop: 9, border: '1px solid rgba(248,113,113,0.22)', borderRadius: 10, background: 'rgba(248,113,113,0.08)', color: '#fecaca', padding: '7px 9px', fontSize: '0.72rem', cursor: 'pointer' }}>
+                                What the browser saw
+                              </button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <pre style={{ marginTop: 8, maxHeight: 180, overflow: 'auto', whiteSpace: 'pre-wrap', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 10, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.58)', fontSize: '0.68rem' }}>
+                                {JSON.stringify(item.accessibilityTreeSnapshot || item.error || {}, null, 2)}
+                              </pre>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        )}
+                      </div>
+                    )) : (
+                      <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                        No job apply workflows yet. Paste a job URL, request approval, then run the approved prepare step.
                       </div>
                     )}
                   </div>

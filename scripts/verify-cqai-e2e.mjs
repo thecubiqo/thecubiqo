@@ -236,6 +236,9 @@ async function verifyUserOwnedCrud(config) {
       jobReviewDirectInsertDenied: false,
       jobReviewServerInsertWithApproval: false,
       jobReviewServerApproveWithSubmitApproval: false,
+      anonJobApplicationInsertDenied: false,
+      jobApplicationDirectInsertDenied: false,
+      jobApplicationServerInsertWithApproval: false,
       anonJobProfileInsertDenied: false,
       jobProfileDirectUpsertDenied: false,
       jobProfileServerUpsertWithApproval: false,
@@ -865,6 +868,95 @@ async function verifyUserOwnedCrud(config) {
       approvedReviewRow?.status === 'approved_for_submission' &&
       approvedReviewRow.submit_approval_id === submitApproval?.id &&
       approvedReviewRow.external_submission_performed === false
+    );
+
+    const anonJobApplication = await requestJson(`${config.url}/rest/v1/job_applications`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        browser_session_id: browserSessionRow?.id || crypto.randomUUID(),
+        platform: 'linkedin',
+        job_url: 'https://www.linkedin.com/jobs/view/anon-blocked',
+        status: 'in_progress'
+      })
+    });
+    result.v2.anonJobApplicationInsertDenied = !anonJobApplication.response.ok;
+
+    const jobApplyApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type,browser_session_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'job_apply',
+        tool_name: 'job_apply',
+        title: 'Prepare job apply workflow test',
+        summary: 'Open a persistent browser session and stop at the review screen before final submit.',
+        payload: {
+          job_url: 'https://www.linkedin.com/jobs/view/e2e-product-manager',
+          platform: 'linkedin',
+          stopBeforeSubmit: true
+        },
+        browser_session_id: crypto.randomUUID(),
+        risk_level: 'high'
+      })
+    });
+    const jobApplyApproval = Array.isArray(jobApplyApprovalInsert.body) ? jobApplyApprovalInsert.body[0] : null;
+    if (jobApplyApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${jobApplyApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+
+    const directJobApplication = jobApplyApproval?.id ? await requestJson(`${config.url}/rest/v1/job_applications?select=id,user_id,approval_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: jobApplyApproval.id,
+        browser_session_id: jobApplyApproval.browser_session_id || browserSessionRow?.id || crypto.randomUUID(),
+        platform: 'linkedin',
+        job_url: 'https://www.linkedin.com/jobs/view/direct-blocked',
+        status: 'in_progress'
+      })
+    }) : null;
+    result.v2.jobApplicationDirectInsertDenied = Boolean(directJobApplication && !directJobApplication.response.ok);
+
+    const serverJobApplication = jobApplyApproval?.id ? await requestJson(`${config.url}/rest/v1/job_applications?select=id,user_id,approval_id,browser_session_id,platform,job_url,status,screenshot_url`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: jobApplyApproval.id,
+        browser_session_id: jobApplyApproval.browser_session_id || browserSessionRow?.id || crypto.randomUUID(),
+        platform: 'linkedin',
+        job_url: 'https://www.linkedin.com/jobs/view/e2e-product-manager',
+        job_title: 'E2E Product Manager',
+        company: 'Example Jobs Co',
+        status: 'ready_to_submit',
+        screenshot_url: 'https://example.com/e2e-job-apply-review.png',
+        metadata: { stop_before_submit: true, finalSubmitAutonomous: false }
+      })
+    }) : null;
+    const jobApplicationRow = Array.isArray(serverJobApplication?.body) ? serverJobApplication.body[0] : null;
+    result.v2.jobApplicationServerInsertWithApproval = Boolean(
+      serverJobApplication?.response.ok &&
+      jobApplicationRow?.id &&
+      jobApplicationRow.user_id === userId &&
+      jobApplicationRow.approval_id === jobApplyApproval?.id &&
+      jobApplicationRow.status === 'ready_to_submit' &&
+      jobApplicationRow.screenshot_url
     );
 
     const anonJobProfile = await requestJson(`${config.url}/rest/v1/job_profiles`, {
@@ -1889,6 +1981,7 @@ async function main() {
     'browser_sessions',
     'job_listings',
     'job_application_reviews',
+    'job_applications',
     'job_profiles',
     'resume_versions',
     'pod_design_briefs',

@@ -239,14 +239,14 @@ export const V2_CAPABILITIES: V2Capability[] = [
   {
     actionType: 'job_apply',
     toolName: 'job_apply',
-    label: 'Autonomous job apply',
-    category: 'Hard Stop',
-    status: 'locked',
+    label: 'Job apply workflow',
+    category: 'Job Hunt',
+    status: 'active',
     approvalRequired: true,
-    approvalRequestable: false,
-    endpoint: null,
-    summary: 'Hard-stopped. CubiQo can prepare applications, but autonomous apply remains blocked.',
-    requirements: ['explicit future owner approval', 'provider-safe flow'],
+    approvalRequestable: true,
+    endpoint: '/api/actions/job-apply',
+    summary: 'Runs the approved job-apply container. Platform scripts stop at the review screen; the user must press the final submit button.',
+    requirements: ['signed-in user', 'approved job_apply approval', 'active platform flag', 'persistent browser session', 'stop-before-submit gate'],
     externalAction: true
   },
   {
