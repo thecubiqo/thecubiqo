@@ -130,6 +130,8 @@ function mapSocialDraft(row: Record<string, any>) {
     id: row.id,
     approvalId: row.approval_id,
     gfxToolsJobId: row.gfx_tools_job_id,
+    gfxAssetId: row.gfx_asset_id,
+    assetReadyEventId: row.asset_ready_event_id,
     assetUrl: row.asset_url,
     assetType: row.asset_type,
     assetSource: row.asset_source,
@@ -205,7 +207,7 @@ export async function listSocialState(auth: ApiUserContext): Promise<{
   const [draftsResult, rulesResult, scheduledResult, logsResult] = await Promise.all([
     auth.supabase
       .from('social_content_drafts')
-      .select('id,approval_id,gfx_tools_job_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
+      .select('id,approval_id,gfx_tools_job_id,gfx_asset_id,asset_ready_event_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
       .eq('user_id', auth.user.id)
       .order('created_at', { ascending: false })
       .limit(12),
@@ -247,25 +249,45 @@ export async function listSocialState(auth: ApiUserContext): Promise<{
 
 async function loadGfxToolsOutput(auth: ApiUserContext, id: string) {
   const { data, error } = await auth.supabase
-    .from('gfxtools_jobs')
-    .select('id,job_payload,external_job_id,external_call_performed,status')
+    .from('gfx_assets')
+    .select('id,gfxtools_job_id,asset_url,asset_type,status,platform_variants')
     .eq('id', id)
     .eq('user_id', auth.user.id)
     .maybeSingle();
   if (error) {
-    if (safeTableMissing(error)) return { error: missingMigrationResponse('social', 'gfxtools_jobs') };
+    if (safeTableMissing(error)) return { error: missingMigrationResponse('social', 'gfx_assets') };
     return { error };
   }
-  if (!data) return { blocked: 'GFXTools job not found for this user.', status: 404 };
-  const jobPayload = normalizeJsonObject(data.job_payload);
-  const outputUrl = normalizeUrl(jobPayload.outputUrl || jobPayload.output_url || jobPayload.generatedAssetUrl || jobPayload.generated_asset_url || jobPayload.imageUrl || jobPayload.videoUrl);
-  if (!outputUrl) {
-    return {
-      blocked: 'GFXTools job output is missing. Prepare content with an image/video URL or attach a GFXTools job that has a real output asset.',
-      status: 400
-    };
+  if (!data) return { blocked: 'GFXTools asset not found for this user.', status: 404 };
+  if (data.status !== 'ready') return { blocked: `GFXTools asset is ${data.status}; only ready assets can start social preparation.`, status: 400 };
+  const variants = Array.isArray(data.platform_variants) ? data.platform_variants : [];
+  if (!variants.length) return { blocked: 'GFXTools asset has no platform variants. Run gfxtools_asset_resize first.', status: 400 };
+  const outputUrl = normalizeUrl(data.asset_url);
+  if (!outputUrl) return { blocked: 'GFXTools asset is ready but missing asset_url.', status: 400 };
+
+  const { data: event, error: eventError } = await auth.supabase
+    .from('asset_ready_events')
+    .select('id,asset_id,event_type,consumed_at,created_at')
+    .eq('asset_id', data.id)
+    .eq('user_id', auth.user.id)
+    .eq('event_type', 'asset_ready')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (eventError) {
+    if (safeTableMissing(eventError)) return { error: missingMigrationResponse('social', 'asset_ready_events') };
+    return { error: eventError };
   }
-  return { gfxToolsJobId: data.id, outputUrl, jobPayload };
+  if (!event) return { blocked: 'No asset_ready event exists for this asset. Social preparation only starts from the asset_ready handoff.', status: 400 };
+
+  return {
+    gfxAssetId: data.id,
+    gfxToolsJobId: data.gfxtools_job_id,
+    assetReadyEventId: event.id,
+    outputUrl,
+    assetType: data.asset_type,
+    platformVariants: variants
+  };
 }
 
 function platformVariant(platform: SocialPlatform, base: { topic: string; product: string; audience: string; cta: string; assetUrl: string }, index: number) {
@@ -338,22 +360,16 @@ export async function prepareSocialPost(
   const platforms = normalizePlatforms(payload.platforms);
   if (!platforms.length) return { blocked: 'At least one supported platform is required.', status: 400 };
 
-  const gfxToolsJobId = normalizeNullableText(getPayloadField(payload, 'gfxToolsJobId', 'gfx_tools_job_id'), 80);
-  let assetUrl = normalizeUrl(getPayloadField(payload, 'assetUrl', 'asset_url'));
-  let assetSource = 'url';
-  let assetType = normalizeText(getPayloadField(payload, 'assetType', 'asset_type'), 40) || 'image';
+  const gfxAssetId = normalizeNullableText(getPayloadField(payload, 'assetId', 'asset_id'), 80) || normalizeNullableText(getPayloadField(payload, 'gfxAssetId', 'gfx_asset_id'), 80);
+  if (!gfxAssetId) return { blocked: 'asset_id is required. Social preparation only starts from a ready GFXTools asset.', status: 400 };
 
-  if (gfxToolsJobId) {
-    const output = await loadGfxToolsOutput(auth, gfxToolsJobId);
-    if ('error' in output) return { error: output.error };
-    if ('blocked' in output && output.blocked) return { blocked: output.blocked, status: output.status };
-    if (!output.outputUrl) return { blocked: 'GFXTools job output is missing.', status: 400 };
-    assetUrl = String(output.outputUrl);
-    assetSource = 'gfx_tools_job';
-    assetType = 'gfx_tools_job';
-  }
-
-  if (!assetUrl) return { blocked: 'A real image/video asset URL or GFXTools job output is required before preparing social content.', status: 400 };
+  const output = await loadGfxToolsOutput(auth, gfxAssetId);
+  if ('error' in output) return { error: output.error };
+  if ('blocked' in output && output.blocked) return { blocked: output.blocked, status: output.status };
+  if (!output.outputUrl) return { blocked: 'GFXTools asset output is missing.', status: 400 };
+  const assetUrl = String(output.outputUrl);
+  const assetSource = 'gfx_asset';
+  const assetType = normalizeText(output.assetType, 40) || 'image';
 
   const variants = buildVariants(payload, platforms, assetUrl);
   const contentContext = {
@@ -369,7 +385,9 @@ export async function prepareSocialPost(
     .insert({
       user_id: auth.user.id,
       approval_id: approvalId,
-      gfx_tools_job_id: gfxToolsJobId,
+      gfx_tools_job_id: output.gfxToolsJobId || null,
+      gfx_asset_id: output.gfxAssetId,
+      asset_ready_event_id: output.assetReadyEventId,
       asset_url: assetUrl,
       asset_type: assetType,
       asset_source: assetSource,
@@ -378,7 +396,7 @@ export async function prepareSocialPost(
       content_context: contentContext,
       preview_card: approvalPreviewCard
     })
-    .select('id,approval_id,gfx_tools_job_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
+    .select('id,approval_id,gfx_tools_job_id,gfx_asset_id,asset_ready_event_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
     .single();
 
   if (error) {
@@ -392,7 +410,7 @@ export async function prepareSocialPost(
 async function loadSocialDraft(auth: ApiUserContext, id: string) {
   const { data, error } = await auth.supabase
     .from('social_content_drafts')
-    .select('id,approval_id,gfx_tools_job_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
+    .select('id,approval_id,gfx_tools_job_id,gfx_asset_id,asset_ready_event_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
     .eq('id', id)
     .eq('user_id', auth.user.id)
     .maybeSingle();

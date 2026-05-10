@@ -5,7 +5,7 @@ import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocess
 import { Suspense } from "react";
 import CubiQoVisual from "./components/CubiQoVisual";
 import ParticleWaveHD from "./components/ParticleWaveHD";
-import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut, LayoutDashboard, BookOpen, Briefcase, Rocket, ShoppingBag, Code2, ShieldCheck, Globe2, Camera, Fingerprint, Bot, Search, BrainCircuit, ChevronDown, CheckCircle2, ClipboardList, FileText, Clock3, RefreshCw, AlertTriangle, Monitor, MousePointerClick, Keyboard, Eye, Image as ImageIcon } from "lucide-react";
+import { Menu, Activity, X, Mail, Lock, Send, Plus, Volume2, Moon, Sun, Minus, User, LogOut, LayoutDashboard, BookOpen, Briefcase, Rocket, ShoppingBag, Package, Code2, ShieldCheck, Globe2, Camera, Fingerprint, Bot, Search, BrainCircuit, ChevronDown, CheckCircle2, ClipboardList, FileText, Clock3, RefreshCw, AlertTriangle, Monitor, MousePointerClick, Keyboard, Eye, Image as ImageIcon } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1015,6 +1015,10 @@ const ActionConsolePage = () => {
   const [podConnectors, setPodConnectors] = useState([]);
   const [podDesignBriefs, setPodDesignBriefs] = useState([]);
   const [gfxToolsJobs, setGfxToolsJobs] = useState([]);
+  const [gfxAssets, setGfxAssets] = useState([]);
+  const [assetReadyEvents, setAssetReadyEvents] = useState([]);
+  const [shopifyPreparations, setShopifyPreparations] = useState([]);
+  const [printifyPreparations, setPrintifyPreparations] = useState([]);
   const [socialConnectors, setSocialConnectors] = useState([]);
   const [socialDrafts, setSocialDrafts] = useState([]);
   const [socialDistributionRules, setSocialDistributionRules] = useState([]);
@@ -1118,6 +1122,10 @@ const ActionConsolePage = () => {
       setPodConnectors(podData.connectors || []);
       setPodDesignBriefs(podData.podDesignBriefs || []);
       setGfxToolsJobs(podData.gfxToolsJobs || []);
+      setGfxAssets(podData.gfxAssets || []);
+      setAssetReadyEvents(podData.assetReadyEvents || []);
+      setShopifyPreparations(podData.shopifyPreparations || []);
+      setPrintifyPreparations(podData.printifyPreparations || []);
       setSocialConnectors(socialData.connectors || []);
       setSocialDrafts(socialData.drafts || []);
       setSocialDistributionRules(socialData.distributionRules || []);
@@ -1152,7 +1160,7 @@ const ActionConsolePage = () => {
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
   const jobProfileUnlocked = ['job_profile_write', 'resume_version_write']
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
-  const podWorkflowUnlocked = ['pod_design_brief_create', 'gfxtools_job_create']
+  const podWorkflowUnlocked = ['pod_design_brief_create', 'gfxtools_job_create', 'gfxtools_asset_resize', 'shopify_product_prepare', 'printify_design_prepare']
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
   const socialWorkflowUnlocked = ['social_post_prepare', 'social_post_schedule_approved']
     .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
@@ -1160,6 +1168,9 @@ const ActionConsolePage = () => {
   const latestJobListing = jobListings.find(item => ['saved', 'reviewing', 'prepared'].includes(item.status)) || jobListings[0] || null;
   const latestPreparedReview = jobReviews.find(item => item.status === 'prepared') || null;
   const latestPodBrief = podDesignBriefs[0] || null;
+  const latestReadyAsset = gfxAssets.find(item => item.status === 'ready') || null;
+  const latestUnresizedReadyAsset = gfxAssets.find(item => item.status === 'ready' && !(item.platformVariants || []).length) || null;
+  const latestAssetReadyEvent = latestReadyAsset ? assetReadyEvents.find(item => item.assetId === latestReadyAsset.id) || null : null;
   const latestSocialDraft = socialDrafts[0] || null;
 
   const browserActionCards = browserControlUnlocked ? (
@@ -1412,6 +1423,12 @@ const ActionConsolePage = () => {
       runLabel: 'Save brief',
       riskLevel: 'medium',
       payload: () => ({
+        title: 'CubiQo signal-wave POD tee',
+        description: 'Create a premium POD apparel graphic with a subtle RGY signal wave, clean CubiQo intelligence aesthetic, no clutter, suitable for a black t-shirt.',
+        format: 'image',
+        platforms: ['instagram', 'linkedin', 'x', 'tiktok', 'facebook'],
+        brandGuidelines: 'Premium, dark, minimal, intelligence-forward; no busy collage; clean signal-wave energy.',
+        dimensionsRequested: '1080x1080',
         brandName: 'CubiQo Studio',
         productType: 'premium cotton t-shirt',
         targetAudience: 'AI builders, founders, and operators who like subtle futuristic apparel.',
@@ -1426,8 +1443,11 @@ const ActionConsolePage = () => {
         previewCard: {
           title: 'POD creative brief preview',
           after: {
+            title: 'CubiQo signal-wave POD tee',
             brandName: 'CubiQo Studio',
             productType: 'premium cotton t-shirt',
+            format: 'image',
+            platforms: ['instagram', 'linkedin', 'x', 'tiktok', 'facebook'],
             prompt: 'Create a premium POD apparel graphic with a subtle RGY signal wave.'
           },
           changes: ['Create structured creative brief', 'Store in Supabase only'],
@@ -1439,14 +1459,20 @@ const ActionConsolePage = () => {
     {
       actionType: 'gfxtools_job_create',
       toolName: 'gfxtools_job_create',
-      title: 'Prepare GFXTools payload',
-      summary: 'CubiQo will prepare and save a GFXTools-ready job payload. It will not call GFXTools unless a later verified connector execution is approved.',
+      title: 'Submit GFXTools job',
+      summary: 'CubiQo will submit the approved creative brief to the server-side GFXTools connector when configured, then save the resulting asset record. Missing credentials create a failed asset state instead of faking success.',
       Icon: Rocket,
-      runLabel: 'Prepare payload',
+      runLabel: 'Submit job',
       riskLevel: 'high',
       podDesignBriefId: latestPodBrief?.id || null,
       payload: () => ({
-        pod_design_brief_id: latestPodBrief?.id || null,
+        brief_id: latestPodBrief?.id || null,
+        title: latestPodBrief?.title || 'CubiQo signal-wave POD tee',
+        description: latestPodBrief?.description || latestPodBrief?.prompt || 'Create a premium POD apparel graphic with a subtle RGY signal wave.',
+        format: latestPodBrief?.format || 'image',
+        dimensions: latestPodBrief?.dimensionsRequested || '1080x1080',
+        platforms: latestPodBrief?.platforms || ['instagram', 'linkedin', 'x', 'tiktok', 'facebook'],
+        brandGuidelines: latestPodBrief?.brandGuidelines || 'Premium, dark, minimal, intelligence-forward.',
         brandName: latestPodBrief?.brandName || 'CubiQo Studio',
         productType: latestPodBrief?.productType || 'premium cotton t-shirt',
         prompt: latestPodBrief?.prompt || 'Create a premium POD apparel graphic with a subtle RGY signal wave.',
@@ -1459,36 +1485,111 @@ const ActionConsolePage = () => {
           transparentBackground: true
         },
         previewCard: {
-          title: 'GFXTools job payload preview',
+          title: 'GFXTools job submission preview',
           after: {
             provider: 'GFXTools',
             briefId: latestPodBrief?.id || null,
+            format: latestPodBrief?.format || 'image',
+            dimensions: latestPodBrief?.dimensionsRequested || '1080x1080',
             prompt: latestPodBrief?.prompt || 'Create a premium POD apparel graphic with a subtle RGY signal wave.'
           },
-          changes: ['Prepare provider payload', 'Record connector state', 'Store in Supabase only'],
-          willWriteTo: 'Supabase gfxtools_jobs',
-          willNotDo: ['No external API call in this step', 'No product publish', 'No credential exposure']
+          changes: ['Submit to server-side GFXTools connector if configured', 'Save gfxtools_jobs row', 'Save gfx_assets row'],
+          willWriteTo: ['Supabase gfxtools_jobs', 'Supabase gfx_assets'],
+          willNotDo: ['No client-side connector call', 'No Shopify product creation', 'No Printify product creation', 'No credential exposure']
         }
       })
-    }
+    },
+    ...(latestUnresizedReadyAsset ? [{
+      actionType: 'gfxtools_asset_resize',
+      toolName: 'gfxtools_asset_resize',
+      title: 'Generate platform asset variants',
+      summary: `CubiQo will generate platform-sized variants for asset ${latestUnresizedReadyAsset.id.slice(0, 8)} and emit the asset_ready event for social preparation.`,
+      Icon: ImageIcon,
+      runLabel: 'Resize asset',
+      riskLevel: 'medium',
+      assetId: latestUnresizedReadyAsset.id,
+      payload: () => ({
+        asset_id: latestUnresizedReadyAsset.id,
+        previewCard: {
+          title: 'GFXTools asset resize preview',
+          assetId: latestUnresizedReadyAsset.id,
+          assetUrl: latestUnresizedReadyAsset.assetUrl,
+          variants: ['Instagram 1080x1080', 'Instagram 1080x1920', 'LinkedIn 1200x627', 'X 1600x900', 'TikTok 1080x1920', 'Facebook 1200x630'],
+          willWriteTo: ['Supabase gfx_assets.platform_variants', 'Supabase asset_ready_events'],
+          willNotDo: ['No social post generation until this event exists', 'No client-side resize API call']
+        }
+      })
+    }] : []),
+    ...(latestReadyAsset ? [{
+      actionType: 'shopify_product_prepare',
+      toolName: 'shopify_product_prepare',
+      title: 'Prepare Shopify product',
+      summary: `CubiQo will prepare a Shopify product payload from ready asset ${latestReadyAsset.id.slice(0, 8)}. Missing credentials block creation truthfully.`,
+      Icon: ShoppingBag,
+      runLabel: 'Prepare Shopify',
+      riskLevel: 'high',
+      assetId: latestReadyAsset.id,
+      payload: () => ({
+        asset_id: latestReadyAsset.id,
+        title: latestPodBrief?.title || 'CubiQo signal-wave POD tee',
+        description: latestPodBrief?.description || 'Premium POD product prepared from a ready GFXTools asset.',
+        priceRange: '$29-$49',
+        previewCard: {
+          title: 'Shopify product approval preview',
+          service: 'shopify',
+          assetId: latestReadyAsset.id,
+          assetUrl: latestReadyAsset.assetUrl,
+          estimatedAction: 'create_product',
+          product: {
+            title: latestPodBrief?.title || 'CubiQo signal-wave POD tee',
+            priceRange: '$29-$49'
+          },
+          willWriteTo: 'Supabase shopify_product_preparations',
+          willNotDo: ['No Shopify API call from browser', 'No fake connected status', 'No publish without approval']
+        }
+      })
+    }, {
+      actionType: 'printify_design_prepare',
+      toolName: 'printify_design_prepare',
+      title: 'Prepare Printify design',
+      summary: `CubiQo will map ready asset ${latestReadyAsset.id.slice(0, 8)} to a Printify product template. Missing credentials block submission truthfully.`,
+      Icon: Package,
+      runLabel: 'Prepare Printify',
+      riskLevel: 'high',
+      assetId: latestReadyAsset.id,
+      payload: () => ({
+        asset_id: latestReadyAsset.id,
+        productTemplate: 'premium t-shirt',
+        placement: 'front',
+        previewCard: {
+          title: 'Printify design approval preview',
+          service: 'printify',
+          assetId: latestReadyAsset.id,
+          assetUrl: latestReadyAsset.assetUrl,
+          estimatedAction: 'submit_design',
+          productTemplate: 'premium t-shirt',
+          placement: 'front',
+          willWriteTo: 'Supabase printify_design_preparations',
+          willNotDo: ['No Printify API call from browser', 'No fake connected status', 'No submit without approval']
+        }
+      })
+    }] : [])
   ] : [];
 
-  const socialActionCards = socialWorkflowUnlocked ? [
+  const socialActionCards = socialWorkflowUnlocked && latestAssetReadyEvent && latestReadyAsset ? [
     {
       actionType: 'social_post_prepare',
       toolName: 'social_post_prepare',
       title: 'Prepare social post variants',
-      summary: 'CubiQo will create platform-aware draft variants for LinkedIn, Instagram, X, and TikTok from an approved asset URL. No platform post is scheduled.',
+      summary: `CubiQo will create platform-aware drafts from ready asset ${latestReadyAsset.id.slice(0, 8)}. Pending or failed assets cannot start this workflow.`,
       Icon: Send,
       runLabel: 'Prepare drafts',
       riskLevel: 'medium',
       payload: () => {
         const platforms = ['linkedin', 'instagram', 'x', 'tiktok'];
-        const assetUrl = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f';
         return {
-          assetUrl,
-          assetType: 'image',
-          assetSource: 'url',
+          asset_id: latestReadyAsset.id,
+          assetReadyEventId: latestAssetReadyEvent.id,
           platforms,
           variantCount: 3,
           topic: 'AI-native founder apparel launch',
@@ -1497,8 +1598,10 @@ const ActionConsolePage = () => {
           cta: 'Vote on the first drop and follow the launch build.',
           previewCard: {
             title: 'Social draft preparation preview',
-            assetUrl,
-            assetSource: 'approved image URL',
+            assetId: latestReadyAsset.id,
+            assetReadyEventId: latestAssetReadyEvent.id,
+            assetUrl: latestReadyAsset.assetUrl,
+            assetSource: 'asset_ready event',
             platforms,
             contentPlan: 'Generate platform-aware caption, hashtags, and CTA variants for each selected platform.',
             willWriteTo: 'Supabase social_content_drafts',
@@ -1558,6 +1661,7 @@ const ActionConsolePage = () => {
     if (card.jobListingId && item.payload?.job_listing_id !== card.jobListingId && item.payload?.jobListingId !== card.jobListingId) return false;
     if (card.reviewId && item.payload?.review_id !== card.reviewId && item.payload?.reviewId !== card.reviewId) return false;
     if (card.socialContentDraftId && item.payload?.social_content_draft_id !== card.socialContentDraftId && item.payload?.socialContentDraftId !== card.socialContentDraftId) return false;
+    if (card.assetId && item.payload?.asset_id !== card.assetId && item.payload?.assetId !== card.assetId) return false;
     if (!card.browserSessionId) return true;
     return item.payload?.browser_session_id === card.browserSessionId || item.payload?.browserSessionId === card.browserSessionId;
   });
@@ -1577,7 +1681,7 @@ const ActionConsolePage = () => {
           payload: {
             ...(typeof card.payload === 'function' ? card.payload() : {}),
             preview: card.summary,
-            externalExecution: card.actionType.startsWith('browser_') || card.actionType === 'job_application_submit_approved' || card.actionType === 'gfxtools_job_create' || card.actionType === 'social_post_schedule_approved'
+            externalExecution: card.actionType.startsWith('browser_') || card.actionType === 'job_application_submit_approved' || card.actionType.startsWith('gfxtools_') || card.actionType.startsWith('shopify_') || card.actionType.startsWith('printify_') || card.actionType === 'social_post_schedule_approved'
           }
         })
       });
@@ -1644,7 +1748,7 @@ const ActionConsolePage = () => {
             payload: typeof card.payload === 'function' ? card.payload() : {}
           })
         });
-      } else if (card.actionType.startsWith('job_') || card.actionType === 'resume_version_write' || card.actionType.startsWith('pod_') || card.actionType === 'gfxtools_job_create' || card.actionType.startsWith('social_')) {
+      } else if (card.actionType.startsWith('job_') || card.actionType === 'resume_version_write' || card.actionType.startsWith('pod_') || card.actionType.startsWith('gfxtools_') || card.actionType.startsWith('shopify_') || card.actionType.startsWith('printify_') || card.actionType.startsWith('social_')) {
         await apiJson('/api/actions/execute', {
           method: 'POST',
           body: JSON.stringify({
@@ -2005,6 +2109,59 @@ const ActionConsolePage = () => {
                     )) : (
                       <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
                         No GFXTools payloads yet. Prepared payloads stay in Supabase until a verified connector execution exists.
+                      </div>
+                    )}
+                  </div>
+                </article>
+
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>GFX Assets</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{gfxAssets.length}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {gfxAssets.length ? gfxAssets.slice(0, 4).map(item => (
+                      <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                          <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.assetType} · {item.dimensions?.width || '?'}x{item.dimensions?.height || '?'}</div>
+                          <Badge variant="outline" className="border-white/10 text-white/45">{item.status}</Badge>
+                        </div>
+                        <div style={{ marginTop: 7, color: 'rgba(255,255,255,0.56)', fontSize: '0.76rem', lineHeight: 1.5 }}>
+                          variants: {(item.platformVariants || []).length} · ready event: {assetReadyEvents.some(event => event.assetId === item.id) ? 'yes' : 'no'}
+                        </div>
+                        <div style={{ marginTop: 9, padding: 10, borderRadius: 10, background: 'rgba(0,0,0,0.24)', color: 'rgba(255,255,255,0.58)', fontSize: '0.72rem', lineHeight: 1.45, wordBreak: 'break-word' }}>
+                          {item.assetUrl || item.errorMessage || 'No asset URL yet.'}
+                        </div>
+                      </div>
+                    )) : (
+                      <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                        No GFX asset records yet. A GFXTools job creates an asset record, then resize emits the asset-ready handoff.
+                      </div>
+                    )}
+                  </div>
+                </article>
+
+                <article style={{ ...cardStyle, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Shopify / Printify Prep</h2>
+                    <Badge variant="outline" className="border-white/10 text-white/50">{shopifyPreparations.length + printifyPreparations.length}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {[...shopifyPreparations.map(item => ({ ...item, service: 'Shopify' })), ...printifyPreparations.map(item => ({ ...item, service: 'Printify' }))].length ? (
+                      [...shopifyPreparations.map(item => ({ ...item, service: 'Shopify' })), ...printifyPreparations.map(item => ({ ...item, service: 'Printify' }))].slice(0, 5).map(item => (
+                        <div key={`${item.service}-${item.id}`} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                            <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.service} · asset {item.assetId?.slice(0, 8)}</div>
+                            <Badge variant="outline" className="border-white/10 text-white/45">{item.status}</Badge>
+                          </div>
+                          <div style={{ marginTop: 7, color: 'rgba(255,255,255,0.56)', fontSize: '0.76rem', lineHeight: 1.5 }}>
+                            connector: {item.connectorState} · external call: {item.externalCallPerformed ? 'yes' : 'no'}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                        No Shopify or Printify payloads yet. These appear only after a ready asset is approved for connector preparation.
                       </div>
                     )}
                   </div>

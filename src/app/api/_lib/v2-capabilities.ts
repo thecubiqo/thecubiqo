@@ -297,8 +297,21 @@ export const V2_CAPABILITIES: V2Capability[] = [
     approvalRequired: true,
     approvalRequestable: true,
     endpoint: '/api/actions/execute',
-    summary: 'Prepares an approved GFXTools job payload and stores it. No external call is performed unless a verified connector execution is later approved.',
-    requirements: ['signed-in user', 'approved gfxtools_job_create approval', 'GFXTools payload preview card', 'server-side connector status check'],
+    summary: 'Submits an approved creative brief to the server-side GFXTools connector when configured and stores a structured asset record.',
+    requirements: ['signed-in user', 'approved gfxtools_job_create approval', 'GFXTools payload preview card', 'server-side connector status check', 'asset status record'],
+    externalAction: true
+  },
+  {
+    actionType: 'gfxtools_asset_resize',
+    toolName: 'gfxtools_asset_resize',
+    label: 'GFXTools asset resize',
+    category: 'Business/POD',
+    status: 'active',
+    approvalRequired: true,
+    approvalRequestable: true,
+    endpoint: '/api/actions/execute',
+    summary: 'Generates platform-sized variants for a ready GFXTools asset and emits an asset_ready event for the social pipeline.',
+    requirements: ['signed-in user', 'approved gfxtools_asset_resize approval', 'ready GFX asset', 'platform variant output', 'asset_ready event'],
     externalAction: true
   },
   {
@@ -328,6 +341,19 @@ export const V2_CAPABILITIES: V2Capability[] = [
     externalAction: false
   },
   {
+    actionType: 'shopify_product_prepare',
+    toolName: 'shopify_product_prepare',
+    label: 'Shopify product prepare',
+    category: 'Business/POD',
+    status: 'active',
+    approvalRequired: true,
+    approvalRequestable: true,
+    endpoint: '/api/actions/execute',
+    summary: 'Builds an approved Shopify product payload from a ready GFXTools asset. Missing credentials block creation instead of faking connection.',
+    requirements: ['signed-in user', 'approved shopify_product_prepare approval', 'ready GFX asset', 'full product preview card', 'server-side connector status check'],
+    externalAction: true
+  },
+  {
     actionType: 'printify_connector_status',
     toolName: 'printify_connector_status',
     label: 'Printify status',
@@ -339,6 +365,19 @@ export const V2_CAPABILITIES: V2Capability[] = [
     summary: 'Read-only server-side connector state. Missing credentials return disconnected; present credentials return configured_unverified until real Printify verification exists.',
     requirements: ['server-side credential check only', 'no frontend key exposure', 'no fake connected state'],
     externalAction: false
+  },
+  {
+    actionType: 'printify_design_prepare',
+    toolName: 'printify_design_prepare',
+    label: 'Printify design prepare',
+    category: 'Business/POD',
+    status: 'active',
+    approvalRequired: true,
+    approvalRequestable: true,
+    endpoint: '/api/actions/execute',
+    summary: 'Builds an approved Printify design/template payload from a ready GFXTools asset. Missing credentials block submission instead of faking connection.',
+    requirements: ['signed-in user', 'approved printify_design_prepare approval', 'ready GFX asset', 'full design preview card', 'server-side connector status check'],
+    externalAction: true
   },
   {
     actionType: 'social_connector_status',

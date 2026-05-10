@@ -249,6 +249,14 @@ async function verifyUserOwnedCrud(config) {
       anonGfxToolsJobInsertDenied: false,
       gfxToolsJobDirectInsertDenied: false,
       gfxToolsJobServerInsertWithApproval: false,
+      anonGfxAssetInsertDenied: false,
+      gfxAssetDirectInsertDenied: false,
+      gfxAssetServerInsertWithApproval: false,
+      assetReadyEventServerInsertWithApproval: false,
+      shopifyPreparationDirectInsertDenied: false,
+      shopifyPreparationServerInsertWithApproval: false,
+      printifyPreparationDirectInsertDenied: false,
+      printifyPreparationServerInsertWithApproval: false,
       anonSocialDraftInsertDenied: false,
       socialDraftDirectInsertDenied: false,
       socialDraftServerInsertWithApproval: false,
@@ -1223,6 +1231,248 @@ async function verifyUserOwnedCrud(config) {
       gfxJobRow.external_call_performed === false
     );
 
+    const anonGfxAsset = await requestJson(`${config.url}/rest/v1/gfx_assets`, {
+      method: 'POST',
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        asset_url: 'https://example.com/anon-asset.png',
+        asset_type: 'image',
+        status: 'ready'
+      })
+    });
+    result.v2.anonGfxAssetInsertDenied = !anonGfxAsset.response.ok;
+
+    const directGfxAsset = gfxApproval?.id ? await requestJson(`${config.url}/rest/v1/gfx_assets?select=id,user_id,approval_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: gfxApproval.id,
+        gfxtools_job_id: gfxJobRow?.id || null,
+        asset_url: 'https://example.com/direct-asset.png',
+        asset_type: 'image',
+        dimensions: { width: 1080, height: 1080 },
+        status: 'ready'
+      })
+    }) : null;
+    result.v2.gfxAssetDirectInsertDenied = Boolean(directGfxAsset && !directGfxAsset.response.ok);
+
+    const serverGfxAsset = gfxApproval?.id ? await requestJson(`${config.url}/rest/v1/gfx_assets?select=id,user_id,approval_id,gfxtools_job_id,asset_url,asset_type,status,platform_variants`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: gfxApproval.id,
+        pod_design_brief_id: podBriefRow?.id || null,
+        gfxtools_job_id: gfxJobRow?.id || null,
+        external_job_id: 'e2e-gfx-job',
+        asset_url: 'https://example.com/e2e-ready-asset.png',
+        asset_type: 'image',
+        dimensions: { width: 1080, height: 1080 },
+        platform_variants: [
+          { platform: 'instagram', variant: 'square', width: 1080, height: 1080, assetUrl: 'https://example.com/e2e-ready-asset.png?w=1080&h=1080' },
+          { platform: 'linkedin', variant: 'feed', width: 1200, height: 627, assetUrl: 'https://example.com/e2e-ready-asset.png?w=1200&h=627' }
+        ],
+        status: 'ready',
+        connector_state: 'disconnected'
+      })
+    }) : null;
+    const gfxAssetRow = Array.isArray(serverGfxAsset?.body) ? serverGfxAsset.body[0] : null;
+    result.v2.gfxAssetServerInsertWithApproval = Boolean(
+      serverGfxAsset?.response.ok &&
+      gfxAssetRow?.id &&
+      gfxAssetRow.user_id === userId &&
+      gfxAssetRow.approval_id === gfxApproval?.id &&
+      gfxAssetRow.status === 'ready' &&
+      Array.isArray(gfxAssetRow.platform_variants) &&
+      gfxAssetRow.platform_variants.length > 0
+    );
+
+    const resizeApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'gfxtools_asset_resize',
+        tool_name: 'gfxtools_asset_resize',
+        title: 'Resize GFX asset test',
+        summary: 'Approve platform variants and asset-ready event.',
+        payload: { previewCard: { assetId: gfxAssetRow?.id || null } },
+        risk_level: 'medium'
+      })
+    });
+    const resizeApproval = Array.isArray(resizeApprovalInsert.body) ? resizeApprovalInsert.body[0] : null;
+    if (resizeApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${resizeApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+
+    const serverAssetReadyEvent = resizeApproval?.id && gfxAssetRow?.id ? await requestJson(`${config.url}/rest/v1/asset_ready_events?select=id,user_id,approval_id,asset_id,event_type`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: resizeApproval.id,
+        asset_id: gfxAssetRow.id,
+        event_type: 'asset_ready',
+        payload: { source: 'verify:cqai' }
+      })
+    }) : null;
+    const assetReadyEventRow = Array.isArray(serverAssetReadyEvent?.body) ? serverAssetReadyEvent.body[0] : null;
+    result.v2.assetReadyEventServerInsertWithApproval = Boolean(
+      serverAssetReadyEvent?.response.ok &&
+      assetReadyEventRow?.id &&
+      assetReadyEventRow.user_id === userId &&
+      assetReadyEventRow.approval_id === resizeApproval?.id &&
+      assetReadyEventRow.asset_id === gfxAssetRow?.id
+    );
+
+    const shopifyApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'shopify_product_prepare',
+        tool_name: 'shopify_product_prepare',
+        title: 'Prepare Shopify product test',
+        summary: 'Approve Shopify product payload preparation.',
+        payload: { previewCard: { assetId: gfxAssetRow?.id || null, service: 'shopify' } },
+        risk_level: 'high'
+      })
+    });
+    const shopifyApproval = Array.isArray(shopifyApprovalInsert.body) ? shopifyApprovalInsert.body[0] : null;
+    if (shopifyApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${shopifyApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+
+    const directShopifyPreparation = shopifyApproval?.id && gfxAssetRow?.id ? await requestJson(`${config.url}/rest/v1/shopify_product_preparations?select=id,user_id,approval_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: shopifyApproval.id,
+        asset_id: gfxAssetRow.id,
+        product_payload: { title: 'Direct client should fail' },
+        preview_card: { title: 'Direct client should fail' }
+      })
+    }) : null;
+    result.v2.shopifyPreparationDirectInsertDenied = Boolean(directShopifyPreparation && !directShopifyPreparation.response.ok);
+
+    const serverShopifyPreparation = shopifyApproval?.id && gfxAssetRow?.id ? await requestJson(`${config.url}/rest/v1/shopify_product_preparations?select=id,user_id,approval_id,asset_id,status,external_call_performed`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: shopifyApproval.id,
+        asset_id: gfxAssetRow.id,
+        connector_state: 'disconnected',
+        product_payload: { title: 'E2E Shopify product', assetId: gfxAssetRow.id },
+        preview_card: { service: 'shopify', assetId: gfxAssetRow.id },
+        status: 'blocked_missing_credentials',
+        external_call_performed: false
+      })
+    }) : null;
+    const shopifyRow = Array.isArray(serverShopifyPreparation?.body) ? serverShopifyPreparation.body[0] : null;
+    result.v2.shopifyPreparationServerInsertWithApproval = Boolean(
+      serverShopifyPreparation?.response.ok &&
+      shopifyRow?.id &&
+      shopifyRow.user_id === userId &&
+      shopifyRow.approval_id === shopifyApproval?.id &&
+      shopifyRow.asset_id === gfxAssetRow?.id &&
+      shopifyRow.external_call_performed === false
+    );
+
+    const printifyApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        action_type: 'printify_design_prepare',
+        tool_name: 'printify_design_prepare',
+        title: 'Prepare Printify design test',
+        summary: 'Approve Printify design payload preparation.',
+        payload: { previewCard: { assetId: gfxAssetRow?.id || null, service: 'printify' } },
+        risk_level: 'high'
+      })
+    });
+    const printifyApproval = Array.isArray(printifyApprovalInsert.body) ? printifyApprovalInsert.body[0] : null;
+    if (printifyApproval?.id) {
+      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${printifyApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
+        method: 'PATCH',
+        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
+      });
+    }
+
+    const directPrintifyPreparation = printifyApproval?.id && gfxAssetRow?.id ? await requestJson(`${config.url}/rest/v1/printify_design_preparations?select=id,user_id,approval_id`, {
+      method: 'POST',
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: printifyApproval.id,
+        asset_id: gfxAssetRow.id,
+        design_payload: { productTemplate: 'Direct client should fail' },
+        preview_card: { title: 'Direct client should fail' }
+      })
+    }) : null;
+    result.v2.printifyPreparationDirectInsertDenied = Boolean(directPrintifyPreparation && !directPrintifyPreparation.response.ok);
+
+    const serverPrintifyPreparation = printifyApproval?.id && gfxAssetRow?.id ? await requestJson(`${config.url}/rest/v1/printify_design_preparations?select=id,user_id,approval_id,asset_id,status,external_call_performed`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        approval_id: printifyApproval.id,
+        asset_id: gfxAssetRow.id,
+        connector_state: 'disconnected',
+        design_payload: { productTemplate: 'premium t-shirt', assetId: gfxAssetRow.id },
+        preview_card: { service: 'printify', assetId: gfxAssetRow.id },
+        status: 'blocked_missing_credentials',
+        external_call_performed: false
+      })
+    }) : null;
+    const printifyRow = Array.isArray(serverPrintifyPreparation?.body) ? serverPrintifyPreparation.body[0] : null;
+    result.v2.printifyPreparationServerInsertWithApproval = Boolean(
+      serverPrintifyPreparation?.response.ok &&
+      printifyRow?.id &&
+      printifyRow.user_id === userId &&
+      printifyRow.approval_id === printifyApproval?.id &&
+      printifyRow.asset_id === gfxAssetRow?.id &&
+      printifyRow.external_call_performed === false
+    );
+
     const anonSocialDraft = await requestJson(`${config.url}/rest/v1/social_content_drafts`, {
       method: 'POST',
       headers: {
@@ -1251,7 +1501,9 @@ async function verifyUserOwnedCrud(config) {
         payload: {
           previewCard: {
             title: 'Social draft preparation preview',
-            assetUrl: 'https://example.com/e2e-social.png',
+            assetId: gfxAssetRow?.id || null,
+            assetReadyEventId: assetReadyEventRow?.id || null,
+            assetUrl: gfxAssetRow?.asset_url || 'https://example.com/e2e-ready-asset.png',
             platforms: ['linkedin', 'instagram', 'x']
           }
         },
@@ -1294,9 +1546,11 @@ async function verifyUserOwnedCrud(config) {
       body: JSON.stringify({
         user_id: userId,
         approval_id: socialPrepareApproval.id,
-        asset_url: 'https://example.com/e2e-social.png',
+        gfx_asset_id: gfxAssetRow?.id || null,
+        asset_ready_event_id: assetReadyEventRow?.id || null,
+        asset_url: gfxAssetRow?.asset_url || 'https://example.com/e2e-ready-asset.png',
         asset_type: 'image',
-        asset_source: 'url',
+        asset_source: 'gfx_asset',
         platforms: ['linkedin', 'instagram', 'x'],
         variants: {
           linkedin: [{ platform: 'linkedin', variantIndex: 0, caption: 'E2E LinkedIn caption', hashtags: ['#AI'], cta: 'Review' }],
@@ -1620,6 +1874,10 @@ async function main() {
     'resume_versions',
     'pod_design_briefs',
     'gfxtools_jobs',
+    'gfx_assets',
+    'asset_ready_events',
+    'shopify_product_preparations',
+    'printify_design_preparations',
     'social_content_drafts',
     'social_distribution_rules',
     'social_scheduled_posts',

@@ -31,7 +31,10 @@ import {
   getPodApprovalPreviewCard,
   getPodConnectorStatuses,
   isPodAction,
-  listPodBusinessState
+  listPodBusinessState,
+  preparePrintifyDesign,
+  prepareShopifyProduct,
+  resizeGfxAsset
 } from '../../_lib/pod-business-workflows';
 import {
   getSocialApprovalPreviewCard,
@@ -318,21 +321,144 @@ async function handlePodAction(
         actionType,
         toolName,
         status: 'completed',
-        message: 'Prepared approved GFXTools job payload; no external call was performed',
-        input: { podDesignBriefId: payload.podDesignBriefId || payload.pod_design_brief_id },
+        message: 'Processed approved GFXTools job and saved structured asset state',
+        input: { briefId: payload.briefId || payload.brief_id || payload.podDesignBriefId || payload.pod_design_brief_id },
         result: {
           job: created.job,
+          asset: created.asset,
           previewCard: created.previewCard,
           connector: created.connector,
-          externalCallPerformed: false
+          externalCallPerformed: created.externalCallPerformed
         }
       });
       await completeApproval(auth, approvalId, true);
       return NextResponse.json({
         executed: true,
         job: created.job,
+        asset: created.asset,
         previewCard: created.previewCard,
         connector: created.connector,
+        externalCallPerformed: created.externalCallPerformed
+      });
+    }
+
+    if (actionType === 'gfxtools_asset_resize') {
+      const resized = await resizeGfxAsset(auth, approvalId, payload, previewCard);
+      if ('error' in resized && resized.error) return resized.error instanceof Response ? resized.error : NextResponse.json({ error: resized.error.message }, { status: 500 });
+      if ('blocked' in resized && resized.blocked) {
+        await writeAudit(auth, {
+          approvalId,
+          actionType,
+          toolName,
+          status: 'blocked',
+          message: resized.blocked,
+          input: { assetId: payload.assetId || payload.asset_id }
+        });
+        return NextResponse.json({ error: resized.blocked, executed: false }, { status: resized.status || 400 });
+      }
+      if (!('asset' in resized)) return NextResponse.json({ error: 'GFXTools asset could not be resized', executed: false }, { status: 500 });
+      await writeAudit(auth, {
+        approvalId,
+        actionType,
+        toolName,
+        status: 'completed',
+        message: 'Generated platform-sized variants and emitted asset_ready event',
+        input: { assetId: payload.assetId || payload.asset_id },
+        result: {
+          asset: resized.asset,
+          assetReadyEvent: resized.event,
+          previewCard: resized.previewCard,
+          externalCallPerformed: false
+        }
+      });
+      await completeApproval(auth, approvalId, true);
+      return NextResponse.json({
+        executed: true,
+        asset: resized.asset,
+        assetReadyEvent: resized.event,
+        previewCard: resized.previewCard,
+        externalCallPerformed: false
+      });
+    }
+
+    if (actionType === 'shopify_product_prepare') {
+      const prepared = await prepareShopifyProduct(auth, approvalId, payload, previewCard);
+      if ('error' in prepared && prepared.error) return prepared.error instanceof Response ? prepared.error : NextResponse.json({ error: prepared.error.message }, { status: 500 });
+      if ('blocked' in prepared && prepared.blocked) {
+        await writeAudit(auth, {
+          approvalId,
+          actionType,
+          toolName,
+          status: 'blocked',
+          message: prepared.blocked,
+          input: { assetId: payload.assetId || payload.asset_id }
+        });
+        return NextResponse.json({ error: prepared.blocked, executed: false }, { status: prepared.status || 400 });
+      }
+      if (!('preparation' in prepared)) return NextResponse.json({ error: 'Shopify product preparation could not be saved', executed: false }, { status: 500 });
+      await writeAudit(auth, {
+        approvalId,
+        actionType,
+        toolName,
+        status: 'completed',
+        message: 'Prepared approved Shopify product payload',
+        input: { assetId: payload.assetId || payload.asset_id },
+        result: {
+          preparation: prepared.preparation,
+          connector: prepared.connector,
+          previewCard: prepared.previewCard,
+          assetId: prepared.preparation.assetId,
+          service: 'shopify',
+          externalCallPerformed: false
+        }
+      });
+      await completeApproval(auth, approvalId, true);
+      return NextResponse.json({
+        executed: true,
+        preparation: prepared.preparation,
+        connector: prepared.connector,
+        previewCard: prepared.previewCard,
+        externalCallPerformed: false
+      });
+    }
+
+    if (actionType === 'printify_design_prepare') {
+      const prepared = await preparePrintifyDesign(auth, approvalId, payload, previewCard);
+      if ('error' in prepared && prepared.error) return prepared.error instanceof Response ? prepared.error : NextResponse.json({ error: prepared.error.message }, { status: 500 });
+      if ('blocked' in prepared && prepared.blocked) {
+        await writeAudit(auth, {
+          approvalId,
+          actionType,
+          toolName,
+          status: 'blocked',
+          message: prepared.blocked,
+          input: { assetId: payload.assetId || payload.asset_id }
+        });
+        return NextResponse.json({ error: prepared.blocked, executed: false }, { status: prepared.status || 400 });
+      }
+      if (!('preparation' in prepared)) return NextResponse.json({ error: 'Printify design preparation could not be saved', executed: false }, { status: 500 });
+      await writeAudit(auth, {
+        approvalId,
+        actionType,
+        toolName,
+        status: 'completed',
+        message: 'Prepared approved Printify design payload',
+        input: { assetId: payload.assetId || payload.asset_id },
+        result: {
+          preparation: prepared.preparation,
+          connector: prepared.connector,
+          previewCard: prepared.previewCard,
+          assetId: prepared.preparation.assetId,
+          service: 'printify',
+          externalCallPerformed: false
+        }
+      });
+      await completeApproval(auth, approvalId, true);
+      return NextResponse.json({
+        executed: true,
+        preparation: prepared.preparation,
+        connector: prepared.connector,
+        previewCard: prepared.previewCard,
         externalCallPerformed: false
       });
     }
