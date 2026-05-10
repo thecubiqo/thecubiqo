@@ -19,6 +19,7 @@ import {
   rgySignalWrite,
   taskPlanCreate
 } from './user-context-tools';
+import { webSearch, searchConfigured } from '../../app/api/_lib/web-search';
 
 export type AgentTraceItem = {
   tool: string;
@@ -77,6 +78,15 @@ function summarizeOutput(toolName: string, output: unknown) {
   if (toolName === 'memory_write_safe_summary') return 'saved safe user-owned memory summary';
   if (toolName === 'task_plan_create') return 'created an in-session task plan';
   if (toolName === 'content_brief_create') return 'created an in-session content brief';
+  if (toolName === 'web_search') {
+    const results = (output as { results?: unknown[] }).results || [];
+    const provider = (output as { provider?: string }).provider || 'unknown';
+    return `${results.length} web result${results.length === 1 ? '' : 's'} via ${provider}`;
+  }
+  if (toolName === 'parallel_web_search') {
+    const searches = (output as { searches?: unknown[] }).searches || [];
+    return `${searches.length} parallel search${searches.length === 1 ? '' : 'es'} completed`;
+  }
   return 'completed';
 }
 
@@ -132,7 +142,9 @@ export const V1_AGENT_TOOLS = [
   'memory_read',
   'memory_write_safe_summary',
   'task_plan_create',
-  'content_brief_create'
+  'content_brief_create',
+  'web_search',
+  'parallel_web_search'
 ];
 
 export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentOptions = {}) {
@@ -284,6 +296,38 @@ export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentO
         audience: z.string().max(120).optional()
       }),
       execute: async (input) => contentBriefCreate(input)
+    }),
+    web_search: tracedTool({
+      trace,
+      name: 'web_search',
+      description: 'Search the live internet for real-time information. Use for current events, job market trends, company research, product pricing, and anything requiring up-to-date facts not in the repo or memory.',
+      inputSchema: z.object({
+        query: z.string().min(2).max(200),
+        maxResults: z.number().int().min(1).max(10).optional()
+      }),
+      execute: async ({ query, maxResults }) => {
+        if (!searchConfigured()) {
+          return { error: 'No search API configured (TAVILY_API_KEY, BRAVE_SEARCH_API_KEY, or SERPER_API_KEY required)', results: [], provider: 'none' };
+        }
+        return webSearch(query, maxResults || 5);
+      }
+    }),
+    parallel_web_search: tracedTool({
+      trace,
+      name: 'parallel_web_search',
+      description: 'Run multiple web searches in parallel for research tasks. Returns combined results from up to 4 queries simultaneously.',
+      inputSchema: z.object({
+        queries: z.array(z.string().min(2).max(200)).min(1).max(4)
+      }),
+      execute: async ({ queries }) => {
+        if (!searchConfigured()) {
+          return { error: 'No search API configured', searches: [] };
+        }
+        const searches = await Promise.all(
+          queries.map(async (q) => { const r = await webSearch(q, 5); return { query: q, results: r.results, provider: r.provider, error: r.error }; })
+        );
+        return { searches, totalResults: searches.reduce((n, s) => n + s.results.length, 0) };
+      }
     })
   };
 
