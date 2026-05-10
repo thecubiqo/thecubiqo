@@ -335,9 +335,28 @@ async function verifyUserOwnedCrud(config) {
     });
     result.rls.anonSignalInsertDenied = !anonSignal.response.ok;
 
-    const signalInsert = await requestJson(`${config.url}/rest/v1/signals?select=id,user_id,color,keyword,confirmed_intents`, {
+    const directSignalInsert = await requestJson(`${config.url}/rest/v1/signals`, {
       method: 'POST',
-      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
+      headers: userHeaders(config, accessToken),
+      body: JSON.stringify({
+        user_id: userId,
+        color: 'green',
+        keyword: 'direct should fail',
+        normalized_keyword: 'direct-should-fail',
+        intent_status: 'pending',
+        source: 'e2e'
+      })
+    });
+    result.rls.userSignalInsertDenied = !directSignalInsert.response.ok;
+
+    const signalInsert = await requestJson(`${config.url}/rest/v1/signals?select=id,signal_id,user_id,color,keyword,confirmed_intents,matching_enabled`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
       body: JSON.stringify({
         user_id: userId,
         color: 'green',
@@ -346,16 +365,16 @@ async function verifyUserOwnedCrud(config) {
         intent_status: 'confirmed',
         suggested_intents: ['collaborate'],
         confirmed_intents: ['collaborate'],
-        source: 'e2e'
+        source: 'taxonomy'
       })
     });
     const signalRow = Array.isArray(signalInsert.body) ? signalInsert.body[0] : null;
-    result.signals.inserted = signalInsert.response.ok && signalRow?.id && signalRow.user_id === userId;
+    result.signals.inserted = signalInsert.response.ok && signalRow?.id && signalRow?.signal_id && signalRow.user_id === userId && signalRow.matching_enabled === true;
 
-    const signalRead = signalRow?.id ? await requestJson(`${config.url}/rest/v1/signals?id=eq.${signalRow.id}&select=id,user_id,color,keyword,confirmed_intents&limit=1`, {
+    const signalRead = signalRow?.id ? await requestJson(`${config.url}/rest/v1/signals?id=eq.${signalRow.id}&select=id,user_id,color,keyword,confirmed_intents,matching_enabled&limit=1`, {
       headers: userHeaders(config, accessToken)
     }) : null;
-    result.signals.read = Boolean(signalRead?.response.ok && Array.isArray(signalRead.body) && signalRead.body[0]?.id === signalRow.id);
+    result.signals.read = Boolean(signalRead?.response.ok && Array.isArray(signalRead.body) && signalRead.body[0]?.id === signalRow.id && signalRead.body[0]?.matching_enabled === true);
 
     const signalDelete = signalRow?.id ? await requestJson(`${config.url}/rest/v1/signals?id=eq.${signalRow.id}`, {
       method: 'DELETE',

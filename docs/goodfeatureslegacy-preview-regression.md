@@ -52,6 +52,9 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 
 - Added Supabase migration for `signals`.
 - Added `/api/signals` for user-owned RGY signal create/list/update/delete.
+- Added `/api/rgy/classify` for the RGY mode-reader classifier: safety layer first, taxonomy lookup before LLM, LLM fallback only when taxonomy is unclear, and server-side signal creation only.
+- Tightened `signals` schema for the classifier contract: `signal_id`, `matching_enabled`, `confidence`, `shown_in_panel`, `editable_by_user`, `corrected_at`, and `raw_input`.
+- Tightened signal RLS so anonymous and direct authenticated browser/client inserts are denied; server routes create signals after validating the user.
 - Added `/api/journal/guide` for guided-journal questions and LLM/local summary fallback.
 - Updated conversation RGY output to return keyword, suggested intents, confirmed intents, and `matching_enabled: false`.
 - Updated dashboard counts/features to expose only live/code-ready surfaces.
@@ -300,6 +303,8 @@ Latest result:
 - V2 POD asset regression: pass; `gfx_assets`, `asset_ready_events`, `shopify_product_preparations`, and `printify_design_preparations` are reachable. Anonymous/direct client writes are denied, service-boundary writes with approval pass, and social draft creation is tied to ready asset handoff state.
 - V2 Shopify/POD operations regression: pass; `commerce_connector_secrets`, `shopify_store_connections`, `fulfillment_provider_statuses`, `shopify_products`, `provider_designs`, `provider_product_syncs`, `shopify_collections`, `shopify_collection_assignments`, `shopify_inventory_levels`, `shopify_inventory_adjustments`, `shopify_order_summaries`, `aftership_connections`, `aftership_tracking_snapshots`, `aftership_return_snapshots`, `shopify_analytics_snapshots`, `shopify_bundles`, `marketplace_status_snapshots`, and `commerce_events` are reachable in QA.
 - Voice cue route: verified wired to ElevenLabs config (`River neutral/androgynous`, `eleven_flash_v2_5`) but audio generation is currently blocked by ElevenLabs quota; route returns `elevenlabs_error` when the key is present and provider fails.
+- RGY classifier migration: applied to QA Supabase via `20260510050000_rgy_classifier_contract.sql`.
+- RGY classifier acceptance smoke: pass on local preview. Covered `yoga`, `I want to build a startup`, `movie night with friends`, `looking for someone to hang out with`, `adult apps nearby`, crisis override, hard block, user-confirmed matching, multi-intent confirmation, keyword edit/user correction, anonymous rejection, and cross-user isolation.
 
 ## Preview Deployment
 

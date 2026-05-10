@@ -3113,15 +3113,20 @@ const DemoPage = () => {
     const confirmedIntents = normalizeIntentList(raw.confirmed_intents || raw.confirmedIntents || []);
     const suggestedIntents = normalizeIntentList(raw.suggested_intents || raw.suggestedIntents || []);
     return {
-      id: raw.id || `local-${color}-${keyword.toLowerCase().replace(/[^a-z0-9]+/g, '-') || Date.now()}`,
+      id: raw.id || raw.signal_id || `local-${color}-${keyword.toLowerCase().replace(/[^a-z0-9]+/g, '-') || Date.now()}`,
+      signal_id: raw.signal_id || raw.signalId,
       color,
       keyword,
       intent_status: confirmedIntents.length ? 'confirmed' : (suggestedIntents.length ? 'suggested' : (raw.intent_status || raw.intentStatus || 'pending')),
       suggested_intents: suggestedIntents,
       confirmed_intents: confirmedIntents,
+      matching_enabled: Boolean(raw.matching_enabled || raw.matchingEnabled || confirmedIntents.length),
       source: raw.source || 'conversation',
       display_state: raw.display_state || raw.displayState || 'visible',
-      created_at: raw.created_at || new Date().toISOString()
+      confidence: raw.confidence,
+      shown_in_panel: raw.shown_in_panel !== false && raw.shownInPanel !== false,
+      editable_by_user: raw.editable_by_user !== false && raw.editableByUser !== false,
+      created_at: raw.created_at || raw.createdAt || new Date().toISOString()
     };
   };
   const signalFromRgy = (rgy = {}, keywordPayload = {}, fallbackText = '') => {
@@ -3324,19 +3329,54 @@ const DemoPage = () => {
     setConversationError('');
     setAgentTrace([]);
     setAgentMode('idle');
+    const { data: initialSessionData } = await supabase.auth.getSession();
+    const initialToken = initialSessionData?.session?.access_token;
+    let rgyClassifiedThisTurn = false;
 
     const shouldUseAgenticFlow = Boolean(options.agentFirst) || /(repo|code|stack|route|routes|built|framework|implementation|self|yourself|what model|test|tests|regression|diagnostic|runtime|provider|supabase|vercel|nextjs|next\.js|react|agentic|what did you check|what can you inspect|job|jobs|career|resume|linkedin|indeed|dice|application|apply|interview|recruiter|startup|business|market|revenue|investor|investors|funding|brainstorm|validate|validation|customer|competitor|growth|ecomm|ecommerce|shopify|printify|printful|pod|fashion|brand|clothing|sales|marketing|gfx|gfxtools|routine|memory|daily|context|research|browser|extension|social|affiliate|campaign|shopping|food|taxi|calendar|email|smart-home|smart home|cq|messenger|wallet|crypto|payment|self-heal|self heal|reporting|coder|studio|camera|biometric|voice|microphone)/i.test(cleanInput);
 
     try {
+      if (initialToken) {
+        const rgyRes = await fetch('/api/rgy/classify', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${initialToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ input: cleanInput, user_id: user?.id })
+        });
+        const rgyData = await rgyRes.json().catch(() => ({}));
+        if (rgyData.status === 'crisis' || rgyData.status === 'blocked') {
+          setAiResponse(rgyData.message || 'This request is blocked by the RGY safety layer.');
+          setModelUsed('rgy-safety-layer');
+          setAgentMode('idle');
+          return;
+        }
+        const classifiedSignal = normalizeSignal(rgyData.signal || rgyData.capsule);
+        if (classifiedSignal) {
+          rgyClassifiedThisTurn = true;
+          setRgyCapsule({
+            ...(rgyData.capsule || {}),
+            color: classifiedSignal.color,
+            keyword: classifiedSignal.keyword,
+            intent_status: classifiedSignal.intent_status,
+            suggested_intents: classifiedSignal.suggested_intents,
+            confirmed_intents: classifiedSignal.confirmed_intents,
+            matching_enabled: classifiedSignal.matching_enabled,
+            age_gate_required: rgyData.age_gate_required
+          });
+          if (!colorLock) setSelectedKeywordColor(classifiedSignal.color);
+          setSignals(prev => [classifiedSignal, ...prev.filter(item => item.id !== classifiedSignal.id)].slice(0, 30));
+        }
+      }
+
       if (shouldUseAgenticFlow) {
         setAgentMode('working');
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
         const agentRes = await fetch('/api/agent', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
+            ...(initialToken ? { Authorization: `Bearer ${initialToken}` } : {})
           },
           body: JSON.stringify({
             message: cleanInput,
@@ -3353,7 +3393,7 @@ const DemoPage = () => {
         setAgentTraceOpen(Boolean(nextAgentTrace.length));
         setAgentMode(isConversationDelegated ? 'idle' : agentData.write_actions_enabled ? 'write-enabled' : 'read-only');
         if (agentData.model_used) setModelUsed(agentData.model_used);
-        if (agentData.rgy) {
+        if (agentData.rgy && !rgyClassifiedThisTurn) {
           const normalizedColor = normalizeKeywordColor(agentData.rgy.color);
           setRgyCapsule({ ...agentData.rgy, color: normalizedColor });
           if (!colorLock && agentData.rgy.color) setSelectedKeywordColor(normalizedColor);
@@ -3407,7 +3447,7 @@ const DemoPage = () => {
       setAiResponse(responseText);
       if (data.keywords) setKeywords(normalizeKeywords(data.keywords));
       if (data.model_used) setModelUsed(data.model_used);
-      if (data.rgy) {
+      if (data.rgy && !rgyClassifiedThisTurn) {
         const normalizedColor = normalizeKeywordColor(data.rgy.color);
         setRgyCapsule({ ...data.rgy, color: normalizedColor });
         if (!colorLock && data.rgy.color) setSelectedKeywordColor(normalizedColor);
@@ -3462,21 +3502,23 @@ const DemoPage = () => {
       nk.yellow = [...new Set(nk.yellow)].slice(-10);
       setKeywords(nk);
       setModelUsed('local-fallback');
-      setRgyCapsule({
-        color: 'yellow',
-        signal: 'YELLOW',
-        label: 'Casual',
-        intent: null,
-        intent_status: 'pending',
-        suggested_intents: [],
-        confirmed_intents: [],
-        voice: 'friendly',
-        routing_mode: 'local',
-        color_is_ui_only: true
-      });
-      if (!colorLock) setSelectedKeywordColor('yellow');
-      const fallbackSignal = signalFromRgy({ color: 'yellow' }, nk, cleanInput);
-      if (fallbackSignal) await rememberSignal(fallbackSignal);
+      if (!rgyClassifiedThisTurn) {
+        setRgyCapsule({
+          color: 'yellow',
+          signal: 'YELLOW',
+          label: 'Casual',
+          intent: null,
+          intent_status: 'pending',
+          suggested_intents: [],
+          confirmed_intents: [],
+          voice: 'friendly',
+          routing_mode: 'local',
+          color_is_ui_only: true
+        });
+        if (!colorLock) setSelectedKeywordColor('yellow');
+        const fallbackSignal = signalFromRgy({ color: 'yellow' }, nk, cleanInput);
+        if (fallbackSignal) await rememberSignal(fallbackSignal);
+      }
       const fallbackResponse = "I am here, but the live model connection is degraded. I still caught your intent; try again in a moment or keep typing and I will keep tracking the signal.";
       setAiResponse(fallbackResponse);
       setAgentMode('idle');
@@ -3549,9 +3591,9 @@ const DemoPage = () => {
   };
 
   const colorMap = {
-    green: { label: 'Help', desc: 'Action / Growth', hex: '#22c55e', rgb: '34,197,94', aura: 'rgba(34,197,94,0.15)' },
-    yellow: { label: 'Comfort', desc: 'Casual / Social', hex: '#f59e0b', rgb: '245,158,11', aura: 'rgba(245,158,11,0.15)' },
-    red: { label: 'Age Gate', desc: 'Adult / Private', hex: '#ef4444', rgb: '239,68,68', aura: 'rgba(239,68,68,0.15)' }
+    green: { label: 'Green', desc: 'Sattva / Growth', hex: '#22c55e', rgb: '34,197,94', aura: 'rgba(34,197,94,0.15)' },
+    yellow: { label: 'Yellow', desc: 'Rajas / Social', hex: '#f59e0b', rgb: '245,158,11', aura: 'rgba(245,158,11,0.15)' },
+    red: { label: 'Red', desc: 'Tamas / Restricted', hex: '#ef4444', rgb: '239,68,68', aura: 'rgba(239,68,68,0.15)' }
   };
   const activeColor = normalizeKeywordColor(selectedKeywordColor);
   const active = colorMap[activeColor] || colorMap.yellow;
@@ -3689,6 +3731,7 @@ const DemoPage = () => {
   const updateSignalIntent = (signalInput, intent) => {
     const signal = normalizeSignal(signalInput);
     if (!signal) return;
+    if (signal.color === 'red') return;
     const current = normalizeIntentList(signal.confirmed_intents);
     const nextConfirmed = current.includes(intent)
       ? current.filter(item => item !== intent)
@@ -3698,6 +3741,31 @@ const DemoPage = () => {
       confirmed_intents: nextConfirmed,
       intent_status: nextConfirmed.length ? 'confirmed' : (signal.suggested_intents?.length ? 'suggested' : 'pending')
     }, { patch: true });
+  };
+
+  const updateSignalColor = (signalInput, color) => {
+    const signal = normalizeSignal(signalInput);
+    const nextColor = normalizeKeywordColor(color);
+    if (!signal || !['green', 'yellow', 'red'].includes(nextColor)) return;
+    void rememberSignal({
+      ...signal,
+      color: nextColor,
+      suggested_intents: nextColor === 'red' ? [] : signal.suggested_intents,
+      confirmed_intents: nextColor === 'red' ? [] : signal.confirmed_intents,
+      intent_status: nextColor === 'red' ? 'pending' : signal.intent_status
+    }, { patch: true });
+  };
+
+  const signalStatusLabel = (item) => {
+    const signal = normalizeSignal(item);
+    if (!signal) return 'Intent pending';
+    const confirmed = normalizeIntentList(signal.confirmed_intents);
+    const suggested = normalizeIntentList(signal.suggested_intents);
+    if (signal.color === 'red') return 'Age-gated';
+    if (confirmed.length) return `${confirmed.map(intent => intentLabels[intent]).join(' + ')} active`;
+    if (signal.intent_status === 'ambiguous') return 'Not sure about intent';
+    if (suggested.length) return `${suggested.map(intent => intentLabels[intent]).join(' + ')} suggested`;
+    return 'Intent pending';
   };
 
   const agentTraceTone = {
@@ -4224,10 +4292,37 @@ const DemoPage = () => {
                     boxShadow: index === 0 ? `0 14px 34px rgba(${active.rgb},0.08)` : 'none'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-                      <span style={{ color: index === 0 ? active.hex : 'rgba(255,255,255,0.46)', fontSize: '0.62rem', letterSpacing: 1.8, textTransform: 'uppercase', fontWeight: 800 }}>{item.intent_status === 'confirmed' ? 'Confirmed' : suggested.length ? 'Suggested' : 'Needs confirm'}</span>
+                      <span style={{ color: index === 0 ? active.hex : 'rgba(255,255,255,0.46)', fontSize: '0.62rem', letterSpacing: 1.4, textTransform: 'uppercase', fontWeight: 800 }}>{signalStatusLabel(item)}</span>
                       <button type="button" onClick={() => deleteSignal(item)} style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.42)', borderRadius: 9, width: 26, height: 26, cursor: 'pointer', display: 'grid', placeItems: 'center' }} aria-label="Remove signal">
                         <X size={12} />
                       </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                      {['green', 'yellow', 'red'].map(color => {
+                        const entry = colorMap[color];
+                        const selected = item.color === color;
+                        return (
+                          <button
+                            key={color}
+                            type="button"
+                            title={`Set ${entry.label}`}
+                            aria-label={`Set signal color ${color}`}
+                            onClick={() => updateSignalColor(item, color)}
+                            style={{
+                              width: selected ? 38 : 30,
+                              height: 14,
+                              borderRadius: 5,
+                              border: `1px solid ${entry.hex}${selected ? '88' : '24'}`,
+                              background: entry.hex,
+                              opacity: selected ? 1 : 0.28,
+                              boxShadow: selected ? `0 0 14px ${entry.hex}55` : 'none',
+                              cursor: 'pointer',
+                              transform: 'skewX(-10deg)',
+                              transition: 'all 0.24s ease'
+                            }}
+                          />
+                        );
+                      })}
                     </div>
                     <input
                       value={item.keyword}
@@ -4249,6 +4344,7 @@ const DemoPage = () => {
                         fontWeight: 700
                       }}
                     />
+                    {item.color !== 'red' ? (
                     <div style={{ display: 'flex', gap: 6, marginTop: 11, flexWrap: 'wrap' }}>
                       {intentChoices.map(intent => {
                         const isConfirmed = confirmed.includes(intent);
@@ -4274,6 +4370,11 @@ const DemoPage = () => {
                         );
                       })}
                     </div>
+                    ) : (
+                      <div style={{ marginTop: 11, color: 'rgba(239,68,68,0.76)', fontSize: '0.7rem', lineHeight: 1.4 }}>
+                        Intent confirmation is hidden until age-gate checks pass.
+                      </div>
+                    )}
                   </div>
                 );
               })}

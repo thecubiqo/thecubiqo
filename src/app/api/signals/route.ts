@@ -6,7 +6,7 @@ const INTENTS = ['socialize', 'collaborate', 'trade'] as const;
 const INTENT_STATUSES = ['pending', 'suggested', 'ambiguous', 'confirmed'] as const;
 
 const signalSelect =
-  'id,color,keyword,normalized_keyword,intent_status,suggested_intents,confirmed_intents,source,display_state,metadata,created_at,updated_at';
+  'id,signal_id,color,keyword,normalized_keyword,intent_status,suggested_intents,confirmed_intents,matching_enabled,confidence,shown_in_panel,editable_by_user,source,display_state,metadata,created_at,updated_at,corrected_at,raw_input';
 
 function normalizeKeyword(value: unknown) {
   return String(value || '')
@@ -54,8 +54,13 @@ function parseSignalPayload(body: Record<string, unknown>) {
     intent_status: intentStatus,
     suggested_intents: suggestedIntents,
     confirmed_intents: confirmedIntents,
+    matching_enabled: confirmedIntents.length > 0,
     source: String(body.source || 'conversation').trim().slice(0, 40) || 'conversation',
     display_state: body.displayState === 'hidden' ? 'hidden' : 'visible',
+    shown_in_panel: body.shownInPanel === false || body.shown_in_panel === false ? false : true,
+    editable_by_user: body.editableByUser === false || body.editable_by_user === false ? false : true,
+    confidence: typeof body.confidence === 'number' ? body.confidence : null,
+    raw_input: typeof body.rawInput === 'string' ? body.rawInput : typeof body.raw_input === 'string' ? body.raw_input : null,
     metadata: typeof body.metadata === 'object' && body.metadata ? body.metadata : {}
   };
 }
@@ -65,18 +70,31 @@ function mapSignal(row: Record<string, any>) {
   const suggestedIntents = Array.isArray(row.suggested_intents) ? row.suggested_intents : [];
   return {
     id: row.id,
+    signal_id: row.signal_id,
     color: row.color,
     keyword: row.keyword,
     normalizedKeyword: row.normalized_keyword,
     intentStatus: row.intent_status,
+    intent_status: row.intent_status,
     suggestedIntents,
+    suggested_intents: suggestedIntents,
     confirmedIntents,
-    matchingEnabled: confirmedIntents.length > 0,
+    confirmed_intents: confirmedIntents,
+    matchingEnabled: Boolean(row.matching_enabled),
+    matching_enabled: Boolean(row.matching_enabled),
+    confidence: row.confidence,
+    shown_in_panel: row.shown_in_panel,
+    editable_by_user: row.editable_by_user,
     source: row.source,
     displayState: row.display_state,
+    display_state: row.display_state,
     metadata: row.metadata || {},
     createdAt: row.created_at,
-    updatedAt: row.updated_at
+    created_at: row.created_at,
+    updatedAt: row.updated_at,
+    updated_at: row.updated_at,
+    corrected_at: row.corrected_at,
+    raw_input: row.raw_input
   };
 }
 
@@ -90,6 +108,7 @@ export async function GET(request: NextRequest) {
     .select(signalSelect)
     .eq('user_id', auth.user.id)
     .neq('display_state', 'deleted')
+    .eq('shown_in_panel', true)
     .order('updated_at', { ascending: false })
     .limit(limit);
 
@@ -111,12 +130,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Signal keyword is required' }, { status: 400 });
   }
 
-  const { data, error } = await auth.supabase
+  const existing = await auth.supabase
     .from('signals')
-    .insert({
-      ...payload,
-      user_id: auth.user.id
-    })
+    .select('id')
+    .eq('user_id', auth.user.id)
+    .eq('color', payload.color)
+    .eq('normalized_keyword', payload.normalized_keyword)
+    .neq('display_state', 'deleted')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existing.error && safeTableMissing(existing.error)) return missingMigrationResponse('rgy-signals', 'signals');
+  if (existing.error) return NextResponse.json({ error: existing.error.message }, { status: 500 });
+
+  const query = existing.data?.id
+    ? auth.supabase
+      .from('signals')
+      .update({
+        ...payload,
+        source: payload.source === 'user_correction' ? 'user_correction' : payload.source
+      })
+      .eq('id', existing.data.id)
+      .eq('user_id', auth.user.id)
+    : auth.supabase
+      .from('signals')
+      .insert({
+        ...payload,
+        user_id: auth.user.id
+      });
+
+  const { data, error } = await query
     .select(signalSelect)
     .single();
 
@@ -136,7 +180,11 @@ export async function PATCH(request: NextRequest) {
   const id = String(body.id || '').trim();
   if (!id) return NextResponse.json({ error: 'Signal id is required' }, { status: 400 });
 
-  const payload = parseSignalPayload(body);
+  const payload = {
+    ...parseSignalPayload(body),
+    source: 'user_correction',
+    corrected_at: new Date().toISOString()
+  };
   const { data, error } = await auth.supabase
     .from('signals')
     .update(payload)
