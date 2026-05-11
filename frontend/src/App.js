@@ -1571,8 +1571,12 @@ const ActionConsolePage = () => {
         },
         resumeSummary: 'Review-card sample: tailor resume summary to the saved job before approval.',
         coverLetter: `Review-card sample for ${latestJobListing.company}: confirm this text before any approved submission package is created.`,
+        recruiterMessage: `Hi ${latestJobListing.company} team,\nI am interested in the ${latestJobListing.title} role and would appreciate consideration for the next step.`,
         answers: [
           { question: 'Why this role?', answer: 'Relevant experience and interest to be reviewed by the user.' }
+        ],
+        missingAnswerPrompts: [
+          { field: 'salary_expectation', question: 'Confirm salary answer before using it externally.', requiredUserInput: true }
         ]
       })
     }] : []),
@@ -2711,6 +2715,9 @@ const ActionConsolePage = () => {
                   <div style={{ display: 'grid', gap: 10 }}>
                     {jobReviews.length ? jobReviews.slice(0, 4).map(item => {
                       const payload = item.submissionPayload || {};
+                      const packet = payload.applicationPacket || {};
+                      const missingPrompts = packet.missingAnswerPrompts || payload.missingAnswerPrompts || [];
+                      const answerCount = (packet.applicationAnswers || payload.answers || []).length;
                       return (
                         <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
@@ -2723,6 +2730,27 @@ const ActionConsolePage = () => {
                           <div style={{ marginTop: 9, padding: 10, borderRadius: 10, background: 'rgba(0,0,0,0.24)', color: 'rgba(255,255,255,0.58)', fontSize: '0.72rem', lineHeight: 1.45 }}>
                             Candidate: {payload.candidate?.name || 'not set'} · Target: {payload.targetUrl || 'not set'}
                           </div>
+                          <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            <Badge variant="outline" className="border-white/10 text-white/45">
+                              {packet.fit?.score ? `${packet.fit.score}% fit` : 'fit pending'}
+                            </Badge>
+                            <Badge variant="outline" className="border-white/10 text-white/45">
+                              {answerCount} answer{answerCount === 1 ? '' : 's'}
+                            </Badge>
+                            <Badge variant="outline" className="border-white/10 text-white/45">
+                              {missingPrompts.length} prompt{missingPrompts.length === 1 ? '' : 's'}
+                            </Badge>
+                          </div>
+                          {packet.recruiterMessage && (
+                            <div style={{ marginTop: 9, padding: 10, borderRadius: 10, background: 'rgba(124,58,237,0.10)', border: '1px solid rgba(167,139,250,0.16)', color: 'rgba(237,233,254,0.82)', fontSize: '0.72rem', lineHeight: 1.45 }}>
+                              <strong style={{ color: '#ddd6fe' }}>Recruiter note:</strong> {String(packet.recruiterMessage).split('\n').slice(0, 2).join(' ')}
+                            </div>
+                          )}
+                          {missingPrompts.length > 0 && (
+                            <div style={{ marginTop: 9, color: '#fde68a', fontSize: '0.72rem', lineHeight: 1.45 }}>
+                              Needs user answer: {missingPrompts[0].question || missingPrompts[0].field}
+                            </div>
+                          )}
                         </div>
                       );
                     }) : (

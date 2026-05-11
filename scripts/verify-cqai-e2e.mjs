@@ -2234,6 +2234,27 @@ function verifyFrontendSecretBoundary() {
   };
 }
 
+function verifyJobApplicationPacketContract() {
+  const workflowPath = path.join(repoRoot, 'src', 'app', 'api', '_lib', 'job-workflows.ts');
+  const appPath = path.join(repoRoot, 'frontend', 'src', 'App.js');
+  const workflow = fs.existsSync(workflowPath) ? fs.readFileSync(workflowPath, 'utf8') : '';
+  const app = fs.existsSync(appPath) ? fs.readFileSync(appPath, 'utf8') : '';
+  const checks = [
+    { name: 'reads_resume_content_column', ok: workflow.includes(".select('resume_content')") },
+    { name: 'builds_application_packet', ok: workflow.includes('function buildApplicationPacket') },
+    { name: 'includes_recruiter_message', ok: workflow.includes('recruiterMessage') },
+    { name: 'includes_missing_answer_prompts', ok: workflow.includes('missingAnswerPrompts') },
+    { name: 'requires_final_user_submit', ok: workflow.includes('finalSubmitRequiresUser: true') },
+    { name: 'ui_shows_recruiter_note', ok: app.includes('Recruiter note:') },
+    { name: 'ui_shows_missing_prompt', ok: app.includes('Needs user answer:') }
+  ];
+
+  return {
+    ok: checks.every(item => item.ok),
+    checks
+  };
+}
+
 async function main() {
   const config = readAppSupabaseConfig();
   if (!config.url || !config.anonKey) {
@@ -2309,6 +2330,7 @@ async function main() {
   const userOwnedCrud = await verifyUserOwnedCrud(config);
   const rgy = await verifyRgy();
   const frontendSecretBoundary = verifyFrontendSecretBoundary();
+  const jobApplicationPacketContract = verifyJobApplicationPacketContract();
 
   const report = {
     supabaseProject: config.url,
@@ -2317,7 +2339,8 @@ async function main() {
     userOwnedCrud,
     rgy,
     frontendSecretBoundary,
-    passed: signup.ok && tables.every(isRequiredTableHealthy) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok
+    jobApplicationPacketContract,
+    passed: signup.ok && tables.every(isRequiredTableHealthy) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok && jobApplicationPacketContract.ok
   };
 
   console.log(JSON.stringify(report, null, 2));

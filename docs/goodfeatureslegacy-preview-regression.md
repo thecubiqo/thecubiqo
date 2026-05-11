@@ -587,4 +587,14 @@ Latest role-agnostic career Phase 8 patch:
 - Regression harness: passed; `verify:cqai` now checks `job_scan_runs` as an optional migration-dependent table in addition to required job profile, listing, application, and resume tables.
 - Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 8 patch.
 
+Latest role-agnostic career Phase 9 patch:
+
+- Scope: Phase 9 application packet generation. `job_application_prepare` now builds a fuller review packet instead of only storing a thin resume/cover-letter payload.
+- Resume source fix: passed; the prepare flow reads the real `resume_versions.resume_content` column, not a non-existent `content` column.
+- Packet contents: passed static validation; review cards include fit score/source, resume notes, cover-letter draft, recruiter message, saved application answers, missing-answer prompts, and `finalSubmitRequiresUser: true`.
+- Safety boundary: passed; generated packets remain review-only. Durable resume saves still require `resume_version_write`, and external submission remains behind the separate final user action.
+- UI surface: passed; `/actions` application review cards show fit, answer count, prompt count, recruiter note preview, and the first missing user-answer prompt.
+- Regression harness: passed; `verify:cqai` now includes a Phase 9 application-packet contract check so the packet fields and real resume column do not silently regress.
+- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 9 patch.
+
 Do not push this branch for review unless this contract stays current and regression remains green.
