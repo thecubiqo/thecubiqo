@@ -2868,6 +2868,8 @@ const ActionConsolePage = () => {
                     {jobApplications.length ? jobApplications.slice(0, 5).map(item => {
                       const trackerStatus = trackerStatusFor(item);
                       const handoff = item.metadata?.handoff_checklist || item.metadata?.handoffChecklist || null;
+                      const stepReceipts = item.metadata?.step_receipts || item.metadata?.stepReceipts || [];
+                      const userInputPrompts = item.metadata?.user_input_prompts || item.metadata?.userInputPrompts || [];
                       return (
                         <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
@@ -2915,6 +2917,29 @@ const ActionConsolePage = () => {
                                       <span style={{ width: 18, height: 18, borderRadius: 999, display: 'grid', placeItems: 'center', border: '1px solid rgba(255,255,255,0.12)', color: '#a7f3d0', fontSize: '0.6rem' }}>{index + 1}</span>
                                       <span><strong style={{ color: 'rgba(255,255,255,0.78)' }}>{step.label}</strong> · {step.detail}</span>
                                     </div>
+                                  ))}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          )}
+                          {userInputPrompts.length > 0 && (
+                            <div style={{ marginTop: 9, border: '1px solid rgba(251,191,36,0.18)', borderRadius: 10, background: 'rgba(251,191,36,0.07)', padding: 10, color: '#fde68a', fontSize: '0.7rem', lineHeight: 1.45 }}>
+                              <strong>Needs user confirmation:</strong> {userInputPrompts.slice(0, 3).map(prompt => prompt.field).join(', ')}
+                            </div>
+                          )}
+                          {stepReceipts.length > 0 && (
+                            <Collapsible>
+                              <CollapsibleTrigger asChild>
+                                <button type="button" style={{ marginTop: 9, border: '1px solid rgba(34,197,94,0.18)', borderRadius: 10, background: 'rgba(34,197,94,0.07)', color: '#bbf7d0', padding: '7px 9px', fontSize: '0.72rem', cursor: 'pointer' }}>
+                                  Step receipts · {stepReceipts.length}
+                                </button>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div style={{ marginTop: 8, display: 'grid', gap: 6 }}>
+                                  {stepReceipts.map((receipt, index) => (
+                                    <a key={receipt.stepId || index} href={receipt.screenshotUrl} target="_blank" rel="noreferrer" style={{ display: 'block', border: '1px solid rgba(255,255,255,0.075)', borderRadius: 10, padding: 8, background: 'rgba(0,0,0,0.22)', color: '#7dd3fc', fontSize: '0.7rem', textDecoration: 'none' }}>
+                                      {index + 1}. {receipt.label || receipt.stepId || 'Browser step'} · open receipt
+                                    </a>
                                   ))}
                                 </div>
                               </CollapsibleContent>

@@ -309,6 +309,8 @@ export async function POST(request: NextRequest) {
         ...(application.metadata || {}),
         platform_flag: platformFlag,
         handoff_checklist: handoffChecklist,
+        step_receipts: result.stepReceipts || [],
+        user_input_prompts: result.userInputPrompts || [],
         review_storage_path: result.storagePath || null,
         ready_message: result.message,
         stop_before_submit: true
@@ -324,7 +326,14 @@ export async function POST(request: NextRequest) {
       status: 'completed',
       message: result.message,
       input: { platform, jobUrl },
-      result: { application: updated.data, screenshotUrl: result.screenshot, handoffChecklist, finalSubmitAutonomous: false },
+      result: {
+        application: updated.data,
+        screenshotUrl: result.screenshot,
+        handoffChecklist,
+        stepReceipts: result.stepReceipts || [],
+        userInputPrompts: result.userInputPrompts || [],
+        finalSubmitAutonomous: false
+      },
       screenshotUrl: result.screenshot
     });
     await completeApproval(auth, approvalId, true);
@@ -336,6 +345,8 @@ export async function POST(request: NextRequest) {
       browserSessionId,
       screenshotUrl: result.screenshot,
       handoffChecklist,
+      stepReceipts: result.stepReceipts || [],
+      userInputPrompts: result.userInputPrompts || [],
       message: result.message,
       finalSubmitAutonomous: false
     });

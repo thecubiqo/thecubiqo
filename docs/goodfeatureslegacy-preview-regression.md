@@ -617,4 +617,13 @@ Latest role-agnostic career Phase 11 patch:
 - Safety boundary: passed; checklist explicitly keeps final submit as user-only, flags custom essay/salary/work-authorization inputs, and does not bypass the existing approval/browser-session boundary.
 - Regression harness: passed; `verify:cqai` now includes a Phase 11 handoff checklist contract check for the builder, endpoint, job-apply metadata, and UI display.
 
+Latest role-agnostic career Phase 12 patch:
+
+- Scope: Phase 12 complex browser-form receipts. Platform job-apply scripts now record audited browser-step receipts instead of only a final receipt.
+- Browser receipts: passed static validation; LinkedIn, Indeed, Dice, Greenhouse/Lever ATS, and generic company-site flows use `auditedBrowserStep`, capture a signed screenshot after each major step, and write `job_apply_step_receipt` audit rows.
+- User prompts: passed; job apply now flags salary expectation, work authorization, custom essay questions, contact details, and resume version gaps as user-confirmation prompts. CubiQo does not invent these values.
+- Metadata: passed; `/api/actions/job-apply` stores `metadata.step_receipts` and `metadata.user_input_prompts` on the application row and returns them in the ready-to-submit response.
+- UI surface: passed; `/actions` Job Apply Tracker shows "Needs user confirmation" and expandable "Step receipts" links for each application workflow.
+- Safety boundary: unchanged; final submit remains a separate user action, and successful browser steps still run only after the existing approved `job_apply` boundary and session integrity checks.
+
 Do not push this branch for review unless this contract stays current and regression remains green.

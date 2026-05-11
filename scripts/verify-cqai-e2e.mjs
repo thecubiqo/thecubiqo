@@ -2302,6 +2302,31 @@ function verifyJobHandoffChecklistContract() {
   };
 }
 
+function verifyJobComplexFormContract() {
+  const sharedPath = path.join(repoRoot, 'src', 'app', 'api', 'actions', 'job-apply', 'platforms', 'shared.ts');
+  const routePath = path.join(repoRoot, 'src', 'app', 'api', 'actions', 'job-apply', 'route.ts');
+  const appPath = path.join(repoRoot, 'frontend', 'src', 'App.js');
+  const platformFiles = ['linkedin.ts', 'indeed.ts', 'dice.ts', 'ats.ts', 'generic.ts']
+    .map(file => path.join(repoRoot, 'src', 'app', 'api', 'actions', 'job-apply', 'platforms', file));
+  const shared = fs.existsSync(sharedPath) ? fs.readFileSync(sharedPath, 'utf8') : '';
+  const route = fs.existsSync(routePath) ? fs.readFileSync(routePath, 'utf8') : '';
+  const app = fs.existsSync(appPath) ? fs.readFileSync(appPath, 'utf8') : '';
+  const platformSources = platformFiles.map(file => fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '').join('\n');
+  const checks = [
+    { name: 'audited_step_receipts_exist', ok: shared.includes('auditedBrowserStep') && shared.includes('job_apply_step_receipt') },
+    { name: 'step_screenshots_audited', ok: shared.includes('screenshotUrl: receipt.screenshot') && shared.includes('captureReviewReceipt(input)') },
+    { name: 'user_input_prompts_flag_sensitive_fields', ok: shared.includes('Salary expectation') && shared.includes('Work authorization') && shared.includes('Custom essay questions') },
+    { name: 'platforms_use_audited_browser_step', ok: ['linkedin-open-easy-apply', 'indeed-start-apply', 'dice-start-apply', 'company-site-field-audit', 'start-ats-form'].every(token => platformSources.includes(token)) },
+    { name: 'job_apply_persists_step_receipts', ok: route.includes('step_receipts') && route.includes('user_input_prompts') },
+    { name: 'ui_displays_step_receipts_and_prompts', ok: app.includes('Step receipts') && app.includes('Needs user confirmation:') }
+  ];
+
+  return {
+    ok: checks.every(item => item.ok),
+    checks
+  };
+}
+
 async function main() {
   const config = readAppSupabaseConfig();
   if (!config.url || !config.anonKey) {
@@ -2380,6 +2405,7 @@ async function main() {
   const jobApplicationPacketContract = verifyJobApplicationPacketContract();
   const jobTrackerContract = verifyJobTrackerContract();
   const jobHandoffChecklistContract = verifyJobHandoffChecklistContract();
+  const jobComplexFormContract = verifyJobComplexFormContract();
 
   const report = {
     supabaseProject: config.url,
@@ -2391,7 +2417,8 @@ async function main() {
     jobApplicationPacketContract,
     jobTrackerContract,
     jobHandoffChecklistContract,
-    passed: signup.ok && tables.every(isRequiredTableHealthy) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok && jobApplicationPacketContract.ok && jobTrackerContract.ok && jobHandoffChecklistContract.ok
+    jobComplexFormContract,
+    passed: signup.ok && tables.every(isRequiredTableHealthy) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok && jobApplicationPacketContract.ok && jobTrackerContract.ok && jobHandoffChecklistContract.ok && jobComplexFormContract.ok
   };
 
   console.log(JSON.stringify(report, null, 2));
