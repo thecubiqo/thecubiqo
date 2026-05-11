@@ -531,4 +531,12 @@ Latest role-agnostic career Phase 3 smoke:
 - Career prompt: passed; career mode now instructs the agent to call `career_profile_read` before asking/searching when role intent is unclear.
 - Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 3 patch.
 
+Latest role-agnostic career Phase 4 smoke:
+
+- Scope: Phase 4 only. `JobPipeline` now fetches `/api/actions/execute?job_state=1` with the signed-in bearer token and derives the header label from the saved job profile.
+- Dynamic label: passed static validation; profile roles, first preferred location, first work mode, and `Latest` are rendered when available. Missing profile falls back to `Your Jobs · Latest`.
+- Empty state: passed; no-job copy is neutral and says to set a job goal or scan for recent matches, with no BA/SM/PO wording.
+- Static leak check: passed; `JobPipeline.js` has no `BA · SM`, `recent BA`, or `Remote-US` text.
+- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 4 patch.
+
 Do not push this branch for review unless this contract stays current and regression remains green.

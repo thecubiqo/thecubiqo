@@ -621,9 +621,21 @@ function DuoModePanel({ job, onClose, token, onApplied }) {
 
 // ── Job Pipeline Main Component ───────────────────────────────────────────
 
+function buildJobSearchProfileLabel(profile) {
+  if (!profile) return 'Your Jobs · Latest';
+  const roles = (profile.targetRoles || []).slice(0, 2);
+  const location = (profile.preferredLocations || [])[0];
+  const workMode = (profile.workModes || [])[0];
+  const pieces = [...roles, location, workMode, 'Latest'].filter(Boolean);
+  return pieces.length > 1 ? pieces.join(' · ') : 'Your Jobs · Latest';
+}
+
 export default function JobPipeline({ token, visible, onClose }) {
   const [pipeline, setPipeline] = useState([]);
   const [counts, setCounts] = useState({});
+  const [jobSearchProfile, setJobSearchProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [activeStage, setActiveStage] = useState('all');
@@ -635,15 +647,29 @@ export default function JobPipeline({ token, visible, onClose }) {
   const load = useCallback(async () => {
     if (!token) return;
     setLoading(true);
+    setProfileLoading(true);
+    setProfileError(null);
     try {
-      const res = await fetch('/api/jobs/pipeline?limit=60', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const headers = { Authorization: `Bearer ${token}` };
+      const [pipelineRes, profileRes] = await Promise.all([
+        fetch('/api/jobs/pipeline?limit=60', { headers }),
+        fetch('/api/actions/execute?job_state=1', { headers })
+      ]);
+      const data = await pipelineRes.json();
       setPipeline(data.pipeline || []);
       setCounts(data.counts || {});
-    } catch {}
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        setJobSearchProfile(profileData.profile || null);
+      } else {
+        setJobSearchProfile(null);
+        setProfileError('Profile unavailable');
+      }
+    } catch {
+      setProfileError('Profile unavailable');
+    }
     setLoading(false);
+    setProfileLoading(false);
   }, [token]);
 
   useEffect(() => {
@@ -694,6 +720,7 @@ export default function JobPipeline({ token, visible, onClose }) {
 
   const displayed = activeStage === 'all' ? pipeline : pipeline.filter(j => j.status === activeStage);
   const stages = Object.keys(STAGE_LABELS);
+  const profileLabel = profileLoading ? 'Loading job profile...' : buildJobSearchProfileLabel(jobSearchProfile);
 
   return (
     <>
@@ -719,7 +746,8 @@ export default function JobPipeline({ token, visible, onClose }) {
                 <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700, fontSize: '0.9rem', letterSpacing: 0.5 }}>JOB PIPELINE</span>
               </div>
               <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem', marginTop: 3 }}>
-                Your Jobs · Latest
+                {profileLabel}
+                {profileError ? ' · Profile not loaded' : ''}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -774,7 +802,7 @@ export default function JobPipeline({ token, visible, onClose }) {
             {!loading && displayed.length === 0 && (
               <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', textAlign: 'center', padding: 24 }}>
                 {pipeline.length === 0
-                  ? 'No jobs discovered yet. Click "Scan now" to find recent BA/SM/PO remote jobs.'
+                  ? 'No jobs discovered yet. Set a job goal or click "Scan now" to find recent matches.'
                   : 'No jobs in this stage.'}
               </div>
             )}
