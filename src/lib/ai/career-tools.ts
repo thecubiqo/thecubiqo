@@ -1,23 +1,36 @@
 /**
- * Career-specific agentic tools for CubiQo
- * Powers the BA/job-application flow end-to-end — JD analysis, resume gap check,
- * ATS keyword extraction, application checklist, cover letter brief, interview prep.
- * All tools are self-contained: no external API keys required.
+ * Role-agnostic career tools for CubiQo.
+ *
+ * These helpers avoid hardcoded profession assumptions. They structure job
+ * descriptions, compare user-supplied skills against a role, and generate
+ * generic career workflow artifacts that the LLM can adapt to any field.
  */
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// --- Types -------------------------------------------------------------------
 
-export interface JdAnalysis {
+export interface JdStructure {
+  title: string | null;
+  company: string | null;
+  salary: string | null;
+  yearsExperience: string | null;
+  workMode: 'fully-remote' | 'hybrid' | 'onsite' | 'remote' | null;
+  location: string | null;
+  sections: {
+    required: string;
+    preferred: string;
+    responsibilities: string;
+    compensation: string;
+    about: string;
+    full: string;
+  };
+}
+
+export interface ResumeGapInput {
   title: string;
-  seniority: string;
-  workStyle: string;
+  seniority: string | null;
+  workStyle: string | null;
   requiredSkills: string[];
-  niceToHave: string[];
   atsKeywords: string[];
-  responsibilities: string[];
-  redFlags: string[];
-  estimatedSalary: string;
-  applicationStrategy: string;
 }
 
 export interface ResumeGapResult {
@@ -30,153 +43,92 @@ export interface ResumeGapResult {
   summary: string;
 }
 
-// ─── JD Analysis ─────────────────────────────────────────────────────────────
+// --- JD Structure ------------------------------------------------------------
 
-export function analyzeJobDescription(jdText: string): JdAnalysis {
-  const text = jdText.toLowerCase();
-  const lines = jdText.split(/[\n.]+/).map(l => l.trim()).filter(Boolean);
+function cleanText(value: string) {
+  return value.replace(/\r/g, '').replace(/[ \t]+/g, ' ').trim();
+}
 
-  // Seniority
-  const seniority =
-    /\b(vp|vice president|director|head of|principal|staff)\b/.test(text) ? 'Senior Leadership' :
-    /\b(senior|sr\.?|lead|iii|iv)\b/.test(text) ? 'Senior' :
-    /\b(junior|jr\.?|associate|entry|graduate|0[-–]2 years?)\b/.test(text) ? 'Junior' :
-    'Mid-level';
+function firstMeaningfulLine(lines: string[]) {
+  return lines.find(line => {
+    const trimmed = line.trim();
+    return trimmed.length >= 4 && trimmed.length <= 90 && !/^(about|overview|description|responsibilities|requirements)$/i.test(trimmed);
+  }) || null;
+}
 
-  // Work style
-  const workStyle =
-    /\bfully remote\b|\b100%\s*remote\b/.test(text) ? 'Fully Remote' :
-    /\bhybrid\b/.test(text) ? 'Hybrid' :
-    /\bon[-\s]?site\b|\bin[-\s]?office\b/.test(text) ? 'On-site' :
-    /\bremote\b/.test(text) ? 'Remote' : 'Not specified';
+function sectionAfter(text: string, labels: string[], stopLabels: string[]) {
+  const labelPattern = labels.map(label => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const stopPattern = stopLabels.map(label => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const regex = new RegExp(`(?:^|\\n)\\s*(?:${labelPattern})\\s*:?\\s*\\n([\\s\\S]*?)(?=\\n\\s*(?:${stopPattern})\\s*:?\\s*\\n|$)`, 'i');
+  return cleanText(text.match(regex)?.[1] || '');
+}
 
-  // Title extraction — look for job title patterns
-  const titleMatch = jdText.match(/^(.{0,80}?(?:analyst|manager|engineer|developer|specialist|consultant|coordinator|architect|designer|owner|director)[^\n]*)/im);
-  const title = titleMatch ? titleMatch[1].trim().replace(/[^a-zA-Z0-9 \/\-]/g, '').trim() : 'Role';
+export function structureJobDescription(jdText: string): JdStructure {
+  const full = cleanText(jdText);
+  const lower = full.toLowerCase();
+  const lines = full.split('\n').map(line => line.trim()).filter(Boolean);
 
-  // Required skills
-  const SKILL_PATTERNS: [RegExp, string][] = [
-    [/\b(agile|scrum|kanban|safe|scaled agile)\b/gi, 'Agile/Scrum'],
-    [/\bjira\b/gi, 'Jira'],
-    [/\bconfluence\b/gi, 'Confluence'],
-    [/\bsql\b/gi, 'SQL'],
-    [/\bpython\b/gi, 'Python'],
-    [/\bexcel\b/gi, 'Excel'],
-    [/\bpower\s*bi\b/gi, 'Power BI'],
-    [/\btableau\b/gi, 'Tableau'],
-    [/\blooker\b/gi, 'Looker'],
-    [/\bsalesforce\b/gi, 'Salesforce'],
-    [/\bsap\b/gi, 'SAP'],
-    [/\bworkday\b/gi, 'Workday'],
-    [/\bservice\s*now\b/gi, 'ServiceNow'],
-    [/\bvisio\b/gi, 'Visio'],
-    [/\blucid(chart)?\b/gi, 'LucidChart'],
-    [/\b(stakeholder\s*management|stakeholder\s*engagement)\b/gi, 'Stakeholder Management'],
-    [/\b(requirements?\s*(gathering|elicitation|analysis))\b/gi, 'Requirements Gathering'],
-    [/\b(user stories?|use cases?)\b/gi, 'User Stories / Use Cases'],
-    [/\b(process\s*(mapping|improvement|re-?engineering))\b/gi, 'Process Mapping'],
-    [/\b(data\s*analysis|data\s*analytics)\b/gi, 'Data Analysis'],
-    [/\b(product\s*(management|owner|ownership))\b/gi, 'Product Management'],
-    [/\b(change\s*management)\b/gi, 'Change Management'],
-    [/\b(uat|user acceptance testing)\b/gi, 'UAT'],
-    [/\b(bpmn|brd|frd|prd|srs)\b/gi, 'Business Documents (BRD/FRD/PRD)'],
-    [/\b(api|rest|soap|integration)\b/gi, 'API / Integrations'],
-    [/\b(erp)\b/gi, 'ERP Systems'],
-    [/\b(crm)\b/gi, 'CRM Systems'],
-    [/\b(lean|six\s*sigma)\b/gi, 'Lean / Six Sigma'],
-    [/\b(presentation|powerpoint|storytelling)\b/gi, 'Presentation / Storytelling'],
-    [/\b(devops|ci\/cd|sdlc)\b/gi, 'SDLC / DevOps'],
-    [/\b(machine learning|ml|ai|nlp)\b/gi, 'AI / ML'],
-    [/\b(azure|aws|gcp|cloud)\b/gi, 'Cloud Platforms'],
-    [/\b(sharepoint)\b/gi, 'SharePoint'],
-    [/\b(monday\.com|asana|trello|linear)\b/gi, 'Project Tools'],
+  const salaryMatch = full.match(/\$[\d,]+(?:\.\d+)?\s*(?:k|K)?\s*(?:[-\u2013to]+\s*\$?[\d,]+(?:\.\d+)?\s*(?:k|K)?)?(?:\s*(?:per year|\/year|\/yr|annually|hourly|\/hr|per hour))?/i);
+  const yearsMatch = full.match(/\b(?:at least\s*)?(\d+\+?(?:\s*[-\u2013]\s*\d+)?\s*years?(?:\s+of)?\s+(?:relevant\s+)?experience)\b/i);
+
+  const workMode =
+    /\b(fully remote|100%\s*remote|remote-first|remote first)\b/i.test(full) ? 'fully-remote' :
+    /\bhybrid\b/i.test(full) ? 'hybrid' :
+    /\b(on-site|onsite|in-office|in office)\b/i.test(full) ? 'onsite' :
+    /\bremote\b/i.test(full) ? 'remote' :
+    null;
+
+  const title = firstMeaningfulLine(lines);
+  const companyMatch = full.match(/\b(?:at|with|company:)\s+([A-Z][A-Za-z0-9&.,' -]{2,80})/);
+  const locationMatch = full.match(/\b(?:location|based in|work location)\s*:?\s*([A-Za-z0-9, /.-]{2,80})/i);
+
+  const stopLabels = [
+    'about', 'overview', 'responsibilities', 'what you will do', 'requirements',
+    'qualifications', 'required', 'preferred', 'nice to have', 'compensation',
+    'salary', 'benefits', 'location', 'equal opportunity'
   ];
 
-  const requiredSkills: string[] = [];
-  const niceToHave: string[] = [];
-
-  // Split text into required vs preferred sections
-  const reqSection = jdText.match(/(?:required|must have|qualifications|responsibilities)([\s\S]*?)(?:nice to have|preferred|bonus|plus|desirable|$)/i)?.[1] || jdText;
-  const preferredSection = jdText.match(/(?:nice to have|preferred|bonus|plus|desirable)([\s\S]*?)$/i)?.[1] || '';
-
-  for (const [pattern, label] of SKILL_PATTERNS) {
-    if (pattern.test(reqSection)) requiredSkills.push(label);
-    else if (preferredSection && pattern.test(preferredSection)) niceToHave.push(label);
-    pattern.lastIndex = 0;
-  }
-
-  // Years of experience
-  const yoeMatch = jdText.match(/(\d+)\+?\s*years?\s*(of\s*)?(experience|exp)/i);
-  if (yoeMatch) requiredSkills.unshift(`${yoeMatch[1]}+ years experience`);
-
-  // ATS keywords — power phrases that ATS scanners look for
-  const atsKeywords: string[] = [];
-  const atsPatterns = [
-    'business analyst', 'requirements', 'stakeholder', 'agile', 'scrum', 'product owner',
-    'user stories', 'process improvement', 'data analysis', 'sql', 'jira', 'confluence',
-    'change management', 'uat', 'brd', 'frd', 'gap analysis', 'workflow', 'cross-functional',
-    'sprint', 'backlog', 'epics', 'kpi', 'roi', 'roadmap', 'solution design', 'elicitation'
-  ];
-  for (const kw of atsPatterns) {
-    if (text.includes(kw)) atsKeywords.push(kw);
-  }
-
-  // Responsibilities extraction
-  const responsibilities = lines
-    .filter(l => /^[-•*]|^\d+\./.test(l) || /\b(responsible for|will|you'll|you will|must|required to)\b/i.test(l))
-    .map(l => l.replace(/^[-•*\d.]\s*/, '').trim())
-    .filter(l => l.length > 20 && l.length < 180)
-    .slice(0, 8);
-
-  // Red flags
-  const redFlags: string[] = [];
-  if (/\b(10|12|15)\+?\s*years?\b/i.test(jdText)) redFlags.push('Very high experience bar');
-  if (/\b(nights?|weekends?|on[-\s]?call)\b/i.test(text)) redFlags.push('After-hours availability expected');
-  if (/\b(unicorn|rockstar|ninja|wizard)\b/i.test(text)) redFlags.push('Vague "unicorn" job spec');
-  if (requiredSkills.length > 15) redFlags.push('Possibly overloaded role with too many requirements');
-
-  // Salary estimate
-  const salaryMatch = jdText.match(/\$[\d,]+\s*[-–]\s*\$[\d,]+|\$[\d,]+k?\s*(?:per year|\/yr|annually)/i);
-  const estimatedSalary = salaryMatch ? salaryMatch[0] : 'Not listed — research on Glassdoor/Levels.fyi';
-
-  // Application strategy
-  const strategy =
-    requiredSkills.length <= 5 ? 'Apply immediately — you likely meet most requirements.' :
-    requiredSkills.length <= 10 ? 'Strong match likely. Tailor resume before applying.' :
-    'Selective match — address gaps in cover letter, highlight transferable skills.';
+  const required = sectionAfter(full, ['requirements', 'required qualifications', 'must have', 'qualifications'], stopLabels);
+  const preferred = sectionAfter(full, ['preferred qualifications', 'preferred', 'nice to have', 'bonus', 'plus'], stopLabels);
+  const responsibilities = sectionAfter(full, ['responsibilities', 'what you will do', 'what you will be doing', 'role responsibilities'], stopLabels);
+  const compensation = sectionAfter(full, ['compensation', 'salary', 'pay range', 'benefits'], stopLabels);
+  const about = sectionAfter(full, ['about us', 'about the company', 'overview', 'about'], stopLabels);
 
   return {
     title,
-    seniority,
-    workStyle,
-    requiredSkills: [...new Set(requiredSkills)].slice(0, 15),
-    niceToHave: [...new Set(niceToHave)].slice(0, 8),
-    atsKeywords: [...new Set(atsKeywords)].slice(0, 12),
-    responsibilities,
-    redFlags,
-    estimatedSalary,
-    applicationStrategy: strategy,
+    company: companyMatch?.[1]?.trim() || null,
+    salary: salaryMatch?.[0]?.trim() || null,
+    yearsExperience: yearsMatch?.[1]?.trim() || null,
+    workMode,
+    location: locationMatch?.[1]?.trim() || (lower.includes('remote') ? 'Remote' : null),
+    sections: {
+      required,
+      preferred,
+      responsibilities,
+      compensation,
+      about,
+      full
+    }
   };
 }
 
-// ─── Resume Gap Check ─────────────────────────────────────────────────────────
+// --- Resume Gap Check --------------------------------------------------------
 
 export function resumeGapCheck(
   userProfile: string,
-  jdAnalysis: JdAnalysis
+  jdAnalysis: ResumeGapInput
 ): ResumeGapResult {
   const profile = userProfile.toLowerCase();
   const required = jdAnalysis.requiredSkills;
-  const ats = jdAnalysis.atsKeywords;
 
   const strongMatches: string[] = [];
   const partialMatches: string[] = [];
   const gaps: string[] = [];
 
   for (const skill of required) {
-    const skillLower = skill.toLowerCase().replace(/[^a-z0-9\s\/]/g, '');
-    const words = skillLower.split(/[\s\/]+/).filter(w => w.length > 2);
-    const fullMatch = words.every(w => profile.includes(w));
+    const skillLower = skill.toLowerCase().replace(/[^a-z0-9\s/+.#-]/g, '');
+    const words = skillLower.split(/[\s/+.#-]+/).filter(w => w.length > 2);
+    const fullMatch = words.length > 0 && words.every(w => profile.includes(w));
     const partialMatch = words.some(w => profile.includes(w));
 
     if (fullMatch) strongMatches.push(skill);
@@ -187,29 +139,16 @@ export function resumeGapCheck(
   const matchScore = required.length === 0 ? 80 :
     Math.round(((strongMatches.length + partialMatches.length * 0.5) / required.length) * 100);
 
-  // Quick wins — things the user might have but hasn't highlighted
-  const quickWins = gaps.filter(g => {
-    const gLower = g.toLowerCase();
-    return (
-      (gLower.includes('agile') && /\bsprint|standup|retro|backlog\b/.test(profile)) ||
-      (gLower.includes('sql') && /\bdatabase|query|data\b/.test(profile)) ||
-      (gLower.includes('stakeholder') && /\bclient|partner|business\b/.test(profile)) ||
-      (gLower.includes('user stor') && /\baccept|criteria|feature\b/.test(profile)) ||
-      (gLower.includes('uat') && /\btest|qa|quality\b/.test(profile))
-    );
-  });
-
-  // Concrete resume additions
+  const quickWins = partialMatches.slice(0, 5);
   const resumeAdditions = gaps
-    .filter(g => !quickWins.includes(g))
     .slice(0, 5)
-    .map(g => `Add evidence for: "${g}" — even a brief project reference counts`);
+    .map(g => `Add concrete evidence for "${g}" using a project, metric, certification, or transferable example.`);
 
   const summary =
-    matchScore >= 85 ? `Strong fit (${matchScore}%). Tailor keywords and apply with confidence.` :
-    matchScore >= 70 ? `Good match (${matchScore}%). Address ${gaps.length} gap(s) in cover letter and resume.` :
-    matchScore >= 55 ? `Moderate match (${matchScore}%). Target quick wins and consider a skills addendum.` :
-    `Lower match (${matchScore}%). Focus on transferable skills and address the most critical gaps directly.`;
+    matchScore >= 85 ? `Strong fit (${matchScore}%). Tune the resume language to mirror the role and apply with confidence.` :
+    matchScore >= 70 ? `Good match (${matchScore}%). Address ${gaps.length} gap(s) with specific resume evidence.` :
+    matchScore >= 55 ? `Moderate match (${matchScore}%). Strengthen proof points before applying.` :
+    `Lower match (${matchScore}%). Focus on transferable evidence and decide whether the gap is acceptable.`;
 
   return {
     matchScore,
@@ -222,7 +161,7 @@ export function resumeGapCheck(
   };
 }
 
-// ─── Application Checklist ────────────────────────────────────────────────────
+// --- Application Checklist ---------------------------------------------------
 
 export function buildApplicationChecklist(
   roleTitle: string,
@@ -231,49 +170,53 @@ export function buildApplicationChecklist(
   gapCount: number
 ): { step: string; priority: 'critical' | 'high' | 'medium'; done: boolean }[] {
   const base = [
-    { step: `Tailor resume headline: "${roleTitle} | ${gapCount <= 3 ? 'Strong match' : 'Specialized expertise'}"`, priority: 'critical' as const, done: false },
-    { step: 'Mirror top 5 ATS keywords from the JD verbatim in your resume', priority: 'critical' as const, done: false },
-    { step: 'Quantify at least 3 bullet points (%, $, time saved, users impacted)', priority: 'critical' as const, done: false },
-    { step: `Research ${company || 'the company'}: business model, recent news, strategic priorities`, priority: 'high' as const, done: false },
-    { step: 'Write a 3-paragraph cover letter: hook → proof → fit', priority: 'high' as const, done: false },
-    { step: 'Prepare STAR answers for: stakeholder conflict, ambiguous requirements, delivery under pressure', priority: 'high' as const, done: false },
-    { step: 'Check LinkedIn connections at this company for warm intro opportunity', priority: 'high' as const, done: false },
+    { step: `Tailor resume headline to the exact role: "${roleTitle}"`, priority: 'critical' as const, done: false },
+    { step: 'Mirror the most important JD language truthfully in resume bullets and summary.', priority: 'critical' as const, done: false },
+    { step: 'Quantify at least 3 proof points with measurable outcomes.', priority: 'critical' as const, done: false },
+    { step: `Research ${company || 'the company'}: product, customers, recent news, and priorities.`, priority: 'high' as const, done: false },
+    { step: 'Prepare a short cover note: role fit, proof, motivation, and availability.', priority: 'high' as const, done: false },
+    { step: 'Prepare examples for conflict, ambiguity, delivery pressure, and learning curve.', priority: 'high' as const, done: false },
+    { step: 'Check whether a warm intro or recruiter contact is available before applying.', priority: 'medium' as const, done: false },
   ];
 
   const platformSteps: Record<typeof platform, { step: string; priority: 'critical' | 'high' | 'medium'; done: boolean }[]> = {
     linkedin: [
-      { step: 'Enable "Open to Work" if not already — use private mode targeting recruiters', priority: 'medium' as const, done: false },
-      { step: 'Use LinkedIn Easy Apply — attach tailored resume, answer screening questions carefully', priority: 'critical' as const, done: false },
-      { step: 'Send InMail or connection request to hiring manager within 24h of applying', priority: 'high' as const, done: false },
+      { step: 'Use the saved profile and tailored resume; answer screening questions carefully.', priority: 'critical' as const, done: false },
+      { step: 'Review the application screen before pressing the final submit button.', priority: 'critical' as const, done: false },
+      { step: 'Consider a recruiter or hiring-manager follow-up after applying.', priority: 'medium' as const, done: false },
     ],
     indeed: [
-      { step: 'Apply via Indeed — select "Resume from Indeed" only if it is fully up-to-date', priority: 'critical' as const, done: false },
-      { step: 'Answer screening questions honestly — ATS rejects mismatches', priority: 'high' as const, done: false },
+      { step: 'Use the most current resume version and verify parsed fields before continuing.', priority: 'critical' as const, done: false },
+      { step: 'Answer screening questions honestly; mismatches can create downstream issues.', priority: 'high' as const, done: false },
     ],
     greenhouse: [
-      { step: 'Greenhouse ATS: use simple formatting — no tables, no columns in resume PDF', priority: 'critical' as const, done: false },
-      { step: 'Fill every optional field — completeness score affects ranking', priority: 'high' as const, done: false },
+      { step: 'Use a clean one-column resume PDF for ATS parsing.', priority: 'critical' as const, done: false },
+      { step: 'Complete optional fields when they add useful context.', priority: 'high' as const, done: false },
     ],
     lever: [
-      { step: 'Lever ATS: paste cover letter into the "Additional info" field if no upload slot', priority: 'high' as const, done: false },
+      { step: 'Use the additional information field for a concise role-specific note if available.', priority: 'high' as const, done: false },
     ],
     workday: [
-      { step: 'Workday: create profile account first, then apply — saves data for future roles', priority: 'high' as const, done: false },
-      { step: 'Workday resume parser is aggressive — use clean one-column PDF resume', priority: 'critical' as const, done: false },
+      { step: 'Create or reuse the Workday profile carefully to avoid duplicate applications.', priority: 'high' as const, done: false },
+      { step: 'Verify every parsed resume field before moving to review.', priority: 'critical' as const, done: false },
     ],
     direct: [
-      { step: 'Email application: subject line = "Application: [Role Title] — [Your Name]"', priority: 'critical' as const, done: false },
-      { step: 'Follow up in 5–7 business days if no acknowledgement', priority: 'medium' as const, done: false },
+      { step: 'Follow the employer instructions exactly and keep a copy of submitted answers.', priority: 'critical' as const, done: false },
+      { step: 'Follow up in 5-7 business days if no acknowledgement arrives.', priority: 'medium' as const, done: false },
     ],
     other: [
-      { step: 'Use clean one-column PDF resume — safe for all ATS parsers', priority: 'critical' as const, done: false },
+      { step: 'Use a clean one-column PDF resume and verify every parsed field.', priority: 'critical' as const, done: false },
     ],
   };
+
+  if (gapCount > 0) {
+    base.splice(2, 0, { step: `Address ${gapCount} role gap(s) with truthful supporting evidence before applying.`, priority: 'high' as const, done: false });
+  }
 
   return [...base, ...(platformSteps[platform] || platformSteps.other)];
 }
 
-// ─── Cover Letter Brief ───────────────────────────────────────────────────────
+// --- Cover Letter Brief ------------------------------------------------------
 
 export function coverLetterBrief(
   roleTitle: string,
@@ -282,29 +225,29 @@ export function coverLetterBrief(
   gaps: string[],
   yearsExp: number
 ): { hook: string; proofPoints: string[]; fitStatement: string; closingAction: string } {
-  const hook = `Opening hook: Lead with the business outcome you deliver — "I help ${company || 'organizations'} bridge the gap between business needs and technical delivery as a ${roleTitle}."`;
+  const targetCompany = company || 'the organization';
+  const hook = `Opening hook: State the role you are targeting and the outcome you can help ${targetCompany} achieve as a ${roleTitle}.`;
 
   const proofPoints = [
     strongMatches.length > 0
-      ? `Proof 1: Highlight ${strongMatches.slice(0, 3).join(', ')} with a specific metric — e.g., "Led requirements workshops that reduced rework by 30%"`
-      : `Proof 1: Describe your most impactful BA project end-to-end`,
-    `Proof 2: Show cross-functional leadership — stakeholders aligned, ambiguity resolved`,
+      ? `Proof 1: Highlight ${strongMatches.slice(0, 3).join(', ')} with one concrete project or metric.`
+      : 'Proof 1: Use the strongest relevant project, achievement, or credential from your background.',
+    'Proof 2: Show how you work with people, tools, constraints, or customers in this kind of role.',
     yearsExp >= 5
-      ? `Proof 3: Cite your ${yearsExp}-year track record across multiple domains or industries`
-      : `Proof 3: Show rapid growth and ability to ramp up quickly`,
+      ? `Proof 3: Cite your ${yearsExp}-year track record and connect it to the role requirements.`
+      : 'Proof 3: Show learning speed, ownership, and readiness for the role.',
     gaps.length > 0
-      ? `Address gap: If ${gaps[0]} is missing, reframe it — "While I haven't used ${gaps[0]} formally, I have [equivalent skill]"`
-      : `Differentiate: mention something not in your resume that makes you memorable`,
+      ? `Address gap: If ${gaps[0]} is missing, name the closest truthful transferable evidence.`
+      : 'Differentiate: mention one relevant detail that is not obvious from the resume.',
   ];
 
-  const fitStatement = `Fit paragraph: Connect your direction to the company's — "Your focus on [company initiative from research] aligns with my work on [relevant project]. I'm drawn to roles where BAs have real strategic influence, not just documentation."`;
-
-  const closingAction = `Closing: "I'd welcome a conversation to discuss how I can contribute to [specific team or goal]. Available for a call this week — [LinkedIn/phone]."`;
+  const fitStatement = `Fit paragraph: Connect your direction to ${targetCompany}'s needs using one researched detail and one relevant proof point.`;
+  const closingAction = 'Closing: Ask for a conversation and provide a clear availability or next-step signal.';
 
   return { hook, proofPoints, fitStatement, closingAction };
 }
 
-// ─── Interview Prep ───────────────────────────────────────────────────────────
+// --- Interview Prep ----------------------------------------------------------
 
 export function interviewPrepKit(
   roleTitle: string,
@@ -312,52 +255,39 @@ export function interviewPrepKit(
   seniority: string
 ): { behavioural: string[]; technical: string[]; theyAskYou: string[]; youAskThem: string[] } {
   const behavioural = [
-    'Tell me about a time a stakeholder pushed back on your requirements — how did you handle it?',
-    'Describe a project where scope changed significantly. How did you manage it?',
-    'Give an example where you found a requirement gap late in delivery. What happened?',
-    'Tell me about a cross-functional conflict and how you resolved it.',
-    'Describe the most complex process you mapped and improved.',
+    `Tell me about a time you solved a difficult problem in a role similar to ${roleTitle}.`,
+    'Describe a time priorities changed quickly. How did you respond?',
+    'Give an example where you had to learn a new domain, tool, or process quickly.',
+    'Tell me about a conflict or disagreement and how you handled it.',
+    'Describe an achievement you are proud of and how you measured success.',
   ];
 
-  const technicalBySkill: Record<string, string> = {
-    'Agile/Scrum': 'Walk me through how you write and prioritize user stories with a dev team.',
-    'SQL': 'How do you use SQL in your BA work? Give a real example.',
-    'Stakeholder Management': 'How do you handle a stakeholder who keeps changing requirements?',
-    'Requirements Gathering': 'What techniques do you use for eliciting requirements from non-technical stakeholders?',
-    'User Stories / Use Cases': 'What makes a good acceptance criterion? Give an example.',
-    'Data Analysis': 'Describe a time your data analysis changed a business decision.',
-    'UAT': 'How do you structure a UAT plan and manage defects?',
-    'Process Mapping': 'Walk me through your process for mapping an AS-IS vs TO-BE state.',
-    'Change Management': 'How do you get business users to adopt a new system or process?',
-  };
-
-  const technical = requiredSkills
-    .filter(s => technicalBySkill[s])
-    .map(s => technicalBySkill[s])
-    .slice(0, 5);
+  const technical = requiredSkills.slice(0, 5).map(skill =>
+    `How have you used ${skill} in a real setting? Give a specific example, outcome, and lesson learned.`
+  );
 
   if (technical.length < 3) {
     technical.push(
-      'How do you decide between building a requirements doc vs. going straight to user stories?',
-      'Describe how you collaborate with dev leads during sprint planning.',
-      'How do you measure whether a delivered solution actually solved the business problem?'
+      `What skills matter most for success as a ${roleTitle}, and where are you strongest?`,
+      'Walk me through a recent project or responsibility that best matches this role.',
+      'What would you need to ramp up on in the first 30 days?'
     );
   }
 
   const seniorityExtras =
     seniority === 'Senior' || seniority === 'Senior Leadership'
       ? [
-          'How do you mentor junior BAs or PMs on your team?',
-          'Describe your experience influencing product strategy, not just executing it.',
+          'How do you influence strategy or mentor others in your area?',
+          'Describe a time you improved a system, team, or operating model.',
         ]
-      : ['What does your ideal relationship with a product manager look like?'];
+      : ['What support helps you do your best work in a new role?'];
 
   const youAskThem = [
     'What does success look like for this role in the first 90 days?',
-    'What is the biggest challenge the BA team is solving right now?',
-    'How does the BA team collaborate with product and engineering here?',
-    'What tools and processes does the team use for requirements management?',
-    'What does the career path look like for someone in this role?',
+    'What are the biggest problems this person will need to solve?',
+    'How is performance measured for this role?',
+    'What tools, processes, and collaborators does this role depend on?',
+    'What is the growth path for someone who performs well here?',
   ];
 
   return {
@@ -368,36 +298,39 @@ export function interviewPrepKit(
   };
 }
 
-// ─── Job Search Query Builder ─────────────────────────────────────────────────
+// --- Job Search Query Builder ------------------------------------------------
 
 export function buildJobSearchQueries(
   role: string,
-  location: 'remote' | 'usa' | 'hybrid' | string,
+  location: string,
   skills: string[],
   seniority: 'junior' | 'mid' | 'senior' | 'any'
 ): { primary: string; alternative: string[]; linkedinUrl: string; indeedUrl: string } {
   const seniorityMap = { junior: 'junior OR associate', mid: '', senior: 'senior OR lead OR principal', any: '' };
   const seniorityStr = seniorityMap[seniority] || '';
-  const locationStr = location === 'remote' ? 'remote' : location === 'usa' ? 'remote USA' : location;
+  const locationStr = location || 'open location';
   const topSkills = skills.slice(0, 3).join(' ');
 
   const primary = `"${role}" ${seniorityStr} ${locationStr} ${topSkills}`.replace(/\s+/g, ' ').trim();
 
   const alternatives = [
-    `"business systems analyst" ${locationStr} ${skills[0] || 'agile'}`,
-    `"product analyst" OR "data analyst" "${role.toLowerCase()}" ${locationStr}`,
+    `"${role}" ${locationStr}`,
+    `"${role}" ${topSkills}`.replace(/\s+/g, ' ').trim(),
     `"${role}" contract ${locationStr}`,
     `site:linkedin.com/jobs "${role}" ${locationStr}`,
     `site:greenhouse.io OR site:lever.co "${role}" ${locationStr}`,
   ];
 
   const liQuery = encodeURIComponent(`${role} ${locationStr}`);
-  const indeedQuery = encodeURIComponent(`${role} ${skills[0] || ''}`);
+  const indeedQuery = encodeURIComponent(`${role} ${topSkills}`);
+  const isRemote = /\bremote\b/i.test(locationStr);
+  const linkedInRemoteFilter = isRemote ? '&f_WT=2' : '';
+  const indeedRemoteFilter = isRemote ? '&remotejob=032b3046-06a3-4876-8dfd-474eb5e7ed11' : '';
 
   return {
     primary,
-    alternative: alternatives,
-    linkedinUrl: `https://www.linkedin.com/jobs/search/?keywords=${liQuery}&f_WT=2`,
-    indeedUrl: `https://www.indeed.com/jobs?q=${indeedQuery}&l=Remote&remotejob=032b3046-06a3-4876-8dfd-474eb5e7ed11`,
+    alternative: alternatives.filter(Boolean),
+    linkedinUrl: `https://www.linkedin.com/jobs/search/?keywords=${liQuery}${linkedInRemoteFilter}`,
+    indeedUrl: `https://www.indeed.com/jobs?q=${indeedQuery}&l=${encodeURIComponent(locationStr)}${indeedRemoteFilter}`,
   };
 }

@@ -22,7 +22,7 @@ import {
   taskPlanCreate
 } from '@/next/lib/ai/user-context-tools';
 import {
-  analyzeJobDescription,
+  structureJobDescription,
   resumeGapCheck,
   buildApplicationChecklist,
   coverLetterBrief,
@@ -303,11 +303,11 @@ export async function POST(request: NextRequest) {
 
         // ── Career tools (no API key needed) ─────────────────────────────────
         jd_analyze: tool({
-          description: 'Analyze a job description: extract required skills, ATS keywords, seniority, red flags, and application strategy. Call this whenever the user shares a JD.',
+          description: 'Structure a job description for any role or domain: title, salary, experience, work mode, location, and core sections. Call this whenever the user shares a JD.',
           inputSchema: z.object({
             jdText: z.string().min(50).max(8000).describe('The raw job description text')
           }),
-          execute: async ({ jdText }) => analyzeJobDescription(jdText)
+          execute: async ({ jdText }) => structureJobDescription(jdText)
         }),
         resume_gap_check: tool({
           description: 'Compare user profile/resume against a JD analysis. Returns match score, strong matches, gaps, quick wins, and resume additions. Call after jd_analyze.',
@@ -320,7 +320,7 @@ export async function POST(request: NextRequest) {
           execute: async ({ userProfile, jdTitle, jdRequiredSkills, jdAtsKeywords }) => {
             const jdAnalysis = {
               title: jdTitle || 'Role',
-              seniority: 'Mid-level', workStyle: 'Remote',
+              seniority: null, workStyle: null,
               requiredSkills: jdRequiredSkills,
               niceToHave: [], atsKeywords: jdAtsKeywords,
               responsibilities: [], redFlags: [],

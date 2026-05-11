@@ -515,4 +515,12 @@ Latest role-agnostic career Phase 1 smoke:
 - `JobPipeline`: passed; visible static header label is now `Your Jobs · Latest` and fallback job locations no longer say `Remote-US`.
 - Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 1 patch.
 
+Latest role-agnostic career Phase 2 smoke:
+
+- Scope: Phase 2 only. Replaced opinionated BA-shaped JD analysis with `structureJobDescription`, which extracts title, salary, years, work mode, location, and JD sections without hardcoded skill opinions.
+- Atomic route update: passed; `/api/agent/stream` still exposes `jd_analyze`, but it now calls `structureJobDescription` instead of the removed `analyzeJobDescription`.
+- Non-BA JD smoke: passed; React Engineer JD returned structural required text with no `business analyst`, `BRD`, `UAT`, or `Agile/Scrum` leakage.
+- Search URL smoke: passed; LinkedIn remote filter `f_WT=2` is absent for `Dallas hybrid` and present for `remote USA`.
+- Verification: `npm run typecheck`, `npm run build`, `npm run verify:cqai`, and a direct `structureJobDescription`/`buildJobSearchQueries` smoke passed after the Phase 2 patch.
+
 Do not push this branch for review unless this contract stays current and regression remains green.
