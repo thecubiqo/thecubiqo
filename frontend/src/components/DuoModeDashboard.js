@@ -9,7 +9,8 @@ const JOB_KEYS   = [
   'job', 'career', 'apply', 'application', 'resume', 'hire',
   'linkedin', 'indeed', 'dice', 'monster', 'workday', 'greenhouse',
   'lever', 'ziprecruiter', 'wellfound', 'remote', 'ba', 'business analyst',
-  'scrum', 'scrum master', 'pm', 'po', 'product owner', 'analyst'
+  'scrum', 'scrum master', 'pm', 'po', 'product owner', 'analyst',
+  'interview', 'recruiter', 'ats', 'cover letter', 'salary', 'offer'
 ];
 const BUILD_KEYS = ['build', 'code', 'ship', 'dev', 'project', 'deploy', 'product', 'sprint'];
 const SOCIAL_KEYS = ['post', 'social', 'instagram', 'linkedin', 'content', 'brand', 'thread', 'tweet'];
@@ -46,7 +47,7 @@ const PERSONAS = {
 };
 
 const PERSONA_PROMPTS = {
-  career:   'You are a senior career coach and job application strategist. You know ATS optimisation, LinkedIn, interview prep, and the BA/PM/Scrum Master job market. Be direct, tactical, and specific.',
+  career:   'You are a senior career coach and job application strategist. You know ATS optimisation, LinkedIn, interview prep, and career strategy across any industry or role. Be direct, tactical, and specific.',
   builder:  'You are a technical project manager and senior engineer. You help plan sprints, break down tasks, unblock technical decisions, and ship fast. Be pragmatic and concrete.',
   social:   'You are a social media strategist. You write compelling posts, build content calendars, and grow audiences on LinkedIn, Instagram, and X. Be creative and punchy.',
   wellness: 'You are a mindful wellness coach. You help reflect on journal entries, build habits, and improve mental clarity. Be warm, thoughtful, and grounding.',

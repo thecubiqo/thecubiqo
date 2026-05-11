@@ -506,4 +506,13 @@ Latest Shopify/POD API connector smoke:
 - `/actions` includes Shopify connection, Printify connection, and POD API product creation cards without showing raw tokens.
 - `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Shopify/POD connector implementation.
 
+Latest role-agnostic career Phase 1 smoke:
+
+- Scope: Phase 1 only. Removed BA/PM assumption language and hardcoded job-search defaults without removing BA/PM/Scrum detection terms, so BA users still route into career mode.
+- `/api/agent/stream`: passed; career prompt now adapts to any role/domain/industry and asks for the target role when unclear.
+- `job_search_queries`: passed static validation; tool schema no longer defaults to `Business Analyst`, `remote`, or `Agile/SQL/Jira`. Missing role returns a clarification payload instead of silently generating BA searches.
+- `DuoModeDashboard`: passed; career persona copy is now industry-agnostic while job resolver terms still include BA/PM/Scrum as valid career signals.
+- `JobPipeline`: passed; visible static header label is now `Your Jobs · Latest` and fallback job locations no longer say `Remote-US`.
+- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 1 patch.
+
 Do not push this branch for review unless this contract stays current and regression remains green.

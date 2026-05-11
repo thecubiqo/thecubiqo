@@ -144,7 +144,7 @@ function JobCapsule({ job, onDuoMode, onSignalChat, onApply, isApplying }) {
             </span>
           </div>
           <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.72rem', marginTop: 3 }}>
-            {job.company} · {job.location || 'Remote-US'} · {timeAgo(job.postedAt || job.createdAt)}
+            {job.company} · {job.location || 'Location TBD'} · {timeAgo(job.postedAt || job.createdAt)}
           </div>
           {job.salary && (
             <div style={{ color: '#34d399', fontSize: '0.68rem', marginTop: 2 }}>{job.salary}</div>
@@ -221,7 +221,7 @@ function DuoModePanel({ job, onClose, token, onApplied }) {
         body: JSON.stringify({
           message: [
             `I am about to apply to this job and need you to act as my application co-pilot.`,
-            `Job: ${job.title} at ${job.company} (${job.platform}, ${job.location || 'Remote-US'}).`,
+            `Job: ${job.title} at ${job.company} (${job.platform}, ${job.location || 'location not specified'}).`,
             `Job description excerpt: ${(job.description || '').slice(0, 600) || 'Not available.'}`,
             ``,
             `My profile already has: full name, email, phone, LinkedIn URL, US citizenship (no sponsorship), work authorization, remote preference, salary expectation, availability.`,
@@ -370,7 +370,7 @@ function DuoModePanel({ job, onClose, token, onApplied }) {
           {/* Job identity */}
           <div style={{ color: '#fff', fontWeight: 700, fontSize: '0.92rem' }}>{job.title}</div>
           <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', marginTop: 2 }}>
-            {job.company} · {PLATFORM_ICONS[job.platform] || '🌐'} {job.platform} · {job.location || 'Remote-US'}
+            {job.company} · {PLATFORM_ICONS[job.platform] || '🌐'} {job.platform} · {job.location || 'Location TBD'}
           </div>
           {job.atsScore != null && <div style={{ marginTop: 6 }}>{atsBar(job.atsScore)}</div>}
 
@@ -719,7 +719,7 @@ export default function JobPipeline({ token, visible, onClose }) {
                 <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700, fontSize: '0.9rem', letterSpacing: 0.5 }}>JOB PIPELINE</span>
               </div>
               <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem', marginTop: 3 }}>
-                BA · SM · PO · Remote-US · 24h filter
+                Your Jobs · Latest
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

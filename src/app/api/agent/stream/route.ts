@@ -77,7 +77,8 @@ const BASE_PROMPT = [
 const CAREER_ADDENDUM = [
   '',
   'CAREER COACHING MODE ACTIVE: This user is working on job search, resume, or career goals.',
-  'Act as a sharp, experienced Career Coach with deep knowledge of the BA/PM job market.',
+  'Act as a sharp, experienced Career Coach. Adapt to whatever role, domain, or industry the user is targeting.',
+  'If the target role is unclear, ask a concise clarifying question before generating role-specific search queries.',
   'Always lead with the most actionable next step. Be specific about the role, the company, or the skill.',
   'When given a job description: call jd_analyze immediately. When given a profile + JD: call resume_gap_check.',
   'For job searches: call job_search_queries AND web_search in parallel if search is configured.',
@@ -364,13 +365,25 @@ export async function POST(request: NextRequest) {
         job_search_queries: tool({
           description: 'Build optimized job search queries with LinkedIn and Indeed direct links. Use before web_search for job hunting.',
           inputSchema: z.object({
-            role: z.string().min(2).max(200).default('Business Analyst'),
-            location: z.enum(['remote', 'usa', 'hybrid']).default('remote'),
-            skills: z.array(z.string()).default(['Agile', 'SQL', 'Jira']),
+            role: z.string().min(2).max(200).optional(),
+            targetTitles: z.array(z.string().min(2).max(200)).max(5).optional(),
+            location: z.string().min(2).max(200).optional(),
+            workMode: z.enum(['remote', 'hybrid', 'onsite', 'flexible']).optional(),
+            skills: z.array(z.string().min(1).max(60)).max(5).optional(),
             seniority: z.enum(['junior', 'mid', 'senior', 'any']).default('mid')
           }),
-          execute: async ({ role, location, skills, seniority }) =>
-            buildJobSearchQueries(role, location, skills, seniority)
+          execute: async ({ role, targetTitles, location, workMode, skills, seniority }) => {
+            const resolvedRole = role || targetTitles?.[0];
+            if (!resolvedRole) {
+              return {
+                clarificationNeeded: true,
+                message: 'What role or job title should I search for?',
+                requiredFields: ['role']
+              };
+            }
+            const resolvedLocation = [location, workMode].filter(Boolean).join(' ') || 'open location';
+            return buildJobSearchQueries(resolvedRole, resolvedLocation, skills || [], seniority);
+          }
         }),
       }
     });
