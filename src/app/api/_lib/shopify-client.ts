@@ -1,8 +1,9 @@
-import { ApiUserContext, cleanEnv, missingMigrationResponse, safeTableMissing } from './supabase-admin';
+import { ApiUserContext, missingMigrationResponse, safeTableMissing } from './supabase-admin';
 import { decryptToken } from './token-vault';
 import { writeAudit } from './v2-actions';
+import { shopifyApiVersion } from '@/next/lib/shopify/constants';
 
-const SHOPIFY_API_VERSION = cleanEnv(process.env.SHOPIFY_API_VERSION) || '2025-10';
+const SHOPIFY_API_VERSION = shopifyApiVersion();
 
 function normalizeShopDomain(value: unknown) {
   let domain = String(value || '').trim().toLowerCase();

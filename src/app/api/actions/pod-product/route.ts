@@ -3,6 +3,7 @@ import { createProduct as createPrintifyProduct } from '../../_lib/printify-clie
 import { createProduct as createShopifyProduct } from '../../_lib/shopify-client';
 import { type ApiUserContext, requireApiUser, safeTableMissing, missingMigrationResponse } from '../../_lib/supabase-admin';
 import { completeApproval, normalizePayload, requireApprovedAction, writeAudit } from '../../_lib/v2-actions';
+import { getCommercePlatformDefaults } from '../../_lib/platform-settings';
 
 export const runtime = 'nodejs';
 
@@ -22,7 +23,7 @@ function normalizeObject(value: unknown) {
 async function loadStoreDefaults(auth: ApiUserContext, shopDomain?: string) {
   let query = auth.supabase
     .from('store_connections')
-    .select('shop_domain,metadata')
+    .select('shop_domain,metadata,default_product_tags,default_product_price,default_product_title')
     .eq('user_id', auth.user.id)
     .eq('platform', 'shopify')
     .eq('status', 'active')
@@ -30,7 +31,12 @@ async function loadStoreDefaults(auth: ApiUserContext, shopDomain?: string) {
     .limit(1);
   if (shopDomain) query = query.eq('shop_domain', shopDomain);
   const { data } = await query.maybeSingle();
-  return normalizeObject(data?.metadata);
+  return {
+    ...normalizeObject(data?.metadata),
+    default_product_tags: data?.default_product_tags,
+    default_product_price: data?.default_product_price,
+    default_product_title: data?.default_product_title
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -46,20 +52,23 @@ export async function POST(request: NextRequest) {
   const requestPayload = normalizePayload(body.payload);
   const payload = { ...approvalPayload, ...requestPayload, ...body };
 
-  const title = normalizeText(payload.title, 180);
+  const platformDefaults = await getCommercePlatformDefaults(auth);
+  const shopDomain = normalizeText(payload.shop_domain ?? payload.shopDomain, 240) || undefined;
+  const storeDefaults = await loadStoreDefaults(auth, shopDomain);
+  const title = normalizeText(payload.title, 180)
+    || normalizeText(storeDefaults.default_product_title, 180)
+    || platformDefaults.productTitle;
   const description = normalizeText(payload.description, 5000);
   const printProviderId = normalizeText(payload.print_provider_id ?? payload.printProviderId, 80);
   const blueprintId = normalizeText(payload.blueprint_id ?? payload.blueprintId, 80);
   const mediaAssets = normalizeStringArray(payload.media_assets ?? payload.mediaAssets);
-  const shopDomain = normalizeText(payload.shop_domain ?? payload.shopDomain, 240) || undefined;
   const previewCard = normalizeObject(payload.previewCard ?? payload.preview_card);
   const variants = Array.isArray(payload.variants) ? payload.variants : [];
   const printAreas = normalizeObject(payload.print_areas ?? payload.printAreas);
-  const storeDefaults = await loadStoreDefaults(auth, shopDomain);
-  const defaultTags = normalizeStringArray(storeDefaults.default_product_tags ?? storeDefaults.defaultProductTags, 20);
+  const defaultTags = normalizeStringArray(storeDefaults.default_product_tags, 20);
   const explicitTags = normalizeStringArray(payload.tags, 20);
-  const productTags = explicitTags.length ? explicitTags : defaultTags;
-  const defaultPrice = normalizeText(payload.price ?? storeDefaults.default_product_price ?? storeDefaults.defaultProductPrice, 40);
+  const productTags = explicitTags.length ? explicitTags : defaultTags.length ? defaultTags : platformDefaults.productTags;
+  const defaultPrice = normalizeText(payload.price ?? storeDefaults.default_product_price ?? platformDefaults.productPrice, 40);
   const defaultVariant = defaultPrice ? [{ title: 'Default', price: defaultPrice }] : [];
 
   if (!title || !description || !printProviderId || !blueprintId || !mediaAssets.length) {

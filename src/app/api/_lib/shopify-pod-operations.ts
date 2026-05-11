@@ -1,11 +1,13 @@
 import crypto from 'crypto';
 import { ApiUserContext, cleanEnv, missingMigrationResponse, safeTableMissing } from './supabase-admin';
+import { getCommercePlatformDefaults } from './platform-settings';
 import {
   DIRECT_POD_PROVIDER_IDS,
   KNOWN_FULFILLMENT_PROVIDER_IDS,
   SHOPIFY_APP_PROVIDER_REGISTRY,
   getPodProvider
 } from '@/next/lib/pod/pod-provider-registry';
+import { shopifyApiVersion } from '@/next/lib/shopify/constants';
 
 export const SHOPIFY_POD_OPERATION_ACTION_TYPES = [
   'shopify_store_connect',
@@ -41,7 +43,7 @@ type CommerceBlockedResult = { blocked: string; status?: number; details?: Recor
 type ConnectorState = 'disconnected' | 'configured_unverified' | 'connected' | 'failed' | 'rate_limited';
 type SyncStatus = 'prepared' | 'blocked_missing_credentials' | 'submitted' | 'synced' | 'failed' | 'rate_limited';
 
-const SHOPIFY_API_VERSION = cleanEnv(process.env.SHOPIFY_API_VERSION) || '2025-01';
+const SHOPIFY_API_VERSION = shopifyApiVersion();
 
 const DIRECT_POD_PROVIDERS = DIRECT_POD_PROVIDER_IDS;
 const SHOPIFY_APP_PROVIDERS = SHOPIFY_APP_PROVIDER_REGISTRY;
@@ -163,7 +165,7 @@ async function resolveShopifyStore(auth: ApiUserContext, requestedStore?: unknow
 
   const oauth = await auth.supabase
     .from('store_connections')
-    .select('shop_domain,metadata')
+    .select('shop_domain,metadata,default_product_tags,default_product_price,default_product_title')
     .eq('user_id', auth.user.id)
     .eq('platform', 'shopify')
     .eq('status', 'active')
@@ -175,7 +177,12 @@ async function resolveShopifyStore(auth: ApiUserContext, requestedStore?: unknow
     return {
       storeUrl: normalizeStoreUrl(oauth.data.shop_domain) || oauth.data.shop_domain,
       source: 'store_connections' as const,
-      settings: jsonObject(oauth.data.metadata)
+      settings: {
+        ...jsonObject(oauth.data.metadata),
+        default_product_tags: oauth.data.default_product_tags,
+        default_product_price: oauth.data.default_product_price,
+        default_product_title: oauth.data.default_product_title
+      }
     };
   }
 
@@ -190,6 +197,10 @@ function defaultProductTags(settings: Record<string, any>, payload: Record<strin
   const explicit = stringArray(payload.tags);
   if (explicit.length) return explicit;
   return stringArray(settings.default_product_tags || settings.defaultProductTags || settings.metadata?.default_product_tags);
+}
+
+function storeDefaultPrice(settings: Record<string, any>) {
+  return text(settings.default_product_price || settings.defaultProductPrice || settings.metadata?.default_product_price, 40);
 }
 
 function envDirectProviderCredentials(provider: string) {
@@ -741,10 +752,17 @@ export async function createShopifyProduct(
   if (!provider) return { blocked: 'Select a supported fulfillment provider before creating a Shopify product.', status: 400 };
   const resolved = await resolveShopifyStore(auth, payload.storeUrl || payload.store_url);
   if ('error' in resolved || 'blocked' in resolved) return resolved;
-  const title = text(payload.title, 240) || text(resolved.settings.default_product_title || resolved.settings.defaultProductTitle, 240) || 'New Product';
+  const platformDefaults = await getCommercePlatformDefaults(auth);
+  const settings = resolved.settings as Record<string, any>;
+  const title = text(payload.title, 240) || text(settings.default_product_title || settings.defaultProductTitle, 240) || platformDefaults.productTitle;
   const description = text(payload.description, 5000);
-  const tags = defaultProductTags(resolved.settings, payload);
-  const variants = Array.isArray(payload.variants) ? payload.variants : [];
+  const tags = defaultProductTags(settings, payload).length
+    ? defaultProductTags(settings, payload)
+    : platformDefaults.productTags;
+  const defaultPrice = text(payload.price, 40) || storeDefaultPrice(settings) || platformDefaults.productPrice || '';
+  const variants = Array.isArray(payload.variants)
+    ? payload.variants
+    : defaultPrice ? [{ title: 'Default', price: defaultPrice }] : [];
   const collections = stringArray(payload.collections);
   const storeUrl = resolved.storeUrl;
   const productPayload = {
@@ -992,12 +1010,13 @@ export async function createShopifyCollection(
   previewCard: Record<string, unknown> | null
 ) {
   if (!previewCard) return { blocked: 'shopify_collection_create requires an approval preview card.', status: 400 };
+  const platformDefaults = await getCommercePlatformDefaults(auth);
   const insert = await auth.supabase
     .from('shopify_collections')
     .insert({
       user_id: auth.user.id,
       approval_id: approvalId,
-      title: text(payload.title, 240) || 'Untitled Collection',
+      title: text(payload.title, 240) || platformDefaults.collectionTitle,
       collection_type: text(payload.collectionType || payload.collection_type, 40) === 'smart' ? 'smart' : 'manual',
       rules: jsonObject(payload.rules),
       status: 'prepared',
@@ -1149,12 +1168,13 @@ export async function createBundle(
   previewCard: Record<string, unknown> | null
 ) {
   if (!previewCard) return { blocked: 'shopify_bundle_create requires bundle contents and pricing preview.', status: 400 };
+  const platformDefaults = await getCommercePlatformDefaults(auth);
   const insert = await auth.supabase
     .from('shopify_bundles')
     .insert({
       user_id: auth.user.id,
       approval_id: approvalId,
-      title: text(payload.title, 240) || 'Untitled Bundle',
+      title: text(payload.title, 240) || platformDefaults.bundleTitle,
       product_ids: stringArray(payload.productIds || payload.product_ids, 20),
       pricing: jsonObject(payload.pricing),
       status: 'prepared',

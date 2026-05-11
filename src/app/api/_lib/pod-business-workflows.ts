@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ApiUserContext, missingMigrationResponse, safeTableMissing } from './supabase-admin';
+import { getCommercePlatformDefaults } from './platform-settings';
 
 export const POD_ACTION_TYPES = [
   'pod_design_brief_create',
@@ -696,8 +697,9 @@ export async function prepareShopifyProduct(
   if (asset.status !== 'ready') return { blocked: 'Only ready GFXTools assets can be used for Shopify product preparation.', status: 400 };
 
   const connector = connectorStatus('shopify');
+  const platformDefaults = await getCommercePlatformDefaults(auth);
   const productPayload = {
-    title: normalizeText(payload.title, 220) || 'CubiQo POD product',
+    title: normalizeText(payload.title, 220) || platformDefaults.productTitle,
     description: normalizeText(payload.description, 4000),
     assetId: asset.id,
     assetUrl: asset.assetUrl,

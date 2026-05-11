@@ -677,4 +677,14 @@ Latest commerce/social hardcoding Sprint 2 patch:
 - Migration requirement: apply `supabase/migrations/20260511030000_social_pod_registry_sprint2.sql` to the goodfeatureslegacy Supabase DB before expecting social account or provider registry reads to be durable.
 - Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Sprint 2 source changes. The verifier marks `social_accounts` and `pod_providers` as optional/needs-migration until the live goodfeatureslegacy Supabase DB receives this migration.
 
+Latest commerce hardcoding Sprint 3 patch:
+
+- Scope: Sprint 3 default cleanup. Commerce fallbacks now come from one shared Shopify API version helper and a neutral `platform_settings` commerce-default row, with per-store/action payloads still taking priority.
+- Shopify API version: `shopify-client` and `shopify-pod-operations` both import `shopifyApiVersion()` from `src/lib/shopify/constants.ts`; the default is `2025-10`, overridable by `SHOPIFY_API_VERSION`.
+- Platform defaults: added migration `20260511040000_commerce_defaults_sprint3.sql` with `platform_settings.commerce_defaults` for neutral product, collection, bundle, tag, and price defaults.
+- Product defaults: `pod-product`, `shopify_product_create`, and `shopify_product_prepare` now use payload values first, store defaults second, and neutral platform defaults last. No CubiQo-branded product default remains.
+- Collection/bundle defaults: collection and bundle preparation now fall back to `New Collection` and `New Bundle` through platform settings instead of `Untitled ...` literals.
+- Migration requirement: apply `supabase/migrations/20260511040000_commerce_defaults_sprint3.sql` to the goodfeatureslegacy Supabase DB before expecting the settings table to be durable.
+- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Sprint 3 source changes.
+
 Do not push this branch for review unless this contract stays current and regression remains green.

@@ -2377,7 +2377,8 @@ async function main() {
     // Commerce hardcoding Sprint 2 tables are runtime-migration dependent.
     // They become required once the Sprint 2 migration is applied.
     'social_accounts',
-    'pod_providers'
+    'pod_providers',
+    'platform_settings'
   ]);
   for (const table of [
     'profiles',
@@ -2431,7 +2432,8 @@ async function main() {
     'store_connections',
     'connector_oauth_states',
     'pod_products',
-    'pod_providers'
+    'pod_providers',
+    'platform_settings'
   ]) {
     const result = await verifyTable(config, table);
     if (optionalTables.has(table) && !result.ok) {
