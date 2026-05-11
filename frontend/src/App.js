@@ -3507,18 +3507,18 @@ const DemoPage = () => {
     }
   }, []);
 
-  // Fetch system health when left panel opens (no auth needed)
+  // Fetch system health on mount and whenever the left panel opens
   useEffect(() => {
-    if (!leftPanelOpen || diagHealth !== null) return;
+    if (diagHealth !== null) return;
     fetch('/api/diagnostics')
       .then(r => r.json())
       .then(d => {
         const checks = d.checks || {};
-        const ok = checks.supabase?.ok && checks.openai || checks.anthropic || checks.openrouter;
+        const ok = checks.supabase?.ok && (checks.openai || checks.anthropic || checks.openrouter);
         setDiagHealth(Boolean(ok));
       })
       .catch(() => setDiagHealth(false));
-  }, [leftPanelOpen, diagHealth]);
+  }, [diagHealth]);
 
   const aiState = isSpeaking ? 'speaking' : (speakerEnabled ? 'listening' : (isProcessing ? 'thinking' : 'neutral'));
   const recognitionRef = useRef(null);
@@ -4134,7 +4134,23 @@ const DemoPage = () => {
             for (const line of lines) {
               const t = line.trim();
               if (t.startsWith('0:')) {
+                // AI SDK text stream format
                 try { responseText += JSON.parse(t.slice(2)); setAiResponse(responseText); } catch {}
+              } else if (t.startsWith('data: ') && t !== 'data: [DONE]') {
+                // AI SDK UI message stream format (used by our stream route)
+                // AI SDK v6 uses "delta"; our fallback uses "textDelta" — handle both
+                try {
+                  const parsed = JSON.parse(t.slice(6));
+                  if (parsed.type === 'text-delta') {
+                    const chunk = parsed.delta ?? parsed.textDelta ?? '';
+                    if (chunk) { responseText += chunk; setAiResponse(responseText); }
+                  } else if (parsed.type === 'tool-input-available' || parsed.type === 'tool-output-available') {
+                    const toolName = parsed.toolName || parsed.tool || 'tool';
+                    liveTrace.push({ tool: toolName, status: 'completed', summary: 'ran' });
+                    setAgentTrace([...liveTrace]);
+                    setAgentTraceOpen(true);
+                  }
+                } catch {}
               } else if (t.startsWith('9:')) {
                 // tool call start — show live in trace
                 try {
@@ -4162,7 +4178,10 @@ const DemoPage = () => {
         }
 
         setIsStreaming(false);
-        if (!responseText) responseText = 'I checked what I could, but I do not have enough evidence to answer that yet.';
+        if (!responseText) {
+          responseText = 'I checked what I could, but I do not have enough evidence to answer that yet.';
+          setAiResponse(responseText);
+        }
         const isConversationDelegated = false;
         const nextAgentTrace = liveTrace;
         if (!liveTrace.length) setAgentTrace([]);
@@ -4832,6 +4851,9 @@ const DemoPage = () => {
             </button>
           </div>
 
+          {/* Scrollable content area */}
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 18, paddingRight: 4, marginRight: -4 }}>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.5, textTransform: 'uppercase' }}>Workspace</div>
             <button
@@ -4960,7 +4982,7 @@ const DemoPage = () => {
               onMouseOut={e => e.currentTarget.style.background = trayTheme.card}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><Globe2 size={15} /> Connectors</span>
-              <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>Gmail · Calendar · Shopify</span>
+              <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>Calendar · Slack · Linear</span>
             </button>
 
             {/* System Health — live dot from /api/diagnostics */}
@@ -5098,6 +5120,8 @@ const DemoPage = () => {
               </button>
             )}
           </div>
+
+          </div>{/* end scrollable content area */}
 
         </div>
 
