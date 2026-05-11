@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
       blockReason: 'unsupported_job_platform'
     });
     return NextResponse.json({
-      error: `Supported apply platforms are ${getApplyProviders().map(item => item.label).join(', ')}. Company-site generic apply is scheduled for the next phase.`,
+      error: `Supported apply platforms are ${getApplyProviders().map(item => item.label).join(', ')}. Unknown employer career-site URLs route through Company Site when the user confirms the domain warning.`,
       executed: false,
       supportedProviders: getApplyProviders().map(item => item.id)
     }, { status: 400 });

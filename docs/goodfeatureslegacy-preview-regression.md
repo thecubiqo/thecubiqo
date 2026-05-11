@@ -567,4 +567,14 @@ Latest role-agnostic career QA reconciliation patch:
 - Job Pipeline failure state: passed; pipeline load errors now clear stale rows, show a visible error card, and expose a retry button. Empty state remains neutral and role-agnostic.
 - Verification: `npm run typecheck`, `npm run build`, `npm run verify:cqai`, and a direct `buildJobSearchQueries` smoke passed after the QA reconciliation patch.
 
+Latest role-agnostic career Phase 7 patch:
+
+- Scope: Phase 7 resume tailoring/versioning boundary. `easy-apply` may generate a role-specific tailoring preview, but it no longer writes directly to `resume_versions`.
+- Approval boundary: passed static validation; durable resume saves remain behind the existing approved `resume_version_write` action in `/api/actions/execute`.
+- BA fallback removal: passed; `easy-apply` no longer falls back to `Business Analyst` when profile roles are missing. It uses saved target roles if available and otherwise stays generic.
+- Preview storage: passed; job/application metadata can carry `tailoring_preview`, `atsScore`, `coverLetter`, and `resume_version_write_required: true` so the UI can show what would be saved before approval.
+- Detection terms: passed; BA/Scrum/PO terms remain career-mode triggers in `CAREER_TERMS` and `JOB_KEYS`, but they are not role assumptions.
+- Answer seeding resilience: passed; default application-answer seeding is best-effort again, so a missing/changed RPC does not break the answers endpoint.
+- Verification: `npm run typecheck`, `npm run build`, `npm run verify:cqai`, and a direct static smoke for no direct resume insert/no BA fallback passed after the Phase 7 patch.
+
 Do not push this branch for review unless this contract stays current and regression remains green.

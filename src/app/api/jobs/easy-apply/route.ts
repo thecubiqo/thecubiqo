@@ -118,8 +118,10 @@ export async function POST(request: NextRequest) {
 
   const { profile, resume, answers } = await getProfileData(auth);
 
-  // Auto-tailor resume if not already done
+  // Auto-tailor a preview if not already done. Persisting a resume version is
+  // intentionally reserved for the approved resume_version_write action.
   let tailoredResume = resume;
+  let tailoringPreview: Record<string, unknown> | null = null;
   if (listing && listing.description && (!listing.metadata?.tailoring_status || listing.metadata?.tailoring_status === 'pending')) {
     try {
       const tailoring = await tailorApplicationForJob({
@@ -127,39 +129,42 @@ export async function POST(request: NextRequest) {
         jobCompany: listing.company || '',
         jobDescription: listing.description,
         baseResume: resume?.resume_content || resume?.content || '',
-        profileRoles: profile?.target_roles || ['Business Analyst'],
+        profileRoles: Array.isArray(profile?.target_roles) ? profile.target_roles : [],
         profileSkills: profile?.skills || [],
       });
 
-      // Save tailored resume version
-      const { data: savedResume } = await auth.supabase
-        .from('resume_versions')
-        .insert({
-          user_id: auth.user.id,
-          name: `${listing.title} @ ${listing.company} — tailored`,
-          target_role: listing.title,
-          resume_content: tailoring.tailoredResumeSummary,
-          ats_score: tailoring.score,
-          cover_letter: tailoring.coverLetter,
-          metadata: { listing_id: listingId, tailoring_source: tailoring.tailoringSource }
-        })
-        .select('*')
-        .single();
+      tailoringPreview = {
+        suggestedName: `${listing.title} @ ${listing.company} — tailored`,
+        targetRole: listing.title,
+        resumeContent: tailoring.tailoredResumeSummary,
+        atsScore: tailoring.score,
+        scoreSummary: tailoring.scoreSummary,
+        coverLetter: tailoring.coverLetter,
+        tailoringSource: tailoring.tailoringSource,
+        saveRequiresAction: 'resume_version_write'
+      };
+      tailoredResume = {
+        ...resume,
+        resume_content: tailoring.tailoredResumeSummary,
+        content: tailoring.tailoredResumeSummary,
+        cover_letter: tailoring.coverLetter,
+        ats_score: tailoring.score
+      };
 
-      if (savedResume) {
-        tailoredResume = savedResume;
+      if (listingId) {
         await auth.supabase
           .from('job_listings')
           .update({
             metadata: {
               ...(listing.metadata || {}),
-              tailoring_status: 'done',
-              tailored_resume_id: savedResume.id,
-              ats_score: tailoring.score
+              tailoring_status: 'preview_ready',
+              tailoring_preview: tailoringPreview,
+              ats_score: tailoring.score,
+              resume_version_write_required: true
             },
             status: 'ready'
           })
-          .eq('id', listingId!);
+          .eq('id', listingId);
       }
     } catch { /* tailoring failure is non-fatal */ }
   }
@@ -258,7 +263,8 @@ export async function POST(request: NextRequest) {
         requested_mode: requestedMode,
         final_submit_blocked: requestedMode === 'submit',
         session_id: sessionId,
-        tailored_resume_id: tailoredResume?.id
+        tailoring_preview: tailoringPreview,
+        resume_version_write_required: Boolean(tailoringPreview)
       }
     })
     .select('id, status, screenshot_url, submitted_at')
@@ -280,7 +286,7 @@ export async function POST(request: NextRequest) {
     toolName: 'job_easy_apply',
     status: applyStatus === 'failed' ? 'failed' : 'completed',
     message: `Application staged for review on ${platform}; final submit requires a user action`,
-    result: { applicationId: application?.id, screenshotUrl, platform, mode },
+    result: { applicationId: application?.id, screenshotUrl, platform, mode, resumeVersionSaved: false },
     screenshotUrl: screenshotUrl || undefined
   });
 
@@ -299,6 +305,8 @@ export async function POST(request: NextRequest) {
     listingId,
     mode,
     requestedMode,
+    tailoringPreview,
+    resumeVersionSaved: false,
     finalSubmitBlocked: requestedMode === 'submit'
   });
 }

@@ -728,7 +728,7 @@ export default function JobPipeline({ token, visible, onClose }) {
 
   const displayed = activeStage === 'all' ? pipeline : pipeline.filter(j => j.status === activeStage);
   const stages = Object.keys(STAGE_LABELS);
-  const profileLabel = profileLoading ? 'Loading job profile...' : buildJobSearchProfileLabel(jobSearchProfile);
+  const profileLabel = profileLoading ? '…' : buildJobSearchProfileLabel(jobSearchProfile);
 
   return (
     <>
@@ -844,12 +844,25 @@ export default function JobPipeline({ token, visible, onClose }) {
           <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 12, maxHeight: '65vh', overflowY: 'auto' }}>
             {loading && <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', textAlign: 'center', padding: 24 }}>Loading pipeline…</div>}
             {!loading && displayed.length === 0 && (
-              <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', textAlign: 'center', padding: 24 }}>
-                {pipelineError
-                  ? 'Fix the pipeline error above, then retry.'
-                  : pipeline.length === 0
-                  ? 'No jobs discovered yet. Set a job goal or click "Scan now" to find recent matches.'
-                  : 'No jobs in this stage.'}
+              <div style={{ textAlign: 'center', padding: 32 }}>
+                {pipelineError ? (
+                  <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>Fix the pipeline error above, then retry.</div>
+                ) : pipeline.length === 0 && !jobSearchProfile ? (
+                  <>
+                    <div style={{ fontSize: '1.6rem', marginBottom: 10 }}>🎯</div>
+                    <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.85rem', fontWeight: 700, marginBottom: 6 }}>Set a job goal to start scanning</div>
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.72rem', marginBottom: 16, lineHeight: 1.5 }}>
+                      Tell your Career Coach what role you're targeting — it will build your search profile and start finding matches.
+                    </div>
+                    <div style={{ display: 'inline-block', padding: '7px 16px', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 99, color: '#22c55e', fontSize: '0.72rem', fontWeight: 700 }}>
+                      💼 Open Career Coach in Duo Mode to get started
+                    </div>
+                  </>
+                ) : pipeline.length === 0 ? (
+                  <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>No jobs discovered yet — click ↻ Scan now to find recent matches.</div>
+                ) : (
+                  <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>No jobs in this stage.</div>
+                )}
               </div>
             )}
             {displayed.map(job => (
