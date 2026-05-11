@@ -1610,6 +1610,11 @@ const ActionConsolePage = () => {
         preferredLocations: ['Remote', 'New York, NY'],
         workModes: ['remote', 'hybrid'],
         salaryExpectation: 'Review before sharing externally',
+        scanEnabled: true,
+        scoreThreshold: 80,
+        scanPlatforms: ['linkedin', 'indeed', 'dice', 'greenhouse', 'lever', 'workday'],
+        scanRecency: '24h',
+        scanCadenceHours: 12,
         previewCard: {
           title: 'Job profile write preview',
           before: jobProfile ? {
@@ -1620,9 +1625,16 @@ const ActionConsolePage = () => {
           after: {
             targetRoles: ['Product Manager', 'AI Program Manager', 'Startup Operator'],
             skills: ['AI workflows', 'product strategy', 'operations', 'growth marketing'],
-            experienceSummary: 'Profile preview for QA: user can replace this with their real career history before approval.'
+            experienceSummary: 'Profile preview for QA: user can replace this with their real career history before approval.',
+            scan: {
+              enabled: true,
+              cadence: 'Every 12 hours',
+              recency: 'Last 24 hours',
+              threshold: '80+ match score',
+              platforms: ['LinkedIn', 'Indeed', 'Dice', 'Greenhouse', 'Lever', 'Workday']
+            }
           },
-          changes: jobProfile ? ['Update target roles', 'Update skills', 'Update experience summary'] : ['Create first job profile'],
+          changes: jobProfile ? ['Update target roles', 'Update skills', 'Update experience summary', 'Update scan settings'] : ['Create first job profile', 'Enable 12-hour scan settings'],
           willWriteTo: 'Supabase job_profiles',
           willNotDo: ['No file writes', 'No external submission', 'No job-board action']
         }
@@ -2782,6 +2794,20 @@ const ActionConsolePage = () => {
                         </div>
                         <div style={{ marginTop: 9, padding: 10, borderRadius: 10, background: 'rgba(0,0,0,0.24)', color: 'rgba(255,255,255,0.58)', fontSize: '0.72rem', lineHeight: 1.45 }}>
                           {jobProfile.experienceSummary || 'No experience summary yet'}
+                        </div>
+                        <div style={{ marginTop: 9, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          <Badge variant="outline" className="border-white/10 text-white/50">
+                            Scan {jobProfile.scanEnabled ? 'on' : 'off'}
+                          </Badge>
+                          <Badge variant="outline" className="border-white/10 text-white/50">
+                            {jobProfile.scanRecency || '24h'}
+                          </Badge>
+                          <Badge variant="outline" className="border-white/10 text-white/50">
+                            {jobProfile.scoreThreshold || 60}+ score
+                          </Badge>
+                          <Badge variant="outline" className="border-white/10 text-white/50">
+                            {(jobProfile.scanPlatforms || []).length || 'default'} sources
+                          </Badge>
                         </div>
                       </div>
                     </div>

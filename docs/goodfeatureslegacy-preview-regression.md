@@ -577,4 +577,14 @@ Latest role-agnostic career Phase 7 patch:
 - Answer seeding resilience: passed; default application-answer seeding is best-effort again, so a missing/changed RPC does not break the answers endpoint.
 - Verification: `npm run typecheck`, `npm run build`, `npm run verify:cqai`, and a direct static smoke for no direct resume insert/no BA fallback passed after the Phase 7 patch.
 
+Latest role-agnostic career Phase 8 patch:
+
+- Scope: Phase 8 job scan/matching cadence. The 12-hour scan worker now refuses incomplete profiles instead of falling back to generic `"remote job"` searches.
+- Profile settings: passed static validation; approved `job_profile_write` now persists scan settings: `scanEnabled`, `scoreThreshold`, `scanPlatforms`, `scanRecency`, and `scanCadenceHours`.
+- Scan query construction: passed; scan queries are derived from saved target roles/skills plus recency intent. Missing target role/skill returns a clear skipped profile result.
+- Scan reporting: migration-ready; each platform scan writes `job_scan_runs` with listings found, listings saved, threshold, query, search URL, recency, and skipped reason when the live Supabase project has the Phase 8 reporting table applied. Runtime safely continues without that table.
+- UI surface: passed; `/actions` job profile card now shows scan on/off, recency, score threshold, and source count from the saved profile.
+- Regression harness: passed; `verify:cqai` now checks `job_scan_runs` as an optional migration-dependent table in addition to required job profile, listing, application, and resume tables.
+- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 8 patch.
+
 Do not push this branch for review unless this contract stays current and regression remains green.

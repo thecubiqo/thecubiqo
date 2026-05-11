@@ -30,6 +30,18 @@ function normalizeNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function normalizeInteger(value: unknown, fallback: number, min: number, max: number) {
+  const parsed = normalizeNumber(value);
+  if (parsed === null) return fallback;
+  return Math.min(max, Math.max(min, Math.round(parsed)));
+}
+
+function normalizeBoolean(value: unknown, fallback = false) {
+  if (value === null || value === undefined || value === '') return fallback;
+  if (typeof value === 'boolean') return value;
+  return ['1', 'true', 'yes', 'on', 'enabled', 'active'].includes(String(value).trim().toLowerCase());
+}
+
 function normalizeStringArray(value: unknown, maxItems = 20, maxLength = 120) {
   const input = Array.isArray(value)
     ? value
@@ -52,6 +64,7 @@ function getPayloadField(payload: Record<string, unknown>, camel: string, snake:
 }
 
 function mapJobProfile(row: Record<string, any>) {
+  const metadata = row.metadata || row.profile_payload?.metadata || {};
   return {
     id: row.id,
     approvalId: row.approval_id,
@@ -62,7 +75,13 @@ function mapJobProfile(row: Record<string, any>) {
     preferredLocations: row.preferred_locations || [],
     workModes: row.work_modes || [],
     salaryExpectation: row.salary_expectation,
+    scanEnabled: Boolean(row.scan_enabled),
+    scoreThreshold: row.score_threshold ?? metadata.score_threshold ?? 60,
+    scanPlatforms: metadata.scan_platforms || [],
+    scanRecency: metadata.scan_recency || '24h',
+    scanCadenceHours: metadata.scan_cadence_hours || 12,
     profilePayload: row.profile_payload || {},
+    metadata,
     previewCard: row.preview_card || {},
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -103,7 +122,7 @@ export async function listJobProfileState(auth: ApiUserContext): Promise<{
   const [profileResult, resumeResult] = await Promise.all([
     auth.supabase
       .from('job_profiles')
-      .select('id,approval_id,target_roles,skills,experience_summary,years_experience,preferred_locations,work_modes,salary_expectation,profile_payload,preview_card,created_at,updated_at')
+      .select('id,approval_id,target_roles,skills,experience_summary,years_experience,preferred_locations,work_modes,salary_expectation,scan_enabled,score_threshold,metadata,profile_payload,preview_card,created_at,updated_at')
       .eq('user_id', auth.user.id)
       .maybeSingle(),
     auth.supabase
@@ -149,6 +168,12 @@ export async function writeJobProfile(
   const preferredLocations = normalizeStringArray(getPayloadField(payload, 'preferredLocations', 'preferred_locations'));
   const workModes = normalizeStringArray(getPayloadField(payload, 'workModes', 'work_modes'), 8, 80);
   const salaryExpectation = normalizeNullableText(getPayloadField(payload, 'salaryExpectation', 'salary_expectation'), 200);
+  const metadataInput = normalizeJsonObject(payload.metadata);
+  const scanEnabled = normalizeBoolean(getPayloadField(payload, 'scanEnabled', 'scan_enabled'), false);
+  const scoreThreshold = normalizeInteger(getPayloadField(payload, 'scoreThreshold', 'score_threshold') ?? metadataInput.score_threshold, 60, 0, 100);
+  const scanPlatforms = normalizeStringArray(getPayloadField(payload, 'scanPlatforms', 'scan_platforms') ?? metadataInput.scan_platforms, 12, 40);
+  const scanRecency = normalizeText((getPayloadField(payload, 'scanRecency', 'scan_recency') ?? metadataInput.scan_recency) || '24h', 20);
+  const scanCadenceHours = normalizeInteger(getPayloadField(payload, 'scanCadenceHours', 'scan_cadence_hours') ?? metadataInput.scan_cadence_hours, 12, 1, 168);
 
   if (!targetRoles.length && !skills.length && !experienceSummary) {
     return {
@@ -165,7 +190,19 @@ export async function writeJobProfile(
     preferredLocations,
     workModes,
     salaryExpectation,
+    scanEnabled,
+    scoreThreshold,
+    scanPlatforms,
+    scanRecency,
+    scanCadenceHours,
     notes: normalizeNullableText(payload.notes, 3000)
+  };
+  const metadata = {
+    ...metadataInput,
+    scan_platforms: scanPlatforms,
+    scan_recency: scanRecency,
+    scan_cadence_hours: scanCadenceHours,
+    score_threshold: scoreThreshold
   };
 
   const { data, error } = await auth.supabase
@@ -180,10 +217,13 @@ export async function writeJobProfile(
       preferred_locations: preferredLocations,
       work_modes: workModes,
       salary_expectation: salaryExpectation,
+      scan_enabled: scanEnabled,
+      score_threshold: scoreThreshold,
+      metadata,
       profile_payload: profilePayload,
       preview_card: approvalPreviewCard
     }, { onConflict: 'user_id' })
-    .select('id,approval_id,target_roles,skills,experience_summary,years_experience,preferred_locations,work_modes,salary_expectation,profile_payload,preview_card,created_at,updated_at')
+    .select('id,approval_id,target_roles,skills,experience_summary,years_experience,preferred_locations,work_modes,salary_expectation,scan_enabled,score_threshold,metadata,profile_payload,preview_card,created_at,updated_at')
     .single();
 
   if (error) {

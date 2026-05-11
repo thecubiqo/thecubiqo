@@ -3,6 +3,75 @@ import { getSupabaseAdmin, cleanEnv, requireApiUser } from '../../_lib/supabase-
 import { buildProviderSearchUrl, enabledScanProviders, type JobProvider } from '@/next/lib/jobs/job-provider-registry';
 
 const CRON_SECRET = cleanEnv(process.env.CRON_SECRET);
+const RECENCY_TEXT: Record<string, string> = {
+  '24h': 'posted in the last 24 hours',
+  '3d': 'posted in the last 3 days',
+  '7d': 'posted in the last 7 days',
+  '30d': 'posted in the last 30 days',
+  any: ''
+};
+
+function asArray(value: unknown) {
+  return Array.isArray(value) ? value.map(item => String(item || '').trim()).filter(Boolean) : [];
+}
+
+function buildScanContext(profile: Record<string, any>) {
+  const targetRoles = asArray(profile.target_roles);
+  const skills = asArray(profile.skills).slice(0, 4);
+  const preferredLocations = asArray(profile.preferred_locations);
+  const workModes = asArray(profile.work_modes);
+  const metadata = profile.metadata || {};
+  const recency = String(metadata.scan_recency || '24h').trim() || '24h';
+  const recencyText = RECENCY_TEXT[recency] ?? RECENCY_TEXT['24h'];
+
+  if (!targetRoles.length && !skills.length) {
+    return {
+      ok: false as const,
+      reason: 'Job scan needs at least one target role or skill in the saved job profile.',
+      missing: ['target_roles_or_skills']
+    };
+  }
+
+  const roleSkillQuery = [...targetRoles.slice(0, 2), ...skills.slice(0, 2)].join(' ');
+  const location = [...preferredLocations.slice(0, 1), ...workModes.slice(0, 1)].join(' ') || 'open location';
+  const query = [roleSkillQuery, recencyText].filter(Boolean).join(' ');
+
+  return {
+    ok: true as const,
+    query,
+    location,
+    recency,
+    targetRoles,
+    skills,
+    preferredLocations,
+    workModes
+  };
+}
+
+async function recordScanRun(
+  admin: any,
+  input: {
+    userId: string;
+    platform: string;
+    listingsFound: number;
+    listingsSaved: number;
+    scoreThreshold: number;
+    metadata?: Record<string, unknown>;
+  }
+) {
+  await admin
+    .from('job_scan_runs')
+    .insert({
+      user_id: input.userId,
+      platform: input.platform,
+      listings_found: input.listingsFound,
+      listings_saved: input.listingsSaved,
+      score_threshold: input.scoreThreshold,
+      metadata: input.metadata || {}
+    })
+    .throwOnError()
+    .catch(() => null);
+}
 
 function verifyCronSecret(request: NextRequest) {
   const auth = request.headers.get('authorization') || '';
@@ -55,20 +124,18 @@ async function searchWithStagehand(
   profile: Record<string, any>,
   platform: JobProvider,
   threshold: number
-): Promise<Array<Record<string, any>>> {
+): Promise<{ saved: Array<Record<string, any>>; extractedCount: number; skippedReason?: string; searchUrl?: string; query?: string }> {
   const { Stagehand } = await import('@browserbasehq/stagehand');
   const apiKey = cleanEnv(process.env.BROWSERBASE_API_KEY);
   const projectId = cleanEnv(process.env.BROWSERBASE_PROJECT_ID);
-  if (!apiKey || !projectId) return [];
+  if (!apiKey || !projectId) return { saved: [], extractedCount: 0, skippedReason: 'browserbase_not_configured' };
 
-  const targetRoles = Array.isArray(profile.target_roles) ? profile.target_roles.filter(Boolean) : [];
-  const skills = Array.isArray(profile.skills) ? profile.skills.filter(Boolean).slice(0, 4) : [];
-  const query = [...targetRoles.slice(0, 2), ...skills.slice(0, 2)].join(' ') || 'remote job';
-  const location = (Array.isArray(profile.preferred_locations) ? profile.preferred_locations[0] : null) || 'Remote United States';
-  const searchUrl = buildProviderSearchUrl(platform, query, location);
+  const context = buildScanContext(profile);
+  if (!context.ok) return { saved: [], extractedCount: 0, skippedReason: context.reason };
+
+  const searchUrl = buildProviderSearchUrl(platform, context.query, context.location);
 
   const stagehand = new Stagehand({ env: 'BROWSERBASE', apiKey, projectId, verbose: 0 } as any);
-  const sessionId = `cron-job-scan-${userId}-${platform.id}-${Date.now()}`;
 
   try {
     await stagehand.init();
@@ -109,9 +176,10 @@ async function searchWithStagehand(
           metadata: {
             score,
             cron_discovered: true,
-            query,
+            query: context.query,
             search_url: searchUrl,
-            posted_at: listing.postedAt || null
+            posted_at: listing.postedAt || null,
+            scan_recency: context.recency
           }
         })
         .select('id')
@@ -120,9 +188,15 @@ async function searchWithStagehand(
       if (saved) results.push({ id: saved.id, title: listing.title, score });
     }
 
-    return results;
-  } catch {
-    return [];
+    return { saved: results, extractedCount: listings.length, searchUrl, query: context.query };
+  } catch (error) {
+    return {
+      saved: [],
+      extractedCount: 0,
+      skippedReason: error instanceof Error ? error.message : 'scan_failed',
+      searchUrl,
+      query: context.query
+    };
   } finally {
     try { await stagehand.close(); } catch { /* ignore */ }
   }
@@ -153,7 +227,7 @@ export async function GET(request: NextRequest) {
 
     const { data } = await admin
       .from('job_profiles')
-      .select('id,user_id,target_roles,skills,preferred_locations,work_modes,metadata,score_threshold')
+      .select('id,user_id,target_roles,skills,preferred_locations,work_modes,metadata,scan_enabled,score_threshold')
       .eq('user_id', auth.user.id)
       .limit(1);
     profiles = data || [];
@@ -164,7 +238,7 @@ export async function GET(request: NextRequest) {
 
     const { data } = await admin
       .from('job_profiles')
-      .select('id,user_id,target_roles,skills,preferred_locations,work_modes,metadata,score_threshold')
+      .select('id,user_id,target_roles,skills,preferred_locations,work_modes,metadata,scan_enabled,score_threshold')
       .eq('scan_enabled', true)
       .limit(20);
     profiles = data || [];
@@ -177,18 +251,63 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const results: Array<{ userId: string; found: number; platforms: string[] }> = [];
+  const results: Array<{
+    userId: string;
+    scanned: boolean;
+    listingsFound: number;
+    listingsSaved: number;
+    platforms: string[];
+    skipped?: string;
+  }> = [];
 
   for (const profile of profiles) {
     const threshold = Number(profile.score_threshold ?? profile.metadata?.score_threshold ?? 60);
-    const found: string[] = [];
-
-    for (const platform of enabledScanProviders(profile.metadata?.scan_platforms)) {
-      const listings = await searchWithStagehand(admin, profile.user_id, profile, platform, threshold);
-      if (listings.length) found.push(`${platform.id}:${listings.length}`);
+    const context = buildScanContext(profile);
+    if (!context.ok) {
+      await recordScanRun(admin, {
+        userId: profile.user_id,
+        platform: 'profile',
+        listingsFound: 0,
+        listingsSaved: 0,
+        scoreThreshold: threshold,
+        metadata: { skipped: true, reason: context.reason, missing: context.missing }
+      });
+      results.push({
+        userId: profile.user_id,
+        scanned: false,
+        listingsFound: 0,
+        listingsSaved: 0,
+        platforms: [],
+        skipped: context.reason
+      });
+      continue;
     }
 
-    results.push({ userId: profile.user_id, found: found.length, platforms: found });
+    const found: string[] = [];
+    let listingsFound = 0;
+    let listingsSaved = 0;
+
+    for (const platform of enabledScanProviders(profile.metadata?.scan_platforms)) {
+      const scan = await searchWithStagehand(admin, profile.user_id, profile, platform, threshold);
+      listingsFound += scan.extractedCount;
+      listingsSaved += scan.saved.length;
+      found.push(`${platform.id}:${scan.saved.length}`);
+      await recordScanRun(admin, {
+        userId: profile.user_id,
+        platform: platform.id,
+        listingsFound: scan.extractedCount,
+        listingsSaved: scan.saved.length,
+        scoreThreshold: threshold,
+        metadata: {
+          query: scan.query,
+          search_url: scan.searchUrl,
+          skipped_reason: scan.skippedReason || null,
+          scan_recency: context.recency
+        }
+      });
+    }
+
+    results.push({ userId: profile.user_id, scanned: true, listingsFound, listingsSaved, platforms: found });
   }
 
   return NextResponse.json({ ran: results.length, results });

@@ -152,6 +152,10 @@ async function verifyTable({ url, anonKey, serviceRoleKey }, table) {
   };
 }
 
+function isRequiredTableHealthy(tableResult) {
+  return tableResult.ok || tableResult.optional === true;
+}
+
 async function createConfirmedTestUser({ url, anonKey, serviceRoleKey }) {
   if (!serviceRoleKey) throw new Error('Service role key is required for CRUD verification');
   const email = `codex-crud-${Date.now()}@example.invalid`;
@@ -2238,6 +2242,11 @@ async function main() {
 
   const signup = await verifySignup(config);
   const tables = [];
+  const optionalTables = new Set([
+    // Phase 8 code tolerates this table missing until the live Supabase
+    // project receives the job scan reporting migration.
+    'job_scan_runs'
+  ]);
   for (const table of [
     'profiles',
     'user_activity_keywords',
@@ -2256,6 +2265,7 @@ async function main() {
     'job_applications',
     'job_profiles',
     'resume_versions',
+    'job_scan_runs',
     'pod_design_briefs',
     'gfxtools_jobs',
     'gfx_assets',
@@ -2289,7 +2299,12 @@ async function main() {
     'connector_oauth_states',
     'pod_products'
   ]) {
-    tables.push(await verifyTable(config, table));
+    const result = await verifyTable(config, table);
+    if (optionalTables.has(table) && !result.ok) {
+      result.optional = true;
+      result.needsMigration = true;
+    }
+    tables.push(result);
   }
   const userOwnedCrud = await verifyUserOwnedCrud(config);
   const rgy = await verifyRgy();
@@ -2302,7 +2317,7 @@ async function main() {
     userOwnedCrud,
     rgy,
     frontendSecretBoundary,
-    passed: signup.ok && tables.every(table => table.ok) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok
+    passed: signup.ok && tables.every(isRequiredTableHealthy) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok
   };
 
   console.log(JSON.stringify(report, null, 2));
