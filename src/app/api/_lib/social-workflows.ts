@@ -374,6 +374,21 @@ function platformVariant(platform: SocialPlatform, base: { topic: string; produc
       caption: `${base.product} concept board: ${base.topic} for ${base.audience}. Minimal, premium, AI-native apparel direction. Variant ${n}.`,
       hashtags: ['#ApparelDesign', '#PODDesign', '#AIArt', '#BrandMoodboard'],
       cta: base.cta || 'Pin this for the launch moodboard.'
+    },
+    youtube: {
+      caption: `${base.topic} for ${base.audience}. Use this ${base.product} concept as a short-form video or community post angle. Variant ${n}.`,
+      hashtags: ['#BrandBuild', '#POD', '#AI'],
+      cta: base.cta || 'Subscribe for the next product build.'
+    },
+    reddit: {
+      caption: `${base.topic} for ${base.audience}: sharing a ${base.product} concept and looking for direct feedback on positioning, audience, and design direction. Variant ${n}.`,
+      hashtags: [],
+      cta: base.cta || 'What would you change before launch?'
+    },
+    bluesky: {
+      caption: `${base.topic} for ${base.audience}: ${base.product} concept ${n}, built around a cleaner signal for the launch.`,
+      hashtags: ['#POD', '#BrandBuild'],
+      cta: base.cta || 'Reply with the sharper angle.'
     }
   };
   return table[platform];

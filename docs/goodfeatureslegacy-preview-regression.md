@@ -687,4 +687,12 @@ Latest commerce hardcoding Sprint 3 patch:
 - Migration requirement: apply `supabase/migrations/20260511040000_commerce_defaults_sprint3.sql` to the goodfeatureslegacy Supabase DB before expecting the settings table to be durable.
 - Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Sprint 3 source changes.
 
+Latest registry contract expansion:
+
+- Scope: Registry schema compatibility for downstream Duo Mode, scheduler, and adapter consumers.
+- Social registry: added YouTube, Reddit, and Bluesky. Every social registry entry now exposes the spec fields `browserStartUrl`, `apiAvailable`, `composerSelector`, `maxPostLength`, `supportsScheduling`, and `requiresBusinessAccount`.
+- POD registry: every provider entry now exposes `id`, `integrationType`, and `supportsAutomation`, while keeping the older `provider` and `connectionType` aliases for current route compatibility.
+- DB migration: added `20260511050000_registry_contract_expansion.sql` to allow `youtube`, `reddit`, and `bluesky` in `social_accounts.platform` and to mark provider automation metadata.
+- Verification: run `npm run typecheck`, `npm run build`, and `npm run verify:cqai` before pushing this patch.
+
 Do not push this branch for review unless this contract stays current and regression remains green.

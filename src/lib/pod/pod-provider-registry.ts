@@ -1,9 +1,12 @@
 export type PodConnectionType = 'direct_api' | 'shopify_app' | 'manual';
 
 export type PodProviderRegistryEntry = {
+  id: string;
   provider: string;
   label: string;
+  integrationType: PodConnectionType;
   connectionType: PodConnectionType;
+  supportsAutomation: boolean;
   apiUrl?: string;
   dashboardUrlTemplate?: string;
   shopifyAppUrl?: string;
@@ -12,37 +15,46 @@ export type PodProviderRegistryEntry = {
 
 export const POD_PROVIDER_REGISTRY: readonly PodProviderRegistryEntry[] = [
   {
+    id: 'printify',
     provider: 'printify',
     label: 'Printify',
+    integrationType: 'direct_api',
     connectionType: 'direct_api',
+    supportsAutomation: true,
     apiUrl: 'https://api.printify.com/v1',
     dashboardUrlTemplate: 'https://printify.com/app/products/{provider_product_id}',
     supports: ['apparel', 'home', 'accessories']
   },
   {
+    id: 'printful',
     provider: 'printful',
     label: 'Printful',
+    integrationType: 'direct_api',
     connectionType: 'direct_api',
+    supportsAutomation: true,
     apiUrl: 'https://api.printful.com',
     dashboardUrlTemplate: 'https://www.printful.com/dashboard/default/products/{provider_product_id}',
     supports: ['apparel', 'home', 'accessories']
   },
   {
+    id: 'gelato',
     provider: 'gelato',
     label: 'Gelato',
+    integrationType: 'direct_api',
     connectionType: 'direct_api',
+    supportsAutomation: true,
     apiUrl: 'https://api.gelato.com/v4',
     dashboardUrlTemplate: 'https://dashboard.gelato.com/products/{provider_product_id}',
     supports: ['apparel', 'paper', 'wall-art']
   },
-  { provider: 'apliiq', label: 'Apliiq', connectionType: 'shopify_app', shopifyAppUrl: 'https://apps.shopify.com/apliiq', supports: ['apparel', 'hoodie', 'shirt', 'hat'] },
-  { provider: 'customcat', label: 'CustomCat', connectionType: 'shopify_app', shopifyAppUrl: 'https://apps.shopify.com/customcat-fulfillment', supports: ['apparel', 'drinkware', 'home'] },
-  { provider: 'teelaunch', label: 'Teelaunch', connectionType: 'shopify_app', shopifyAppUrl: 'https://apps.shopify.com/teelaunch-1', supports: ['apparel', 'home', 'accessories'] },
-  { provider: 'shineon', label: 'ShineOn', connectionType: 'shopify_app', shopifyAppUrl: 'https://apps.shopify.com/shineon', supports: ['jewelry', 'gift'] },
-  { provider: 'spreadconnect', label: 'Spreadconnect', connectionType: 'shopify_app', shopifyAppUrl: 'https://apps.shopify.com/spreadconnect', supports: ['apparel', 'accessories'] },
-  { provider: 'only_caps', label: 'Only Caps', connectionType: 'shopify_app', shopifyAppUrl: 'https://apps.shopify.com/only-caps', supports: ['hat', 'cap'] },
-  { provider: 'cjdropshipping', label: 'CJdropshipping', connectionType: 'manual', supports: ['dropshipping'] },
-  { provider: 'zendrop', label: 'Zendrop', connectionType: 'manual', supports: ['dropshipping'] }
+  { id: 'apliiq', provider: 'apliiq', label: 'Apliiq', integrationType: 'shopify_app', connectionType: 'shopify_app', supportsAutomation: false, shopifyAppUrl: 'https://apps.shopify.com/apliiq', supports: ['apparel', 'hoodie', 'shirt', 'hat'] },
+  { id: 'customcat', provider: 'customcat', label: 'CustomCat', integrationType: 'shopify_app', connectionType: 'shopify_app', supportsAutomation: false, shopifyAppUrl: 'https://apps.shopify.com/customcat-fulfillment', supports: ['apparel', 'drinkware', 'home'] },
+  { id: 'teelaunch', provider: 'teelaunch', label: 'Teelaunch', integrationType: 'shopify_app', connectionType: 'shopify_app', supportsAutomation: false, shopifyAppUrl: 'https://apps.shopify.com/teelaunch-1', supports: ['apparel', 'home', 'accessories'] },
+  { id: 'shineon', provider: 'shineon', label: 'ShineOn', integrationType: 'shopify_app', connectionType: 'shopify_app', supportsAutomation: false, shopifyAppUrl: 'https://apps.shopify.com/shineon', supports: ['jewelry', 'gift'] },
+  { id: 'spreadconnect', provider: 'spreadconnect', label: 'Spreadconnect', integrationType: 'shopify_app', connectionType: 'shopify_app', supportsAutomation: false, shopifyAppUrl: 'https://apps.shopify.com/spreadconnect', supports: ['apparel', 'accessories'] },
+  { id: 'only_caps', provider: 'only_caps', label: 'Only Caps', integrationType: 'shopify_app', connectionType: 'shopify_app', supportsAutomation: false, shopifyAppUrl: 'https://apps.shopify.com/only-caps', supports: ['hat', 'cap'] },
+  { id: 'cjdropshipping', provider: 'cjdropshipping', label: 'CJdropshipping', integrationType: 'manual', connectionType: 'manual', supportsAutomation: false, supports: ['dropshipping'] },
+  { id: 'zendrop', provider: 'zendrop', label: 'Zendrop', integrationType: 'manual', connectionType: 'manual', supportsAutomation: false, supports: ['dropshipping'] }
 ] as const;
 
 export const DIRECT_POD_PROVIDER_IDS = POD_PROVIDER_REGISTRY
