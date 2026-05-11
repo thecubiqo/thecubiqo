@@ -10,6 +10,7 @@ import { applyGenericCompanySite } from './platforms/generic';
 import { applyIndeed } from './platforms/indeed';
 import { applyLinkedIn } from './platforms/linkedin';
 import type { JobApplyPlatform, JobApplyScriptInput } from './platforms/shared';
+import { buildJobApplicationHandoffChecklist } from '@/next/lib/jobs/application-handoff';
 import { getApplyProviders, getJobProvider, resolveJobProviderForUrl, type JobProvider } from '@/next/lib/jobs/job-provider-registry';
 
 export const runtime = 'nodejs';
@@ -220,6 +221,13 @@ export async function POST(request: NextRequest) {
   }
 
   const platform = provider.id as JobApplyPlatform;
+  const handoffChecklist = buildJobApplicationHandoffChecklist({
+    jobUrl,
+    platform,
+    jobTitle: payload.job_title ?? payload.jobTitle,
+    company: payload.company,
+    profileData: normalizePayload(payload.profileData ?? payload.profile_data)
+  });
 
   const urlDecision = getUrlAllowlistDecision({ job_url: jobUrl });
   const untrustedUrlConfirmed = Boolean(
@@ -300,6 +308,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         ...(application.metadata || {}),
         platform_flag: platformFlag,
+        handoff_checklist: handoffChecklist,
         review_storage_path: result.storagePath || null,
         ready_message: result.message,
         stop_before_submit: true
@@ -315,7 +324,7 @@ export async function POST(request: NextRequest) {
       status: 'completed',
       message: result.message,
       input: { platform, jobUrl },
-      result: { application: updated.data, screenshotUrl: result.screenshot, finalSubmitAutonomous: false },
+      result: { application: updated.data, screenshotUrl: result.screenshot, handoffChecklist, finalSubmitAutonomous: false },
       screenshotUrl: result.screenshot
     });
     await completeApproval(auth, approvalId, true);
@@ -326,6 +335,7 @@ export async function POST(request: NextRequest) {
       application: updated.data,
       browserSessionId,
       screenshotUrl: result.screenshot,
+      handoffChecklist,
       message: result.message,
       finalSubmitAutonomous: false
     });

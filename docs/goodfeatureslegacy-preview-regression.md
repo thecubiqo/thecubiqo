@@ -607,4 +607,14 @@ Latest role-agnostic career Phase 10 patch:
 - Regression harness: passed; `verify:cqai` now includes a Phase 10 tracker contract check for the API route, UI controls, metadata storage, and migration.
 - Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 10 patch.
 
+Latest role-agnostic career Phase 11 patch:
+
+- Scope: Phase 11 application handoff checklist. CubiQo can now generate a visible, provider-aware handoff checklist for LinkedIn, Indeed, Dice, Greenhouse, Lever, and generic company-site application flows.
+- Shared contract: added `src/lib/jobs/application-handoff.ts` so the checklist is built from the provider registry instead of scattered platform text.
+- API surface: added authenticated `/api/actions/job-apply/checklist`; it writes a `job_apply_handoff_checklist` audit entry and returns the exact checklist without running browser automation.
+- Job apply handoff: passed static validation; `/api/actions/job-apply` now stores `metadata.handoff_checklist` on prepared application rows and includes it in the ready-to-submit response.
+- UI surface: passed; `/actions` can open the checklist before approval and shows stored handoff steps inside the Job Apply Tracker.
+- Safety boundary: passed; checklist explicitly keeps final submit as user-only, flags custom essay/salary/work-authorization inputs, and does not bypass the existing approval/browser-session boundary.
+- Regression harness: passed; `verify:cqai` now includes a Phase 11 handoff checklist contract check for the builder, endpoint, job-apply metadata, and UI display.
+
 Do not push this branch for review unless this contract stays current and regression remains green.

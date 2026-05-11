@@ -2277,6 +2277,31 @@ function verifyJobTrackerContract() {
   };
 }
 
+function verifyJobHandoffChecklistContract() {
+  const handoffPath = path.join(repoRoot, 'src', 'lib', 'jobs', 'application-handoff.ts');
+  const checklistRoutePath = path.join(repoRoot, 'src', 'app', 'api', 'actions', 'job-apply', 'checklist', 'route.ts');
+  const jobApplyRoutePath = path.join(repoRoot, 'src', 'app', 'api', 'actions', 'job-apply', 'route.ts');
+  const appPath = path.join(repoRoot, 'frontend', 'src', 'App.js');
+  const handoff = fs.existsSync(handoffPath) ? fs.readFileSync(handoffPath, 'utf8') : '';
+  const checklistRoute = fs.existsSync(checklistRoutePath) ? fs.readFileSync(checklistRoutePath, 'utf8') : '';
+  const jobApplyRoute = fs.existsSync(jobApplyRoutePath) ? fs.readFileSync(jobApplyRoutePath, 'utf8') : '';
+  const app = fs.existsSync(appPath) ? fs.readFileSync(appPath, 'utf8') : '';
+  const checks = [
+    { name: 'handoff_builder_exists', ok: handoff.includes('buildJobApplicationHandoffChecklist') },
+    { name: 'covers_final_user_cta', ok: handoff.includes('finalSubmitAutonomous: false') && handoff.includes('User presses final CTA') },
+    { name: 'flags_missing_sensitive_fields', ok: handoff.includes('custom essay answers') && handoff.includes('salary and work-authorization confirmations') },
+    { name: 'authenticated_checklist_endpoint', ok: checklistRoute.includes('requireApiUser') && checklistRoute.includes('job_apply_handoff_checklist') },
+    { name: 'job_apply_persists_handoff', ok: jobApplyRoute.includes('handoff_checklist') && jobApplyRoute.includes('handoffChecklist') },
+    { name: 'ui_can_open_checklist', ok: app.includes('loadJobHandoffChecklist') && app.includes('Open checklist') },
+    { name: 'ui_displays_tracker_handoff', ok: app.includes('Handoff checklist') && app.includes('providerLabel') }
+  ];
+
+  return {
+    ok: checks.every(item => item.ok),
+    checks
+  };
+}
+
 async function main() {
   const config = readAppSupabaseConfig();
   if (!config.url || !config.anonKey) {
@@ -2354,6 +2379,7 @@ async function main() {
   const frontendSecretBoundary = verifyFrontendSecretBoundary();
   const jobApplicationPacketContract = verifyJobApplicationPacketContract();
   const jobTrackerContract = verifyJobTrackerContract();
+  const jobHandoffChecklistContract = verifyJobHandoffChecklistContract();
 
   const report = {
     supabaseProject: config.url,
@@ -2364,7 +2390,8 @@ async function main() {
     frontendSecretBoundary,
     jobApplicationPacketContract,
     jobTrackerContract,
-    passed: signup.ok && tables.every(isRequiredTableHealthy) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok && jobApplicationPacketContract.ok && jobTrackerContract.ok
+    jobHandoffChecklistContract,
+    passed: signup.ok && tables.every(isRequiredTableHealthy) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok && jobApplicationPacketContract.ok && jobTrackerContract.ok && jobHandoffChecklistContract.ok
   };
 
   console.log(JSON.stringify(report, null, 2));

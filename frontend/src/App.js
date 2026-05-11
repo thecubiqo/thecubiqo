@@ -1037,6 +1037,7 @@ const ActionConsolePage = () => {
   const [apiPodProducts, setApiPodProducts] = useState([]);
   const [browserUrl, setBrowserUrl] = useState('https://example.com/');
   const [jobApplyUrl, setJobApplyUrl] = useState('https://www.linkedin.com/jobs/view/example-product-ops');
+  const [jobHandoffChecklist, setJobHandoffChecklist] = useState(null);
   const [socialQueuePlatform, setSocialQueuePlatform] = useState('linkedin');
   const [socialQueueContent, setSocialQueueContent] = useState('CubiQo is preparing a new founder workflow update. Review this draft before it ever publishes.');
   const [socialQueueMediaUrls, setSocialQueueMediaUrls] = useState('');
@@ -1292,6 +1293,36 @@ const ActionConsolePage = () => {
     return 'unknown';
   };
 
+  const loadJobHandoffChecklist = async () => {
+    setBusyAction('job-handoff-checklist');
+    setMessage('');
+    try {
+      const data = await apiJson('/api/actions/job-apply/checklist', {
+        method: 'POST',
+        body: JSON.stringify({
+          job_url: jobApplyUrl,
+          platform: detectJobApplyPlatform(jobApplyUrl),
+          job_title: latestJobListing?.title || null,
+          company: latestJobListing?.company || null,
+          profileData: {
+            name: sessionUser?.user_metadata?.full_name || '',
+            email: sessionUser?.email || '',
+            targetRoles: jobProfile?.targetRoles || [],
+            skills: jobProfile?.skills || [],
+            experienceSummary: jobProfile?.experienceSummary || '',
+            resumeVersion: resumeVersions[0]?.name || null
+          }
+        })
+      });
+      setJobHandoffChecklist(data.checklist || null);
+      setMessage('Application handoff checklist ready.');
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusyAction('');
+    }
+  };
+
   const browserActionCards = browserControlUnlocked ? (
     activeBrowserSession ? [
       {
@@ -1422,6 +1453,7 @@ const ActionConsolePage = () => {
           experienceSummary: jobProfile?.experienceSummary || '',
           resumeVersion: resumeVersions[0]?.name || null
         },
+        handoffChecklist: jobHandoffChecklist,
         finalSubmitAutonomous: false,
         stopBeforeSubmit: true
       })
@@ -2563,13 +2595,38 @@ const ActionConsolePage = () => {
                           <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
                             <input
                               value={jobApplyUrl}
-                              onChange={event => setJobApplyUrl(event.target.value)}
+                              onChange={event => {
+                                setJobApplyUrl(event.target.value);
+                                setJobHandoffChecklist(null);
+                              }}
                               placeholder="Paste LinkedIn, Indeed, Dice, ATS, or company careers URL"
                               style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem' }}
                             />
-                            <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.72rem' }}>
-                              Detected: {detectJobApplyPlatform(jobApplyUrl)} · stop-before-submit enforced
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                              <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.72rem' }}>
+                                Detected: {detectJobApplyPlatform(jobApplyUrl)} · stop-before-submit enforced
+                              </div>
+                              <Button type="button" size="sm" variant="outline" onClick={loadJobHandoffChecklist} disabled={busyAction === 'job-handoff-checklist' || !jobApplyUrl.trim()} className="border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08]">
+                                Open checklist
+                              </Button>
                             </div>
+                            {jobHandoffChecklist && (
+                              <div style={{ border: '1px solid rgba(125,211,252,0.18)', background: 'rgba(14,165,233,0.07)', borderRadius: 14, padding: 12, display: 'grid', gap: 9 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
+                                  <strong style={{ color: 'rgba(255,255,255,0.86)', fontSize: '0.82rem' }}>{jobHandoffChecklist.providerLabel} handoff</strong>
+                                  <Badge variant="outline" className="border-cyan-300/20 text-cyan-100/70">Final CTA: user</Badge>
+                                </div>
+                                <p style={{ margin: 0, color: 'rgba(255,255,255,0.55)', fontSize: '0.74rem', lineHeight: 1.45 }}>{jobHandoffChecklist.summary}</p>
+                                <div style={{ display: 'grid', gap: 6 }}>
+                                  {(jobHandoffChecklist.steps || []).map((step, index) => (
+                                    <div key={step.id || index} style={{ display: 'grid', gridTemplateColumns: '20px 1fr', gap: 8, alignItems: 'start', color: 'rgba(255,255,255,0.68)', fontSize: '0.72rem', lineHeight: 1.35 }}>
+                                      <span style={{ width: 18, height: 18, borderRadius: 999, display: 'grid', placeItems: 'center', border: '1px solid rgba(255,255,255,0.12)', color: '#a7f3d0', fontSize: '0.62rem' }}>{index + 1}</span>
+                                      <span><strong style={{ color: 'rgba(255,255,255,0.82)' }}>{step.label}</strong> · {step.detail}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                         {card.actionType === 'social_post_queue' && (
@@ -2810,6 +2867,7 @@ const ActionConsolePage = () => {
                   <div style={{ display: 'grid', gap: 10 }}>
                     {jobApplications.length ? jobApplications.slice(0, 5).map(item => {
                       const trackerStatus = trackerStatusFor(item);
+                      const handoff = item.metadata?.handoff_checklist || item.metadata?.handoffChecklist || null;
                       return (
                         <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
@@ -2842,6 +2900,25 @@ const ActionConsolePage = () => {
                           </div>
                           {item.metadata?.tracker_note && (
                             <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.46)', fontSize: '0.7rem' }}>{item.metadata.tracker_note}</div>
+                          )}
+                          {handoff?.steps?.length > 0 && (
+                            <Collapsible>
+                              <CollapsibleTrigger asChild>
+                                <button type="button" style={{ marginTop: 9, border: '1px solid rgba(125,211,252,0.18)', borderRadius: 10, background: 'rgba(14,165,233,0.07)', color: '#bae6fd', padding: '7px 9px', fontSize: '0.72rem', cursor: 'pointer' }}>
+                                  Handoff checklist · {handoff.providerLabel || item.platform}
+                                </button>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div style={{ marginTop: 8, display: 'grid', gap: 6 }}>
+                                  {handoff.steps.map((step, index) => (
+                                    <div key={step.id || index} style={{ display: 'grid', gridTemplateColumns: '20px 1fr', gap: 8, color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem', lineHeight: 1.4 }}>
+                                      <span style={{ width: 18, height: 18, borderRadius: 999, display: 'grid', placeItems: 'center', border: '1px solid rgba(255,255,255,0.12)', color: '#a7f3d0', fontSize: '0.6rem' }}>{index + 1}</span>
+                                      <span><strong style={{ color: 'rgba(255,255,255,0.78)' }}>{step.label}</strong> · {step.detail}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
                           )}
                           {item.screenshotUrl && (
                             <a href={item.screenshotUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, color: '#7dd3fc', fontSize: '0.74rem' }}>
