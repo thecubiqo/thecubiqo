@@ -1268,6 +1268,18 @@ const ActionConsolePage = () => {
   const latestShopifyProduct = shopifyProducts[0] || null;
   const latestProviderDesign = providerDesigns[0] || null;
   const latestBrowserReceipt = auditLogs.find(log => log.screenshotUrl || log.result?.screenshotUrl) || null;
+  const trackerStatuses = ['saved', 'drafted', 'ready', 'applied', 'response', 'interview', 'offer', 'rejected', 'withdrawn'];
+  const trackerStatusFor = (item) => item?.metadata?.tracker_status || item?.trackerStatus || (
+    item?.status === 'ready_to_submit' ? 'ready' :
+    item?.status === 'submitted' ? 'applied' :
+    item?.status === 'in_progress' ? 'drafted' :
+    item?.status === 'cancelled' ? 'withdrawn' :
+    item?.status || 'saved'
+  );
+  const trackerCounts = trackerStatuses.reduce((acc, status) => {
+    acc[status] = jobApplications.filter(item => trackerStatusFor(item) === status).length;
+    return acc;
+  }, {});
 
   const detectJobApplyPlatform = (url) => {
     const value = String(url || '').toLowerCase();
@@ -2337,6 +2349,28 @@ const ActionConsolePage = () => {
     }
   };
 
+  const updateJobTrackerStatus = async (application, status) => {
+    setBusyAction(`tracker-${application.id}-${status}`);
+    setMessage('');
+    try {
+      await apiJson('/api/jobs/pipeline', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          target: 'application',
+          id: application.id,
+          status,
+          note: `Marked ${status} from CubiQo actions tracker`
+        })
+      });
+      setMessage(`Application marked ${status}.`);
+      await loadActionState();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusyAction('');
+    }
+  };
+
   const confirmSocialPost = async (post, decision) => {
     setBusyAction(`${decision}-${post.id}`);
     setMessage('');
@@ -2766,37 +2800,71 @@ const ActionConsolePage = () => {
                     <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>Job Apply Tracker</h2>
                     <Badge variant="outline" className="border-white/10 text-white/50">{jobApplications.length}</Badge>
                   </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                    {trackerStatuses.slice(0, 7).map(status => (
+                      <Badge key={status} variant="outline" className="border-white/10 text-white/45">
+                        {status}: {trackerCounts[status] || 0}
+                      </Badge>
+                    ))}
+                  </div>
                   <div style={{ display: 'grid', gap: 10 }}>
-                    {jobApplications.length ? jobApplications.slice(0, 5).map(item => (
-                      <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                          <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.jobTitle || 'Application workflow'}</div>
-                          <Badge variant="outline" className="border-white/10 text-white/45">{item.status}</Badge>
-                        </div>
-                        <div style={{ marginTop: 6, color: 'rgba(255,255,255,0.56)', fontSize: '0.76rem' }}>
-                          {item.company || item.platform} · session {item.browserSessionId?.slice?.(0, 8) || 'recorded'}
-                        </div>
-                        {item.screenshotUrl && (
-                          <a href={item.screenshotUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, color: '#7dd3fc', fontSize: '0.74rem' }}>
-                            Open visual receipt
-                          </a>
-                        )}
-                        {item.status === 'failed' && (
-                          <Collapsible>
-                            <CollapsibleTrigger asChild>
-                              <button type="button" style={{ marginTop: 9, border: '1px solid rgba(248,113,113,0.22)', borderRadius: 10, background: 'rgba(248,113,113,0.08)', color: '#fecaca', padding: '7px 9px', fontSize: '0.72rem', cursor: 'pointer' }}>
-                                What the browser saw
+                    {jobApplications.length ? jobApplications.slice(0, 5).map(item => {
+                      const trackerStatus = trackerStatusFor(item);
+                      return (
+                        <div key={item.id} style={{ border: '1px solid rgba(255,255,255,0.075)', borderRadius: 14, padding: 12, background: 'rgba(255,255,255,0.025)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                            <div style={{ color: '#fff', fontSize: '0.86rem', fontWeight: 600 }}>{item.jobTitle || 'Application workflow'}</div>
+                            <Badge variant="outline" className="border-white/10 text-white/45">{trackerStatus}</Badge>
+                          </div>
+                          <div style={{ marginTop: 6, color: 'rgba(255,255,255,0.56)', fontSize: '0.76rem' }}>
+                            {item.company || item.platform} · raw {item.status} · session {item.browserSessionId?.slice?.(0, 8) || 'recorded'}
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 9 }}>
+                            {['applied', 'response', 'interview', 'offer', 'rejected', 'withdrawn'].map(status => (
+                              <button
+                                key={status}
+                                type="button"
+                                onClick={() => updateJobTrackerStatus(item, status)}
+                                disabled={busyAction === `tracker-${item.id}-${status}` || trackerStatus === status}
+                                style={{
+                                  border: '1px solid rgba(255,255,255,0.09)',
+                                  borderRadius: 999,
+                                  background: trackerStatus === status ? 'rgba(34,197,94,0.14)' : 'rgba(255,255,255,0.035)',
+                                  color: trackerStatus === status ? '#bbf7d0' : 'rgba(255,255,255,0.58)',
+                                  padding: '5px 8px',
+                                  fontSize: '0.68rem',
+                                  cursor: trackerStatus === status ? 'default' : 'pointer'
+                                }}
+                              >
+                                {status}
                               </button>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                              <pre style={{ marginTop: 8, maxHeight: 180, overflow: 'auto', whiteSpace: 'pre-wrap', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 10, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.58)', fontSize: '0.68rem' }}>
-                                {JSON.stringify(item.accessibilityTreeSnapshot || item.error || {}, null, 2)}
-                              </pre>
-                            </CollapsibleContent>
-                          </Collapsible>
-                        )}
-                      </div>
-                    )) : (
+                            ))}
+                          </div>
+                          {item.metadata?.tracker_note && (
+                            <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.46)', fontSize: '0.7rem' }}>{item.metadata.tracker_note}</div>
+                          )}
+                          {item.screenshotUrl && (
+                            <a href={item.screenshotUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, color: '#7dd3fc', fontSize: '0.74rem' }}>
+                              Open visual receipt
+                            </a>
+                          )}
+                          {item.status === 'failed' && (
+                            <Collapsible>
+                              <CollapsibleTrigger asChild>
+                                <button type="button" style={{ marginTop: 9, border: '1px solid rgba(248,113,113,0.22)', borderRadius: 10, background: 'rgba(248,113,113,0.08)', color: '#fecaca', padding: '7px 9px', fontSize: '0.72rem', cursor: 'pointer' }}>
+                                  What the browser saw
+                                </button>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <pre style={{ marginTop: 8, maxHeight: 180, overflow: 'auto', whiteSpace: 'pre-wrap', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 10, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.58)', fontSize: '0.68rem' }}>
+                                  {JSON.stringify(item.accessibilityTreeSnapshot || item.error || {}, null, 2)}
+                                </pre>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          )}
+                        </div>
+                      );
+                    }) : (
                       <div style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.78rem', lineHeight: 1.5 }}>
                         No job apply workflows yet. Paste a job URL, request approval, then run the approved prepare step.
                       </div>

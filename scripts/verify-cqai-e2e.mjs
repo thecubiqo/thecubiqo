@@ -2255,6 +2255,28 @@ function verifyJobApplicationPacketContract() {
   };
 }
 
+function verifyJobTrackerContract() {
+  const routePath = path.join(repoRoot, 'src', 'app', 'api', 'jobs', 'pipeline', 'route.ts');
+  const appPath = path.join(repoRoot, 'frontend', 'src', 'App.js');
+  const migrationPath = path.join(repoRoot, 'supabase', 'migrations', '20260511000000_job_application_tracker_statuses.sql');
+  const route = fs.existsSync(routePath) ? fs.readFileSync(routePath, 'utf8') : '';
+  const app = fs.existsSync(appPath) ? fs.readFileSync(appPath, 'utf8') : '';
+  const migration = fs.existsSync(migrationPath) ? fs.readFileSync(migrationPath, 'utf8') : '';
+  const checks = [
+    { name: 'pipeline_patch_exists', ok: route.includes('export async function PATCH') },
+    { name: 'tracker_statuses_include_response', ok: route.includes("'response'") && route.includes("'interview'") && route.includes("'withdrawn'") },
+    { name: 'stores_tracker_status_metadata', ok: route.includes('tracker_status') && route.includes('tracker_updated_at') },
+    { name: 'legacy_db_status_compatible', ok: route.includes("if (status === 'applied' || status === 'response') return 'submitted'") },
+    { name: 'ui_has_tracker_status_controls', ok: app.includes('updateJobTrackerStatus') && app.includes('trackerStatuses') },
+    { name: 'migration_extends_status_constraints', ok: migration.includes('job_applications_status_check') && migration.includes("'response'") }
+  ];
+
+  return {
+    ok: checks.every(item => item.ok),
+    checks
+  };
+}
+
 async function main() {
   const config = readAppSupabaseConfig();
   if (!config.url || !config.anonKey) {
@@ -2331,6 +2353,7 @@ async function main() {
   const rgy = await verifyRgy();
   const frontendSecretBoundary = verifyFrontendSecretBoundary();
   const jobApplicationPacketContract = verifyJobApplicationPacketContract();
+  const jobTrackerContract = verifyJobTrackerContract();
 
   const report = {
     supabaseProject: config.url,
@@ -2340,7 +2363,8 @@ async function main() {
     rgy,
     frontendSecretBoundary,
     jobApplicationPacketContract,
-    passed: signup.ok && tables.every(isRequiredTableHealthy) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok && jobApplicationPacketContract.ok
+    jobTrackerContract,
+    passed: signup.ok && tables.every(isRequiredTableHealthy) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok && jobApplicationPacketContract.ok && jobTrackerContract.ok
   };
 
   console.log(JSON.stringify(report, null, 2));

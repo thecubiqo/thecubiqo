@@ -597,4 +597,14 @@ Latest role-agnostic career Phase 9 patch:
 - Regression harness: passed; `verify:cqai` now includes a Phase 9 application-packet contract check so the packet fields and real resume column do not silently regress.
 - Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 9 patch.
 
+Latest role-agnostic career Phase 10 patch:
+
+- Scope: Phase 10 application tracking lifecycle. The job tracker now exposes the product-facing statuses `saved`, `drafted`, `ready`, `applied`, `response`, `interview`, `offer`, `rejected`, and `withdrawn`.
+- Pipeline API: passed static validation; `/api/jobs/pipeline` now returns normalized `trackerStatus`, lifecycle buckets, and accepts signed-in `PATCH` updates for user-owned listings/applications.
+- DB compatibility: passed; tracker updates store the product-facing status in `metadata.tracker_status` and keep legacy-safe raw statuses underneath until the Phase 10 constraint migration is applied.
+- Migration: added `20260511000000_job_application_tracker_statuses.sql` to extend job listing/application status constraints and add tracker-status indexes.
+- UI surface: passed; `/actions` Job Apply Tracker shows lifecycle counts and status buttons for applied, response, interview, offer, rejected, and withdrawn.
+- Regression harness: passed; `verify:cqai` now includes a Phase 10 tracker contract check for the API route, UI controls, metadata storage, and migration.
+- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 10 patch.
+
 Do not push this branch for review unless this contract stays current and regression remains green.
