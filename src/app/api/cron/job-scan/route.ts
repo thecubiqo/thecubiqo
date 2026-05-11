@@ -1,23 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin, cleanEnv, requireApiUser } from '../../_lib/supabase-admin';
-import { JOB_SOURCES } from '../../_lib/job-workflows';
+import { buildProviderSearchUrl, enabledScanProviders, type JobProvider } from '@/next/lib/jobs/job-provider-registry';
 
 const CRON_SECRET = cleanEnv(process.env.CRON_SECRET);
-
-const SEARCH_PLATFORMS = [
-  { id: 'linkedin', searchUrl: 'https://www.linkedin.com/jobs/search/?keywords={query}&location={location}' },
-  { id: 'indeed', searchUrl: 'https://www.indeed.com/jobs?q={query}&l={location}' },
-  { id: 'dice', searchUrl: 'https://www.dice.com/jobs?q={query}&location={location}' },
-  { id: 'monster', searchUrl: 'https://www.monster.com/jobs/search?q={query}&where={location}' },
-  { id: 'ziprecruiter', searchUrl: 'https://www.ziprecruiter.com/jobs-search?search={query}&location={location}' },
-  { id: 'wellfound', searchUrl: 'https://wellfound.com/jobs?query={query}&location={location}' },
-  { id: 'greenhouse', searchUrl: 'https://www.google.com/search?q={query}+{location}+site%3Agreenhouse.io' },
-  { id: 'lever', searchUrl: 'https://www.google.com/search?q={query}+{location}+site%3Alever.co' },
-  { id: 'workday', searchUrl: 'https://www.google.com/search?q={query}+{location}+site%3Amyworkdayjobs.com' },
-  { id: 'company_site', searchUrl: 'https://www.google.com/search?q={query}+{location}+careers+apply' }
-] as const;
-
-type SearchPlatform = typeof SEARCH_PLATFORMS[number];
 
 function verifyCronSecret(request: NextRequest) {
   const auth = request.headers.get('authorization') || '';
@@ -68,7 +53,7 @@ async function searchWithStagehand(
   admin: any,
   userId: string,
   profile: Record<string, any>,
-  platform: SearchPlatform,
+  platform: JobProvider,
   threshold: number
 ): Promise<Array<Record<string, any>>> {
   const { Stagehand } = await import('@browserbasehq/stagehand');
@@ -80,9 +65,7 @@ async function searchWithStagehand(
   const skills = Array.isArray(profile.skills) ? profile.skills.filter(Boolean).slice(0, 4) : [];
   const query = [...targetRoles.slice(0, 2), ...skills.slice(0, 2)].join(' ') || 'remote job';
   const location = (Array.isArray(profile.preferred_locations) ? profile.preferred_locations[0] : null) || 'Remote United States';
-  const searchUrl = platform.searchUrl
-    .replace('{query}', encodeURIComponent(query))
-    .replace('{location}', encodeURIComponent(location));
+  const searchUrl = buildProviderSearchUrl(platform, query, location);
 
   const stagehand = new Stagehand({ env: 'BROWSERBASE', apiKey, projectId, verbose: 0 } as any);
   const sessionId = `cron-job-scan-${userId}-${platform.id}-${Date.now()}`;
@@ -198,12 +181,9 @@ export async function GET(request: NextRequest) {
 
   for (const profile of profiles) {
     const threshold = Number(profile.score_threshold ?? profile.metadata?.score_threshold ?? 60);
-    const enabledPlatforms = Array.isArray(profile.metadata?.scan_platforms)
-      ? profile.metadata.scan_platforms.filter((id: unknown) => JOB_SOURCES.includes(String(id) as any))
-      : ['linkedin', 'indeed', 'dice', 'monster', 'greenhouse', 'lever', 'workday'];
     const found: string[] = [];
 
-    for (const platform of SEARCH_PLATFORMS.filter(p => enabledPlatforms.includes(p.id))) {
+    for (const platform of enabledScanProviders(profile.metadata?.scan_platforms)) {
       const listings = await searchWithStagehand(admin, profile.user_id, profile, platform, threshold);
       if (listings.length) found.push(`${platform.id}:${listings.length}`);
     }

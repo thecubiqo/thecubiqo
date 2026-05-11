@@ -9,10 +9,9 @@ import { applyDice } from './platforms/dice';
 import { applyIndeed } from './platforms/indeed';
 import { applyLinkedIn } from './platforms/linkedin';
 import type { JobApplyPlatform, JobApplyScriptInput } from './platforms/shared';
+import { getApplyProviders, getJobProvider, resolveJobProviderForUrl, type JobProvider } from '@/next/lib/jobs/job-provider-registry';
 
 export const runtime = 'nodejs';
-
-const PLATFORMS: JobApplyPlatform[] = ['linkedin', 'indeed', 'dice', 'greenhouse', 'lever'];
 
 function normalizeText(value: unknown, max = 500) {
   return String(value || '').trim().slice(0, max);
@@ -30,17 +29,11 @@ function normalizeJobUrl(value: unknown) {
   }
 }
 
-function detectPlatform(inputPlatform: unknown, jobUrl: string): JobApplyPlatform | null {
+function detectProvider(inputPlatform: unknown, jobUrl: string): JobProvider | null {
   const requested = normalizeText(inputPlatform, 40).toLowerCase();
-  if (PLATFORMS.includes(requested as JobApplyPlatform)) return requested as JobApplyPlatform;
-
-  const hostname = new URL(jobUrl).hostname.toLowerCase();
-  if (hostname === 'linkedin.com' || hostname.endsWith('.linkedin.com')) return 'linkedin';
-  if (hostname === 'indeed.com' || hostname.endsWith('.indeed.com')) return 'indeed';
-  if (hostname === 'dice.com' || hostname.endsWith('.dice.com')) return 'dice';
-  if (hostname === 'greenhouse.io' || hostname.endsWith('.greenhouse.io')) return 'greenhouse';
-  if (hostname === 'lever.co' || hostname.endsWith('.lever.co')) return 'lever';
-  return null;
+  const requestedProvider = getJobProvider(requested);
+  if (requestedProvider) return requestedProvider;
+  return resolveJobProviderForUrl(jobUrl);
 }
 
 function envFlag(name: string) {
@@ -182,8 +175,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Browser session approval mismatch', executed: false, blockReason: 'session_hijack_attempt' }, { status: 403 });
   }
 
-  const platform = detectPlatform(payload.platform, jobUrl);
-  if (!platform) {
+  const provider = detectProvider(payload.platform, jobUrl);
+  if (!provider) {
     await writeAudit(auth, {
       approvalId,
       browserSessionId,
@@ -194,8 +187,37 @@ export async function POST(request: NextRequest) {
       input: { jobUrl, platform: payload.platform },
       blockReason: 'unsupported_job_platform'
     });
-    return NextResponse.json({ error: 'Supported platforms are LinkedIn, Indeed, Dice, Greenhouse, and Lever.', executed: false }, { status: 400 });
+    return NextResponse.json({
+      error: `Supported apply platforms are ${getApplyProviders().map(item => item.label).join(', ')}. Company-site generic apply is scheduled for the next phase.`,
+      executed: false,
+      supportedProviders: getApplyProviders().map(item => item.id)
+    }, { status: 400 });
   }
+
+  if (!provider.supportsApply) {
+    await writeAudit(auth, {
+      approvalId,
+      browserSessionId,
+      actionType: 'job_apply',
+      toolName: 'job_apply',
+      status: 'blocked',
+      message: 'job_apply blocked because provider is registered but apply support is not active yet',
+      input: {
+        jobUrl,
+        provider: provider.id,
+        adapter: provider.adapter,
+        supportsGenericForm: provider.supportsGenericForm
+      },
+      blockReason: 'job_provider_apply_not_active'
+    });
+    return NextResponse.json({
+      error: `${provider.label} is registered for scanning, but apply automation is not active for this provider yet.`,
+      executed: false,
+      provider
+    }, { status: 501 });
+  }
+
+  const platform = provider.id as JobApplyPlatform;
 
   const urlDecision = getUrlAllowlistDecision({ job_url: jobUrl });
   const untrustedUrlConfirmed = Boolean(

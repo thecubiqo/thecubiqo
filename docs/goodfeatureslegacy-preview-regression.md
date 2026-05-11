@@ -539,4 +539,13 @@ Latest role-agnostic career Phase 4 smoke:
 - Static leak check: passed; `JobPipeline.js` has no `BA · SM`, `recent BA`, or `Remote-US` text.
 - Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 4 patch.
 
+Latest role-agnostic career Phase 5 smoke:
+
+- Scope: Phase 5 only. Added `src/lib/jobs/job-provider-registry.ts` as the shared provider manifest for scan/apply capability metadata.
+- Registry contents: passed; LinkedIn, Indeed, Dice, Monster, Greenhouse, Lever, Workday, ZipRecruiter, Wellfound, and Company Site are registered with scan/apply/generic-form/final-CTA metadata.
+- Job scan wiring: passed static validation; `/api/cron/job-scan` now builds scan providers from the registry instead of maintaining its own source list.
+- Job apply wiring: passed static validation; `/api/actions/job-apply` now resolves provider from requested platform or URL through the registry. Registered but inactive apply providers return a clear `job_provider_apply_not_active` boundary.
+- Registry smoke: passed; LinkedIn and Workday URLs resolve correctly, `company_site` is scan-registered, and Workday remains scan-only until the generic apply adapter phase.
+- Verification: `npm run typecheck`, `npm run build`, `npm run verify:cqai`, and a direct provider-registry smoke passed after the Phase 5 patch.
+
 Do not push this branch for review unless this contract stays current and regression remains green.
