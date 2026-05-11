@@ -5,8 +5,8 @@ import { requireApiUser } from '../../_lib/supabase-admin';
 import { extractContext, extractContextFromUrl } from '../../_lib/context-engine';
 
 export async function POST(request: NextRequest) {
-  const authError = await requireApiUser(request);
-  if (authError) return authError;
+  const auth = await requireApiUser(request);
+  if (auth.error) return auth.error;
 
   let body: { text?: string; url?: string; goal?: string };
   try {
