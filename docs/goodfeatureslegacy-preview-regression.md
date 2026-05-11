@@ -666,4 +666,15 @@ Latest role-agnostic career Phase 12 patch:
 - UI surface: passed; `/actions` Job Apply Tracker shows "Needs user confirmation" and expandable "Step receipts" links for each application workflow.
 - Safety boundary: unchanged; final submit remains a separate user action, and successful browser steps still run only after the existing approved `job_apply` boundary and session integrity checks.
 
+Latest commerce/social hardcoding Sprint 2 patch:
+
+- Scope: Sprint 2 configuration layer. Social platforms and POD providers now follow the same pattern as job providers: source code defines the supported registry, Supabase rows define what this user has actually connected or enabled.
+- Social registry: added `src/lib/social/social-platform-registry.ts` for LinkedIn, X/Twitter, Instagram, Threads, TikTok, Facebook, and Pinterest. Browser queue support is explicitly marked only where an adapter exists.
+- Social accounts: added migration `20260511030000_social_pod_registry_sprint2.sql` with `social_accounts`. Social queue and publish now require an active user-owned `social_accounts` row instead of scattered `SOCIAL_QUEUE_*` env flags.
+- Social connector status: `/api/actions/execute` social connector status now reads user platform connection state from `social_accounts`; it does not report an env var as a connected user account.
+- POD registry: added `src/lib/pod/pod-provider-registry.ts` and `pod_providers` seed rows for Printify, Printful, Gelato, Apliiq, CustomCat, Teelaunch, ShineOn, Spreadconnect, Only Caps, CJdropshipping, and Zendrop.
+- POD provider manifest: fulfilment provider status now merges the code registry with `pod_providers` table values, so provider URLs/capabilities can be adjusted without editing the operations route.
+- Migration requirement: apply `supabase/migrations/20260511030000_social_pod_registry_sprint2.sql` to the goodfeatureslegacy Supabase DB before expecting social account or provider registry reads to be durable.
+- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Sprint 2 source changes. The verifier marks `social_accounts` and `pod_providers` as optional/needs-migration until the live goodfeatureslegacy Supabase DB receives this migration.
+
 Do not push this branch for review unless this contract stays current and regression remains green.

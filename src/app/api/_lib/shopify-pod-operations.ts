@@ -1,5 +1,11 @@
 import crypto from 'crypto';
 import { ApiUserContext, cleanEnv, missingMigrationResponse, safeTableMissing } from './supabase-admin';
+import {
+  DIRECT_POD_PROVIDER_IDS,
+  KNOWN_FULFILLMENT_PROVIDER_IDS,
+  SHOPIFY_APP_PROVIDER_REGISTRY,
+  getPodProvider
+} from '@/next/lib/pod/pod-provider-registry';
 
 export const SHOPIFY_POD_OPERATION_ACTION_TYPES = [
   'shopify_store_connect',
@@ -37,22 +43,9 @@ type SyncStatus = 'prepared' | 'blocked_missing_credentials' | 'submitted' | 'sy
 
 const SHOPIFY_API_VERSION = cleanEnv(process.env.SHOPIFY_API_VERSION) || '2025-01';
 
-const DIRECT_POD_PROVIDERS = ['printify', 'printful', 'gelato'] as const;
-const SHOPIFY_APP_PROVIDERS = [
-  { provider: 'apliiq', label: 'Apliiq', appUrl: 'https://apps.shopify.com/apliiq', supports: ['apparel', 'hoodie', 'shirt', 'hat'] },
-  { provider: 'customcat', label: 'CustomCat', appUrl: 'https://apps.shopify.com/customcat-fulfillment', supports: ['apparel', 'drinkware', 'home'] },
-  { provider: 'teelaunch', label: 'Teelaunch', appUrl: 'https://apps.shopify.com/teelaunch-1', supports: ['apparel', 'home', 'accessories'] },
-  { provider: 'shineon', label: 'ShineOn', appUrl: 'https://apps.shopify.com/shineon', supports: ['jewelry', 'gift'] },
-  { provider: 'spreadconnect', label: 'Spreadconnect', appUrl: 'https://apps.shopify.com/spreadconnect', supports: ['apparel', 'accessories'] },
-  { provider: 'only_caps', label: 'Only Caps', appUrl: 'https://apps.shopify.com/only-caps', supports: ['hat', 'cap'] }
-] as const;
-
-const KNOWN_FULFILLMENT_PROVIDERS = [
-  ...DIRECT_POD_PROVIDERS,
-  ...SHOPIFY_APP_PROVIDERS.map(item => item.provider),
-  'cjdropshipping',
-  'zendrop'
-] as const;
+const DIRECT_POD_PROVIDERS = DIRECT_POD_PROVIDER_IDS;
+const SHOPIFY_APP_PROVIDERS = SHOPIFY_APP_PROVIDER_REGISTRY;
+const KNOWN_FULFILLMENT_PROVIDERS = KNOWN_FULFILLMENT_PROVIDER_IDS;
 
 export function isShopifyPodOperationAction(actionType: string): actionType is ShopifyPodOperationActionType {
   return SHOPIFY_POD_OPERATION_ACTION_TYPES.includes(actionType as ShopifyPodOperationActionType);
@@ -239,12 +232,42 @@ async function getShopifyToken(auth: ApiUserContext, storeUrl: string) {
 
 async function getDirectProviderToken(auth: ApiUserContext, provider: string) {
   const env = envDirectProviderCredentials(provider);
-  if (env.token) return { token: env.token, apiUrl: env.apiUrl, source: 'server_env' as const };
+  const registry = await readPodProviderConfig(auth, provider);
+  const registryApiUrl = 'config' in registry ? text(registry.config?.api_url, 400) : '';
+  if (env.token) return { token: env.token, apiUrl: env.apiUrl || registryApiUrl, source: 'server_env' as const };
   const stored = await readStoredSecret(auth, provider);
   if ('missingTable' in stored) return { missingTable: true as const };
   if ('error' in stored) return { error: stored.error };
   const token = decryptSecret(stored.secret);
-  return token ? { token, apiUrl: text(stored.secret?.metadata?.api_url, 400) || env.apiUrl, source: 'encrypted_secret' as const } : { token: null, apiUrl: env.apiUrl, source: 'none' as const };
+  return token
+    ? { token, apiUrl: text(stored.secret?.metadata?.api_url, 400) || env.apiUrl || registryApiUrl, source: 'encrypted_secret' as const }
+    : { token: null, apiUrl: env.apiUrl || registryApiUrl, source: 'none' as const };
+}
+
+async function readPodProviderConfig(auth: ApiUserContext, provider: string) {
+  const { data, error } = await auth.supabase
+    .from('pod_providers')
+    .select('provider,label,status,connection_type,api_url,dashboard_url_template,shopify_app_url,supports_product_types,metadata')
+    .eq('provider', provider)
+    .maybeSingle();
+
+  if (error) {
+    if (safeTableMissing(error)) return { config: null, tableMissing: true };
+    return { error };
+  }
+  return { config: data || null, tableMissing: false };
+}
+
+async function readPodProviderConfigs(auth: ApiUserContext) {
+  const { data, error } = await auth.supabase
+    .from('pod_providers')
+    .select('provider,label,status,connection_type,api_url,dashboard_url_template,shopify_app_url,supports_product_types,metadata');
+
+  if (error) {
+    if (safeTableMissing(error)) return { configs: [], tableMissing: true };
+    return { error };
+  }
+  return { configs: data || [], tableMissing: false };
 }
 
 async function shopifyFetch(auth: ApiUserContext, storeUrl: string, path: string, init: RequestInit = {}) {
@@ -448,25 +471,34 @@ export async function listCommerceState(auth: ApiUserContext): Promise<Record<st
   };
 }
 
-function buildProviderManifest(activeApps: string[], directOverrides: Record<string, string> = {}) {
+function buildProviderManifest(activeApps: string[], directOverrides: Record<string, string> = {}, providerConfigs: Record<string, any>[] = []) {
   const direct = DIRECT_POD_PROVIDERS.map(provider => {
     const env = connectorFromEnv(provider);
+    const registry = getPodProvider(provider);
+    const config = providerConfigs.find(item => item.provider === provider);
     return {
       provider,
-      status: directOverrides[provider] || (env.credentialStatus === 'missing' ? 'disconnected' : 'configured_unverified'),
+      status: directOverrides[provider] || config?.status || (env.credentialStatus === 'missing' ? 'disconnected' : 'configured_unverified'),
       connection_type: 'direct_api',
       shopify_app_url: null,
-      supports_product_types: ['apparel', 'accessories', 'home', 'gift'],
-      metadata: { credentialStatus: env.credentialStatus }
+      supports_product_types: config?.supports_product_types || registry?.supports || ['apparel', 'accessories', 'home', 'gift'],
+      metadata: {
+        credentialStatus: env.credentialStatus,
+        apiUrlSource: config?.api_url ? 'pod_providers' : env.credentialStatus === 'missing' ? 'not_configured' : 'env_or_secret',
+        dashboardUrlTemplate: config?.dashboard_url_template || registry?.dashboardUrlTemplate || null
+      }
     };
   });
   const apps = SHOPIFY_APP_PROVIDERS.map(item => ({
     provider: item.provider,
-    status: activeApps.includes(item.provider) ? 'active' : 'not_installed',
+    status: providerConfigs.find(config => config.provider === item.provider)?.status || (activeApps.includes(item.provider) ? 'active' : 'not_installed'),
     connection_type: 'shopify_app',
-    shopify_app_url: item.appUrl,
-    supports_product_types: [...item.supports],
-    metadata: { label: item.label, routing: 'Shopify app handles fulfilment mapping; no direct API call from CubiQo.' }
+    shopify_app_url: providerConfigs.find(config => config.provider === item.provider)?.shopify_app_url || item.appUrl,
+    supports_product_types: providerConfigs.find(config => config.provider === item.provider)?.supports_product_types || [...item.supports],
+    metadata: {
+      label: providerConfigs.find(config => config.provider === item.provider)?.label || item.label,
+      routing: 'Shopify app handles fulfilment mapping; no direct API call from CubiQo.'
+    }
   }));
   return [...direct, ...apps];
 }
@@ -485,7 +517,9 @@ export async function readFulfilmentProviders(auth: ApiUserContext): Promise<Rec
   const activeApps = new Set<string>(((current.data || []) as Record<string, any>[])
     .filter((row: Record<string, any>) => row.connection_type === 'shopify_app' && row.status === 'active')
     .map((row: Record<string, any>) => row.provider));
-  const manifest = buildProviderManifest([...activeApps]);
+  const providerConfigs = await readPodProviderConfigs(auth);
+  if ('error' in providerConfigs && providerConfigs.error) return { error: providerConfigs.error };
+  const manifest = buildProviderManifest([...activeApps], {}, providerConfigs.configs || []);
 
   const rows = manifest.map(item => ({
     user_id: auth.user.id,

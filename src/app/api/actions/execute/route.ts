@@ -119,7 +119,13 @@ export async function GET(request: NextRequest) {
 
 async function handleSocialConnectorStatusAction(auth: ApiUserContext, actionType: string, toolName: string) {
   if (actionType !== 'social_connector_status') return null;
-  const statuses = getSocialConnectorStatuses().connectors;
+  const statusesResult = await getSocialConnectorStatuses(auth);
+  if ('error' in statusesResult && statusesResult.error) {
+    return statusesResult.error instanceof Response
+      ? statusesResult.error
+      : NextResponse.json({ error: statusesResult.error.message }, { status: 500 });
+  }
+  const statuses = statusesResult.connectors;
   await writeAudit(auth, {
     actionType,
     toolName,

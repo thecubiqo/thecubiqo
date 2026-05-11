@@ -1,8 +1,23 @@
 import { ApiUserContext, cleanEnv, missingMigrationResponse, safeTableMissing } from './supabase-admin';
 import { decryptToken } from './token-vault';
 import { writeAudit } from './v2-actions';
+import { getPodProvider } from '@/next/lib/pod/pod-provider-registry';
 
-const PRINTIFY_API_BASE = 'https://api.printify.com/v1';
+function defaultPrintifyApiBase() {
+  return cleanEnv(process.env.PRINTIFY_API_BASE_URL) || getPodProvider('printify')?.apiUrl || 'https://api.printify.com/v1';
+}
+
+async function resolvePrintifyApiBase(auth: ApiUserContext) {
+  const { data, error } = await auth.supabase
+    .from('pod_providers')
+    .select('api_url')
+    .eq('provider', 'printify')
+    .eq('status', 'active')
+    .maybeSingle();
+
+  if (error && !safeTableMissing(error)) return { error };
+  return { apiBase: cleanEnv(data?.api_url) || defaultPrintifyApiBase() };
+}
 
 function sanitizePrintifyError(status: number, body: unknown) {
   const message = typeof body === 'object' && body
@@ -55,7 +70,9 @@ async function getAccessToken(auth: ApiUserContext) {
 async function printifyRequest(auth: ApiUserContext, path: string, init: RequestInit = {}) {
   const loaded = await getAccessToken(auth);
   if (!('token' in loaded)) return loaded;
-  const response = await fetch(`${PRINTIFY_API_BASE}${path}`, {
+  const resolvedBase = await resolvePrintifyApiBase(auth);
+  if ('error' in resolvedBase && resolvedBase.error) return { error: resolvedBase.error };
+  const response = await fetch(`${resolvedBase.apiBase}${path}`, {
     ...init,
     headers: {
       Authorization: `Bearer ${loaded.token}`,
@@ -167,7 +184,7 @@ export async function submitOrder(auth: ApiUserContext, orderData: Record<string
 }
 
 export async function validatePrintifyToken(apiKey: string) {
-  const response = await fetch(`${PRINTIFY_API_BASE}/shops.json`, {
+  const response = await fetch(`${defaultPrintifyApiBase()}/shops.json`, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',

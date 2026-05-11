@@ -9,10 +9,9 @@ import { queueLinkedIn } from './platforms/linkedin';
 import { canonicalPlatform, platformStartUrl, type SocialQueuePlatform, type SocialQueueScriptInput } from './platforms/shared';
 import { queueThreads } from './platforms/threads';
 import { queueTwitter } from './platforms/twitter';
+import { getSocialPlatform, normalizeSocialQueuePlatform } from '@/next/lib/social/social-platform-registry';
 
 export const runtime = 'nodejs';
-
-const PLATFORMS: SocialQueuePlatform[] = ['linkedin', 'x', 'twitter', 'instagram', 'threads'];
 
 function normalizeText(value: unknown, max = 1000) {
   return String(value || '').trim().slice(0, max);
@@ -39,26 +38,25 @@ function normalizeMediaUrls(value: unknown) {
 }
 
 function normalizePlatform(value: unknown): SocialQueuePlatform | null {
-  const platform = normalizeText(value, 40).toLowerCase();
-  return PLATFORMS.includes(platform as SocialQueuePlatform) ? platform as SocialQueuePlatform : null;
+  return normalizeSocialQueuePlatform(value);
 }
 
-function envFlag(name: string) {
-  return ['1', 'true', 'yes', 'on', 'enabled', 'active'].includes(String(process.env[name] || '').trim().toLowerCase());
-}
+async function getConnectedSocialAccount(auth: ApiUserContext, platform: Exclude<SocialQueuePlatform, 'twitter'>) {
+  const { data, error } = await auth.supabase
+    .from('social_accounts')
+    .select('id,platform,account_label,account_handle,status,connection_type,scopes,metadata,connected_at,last_used_at')
+    .eq('user_id', auth.user.id)
+    .eq('platform', platform)
+    .eq('status', 'active')
+    .order('connected_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-function getPlatformFlag(platform: SocialQueuePlatform) {
-  const canonical = canonicalPlatform(platform);
-  const envName = `SOCIAL_QUEUE_${canonical.toUpperCase()}_ENABLED`;
-  const aliases = canonical === 'x' ? [envName, 'SOCIAL_QUEUE_TWITTER_ENABLED'] : [envName];
-  const enabled = aliases.some(envFlag);
-  return {
-    platform: canonical,
-    envName,
-    aliases,
-    enabled,
-    code: `${canonical}_queue_enabled`
-  };
+  if (error) {
+    if (safeTableMissing(error)) return { error: missingMigrationResponse('social-post-queue', 'social_accounts') };
+    return { error };
+  }
+  return { account: data || null };
 }
 
 async function insertSocialPost(
@@ -201,20 +199,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Instagram requires at least one media URL before a session opens', executed: false, blockReason: 'media_required' }, { status: 400 });
   }
 
-  const platformFlag = getPlatformFlag(platform);
-  if (!platformFlag.enabled) {
+  const platformEntry = getSocialPlatform(canonical);
+  const connected = await getConnectedSocialAccount(auth, canonical);
+  if ('error' in connected && connected.error) {
+    return connected.error instanceof Response ? connected.error : NextResponse.json({ error: connected.error.message }, { status: 500 });
+  }
+  if (!('account' in connected) || !connected.account || !platformEntry?.supportsQueue) {
     await writeAudit(auth, {
       approvalId,
       browserSessionId,
       actionType: 'social_post_queue',
       toolName: 'social_post_queue',
       status: 'blocked',
-      message: `${canonical} social queue is disabled by platform flag`,
-      input: { platform: canonical },
-      blockReason: 'platform_not_enabled',
-      result: platformFlag
+      message: `${platformEntry?.label || canonical} social queue blocked because the user has not connected that platform`,
+      input: { platform: canonical, socialAccountsTable: 'social_accounts' },
+      blockReason: platformEntry?.supportsQueue ? 'platform_not_connected' : 'platform_queue_not_supported'
     });
-    return NextResponse.json({ error: `${canonical} social queue is not enabled`, executed: false, blockReason: 'platform_not_enabled', platformFlag }, { status: 403 });
+    return NextResponse.json({
+      error: platformEntry?.supportsQueue ? 'platform_not_connected' : 'platform_queue_not_supported',
+      message: platformEntry?.supportsQueue
+        ? `Connect a ${platformEntry.label} account before queueing posts.`
+        : `${platformEntry?.label || canonical} does not have a browser queue adapter yet.`,
+      executed: false,
+      platform: canonical
+    }, { status: 403 });
   }
 
   const targetUrl = platformStartUrl(platform);
@@ -270,7 +278,8 @@ export async function POST(request: NextRequest) {
       preview_screenshot_url: result.screenshot,
       metadata: {
         ...(post.metadata || {}),
-        platform_flag: platformFlag,
+        social_account_id: connected.account.id,
+        platform_registry_id: canonical,
         preview_storage_path: result.storagePath || null,
         ready_message: result.message,
         final_publish_requires_user_button: true,

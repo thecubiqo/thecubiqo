@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 import { ApiUserContext, missingMigrationResponse, safeTableMissing } from './supabase-admin';
+import {
+  SOCIAL_PLATFORM_REGISTRY,
+  canonicalSocialPlatform,
+  getSocialPlatform,
+  type SocialPlatformId
+} from '@/next/lib/social/social-platform-registry';
 
 export const SOCIAL_ACTION_TYPES = [
   'social_post_prepare',
@@ -10,19 +16,12 @@ export type SocialActionType = typeof SOCIAL_ACTION_TYPES[number];
 
 type SocialErrorResult = { error: Response | Error };
 type SocialBlockedResult = { blocked: string; status?: number };
-
-const SOCIAL_PLATFORMS = ['linkedin', 'instagram', 'x', 'tiktok', 'facebook', 'pinterest'] as const;
-type SocialPlatform = typeof SOCIAL_PLATFORMS[number];
+type SocialPlatform = SocialPlatformId;
 
 type ConnectorState = 'disconnected' | 'configured_unverified' | 'connected';
 
 export function isSocialAction(actionType: string): actionType is SocialActionType {
   return SOCIAL_ACTION_TYPES.includes(actionType as SocialActionType);
-}
-
-function cleanEnv(...values: Array<string | undefined>) {
-  const value = values.find(Boolean);
-  return value ? value.trim().replace(/^['"]|['"]$/g, '') : '';
 }
 
 function normalizeText(value: unknown, max = 1000) {
@@ -56,8 +55,7 @@ function getPayloadField(payload: Record<string, unknown>, camel: string, snake:
 }
 
 function normalizePlatform(value: unknown): SocialPlatform | null {
-  const raw = normalizeText(value, 40).toLowerCase().replace(/^twitter$/, 'x');
-  return SOCIAL_PLATFORMS.includes(raw as SocialPlatform) ? raw as SocialPlatform : null;
+  return canonicalSocialPlatform(value);
 }
 
 function normalizePlatforms(value: unknown) {
@@ -95,33 +93,50 @@ export function getSocialApprovalPreviewCard(approval: Record<string, any> | und
   return normalizePreviewCard(payload.previewCard || payload.preview_card);
 }
 
-function connectorStatus(provider: SocialPlatform) {
-  const configs = {
-    linkedin: { label: 'LinkedIn', present: [cleanEnv(process.env.LINKEDIN_ACCESS_TOKEN)] },
-    instagram: { label: 'Instagram', present: [cleanEnv(process.env.INSTAGRAM_ACCESS_TOKEN, process.env.META_ACCESS_TOKEN)] },
-    x: { label: 'X/Twitter', present: [cleanEnv(process.env.X_ACCESS_TOKEN, process.env.TWITTER_ACCESS_TOKEN)] },
-    tiktok: { label: 'TikTok', present: [cleanEnv(process.env.TIKTOK_ACCESS_TOKEN)] },
-    facebook: { label: 'Facebook', present: [cleanEnv(process.env.FACEBOOK_ACCESS_TOKEN, process.env.META_ACCESS_TOKEN)] },
-    pinterest: { label: 'Pinterest', present: [cleanEnv(process.env.PINTEREST_ACCESS_TOKEN)] }
-  }[provider];
-
-  const state: ConnectorState = configs.present.every(Boolean) ? 'configured_unverified' : 'disconnected';
+function connectorStatus(provider: SocialPlatform, account?: Record<string, any> | null) {
+  const registry = getSocialPlatform(provider);
+  const label = registry?.label || provider;
+  const state: ConnectorState = account?.status === 'active' ? 'connected' : 'disconnected';
   return {
     provider,
-    label: configs.label,
+    label,
     state,
-    connected: false,
-    credentialStatus: state === 'disconnected' ? 'missing' : 'present_server_side_unverified',
+    connected: state === 'connected',
+    accountId: account?.id || null,
+    accountHandle: account?.account_handle || null,
+    credentialStatus: state === 'connected' ? 'stored_server_side' : 'missing',
     checkedAt: new Date().toISOString(),
-    source: 'server_env_only',
+    source: 'social_accounts',
     note: state === 'disconnected'
-      ? `${configs.label} credentials are not configured server-side.`
-      : `${configs.label} credentials exist server-side, but no provider verification call has confirmed connection yet.`
+      ? `Connect a ${label} account to enable scheduling for this platform.`
+      : `${label} is connected for this user.`
   };
 }
 
-export function getSocialConnectorStatuses(platforms?: SocialPlatform[]) {
-  const list = (platforms?.length ? platforms : SOCIAL_PLATFORMS).map(connectorStatus);
+async function readUserSocialAccounts(auth: ApiUserContext) {
+  const { data, error } = await auth.supabase
+    .from('social_accounts')
+    .select('id,platform,account_label,account_handle,status,connection_type,scopes,metadata,connected_at,last_used_at')
+    .eq('user_id', auth.user.id);
+
+  if (error) {
+    if (safeTableMissing(error)) return { accounts: [], tableMissing: true };
+    return { error };
+  }
+  return { accounts: data || [], tableMissing: false };
+}
+
+export async function getSocialConnectorStatuses(auth: ApiUserContext, platforms?: SocialPlatform[]) {
+  const read = await readUserSocialAccounts(auth);
+  if ('error' in read && read.error) return { connectors: [], error: read.error };
+  const accounts = 'accounts' in read ? read.accounts : [];
+  const list = (platforms?.length ? platforms : SOCIAL_PLATFORM_REGISTRY.map(item => item.id)).map(provider => {
+    const account = accounts.find((item: Record<string, any>) => item.platform === provider && item.status === 'active') || null;
+    const status = connectorStatus(provider, account);
+    return read.tableMissing
+      ? { ...status, source: 'social_accounts_missing_migration', note: 'Run the Sprint 2 social_accounts migration before connecting platforms.' }
+      : status;
+  });
   return { connectors: list };
 }
 
@@ -266,8 +281,11 @@ export async function listSocialState(auth: ApiUserContext): Promise<{
     }
   }
 
+  const connectorStatuses = await getSocialConnectorStatuses(auth);
+  if ('error' in connectorStatuses && connectorStatuses.error) return { error: connectorStatuses.error };
+
   return {
-    ...getSocialConnectorStatuses(),
+    ...connectorStatuses,
     drafts: (draftsResult.data || []).map(mapSocialDraft),
     distributionRules: (rulesResult.data || []).map(mapDistributionRule),
     scheduledPosts: (scheduledResult.data || []).map(mapScheduledPost),
@@ -336,6 +354,11 @@ function platformVariant(platform: SocialPlatform, base: { topic: string; produc
       caption: `${base.topic} for ${base.audience}: a ${base.product} with quiet signal-wave energy. Variant ${n}.`,
       hashtags: ['#AI', '#POD', '#BrandBuild'],
       cta: base.cta || 'Reply with the next drop idea.'
+    },
+    threads: {
+      caption: `${base.topic} for ${base.audience}: ${base.product} concept ${n}, written as a conversational launch note.`,
+      hashtags: ['#AI', '#POD', '#BrandBuild'],
+      cta: base.cta || 'Reply with the next angle you want to see.'
     },
     tiktok: {
       caption: `Drop concept ${n}: ${base.product} for ${base.audience}. Hook: the uniform for people building with AI before everyone else catches up.`,
@@ -481,7 +504,9 @@ export async function scheduleSocialPost(
   const startAt = startAtRaw && !Number.isNaN(new Date(startAtRaw).getTime())
     ? new Date(startAtRaw)
     : new Date();
-  const connectors = getSocialConnectorStatuses(platforms).connectors;
+  const connectorStatuses = await getSocialConnectorStatuses(auth, platforms);
+  if ('error' in connectorStatuses && connectorStatuses.error) return { error: connectorStatuses.error };
+  const connectors = connectorStatuses.connectors;
   const missing = connectors.filter(item => item.state === 'disconnected').map(item => item.provider);
   const status = missing.length ? 'paused_missing_credentials' : 'active';
   const rulePayload = {

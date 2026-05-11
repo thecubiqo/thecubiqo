@@ -1,8 +1,9 @@
 import { accessibilitySnapshot, act as stagehandAct, screenshot as stagehandScreenshot } from '../../../_lib/stagehand-client';
 import type { ApiUserContext } from '../../../_lib/supabase-admin';
 import { writeAudit } from '../../../_lib/v2-actions';
+import { socialPlatformStartUrl, type SocialQueuePlatform } from '@/next/lib/social/social-platform-registry';
 
-export type SocialQueuePlatform = 'linkedin' | 'x' | 'twitter' | 'instagram' | 'threads';
+export type { SocialQueuePlatform };
 
 export type SocialQueueScriptInput = {
   auth: ApiUserContext;
@@ -24,11 +25,7 @@ export function canonicalPlatform(platform: SocialQueuePlatform): Exclude<Social
 }
 
 export function platformStartUrl(platform: SocialQueuePlatform) {
-  const canonical = canonicalPlatform(platform);
-  if (canonical === 'linkedin') return 'https://www.linkedin.com/feed/';
-  if (canonical === 'x') return 'https://x.com/compose/post';
-  if (canonical === 'instagram') return 'https://www.instagram.com/';
-  return 'https://www.threads.net/';
+  return socialPlatformStartUrl(canonicalPlatform(platform)) || 'https://x.com/compose/post';
 }
 
 export async function auditedSocialAct(input: SocialQueueScriptInput, action: string) {

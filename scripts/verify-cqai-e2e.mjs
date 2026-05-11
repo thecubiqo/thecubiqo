@@ -2373,7 +2373,11 @@ async function main() {
   const optionalTables = new Set([
     // Phase 8 code tolerates this table missing until the live Supabase
     // project receives the job scan reporting migration.
-    'job_scan_runs'
+    'job_scan_runs',
+    // Commerce hardcoding Sprint 2 tables are runtime-migration dependent.
+    // They become required once the Sprint 2 migration is applied.
+    'social_accounts',
+    'pod_providers'
   ]);
   for (const table of [
     'profiles',
@@ -2394,6 +2398,7 @@ async function main() {
     'job_profiles',
     'resume_versions',
     'job_scan_runs',
+    'social_accounts',
     'pod_design_briefs',
     'gfxtools_jobs',
     'gfx_assets',
@@ -2425,7 +2430,8 @@ async function main() {
     'social_posts',
     'store_connections',
     'connector_oauth_states',
-    'pod_products'
+    'pod_products',
+    'pod_providers'
   ]) {
     const result = await verifyTable(config, table);
     if (optionalTables.has(table) && !result.ok) {
