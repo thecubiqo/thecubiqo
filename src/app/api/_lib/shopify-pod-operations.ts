@@ -35,7 +35,6 @@ type CommerceBlockedResult = { blocked: string; status?: number; details?: Recor
 type ConnectorState = 'disconnected' | 'configured_unverified' | 'connected' | 'failed' | 'rate_limited';
 type SyncStatus = 'prepared' | 'blocked_missing_credentials' | 'submitted' | 'synced' | 'failed' | 'rate_limited';
 
-const DEFAULT_SHOPIFY_STORE = 'carlophillips.myshopify.com';
 const SHOPIFY_API_VERSION = cleanEnv(process.env.SHOPIFY_API_VERSION) || '2025-01';
 
 const DIRECT_POD_PROVIDERS = ['printify', 'printful', 'gelato'] as const;
@@ -79,7 +78,7 @@ function stringArray(value: unknown, maxItems = 30) {
 
 function normalizeStoreUrl(value: unknown) {
   let store = text(value, 240).toLowerCase();
-  if (!store) store = DEFAULT_SHOPIFY_STORE;
+  if (!store) return null;
   store = store.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
   if (!store.endsWith('.myshopify.com')) store = `${store.replace(/\.myshopify\.com$/, '')}.myshopify.com`;
   return store;
@@ -87,12 +86,12 @@ function normalizeStoreUrl(value: unknown) {
 
 function normalizeProvider(value: unknown) {
   const provider = text(value, 80).toLowerCase().replace(/[^a-z0-9_]/g, '_');
-  return KNOWN_FULFILLMENT_PROVIDERS.includes(provider as any) ? provider : 'printify';
+  return KNOWN_FULFILLMENT_PROVIDERS.includes(provider as any) ? provider : null;
 }
 
 function normalizeConnectorProvider(value: unknown) {
   const provider = text(value, 80).toLowerCase().replace(/[^a-z0-9_]/g, '_');
-  return [...DIRECT_POD_PROVIDERS, 'aftership'].includes(provider as any) ? provider : 'printify';
+  return [...DIRECT_POD_PROVIDERS, 'aftership'].includes(provider as any) ? provider : null;
 }
 
 function normalizeStatus(value: unknown): 'draft' | 'active' | 'archived' {
@@ -142,9 +141,62 @@ async function maybeMissingTable<T>(feature: string, table: string, result: { da
 }
 
 function envShopifyCredentials() {
-  const storeUrl = normalizeStoreUrl(cleanEnv(process.env.SHOPIFY_SHOP_DOMAIN, process.env.SHOPIFY_STORE_DOMAIN) || DEFAULT_SHOPIFY_STORE);
+  const storeUrl = normalizeStoreUrl(cleanEnv(process.env.SHOPIFY_SHOP_DOMAIN, process.env.SHOPIFY_STORE_DOMAIN));
   const token = cleanEnv(process.env.SHOPIFY_ADMIN_ACCESS_TOKEN, process.env.SHOPIFY_ACCESS_TOKEN);
   return { storeUrl, token };
+}
+
+async function resolveShopifyStore(auth: ApiUserContext, requestedStore?: unknown) {
+  const requested = normalizeStoreUrl(requestedStore);
+  if (requested) return { storeUrl: requested, source: 'payload' as const, settings: {} as Record<string, any> };
+
+  const local = await auth.supabase
+    .from('shopify_store_connections')
+    .select('*')
+    .eq('user_id', auth.user.id)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (safeTableMissing(local.error)) return { error: missingMigrationResponse('commerce-ops', 'shopify_store_connections') };
+  if (local.error) return { error: new Error(local.error.message) };
+  if (local.data?.store_url) {
+    return {
+      storeUrl: normalizeStoreUrl(local.data.store_url) || local.data.store_url,
+      source: 'shopify_store_connections' as const,
+      settings: local.data as Record<string, any>
+    };
+  }
+
+  const oauth = await auth.supabase
+    .from('store_connections')
+    .select('shop_domain,metadata')
+    .eq('user_id', auth.user.id)
+    .eq('platform', 'shopify')
+    .eq('status', 'active')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!safeTableMissing(oauth.error) && !oauth.error && oauth.data?.shop_domain) {
+    return {
+      storeUrl: normalizeStoreUrl(oauth.data.shop_domain) || oauth.data.shop_domain,
+      source: 'store_connections' as const,
+      settings: jsonObject(oauth.data.metadata)
+    };
+  }
+
+  return {
+    blocked: 'Connect a Shopify store before running this commerce action.',
+    status: 409 as const,
+    details: { requiredAction: 'connect_shopify_store' }
+  };
+}
+
+function defaultProductTags(settings: Record<string, any>, payload: Record<string, unknown>) {
+  const explicit = stringArray(payload.tags);
+  if (explicit.length) return explicit;
+  return stringArray(settings.default_product_tags || settings.defaultProductTags || settings.metadata?.default_product_tags);
 }
 
 function envDirectProviderCredentials(provider: string) {
@@ -369,7 +421,7 @@ export async function listCommerceState(auth: ApiUserContext): Promise<Record<st
 
   return {
     shopifyStore: {
-      defaultStoreUrl: DEFAULT_SHOPIFY_STORE,
+      selectedStoreUrl: (shopifyConnections.data || [])[0]?.store_url || null,
       connections: shopifyConnections.data || [],
       connector: mapConnector(secretByProvider.get('shopify'), connectorFromEnv('shopify'))
     },
@@ -420,7 +472,9 @@ function buildProviderManifest(activeApps: string[], directOverrides: Record<str
 }
 
 export async function readFulfilmentProviders(auth: ApiUserContext): Promise<Record<string, unknown> | CommerceErrorResult> {
-  const storeUrl = DEFAULT_SHOPIFY_STORE;
+  const resolved = await resolveShopifyStore(auth);
+  if ('error' in resolved || 'blocked' in resolved) return resolved;
+  const storeUrl = resolved.storeUrl;
   const current = await auth.supabase
     .from('fulfillment_provider_statuses')
     .select('*')
@@ -459,7 +513,8 @@ export async function connectShopifyStore(
   previewCard: Record<string, unknown> | null
 ): Promise<Record<string, unknown> | CommerceBlockedResult | CommerceErrorResult> {
   if (!previewCard) return { blocked: 'shopify_store_connect requires an approval preview card.', status: 400 };
-  const storeUrl = normalizeStoreUrl(payload.storeUrl || payload.store_url || DEFAULT_SHOPIFY_STORE);
+  const storeUrl = normalizeStoreUrl(payload.storeUrl || payload.store_url);
+  if (!storeUrl) return { blocked: 'Shopify store URL is required. Use yourstore.myshopify.com.', status: 400 };
   const apiKey = text(payload.apiKey || payload.api_key || payload.privateAppApiKey || payload.private_app_api_key, 2400);
   if (!apiKey) return { blocked: 'Shopify private app API key is required and must be sent only to the server action boundary.', status: 400 };
   const encrypted = encryptSecret(apiKey);
@@ -544,7 +599,9 @@ export async function connectShopifyStore(
 }
 
 export async function readShopifyStoreStatus(auth: ApiUserContext): Promise<Record<string, unknown> | CommerceErrorResult> {
-  const storeUrl = DEFAULT_SHOPIFY_STORE;
+  const resolved = await resolveShopifyStore(auth);
+  if ('error' in resolved || 'blocked' in resolved) return resolved;
+  const storeUrl = resolved.storeUrl;
   const local = await auth.supabase
     .from('shopify_store_connections')
     .select('*')
@@ -606,6 +663,7 @@ export async function connectDirectProvider(
 ): Promise<Record<string, unknown> | CommerceBlockedResult | CommerceErrorResult> {
   if (!previewCard) return { blocked: 'pod_provider_connect requires an approval preview card.', status: 400 };
   const provider = normalizeConnectorProvider(payload.provider);
+  if (!provider) return { blocked: 'Select a supported direct connector: Printify, Printful, Gelato, or AfterShip.', status: 400 };
   if (!DIRECT_POD_PROVIDERS.includes(provider as any) && provider !== 'aftership') {
     return { blocked: 'Only Printify, Printful, Gelato, and AfterShip use direct credential connectors in V2.', status: 400 };
   }
@@ -646,12 +704,15 @@ export async function createShopifyProduct(
   const assetResult = await getReadyAsset(auth, assetId);
   if ('error' in assetResult || 'blocked' in assetResult) return assetResult;
   const provider = normalizeProvider(payload.fulfillmentProvider || payload.fulfillment_provider);
-  const title = text(payload.title, 240) || 'Untitled CubiQo POD Product';
+  if (!provider) return { blocked: 'Select a supported fulfillment provider before creating a Shopify product.', status: 400 };
+  const resolved = await resolveShopifyStore(auth, payload.storeUrl || payload.store_url);
+  if ('error' in resolved || 'blocked' in resolved) return resolved;
+  const title = text(payload.title, 240) || text(resolved.settings.default_product_title || resolved.settings.defaultProductTitle, 240) || 'New Product';
   const description = text(payload.description, 5000);
-  const tags = stringArray(payload.tags);
+  const tags = defaultProductTags(resolved.settings, payload);
   const variants = Array.isArray(payload.variants) ? payload.variants : [];
   const collections = stringArray(payload.collections);
-  const storeUrl = normalizeStoreUrl(payload.storeUrl || payload.store_url || DEFAULT_SHOPIFY_STORE);
+  const storeUrl = resolved.storeUrl;
   const productPayload = {
     product: {
       title,
@@ -783,6 +844,7 @@ export async function createProviderDesign(
 ): Promise<Record<string, unknown> | CommerceBlockedResult | CommerceErrorResult> {
   if (!previewCard) return { blocked: 'design_create requires an approval preview card.', status: 400 };
   const provider = normalizeProvider(payload.provider);
+  if (!provider) return { blocked: 'Select a supported direct POD provider before submitting a design.', status: 400 };
   if (!DIRECT_POD_PROVIDERS.includes(provider as any)) return { blocked: `${provider} is a Shopify-app provider in V2; CubiQo does not call it directly.`, status: 400 };
   const assetId = text(payload.assetId || payload.asset_id, 80);
   const assetResult = await getReadyAsset(auth, assetId);

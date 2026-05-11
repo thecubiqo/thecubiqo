@@ -4,6 +4,24 @@ Date: 2026-05-10
 Branch: `goodfeatureslegacy`
 Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched except explicit bugfix work.
 
+## Latest Commerce Hardcoding Sprint 1
+
+- Removed the developer-store fallback from the Shopify/POD operations layer. If no store is supplied or connected for the signed-in user, commerce actions now stop with a clear "connect a Shopify store" error.
+- Removed product-level source defaults for `['CubiQo', 'POD']` and `$29.00`. Product tags now come from the action payload or the user's store metadata/settings; price only appears when the payload or store defaults provide one.
+- Stopped silently converting unknown fulfilment/direct-provider values to Printify. Unsupported or missing providers now block and ask for an explicit supported provider.
+- Removed the personal Shopify store reference from the V2 capability manifest.
+- Added migration `supabase/migrations/20260511020000_commerce_multitenant_sprint1.sql` with per-store default fields on `shopify_store_connections`:
+  - `default_product_tags`
+  - `default_product_price`
+  - `default_product_title`
+  - `default_collection_title`
+- Regression gates:
+  - `npm run typecheck`: pass
+  - `npm run build`: pass after clearing a stale Windows/OneDrive `.next` file lock
+  - `npm run verify:cqai`: pass
+
+Database note: apply `20260511020000_commerce_multitenant_sprint1.sql` to the goodfeatureslegacy Supabase project before relying on per-store product defaults in live preview.
+
 ## Latest Career Closure Patch - Phases 9-10
 
 - Resume tailoring now appends richer resume-version metadata:

@@ -1039,12 +1039,12 @@ const ActionConsolePage = () => {
   const [jobApplyUrl, setJobApplyUrl] = useState('https://www.linkedin.com/jobs/view/example-product-ops');
   const [jobHandoffChecklist, setJobHandoffChecklist] = useState(null);
   const [socialQueuePlatform, setSocialQueuePlatform] = useState('linkedin');
-  const [socialQueueContent, setSocialQueueContent] = useState('CubiQo is preparing a new founder workflow update. Review this draft before it ever publishes.');
+  const [socialQueueContent, setSocialQueueContent] = useState('Draft a product or founder update. Review this draft before it ever publishes.');
   const [socialQueueMediaUrls, setSocialQueueMediaUrls] = useState('');
-  const [shopifyDomain, setShopifyDomain] = useState('carlophillips.myshopify.com');
+  const [shopifyDomain, setShopifyDomain] = useState('');
   const [printifyApiKey, setPrintifyApiKey] = useState('');
-  const [podProductTitle, setPodProductTitle] = useState('CubiQo Signal Tee');
-  const [podProductDescription, setPodProductDescription] = useState('Premium POD product drafted by CubiQo. Review pricing, fulfillment, and assets before publishing.');
+  const [podProductTitle, setPodProductTitle] = useState('New POD Product');
+  const [podProductDescription, setPodProductDescription] = useState('POD product draft. Review pricing, fulfillment, and assets before publishing.');
   const [podPrintProviderId, setPodPrintProviderId] = useState('');
   const [podBlueprintId, setPodBlueprintId] = useState('');
   const [podMediaAssets, setPodMediaAssets] = useState('');
@@ -1737,13 +1737,13 @@ const ActionConsolePage = () => {
       runLabel: 'Save brief',
       riskLevel: 'medium',
       payload: () => ({
-        title: 'CubiQo signal-wave POD tee',
+        title: podProductTitle || 'New POD Product',
         description: 'Create a premium POD apparel graphic with a subtle RGY signal wave, clean CubiQo intelligence aesthetic, no clutter, suitable for a black t-shirt.',
         format: 'image',
         platforms: ['instagram', 'linkedin', 'x', 'tiktok', 'facebook'],
         brandGuidelines: 'Premium, dark, minimal, intelligence-forward; no busy collage; clean signal-wave energy.',
         dimensionsRequested: '1080x1080',
-        brandName: 'CubiQo Studio',
+        brandName: 'Your Brand',
         productType: 'premium cotton t-shirt',
         targetAudience: 'AI builders, founders, and operators who like subtle futuristic apparel.',
         styleKeywords: ['minimal', 'premium', 'signal wave', 'monochrome', 'electric accent'],
@@ -1757,8 +1757,8 @@ const ActionConsolePage = () => {
         previewCard: {
           title: 'POD creative brief preview',
           after: {
-            title: 'CubiQo signal-wave POD tee',
-            brandName: 'CubiQo Studio',
+            title: podProductTitle || 'New POD Product',
+            brandName: 'Your Brand',
             productType: 'premium cotton t-shirt',
             format: 'image',
             platforms: ['instagram', 'linkedin', 'x', 'tiktok', 'facebook'],
@@ -1781,13 +1781,13 @@ const ActionConsolePage = () => {
       podDesignBriefId: latestPodBrief?.id || null,
       payload: () => ({
         brief_id: latestPodBrief?.id || null,
-        title: latestPodBrief?.title || 'CubiQo signal-wave POD tee',
+        title: latestPodBrief?.title || podProductTitle || 'New POD Product',
         description: latestPodBrief?.description || latestPodBrief?.prompt || 'Create a premium POD apparel graphic with a subtle RGY signal wave.',
         format: latestPodBrief?.format || 'image',
         dimensions: latestPodBrief?.dimensionsRequested || '1080x1080',
         platforms: latestPodBrief?.platforms || ['instagram', 'linkedin', 'x', 'tiktok', 'facebook'],
         brandGuidelines: latestPodBrief?.brandGuidelines || 'Premium, dark, minimal, intelligence-forward.',
-        brandName: latestPodBrief?.brandName || 'CubiQo Studio',
+        brandName: latestPodBrief?.brandName || 'Your Brand',
         productType: latestPodBrief?.productType || 'premium cotton t-shirt',
         prompt: latestPodBrief?.prompt || 'Create a premium POD apparel graphic with a subtle RGY signal wave.',
         negativePrompt: latestPodBrief?.negativePrompt || 'No cheap clipart, no crowded typography.',
@@ -1845,7 +1845,7 @@ const ActionConsolePage = () => {
       assetId: latestReadyAsset.id,
       payload: () => ({
         asset_id: latestReadyAsset.id,
-        title: latestPodBrief?.title || 'CubiQo signal-wave POD tee',
+        title: latestPodBrief?.title || podProductTitle || 'New POD Product',
         description: latestPodBrief?.description || 'Premium POD product prepared from a ready GFXTools asset.',
         priceRange: '$29-$49',
         previewCard: {
@@ -1855,7 +1855,7 @@ const ActionConsolePage = () => {
           assetUrl: latestReadyAsset.assetUrl,
           estimatedAction: 'create_product',
           product: {
-            title: latestPodBrief?.title || 'CubiQo signal-wave POD tee',
+            title: latestPodBrief?.title || podProductTitle || 'New POD Product',
             priceRange: '$29-$49'
           },
           willWriteTo: 'Supabase shopify_product_preparations',
@@ -1895,16 +1895,16 @@ const ActionConsolePage = () => {
       actionType: 'shopify_product_create',
       toolName: 'shopify_product_create',
       title: 'Create Shopify draft product',
-      summary: `CubiQo will create or prepare a Shopify draft product for carlophillips.myshopify.com from ready asset ${latestReadyAsset.id.slice(0, 8)}. It uses server-side credentials only and records a blocked state if Shopify is not connected.`,
+      summary: `CubiQo will create or prepare a Shopify draft product for ${shopifyDomain || 'your connected store'} from ready asset ${latestReadyAsset.id.slice(0, 8)}. It uses server-side credentials only and records a blocked state if Shopify is not connected.`,
       Icon: ShoppingBag,
       runLabel: 'Create product',
       riskLevel: 'high',
       assetId: latestReadyAsset.id,
       payload: () => ({
-        store_url: 'carlophillips.myshopify.com',
+        store_url: shopifyDomain || undefined,
         asset_id: latestReadyAsset.id,
-        title: latestPodBrief?.title || 'CubiQo signal-wave POD tee',
-        description: latestPodBrief?.description || 'Premium POD apparel generated from a ready CubiQo/GFXTools asset.',
+        title: latestPodBrief?.title || podProductTitle || 'New POD Product',
+        description: latestPodBrief?.description || podProductDescription || 'POD apparel generated from a ready creative asset.',
         fulfillment_provider: 'printify',
         variants: [
           { title: 'S / Black', price: 29, sku: 'CQ-SIGNAL-S-BLK', inventory_quantity: 25, provider_product_id: '' },
@@ -1912,15 +1912,15 @@ const ActionConsolePage = () => {
           { title: 'L / Black', price: 29, sku: 'CQ-SIGNAL-L-BLK', inventory_quantity: 25, provider_product_id: '' }
         ],
         tags: ['CubiQo', 'AI', 'POD', 'Signal Wave'],
-        collections: ['CubiQo Studio'],
+        collections: [],
         previewCard: {
           title: 'Shopify product creation preview',
-          store: 'carlophillips.myshopify.com',
+          store: shopifyDomain || 'your connected store',
           provider: 'printify',
           assetId: latestReadyAsset.id,
           changes: ['Create Shopify draft product if connector is verified', 'Otherwise store truthful blocked local product record'],
           submittedData: {
-            title: latestPodBrief?.title || 'CubiQo signal-wave POD tee',
+            title: latestPodBrief?.title || podProductTitle || 'New POD Product',
             status: 'draft',
             variants: ['S / Black', 'M / Black', 'L / Black'],
             tags: ['CubiQo', 'AI', 'POD', 'Signal Wave']
@@ -1967,7 +1967,7 @@ const ActionConsolePage = () => {
         status: 'active',
         previewCard: {
           title: 'Publish product approval preview',
-          store: 'carlophillips.myshopify.com',
+          store: shopifyDomain || 'your connected store',
           productId: latestShopifyProduct.productId,
           before: { status: latestShopifyProduct.status },
           after: { status: 'active' },
@@ -1990,7 +1990,7 @@ const ActionConsolePage = () => {
         status: 'archived',
         previewCard: {
           title: 'Archive product approval preview',
-          store: 'carlophillips.myshopify.com',
+          store: shopifyDomain || 'your connected store',
           productId: latestShopifyProduct.productId,
           before: { status: latestShopifyProduct.status },
           after: { status: 'archived' },
@@ -2008,13 +2008,13 @@ const ActionConsolePage = () => {
       runLabel: 'Create collection',
       riskLevel: 'medium',
       payload: () => ({
-        title: 'CubiQo Studio Drop',
+        title: 'New Collection',
         collection_type: 'manual',
         previewCard: {
           title: 'Collection creation preview',
-          store: 'carlophillips.myshopify.com',
+          store: shopifyDomain || 'your connected store',
           collectionType: 'manual',
-          title: 'CubiQo Studio Drop',
+          title: 'New Collection',
           willWriteTo: 'Supabase shopify_collections',
           willNotDo: ['No collection publish without connector verification']
         }
@@ -2101,7 +2101,7 @@ const ActionConsolePage = () => {
           platforms,
           variantCount: 3,
           topic: 'AI-native founder apparel launch',
-          productName: 'CubiQo signal-wave POD tee',
+          productName: latestPodBrief?.title || podProductTitle || 'New POD Product',
           targetAudience: 'AI builders, founders, startup operators, and people launching online businesses',
           cta: 'Vote on the first drop and follow the launch build.',
           previewCard: {
@@ -2527,7 +2527,7 @@ const ActionConsolePage = () => {
                   <input
                     value={shopifyDomain}
                     onChange={event => setShopifyDomain(event.target.value)}
-                    placeholder="carlophillips.myshopify.com"
+                    placeholder="yourstore.myshopify.com"
                     style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem' }}
                   />
                   <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.48)', fontSize: '0.74rem', lineHeight: 1.45 }}>

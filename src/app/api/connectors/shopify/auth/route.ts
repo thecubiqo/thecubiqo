@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   if (!clientId) return NextResponse.json({ error: 'SHOPIFY_CLIENT_ID is not configured' }, { status: 500 });
 
   const shop = normalizeShopDomain(request.nextUrl.searchParams.get('shop'));
-  if (!shop) return NextResponse.json({ error: 'shop is required, for example carlophillips.myshopify.com' }, { status: 400 });
+  if (!shop) return NextResponse.json({ error: 'shop is required, for example yourstore.myshopify.com' }, { status: 400 });
 
   const state = crypto.randomUUID();
   const redirectUri = new URL('/api/connectors/shopify/callback', request.nextUrl.origin).toString();

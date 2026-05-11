@@ -492,7 +492,7 @@ export const V2_CAPABILITIES: V2Capability[] = [
     approvalRequired: true,
     approvalRequestable: true,
     endpoint: '/api/actions/execute',
-    summary: 'Validates and stores Shopify credentials server-side only. The default store target is carlophillips.myshopify.com.',
+    summary: 'Validates and stores Shopify credentials server-side only. Connect your store via Settings → Connectors to enable POD features.',
     requirements: ['signed-in user', 'approved connection preview', 'server-side encryption key', 'Shopify private app/admin API key'],
     externalAction: true
   },

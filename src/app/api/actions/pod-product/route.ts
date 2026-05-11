@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createProduct as createPrintifyProduct } from '../../_lib/printify-client';
 import { createProduct as createShopifyProduct } from '../../_lib/shopify-client';
-import { requireApiUser, safeTableMissing, missingMigrationResponse } from '../../_lib/supabase-admin';
+import { type ApiUserContext, requireApiUser, safeTableMissing, missingMigrationResponse } from '../../_lib/supabase-admin';
 import { completeApproval, normalizePayload, requireApprovedAction, writeAudit } from '../../_lib/v2-actions';
 
 export const runtime = 'nodejs';
@@ -17,6 +17,20 @@ function normalizeStringArray(value: unknown, max = 20) {
 
 function normalizeObject(value: unknown) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+async function loadStoreDefaults(auth: ApiUserContext, shopDomain?: string) {
+  let query = auth.supabase
+    .from('store_connections')
+    .select('shop_domain,metadata')
+    .eq('user_id', auth.user.id)
+    .eq('platform', 'shopify')
+    .eq('status', 'active')
+    .order('updated_at', { ascending: false })
+    .limit(1);
+  if (shopDomain) query = query.eq('shop_domain', shopDomain);
+  const { data } = await query.maybeSingle();
+  return normalizeObject(data?.metadata);
 }
 
 export async function POST(request: NextRequest) {
@@ -41,6 +55,12 @@ export async function POST(request: NextRequest) {
   const previewCard = normalizeObject(payload.previewCard ?? payload.preview_card);
   const variants = Array.isArray(payload.variants) ? payload.variants : [];
   const printAreas = normalizeObject(payload.print_areas ?? payload.printAreas);
+  const storeDefaults = await loadStoreDefaults(auth, shopDomain);
+  const defaultTags = normalizeStringArray(storeDefaults.default_product_tags ?? storeDefaults.defaultProductTags, 20);
+  const explicitTags = normalizeStringArray(payload.tags, 20);
+  const productTags = explicitTags.length ? explicitTags : defaultTags;
+  const defaultPrice = normalizeText(payload.price ?? storeDefaults.default_product_price ?? storeDefaults.defaultProductPrice, 40);
+  const defaultVariant = defaultPrice ? [{ title: 'Default', price: defaultPrice }] : [];
 
   if (!title || !description || !printProviderId || !blueprintId || !mediaAssets.length) {
     await writeAudit(auth, {
@@ -91,9 +111,9 @@ export async function POST(request: NextRequest) {
       title,
       body_html: description,
       status: 'draft',
-      tags: ['CubiQo', 'POD'],
+      tags: productTags,
       images: mediaAssets.map(src => ({ src })),
-      variants: variants.length ? variants : [{ title: 'Default', price: String(payload.price || '29.00') }]
+      variants: variants.length ? variants : defaultVariant
     };
     const shopify = await createShopifyProduct(auth, shopDomain, shopifyPayload);
     if ('error' in shopify && shopify.error) throw shopify.error;
