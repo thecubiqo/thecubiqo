@@ -523,4 +523,12 @@ Latest role-agnostic career Phase 2 smoke:
 - Search URL smoke: passed; LinkedIn remote filter `f_WT=2` is absent for `Dallas hybrid` and present for `remote USA`.
 - Verification: `npm run typecheck`, `npm run build`, `npm run verify:cqai`, and a direct `structureJobDescription`/`buildJobSearchQueries` smoke passed after the Phase 2 patch.
 
+Latest role-agnostic career Phase 3 smoke:
+
+- Scope: Phase 3 only. Added `career_profile_read` to the streaming agent so CubiQo can read the signed-in user's saved job profile before generating search queries when the target role is unclear.
+- Auth boundary: passed static review; missing bearer token returns a clear `Not signed in` tool result with a prompt hint instead of attempting anonymous profile access.
+- Profile source: passed static review; the tool reads existing `/api/actions/execute?job_state=1`, which already returns user-owned `job_profiles` and resume versions through the server boundary.
+- Career prompt: passed; career mode now instructs the agent to call `career_profile_read` before asking/searching when role intent is unclear.
+- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 3 patch.
+
 Do not push this branch for review unless this contract stays current and regression remains green.

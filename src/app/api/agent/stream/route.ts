@@ -78,7 +78,7 @@ const CAREER_ADDENDUM = [
   '',
   'CAREER COACHING MODE ACTIVE: This user is working on job search, resume, or career goals.',
   'Act as a sharp, experienced Career Coach. Adapt to whatever role, domain, or industry the user is targeting.',
-  'If the target role is unclear, ask a concise clarifying question before generating role-specific search queries.',
+  'If the target role is unclear, call career_profile_read first; if no saved profile exists, ask a concise clarifying question before generating role-specific search queries.',
   'Always lead with the most actionable next step. Be specific about the role, the company, or the skill.',
   'When given a job description: call jd_analyze immediately. When given a profile + JD: call resume_gap_check.',
   'For job searches: call job_search_queries AND web_search in parallel if search is configured.',
@@ -302,6 +302,51 @@ export async function POST(request: NextRequest) {
         }),
 
         // ── Career tools (no API key needed) ─────────────────────────────────
+        career_profile_read: tool({
+          description: 'Read the signed-in user career profile: target roles, skills, preferred locations, work modes, salary, and experience. Call before job_search_queries if role is unknown.',
+          inputSchema: z.object({}),
+          execute: async () => {
+            if (!authToken) {
+              return {
+                error: 'Not signed in',
+                hint: 'Ask the user what role, location, and work mode they are targeting.'
+              };
+            }
+
+            const url = new URL('/api/actions/execute', request.url);
+            url.searchParams.set('job_state', '1');
+            const res = await fetch(url, {
+              headers: { authorization: `Bearer ${authToken}` },
+              cache: 'no-store'
+            });
+
+            if (!res.ok) {
+              return {
+                error: `Career profile read failed with ${res.status}`,
+                hint: 'Ask the user what role they are targeting.'
+              };
+            }
+
+            const data = await res.json().catch(() => ({}));
+            const profile = data.profile || null;
+            if (!profile) {
+              return {
+                error: 'No profile saved',
+                hint: 'Ask: what role are you targeting, where, and what work mode do you prefer?'
+              };
+            }
+
+            return {
+              targetRoles: profile.targetRoles || [],
+              skills: profile.skills || [],
+              preferredLocations: profile.preferredLocations || [],
+              workModes: profile.workModes || [],
+              salaryExpectation: profile.salaryExpectation || null,
+              yearsExperience: profile.yearsExperience ?? null,
+              experienceSummary: profile.experienceSummary || null
+            };
+          }
+        }),
         jd_analyze: tool({
           description: 'Structure a job description for any role or domain: title, salary, experience, work mode, location, and core sections. Call this whenever the user shares a JD.',
           inputSchema: z.object({
