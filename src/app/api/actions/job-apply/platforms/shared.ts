@@ -2,7 +2,7 @@ import { accessibilitySnapshot, act as stagehandAct, screenshot as stagehandScre
 import type { ApiUserContext } from '../../../_lib/supabase-admin';
 import { writeAudit } from '../../../_lib/v2-actions';
 
-export type JobApplyPlatform = 'linkedin' | 'indeed' | 'dice' | 'greenhouse' | 'lever';
+export type JobApplyPlatform = 'linkedin' | 'indeed' | 'dice' | 'greenhouse' | 'lever' | 'company_site';
 
 export type JobApplyScriptInput = {
   auth: ApiUserContext;

@@ -149,7 +149,7 @@ export const JOB_PROVIDER_REGISTRY: readonly JobProvider[] = [
     label: 'Company Site',
     domains: [],
     supportsScan: true,
-    supportsApply: false,
+    supportsApply: true,
     supportsEasyApply: false,
     supportsGenericForm: true,
     requiresLogin: false,

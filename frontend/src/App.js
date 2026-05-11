@@ -1276,6 +1276,7 @@ const ActionConsolePage = () => {
     if (value.includes('dice.')) return 'dice';
     if (value.includes('greenhouse.io')) return 'greenhouse';
     if (value.includes('lever.co')) return 'lever';
+    if (value.startsWith('http://') || value.startsWith('https://')) return 'company_site';
     return 'unknown';
   };
 
@@ -2513,7 +2514,7 @@ const ActionConsolePage = () => {
                             <input
                               value={jobApplyUrl}
                               onChange={event => setJobApplyUrl(event.target.value)}
-                              placeholder="Paste LinkedIn, Indeed, Dice, Greenhouse, or Lever job URL"
+                              placeholder="Paste LinkedIn, Indeed, Dice, ATS, or company careers URL"
                               style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem' }}
                             />
                             <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.72rem' }}>

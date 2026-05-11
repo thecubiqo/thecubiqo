@@ -6,6 +6,7 @@ import { type ApiUserContext, missingMigrationResponse, requireApiUser, safeTabl
 import { completeApproval, normalizePayload, requireApprovedAction, writeAudit } from '../../_lib/v2-actions';
 import { applyAts } from './platforms/ats';
 import { applyDice } from './platforms/dice';
+import { applyGenericCompanySite } from './platforms/generic';
 import { applyIndeed } from './platforms/indeed';
 import { applyLinkedIn } from './platforms/linkedin';
 import type { JobApplyPlatform, JobApplyScriptInput } from './platforms/shared';
@@ -33,7 +34,7 @@ function detectProvider(inputPlatform: unknown, jobUrl: string): JobProvider | n
   const requested = normalizeText(inputPlatform, 40).toLowerCase();
   const requestedProvider = getJobProvider(requested);
   if (requestedProvider) return requestedProvider;
-  return resolveJobProviderForUrl(jobUrl);
+  return resolveJobProviderForUrl(jobUrl) || getJobProvider('company_site');
 }
 
 function envFlag(name: string) {
@@ -108,6 +109,7 @@ async function runPlatformScript(input: JobApplyScriptInput) {
   if (input.platform === 'linkedin') return applyLinkedIn(input);
   if (input.platform === 'indeed') return applyIndeed(input);
   if (input.platform === 'dice') return applyDice(input);
+  if (input.platform === 'company_site') return applyGenericCompanySite(input);
   return applyAts(input);
 }
 

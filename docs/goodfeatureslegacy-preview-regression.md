@@ -548,4 +548,13 @@ Latest role-agnostic career Phase 5 smoke:
 - Registry smoke: passed; LinkedIn and Workday URLs resolve correctly, `company_site` is scan-registered, and Workday remains scan-only until the generic apply adapter phase.
 - Verification: `npm run typecheck`, `npm run build`, `npm run verify:cqai`, and a direct provider-registry smoke passed after the Phase 5 patch.
 
+Latest role-agnostic career Phase 6 smoke:
+
+- Scope: Phase 6 only. Added a generic `company_site` job-apply adapter for employer websites and unrecognized career-site URLs.
+- Safety boundary: passed static validation; generic apply still goes through `/api/actions/job-apply`, approved `job_apply` records, Browserbase/Stagehand session creation, URL allowlist/secondary confirmation, audit logging, screenshots, and the separate final user submit route.
+- Generic adapter: passed static validation; it finds the apply flow, identifies required/custom fields, fills only clear non-sensitive fields from approved profile data, stops before final submit, and returns a review screenshot receipt.
+- Provider registry: passed; `company_site` now has `supportsApply: true`, `supportsGenericForm: true`, `requiresFinalUserCta: true`, and `adapter: generic_browser`.
+- UI copy: passed; `/actions` job URL input now accepts LinkedIn, Indeed, Dice, ATS, or company careers URLs and detects generic URLs as `company_site`.
+- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 6 patch.
+
 Do not push this branch for review unless this contract stays current and regression remains green.
