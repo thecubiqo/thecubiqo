@@ -4,13 +4,23 @@ import { requireApiUser, safeTableMissing, missingMigrationResponse } from '../.
 export const runtime = 'nodejs';
 
 const TRACKER_STATUSES = [
+  'discovered',
+  'matched',
   'saved',
   'drafted',
+  'tailoring',
+  'questions_needed',
   'ready',
+  'ready_to_apply',
+  'applying',
+  'ready_to_submit',
+  'submitted',
   'applied',
   'response',
   'interview',
   'offer',
+  'failed',
+  'cancelled',
   'rejected',
   'withdrawn'
 ] as const;
@@ -21,14 +31,11 @@ const STATUS_ALIASES: Record<string, TrackerStatus> = {
   discovered: 'saved',
   pending: 'saved',
   reviewing: 'drafted',
-  tailoring: 'drafted',
   prepared: 'ready',
   approved_for_submission: 'ready',
-  ready_to_submit: 'ready',
   submitted: 'applied',
   submitted_by_user: 'applied',
   in_progress: 'drafted',
-  applying: 'drafted',
   cancelled: 'withdrawn',
   archived: 'withdrawn'
 };
@@ -51,13 +58,15 @@ function appDbStatus(status: TrackerStatus) {
   // The Phase 10 migration adds `applied` and `response` to job_applications.
   // Older rows still use `submitted`; display normalization keeps both valid.
   if (status === 'drafted') return 'in_progress';
-  if (status === 'ready') return 'ready_to_submit';
+  if (status === 'ready' || status === 'ready_to_apply') return 'ready_to_submit';
   if (status === 'applied' || status === 'response') return 'submitted';
   return status;
 }
 
 function listingDbStatus(status: TrackerStatus) {
   if (status === 'drafted') return 'prepared';
+  if (status === 'ready_to_submit') return 'ready';
+  if (status === 'submitted') return 'submitted';
   if (status === 'response') return 'applied';
   return status;
 }
@@ -111,15 +120,18 @@ export async function GET(request: NextRequest) {
 
   // Shape into pipeline stages. `trackerStatus` is the product-facing lifecycle;
   // raw `status` is kept for older records and platform runtime states.
-  const pipeline = rows.map((l: any) => ({
+  const pipeline = rows.map((l: any) => {
+    const trackerStatus = displayTrackerStatus(l);
+    return ({
     id: l.id,
     title: l.title,
     company: l.company,
     location: l.location,
     platform: l.source_platform,
     jobUrl: l.source_url,
-    status: l.status || 'discovered',
-    trackerStatus: displayTrackerStatus(l),
+    status: trackerStatus,
+    rawStatus: l.status || 'discovered',
+    trackerStatus,
     atsScore: l.metadata?.score || l.metadata?.ats_score || null,
     postedAt: l.metadata?.posted_at || l.created_at,
     salary: l.metadata?.salary || null,
@@ -128,12 +140,14 @@ export async function GET(request: NextRequest) {
     applications: appsByListing[l.id] || [],
     createdAt: l.created_at,
     updatedAt: l.updated_at
-  }));
+  });
+  });
 
   const applicationTracker = applications.map((app: any) => ({
     id: app.id,
     listingId: app.listing_id || null,
-    status: app.status,
+    status: displayTrackerStatus(app),
+    rawStatus: app.status,
     trackerStatus: displayTrackerStatus(app),
     platform: app.platform,
     applyUrl: app.apply_url,
@@ -144,17 +158,9 @@ export async function GET(request: NextRequest) {
     createdAt: app.created_at
   }));
 
-  const stages = {
-    saved: pipeline.filter((j: any) => j.trackerStatus === 'saved'),
-    drafted: pipeline.filter((j: any) => j.trackerStatus === 'drafted'),
-    ready: pipeline.filter((j: any) => j.trackerStatus === 'ready'),
-    applied: pipeline.filter((j: any) => j.trackerStatus === 'applied'),
-    response: pipeline.filter((j: any) => j.trackerStatus === 'response'),
-    interview: pipeline.filter((j: any) => j.trackerStatus === 'interview'),
-    offer: pipeline.filter((j: any) => j.trackerStatus === 'offer'),
-    rejected: pipeline.filter((j: any) => j.trackerStatus === 'rejected'),
-    withdrawn: pipeline.filter((j: any) => j.trackerStatus === 'withdrawn')
-  };
+  const stages = Object.fromEntries(
+    TRACKER_STATUSES.map(status => [status, pipeline.filter((j: any) => j.trackerStatus === status)])
+  );
 
   return NextResponse.json({
     pipeline,

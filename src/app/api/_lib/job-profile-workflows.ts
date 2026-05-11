@@ -59,8 +59,11 @@ function normalizeJsonObject(value: unknown) {
   return value as Record<string, unknown>;
 }
 
-function getPayloadField(payload: Record<string, unknown>, camel: string, snake: string) {
-  return payload[camel] ?? payload[snake];
+function getPayloadField(payload: Record<string, unknown>, ...keys: string[]) {
+  for (const key of keys) {
+    if (payload[key] !== undefined) return payload[key];
+  }
+  return undefined;
 }
 
 function mapJobProfile(row: Record<string, any>) {
@@ -97,6 +100,10 @@ function mapResumeVersion(row: Record<string, any>) {
     resumeContent: row.resume_content,
     resumeFormat: row.resume_format,
     targetRole: row.target_role,
+    company: row.company || null,
+    matchScore: row.match_score ?? null,
+    jdKeywords: row.jd_keywords || [],
+    coverLetterContent: row.cover_letter_content || null,
     changeSummary: row.change_summary,
     diffPreview: row.diff_preview || {},
     sourcePayload: row.source_payload || {},
@@ -254,6 +261,14 @@ export async function writeResumeVersion(
   const resumeContent = normalizeText(getPayloadField(payload, 'resumeContent', 'resume_content'), 30000);
   const resumeFormat = normalizeText(getPayloadField(payload, 'resumeFormat', 'resume_format'), 40) || 'plain_text';
   const targetRole = normalizeNullableText(getPayloadField(payload, 'targetRole', 'target_role'), 180);
+  const company = normalizeNullableText(getPayloadField(payload, 'company'), 180);
+  const rawMatchScore = normalizeNumber(getPayloadField(payload, 'matchScore', 'match_score'));
+  const matchScore = rawMatchScore === null ? null : Math.min(100, Math.max(0, Math.round(rawMatchScore)));
+  const jdKeywords = normalizeStringArray(getPayloadField(payload, 'jdKeywords', 'jd_keywords'), 30, 80);
+  const coverLetterContent = normalizeNullableText(
+    getPayloadField(payload, 'coverLetterContent', 'cover_letter_content', 'coverLetter', 'cover_letter'),
+    12000
+  );
   const changeSummary = normalizeNullableText(getPayloadField(payload, 'changeSummary', 'change_summary'), 3000);
   const jobProfileId = normalizeNullableText(getPayloadField(payload, 'jobProfileId', 'job_profile_id'), 80);
 
@@ -281,6 +296,10 @@ export async function writeResumeVersion(
   const sourcePayload = {
     name,
     targetRole,
+    company,
+    matchScore,
+    jdKeywords,
+    hasCoverLetter: Boolean(coverLetterContent),
     resumeFormat,
     changeSummary,
     contentLength: resumeContent.length
@@ -296,11 +315,15 @@ export async function writeResumeVersion(
       resume_content: resumeContent,
       resume_format: resumeFormat,
       target_role: targetRole,
+      company,
+      match_score: matchScore,
+      jd_keywords: jdKeywords,
+      cover_letter_content: coverLetterContent,
       change_summary: changeSummary,
       diff_preview: approvalPreviewCard,
       source_payload: sourcePayload
     })
-    .select('id,approval_id,job_profile_id,name,resume_content,resume_format,target_role,change_summary,diff_preview,source_payload,created_at')
+    .select('id,approval_id,job_profile_id,name,resume_content,resume_format,target_role,company,match_score,jd_keywords,cover_letter_content,change_summary,diff_preview,source_payload,created_at')
     .single();
 
   if (error) {

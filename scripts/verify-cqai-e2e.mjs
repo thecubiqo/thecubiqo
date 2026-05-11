@@ -2258,17 +2258,52 @@ function verifyJobApplicationPacketContract() {
 function verifyJobTrackerContract() {
   const routePath = path.join(repoRoot, 'src', 'app', 'api', 'jobs', 'pipeline', 'route.ts');
   const appPath = path.join(repoRoot, 'frontend', 'src', 'App.js');
+  const jobPipelinePath = path.join(repoRoot, 'frontend', 'src', 'components', 'JobPipeline.js');
   const migrationPath = path.join(repoRoot, 'supabase', 'migrations', '20260511000000_job_application_tracker_statuses.sql');
+  const closureMigrationPath = path.join(repoRoot, 'supabase', 'migrations', '20260511010000_resume_tracker_closure.sql');
   const route = fs.existsSync(routePath) ? fs.readFileSync(routePath, 'utf8') : '';
   const app = fs.existsSync(appPath) ? fs.readFileSync(appPath, 'utf8') : '';
+  const jobPipeline = fs.existsSync(jobPipelinePath) ? fs.readFileSync(jobPipelinePath, 'utf8') : '';
   const migration = fs.existsSync(migrationPath) ? fs.readFileSync(migrationPath, 'utf8') : '';
+  const closureMigration = fs.existsSync(closureMigrationPath) ? fs.readFileSync(closureMigrationPath, 'utf8') : '';
+  const requiredStatuses = [
+    'discovered', 'matched', 'saved', 'drafted', 'tailoring', 'questions_needed',
+    'ready', 'ready_to_apply', 'applying', 'ready_to_submit', 'submitted',
+    'applied', 'response', 'interview', 'offer', 'failed', 'cancelled',
+    'rejected', 'withdrawn'
+  ];
   const checks = [
     { name: 'pipeline_patch_exists', ok: route.includes('export async function PATCH') },
-    { name: 'tracker_statuses_include_response', ok: route.includes("'response'") && route.includes("'interview'") && route.includes("'withdrawn'") },
+    { name: 'tracker_statuses_cover_full_lifecycle', ok: requiredStatuses.every(status => route.includes(`'${status}'`)) },
     { name: 'stores_tracker_status_metadata', ok: route.includes('tracker_status') && route.includes('tracker_updated_at') },
     { name: 'legacy_db_status_compatible', ok: route.includes("if (status === 'applied' || status === 'response') return 'submitted'") },
     { name: 'ui_has_tracker_status_controls', ok: app.includes('updateJobTrackerStatus') && app.includes('trackerStatuses') },
-    { name: 'migration_extends_status_constraints', ok: migration.includes('job_applications_status_check') && migration.includes("'response'") }
+    { name: 'job_pipeline_uses_tracker_status_as_display_status', ok: route.includes('rawStatus') && route.includes('status: trackerStatus') },
+    { name: 'job_pipeline_renders_tailored_resume_badge', ok: jobPipeline.includes('Tailored resume saved') && jobPipeline.includes('tailoredResumeId') },
+    { name: 'migration_extends_status_constraints', ok: migration.includes('job_applications_status_check') && closureMigration.includes("'questions_needed'") && closureMigration.includes("'ready_to_apply'") }
+  ];
+
+  return {
+    ok: checks.every(item => item.ok),
+    checks
+  };
+}
+
+function verifyResumeTailoringContract() {
+  const migrationPath = path.join(repoRoot, 'supabase', 'migrations', '20260511010000_resume_tracker_closure.sql');
+  const easyApplyPath = path.join(repoRoot, 'src', 'app', 'api', 'jobs', 'easy-apply', 'route.ts');
+  const profileWorkflowPath = path.join(repoRoot, 'src', 'app', 'api', '_lib', 'job-profile-workflows.ts');
+  const migration = fs.existsSync(migrationPath) ? fs.readFileSync(migrationPath, 'utf8') : '';
+  const easyApply = fs.existsSync(easyApplyPath) ? fs.readFileSync(easyApplyPath, 'utf8') : '';
+  const profileWorkflow = fs.existsSync(profileWorkflowPath) ? fs.readFileSync(profileWorkflowPath, 'utf8') : '';
+  const checks = [
+    { name: 'resume_versions_has_company', ok: migration.includes('company text') },
+    { name: 'resume_versions_has_match_score', ok: migration.includes('match_score integer') },
+    { name: 'resume_versions_has_jd_keywords', ok: migration.includes('jd_keywords text[]') },
+    { name: 'resume_versions_has_cover_letter_content', ok: migration.includes('cover_letter_content text') },
+    { name: 'approved_resume_write_persists_tailoring_fields', ok: ['company', 'match_score', 'jd_keywords', 'cover_letter_content'].every(token => profileWorkflow.includes(token)) },
+    { name: 'easy_apply_appends_tailored_resume_version', ok: easyApply.includes(".from('resume_versions')") && easyApply.includes('tailoredResumeVersionId') },
+    { name: 'base_resume_not_updated', ok: !easyApply.includes(".from('resume_versions')\n        .update") && profileWorkflow.includes('insert({') }
   ];
 
   return {
@@ -2404,6 +2439,7 @@ async function main() {
   const frontendSecretBoundary = verifyFrontendSecretBoundary();
   const jobApplicationPacketContract = verifyJobApplicationPacketContract();
   const jobTrackerContract = verifyJobTrackerContract();
+  const resumeTailoringContract = verifyResumeTailoringContract();
   const jobHandoffChecklistContract = verifyJobHandoffChecklistContract();
   const jobComplexFormContract = verifyJobComplexFormContract();
 
@@ -2416,9 +2452,10 @@ async function main() {
     frontendSecretBoundary,
     jobApplicationPacketContract,
     jobTrackerContract,
+    resumeTailoringContract,
     jobHandoffChecklistContract,
     jobComplexFormContract,
-    passed: signup.ok && tables.every(isRequiredTableHealthy) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok && jobApplicationPacketContract.ok && jobTrackerContract.ok && jobHandoffChecklistContract.ok && jobComplexFormContract.ok
+    passed: signup.ok && tables.every(isRequiredTableHealthy) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok && jobApplicationPacketContract.ok && jobTrackerContract.ok && resumeTailoringContract.ok && jobHandoffChecklistContract.ok && jobComplexFormContract.ok
   };
 
   console.log(JSON.stringify(report, null, 2));

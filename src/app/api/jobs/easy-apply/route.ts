@@ -21,6 +21,20 @@ function detectPlatform(url: string): string {
   return 'company_site';
 }
 
+function extractJdKeywords(description: string, skills: unknown): string[] {
+  const text = String(description || '').toLowerCase();
+  const skillMatches = Array.isArray(skills)
+    ? skills
+        .map(skill => String(skill || '').trim())
+        .filter(skill => skill && text.includes(skill.toLowerCase()))
+    : [];
+  const titleWords = String(description || '')
+    .match(/\b[A-Z][A-Za-z+#.]{2,}\b/g)
+    ?.filter(word => !['The', 'And', 'For', 'With', 'This', 'That'].includes(word))
+    .slice(0, 8) || [];
+  return Array.from(new Set([...skillMatches, ...titleWords])).slice(0, 20);
+}
+
 async function getProfileData(auth: any) {
   const { data: profile } = await auth.supabase
     .from('job_profiles')
@@ -118,10 +132,11 @@ export async function POST(request: NextRequest) {
 
   const { profile, resume, answers } = await getProfileData(auth);
 
-  // Auto-tailor a preview if not already done. Persisting a resume version is
-  // intentionally reserved for the approved resume_version_write action.
+  // Auto-tailor a resume version if not already done. This appends a new
+  // version only; the base resume is never updated or overwritten.
   let tailoredResume = resume;
   let tailoringPreview: Record<string, unknown> | null = null;
+  let tailoredResumeVersionId: string | null = null;
   if (listing && listing.description && (!listing.metadata?.tailoring_status || listing.metadata?.tailoring_status === 'pending')) {
     try {
       const tailoring = await tailorApplicationForJob({
@@ -143,6 +158,7 @@ export async function POST(request: NextRequest) {
         tailoringSource: tailoring.tailoringSource,
         saveRequiresAction: 'resume_version_write'
       };
+      const jdKeywords = extractJdKeywords(listing.description, profile?.skills);
       tailoredResume = {
         ...resume,
         resume_content: tailoring.tailoredResumeSummary,
@@ -150,6 +166,52 @@ export async function POST(request: NextRequest) {
         cover_letter: tailoring.coverLetter,
         ats_score: tailoring.score
       };
+
+      const { data: savedResume } = await auth.supabase
+        .from('resume_versions')
+        .insert({
+          user_id: auth.user.id,
+          job_profile_id: profile?.id || null,
+          name: String(tailoringPreview.suggestedName),
+          resume_content: tailoring.tailoredResumeSummary,
+          content: tailoring.tailoredResumeSummary,
+          resume_format: 'plain_text',
+          target_role: listing.title,
+          company: listing.company || null,
+          match_score: tailoring.score,
+          jd_keywords: jdKeywords,
+          cover_letter: tailoring.coverLetter,
+          cover_letter_content: tailoring.coverLetter,
+          ats_score: tailoring.score,
+          change_summary: tailoring.scoreSummary,
+          diff_preview: {
+            before: { resumeVersionId: resume?.id || null },
+            after: {
+              targetRole: listing.title,
+              company: listing.company || null,
+              matchScore: tailoring.score,
+              jdKeywords
+            }
+          },
+          source_payload: {
+            source: 'easy_apply_tailoring',
+            jobListingId: listing.id,
+            tailoringSource: tailoring.tailoringSource,
+            appendOnly: true
+          },
+          metadata: {
+            job_listing_id: listing.id,
+            company: listing.company || null,
+            match_score: tailoring.score,
+            jd_keywords: jdKeywords,
+            cover_letter_content: tailoring.coverLetter,
+            tailoring_source: tailoring.tailoringSource
+          }
+        })
+        .select('id')
+        .single();
+
+      tailoredResumeVersionId = savedResume?.id || null;
 
       if (listingId) {
         await auth.supabase
@@ -160,9 +222,10 @@ export async function POST(request: NextRequest) {
               tailoring_status: 'preview_ready',
               tailoring_preview: tailoringPreview,
               ats_score: tailoring.score,
-              resume_version_write_required: true
+              tailored_resume_id: tailoredResumeVersionId,
+              resume_version_write_required: !tailoredResumeVersionId
             },
-            status: 'ready'
+            status: tailoredResumeVersionId ? 'ready_to_apply' : 'ready'
           })
           .eq('id', listingId);
       }
@@ -264,7 +327,8 @@ export async function POST(request: NextRequest) {
         final_submit_blocked: requestedMode === 'submit',
         session_id: sessionId,
         tailoring_preview: tailoringPreview,
-        resume_version_write_required: Boolean(tailoringPreview)
+        tailored_resume_id: tailoredResumeVersionId,
+        resume_version_write_required: Boolean(tailoringPreview && !tailoredResumeVersionId)
       }
     })
     .select('id, status, screenshot_url, submitted_at')
@@ -275,7 +339,14 @@ export async function POST(request: NextRequest) {
     await auth.supabase
       .from('job_listings')
       .update({
-        status: applyStatus === 'failed' ? 'failed' : 'ready',
+        status: applyStatus === 'failed' ? 'failed' : 'ready_to_submit',
+        metadata: {
+          ...(listing?.metadata || {}),
+          tracker_status: applyStatus === 'failed' ? 'failed' : 'ready_to_submit',
+          tailored_resume_id: tailoredResumeVersionId || listing?.metadata?.tailored_resume_id || null,
+          tailoring_status: tailoredResumeVersionId ? 'saved' : listing?.metadata?.tailoring_status || null,
+          tailoring_preview: tailoringPreview || listing?.metadata?.tailoring_preview || null
+        },
         updated_at: new Date().toISOString()
       })
       .eq('id', listingId);
@@ -286,7 +357,7 @@ export async function POST(request: NextRequest) {
     toolName: 'job_easy_apply',
     status: applyStatus === 'failed' ? 'failed' : 'completed',
     message: `Application staged for review on ${platform}; final submit requires a user action`,
-    result: { applicationId: application?.id, screenshotUrl, platform, mode, resumeVersionSaved: false },
+    result: { applicationId: application?.id, screenshotUrl, platform, mode, resumeVersionSaved: Boolean(tailoredResumeVersionId), tailoredResumeVersionId },
     screenshotUrl: screenshotUrl || undefined
   });
 
@@ -306,7 +377,8 @@ export async function POST(request: NextRequest) {
     mode,
     requestedMode,
     tailoringPreview,
-    resumeVersionSaved: false,
+    resumeVersionSaved: Boolean(tailoredResumeVersionId),
+    tailoredResumeVersionId,
     finalSubmitBlocked: requestedMode === 'submit'
   });
 }

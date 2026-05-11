@@ -4,6 +4,28 @@ Date: 2026-05-10
 Branch: `goodfeatureslegacy`
 Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched except explicit bugfix work.
 
+## Latest Career Closure Patch - Phases 9-10
+
+- Resume tailoring now appends richer resume-version metadata:
+  - `company`
+  - `match_score`
+  - `jd_keywords`
+  - `cover_letter_content`
+- The base resume is still never modified. Tailored output is stored as a new resume version.
+- `/api/jobs/easy-apply` mirrors tailored resume metadata into `resume_versions` when a user stages an application.
+- `/api/actions/execute` `resume_version_write` also accepts and stores the same fields after approval.
+- Job tracker lifecycle now supports the broader product statuses:
+  - `discovered`, `matched`, `saved`, `drafted`, `tailoring`, `questions_needed`, `ready`, `ready_to_apply`, `applying`, `ready_to_submit`, `submitted`, `applied`, `response`, `interview`, `offer`, `failed`, `cancelled`, `rejected`, `withdrawn`
+- `/api/jobs/pipeline` returns tracker-facing `status` plus `rawStatus` for runtime compatibility.
+- `JobPipeline` renders a visible tailored-resume badge when `tailoringStatus` or `tailoredResumeId` exists.
+- New migration: `supabase/migrations/20260511010000_resume_tracker_closure.sql`.
+- Regression gates:
+  - `npm run typecheck`: pass
+  - `npm run build`: pass
+  - `npm run verify:cqai`: pass
+
+Database note: apply `20260511010000_resume_tracker_closure.sql` to the goodfeatureslegacy Supabase project before expecting the live preview to persist the four new resume-version columns.
+
 ## Visible UI Surfaces
 
 - Landing screen: existing CubiQo landing/particle experience remains the entry point.

@@ -5,12 +5,24 @@ import { supabase } from '../lib/supabase';
 
 const STAGE_LABELS = {
   discovered: { label: 'Discovered', color: '#60a5fa', dot: '#3b82f6' },
+  matched:    { label: 'Matched',    color: '#38bdf8', dot: '#0ea5e9' },
+  saved:      { label: 'Saved',      color: '#93c5fd', dot: '#60a5fa' },
+  drafted:    { label: 'Drafted',    color: '#c4b5fd', dot: '#8b5cf6' },
   tailoring:  { label: 'Tailoring',  color: '#f59e0b', dot: '#f59e0b' },
+  questions_needed: { label: 'Questions', color: '#fbbf24', dot: '#f59e0b' },
   ready:      { label: 'Ready',      color: '#34d399', dot: '#10b981' },
+  ready_to_apply: { label: 'Ready to Apply', color: '#34d399', dot: '#10b981' },
   applying:   { label: 'Applying',   color: '#a78bfa', dot: '#8b5cf6' },
+  ready_to_submit: { label: 'Ready to Submit', color: '#22c55e', dot: '#16a34a' },
   submitted:  { label: 'Submitted',  color: '#34d399', dot: '#10b981' },
+  applied:    { label: 'Applied',    color: '#34d399', dot: '#10b981' },
+  response:   { label: 'Response',   color: '#60a5fa', dot: '#3b82f6' },
   failed:     { label: 'Failed',     color: '#f87171', dot: '#ef4444' },
+  cancelled:  { label: 'Cancelled',  color: '#94a3b8', dot: '#64748b' },
   interview:  { label: 'Interview',  color: '#fbbf24', dot: '#f59e0b' },
+  offer:      { label: 'Offer',      color: '#fde68a', dot: '#f59e0b' },
+  rejected:   { label: 'Rejected',   color: '#f87171', dot: '#ef4444' },
+  withdrawn:  { label: 'Withdrawn',  color: '#94a3b8', dot: '#64748b' },
 };
 
 function atsBar(score) {
@@ -112,6 +124,8 @@ function DuoModeCta({ onClick }) {
 function JobCapsule({ job, onDuoMode, onSignalChat, onApply, isApplying }) {
   const stage = STAGE_LABELS[job.status] || STAGE_LABELS.discovered;
   const platformIcon = PLATFORM_ICONS[job.platform] || '🌐';
+  const hasTailoredResume = Boolean(job.tailoredResumeId);
+  const tailoringStatus = job.tailoringStatus || (hasTailoredResume ? 'saved' : null);
 
   return (
     <div style={{
@@ -150,6 +164,28 @@ function JobCapsule({ job, onDuoMode, onSignalChat, onApply, isApplying }) {
             <div style={{ color: '#34d399', fontSize: '0.68rem', marginTop: 2 }}>{job.salary}</div>
           )}
           {job.atsScore != null && atsBar(job.atsScore)}
+          {(tailoringStatus || hasTailoredResume) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+              <span style={{
+                background: hasTailoredResume ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
+                color: hasTailoredResume ? '#34d399' : '#fbbf24',
+                border: `1px solid ${hasTailoredResume ? 'rgba(34,197,94,0.28)' : 'rgba(245,158,11,0.28)'}`,
+                borderRadius: 999,
+                padding: '2px 8px',
+                fontSize: '0.6rem',
+                fontWeight: 800,
+                letterSpacing: 0.4,
+                textTransform: 'uppercase'
+              }}>
+                {hasTailoredResume ? 'Tailored resume saved' : `Tailoring ${tailoringStatus}`}
+              </span>
+              {hasTailoredResume && (
+                <span style={{ color: 'rgba(255,255,255,0.32)', fontSize: '0.58rem' }}>
+                  version {String(job.tailoredResumeId).slice(0, 8)}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -157,7 +193,7 @@ function JobCapsule({ job, onDuoMode, onSignalChat, onApply, isApplying }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
         <SignalChatIcon onClick={() => onSignalChat(job)} />
         <DuoModeCta onClick={() => onDuoMode(job)} />
-        {['ready', 'prepared', 'discovered'].includes(job.status) && (
+        {['discovered', 'matched', 'saved', 'drafted', 'tailoring', 'questions_needed', 'ready', 'ready_to_apply', 'ready_to_submit'].includes(job.status) && (
           <button
             onClick={() => onApply(job)}
             disabled={isApplying}
