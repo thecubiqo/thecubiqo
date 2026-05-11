@@ -557,4 +557,14 @@ Latest role-agnostic career Phase 6 smoke:
 - UI copy: passed; `/actions` job URL input now accepts LinkedIn, Indeed, Dice, ATS, or company careers URLs and detects generic URLs as `company_site`.
 - Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 6 patch.
 
+Latest role-agnostic career QA reconciliation patch:
+
+- QA interpretation: passed; `ba`, `business analyst`, `analyst`, `scrum`, `scrum master`, `pm`, `po`, and `product owner` intentionally remain as career detection terms. They route the user into career mode; they no longer force BA/PM assumptions.
+- Query builder shape: passed; `buildJobSearchQueries` now accepts one object input with optional `role`, `targetTitles`, `location`, `workMode`, `skills`, `seniority`, and `recency`.
+- Missing role guard: passed; an empty input returns `{ clarificationNeeded: true, error: "Role unclear", action: "ask_user" }` instead of generating any fallback BA query.
+- Recency filters: passed; `24h`, `3d`, `7d`, and `30d` map to LinkedIn `f_TPR` and Indeed `fromage` filters. Default recency is `24h`.
+- Remote filter regression: passed; LinkedIn `f_WT=2` is added only when the combined location/work mode includes `remote`. Hybrid and onsite searches do not silently become remote-only.
+- Job Pipeline failure state: passed; pipeline load errors now clear stale rows, show a visible error card, and expose a retry button. Empty state remains neutral and role-agnostic.
+- Verification: `npm run typecheck`, `npm run build`, `npm run verify:cqai`, and a direct `buildJobSearchQueries` smoke passed after the QA reconciliation patch.
+
 Do not push this branch for review unless this contract stays current and regression remains green.

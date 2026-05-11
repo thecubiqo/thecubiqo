@@ -415,20 +415,11 @@ export async function POST(request: NextRequest) {
             location: z.string().min(2).max(200).optional(),
             workMode: z.enum(['remote', 'hybrid', 'onsite', 'flexible']).optional(),
             skills: z.array(z.string().min(1).max(60)).max(5).optional(),
-            seniority: z.enum(['junior', 'mid', 'senior', 'any']).default('mid')
+            seniority: z.enum(['junior', 'mid', 'senior', 'any']).default('mid'),
+            recency: z.enum(['24h', '3d', '7d', '30d', 'any']).default('24h')
           }),
-          execute: async ({ role, targetTitles, location, workMode, skills, seniority }) => {
-            const resolvedRole = role || targetTitles?.[0];
-            if (!resolvedRole) {
-              return {
-                clarificationNeeded: true,
-                message: 'What role or job title should I search for?',
-                requiredFields: ['role']
-              };
-            }
-            const resolvedLocation = [location, workMode].filter(Boolean).join(' ') || 'open location';
-            return buildJobSearchQueries(resolvedRole, resolvedLocation, skills || [], seniority);
-          }
+          execute: async ({ role, targetTitles, location, workMode, skills, seniority, recency }) =>
+            buildJobSearchQueries({ role, targetTitles, location, workMode, skills, seniority, recency })
         }),
       }
     });

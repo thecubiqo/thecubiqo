@@ -636,6 +636,7 @@ export default function JobPipeline({ token, visible, onClose }) {
   const [jobSearchProfile, setJobSearchProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState(null);
+  const [pipelineError, setPipelineError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [activeStage, setActiveStage] = useState('all');
@@ -649,12 +650,16 @@ export default function JobPipeline({ token, visible, onClose }) {
     setLoading(true);
     setProfileLoading(true);
     setProfileError(null);
+    setPipelineError(null);
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const [pipelineRes, profileRes] = await Promise.all([
         fetch('/api/jobs/pipeline?limit=60', { headers }),
         fetch('/api/actions/execute?job_state=1', { headers })
       ]);
+      if (!pipelineRes.ok) {
+        throw new Error(`Pipeline request failed with ${pipelineRes.status}`);
+      }
       const data = await pipelineRes.json();
       setPipeline(data.pipeline || []);
       setCounts(data.counts || {});
@@ -665,7 +670,10 @@ export default function JobPipeline({ token, visible, onClose }) {
         setJobSearchProfile(null);
         setProfileError('Profile unavailable');
       }
-    } catch {
+    } catch (err) {
+      setPipeline([]);
+      setCounts({});
+      setPipelineError(err?.message || 'Could not load pipeline');
       setProfileError('Profile unavailable');
     }
     setLoading(false);
@@ -796,12 +804,50 @@ export default function JobPipeline({ token, visible, onClose }) {
             </div>
           )}
 
+          {pipelineError && (
+            <div style={{
+              margin: '12px 20px 0',
+              padding: '12px 14px',
+              border: '1px solid rgba(248,113,113,0.28)',
+              background: 'rgba(248,113,113,0.08)',
+              borderRadius: 12,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12
+            }}>
+              <div>
+                <div style={{ color: '#fca5a5', fontSize: '0.76rem', fontWeight: 800 }}>Could not load pipeline</div>
+                <div style={{ color: 'rgba(255,255,255,0.46)', fontSize: '0.68rem', marginTop: 3 }}>{pipelineError}</div>
+              </div>
+              <button
+                onClick={load}
+                disabled={loading}
+                style={{
+                  background: 'rgba(248,113,113,0.12)',
+                  border: '1px solid rgba(248,113,113,0.32)',
+                  borderRadius: 9,
+                  color: '#fecaca',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  padding: '7px 11px',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           {/* Jobs list */}
           <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 12, maxHeight: '65vh', overflowY: 'auto' }}>
             {loading && <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', textAlign: 'center', padding: 24 }}>Loading pipeline…</div>}
             {!loading && displayed.length === 0 && (
               <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', textAlign: 'center', padding: 24 }}>
-                {pipeline.length === 0
+                {pipelineError
+                  ? 'Fix the pipeline error above, then retry.'
+                  : pipeline.length === 0
                   ? 'No jobs discovered yet. Set a job goal or click "Scan now" to find recent matches.'
                   : 'No jobs in this stage.'}
               </div>

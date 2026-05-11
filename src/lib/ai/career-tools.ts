@@ -300,15 +300,79 @@ export function interviewPrepKit(
 
 // --- Job Search Query Builder ------------------------------------------------
 
-export function buildJobSearchQueries(
-  role: string,
-  location: string,
-  skills: string[],
-  seniority: 'junior' | 'mid' | 'senior' | 'any'
-): { primary: string; alternative: string[]; linkedinUrl: string; indeedUrl: string } {
+export type JobSearchRecency = '24h' | '3d' | '7d' | '30d' | 'any';
+
+export interface JobSearchQueryInput {
+  role?: string | null;
+  targetTitles?: string[];
+  location?: string | null;
+  workMode?: 'remote' | 'hybrid' | 'onsite' | 'flexible' | string | null;
+  skills?: string[];
+  seniority?: 'junior' | 'mid' | 'senior' | 'any';
+  recency?: JobSearchRecency;
+}
+
+export type JobSearchQueries =
+  | {
+      clarificationNeeded: true;
+      error: 'Role unclear';
+      action: 'ask_user';
+      message: string;
+      requiredFields: string[];
+    }
+  | {
+      clarificationNeeded?: false;
+      primary: string;
+      alternative: string[];
+      linkedinUrl: string;
+      indeedUrl: string;
+      recency: JobSearchRecency;
+    };
+
+function linkedInRecencyFilter(recency: JobSearchRecency): string {
+  const secondsByRecency: Record<JobSearchRecency, number | null> = {
+    '24h': 86400,
+    '3d': 259200,
+    '7d': 604800,
+    '30d': 2592000,
+    any: null,
+  };
+  const seconds = secondsByRecency[recency];
+  return seconds ? `&f_TPR=r${seconds}` : '';
+}
+
+function indeedRecencyFilter(recency: JobSearchRecency): string {
+  const daysByRecency: Record<JobSearchRecency, number | null> = {
+    '24h': 1,
+    '3d': 3,
+    '7d': 7,
+    '30d': 30,
+    any: null,
+  };
+  const days = daysByRecency[recency];
+  return days ? `&fromage=${days}` : '';
+}
+
+export function buildJobSearchQueries(input: JobSearchQueryInput): JobSearchQueries {
+  const role = (input.role || input.targetTitles?.[0] || '').trim();
+  if (!role) {
+    return {
+      clarificationNeeded: true,
+      error: 'Role unclear',
+      action: 'ask_user',
+      message: 'What role or job title should I search for?',
+      requiredFields: ['role'],
+    };
+  }
+
+  const location = input.location || '';
+  const workMode = input.workMode || '';
+  const skills = input.skills || [];
+  const seniority = input.seniority || 'mid';
+  const recency = input.recency || '24h';
   const seniorityMap = { junior: 'junior OR associate', mid: '', senior: 'senior OR lead OR principal', any: '' };
   const seniorityStr = seniorityMap[seniority] || '';
-  const locationStr = location || 'open location';
+  const locationStr = [location, workMode].filter(Boolean).join(' ') || 'open location';
   const topSkills = skills.slice(0, 3).join(' ');
 
   const primary = `"${role}" ${seniorityStr} ${locationStr} ${topSkills}`.replace(/\s+/g, ' ').trim();
@@ -326,11 +390,14 @@ export function buildJobSearchQueries(
   const isRemote = /\bremote\b/i.test(locationStr);
   const linkedInRemoteFilter = isRemote ? '&f_WT=2' : '';
   const indeedRemoteFilter = isRemote ? '&remotejob=032b3046-06a3-4876-8dfd-474eb5e7ed11' : '';
+  const linkedInRecency = linkedInRecencyFilter(recency);
+  const indeedRecency = indeedRecencyFilter(recency);
 
   return {
     primary,
     alternative: alternatives.filter(Boolean),
-    linkedinUrl: `https://www.linkedin.com/jobs/search/?keywords=${liQuery}${linkedInRemoteFilter}`,
-    indeedUrl: `https://www.indeed.com/jobs?q=${indeedQuery}&l=${encodeURIComponent(locationStr)}${indeedRemoteFilter}`,
+    linkedinUrl: `https://www.linkedin.com/jobs/search/?keywords=${liQuery}${linkedInRemoteFilter}${linkedInRecency}`,
+    indeedUrl: `https://www.indeed.com/jobs?q=${indeedQuery}&l=${encodeURIComponent(locationStr)}${indeedRemoteFilter}${indeedRecency}`,
+    recency,
   };
 }
