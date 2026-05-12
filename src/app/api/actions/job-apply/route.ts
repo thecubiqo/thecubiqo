@@ -9,9 +9,16 @@ import { applyDice } from './platforms/dice';
 import { applyGenericCompanySite } from './platforms/generic';
 import { applyIndeed } from './platforms/indeed';
 import { applyLinkedIn } from './platforms/linkedin';
-import type { JobApplyPlatform, JobApplyScriptInput } from './platforms/shared';
+import type { JobApplyPlatform, JobApplyScriptInput, JobApplyScriptResult } from './platforms/shared';
 import { buildJobApplicationHandoffChecklist } from '@/next/lib/jobs/application-handoff';
-import { getApplyProviders, getJobProvider, resolveJobProviderForUrl, type JobProvider } from '@/next/lib/jobs/job-provider-registry';
+import {
+  getApplyProviders,
+  getJobProvider,
+  resolveJobProviderForUrl,
+  type JobProvider,
+  type JobProviderAdapter,
+  type JobProviderId
+} from '@/next/lib/jobs/job-provider-registry';
 
 export const runtime = 'nodejs';
 
@@ -106,12 +113,24 @@ async function updateApplication(
   return { data, error };
 }
 
-async function runPlatformScript(input: JobApplyScriptInput) {
-  if (input.platform === 'linkedin') return applyLinkedIn(input);
-  if (input.platform === 'indeed') return applyIndeed(input);
-  if (input.platform === 'dice') return applyDice(input);
-  if (input.platform === 'company_site') return applyGenericCompanySite(input);
-  return applyAts(input);
+type JobApplyAdapter = (input: JobApplyScriptInput) => Promise<JobApplyScriptResult>;
+
+const JOB_APPLY_PROVIDER_ADAPTERS: Partial<Record<JobProviderId, JobApplyAdapter>> = {
+  linkedin: applyLinkedIn,
+  indeed: applyIndeed,
+  dice: applyDice,
+  greenhouse: applyAts,
+  lever: applyAts,
+  company_site: applyGenericCompanySite,
+};
+
+const JOB_APPLY_MODE_ADAPTERS: Partial<Record<JobProviderAdapter, JobApplyAdapter>> = {
+  ats: applyAts,
+  generic_browser: applyGenericCompanySite,
+};
+
+function resolveJobApplyAdapter(provider: JobProvider): JobApplyAdapter | null {
+  return JOB_APPLY_PROVIDER_ADAPTERS[provider.id] ?? JOB_APPLY_MODE_ADAPTERS[provider.adapter] ?? null;
 }
 
 export async function POST(request: NextRequest) {
@@ -220,6 +239,28 @@ export async function POST(request: NextRequest) {
     }, { status: 501 });
   }
 
+  const platformAdapter = resolveJobApplyAdapter(provider);
+  if (!platformAdapter) {
+    await writeAudit(auth, {
+      approvalId,
+      browserSessionId,
+      actionType: 'job_apply',
+      toolName: 'job_apply',
+      status: 'failed',
+      message: 'job_apply blocked because no adapter is registered for this provider',
+      input: {
+        provider: provider.id,
+        adapter: provider.adapter,
+        jobUrl,
+      },
+    });
+    return NextResponse.json({
+      error: 'platform_adapter_missing',
+      hint: `${provider.label} is known, but no apply adapter is registered yet.`,
+      provider,
+    }, { status: 501 });
+  }
+
   const platform = provider.id as JobApplyPlatform;
   const handoffChecklist = buildJobApplicationHandoffChecklist({
     jobUrl,
@@ -294,7 +335,7 @@ export async function POST(request: NextRequest) {
     if ('error' in opened && opened.error) throw opened.error instanceof Error ? opened.error : new Error('Browser session could not be opened');
     if (!('session' in opened)) throw new Error('Browser session could not be opened');
 
-    const result = await runPlatformScript({
+    const result = await platformAdapter({
       auth,
       browser_session_id: browserSessionId,
       jobUrl,

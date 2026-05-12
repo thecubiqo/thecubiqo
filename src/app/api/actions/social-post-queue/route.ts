@@ -6,7 +6,13 @@ import { type ApiUserContext, missingMigrationResponse, requireApiUser, safeTabl
 import { completeApproval, normalizePayload, requireApprovedAction, writeAudit } from '../../_lib/v2-actions';
 import { queueInstagram } from './platforms/instagram';
 import { queueLinkedIn } from './platforms/linkedin';
-import { canonicalPlatform, platformStartUrl, type SocialQueuePlatform, type SocialQueueScriptInput } from './platforms/shared';
+import {
+  canonicalPlatform,
+  platformStartUrl,
+  type SocialQueuePlatform,
+  type SocialQueueScriptInput,
+  type SocialQueueScriptResult
+} from './platforms/shared';
 import { queueThreads } from './platforms/threads';
 import { queueTwitter } from './platforms/twitter';
 import { getSocialPlatform, normalizeSocialQueuePlatform } from '@/next/lib/social/social-platform-registry';
@@ -109,12 +115,23 @@ async function updateSocialPost(
   return { data, error };
 }
 
+type CanonicalSocialQueuePlatform = Exclude<SocialQueuePlatform, 'twitter'>;
+type SocialQueueAdapter = (input: SocialQueueScriptInput) => Promise<SocialQueueScriptResult>;
+
+const SOCIAL_QUEUE_ADAPTERS: Partial<Record<CanonicalSocialQueuePlatform, SocialQueueAdapter>> = {
+  linkedin: queueLinkedIn,
+  x: queueTwitter,
+  instagram: queueInstagram,
+  threads: queueThreads,
+};
+
 async function runPlatformScript(input: SocialQueueScriptInput) {
   const platform = canonicalPlatform(input.platform);
-  if (platform === 'linkedin') return queueLinkedIn(input);
-  if (platform === 'instagram') return queueInstagram(input);
-  if (platform === 'threads') return queueThreads(input);
-  return queueTwitter(input);
+  const adapter = SOCIAL_QUEUE_ADAPTERS[platform];
+  if (!adapter) {
+    throw new Error(`No social queue adapter registered for ${platform}`);
+  }
+  return adapter(input);
 }
 
 export async function POST(request: NextRequest) {

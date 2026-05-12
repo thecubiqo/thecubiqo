@@ -32,6 +32,28 @@ function normalizePlatform(value: unknown): SocialQueuePlatform | null {
   return normalizeSocialQueuePlatform(value);
 }
 
+type CanonicalSocialQueuePlatform = Exclude<SocialQueuePlatform, 'twitter'>;
+type PublishInstructionBuilder = (content: string) => string[];
+
+const SOCIAL_PUBLISH_INSTRUCTIONS: Partial<Record<CanonicalSocialQueuePlatform, PublishInstructionBuilder>> = {
+  linkedin: content => [
+    'Click the Start a post button.',
+    `Type this exact content into the LinkedIn post composer: ${content}`,
+  ],
+  instagram: content => [
+    'Open the Instagram create post composer.',
+    `Use the provided media URL and type this caption without publishing: ${content}`,
+  ],
+  threads: content => [
+    'Open the Threads composer.',
+    `Type this exact content into the Threads composer: ${content}`,
+  ],
+  x: content => [
+    'Open the X/Twitter compose box.',
+    `Type this exact content into the X/Twitter composer: ${content}`,
+  ],
+};
+
 async function getConnectedSocialAccount(auth: ApiUserContext, platform: Exclude<SocialQueuePlatform, 'twitter'>) {
   const { data, error } = await auth.supabase
     .from('social_accounts')
@@ -123,19 +145,14 @@ async function composeThenPublish(input: {
     mediaUrls: input.mediaUrls
   };
   const canonical = canonicalPlatform(input.platform);
+  const instructions = SOCIAL_PUBLISH_INSTRUCTIONS[canonical];
 
-  if (canonical === 'linkedin') {
-    await auditedSocialAct(socialInput, 'Click the Start a post button.');
-    await auditedSocialAct(socialInput, `Type this exact content into the LinkedIn post composer: ${input.content}`);
-  } else if (canonical === 'instagram') {
-    await auditedSocialAct(socialInput, 'Open the Instagram create post composer.');
-    await auditedSocialAct(socialInput, `Use the provided media URL and type this caption without publishing: ${input.content}`);
-  } else if (canonical === 'threads') {
-    await auditedSocialAct(socialInput, 'Open the Threads composer.');
-    await auditedSocialAct(socialInput, `Type this exact content into the Threads composer: ${input.content}`);
-  } else {
-    await auditedSocialAct(socialInput, 'Open the X/Twitter compose box.');
-    await auditedSocialAct(socialInput, `Type this exact content into the X/Twitter composer: ${input.content}`);
+  if (!instructions) {
+    throw new Error(`No social publish adapter registered for ${canonical}`);
+  }
+
+  for (const instruction of instructions(input.content)) {
+    await auditedSocialAct(socialInput, instruction);
   }
 
   await auditedSocialAct(socialInput, 'Click the final Post or Publish button now. This click is explicitly requested by the user.');

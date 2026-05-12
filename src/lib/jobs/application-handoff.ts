@@ -36,6 +36,59 @@ function cleanText(value: unknown, max = 220) {
   return String(value || '').trim().slice(0, max) || null;
 }
 
+type ProviderStepBuilder = (provider: JobProvider) => JobApplicationHandoffStep;
+
+const PROVIDER_OPENING_STEPS: Partial<Record<JobProviderId, ProviderStepBuilder>> = {
+  linkedin: provider => ({
+    id: 'linkedin-easy-apply',
+    label: 'Open LinkedIn Easy Apply',
+    detail: 'CubiQo opens the approved browser session, finds Easy Apply, and stops if login, CAPTCHA, or identity checks appear.',
+    owner: 'cubiqo',
+    kind: 'browser',
+    requiresUserInput: provider.requiresLogin,
+    screenshotRequired: true,
+    auditRequired: true
+  }),
+  indeed: provider => quickApplyStep(provider),
+  dice: provider => quickApplyStep(provider),
+};
+
+const ADAPTER_OPENING_STEPS: Record<string, ProviderStepBuilder> = {
+  ats: provider => ({
+    id: `${provider.id}-ats-form`,
+    label: `Open ${provider.label} ATS form`,
+    detail: 'CubiQo reads the form structure, fills clear profile fields, and flags custom questions, salary fields, legal attestations, and missing profile data.',
+    owner: 'shared',
+    kind: 'browser',
+    requiresUserInput: false,
+    screenshotRequired: true,
+    auditRequired: true
+  }),
+  generic_browser: provider => ({
+    id: `${provider.id}-generic-form`,
+    label: 'Open company-site application',
+    detail: 'CubiQo treats the page as a generic employer form: inspect fields, fill safe known values, and stop for anything ambiguous.',
+    owner: 'shared',
+    kind: 'browser',
+    requiresUserInput: provider.requiresLogin,
+    screenshotRequired: true,
+    auditRequired: true
+  })
+};
+
+function quickApplyStep(provider: JobProvider): JobApplicationHandoffStep {
+  return {
+    id: `${provider.id}-quick-apply`,
+    label: `Open ${provider.label} apply flow`,
+    detail: `CubiQo opens ${provider.label}, uses approved profile data only, and pauses for sign-in or platform-specific screening questions.`,
+    owner: 'shared',
+    kind: 'browser',
+    requiresUserInput: provider.requiresLogin,
+    screenshotRequired: true,
+    auditRequired: true
+  };
+}
+
 export function resolveHandoffProvider(platform: unknown, jobUrl: unknown): JobProvider | null {
   const requested = getJobProvider(platform);
   if (requested) return requested;
@@ -47,55 +100,8 @@ export function resolveHandoffProvider(platform: unknown, jobUrl: unknown): JobP
 }
 
 function providerOpeningStep(provider: JobProvider): JobApplicationHandoffStep {
-  if (provider.id === 'linkedin') {
-    return {
-      id: 'linkedin-easy-apply',
-      label: 'Open LinkedIn Easy Apply',
-      detail: 'CubiQo opens the approved browser session, finds Easy Apply, and stops if login, CAPTCHA, or identity checks appear.',
-      owner: 'cubiqo',
-      kind: 'browser',
-      requiresUserInput: provider.requiresLogin,
-      screenshotRequired: true,
-      auditRequired: true
-    };
-  }
-
-  if (provider.id === 'indeed' || provider.id === 'dice') {
-    return {
-      id: `${provider.id}-quick-apply`,
-      label: `Open ${provider.label} apply flow`,
-      detail: `CubiQo opens ${provider.label}, uses approved profile data only, and pauses for sign-in or platform-specific screening questions.`,
-      owner: 'shared',
-      kind: 'browser',
-      requiresUserInput: provider.requiresLogin,
-      screenshotRequired: true,
-      auditRequired: true
-    };
-  }
-
-  if (provider.adapter === 'ats') {
-    return {
-      id: `${provider.id}-ats-form`,
-      label: `Open ${provider.label} ATS form`,
-      detail: 'CubiQo reads the form structure, fills clear profile fields, and flags custom questions, salary fields, legal attestations, and missing profile data.',
-      owner: 'shared',
-      kind: 'browser',
-      requiresUserInput: false,
-      screenshotRequired: true,
-      auditRequired: true
-    };
-  }
-
-  return {
-    id: 'company-site-form',
-    label: 'Open company-site application',
-    detail: 'CubiQo treats the page as a generic employer form: inspect fields, fill safe known values, and stop for anything ambiguous.',
-    owner: 'shared',
-    kind: 'browser',
-    requiresUserInput: provider.requiresLogin,
-    screenshotRequired: true,
-    auditRequired: true
-  };
+  const builder = PROVIDER_OPENING_STEPS[provider.id] ?? ADAPTER_OPENING_STEPS[provider.adapter] ?? ADAPTER_OPENING_STEPS.generic_browser;
+  return builder(provider);
 }
 
 export function buildJobApplicationHandoffChecklist(input: {

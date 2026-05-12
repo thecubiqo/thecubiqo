@@ -22,6 +22,7 @@ export interface JobProvider {
   supportsGenericForm: boolean;
   requiresLogin: boolean;
   requiresFinalUserCta: boolean;
+  defaultScan?: boolean;
   adapter: JobProviderAdapter;
   searchUrlTemplate: string;
 }
@@ -37,6 +38,7 @@ export const JOB_PROVIDER_REGISTRY: readonly JobProvider[] = [
     supportsGenericForm: false,
     requiresLogin: true,
     requiresFinalUserCta: true,
+    defaultScan: true,
     adapter: 'stagehand',
     searchUrlTemplate: 'https://www.linkedin.com/jobs/search/?keywords={query}&location={location}'
   },
@@ -50,6 +52,7 @@ export const JOB_PROVIDER_REGISTRY: readonly JobProvider[] = [
     supportsGenericForm: false,
     requiresLogin: true,
     requiresFinalUserCta: true,
+    defaultScan: true,
     adapter: 'stagehand',
     searchUrlTemplate: 'https://www.indeed.com/jobs?q={query}&l={location}'
   },
@@ -63,6 +66,7 @@ export const JOB_PROVIDER_REGISTRY: readonly JobProvider[] = [
     supportsGenericForm: false,
     requiresLogin: true,
     requiresFinalUserCta: true,
+    defaultScan: true,
     adapter: 'stagehand',
     searchUrlTemplate: 'https://www.dice.com/jobs?q={query}&location={location}'
   },
@@ -76,6 +80,7 @@ export const JOB_PROVIDER_REGISTRY: readonly JobProvider[] = [
     supportsGenericForm: false,
     requiresLogin: true,
     requiresFinalUserCta: true,
+    defaultScan: true,
     adapter: 'handoff',
     searchUrlTemplate: 'https://www.monster.com/jobs/search?q={query}&where={location}'
   },
@@ -89,6 +94,7 @@ export const JOB_PROVIDER_REGISTRY: readonly JobProvider[] = [
     supportsGenericForm: true,
     requiresLogin: false,
     requiresFinalUserCta: true,
+    defaultScan: true,
     adapter: 'ats',
     searchUrlTemplate: 'https://www.google.com/search?q={query}+{location}+site%3Agreenhouse.io'
   },
@@ -102,6 +108,7 @@ export const JOB_PROVIDER_REGISTRY: readonly JobProvider[] = [
     supportsGenericForm: true,
     requiresLogin: false,
     requiresFinalUserCta: true,
+    defaultScan: true,
     adapter: 'ats',
     searchUrlTemplate: 'https://www.google.com/search?q={query}+{location}+site%3Alever.co'
   },
@@ -115,6 +122,7 @@ export const JOB_PROVIDER_REGISTRY: readonly JobProvider[] = [
     supportsGenericForm: true,
     requiresLogin: true,
     requiresFinalUserCta: true,
+    defaultScan: true,
     adapter: 'handoff',
     searchUrlTemplate: 'https://www.google.com/search?q={query}+{location}+site%3Amyworkdayjobs.com'
   },
@@ -198,7 +206,9 @@ export function resolveJobProviderForUrl(jobUrl: string) {
 }
 
 export function defaultScanProviderIds(): JobProviderId[] {
-  return ['linkedin', 'indeed', 'dice', 'monster', 'greenhouse', 'lever', 'workday'];
+  return JOB_PROVIDER_REGISTRY
+    .filter(provider => provider.defaultScan)
+    .map(provider => provider.id);
 }
 
 export function enabledScanProviders(input: unknown) {

@@ -18,6 +18,15 @@ export type SocialPostResult = {
   provider: 'api' | 'blocked';
 };
 
+type SocialApiPoster = (payload: SocialPostPayload) => Promise<SocialPostResult>;
+
+const SOCIAL_API_CREDENTIALS: Record<SocialApiPlatform, string[]> = {
+  linkedin: ['LINKEDIN_ACCESS_TOKEN', 'LINKEDIN_AUTHOR_URN'],
+  x: ['X_BEARER_TOKEN'],
+  instagram: ['INSTAGRAM_ACCESS_TOKEN', 'INSTAGRAM_BUSINESS_ACCOUNT_ID'],
+  threads: ['THREADS_ACCESS_TOKEN', 'THREADS_USER_ID']
+};
+
 // ── LinkedIn Graph API ──────────────────────────────────────────────────────
 
 async function postLinkedIn(payload: SocialPostPayload): Promise<SocialPostResult> {
@@ -197,26 +206,23 @@ async function postThreads(payload: SocialPostPayload): Promise<SocialPostResult
 // ── Dispatcher ───────────────────────────────────────────────────────────────
 
 export async function postViaSocialApi(payload: SocialPostPayload): Promise<SocialPostResult> {
-  switch (payload.platform) {
-    case 'linkedin': return postLinkedIn(payload);
-    case 'x': return postX(payload);
-    case 'instagram': return postInstagram(payload);
-    case 'threads': return postThreads(payload);
-    default: return { posted: false, error: `Unsupported platform: ${payload.platform}`, provider: 'blocked' };
-  }
+  const posters: Record<SocialApiPlatform, SocialApiPoster> = {
+    linkedin: postLinkedIn,
+    x: postX,
+    instagram: postInstagram,
+    threads: postThreads
+  };
+  const poster = posters[payload.platform];
+  return poster
+    ? poster(payload)
+    : { posted: false, error: `Unsupported platform: ${payload.platform}`, provider: 'blocked' };
 }
 
 export function socialApiCredentialStatus(platform: SocialApiPlatform): { configured: boolean; missingVars: string[] } {
   if (!allowGlobalSocialConnectors()) {
     return { configured: false, missingVars: ['user_connected_social_account_token'] };
   }
-  const checks: Record<SocialApiPlatform, string[]> = {
-    linkedin: ['LINKEDIN_ACCESS_TOKEN', 'LINKEDIN_AUTHOR_URN'],
-    x: ['X_BEARER_TOKEN'],
-    instagram: ['INSTAGRAM_ACCESS_TOKEN', 'INSTAGRAM_BUSINESS_ACCOUNT_ID'],
-    threads: ['THREADS_ACCESS_TOKEN', 'THREADS_USER_ID']
-  };
-  const required = checks[platform] || [];
+  const required = SOCIAL_API_CREDENTIALS[platform] || [];
   const missingVars = required.filter(v => !cleanEnv(process.env[v]));
   return { configured: missingVars.length === 0, missingVars };
 }

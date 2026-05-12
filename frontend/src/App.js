@@ -80,6 +80,67 @@ const normalizeKeywordRows = (keywords = {}, userId) => Object.entries(keywords)
   })))
   .filter(row => ['green', 'yellow', 'red'].includes(row.color) && row.keyword);
 
+const ACTION_CAPABILITY_GROUPS = {
+  jobWorkflow: ['job_search_save', 'job_application_prepare', 'job_application_submit_approved'],
+  jobProfile: ['job_profile_write', 'resume_version_write'],
+  podWorkflow: ['pod_design_brief_create', 'gfxtools_job_create', 'gfxtools_asset_resize', 'shopify_product_prepare', 'printify_design_prepare'],
+  commerceWorkflow: ['shopify_product_create', 'shopify_product_publish', 'shopify_product_update', 'shopify_product_archive', 'design_create', 'product_sync', 'shopify_collection_create', 'shopify_collection_assign', 'shopify_inventory_update', 'shopify_bundle_create'],
+  socialWorkflow: ['social_post_prepare', 'social_post_schedule_approved'],
+  podApiConnector: ['shopify_read', 'shopify_write', 'printify_read', 'printify_write', 'pod_product_create', 'pod_product_publish']
+};
+
+const JOB_PROVIDER_UI_REGISTRY = [
+  { id: 'linkedin', label: 'LinkedIn', domains: ['linkedin.'], supportsScan: true, supportsApply: true, defaultScan: true, demoUrl: 'https://www.linkedin.com/jobs/view/example-product-ops' },
+  { id: 'indeed', label: 'Indeed', domains: ['indeed.'], supportsScan: true, supportsApply: true, defaultScan: true, demoUrl: 'https://www.indeed.com/viewjob?jk=example-ai-program-manager' },
+  { id: 'dice', label: 'Dice', domains: ['dice.'], supportsScan: true, supportsApply: true, defaultScan: true, demoUrl: 'https://www.dice.com/job-detail/example-technical-product-lead' },
+  { id: 'greenhouse', label: 'Greenhouse', domains: ['greenhouse.io'], supportsScan: true, supportsApply: true, defaultScan: true },
+  { id: 'lever', label: 'Lever', domains: ['lever.co'], supportsScan: true, supportsApply: true, defaultScan: true },
+  { id: 'workday', label: 'Workday', domains: ['myworkdayjobs.com', 'workdayjobs.com'], supportsScan: true, supportsApply: false, defaultScan: true },
+  { id: 'monster', label: 'Monster', domains: ['monster.'], supportsScan: true, supportsApply: false, defaultScan: false },
+  { id: 'ziprecruiter', label: 'ZipRecruiter', domains: ['ziprecruiter.'], supportsScan: true, supportsApply: false, defaultScan: false },
+  { id: 'wellfound', label: 'Wellfound', domains: ['wellfound.com'], supportsScan: true, supportsApply: false, defaultScan: false },
+  { id: 'company_site', label: 'Company Site', domains: [], supportsScan: false, supportsApply: true, defaultScan: false }
+];
+
+const SOCIAL_QUEUE_UI_PLATFORMS = [
+  { id: 'linkedin', label: 'LinkedIn', supportsQueue: true },
+  { id: 'x', label: 'X', supportsQueue: true },
+  { id: 'instagram', label: 'Instagram', supportsQueue: true, requiresMedia: true },
+  { id: 'threads', label: 'Threads', supportsQueue: true },
+  { id: 'tiktok', label: 'TikTok', supportsQueue: false },
+  { id: 'facebook', label: 'Facebook', supportsQueue: false },
+  { id: 'pinterest', label: 'Pinterest', supportsQueue: false }
+];
+
+const JOB_TRACKER_STATUSES = ['saved', 'drafted', 'ready', 'applied', 'response', 'interview', 'offer', 'rejected', 'withdrawn'];
+const DEFAULT_JOB_APPLY_URL = JOB_PROVIDER_UI_REGISTRY.find(provider => provider.id === 'linkedin')?.demoUrl || '';
+const DEFAULT_JOB_SCAN_PROVIDER_IDS = JOB_PROVIDER_UI_REGISTRY.filter(provider => provider.defaultScan).map(provider => provider.id);
+const DEFAULT_JOB_SCAN_PROVIDER_LABELS = JOB_PROVIDER_UI_REGISTRY.filter(provider => provider.defaultScan).map(provider => provider.label);
+const DEFAULT_SOCIAL_CONTENT_PLATFORMS = SOCIAL_QUEUE_UI_PLATFORMS
+  .filter(platform => ['linkedin', 'x', 'instagram', 'tiktok', 'facebook'].includes(platform.id))
+  .map(platform => platform.id);
+
+const jobProviderById = (id) => JOB_PROVIDER_UI_REGISTRY.find(provider => provider.id === id) || null;
+
+const isCapabilityActive = (capabilities, actionType) =>
+  capabilities.some(item => item.actionType === actionType && item.status === 'active');
+
+const areCapabilitiesActive = (capabilities, group) =>
+  group.every(actionType => isCapabilityActive(capabilities, actionType));
+
+const resolveJobApplyPlatform = (url) => {
+  const value = String(url || '').toLowerCase();
+  try {
+    const parsed = new URL(value);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return 'unknown';
+  } catch {
+    return 'unknown';
+  }
+  return JOB_PROVIDER_UI_REGISTRY.find(provider =>
+    provider.domains.some(domain => value.includes(domain))
+  )?.id || 'company_site';
+};
+
 const READY_FEATURES = [
   {
     id: 'auth',
@@ -1036,9 +1097,9 @@ const ActionConsolePage = () => {
   const [apiConnections, setApiConnections] = useState([]);
   const [apiPodProducts, setApiPodProducts] = useState([]);
   const [browserUrl, setBrowserUrl] = useState('https://example.com/');
-  const [jobApplyUrl, setJobApplyUrl] = useState('https://www.linkedin.com/jobs/view/example-product-ops');
+  const [jobApplyUrl, setJobApplyUrl] = useState(DEFAULT_JOB_APPLY_URL);
   const [jobHandoffChecklist, setJobHandoffChecklist] = useState(null);
-  const [socialQueuePlatform, setSocialQueuePlatform] = useState('linkedin');
+  const [socialQueuePlatform, setSocialQueuePlatform] = useState(SOCIAL_QUEUE_UI_PLATFORMS.find(platform => platform.supportsQueue)?.id || 'linkedin');
   const [socialQueueContent, setSocialQueueContent] = useState('Draft a product or founder update. Review this draft before it ever publishes.');
   const [socialQueueMediaUrls, setSocialQueueMediaUrls] = useState('');
   const [shopifyDomain, setShopifyDomain] = useState('');
@@ -1238,21 +1299,15 @@ const ActionConsolePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const browserControlUnlocked = capabilities.some(item => item.actionType === 'browser_control' && item.status === 'active');
-  const jobWorkflowUnlocked = browserControlUnlocked && ['job_search_save', 'job_application_prepare', 'job_application_submit_approved']
-    .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
-  const jobApplyUnlocked = browserControlUnlocked && capabilities.some(item => item.actionType === 'job_apply' && item.status === 'active');
-  const jobProfileUnlocked = ['job_profile_write', 'resume_version_write']
-    .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
-  const podWorkflowUnlocked = ['pod_design_brief_create', 'gfxtools_job_create', 'gfxtools_asset_resize', 'shopify_product_prepare', 'printify_design_prepare']
-    .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
-  const commerceWorkflowUnlocked = ['shopify_product_create', 'shopify_product_publish', 'shopify_product_update', 'shopify_product_archive', 'design_create', 'product_sync', 'shopify_collection_create', 'shopify_collection_assign', 'shopify_inventory_update', 'shopify_bundle_create']
-    .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
-  const socialWorkflowUnlocked = ['social_post_prepare', 'social_post_schedule_approved']
-    .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
-  const socialQueueUnlocked = browserControlUnlocked && capabilities.some(item => item.actionType === 'social_post_queue' && item.status === 'active');
-  const podApiConnectorUnlocked = ['shopify_read', 'shopify_write', 'printify_read', 'printify_write', 'pod_product_create', 'pod_product_publish']
-    .every(actionType => capabilities.some(item => item.actionType === actionType && item.status === 'active'));
+  const browserControlUnlocked = isCapabilityActive(capabilities, 'browser_control');
+  const jobWorkflowUnlocked = browserControlUnlocked && areCapabilitiesActive(capabilities, ACTION_CAPABILITY_GROUPS.jobWorkflow);
+  const jobApplyUnlocked = browserControlUnlocked && isCapabilityActive(capabilities, 'job_apply');
+  const jobProfileUnlocked = areCapabilitiesActive(capabilities, ACTION_CAPABILITY_GROUPS.jobProfile);
+  const podWorkflowUnlocked = areCapabilitiesActive(capabilities, ACTION_CAPABILITY_GROUPS.podWorkflow);
+  const commerceWorkflowUnlocked = areCapabilitiesActive(capabilities, ACTION_CAPABILITY_GROUPS.commerceWorkflow);
+  const socialWorkflowUnlocked = areCapabilitiesActive(capabilities, ACTION_CAPABILITY_GROUPS.socialWorkflow);
+  const socialQueueUnlocked = browserControlUnlocked && isCapabilityActive(capabilities, 'social_post_queue');
+  const podApiConnectorUnlocked = areCapabilitiesActive(capabilities, ACTION_CAPABILITY_GROUPS.podApiConnector);
   const activeBrowserSession = browserSessions.find(item => item.status === 'active') || null;
   const latestJobListing = jobListings.find(item => ['saved', 'reviewing', 'prepared'].includes(item.status)) || jobListings[0] || null;
   const latestPreparedReview = jobReviews.find(item => item.status === 'prepared') || null;
@@ -1269,7 +1324,7 @@ const ActionConsolePage = () => {
   const latestShopifyProduct = shopifyProducts[0] || null;
   const latestProviderDesign = providerDesigns[0] || null;
   const latestBrowserReceipt = auditLogs.find(log => log.screenshotUrl || log.result?.screenshotUrl) || null;
-  const trackerStatuses = ['saved', 'drafted', 'ready', 'applied', 'response', 'interview', 'offer', 'rejected', 'withdrawn'];
+  const trackerStatuses = JOB_TRACKER_STATUSES;
   const trackerStatusFor = (item) => item?.metadata?.tracker_status || item?.trackerStatus || (
     item?.status === 'ready_to_submit' ? 'ready' :
     item?.status === 'submitted' ? 'applied' :
@@ -1282,16 +1337,7 @@ const ActionConsolePage = () => {
     return acc;
   }, {});
 
-  const detectJobApplyPlatform = (url) => {
-    const value = String(url || '').toLowerCase();
-    if (value.includes('linkedin.')) return 'linkedin';
-    if (value.includes('indeed.')) return 'indeed';
-    if (value.includes('dice.')) return 'dice';
-    if (value.includes('greenhouse.io')) return 'greenhouse';
-    if (value.includes('lever.co')) return 'lever';
-    if (value.startsWith('http://') || value.startsWith('https://')) return 'company_site';
-    return 'unknown';
-  };
+  const detectJobApplyPlatform = resolveJobApplyPlatform;
 
   const loadJobHandoffChecklist = async () => {
     setBusyAction('job-handoff-checklist');
@@ -1555,7 +1601,7 @@ const ActionConsolePage = () => {
       actionType: 'job_search_save',
       toolName: 'job_search_save',
       title: 'Save extracted job listings',
-      summary: 'CubiQo will save extracted LinkedIn, Indeed, and Dice job listings to your account. It will not apply or submit anything.',
+      summary: `CubiQo will save extracted ${DEFAULT_JOB_SCAN_PROVIDER_LABELS.slice(0, 3).join(', ')} job listings to your account. It will not apply or submit anything.`,
       Icon: Briefcase,
       runLabel: 'Save listings',
       riskLevel: 'medium',
@@ -1568,11 +1614,11 @@ const ActionConsolePage = () => {
             title: 'Product Operations Manager',
             company: 'Example Growth Labs',
             location: 'Remote',
-            description: 'Sample extracted listing for QA. Replace with extracted LinkedIn/Indeed/Dice listings when the browser runtime attaches.',
+            description: `Sample extracted listing for QA. Replace with extracted ${DEFAULT_JOB_SCAN_PROVIDER_LABELS.slice(0, 3).join('/')} listings when the browser runtime attaches.`,
             employmentType: 'Full-time',
             compensation: '$120k-$150k',
-            sourceUrl: 'https://www.linkedin.com/jobs/view/example-product-ops',
-            applyUrl: 'https://www.linkedin.com/jobs/view/example-product-ops'
+            sourceUrl: jobProviderById('linkedin')?.demoUrl,
+            applyUrl: jobProviderById('linkedin')?.demoUrl
           },
           {
             sourcePlatform: 'indeed',
@@ -1581,8 +1627,8 @@ const ActionConsolePage = () => {
             location: 'New York, NY',
             description: 'Sample extracted listing for QA.',
             employmentType: 'Full-time',
-            sourceUrl: 'https://www.indeed.com/viewjob?jk=example-ai-program-manager',
-            applyUrl: 'https://www.indeed.com/viewjob?jk=example-ai-program-manager'
+            sourceUrl: jobProviderById('indeed')?.demoUrl,
+            applyUrl: jobProviderById('indeed')?.demoUrl
           },
           {
             sourcePlatform: 'dice',
@@ -1591,8 +1637,8 @@ const ActionConsolePage = () => {
             location: 'Hybrid',
             description: 'Sample extracted listing for QA.',
             employmentType: 'Contract',
-            sourceUrl: 'https://www.dice.com/job-detail/example-technical-product-lead',
-            applyUrl: 'https://www.dice.com/job-detail/example-technical-product-lead'
+            sourceUrl: jobProviderById('dice')?.demoUrl,
+            applyUrl: jobProviderById('dice')?.demoUrl
           }
         ]
       })
@@ -1660,7 +1706,7 @@ const ActionConsolePage = () => {
         salaryExpectation: 'Review before sharing externally',
         scanEnabled: true,
         scoreThreshold: 80,
-        scanPlatforms: ['linkedin', 'indeed', 'dice', 'greenhouse', 'lever', 'workday'],
+        scanPlatforms: DEFAULT_JOB_SCAN_PROVIDER_IDS,
         scanRecency: '24h',
         scanCadenceHours: 12,
         previewCard: {
@@ -1679,7 +1725,7 @@ const ActionConsolePage = () => {
               cadence: 'Every 12 hours',
               recency: 'Last 24 hours',
               threshold: '80+ match score',
-              platforms: ['LinkedIn', 'Indeed', 'Dice', 'Greenhouse', 'Lever', 'Workday']
+              platforms: DEFAULT_JOB_SCAN_PROVIDER_LABELS
             }
           },
           changes: jobProfile ? ['Update target roles', 'Update skills', 'Update experience summary', 'Update scan settings'] : ['Create first job profile', 'Enable 12-hour scan settings'],
@@ -1740,7 +1786,7 @@ const ActionConsolePage = () => {
         title: podProductTitle || 'New POD Product',
         description: 'Create a premium POD apparel graphic with a subtle RGY signal wave, clean CubiQo intelligence aesthetic, no clutter, suitable for a black t-shirt.',
         format: 'image',
-        platforms: ['instagram', 'linkedin', 'x', 'tiktok', 'facebook'],
+        platforms: DEFAULT_SOCIAL_CONTENT_PLATFORMS,
         brandGuidelines: 'Premium, dark, minimal, intelligence-forward; no busy collage; clean signal-wave energy.',
         dimensionsRequested: '1080x1080',
         brandName: 'Your Brand',
@@ -1761,7 +1807,7 @@ const ActionConsolePage = () => {
             brandName: 'Your Brand',
             productType: 'premium cotton t-shirt',
             format: 'image',
-            platforms: ['instagram', 'linkedin', 'x', 'tiktok', 'facebook'],
+            platforms: DEFAULT_SOCIAL_CONTENT_PLATFORMS,
             prompt: 'Create a premium POD apparel graphic with a subtle RGY signal wave.'
           },
           changes: ['Create structured creative brief', 'Store in Supabase only'],
@@ -1785,7 +1831,7 @@ const ActionConsolePage = () => {
         description: latestPodBrief?.description || latestPodBrief?.prompt || 'Create a premium POD apparel graphic with a subtle RGY signal wave.',
         format: latestPodBrief?.format || 'image',
         dimensions: latestPodBrief?.dimensionsRequested || '1080x1080',
-        platforms: latestPodBrief?.platforms || ['instagram', 'linkedin', 'x', 'tiktok', 'facebook'],
+        platforms: latestPodBrief?.platforms || DEFAULT_SOCIAL_CONTENT_PLATFORMS,
         brandGuidelines: latestPodBrief?.brandGuidelines || 'Premium, dark, minimal, intelligence-forward.',
         brandName: latestPodBrief?.brandName || 'Your Brand',
         productType: latestPodBrief?.productType || 'premium cotton t-shirt',
@@ -2094,7 +2140,7 @@ const ActionConsolePage = () => {
       runLabel: 'Prepare drafts',
       riskLevel: 'medium',
       payload: () => {
-        const platforms = ['linkedin', 'instagram', 'x', 'tiktok'];
+        const platforms = DEFAULT_SOCIAL_CONTENT_PLATFORMS.slice(0, 4);
         return {
           asset_id: latestReadyAsset.id,
           assetReadyEventId: latestAssetReadyEvent.id,
@@ -2128,7 +2174,7 @@ const ActionConsolePage = () => {
       riskLevel: 'high',
       socialContentDraftId: latestSocialDraft.id,
       payload: () => {
-        const platforms = latestSocialDraft.platforms?.length ? latestSocialDraft.platforms : ['linkedin', 'instagram', 'x'];
+        const platforms = latestSocialDraft.platforms?.length ? latestSocialDraft.platforms : DEFAULT_SOCIAL_CONTENT_PLATFORMS.slice(0, 3);
         const intervalMinutes = 10;
         const variantRotationCount = Math.min(3, Math.max(1, platforms.length));
         const startAt = new Date(Date.now() + 10 * 60000).toISOString();
@@ -2636,10 +2682,9 @@ const ActionConsolePage = () => {
                               onChange={event => setSocialQueuePlatform(event.target.value)}
                               style={{ width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.88)', padding: '10px 11px', outline: 'none', fontSize: '0.82rem' }}
                             >
-                              <option value="linkedin">LinkedIn</option>
-                              <option value="x">X</option>
-                              <option value="instagram">Instagram</option>
-                              <option value="threads">Threads</option>
+                              {SOCIAL_QUEUE_UI_PLATFORMS.filter(platform => platform.supportsQueue).map(platform => (
+                                <option key={platform.id} value={platform.id}>{platform.label}</option>
+                              ))}
                             </select>
                             <textarea
                               value={socialQueueContent}
