@@ -1,5 +1,8 @@
 import { cleanEnv } from './supabase-admin';
 import { scrapeUrl } from './content-scraper';
+import { getContextParams, getModel } from '@/next/lib/config/llm';
+import { cfg } from '@/next/lib/config/runtime';
+import { NEGATIVE_WORDS, POSITIVE_WORDS, SKILL_KEYWORDS, STOP_WORDS } from '@/next/lib/rgy/term-registry';
 
 export type ContextResult = {
   summary: string;
@@ -11,17 +14,6 @@ export type ContextResult = {
   confidence: number;
   source: 'llm' | 'local';
 };
-
-// ── Known skill keywords for local entity extraction ───────────────────────
-const SKILL_KEYWORDS = new Set([
-  'javascript','typescript','python','java','sql','react','node','aws','azure','gcp',
-  'agile','scrum','jira','salesforce','tableau','excel','powerbi','looker','figma',
-  'kubernetes','docker','git','api','rest','graphql','machine learning','ai','llm',
-  'product management','stakeholder','roadmap','sprint','kanban','okr','kpi',
-]);
-
-const POSITIVE_WORDS = ['excellent','strong','leading','innovative','growth','success','proven','achieve','award','top','best','dynamic','collaborative'];
-const NEGATIVE_WORDS = ['lack','missing','poor','fail','issue','problem','risk','challenge','weak','gap','concern','difficult'];
 
 // ── Local fallback ─────────────────────────────────────────────────────────
 function localExtract(text: string): ContextResult {
@@ -37,7 +29,7 @@ function localExtract(text: string): ContextResult {
   capWords.forEach(w => { topicFreq[w] = (topicFreq[w] || 0) + 1; });
   const topics = Object.entries(topicFreq)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
+    .slice(0, cfg.contextMaxTopics)
     .map(([w]) => w);
 
   // Entities
@@ -45,7 +37,7 @@ function localExtract(text: string): ContextResult {
   const emailMatches = text.match(/\b[\w.+-]+@[\w-]+\.\w{2,}\b/g) || [];
   emailMatches.forEach(e => entities.push({ name: e, type: 'person' }));
   const urlMatches = text.match(/https?:\/\/[^\s]+/g) || [];
-  urlMatches.slice(0, 3).forEach(u => entities.push({ name: u, type: 'org' }));
+  urlMatches.slice(0, cfg.contextMaxUrls).forEach(u => entities.push({ name: u, type: 'org' }));
   const lowerText = text.toLowerCase();
   SKILL_KEYWORDS.forEach(skill => {
     if (lowerText.includes(skill)) entities.push({ name: skill, type: 'skill' });
@@ -55,7 +47,7 @@ function localExtract(text: string): ContextResult {
   const claims = sentences
     .map(s => s.trim())
     .filter(s => s.length > 40)
-    .slice(0, 5);
+    .slice(0, cfg.contextMaxClaims);
 
   // Sentiment
   const lower = text.toLowerCase();
@@ -65,14 +57,13 @@ function localExtract(text: string): ContextResult {
     pos > neg + 1 ? 'positive' : neg > pos + 1 ? 'negative' : pos > 0 && neg > 0 ? 'mixed' : 'neutral';
 
   // Keywords: word frequency, filter stop words, top 10
-  const stopWords = new Set(['the','a','an','and','or','but','in','on','at','to','for','of','with','by','from','is','was','are','were','be','been','have','has','had','do','does','did','will','would','can','could','should','may','might','that','this','these','those','it','its','they','their','we','our','you','your','he','she','his','her']);
   const wordFreq: Record<string, number> = {};
   (text.toLowerCase().match(/\b[a-z]{4,}\b/g) || [])
-    .filter(w => !stopWords.has(w))
+    .filter(w => !STOP_WORDS.has(w))
     .forEach(w => { wordFreq[w] = (wordFreq[w] || 0) + 1; });
   const keywords = Object.entries(wordFreq)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
+    .slice(0, cfg.contextMaxKeywords)
     .map(([w]) => w);
 
   return { summary, topics, entities, claims, sentiment, keywords, confidence: 0.4, source: 'local' };
@@ -86,11 +77,12 @@ async function llmExtract(text: string, goal?: string, apiKey?: string): Promise
 
   const schema = `{"summary":"string","topics":["string"],"entities":[{"name":"string","type":"person|org|role|skill|location|product|other"}],"claims":["string"],"sentiment":"positive|neutral|negative|mixed","keywords":["string"],"confidence":0.88,"source":"llm"}`;
 
+  const params = getContextParams();
   const userMsg = [
     goal ? `Goal: ${goal}` : '',
     `Text:\n${text.slice(0, 4000)}`,
     `Return JSON matching: ${schema}`,
-    `Rules: topics max 6, entities max 10, claims max 8 (key factual assertions), keywords max 10.`,
+    `Rules: topics max ${cfg.contextMaxTopics}, entities max 10, claims max 8 (key factual assertions), keywords max ${cfg.contextMaxKeywords}.`,
   ].filter(Boolean).join('\n\n');
 
   try {
@@ -98,13 +90,13 @@ async function llmExtract(text: string, goal?: string, apiKey?: string): Promise
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: getModel('utility'),
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMsg },
         ],
-        temperature: 0.1,
-        max_tokens: 600,
+        temperature: params.temperature,
+        max_tokens: params.maxTokens,
       }),
     });
 

@@ -1,4 +1,6 @@
 import { cleanEnv } from './supabase-admin';
+import { getModel, getTailoringParams } from '@/next/lib/config/llm';
+import { cfg } from '@/next/lib/config/runtime';
 
 type TailoringInput = {
   jobTitle: string;
@@ -50,7 +52,8 @@ export async function tailorApplicationForJob(input: TailoringInput): Promise<Ta
   const openaiKey = cleanEnv(process.env.OPENAI_API_KEY);
   if (!openaiKey) return localFallback(input);
 
-  const model = cleanEnv(process.env.OPENAI_MODEL) || 'gpt-4o-mini';
+  const model = getModel('tailoring');
+  const params = getTailoringParams();
 
   const prompt = `You are an expert career coach. Given a job listing and a candidate profile, do three things:
 
@@ -63,7 +66,7 @@ Return valid JSON with keys: score (number), scoreSummary (string), tailoredResu
 Job:
 - Title: ${input.jobTitle}
 - Company: ${input.jobCompany}
-- Description: ${input.jobDescription.slice(0, 1200)}
+- Description: ${input.jobDescription.slice(0, cfg.jobDescTailoringLimit)}
 
 Candidate:
 - Target roles: ${input.profileRoles.join(', ')}
@@ -81,8 +84,8 @@ Candidate:
       body: JSON.stringify({
         model,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 800,
-        temperature: 0.3,
+        max_tokens: params.maxTokens,
+        temperature: params.temperature,
         response_format: { type: 'json_object' }
       })
     });
@@ -95,8 +98,8 @@ Candidate:
     return {
       score: Math.max(0, Math.min(100, Number(parsed.score) || 50)),
       scoreSummary: String(parsed.scoreSummary || '').slice(0, 300),
-      tailoredResumeSummary: String(parsed.tailoredResumeSummary || '').slice(0, 3000),
-      coverLetter: String(parsed.coverLetter || '').slice(0, 6000),
+      tailoredResumeSummary: String(parsed.tailoredResumeSummary || '').slice(0, cfg.resumeSummaryMaxLength),
+      coverLetter: String(parsed.coverLetter || '').slice(0, cfg.coverLetterMaxLength),
       tailoringSource: 'llm'
     };
   } catch {

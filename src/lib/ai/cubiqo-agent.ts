@@ -20,6 +20,8 @@ import {
   taskPlanCreate
 } from './user-context-tools';
 import { webSearch, searchConfigured } from '../../app/api/_lib/web-search';
+import { CASUAL_TERMS, GATED_TERMS, GOAL_TERMS } from '../rgy/term-registry';
+import { getChatParams, getModel } from '../config/llm';
 
 export type AgentTraceItem = {
   tool: string;
@@ -31,11 +33,7 @@ export type CubiQoAgentOptions = {
   authToken?: string;
 };
 
-const goalTerms = ['linkedin', 'career', 'yoga', 'wellness', 'build', 'ship', 'launch', 'job', 'resume', 'routine', 'business', 'pod'];
-const casualTerms = ['instagram', 'facebook', 'fb', 'insta', 'comfort', 'chat', 'friends', 'mood', 'movie'];
-const gatedTerms = ['grindr', 'tinder', 'adult', 'explicit', 'nsfw', 'hookup'];
-
-function hits(input: string, terms: string[]) {
+function hits(input: string, terms: readonly string[]) {
   const lower = input.toLowerCase();
   return terms.filter((term) => lower.includes(term));
 }
@@ -196,9 +194,9 @@ export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentO
         text: z.string().min(1).max(2000)
       }),
       execute: async ({ text }) => ({
-        green: hits(text, goalTerms),
-        yellow: hits(text, casualTerms),
-        red: hits(text, gatedTerms)
+        green: hits(text, GOAL_TERMS),
+        yellow: hits(text, CASUAL_TERMS),
+        red: hits(text, GATED_TERMS)
       })
     }),
     capability_plan: tracedTool({
@@ -332,7 +330,7 @@ export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentO
   };
 
   return new ToolLoopAgent({
-    model: process.env.AI_GATEWAY_MODEL || process.env.OPENAI_MODEL || 'openai/gpt-5.4',
+    model: getModel('chat'),
     tools,
     instructions: [
       'You are CubiQo V1 inside cq.ai.',
@@ -347,7 +345,7 @@ export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentO
       'When a tool is unavailable or blocked, say that clearly.',
       'Keep answers concise and specific.'
     ].join('\n'),
-    stopWhen: stepCountIs(5)
+    stopWhen: stepCountIs(Math.max(5, getChatParams().maxSteps))
   });
 }
 
@@ -469,9 +467,9 @@ export async function buildFallbackAgentAnswer(
     return `I inspected the repo. CubiQo is currently ${stack.stack.framework} with React ${stack.stack.react}, Supabase ${stack.stack.supabase}, and AI SDK ${stack.stack.ai}. The active app routes include ${stack.routes.map(route => route.route).join(', ')}.`;
   }
   const rgy = {
-    green: hits(message, goalTerms),
-    yellow: hits(message, casualTerms),
-    red: hits(message, gatedTerms)
+    green: hits(message, GOAL_TERMS),
+    yellow: hits(message, CASUAL_TERMS),
+    red: hits(message, GATED_TERMS)
   };
   trace.push({ tool: 'classify_rgy', status: 'completed', summary: 'classified RGY keywords' });
   return `I can handle this conversationally in V1. I classified the active signal as ${rgy.red.length ? 'red' : rgy.green.length ? 'green' : 'yellow'} and I will stay read-only unless you approve a later V2 action system.`;

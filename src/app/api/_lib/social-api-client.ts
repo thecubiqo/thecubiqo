@@ -1,4 +1,5 @@
 import { cleanEnv } from './supabase-admin';
+import { allowGlobalSocialConnectors } from '@/next/lib/config/connectors';
 
 export type SocialApiPlatform = 'linkedin' | 'x' | 'instagram' | 'threads';
 
@@ -20,6 +21,9 @@ export type SocialPostResult = {
 // ── LinkedIn Graph API ──────────────────────────────────────────────────────
 
 async function postLinkedIn(payload: SocialPostPayload): Promise<SocialPostResult> {
+  if (!allowGlobalSocialConnectors()) {
+    return { posted: false, error: 'Direct social API requires a user-connected social account token. Shared env fallback is disabled.', provider: 'blocked' };
+  }
   const token = cleanEnv(process.env.LINKEDIN_ACCESS_TOKEN);
   const authorId = cleanEnv(process.env.LINKEDIN_AUTHOR_URN); // e.g. urn:li:person:xxx
   if (!token || !authorId) {
@@ -64,6 +68,9 @@ async function postLinkedIn(payload: SocialPostPayload): Promise<SocialPostResul
 // ── X (Twitter) API v2 ──────────────────────────────────────────────────────
 
 async function postX(payload: SocialPostPayload): Promise<SocialPostResult> {
+  if (!allowGlobalSocialConnectors()) {
+    return { posted: false, error: 'Direct social API requires a user-connected social account token. Shared env fallback is disabled.', provider: 'blocked' };
+  }
   const bearerToken = cleanEnv(process.env.X_BEARER_TOKEN);
   const apiKey = cleanEnv(process.env.X_API_KEY);
   const apiSecret = cleanEnv(process.env.X_API_SECRET);
@@ -105,6 +112,9 @@ async function postX(payload: SocialPostPayload): Promise<SocialPostResult> {
 // ── Instagram Graph API ─────────────────────────────────────────────────────
 
 async function postInstagram(payload: SocialPostPayload): Promise<SocialPostResult> {
+  if (!allowGlobalSocialConnectors()) {
+    return { posted: false, error: 'Direct social API requires a user-connected social account token. Shared env fallback is disabled.', provider: 'blocked' };
+  }
   const token = cleanEnv(process.env.INSTAGRAM_ACCESS_TOKEN);
   const accountId = cleanEnv(process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID);
   if (!token || !accountId) {
@@ -147,6 +157,9 @@ async function postInstagram(payload: SocialPostPayload): Promise<SocialPostResu
 // ── Threads API ─────────────────────────────────────────────────────────────
 
 async function postThreads(payload: SocialPostPayload): Promise<SocialPostResult> {
+  if (!allowGlobalSocialConnectors()) {
+    return { posted: false, error: 'Direct social API requires a user-connected social account token. Shared env fallback is disabled.', provider: 'blocked' };
+  }
   const token = cleanEnv(process.env.THREADS_ACCESS_TOKEN);
   const userId = cleanEnv(process.env.THREADS_USER_ID);
   if (!token || !userId) {
@@ -194,6 +207,9 @@ export async function postViaSocialApi(payload: SocialPostPayload): Promise<Soci
 }
 
 export function socialApiCredentialStatus(platform: SocialApiPlatform): { configured: boolean; missingVars: string[] } {
+  if (!allowGlobalSocialConnectors()) {
+    return { configured: false, missingVars: ['user_connected_social_account_token'] };
+  }
   const checks: Record<SocialApiPlatform, string[]> = {
     linkedin: ['LINKEDIN_ACCESS_TOKEN', 'LINKEDIN_AUTHOR_URN'],
     x: ['X_BEARER_TOKEN'],

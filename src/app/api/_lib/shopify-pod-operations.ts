@@ -8,6 +8,7 @@ import {
   getPodProvider
 } from '@/next/lib/pod/pod-provider-registry';
 import { shopifyApiVersion } from '@/next/lib/shopify/constants';
+import { allowGlobalCommerceConnectors, globalConnectorWarning } from '@/next/lib/config/connectors';
 
 export const SHOPIFY_POD_OPERATION_ACTION_TYPES = [
   'shopify_store_connect',
@@ -232,27 +233,36 @@ async function readStoredSecret(auth: ApiUserContext, provider: string, storeUrl
 }
 
 async function getShopifyToken(auth: ApiUserContext, storeUrl: string) {
-  const env = envShopifyCredentials();
-  if (env.token && env.storeUrl === storeUrl) return { token: env.token, source: 'server_env' as const };
   const stored = await readStoredSecret(auth, 'shopify', storeUrl);
   if ('missingTable' in stored) return { missingTable: true as const };
   if ('error' in stored) return { error: stored.error };
   const token = decryptSecret(stored.secret);
-  return token ? { token, source: 'encrypted_secret' as const } : { token: null, source: 'none' as const };
+  if (token) return { token, source: 'encrypted_secret' as const };
+
+  const env = envShopifyCredentials();
+  if (allowGlobalCommerceConnectors() && env.token && env.storeUrl === storeUrl) {
+    console.warn(globalConnectorWarning('shopify'));
+    return { token: env.token, source: 'server_env' as const };
+  }
+  return { token: null, source: 'none' as const };
 }
 
 async function getDirectProviderToken(auth: ApiUserContext, provider: string) {
   const env = envDirectProviderCredentials(provider);
   const registry = await readPodProviderConfig(auth, provider);
   const registryApiUrl = 'config' in registry ? text(registry.config?.api_url, 400) : '';
-  if (env.token) return { token: env.token, apiUrl: env.apiUrl || registryApiUrl, source: 'server_env' as const };
   const stored = await readStoredSecret(auth, provider);
   if ('missingTable' in stored) return { missingTable: true as const };
   if ('error' in stored) return { error: stored.error };
   const token = decryptSecret(stored.secret);
-  return token
-    ? { token, apiUrl: text(stored.secret?.metadata?.api_url, 400) || env.apiUrl || registryApiUrl, source: 'encrypted_secret' as const }
-    : { token: null, apiUrl: env.apiUrl || registryApiUrl, source: 'none' as const };
+  if (token) {
+    return { token, apiUrl: text(stored.secret?.metadata?.api_url, 400) || env.apiUrl || registryApiUrl, source: 'encrypted_secret' as const };
+  }
+  if (allowGlobalCommerceConnectors() && env.token) {
+    console.warn(globalConnectorWarning(provider));
+    return { token: env.token, apiUrl: env.apiUrl || registryApiUrl, source: 'server_env' as const };
+  }
+  return { token: null, apiUrl: env.apiUrl || registryApiUrl, source: 'none' as const };
 }
 
 async function readPodProviderConfig(auth: ApiUserContext, provider: string) {
@@ -323,6 +333,9 @@ async function providerFetch(auth: ApiUserContext, provider: string, payload: Re
 }
 
 function connectorFromEnv(provider: string) {
+  if (!allowGlobalCommerceConnectors()) {
+    return { provider, state: 'disconnected' as ConnectorState, credentialStatus: 'global_env_disabled' };
+  }
   if (provider === 'shopify') {
     const env = envShopifyCredentials();
     return env.token
@@ -341,7 +354,7 @@ function mapConnector(row: Record<string, any> | null | undefined, fallback: Ret
       ...fallback,
       connected: false,
       checkedAt: new Date().toISOString(),
-      source: fallback.credentialStatus === 'missing' ? 'server_env_missing' : 'server_env_only',
+      source: fallback.credentialStatus === 'missing' ? 'server_env_missing' : 'global_env_admin_only',
       note: fallback.credentialStatus === 'missing'
         ? `${fallback.provider} credentials are not configured server-side.`
         : `${fallback.provider} credentials exist server-side but have not been verified by a successful provider read.`

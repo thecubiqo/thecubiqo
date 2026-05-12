@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'user_id must match the authenticated user' }, { status: 403 });
   }
 
-  const result = await classifyRgyActivity(input);
+  const result = await classifyRgyActivity(input, auth.supabase);
 
   // Safety stops are terminal by design: no Supabase row, no panel capsule.
   if ('status' in result) {
@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
   }
 
   const signal = mapSignal(save.data);
+
   return NextResponse.json({
     capsule: capsuleOnly(result),
     suggested_intents: result.suggested_intents,

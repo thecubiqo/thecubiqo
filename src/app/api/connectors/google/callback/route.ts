@@ -9,7 +9,12 @@ export async function GET(request: NextRequest) {
   const stateB64 = url.searchParams.get('state');
   const errorParam = url.searchParams.get('error');
 
-  const baseUrl = cleanEnv(process.env.NEXT_PUBLIC_BASE_URL) || 'https://cubiqo.ai';
+  const rawBaseUrl = cleanEnv(process.env.NEXT_PUBLIC_BASE_URL) ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+  const baseUrl = rawBaseUrl?.startsWith('http') ? rawBaseUrl : rawBaseUrl ? `https://${rawBaseUrl}` : undefined;
+  if (!baseUrl) {
+    return NextResponse.redirect(new URL('/settings/connectors?error=base_url_missing', request.url));
+  }
 
   if (errorParam) {
     return NextResponse.redirect(`${baseUrl}/settings/connectors?error=${encodeURIComponent(errorParam)}`);

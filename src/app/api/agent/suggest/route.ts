@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApiUser, cleanEnv } from '../../_lib/supabase-admin';
+import { getModel, getUtilityParams } from '@/next/lib/config/llm';
+import { cfg } from '@/next/lib/config/runtime';
 
 export const runtime = 'nodejs';
 export const maxDuration = 15;
@@ -38,6 +40,7 @@ export async function POST(request: NextRequest) {
   if (openaiKey) {
     try {
       const prompt = `You are a session navigator for a ${persona} context. The user's active capsule is: keyword='${keyword}', color='${color}', intents=[${intents}]. Their last message or current focus: '${lastMessage}'. Generate exactly 4 short, specific, actionable suggestions the user might want to ask or do next. Each suggestion should be a complete short sentence (max 9 words). Return ONLY a JSON array of strings: ["suggestion1","suggestion2","suggestion3","suggestion4"]`;
+      const params = getUtilityParams();
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -46,9 +49,9 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          temperature: 0.7,
-          max_tokens: 200,
+          model: getModel('utility'),
+          temperature: params.temperature,
+          max_tokens: params.maxTokens,
           messages: [{ role: 'user', content: prompt }],
         }),
       });
@@ -60,7 +63,7 @@ export async function POST(request: NextRequest) {
         if (match) {
           const parsed = JSON.parse(match[0]);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            return NextResponse.json({ suggestions: parsed.slice(0, 5) });
+            return NextResponse.json({ suggestions: parsed.slice(0, cfg.maxSuggestionsReturn) });
           }
         }
       }

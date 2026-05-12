@@ -1,16 +1,25 @@
-export const WHITELIST_DOMAINS = [
-  'linkedin.com',
-  'x.com',
-  'twitter.com',
-  'instagram.com',
-  'threads.net',
-  'indeed.com',
-  'dice.com',
-  'wellfound.com',
-  'greenhouse.io',
-  'lever.co',
-  'example.com'
-] as const;
+import { JOB_PROVIDER_REGISTRY } from '@/next/lib/jobs/job-provider-registry';
+import { SOCIAL_PLATFORM_REGISTRY } from '@/next/lib/social/social-platform-registry';
+
+function hostnameFromUrl(url: string) {
+  try {
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
+
+const DEMO_ALLOWLIST_DOMAINS = ['example.com'] as const;
+
+export const WHITELIST_DOMAINS = Array.from(new Set([
+  ...JOB_PROVIDER_REGISTRY.flatMap(provider => provider.domains),
+  ...SOCIAL_PLATFORM_REGISTRY.flatMap(platform => [
+    hostnameFromUrl(platform.browserStartUrl),
+    hostnameFromUrl(platform.startUrl),
+    ...platform.aliases.filter(alias => alias.includes('.'))
+  ]),
+  ...DEMO_ALLOWLIST_DOMAINS
+].filter((domain): domain is string => Boolean(domain))));
 
 export const HARD_STOP_ACTION_TYPES: Record<string, string> = {
   send_email: 'blocked_email_send',

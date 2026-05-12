@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin, cleanEnv, requireApiUser } from '../../_lib/supabase-admin';
 import { buildProviderSearchUrl, enabledScanProviders, type JobProvider } from '@/next/lib/jobs/job-provider-registry';
+import { getModel, getScoringParams } from '@/next/lib/config/llm';
+import { cfg } from '@/next/lib/config/runtime';
 
 const CRON_SECRET = cleanEnv(process.env.CRON_SECRET);
 const RECENCY_TEXT: Record<string, string> = {
@@ -17,7 +19,7 @@ function asArray(value: unknown) {
 
 function buildScanContext(profile: Record<string, any>) {
   const targetRoles = asArray(profile.target_roles);
-  const skills = asArray(profile.skills).slice(0, 4);
+  const skills = asArray(profile.skills).slice(0, cfg.jobScanSkillLimit);
   const preferredLocations = asArray(profile.preferred_locations);
   const workModes = asArray(profile.work_modes);
   const metadata = profile.metadata || {};
@@ -32,7 +34,7 @@ function buildScanContext(profile: Record<string, any>) {
     };
   }
 
-  const roleSkillQuery = [...targetRoles.slice(0, 2), ...skills.slice(0, 2)].join(' ');
+  const roleSkillQuery = [...targetRoles.slice(0, cfg.jobScanRoleLimit), ...skills.slice(0, 2)].join(' ');
   const location = [...preferredLocations.slice(0, 1), ...workModes.slice(0, 1)].join(' ') || 'open location';
   const query = [roleSkillQuery, recencyText].filter(Boolean).join(' ');
 
@@ -64,6 +66,10 @@ async function recordScanRun(
     .insert({
       user_id: input.userId,
       platform: input.platform,
+      status: 'completed',
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+      jobs_found: input.listingsFound,
       listings_found: input.listingsFound,
       listings_saved: input.listingsSaved,
       score_threshold: input.scoreThreshold,
@@ -97,16 +103,17 @@ Listing:
 - Title: ${listing.title}
 - Company: ${listing.company}
 - Location: ${listing.location || 'unknown'}
-- Description: ${String(listing.description || '').slice(0, 500)}`;
+- Description: ${String(listing.description || '').slice(0, cfg.jobDescPromptLimit)}`;
+    const params = getScoringParams();
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: cleanEnv(process.env.OPENAI_MODEL) || 'gpt-4o-mini',
+        model: getModel('scoring'),
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 10,
-        temperature: 0
+        max_tokens: params.maxTokens,
+        temperature: params.temperature
       })
     });
     if (!res.ok) return 50;
@@ -148,7 +155,7 @@ async function searchWithStagehand(
     const listings = Array.isArray(extracted) ? extracted : (extracted as any)?.listings || [];
     const results: Array<Record<string, any>> = [];
 
-    for (const listing of listings.slice(0, 15)) {
+    for (const listing of listings.slice(0, cfg.jobScanBatchSize)) {
       const score = await scoreListing(listing, profile);
       if (score < threshold) continue;
 
@@ -171,7 +178,7 @@ async function searchWithStagehand(
           title: String(listing.title || '').slice(0, 500),
           company: String(listing.company || '').slice(0, 200),
           location: String(listing.location || '').slice(0, 200),
-          description: String(listing.description || '').slice(0, 3000),
+          description: String(listing.description || '').slice(0, cfg.jobDescStorageLimit),
           status: 'discovered',
           metadata: {
             score,
@@ -240,7 +247,7 @@ export async function GET(request: NextRequest) {
       .from('job_profiles')
       .select('id,user_id,target_roles,skills,preferred_locations,work_modes,metadata,scan_enabled,score_threshold')
       .eq('scan_enabled', true)
-      .limit(20);
+      .limit(cfg.jobScanProfilesBatch);
     profiles = data || [];
   }
 

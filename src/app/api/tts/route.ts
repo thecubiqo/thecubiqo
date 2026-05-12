@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseAdmin } from '../_lib/supabase-admin';
+import { getVoicePlatformDefaults } from '../_lib/platform-settings';
 
 export const runtime = 'nodejs';
 export const maxDuration = 15;
 
-const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || process.env.ELEVEN_LABS_VOICE_ID || 'SAz9YHcvj6GT2YYXdXww';
-const MODEL_ID = process.env.ELEVENLABS_MODEL_ID || process.env.ELEVEN_LABS_MODEL_ID || 'eleven_flash_v2_5';
+const FALLBACK_VOICE_ID = 'SAz9YHcvj6GT2YYXdXww';
+const FALLBACK_MODEL_ID = 'eleven_flash_v2_5';
 
 function getApiKey() {
   for (const key of ['ELEVENLABS_API_KEY', 'ELEVEN_LABS_API_KEY', 'ELEVENLABS_KEY', 'XI_API_KEY']) {
@@ -22,6 +24,15 @@ function voiceSettings(color?: string) {
   return   { stability: 0.76, similarity_boost: 0.58, style: 0.05, speed: 0.92, use_speaker_boost: false };
 }
 
+async function resolveVoiceConfig() {
+  const admin = getSupabaseAdmin();
+  const settings = admin ? await getVoicePlatformDefaults(admin).catch(() => null) : null;
+  return {
+    voiceId: process.env.ELEVENLABS_VOICE_ID || process.env.ELEVEN_LABS_VOICE_ID || settings?.elevenLabsVoiceId || FALLBACK_VOICE_ID,
+    modelId: process.env.ELEVENLABS_MODEL_ID || process.env.ELEVEN_LABS_MODEL_ID || settings?.elevenLabsModelId || FALLBACK_MODEL_ID
+  };
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const text = String(body.text || '').trim().slice(0, 500);
@@ -32,10 +43,11 @@ export async function POST(request: NextRequest) {
   if (!text)   return NextResponse.json({ audio_url: null, error: 'No text provided' });
 
   try {
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
+    const voiceConfig = await resolveVoiceConfig();
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceConfig.voiceId}`, {
       method: 'POST',
       headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, model_id: MODEL_ID, voice_settings: voiceSettings(color) }),
+      body: JSON.stringify({ text, model_id: voiceConfig.modelId, voice_settings: voiceSettings(color) }),
     });
 
     if (!res.ok) {

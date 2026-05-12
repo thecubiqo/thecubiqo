@@ -3,22 +3,14 @@ import { requireApiUser, safeTableMissing, missingMigrationResponse, cleanEnv } 
 import { createBrowserSession, closeBrowserSession } from '../../_lib/browser-sessions';
 import { writeAudit } from '../../_lib/v2-actions';
 import { tailorApplicationForJob } from '../../_lib/llm-tailoring';
+import { resolveJobProviderForUrl } from '@/next/lib/jobs/job-provider-registry';
+import { cfg } from '@/next/lib/config/runtime';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 function detectPlatform(url: string): string {
-  const h = new URL(url).hostname.toLowerCase();
-  if (h.includes('linkedin')) return 'linkedin';
-  if (h.includes('indeed')) return 'indeed';
-  if (h.includes('dice')) return 'dice';
-  if (h.includes('monster')) return 'monster';
-  if (h.includes('greenhouse')) return 'greenhouse';
-  if (h.includes('lever')) return 'lever';
-  if (h.includes('workday')) return 'workday';
-  if (h.includes('ziprecruiter')) return 'ziprecruiter';
-  if (h.includes('wellfound')) return 'wellfound';
-  return 'company_site';
+  return resolveJobProviderForUrl(url)?.id || 'company_site';
 }
 
 function extractJdKeywords(description: string, skills: unknown): string[] {
@@ -54,7 +46,7 @@ async function getProfileData(auth: any) {
     .from('application_answers')
     .select('question, answer, platform_hint')
     .eq('user_id', auth.user.id)
-    .limit(50);
+    .limit(cfg.applicationAnswersBatch);
 
   return { profile, resume, answers: answers || [] };
 }
@@ -64,6 +56,10 @@ function buildProfileInstruction(profile: any, resume: any, answers: any[]) {
   const phone = profile?.phone || '';
   const email = profile?.email || '';
   const city = profile?.city || 'Remote';
+  const locationPreference = [
+    ...(Array.isArray(profile?.preferred_locations) ? profile.preferred_locations : []),
+    ...(Array.isArray(profile?.work_modes) ? profile.work_modes : [])
+  ].map(item => String(item || '').trim()).filter(Boolean).join(', ') || city;
   const linkedinUrl = profile?.linkedin_url || '';
   const uscStatus = profile?.usc ? 'U.S. Citizen — no sponsorship required' : '';
   const salary = profile?.desired_salary || '';
@@ -76,7 +72,7 @@ Applicant profile (use exactly as provided):
 Name: ${name}${uscStatus ? ` | ${uscStatus}` : ''}
 Email: ${email}
 Phone: ${phone}
-Location preference: Remote, US
+Location preference: ${locationPreference}
 LinkedIn: ${linkedinUrl}
 ${salary ? `Desired salary: ${salary}` : ''}
 Availability: ${availability}

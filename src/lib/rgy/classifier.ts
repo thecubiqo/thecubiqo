@@ -1,4 +1,12 @@
 import https from 'https';
+import { getModel } from '@/next/lib/config/llm';
+import {
+  getSafetyPatterns,
+  isCrisisInput,
+  isHardBlockedInput,
+  isAgeGatedInput,
+  FALLBACK_PATTERNS
+} from '@/next/lib/rgy/safety-pattern-cache';
 
 export type RgyColor = 'green' | 'yellow' | 'red';
 export type RgyIntent = 'socialize' | 'collaborate' | 'trade';
@@ -42,36 +50,10 @@ type TaxonomyMatch = {
 const RGY_COLORS = ['green', 'yellow', 'red'] as const;
 const RGY_INTENTS = ['socialize', 'collaborate', 'trade'] as const;
 
-// Section 1: safety. These checks always run before taxonomy or LLM work.
+// Section 1: safety. Patterns are loaded from Supabase (safety_patterns table)
+// via safety-pattern-cache with a 5-min TTL. FALLBACK_PATTERNS (in that module)
+// serve as the emergency backup when DB is unreachable.
 // Crisis and hard-block paths intentionally create no capsule and no DB row.
-const CRISIS_PATTERNS = [
-  /\bkill myself\b/i,
-  /\bsuicide\b/i,
-  /\bend my life\b/i,
-  /\bself[-\s]?harm\b/i,
-  /\bi want to die\b/i
-];
-
-const HARD_BLOCK_PATTERNS = [
-  /\billegal drugs?\b/i,
-  /\bdrug trafficking\b/i,
-  /\bmake (?:a )?bomb\b/i,
-  /\bweapon trafficking\b/i,
-  /\bcredit card fraud\b/i
-];
-
-const AGE_GATE_PATTERNS = [
-  /\badult\b/i,
-  /\bexplicit\b/i,
-  /\bnsfw\b/i,
-  /\bhookup\b/i,
-  /\bage[-\s]?gated\b/i,
-  /\brestricted\b/i,
-  /\badult apps?\b/i,
-  /\badult content\b/i,
-  /\bgrindr\b/i,
-  /\btinder\b/i
-];
 
 // Section 2: deterministic taxonomy. These are mode signals, not labels for
 // people. The same surface word can still be re-read by the LLM when context
@@ -196,10 +178,6 @@ function httpsPost(url: string, headers: Record<string, string>, body: string) {
   });
 }
 
-function includesPattern(input: string, patterns: RegExp[]) {
-  return patterns.some(pattern => pattern.test(input));
-}
-
 function phraseRegex(phrase: string) {
   return new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\s+/g, '\\s+')}\\b`, 'i');
 }
@@ -296,8 +274,17 @@ function taxonomyMatch(input: string, forcedRed: boolean): TaxonomyMatch | null 
   return null;
 }
 
-export function runSafetyLayer(input: string): RgySafetyStop | RgySafetyContinue {
-  if (includesPattern(input, CRISIS_PATTERNS)) {
+export async function runSafetyLayer(
+  input: string,
+  supabase?: any
+): Promise<RgySafetyStop | RgySafetyContinue> {
+  // Load DB-backed patterns (with 5-min cache) when supabase is available;
+  // falls back to hardcoded FALLBACK_PATTERNS if DB is unreachable.
+  const patterns = supabase
+    ? await getSafetyPatterns(supabase)
+    : FALLBACK_PATTERNS;
+
+  if (isCrisisInput(input, patterns)) {
     return {
       status: 'crisis',
       capsule: null,
@@ -309,7 +296,7 @@ export function runSafetyLayer(input: string): RgySafetyStop | RgySafetyContinue
     };
   }
 
-  if (includesPattern(input, HARD_BLOCK_PATTERNS)) {
+  if (isHardBlockedInput(input, patterns)) {
     return {
       status: 'blocked',
       capsule: null,
@@ -321,7 +308,7 @@ export function runSafetyLayer(input: string): RgySafetyStop | RgySafetyContinue
 
   return {
     status: 'continue',
-    age_gate_required: includesPattern(input, AGE_GATE_PATTERNS)
+    age_gate_required: isAgeGatedInput(input, patterns)
   };
 }
 
@@ -397,7 +384,7 @@ function parseClassifierJson(text: string) {
 async function classifyWithLlm(input: string) {
   const key = cleanEnv(process.env.OPENAI_API_KEY, process.env.OPENAI_KEY, process.env.AI_API_KEY);
   if (!key) throw new Error('OpenAI key unavailable');
-  const model = cleanEnv(process.env.OPENAI_MODEL, process.env.AI_MODEL) || 'gpt-5.4';
+  const model = getModel('rgy');
   const prompt = buildLlmPrompt(input);
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -424,9 +411,12 @@ async function classifyWithLlm(input: string) {
   throw new Error('LLM classification failed');
 }
 
-export async function classifyRgyActivity(input: string): Promise<RgyClassification | RgySafetyStop> {
+export async function classifyRgyActivity(
+  input: string,
+  supabase?: any
+): Promise<RgyClassification | RgySafetyStop> {
   const cleanInput = String(input || '').trim();
-  const safety = runSafetyLayer(cleanInput);
+  const safety = await runSafetyLayer(cleanInput, supabase);
   if (safety.status !== 'continue') return safety;
 
   const taxonomy = taxonomyMatch(cleanInput, safety.age_gate_required);

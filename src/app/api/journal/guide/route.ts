@@ -1,5 +1,6 @@
 import https from 'https';
 import { NextRequest, NextResponse } from 'next/server';
+import { getModel } from '@/next/lib/config/llm';
 
 const cleanEnv = (...values: Array<string | undefined>) => {
   const value = values.find(Boolean);
@@ -92,7 +93,7 @@ async function llmSummary(intake: string, answers: string[]) {
   const key = cleanEnv(process.env.OPENAI_API_KEY, process.env.OPENAI_KEY, process.env.AI_API_KEY);
   if (!key) return null;
 
-  const model = cleanEnv(process.env.OPENAI_MODEL, process.env.AI_MODEL) || 'gpt-5.4';
+  const model = getModel('rgy');
   const raw = await httpsPost(
     'https://api.openai.com/v1/chat/completions',
     {

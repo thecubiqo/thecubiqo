@@ -30,18 +30,14 @@ import {
   buildJobSearchQueries
 } from '@/next/lib/ai/career-tools';
 import { webSearch, searchConfigured } from '../../_lib/web-search';
+import { getAgentParams, getModel, getOpenRouterModel } from '@/next/lib/config/llm';
+import { cfg } from '@/next/lib/config/runtime';
+import { CAREER_TERMS, CASUAL_TERMS, GATED_TERMS, GOAL_TERMS } from '@/next/lib/rgy/term-registry';
 
 export const maxDuration = 55;
 export const runtime = 'nodejs';
 
 // ─── Career context detection ─────────────────────────────────────────────────
-
-const CAREER_TERMS = [
-  'job', 'jobs', 'resume', 'cv', 'career', 'apply', 'application', 'hire', 'hiring',
-  'interview', 'linkedin', 'ba', 'business analyst', 'analyst', 'product owner', 'scrum',
-  'salary', 'offer', 'recruiter', 'ats', 'jd', 'job description', 'cover letter',
-  'remote', 'opportunity', 'role', 'position', 'work', 'employed', 'employment'
-];
 
 function isCareerContext(text: string): boolean {
   const lower = text.toLowerCase();
@@ -53,11 +49,7 @@ function getBearerToken(request: NextRequest) {
   return header.match(/^Bearer\s+(.+)$/i)?.[1] || '';
 }
 
-const goalTerms = ['linkedin', 'career', 'yoga', 'wellness', 'build', 'ship', 'launch', 'job', 'resume', 'routine', 'business', 'pod'];
-const casualTerms = ['instagram', 'facebook', 'fb', 'insta', 'comfort', 'chat', 'friends', 'mood', 'movie'];
-const gatedTerms = ['grindr', 'tinder', 'adult', 'explicit', 'nsfw', 'hookup'];
-
-function hits(input: string, terms: string[]) {
+function hits(input: string, terms: readonly string[]) {
   const lower = input.toLowerCase();
   return terms.filter(t => lower.includes(t));
 }
@@ -98,7 +90,7 @@ async function fallbackConverse(message: string, history: { role: string; conten
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, history: history.slice(-6) })
+        body: JSON.stringify({ message, history: history.slice(-cfg.fallbackHistorySize) })
       }
     );
     if (!res.ok) throw new Error(`converse ${res.status}`);
@@ -146,6 +138,10 @@ export async function POST(request: NextRequest) {
   const history: { role: 'user' | 'assistant'; content: string }[] = Array.isArray(body.history) ? body.history : [];
   const careerMode = isCareerContext(message) || isCareerContext(history.slice(-3).map(h => h.content).join(' '));
 
+  // Domain from capsule (passed by frontend when Duo Mode opens from a signal)
+  const signalId: string | undefined = body.signal_id || undefined;
+  const capsule = body.capsule || null;
+
   // Resolve model
   const openaiKey = (process.env['OPENAI_API_KEY'] || '').trim();
   const orKey = (process.env['OPENROUTER_API_KEY'] || process.env['OPENROUTER_KEY'] || '').trim();
@@ -157,22 +153,23 @@ export async function POST(request: NextRequest) {
   let model;
   try {
     model = openaiKey
-      ? createOpenAI({ apiKey: openaiKey })(process.env['OPENAI_MODEL'] || 'gpt-4.1-mini')
+      ? createOpenAI({ apiKey: openaiKey })(getModel('agent'))
       : createOpenAI({ baseURL: 'https://openrouter.ai/api/v1', apiKey: orKey })(
-          process.env['OPENROUTER_MODEL'] || 'anthropic/claude-3.5-sonnet'
+          getOpenRouterModel()
         );
   } catch {
     return fallbackConverse(message, history, careerMode);
   }
 
   const systemPrompt = careerMode ? BASE_PROMPT + CAREER_ADDENDUM : BASE_PROMPT;
-  const historyMessages = history.slice(-8).map(h => ({ role: h.role as 'user' | 'assistant', content: h.content }));
+  const historyMessages = history.slice(-cfg.historyWindowSize).map(h => ({ role: h.role as 'user' | 'assistant', content: h.content }));
+  const agentParams = getAgentParams();
 
   try {
     const result = streamText({
       model: model as any,
-      temperature: 0.7,
-      stopWhen: stepCountIs(4),
+      temperature: agentParams.temperature,
+      stopWhen: stepCountIs(agentParams.maxSteps),
       system: systemPrompt,
       messages: [...historyMessages, { role: 'user' as const, content: message }],
       tools: {
@@ -206,9 +203,9 @@ export async function POST(request: NextRequest) {
           description: 'Classify text into RGY bands.',
           inputSchema: z.object({ text: z.string().min(1).max(2000) }),
           execute: async ({ text }) => ({
-            green: hits(text, goalTerms),
-            yellow: hits(text, casualTerms),
-            red: hits(text, gatedTerms)
+            green: hits(text, GOAL_TERMS),
+            yellow: hits(text, CASUAL_TERMS),
+            red: hits(text, GATED_TERMS)
           })
         }),
         capability_plan: tool({
@@ -421,6 +418,7 @@ export async function POST(request: NextRequest) {
           execute: async ({ role, targetTitles, location, workMode, skills, seniority, recency }) =>
             buildJobSearchQueries({ role, targetTitles, location, workMode, skills, seniority, recency })
         }),
+
       }
     });
 

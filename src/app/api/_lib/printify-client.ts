@@ -2,6 +2,7 @@ import { ApiUserContext, cleanEnv, missingMigrationResponse, safeTableMissing } 
 import { decryptToken } from './token-vault';
 import { writeAudit } from './v2-actions';
 import { getPodProvider } from '@/next/lib/pod/pod-provider-registry';
+import { allowGlobalCommerceConnectors, globalConnectorWarning } from '@/next/lib/config/connectors';
 
 function defaultPrintifyApiBase() {
   return cleanEnv(process.env.PRINTIFY_API_BASE_URL) || getPodProvider('printify')?.apiUrl || 'https://api.printify.com/v1';
@@ -40,7 +41,8 @@ async function loadConnection(auth: ApiUserContext) {
     if (safeTableMissing(error)) return { error: missingMigrationResponse('printify-connectors', 'store_connections') };
     return { error };
   }
-  if (!data && cleanEnv(process.env.PRINTIFY_API_KEY)) {
+  if (!data && allowGlobalCommerceConnectors() && cleanEnv(process.env.PRINTIFY_API_KEY)) {
+    console.warn(globalConnectorWarning('printify'));
     return {
       connection: {
         id: null,

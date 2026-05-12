@@ -226,6 +226,24 @@ export async function POST(request: NextRequest) {
   }
 
   const targetUrl = platformStartUrl(platform);
+  if (!targetUrl) {
+    await writeAudit(auth, {
+      approvalId,
+      browserSessionId,
+      actionType: 'social_post_queue',
+      toolName: 'social_post_queue',
+      status: 'blocked',
+      message: `${platformEntry?.label || canonical} social queue blocked because no platform start URL is configured`,
+      input: { platform: canonical },
+      blockReason: 'platform_not_configured'
+    });
+    return NextResponse.json({
+      error: 'platform_not_configured',
+      message: 'Platform not configured — add account via Settings.',
+      executed: false,
+      platform: canonical
+    }, { status: 403 });
+  }
   const urlDecision = getUrlAllowlistDecision({ url: targetUrl });
   if (!urlDecision.ok) {
     await writeAudit(auth, {

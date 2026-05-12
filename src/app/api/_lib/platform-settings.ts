@@ -8,12 +8,22 @@ export type CommercePlatformDefaults = {
   productPrice: string | null;
 };
 
+export type VoicePlatformDefaults = {
+  elevenLabsVoiceId: string;
+  elevenLabsModelId: string;
+};
+
 const NEUTRAL_COMMERCE_DEFAULTS: CommercePlatformDefaults = {
   productTitle: 'New Product',
   collectionTitle: 'New Collection',
   bundleTitle: 'New Bundle',
   productTags: [],
   productPrice: null
+};
+
+const NEUTRAL_VOICE_DEFAULTS: VoicePlatformDefaults = {
+  elevenLabsVoiceId: 'SAz9YHcvj6GT2YYXdXww',
+  elevenLabsModelId: 'eleven_flash_v2_5'
 };
 
 function text(value: unknown, max = 240) {
@@ -44,5 +54,20 @@ export async function getCommercePlatformDefaults(auth: ApiUserContext): Promise
     bundleTitle: text(value.bundle_title || value.bundleTitle, 240) || NEUTRAL_COMMERCE_DEFAULTS.bundleTitle,
     productTags: stringArray(value.product_tags || value.productTags),
     productPrice: text(value.product_price || value.productPrice, 40) || null
+  };
+}
+
+export async function getVoicePlatformDefaults(supabase: ApiUserContext['supabase']): Promise<VoicePlatformDefaults> {
+  const { data, error } = await supabase
+    .from('platform_settings')
+    .select('value')
+    .eq('key', 'voice_defaults')
+    .maybeSingle();
+
+  if (error && !safeTableMissing(error)) return NEUTRAL_VOICE_DEFAULTS;
+  const value = jsonObject(data?.value);
+  return {
+    elevenLabsVoiceId: text(value.elevenlabs_voice_id || value.elevenLabsVoiceId, 120) || NEUTRAL_VOICE_DEFAULTS.elevenLabsVoiceId,
+    elevenLabsModelId: text(value.elevenlabs_model_id || value.elevenLabsModelId, 120) || NEUTRAL_VOICE_DEFAULTS.elevenLabsModelId
   };
 }

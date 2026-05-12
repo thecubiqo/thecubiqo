@@ -992,3 +992,28 @@ export function getActionCapability(actionType: string | null | undefined) {
 export function isApprovalRequestable(actionType: string) {
   return Boolean(getActionCapability(actionType)?.approvalRequestable);
 }
+
+/**
+ * DB-overridable capability lookup (S4-G).
+ * Returns the effective status/approvalRequired/endpoint for a tool,
+ * merging any row from `capability_overrides` over the static defaults.
+ * Falls back to static defaults if DB is unavailable (no behaviour change on deploy).
+ * Insert a row in capability_overrides to unlock/lock/reroute — no deploy.
+ */
+export async function getCapabilityConfigForTool(
+  toolName: string,
+  supabase: any
+): Promise<Pick<V2Capability, 'status' | 'approvalRequired' | 'endpoint'>> {
+  const { getCapabilityConfig } = await import('@/next/lib/config/capabilities');
+  const base = getActionCapability(toolName);
+  const defaults: Pick<V2Capability, 'status' | 'approvalRequired' | 'endpoint'> = {
+    status:           base?.status           ?? 'locked',
+    approvalRequired: base?.approvalRequired  ?? true,
+    endpoint:         base?.endpoint          ?? null,
+  };
+  const resolved = await getCapabilityConfig(toolName, defaults, supabase);
+  return {
+    ...resolved,
+    status: resolved.status as V2CapabilityStatus
+  };
+}

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ApiUserContext, missingMigrationResponse, safeTableMissing } from './supabase-admin';
 import { getCommercePlatformDefaults } from './platform-settings';
+import { allowGlobalCommerceConnectors } from '@/next/lib/config/connectors';
 
 export const POD_ACTION_TYPES = [
   'pod_design_brief_create',
@@ -107,6 +108,20 @@ function normalizeUrl(value: unknown) {
 }
 
 function connectorStatus(provider: 'gfxtools' | 'shopify' | 'printify') {
+  if (!allowGlobalCommerceConnectors()) {
+    return {
+      provider,
+      label: provider === 'gfxtools' ? 'GFXTools' : provider === 'shopify' ? 'Shopify' : 'Printify',
+      state: 'disconnected' as ConnectorState,
+      connected: false,
+      credentialStatus: 'global_env_disabled',
+      missing: [],
+      checkedAt: new Date().toISOString(),
+      source: 'user_connection_required',
+      note: 'Shared server env connector fallback is disabled. Connect this provider for the signed-in user.'
+    };
+  }
+
   const configs = {
     gfxtools: {
       label: 'GFXTools',
@@ -138,7 +153,7 @@ function connectorStatus(provider: 'gfxtools' | 'shopify' | 'printify') {
     credentialStatus: missing.length ? 'missing' : 'present_server_side_unverified',
     missing,
     checkedAt: new Date().toISOString(),
-    source: 'server_env_only',
+    source: 'global_env_admin_only',
     note: missing.length
       ? `${configs.label} credentials are not configured server-side.`
       : `${configs.label} credentials exist server-side, but no provider verification call has confirmed connection yet.`

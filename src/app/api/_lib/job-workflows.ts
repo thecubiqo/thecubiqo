@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 import { ApiUserContext, missingMigrationResponse, safeTableMissing } from './supabase-admin';
 import { getActiveBrowserSession, normalizeBrowserSessionId } from './browser-sessions';
 import { tailorApplicationForJob } from './llm-tailoring';
+import {
+  isKnownJobProviderId,
+  resolveJobProviderForUrl,
+  type JobProviderId
+} from '@/next/lib/jobs/job-provider-registry';
 
 export const JOB_ACTION_TYPES = [
   'job_search_save',
@@ -11,21 +16,7 @@ export const JOB_ACTION_TYPES = [
 
 export type JobActionType = typeof JOB_ACTION_TYPES[number];
 
-export const JOB_SOURCES = [
-  'linkedin',
-  'indeed',
-  'dice',
-  'monster',
-  'greenhouse',
-  'lever',
-  'workday',
-  'ziprecruiter',
-  'wellfound',
-  'company_site',
-  'ats',
-  'other'
-] as const;
-type JobSource = typeof JOB_SOURCES[number];
+type JobSource = JobProviderId | 'ats' | 'other';
 
 type JobErrorResult = { error: Response | Error };
 type JobBlockedResult = { blocked: string; status?: number };
@@ -67,18 +58,12 @@ function normalizeAnswerRows(value: unknown) {
 
 export function normalizeJobSource(value: unknown, urlValue?: unknown): JobSource | null {
   const direct = normalizeText(value, 40).toLowerCase();
-  if (JOB_SOURCES.includes(direct as JobSource)) return direct as JobSource;
+  if (isKnownJobProviderId(direct)) return direct;
+  if (direct === 'ats' || direct === 'other') return direct;
 
-  const url = normalizeText(urlValue, 1000).toLowerCase();
-  if (url.includes('linkedin.')) return 'linkedin';
-  if (url.includes('indeed.')) return 'indeed';
-  if (url.includes('dice.')) return 'dice';
-  if (url.includes('monster.')) return 'monster';
-  if (url.includes('greenhouse.')) return 'greenhouse';
-  if (url.includes('lever.')) return 'lever';
-  if (url.includes('workday.')) return 'workday';
-  if (url.includes('ziprecruiter.')) return 'ziprecruiter';
-  if (url.includes('wellfound.')) return 'wellfound';
+  const url = normalizeText(urlValue, 1000);
+  const provider = resolveJobProviderForUrl(url);
+  if (provider) return provider.id;
   if (url) return 'company_site';
   return null;
 }

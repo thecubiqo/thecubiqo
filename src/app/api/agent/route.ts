@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createCubiQoAgent, buildFallbackAgentAnswer, V1_AGENT_TOOLS, type AgentTraceItem } from '@/next/lib/ai/cubiqo-agent';
 import { isCapabilityPlanningRequest } from '@/next/lib/ai/capability-map';
 import { runLegacyVercelHandler } from '@/next/lib/legacy-vercel-adapter';
+import { CASUAL_TERMS, GATED_TERMS, GOAL_TERMS } from '@/next/lib/rgy/term-registry';
+import { getModel } from '@/next/lib/config/llm';
 
 const legacyConverse = require('../../../server/legacy/converse.cjs');
 
@@ -10,9 +12,9 @@ export const runtime = 'nodejs';
 
 function normalizeRgy(message: string) {
   const lower = message.toLowerCase();
-  const red = ['grindr', 'tinder', 'adult', 'explicit', 'nsfw', 'hookup'].filter(term => lower.includes(term));
-  const green = ['linkedin', 'career', 'yoga', 'wellness', 'build', 'ship', 'launch', 'job', 'resume', 'routine', 'business', 'pod'].filter(term => lower.includes(term));
-  const yellow = ['instagram', 'facebook', 'fb', 'insta', 'comfort', 'chat', 'friends', 'mood', 'movie'].filter(term => lower.includes(term));
+  const red = GATED_TERMS.filter(term => lower.includes(term));
+  const green = GOAL_TERMS.filter(term => lower.includes(term));
+  const yellow = CASUAL_TERMS.filter(term => lower.includes(term));
   const color = red.length ? 'red' : green.length ? 'green' : 'yellow';
   return {
     color,
@@ -85,7 +87,7 @@ export async function POST(request: NextRequest) {
   const trace: AgentTraceItem[] = [];
   const authToken = getBearerToken(request);
   let response = '';
-  let modelUsed = process.env.AI_GATEWAY_MODEL || process.env.OPENAI_MODEL || 'openai/gpt-5.4';
+  let modelUsed = getModel('chat');
   const lower = message.toLowerCase();
   const strongCheckRequest = /\b(run|execute|start)\b.*\b(test|tests|regression|typecheck|verify|check)\b/.test(lower);
   const strongWriteRequest =

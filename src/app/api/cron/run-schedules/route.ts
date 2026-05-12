@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin, cleanEnv } from '../../_lib/supabase-admin';
+import { getModel, getTailoringParams } from '@/next/lib/config/llm';
 
 const CRON_SECRET = cleanEnv(process.env.CRON_SECRET);
 
@@ -80,6 +81,7 @@ Data:
 ${JSON.stringify(data, null, 2)}`;
 
   try {
+    const params = getTailoringParams();
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -87,10 +89,10 @@ ${JSON.stringify(data, null, 2)}`;
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: cleanEnv(process.env.OPENAI_MODEL) || 'gpt-4o-mini',
+        model: getModel('tailoring'),
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 500,
-        temperature: 0.4
+        max_tokens: Math.min(params.maxTokens, 500),
+        temperature: Math.max(params.temperature, 0.4)
       })
     });
     if (!res.ok) throw new Error(`OpenAI ${res.status}`);

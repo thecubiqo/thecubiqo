@@ -1,5 +1,7 @@
 import { Stagehand } from '@browserbasehq/stagehand';
 import type { ApiUserContext } from './supabase-admin';
+import { getModel } from '@/next/lib/config/llm';
+import { cfg } from '@/next/lib/config/runtime';
 
 type StagehandInstance = InstanceType<typeof Stagehand>;
 
@@ -42,7 +44,7 @@ function getStorageBucket() {
 }
 
 function getStagehandModelName() {
-  return process.env.STAGEHAND_MODEL_NAME || 'openai/gpt-4.1-mini';
+  return getModel('stagehand');
 }
 
 function getStagehand(browser_session_id: string) {
@@ -85,7 +87,7 @@ export async function openSession(input: StagehandOpenSessionInput) {
 
   if (input.url) {
     const page = getActivePage(stagehand);
-    await page.goto(input.url, { waitUntil: 'domcontentloaded', timeoutMs: 30000 });
+    await page.goto(input.url, { waitUntil: 'domcontentloaded', timeoutMs: cfg.stagehandNavTimeout });
   }
 
   return {

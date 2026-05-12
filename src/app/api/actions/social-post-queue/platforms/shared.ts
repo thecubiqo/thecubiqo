@@ -25,7 +25,7 @@ export function canonicalPlatform(platform: SocialQueuePlatform): Exclude<Social
 }
 
 export function platformStartUrl(platform: SocialQueuePlatform) {
-  return socialPlatformStartUrl(canonicalPlatform(platform)) || 'https://x.com/compose/post';
+  return socialPlatformStartUrl(canonicalPlatform(platform));
 }
 
 export async function auditedSocialAct(input: SocialQueueScriptInput, action: string) {
