@@ -16,10 +16,11 @@ export async function GET(request: NextRequest) {
 
   const workerId = `worker-${crypto.randomUUID()}`;
   const now = new Date().toISOString();
+  // agent_job_queue uses 'state' (not 'status') per schema
   const { data: jobs, error } = await supabase
     .from('agent_job_queue')
     .select('*')
-    .eq('status', 'queued')
+    .eq('state', 'queued')
     .lte('run_after', now)
     .order('created_at', { ascending: true })
     .limit(5);
@@ -28,28 +29,32 @@ export async function GET(request: NextRequest) {
 
   const results: any[] = [];
   for (const job of jobs || []) {
+    // Lock the job (no locked_until column — use locked_at as the lock timestamp)
     await supabase
       .from('agent_job_queue')
       .update({
-        status: 'running',
+        state: 'running',
         locked_by: workerId,
-        locked_until: new Date(Date.now() + 60_000).toISOString(),
+        locked_at: new Date().toISOString(),
         attempts: Number(job.attempts || 0) + 1,
         updated_at: new Date().toISOString()
       })
       .eq('id', job.id)
-      .eq('status', 'queued');
+      .eq('state', 'queued'); // only lock if not already grabbed by another worker
+
+    // Resolve userId from payload (agent_job_queue has no user_id column)
+    const payloadUserId = job.payload?.userId || job.payload?.user_id;
 
     try {
       let result: any = { status: 'skipped', message: 'No executable task on job' };
-      if (job.job_type === 'execute_task' && job.task_id && job.user_id) {
-        result = await executeTask({ supabase, user: { id: job.user_id } }, job.task_id);
+      if (job.job_type === 'execute_task' && job.task_id && payloadUserId) {
+        result = await executeTask({ supabase, user: { id: payloadUserId } }, job.task_id);
       }
 
       await supabase
         .from('agent_job_queue')
         .update({
-          status: result.status === 'failed' ? 'failed' : 'completed',
+          state: result.status === 'failed' ? 'failed' : 'completed',
           last_error: result.status === 'failed' ? result.message : null,
           updated_at: new Date().toISOString()
         })
@@ -59,23 +64,20 @@ export async function GET(request: NextRequest) {
       const message = err instanceof Error ? err.message : 'Unknown worker error';
       const attempts = Number(job.attempts || 0) + 1;
       if (attempts >= Number(job.max_attempts || 3)) {
+        // dead_letter_jobs schema: id, trace_id, original_job_id, job_type, payload, error_history, dead_at
         await supabase.from('dead_letter_jobs').insert({
           original_job_id: job.id,
-          user_id: job.user_id,
-          project_id: job.project_id,
-          task_id: job.task_id,
-          trace_id: job.trace_id,
+          trace_id: job.trace_id || null,
           job_type: job.job_type,
           payload: job.payload || {},
-          error: message,
-          attempts
+          error_history: [{ error: message, attempts, failed_at: new Date().toISOString() }]
         });
       }
 
       await supabase
         .from('agent_job_queue')
         .update({
-          status: attempts >= Number(job.max_attempts || 3) ? 'dead' : 'queued',
+          state: attempts >= Number(job.max_attempts || 3) ? 'dead' : 'queued',
           last_error: message,
           run_after: new Date(Date.now() + attempts * 60_000).toISOString(),
           updated_at: new Date().toISOString()

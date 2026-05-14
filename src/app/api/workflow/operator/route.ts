@@ -25,16 +25,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'projectId or taskId required' }, { status: 400 });
   }
 
+  // agent_job_queue uses 'state' (not 'status') and has no user_id column.
+  // userId is stored in payload so the worker can retrieve it.
   const { data, error } = await supabase
     .from('agent_job_queue')
     .upsert({
-      user_id: userId,
       project_id: projectId || null,
       task_id: taskId,
-      trace_id: traceId,
+      trace_id: traceId || crypto.randomUUID(),
       job_type: taskId ? 'execute_task' : 'advance_project',
-      status: 'queued',
-      payload: body,
+      state: 'queued',
+      payload: { ...body, userId },
       idempotency_key: `operator:${projectId || 'none'}:${taskId || 'project'}`,
       run_after: new Date().toISOString(),
       updated_at: new Date().toISOString()
