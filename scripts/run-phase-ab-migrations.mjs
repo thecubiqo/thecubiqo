@@ -666,6 +666,44 @@ CREATE INDEX IF NOT EXISTS security_events_user_created_idx ON public.security_e
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// MIGRATION 5 — duo_tasks status constraint (add waiting_approval + ready)
+// ─────────────────────────────────────────────────────────────────────────────
+const MIGRATION_5_DUO_TASKS_STATUS_CONSTRAINT = `
+-- Drop existing constraint (idempotent)
+DO $$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'duo_tasks_status_check'
+      AND conrelid = 'public.duo_tasks'::regclass
+  ) THEN
+    ALTER TABLE public.duo_tasks DROP CONSTRAINT duo_tasks_status_check;
+  END IF;
+END $$;
+
+-- Re-add with full Phase B status set
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'duo_tasks_status_check'
+      AND conrelid = 'public.duo_tasks'::regclass
+  ) THEN
+    ALTER TABLE public.duo_tasks
+      ADD CONSTRAINT duo_tasks_status_check
+      CHECK (status IN (
+        'pending',
+        'running',
+        'completed',
+        'failed',
+        'skipped',
+        'blocked',
+        'waiting_approval',
+        'ready'
+      ));
+  END IF;
+END $$;
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SQL statement splitter — handles $$ dollar-quoted blocks correctly
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -721,10 +759,11 @@ function splitStatements(sql) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MIGRATIONS = [
-  { name: 'Migration 1 — Phase A catch-up (PA-01 to PA-04)',           sql: MIGRATION_1_PHASE_A_CATCHUP },
-  { name: 'Migration 2 — Phase B consolidation (PB-S-01 to PB-S-04)', sql: MIGRATION_2_PHASE_B_CONSOLIDATION },
-  { name: 'Migration 3 — Phase B core tables (PB-01 to PB-13)',        sql: MIGRATION_3_PHASE_B_CORE },
-  { name: 'Migration 4 — Phase B ops tables (PB-14 to PB-22)',         sql: MIGRATION_4_PHASE_B_OPS },
+  { name: 'Migration 1 — Phase A catch-up (PA-01 to PA-04)',                    sql: MIGRATION_1_PHASE_A_CATCHUP },
+  { name: 'Migration 2 — Phase B consolidation (PB-S-01 to PB-S-04)',           sql: MIGRATION_2_PHASE_B_CONSOLIDATION },
+  { name: 'Migration 3 — Phase B core tables (PB-01 to PB-13)',                 sql: MIGRATION_3_PHASE_B_CORE },
+  { name: 'Migration 4 — Phase B ops tables (PB-14 to PB-22)',                  sql: MIGRATION_4_PHASE_B_OPS },
+  { name: 'Migration 5 — duo_tasks status constraint (waiting_approval + ready)', sql: MIGRATION_5_DUO_TASKS_STATUS_CONSTRAINT },
 ];
 
 async function run() {

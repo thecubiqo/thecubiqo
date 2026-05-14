@@ -7,7 +7,7 @@ export const maxDuration = 55;
 
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
-  if (secret && request.headers.get('x-cubiqo-internal') !== secret) {
+  if (!secret || request.headers.get('x-cubiqo-internal') !== secret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -20,8 +20,9 @@ function adminClient() {
 const ESCALATION_THRESHOLD = 2; // push escalation after 2 follow-ups with no response
 
 export async function GET(request: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET;
   const secret = request.headers.get('authorization')?.replace('Bearer ', '');
-  if (secret !== process.env.CRON_SECRET) {
+  if (!cronSecret || secret !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

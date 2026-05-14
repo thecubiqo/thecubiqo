@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 // route, but it no longer imports @vercel/workflow.
 export async function POST(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
-  if (secret && request.headers.get('x-cubiqo-internal') !== secret) {
+  if (!secret || request.headers.get('x-cubiqo-internal') !== secret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

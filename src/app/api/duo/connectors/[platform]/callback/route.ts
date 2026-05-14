@@ -63,23 +63,53 @@ export async function GET(
     ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
     : null;
 
-  // Upsert connector row (upsert on user_id + platform expression index)
-  const { data: connector, error: connectorError } = await supabase
+  // Two-step upsert: expression-based unique index doesn't support Supabase onConflict.
+  // Check for existing row first, then update or insert.
+  const extAccountId = shop || null;
+  let existingQuery = supabase
     .from('user_connectors')
-    .upsert({
-      user_id: stateData.userId,
-      platform: normalized,
-      category: normalized === 'github' ? 'code' : normalized === 'shopify' ? 'commerce' : 'docs',
-      status: 'available',
-      auth_type: 'oauth',
-      scopes: tokens.scope ? tokens.scope.split(/[ ,]+/) : [],
-      external_account_id: shop || null,
-      expires_at: expiresAt,
-      last_health_check_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'id' })
-    .select()
-    .single();
+    .select('id')
+    .eq('user_id', stateData.userId)
+    .eq('platform', normalized);
+  existingQuery = extAccountId
+    ? existingQuery.eq('external_account_id', extAccountId)
+    : existingQuery.is('external_account_id', null);
+  const { data: existing } = await existingQuery.maybeSingle();
+
+  const connectorPayload = {
+    user_id: stateData.userId,
+    platform: normalized,
+    category: normalized === 'github' ? 'code' : normalized === 'shopify' ? 'commerce' : 'docs',
+    status: 'available',
+    auth_type: 'oauth',
+    scopes: tokens.scope ? tokens.scope.split(/[ ,]+/) : [],
+    external_account_id: extAccountId,
+    expires_at: expiresAt,
+    last_health_check_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  let connector: { id: string } | null = null;
+  let connectorError: unknown = null;
+
+  if (existing?.id) {
+    const { data, error } = await supabase
+      .from('user_connectors')
+      .update(connectorPayload)
+      .eq('id', existing.id)
+      .select('id')
+      .single();
+    connector = data;
+    connectorError = error;
+  } else {
+    const { data, error } = await supabase
+      .from('user_connectors')
+      .insert(connectorPayload)
+      .select('id')
+      .single();
+    connector = data;
+    connectorError = error;
+  }
 
   if (connectorError || !connector) return jsonError('Failed to save connector', 500);
 

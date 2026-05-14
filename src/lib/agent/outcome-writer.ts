@@ -93,18 +93,21 @@ export async function writeOutcome(
   if (project.playbook_id) {
     const { data: playbook } = await auth.supabase
       .from('playbooks')
-      .select('run_count,success_count')
+      .select('use_count,success_rate')
       .eq('id', project.playbook_id)
       .maybeSingle();
-    const runCount = Number(playbook?.run_count || 0) + 1;
-    const successCount = Number(playbook?.success_count || 0) + (input.outcome === 'success' ? 1 : 0);
+    const prevCount = Number(playbook?.use_count || 0);
+    const prevRate  = Number(playbook?.success_rate ?? 0.5);
+    const newCount  = prevCount + 1;
+    const isSuccess = input.outcome === 'success' || input.outcome === 'done';
+    // Rolling average: new_rate = (prev_rate * prev_count + this_result) / new_count
+    const newRate = (prevRate * prevCount + (isSuccess ? 1 : 0)) / newCount;
     await auth.supabase
       .from('playbooks')
       .update({
-        run_count: runCount,
-        success_count: successCount,
-        success_rate: runCount ? successCount / runCount : 0,
-        updated_at: new Date().toISOString()
+        use_count:        newCount,
+        success_rate:     Math.round(newRate * 1000) / 1000,
+        last_reviewed_at: new Date().toISOString()
       })
       .eq('id', project.playbook_id);
   }
