@@ -300,16 +300,26 @@ export async function memoryRead(authToken?: string, limit = 6) {
   const auth = await authContext(authToken);
   if (auth.status !== 'authenticated') return auth;
 
-  const { data, error } = await auth.supabase
-    .from('conversation_events')
-    .select('id,user_message,assistant_response,rgy_color,rgy_intent,keywords,metadata,created_at')
+  const { data: subscription } = await auth.supabase
+    .from('subscriptions')
+    .select('status')
     .eq('user_id', auth.user.id)
+    .maybeSingle();
+  const proMemory = subscription?.status === 'active' || subscription?.status === 'trialing';
+  const maxLimit = proMemory ? 50 : 5;
+
+  const { data, error } = await auth.supabase
+    .from('memory_events')
+    .select('id,event_type,summary,keywords,weight,created_at')
+    .eq('user_id', auth.user.id)
+    .is('archived_at', null)
+    .order('weight', { ascending: false })
     .order('created_at', { ascending: false })
-    .limit(Math.min(Math.max(limit, 1), 12));
+    .limit(Math.min(Math.max(limit, 1), maxLimit));
 
   if (error) {
     return safeTableMissing(error)
-      ? { status: 'blocked', reason: 'conversation_events table is not available yet' }
+      ? { status: 'blocked', reason: 'memory_events table is not available yet' }
       : { status: 'failed', error: error.message };
   }
 
@@ -317,8 +327,7 @@ export async function memoryRead(authToken?: string, limit = 6) {
     status: 'completed',
     memory: (data || []).map((item: any) => ({
       ...item,
-      user_message: String(item.user_message || '').slice(0, 500),
-      assistant_response: String(item.assistant_response || '').slice(0, 800)
+      summary: String(item.summary || '').slice(0, 800)
     }))
   };
 }
@@ -334,26 +343,21 @@ export async function memoryWriteSafeSummary(authToken: string | undefined, summ
   }
 
   const { data, error } = await auth.supabase
-    .from('conversation_events')
+    .from('memory_events')
     .insert({
       user_id: auth.user.id,
-      user_message: 'Remember this safe summary',
-      assistant_response: summary,
-      rgy_color: 'yellow',
-      rgy_intent: 'memory_summary',
-      keywords: { yellow: ['memory'], green: [], red: [] },
-      model_used: 'agent-v1-memory',
-      metadata: {
-        source: 'agent_v1_safe_memory',
-        write_scope: 'user_owned_memory'
-      }
+      event_type: 'session_summary',
+      summary,
+      keywords: ['memory'],
+      weight: 1,
+      signal_ids: null
     })
     .select('id,created_at')
     .single();
 
   if (error) {
     return safeTableMissing(error)
-      ? { status: 'blocked', reason: 'conversation_events table is not available yet' }
+      ? { status: 'blocked', reason: 'memory_events table is not available yet' }
       : { status: 'failed', error: error.message };
   }
 
@@ -412,4 +416,154 @@ export function contentBriefCreate(input: { topic: string; channel?: string; aud
       ]
     }
   };
+}
+
+export async function duoProjectCreate(
+  authToken: string | undefined,
+  input: { title: string; domain: string; successCriteria?: string[]; metadata?: any }
+) {
+  const auth = await authContext(authToken);
+  if (auth.status !== 'authenticated') return auth;
+
+  const { data, error } = await auth.supabase
+    .from('duo_projects')
+    .insert({
+      user_id: auth.user.id,
+      goal: input.title,
+      title: input.title,
+      domain: input.domain,
+      status: 'planning',
+      success_criteria: input.successCriteria || [],
+      goal_interpretation: {
+        goal: input.title,
+        domain: input.domain,
+        source: 'agent_tool'
+      },
+      metadata: input.metadata || {}
+    })
+    .select('id,trace_id,goal,title,created_at')
+    .single();
+
+  if (error) {
+    return safeTableMissing(error)
+      ? { status: 'blocked', reason: 'duo_projects table is not available yet' }
+      : { status: 'failed', error: error.message };
+  }
+
+  return { status: 'completed', project: data };
+}
+
+export async function duoTaskCreate(
+  authToken: string | undefined,
+  input: { 
+    projectId: string; 
+    traceId: string; 
+    title: string; 
+    description?: string; 
+    routePreference?: string[];
+    dependencies?: string[];
+    approvalRequired?: boolean;
+  }
+) {
+  const auth = await authContext(authToken);
+  if (auth.status !== 'authenticated') return auth;
+
+  const { data, error } = await auth.supabase
+    .from('duo_tasks')
+    .insert({
+      project_id: input.projectId,
+      user_id: auth.user.id,
+      trace_id: input.traceId,
+      title: input.title,
+      description: input.description,
+      status: 'pending',
+      route_preference: input.routePreference || [],
+      preferred_route: input.routePreference?.[0] || null,
+      dependencies: input.dependencies || [],
+      approval_required: input.approvalRequired || false,
+      risk_level: input.approvalRequired ? 'high' : 'low',
+      idempotency_key: `${input.projectId}:${input.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+    })
+    .select('id,created_at')
+    .single();
+
+  if (error) {
+    return safeTableMissing(error)
+      ? { status: 'blocked', reason: 'duo_tasks table is not available yet' }
+      : { status: 'failed', error: error.message };
+  }
+
+  return { status: 'completed', task: data };
+}
+
+export async function duoTaskUpdate(
+  authToken: string | undefined,
+  taskId: string,
+  updates: { 
+    status?: string; 
+    assignedRoute?: string; 
+    evidence?: any; 
+    result?: string;
+    metadata?: any;
+  }
+) {
+  const auth = await authContext(authToken);
+  if (auth.status !== 'authenticated') return auth;
+
+  const { data, error } = await auth.supabase
+    .from('duo_tasks')
+    .update({
+      ...(updates.status !== undefined ? { status: updates.status } : {}),
+      ...(updates.assignedRoute !== undefined ? { assigned_route: updates.assignedRoute, selected_route: updates.assignedRoute } : {}),
+      ...(updates.evidence !== undefined ? { evidence: updates.evidence } : {}),
+      ...(updates.result !== undefined ? { result: updates.result } : {}),
+      ...(updates.metadata !== undefined ? { metadata: updates.metadata } : {}),
+      ...(updates.status === 'completed' ? { completed_at: new Date().toISOString() } : {}),
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', taskId)
+    .eq('user_id', auth.user.id)
+    .select('id,status,updated_at')
+    .single();
+
+  if (error) {
+    return { status: 'failed', error: error.message };
+  }
+
+  return { status: 'completed', task: data };
+}
+
+export async function duoTimelineLog(
+  authToken: string | undefined,
+  input: {
+    projectId: string;
+    traceId: string;
+    eventType: string;
+    message: string;
+    payload?: any;
+  }
+) {
+  const auth = await authContext(authToken);
+  if (auth.status !== 'authenticated') return auth;
+
+  const { data, error } = await auth.supabase
+    .from('duo_timeline_events')
+    .insert({
+      user_id: auth.user.id,
+      project_id: input.projectId,
+      trace_id: input.traceId,
+      event_type: input.eventType,
+      message: input.message,
+      description: input.message,
+      metadata: input.payload || {},
+      payload: input.payload || {}
+    })
+    .select('id,created_at')
+    .single();
+
+  if (error) {
+    return { status: 'failed', error: error.message };
+  }
+
+  return { status: 'completed', event: data };
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '../_lib/supabase-admin';
+import { getBearerToken, getSupabaseAdmin } from '../_lib/supabase-admin';
 import { getVoicePlatformDefaults } from '../_lib/platform-settings';
+import { isPro } from '@/next/lib/billing/gates';
 
 export const runtime = 'nodejs';
 export const maxDuration = 15;
@@ -37,6 +38,18 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const text = String(body.text || '').trim().slice(0, 500);
   const color = String(body.color || 'yellow');
+  const startedAt = Date.now();
+  const supabase = getSupabaseAdmin();
+  const token = getBearerToken(request);
+
+  if (!token || !supabase) {
+    return NextResponse.json({ audio_url: null, error: 'Pro subscription required', code: 'PRO_REQUIRED' }, { status: 402 });
+  }
+
+  const { data: { user } } = await supabase.auth.getUser(token);
+  if (!user?.id || !(await isPro(user.id))) {
+    return NextResponse.json({ audio_url: null, error: 'Pro subscription required', code: 'PRO_REQUIRED' }, { status: 402 });
+  }
 
   const apiKey = getApiKey();
   if (!apiKey) return NextResponse.json({ audio_url: null, error: 'No ElevenLabs key configured' });
@@ -57,6 +70,14 @@ export async function POST(request: NextRequest) {
 
     const buffer = await res.arrayBuffer();
     const b64 = Buffer.from(buffer).toString('base64');
+    getSupabaseAdmin()?.from('api_usage_events').insert({
+      route: '/api/tts',
+      provider: 'elevenlabs',
+      model: voiceConfig.modelId,
+      units_used: text.length,
+      unit_type: 'characters',
+      latency_ms: Date.now() - startedAt
+    }).then(() => null);
     return NextResponse.json({ audio_url: `data:audio/mpeg;base64,${b64}` });
   } catch (err: any) {
     return NextResponse.json({ audio_url: null, error: err.message || 'TTS failed' });

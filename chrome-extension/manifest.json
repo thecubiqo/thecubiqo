@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "CubiQo Attribution",
+  "version": "1.0.0",
+  "description": "Applies CubiQo affiliate attribution when you shop from a recommendation.",
+  "permissions": ["cookies", "webNavigation"],
+  "host_permissions": ["https://*/*", "https://cubiqo.ai/*"],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "CubiQo Attribution"
+  }
+}

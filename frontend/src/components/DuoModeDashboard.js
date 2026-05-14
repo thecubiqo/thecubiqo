@@ -65,6 +65,181 @@ const PANEL_TITLES = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// BRIEFING DISPLAY — Phase D2
+// Shows pre-loaded AI briefing at top of chat before user sends first message
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SEVERITY_COLOR = { high: '#ef4444', med: '#f59e0b', low: '#60a5fa' };
+const EFFORT_LABEL   = { '10min': '10 min', '1hr': '1 hr', '1day': '1 day', '1week': '1 week' };
+
+function BriefingDisplay({ briefing, onActionComplete, onDismiss }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [completedIndexes, setCompletedIndexes] = useState(new Set());
+
+  if (!briefing || briefing.status === 'not_found') return null;
+
+  if (briefing.status === 'pending' || briefing.status === 'running') {
+    return (
+      <div style={{
+        margin: '10px 16px 0',
+        background: 'rgba(124,58,237,0.08)',
+        border: '1px solid rgba(124,58,237,0.2)',
+        borderRadius: 14, padding: '12px 14px',
+        display: 'flex', alignItems: 'center', gap: 10
+      }}>
+        <div style={{
+          width: 16, height: 16, borderRadius: '50%',
+          border: '2px solid rgba(124,58,237,0.3)',
+          borderTopColor: '#a855f7',
+          animation: 'duo-spin 0.8s linear infinite',
+          flexShrink: 0
+        }} />
+        <div>
+          <div style={{ color: '#a855f7', fontSize: '0.7rem', fontWeight: 700 }}>AI BRIEFING IN PROGRESS</div>
+          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.62rem', marginTop: 2 }}>
+            Researching your domain · will notify when ready
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (briefing.status !== 'ready' || !briefing.briefing) return null;
+
+  const b = briefing.briefing;
+
+  const handleComplete = (index) => {
+    if (completedIndexes.has(index)) return;
+    setCompletedIndexes(prev => new Set([...prev, index]));
+    onActionComplete && onActionComplete(index);
+  };
+
+  return (
+    <div style={{
+      margin: '10px 16px 0',
+      background: 'rgba(124,58,237,0.07)',
+      border: '1px solid rgba(124,58,237,0.25)',
+      borderRadius: 16,
+      overflow: 'hidden'
+    }}>
+      {/* Header */}
+      <div
+        onClick={() => setCollapsed(v => !v)}
+        style={{
+          padding: '10px 14px',
+          display: 'flex', alignItems: 'center', gap: 8,
+          cursor: 'pointer',
+          borderBottom: collapsed ? 'none' : '1px solid rgba(124,58,237,0.15)'
+        }}
+      >
+        <span style={{ fontSize: '0.8rem' }}>🔍</span>
+        <span style={{ color: '#a855f7', fontSize: '0.68rem', fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+          AI BRIEFING
+        </span>
+        <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.58rem', marginLeft: 2 }}>
+          · {b.domain}
+        </span>
+        <div style={{ flex: 1 }} />
+        {onDismiss && (
+          <button
+            onClick={e => { e.stopPropagation(); onDismiss(); }}
+            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.25)', cursor: 'pointer', fontSize: '0.7rem', padding: '0 4px' }}
+          >✕</button>
+        )}
+        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.65rem' }}>{collapsed ? '▸' : '▾'}</span>
+      </div>
+
+      {!collapsed && (
+        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+          {/* Headline */}
+          <div style={{ color: '#fff', fontSize: '0.78rem', fontWeight: 600, lineHeight: 1.4 }}>
+            {b.headline}
+          </div>
+
+          {/* Blockers */}
+          {b.blockers?.length > 0 && (
+            <div>
+              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>
+                🔴 BLOCKERS ({b.blockers.length})
+              </div>
+              {b.blockers.map((blocker, i) => (
+                <div key={i} style={{
+                  display: 'flex', gap: 8, marginBottom: 5, alignItems: 'flex-start'
+                }}>
+                  <span style={{ color: SEVERITY_COLOR[blocker.severity] || '#f59e0b', fontSize: '0.6rem', marginTop: 2, flexShrink: 0 }}>●</span>
+                  <div>
+                    <span style={{ color: '#fff', fontSize: '0.72rem', fontWeight: 600 }}>{blocker.title}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem' }}> — {blocker.why}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Recommended actions */}
+          {b.recommended_actions?.length > 0 && (
+            <div>
+              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>
+                ✅ NEXT STEPS
+              </div>
+              {b.recommended_actions.map((action, i) => (
+                <div key={i} style={{
+                  display: 'flex', gap: 8, marginBottom: 6, alignItems: 'flex-start',
+                  opacity: completedIndexes.has(i) ? 0.4 : 1
+                }}>
+                  <button
+                    onClick={() => handleComplete(i)}
+                    title="Mark done"
+                    style={{
+                      width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 1,
+                      background: completedIndexes.has(i) ? '#22c55e' : 'rgba(255,255,255,0.07)',
+                      border: `1px solid ${completedIndexes.has(i) ? '#22c55e' : 'rgba(255,255,255,0.2)'}`,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#fff', fontSize: '0.55rem'
+                    }}
+                  >{completedIndexes.has(i) ? '✓' : ''}</button>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ color: completedIndexes.has(i) ? 'rgba(255,255,255,0.3)' : '#fff', fontSize: '0.72rem', fontWeight: 600, textDecoration: completedIndexes.has(i) ? 'line-through' : 'none' }}>
+                      {action.step}
+                    </span>
+                    <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem' }}>
+                      {' '}· {EFFORT_LABEL[action.effort] || action.effort}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Open questions */}
+          {b.open_questions?.length > 0 && (
+            <div>
+              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>
+                ❓ NEED YOUR ANSWER
+              </div>
+              {b.open_questions.map((q, i) => (
+                <div key={i} style={{ marginBottom: 5, color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem' }}>
+                  • {q.question}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* CTA */}
+          <div style={{
+            color: 'rgba(255,255,255,0.25)', fontSize: '0.62rem', textAlign: 'center',
+            paddingTop: 4, borderTop: '1px solid rgba(255,255,255,0.06)'
+          }}>
+            Ask me anything below — briefing context is loaded ↓
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // COLOR MAP
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -676,6 +851,52 @@ export default function DuoModeDashboard({ capsule, token, onClose }) {
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'board' | 'plugins'
   const [showPersonaPicker, setShowPersonaPicker] = useState(false);
 
+  // Briefing state — Phase D2
+  const [briefing, setBriefing] = useState(null);
+  const [briefingDismissed, setBriefingDismissed] = useState(false);
+
+  // Fetch briefing when Duo Mode opens and signal_id is available
+  useEffect(() => {
+    const signalId = capsule?.signal?.id || capsule?.signal_id;
+    if (!signalId || !token) return;
+
+    let cancelled = false;
+    let pollInterval = null;
+
+    const fetchBriefing = () => {
+      fetch(`/api/capsule-briefing/${signalId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (cancelled) return;
+          setBriefing(data);
+          // If still running, poll every 5s
+          if (data.status === 'pending' || data.status === 'running') {
+            pollInterval = setTimeout(fetchBriefing, 5000);
+          }
+        })
+        .catch(() => null);
+    };
+
+    fetchBriefing();
+    return () => {
+      cancelled = true;
+      if (pollInterval) clearTimeout(pollInterval);
+    };
+  }, [capsule?.signal?.id, capsule?.signal_id, token]);
+
+  // Mark action complete
+  const handleActionComplete = (actionIndex) => {
+    const signalId = capsule?.signal?.id || capsule?.signal_id;
+    if (!signalId || !token) return;
+    fetch(`/api/capsule-briefing/${signalId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action_index: actionIndex })
+    }).catch(() => null);
+  };
+
   const PanelComponent = PANEL_COMPONENTS[panel] || GenericPanel;
   const activePersona = PERSONAS[persona] || PERSONAS.general;
 
@@ -807,12 +1028,22 @@ export default function DuoModeDashboard({ capsule, token, onClose }) {
             </div>
           </div>
 
+          {/* AI Briefing — shown above chat, dismissable */}
+          {!briefingDismissed && (
+            <BriefingDisplay
+              briefing={briefing}
+              onActionComplete={handleActionComplete}
+              onDismiss={() => setBriefingDismissed(true)}
+            />
+          )}
+
           <DuoChat
             key={persona}
             token={token}
             persona={persona}
             capsule={capsule}
             accentColor={activePersona.color}
+            briefingContext={!briefingDismissed && briefing?.briefing?.status === 'ready' ? briefing.briefing : null}
           />
         </div>
 

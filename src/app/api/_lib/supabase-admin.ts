@@ -117,6 +117,34 @@ export async function isAdminUser(supabase: SupabaseAdminClient, userId: string)
   };
 }
 
+export async function requireAdminRequest(request: NextRequest) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { error: jsonError('Supabase server configuration is missing', 500) };
+  }
+
+  const expectedSecret = cleanEnv(process.env.ADMIN_SECRET);
+  const providedSecret = request.headers.get('x-admin-secret') || '';
+  if (expectedSecret && providedSecret === expectedSecret) {
+    return { supabase, adminVia: 'secret' as const, user: null };
+  }
+
+  const auth = await requireApiUser(request);
+  if ('error' in auth) return auth;
+
+  const admin = await isAdminUser(auth.supabase, auth.user.id);
+  if (!admin.admin) {
+    return {
+      error: NextResponse.json(
+        { error: 'Admin access required', migrationPending: admin.migrationPending },
+        { status: 403 }
+      )
+    };
+  }
+
+  return { supabase: auth.supabase, adminVia: 'user' as const, user: auth.user };
+}
+
 export function missingMigrationResponse(feature: string, table: string) {
   return NextResponse.json(
     {

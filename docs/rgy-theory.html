@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The RGY Theory - Everything RGY</title>
+  <style>
+    body { margin: 0; background: #05060b; color: #f7f7fb; font-family: Inter, "Segoe UI", Arial, sans-serif; }
+    .page { max-width: 980px; margin: 0 auto; padding: 48px 28px 72px; }
+    h1 { font-size: 64px; line-height: .95; margin: 0 0 16px; }
+    h2 { font-size: 34px; margin: 42px 0 12px; }
+    h3 { margin: 0 0 8px; }
+    p, li { color: rgba(247,247,251,.68); font-size: 16px; line-height: 1.55; }
+    .bars { display: flex; gap: 8px; margin: 18px 0 28px; }
+    .bar { width: 64px; height: 24px; border-radius: 8px; transform: skewX(-10deg); }
+    .red { background: #ef4f4f; }
+    .yellow { background: #f5c542; }
+    .green { background: #31d77b; }
+    .blue { color: #77d8ff; }
+    .g { color: #31d77b; }
+    .y { color: #f5c542; }
+    .r { color: #ef4f4f; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .card { border: 1px solid rgba(255,255,255,.12); border-radius: 18px; padding: 18px; background: rgba(255,255,255,.045); }
+    .card.green { border-color: rgba(49,215,123,.7); background: rgba(49,215,123,.1); }
+    .card.yellow { border-color: rgba(245,197,66,.7); background: rgba(245,197,66,.1); }
+    .card.red { border-color: rgba(239,79,79,.7); background: rgba(239,79,79,.1); }
+    .formula { font-size: 30px; font-weight: 850; padding: 22px; border-radius: 22px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.055); }
+    .label { color: rgba(255,255,255,.46); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; font-weight: 850; }
+    .value { font-size: 28px; font-weight: 850; margin-top: 8px; }
+    @media print {
+      @page { size: letter landscape; margin: .45in; }
+      h2 { break-before: page; }
+      h2:first-of-type { break-before: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="label">CubiQo / The RGY Theory</div>
+    <h1>Everything RGY</h1>
+    <div class="bars"><span class="bar red"></span><span class="bar yellow"></span><span class="bar green"></span></div>
+    <p>The RGY layer helps CubiQo understand what a user wants, catch the keyword, and let the user confirm intent before match or discovery. This version updates the capsule contract to exactly three fields.</p>
+
+    <h2>Core Capsule Contract</h2>
+    <div class="formula"><span class="g">color</span> | <span class="y">keyword</span> | <span class="blue">intent</span></div>
+    <div class="grid" style="margin-top:14px">
+      <section class="card green"><div class="label">Field 1</div><div class="value">Color</div><p>Green, Yellow, or Red context.</p></section>
+      <section class="card yellow"><div class="label">Field 2</div><div class="value">Keyword</div><p>The thing CubiQo caught from chat, profile, journal, or onboarding.</p></section>
+      <section class="card"><div class="label">Field 3</div><div class="value blue">Intent</div><p>Socialize, Collaborate, Trade, pending, suggested, confirmed, or not selected.</p></section>
+    </div>
+    <section class="card red" style="margin-top:14px">
+      <h3>Red is already the restricted/adult signal.</h3>
+      <p>There is no extra visible warning field in the capsule. The color itself tells CubiQo which handling mode applies.</p>
+    </section>
+
+    <h2>Color Zones</h2>
+    <div class="grid">
+      <section class="card green"><h3>Green</h3><p>Growth, work, wellness, learning, job search, yoga, healthy habits, and goal-oriented help.</p></section>
+      <section class="card yellow"><h3>Yellow</h3><p>Casual social life, company, travel, movies, coffee chat, hangouts, comfort, and low-pressure discovery.</p></section>
+      <section class="card red"><h3>Red</h3><p>Adult-gated, explicit, or restricted contexts where CubiQo asks and confirms before using sensitive profile data.</p></section>
+    </div>
+
+    <h2>Keyword First</h2>
+    <p>Keywords should appear when CubiQo catches them, even when intent is unclear. The intent can be selected by the user, suggested by CubiQo, or left blank.</p>
+    <div class="grid">
+      <section class="card green"><div class="label">Example</div><div class="value">Job Need</div><p>Profile says the user needs work; CubiQo can suggest hiring matches.</p></section>
+      <section class="card yellow"><div class="label">Example</div><div class="value">Travel Company</div><p>Profile says the user likes easy company; CubiQo can suggest compatible hangouts.</p></section>
+      <section class="card red"><div class="label">Example</div><div class="value">Adult Dating</div><p>CubiQo asks before using adult preferences or opening match surfaces.</p></section>
+    </div>
+
+    <h2>Intent Layer</h2>
+    <div class="grid">
+      <section class="card"><h3>Socialize</h3><p>Company, hangout, conversation, companionship, events, and casual plans.</p></section>
+      <section class="card"><h3>Collaborate</h3><p>Build, learn, practice, improve, plan, study, or work together.</p></section>
+      <section class="card"><h3>Trade</h3><p>Exchange money, services, goods, tickets, skills, favors, or marketplace value.</p></section>
+    </div>
+
+    <h2>SIGNAL Product Flow</h2>
+    <p>CubiQo routes from private understanding to useful match surfaces: CubiQo CTA → three widgets → keyword room → AI chat → recommendation.</p>
+    <div class="grid">
+      <section class="card"><h3>CQ-to-CQ</h3><p>Private chat between known friends/contacts.</p></section>
+      <section class="card"><h3>SIGNAL network</h3><p>Intelligent match/chat across CubiQo users and posts.</p></section>
+      <section class="card"><h3>Approved connectors</h3><p>External APIs or services only where permission and policy allow.</p></section>
+    </div>
+
+    <h2>Database Needs</h2>
+    <div class="grid2">
+      <section class="card"><h3>profile_memory</h3><p>User-editable likes, dislikes, wants, needs, preferences, and summaries.</p></section>
+      <section class="card"><h3>rgy_capsules</h3><p>Minimum fields: user_id, color, keyword, intent, confidence, display state.</p></section>
+      <section class="card"><h3>signal_posts</h3><p>What the user opts into making discoverable.</p></section>
+      <section class="card"><h3>audit_events</h3><p>User confirmations, edits, deletes, gates, and connector permissions.</p></section>
+    </div>
+
+    <h2>Operating Rules</h2>
+    <div class="grid2">
+      <section class="card"><h3>RGY does</h3><p>Classifies context, displays keywords, lets users confirm intent, and routes to private chat, SIGNAL match, or approved connectors.</p></section>
+      <section class="card"><h3>RGY does not</h3><p>Choose models by color, silently use sensitive preferences, or require any extra visible capsule field beyond color, keyword, and intent.</p></section>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,1244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CubiQo Phase 1 Master Architecture - Pre-RGY to Capsule</title>
+  <style>
+    :root {
+      --ink: #253142;
+      --muted: #64748b;
+      --paper: #fbfcff;
+      --line: #d8e0ec;
+      --blue: #dff0ff;
+      --blue-line: #5fa8ee;
+      --green: #dff8e9;
+      --green-line: #36a269;
+      --yellow: #fff3c8;
+      --yellow-line: #d49a1c;
+      --red: #ffe2e0;
+      --red-line: #d95b52;
+      --purple: #f0dcff;
+      --purple-line: #9b67d5;
+      --cyan: #dff8fb;
+      --cyan-line: #33a6b8;
+      --mint: #e4fbf2;
+      --orange: #ffe8d1;
+      --panel: rgba(255,255,255,0.84);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 1px 1px, #dce5f0 1.6px, transparent 0) 0 0 / 28px 28px,
+        linear-gradient(180deg, #f8fbff 0%, #eef6ff 52%, #f9fbff 100%);
+    }
+
+    .page {
+      width: min(1540px, calc(100vw - 36px));
+      margin: 0 auto;
+      padding: 28px 0 56px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
+      gap: 18px;
+      align-items: stretch;
+      min-height: 330px;
+    }
+
+    .hero-main, .hero-side, .section, .card, .note {
+      background: var(--panel);
+      border: 1px solid rgba(154, 172, 196, 0.46);
+      box-shadow: 0 18px 48px rgba(72, 98, 132, 0.12);
+      border-radius: 24px;
+    }
+
+    .hero-main {
+      padding: 38px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero-main:after {
+      content: "";
+      position: absolute;
+      right: -90px;
+      top: -100px;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(95,168,238,0.22), transparent 64%);
+      pointer-events: none;
+    }
+
+    .kicker {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #286da6;
+      margin-bottom: 14px;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      font-size: clamp(38px, 5vw, 72px);
+      line-height: 0.98;
+      letter-spacing: 0;
+      max-width: 960px;
+      margin-bottom: 18px;
+    }
+    h2 { font-size: 28px; letter-spacing: 0; margin-bottom: 10px; }
+    h3 { font-size: 18px; margin-bottom: 8px; }
+    p, li { font-size: 15px; line-height: 1.52; color: var(--muted); }
+    p:last-child { margin-bottom: 0; }
+
+    .hero-copy {
+      font-size: 19px;
+      max-width: 980px;
+      color: #49586d;
+    }
+
+    .hero-side {
+      padding: 26px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .scope-row {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    .scope-row b {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .dot {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 900;
+      background: var(--blue-line);
+    }
+    .dot.green { background: var(--green-line); }
+    .dot.yellow { background: var(--yellow-line); }
+    .dot.red { background: var(--red-line); }
+    .dot.purple { background: var(--purple-line); }
+
+    .section {
+      margin-top: 20px;
+      padding: 28px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 18px;
+    }
+    .section-head p { max-width: 780px; }
+
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pill {
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--line);
+      color: #42536a;
+      font-size: 13px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(135px, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .step {
+      min-height: 142px;
+      border-radius: 18px;
+      padding: 16px;
+      border: 2px solid var(--line);
+      background: #fff;
+      position: relative;
+    }
+    .step:after {
+      content: "";
+      position: absolute;
+      right: -13px;
+      top: 50%;
+      width: 13px;
+      border-top: 2px solid #8aa0bc;
+    }
+    .step:last-child:after { display: none; }
+    .step b {
+      display: block;
+      font-size: 15px;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+    .step span { font-size: 13px; line-height: 1.42; color: var(--muted); display: block; }
+    .step.blue { background: var(--blue); border-color: var(--blue-line); }
+    .step.green { background: var(--green); border-color: var(--green-line); }
+    .step.yellow { background: var(--yellow); border-color: var(--yellow-line); }
+    .step.red { background: var(--red); border-color: var(--red-line); }
+    .step.purple { background: var(--purple); border-color: var(--purple-line); }
+    .step.cyan { background: var(--cyan); border-color: var(--cyan-line); }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .card {
+      padding: 20px;
+      border-radius: 18px;
+      box-shadow: 0 10px 28px rgba(72, 98, 132, 0.09);
+    }
+    .card.blue { background: var(--blue); border-color: var(--blue-line); }
+    .card.green { background: var(--green); border-color: var(--green-line); }
+    .card.yellow { background: var(--yellow); border-color: var(--yellow-line); }
+    .card.red { background: var(--red); border-color: var(--red-line); }
+    .card.purple { background: var(--purple); border-color: var(--purple-line); }
+    .card.cyan { background: var(--cyan); border-color: var(--cyan-line); }
+    .card.mint { background: var(--mint); border-color: var(--green-line); }
+    .card.orange { background: var(--orange); border-color: #e89542; }
+
+    .list {
+      margin: 12px 0 0;
+      padding-left: 18px;
+    }
+
+    .flow-board {
+      position: relative;
+      height: 760px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 1px 1px, rgba(95, 121, 153, 0.18) 1.6px, transparent 0) 0 0 / 24px 24px,
+        linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.88));
+      border-radius: 22px;
+      border: 1px solid var(--line);
+    }
+
+    .lane {
+      position: absolute;
+      left: 250px;
+      right: 28px;
+      border-radius: 28px;
+      border: 1px solid rgba(113, 141, 176, 0.28);
+      opacity: 0.95;
+    }
+    .lane.top { top: 28px; height: 170px; background: #e8f2ff; }
+    .lane.mid { top: 218px; height: 132px; background: #cfe2ff; }
+    .lane.main { top: 372px; height: 350px; background: #dff8e9; }
+
+    .box {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      width: 170px;
+      min-height: 92px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(100, 116, 139, 0.22);
+      background: var(--box, #fff);
+      color: #2e3947;
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.26;
+      box-shadow: 0 10px 22px rgba(54, 75, 103, 0.10);
+    }
+
+    .mini {
+      position: absolute;
+      padding: 10px 12px;
+      border-radius: 11px;
+      background: rgba(255,255,255,0.8);
+      border: 1px solid rgba(105, 124, 151, 0.22);
+      color: #53657a;
+      font-size: 12px;
+      line-height: 1.35;
+      width: 168px;
+    }
+
+    .label {
+      position: absolute;
+      font-size: 16px;
+      font-weight: 900;
+      color: #263242;
+      line-height: 1.22;
+    }
+
+    .wire {
+      position: absolute;
+      height: 2px;
+      background: #6d819b;
+      transform-origin: left center;
+    }
+    .wire:after {
+      content: "";
+      position: absolute;
+      right: -3px;
+      top: -5px;
+      width: 10px;
+      height: 10px;
+      border-top: 2px solid #6d819b;
+      border-right: 2px solid #6d819b;
+      transform: rotate(45deg);
+    }
+    .wire.curve {
+      height: 80px;
+      width: 90px;
+      border-left: 3px solid #6d819b;
+      border-bottom: 3px solid #6d819b;
+      border-radius: 0 0 0 58px;
+      background: transparent;
+    }
+    .wire.curve:after { right: -7px; top: 72px; }
+
+    .stack {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .stack-row {
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(148, 163, 184, 0.36);
+    }
+    .stack-row b { color: var(--ink); font-size: 14px; }
+    .stack-row span { color: var(--muted); font-size: 14px; line-height: 1.4; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 14px;
+      background: #fff;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid #e4eaf2;
+      vertical-align: top;
+      font-size: 14px;
+      line-height: 1.42;
+    }
+    th { background: #eef5ff; color: #29445e; }
+    td { color: #53657a; }
+    tr:last-child td { border-bottom: 0; }
+
+    .boundary {
+      border: 2px dashed #7c93ad;
+      background: rgba(255,255,255,0.68);
+      padding: 18px;
+      border-radius: 18px;
+      margin-top: 16px;
+    }
+
+    code {
+      background: rgba(36, 62, 94, 0.08);
+      border: 1px solid rgba(36, 62, 94, 0.12);
+      border-radius: 7px;
+      padding: 2px 6px;
+      color: #253142;
+      font-size: 13px;
+    }
+
+    .download {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 12px;
+      padding: 11px 14px;
+      border-radius: 12px;
+      border: 1px solid #9ab6d8;
+      background: #fff;
+      color: #215985;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+      border: 1px solid rgba(100,116,139,0.22);
+    }
+    .status.yes { background: var(--green); color: #20764b; }
+    .status.partial { background: var(--yellow); color: #8a5a00; }
+    .status.later { background: var(--orange); color: #9a4f10; }
+    .status.no { background: var(--red); color: #a23b34; }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+      .page {
+        width: 100%;
+        padding: 0;
+      }
+      .hero-main, .hero-side, .section, .card {
+        box-shadow: none;
+      }
+      .section {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .download {
+        display: none;
+      }
+    }
+
+    @media (max-width: 1180px) {
+      .hero, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+      .pipeline { grid-template-columns: repeat(2, 1fr); }
+      .step:after { display: none; }
+      .flow-board { height: auto; padding: 18px; display: grid; gap: 12px; }
+      .lane, .box, .mini, .label, .wire { position: static; width: auto !important; min-height: auto; }
+      .lane { height: auto !important; padding: 12px; }
+      .wire { display: none; }
+    }
+
+    @media (max-width: 680px) {
+      .page { width: min(100vw - 20px, 1540px); padding-top: 12px; }
+      .hero-main, .hero-side, .section { padding: 18px; border-radius: 18px; }
+      .pipeline { grid-template-columns: 1fr; }
+      .stack-row { grid-template-columns: 1fr; }
+      h1 { font-size: 36px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-main">
+        <div>
+          <div class="kicker">CubiQo Phase 1 Master Doc</div>
+          <h1>Pre-RGY Conversation to RGY Capsule</h1>
+          <p class="hero-copy">
+            This is the scoped Phase 1 architecture. It covers the landing conversation, anonymous and signed-in memory,
+            consent, perception, user understanding, safety, classification, and creation of an RGY capsule when a real
+            signal emerges. It stops before execution workspaces, publishing, workflow automation, and commercial systems.
+          </p>
+        </div>
+        <div class="pill-row">
+          <span class="pill">Phase 1 only</span>
+          <span class="pill">No autonomous execution</span>
+          <span class="pill">No execution workspace</span>
+          <span class="pill">No commercial build</span>
+          <span class="pill">Capsule-ready boundary</span>
+        </div>
+      </div>
+
+      <aside class="hero-side">
+        <div class="scope-row">
+          <div class="dot">1</div>
+          <div><b>Before a goal exists</b><p>CubiQo is conversational: it listens, responds, remembers safely, and learns the user.</p></div>
+        </div>
+        <div class="scope-row">
+          <div class="dot green">2</div>
+          <div><b>When a signal appears</b><p>Understanding/classification decides whether this is chat, memory, journal context, or an RGY activity signal.</p></div>
+        </div>
+        <div class="scope-row">
+          <div class="dot purple">3</div>
+          <div><b>When strong enough</b><p>The system writes a structured RGY capsule: color, keyword, domain hint, confidence, status, and user-visible summary.</p></div>
+        </div>
+        <div class="scope-row">
+          <div class="dot red">4</div>
+          <div><b>Boundary</b><p>Phase 2 will decide what to do with the capsule. Phase 1 only prepares it correctly.</p></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Canonical Phase 1 Pipeline</div>
+          <h2>Everything before execution</h2>
+        </div>
+        <p>
+          The pipeline is intentionally not "execution first." It is understanding first. A goal or capsule is an outcome
+          of the conversation, not a requirement for every message.
+        </p>
+      </div>
+      <div class="pipeline">
+        <div class="step blue"><b>Input</b><span>Text, voice, image, camera frame, browser/screen context when user provides it.</span></div>
+        <div class="step cyan"><b>Permission</b><span>Mic, camera, memory, location, push and tracking consent are checked before use.</span></div>
+        <div class="step blue"><b>Perception</b><span>Speech-to-text, vision, OCR-like visible text, screenshot understanding.</span></div>
+        <div class="step green"><b>Context</b><span>Session, time, language, anonymous memory, user profile, journal, signed-in memory.</span></div>
+        <div class="step yellow"><b>Understand</b><span>Intent, emotional tone, topic, goal hint, user preference, risk, and freshness need.</span></div>
+        <div class="step red"><b>Safety</b><span>Input safety, age-gated/hard-block/crisis checks, output safety for sensitive paths.</span></div>
+        <div class="step purple"><b>Classify</b><span>Conversation, memory update, journal insight, onboarding fact, or RGY signal.</span></div>
+        <div class="step green"><b>Capsule</b><span>If useful: save RGY capsule with confidence and status. Phase 1 ends here.</span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Visual Flow</div>
+          <h2>Three user states in one Phase 1 map</h2>
+        </div>
+        <p>
+          This is the relaxed board version: first-time anonymous user, returning anonymous user, and signed-in engaged
+          customer all flow into the same understanding and capsule boundary.
+        </p>
+      </div>
+
+      <div class="flow-board" aria-label="CubiQo Phase 1 visual architecture">
+        <div class="lane top"></div>
+        <div class="lane mid"></div>
+        <div class="lane main"></div>
+
+        <div class="label" style="left:42px;top:92px;width:180px">USER INTERACTION<br />AT LANDING APP</div>
+        <div class="wire" style="left:214px;top:122px;width:184px;transform:rotate(-24deg)"></div>
+        <div class="wire" style="left:214px;top:142px;width:218px;transform:rotate(-4deg)"></div>
+        <div class="wire" style="left:214px;top:162px;width:206px;transform:rotate(18deg)"></div>
+        <div class="wire" style="left:214px;top:184px;width:240px;transform:rotate(38deg)"></div>
+
+        <div class="box" style="--box:#e8f2ff;left:405px;top:54px;width:178px">FIRST-TIME<br />ANONYMOUS<br />USER</div>
+        <div class="wire" style="left:590px;top:98px;width:250px"></div>
+        <div class="label" style="left:855px;top:76px;width:360px">NO SERVER MEMORY<br />START LOCAL SESSION ONLY</div>
+        <div class="mini" style="left:854px;top:122px">localStorage session_id, first_seen_at, visit_count, language hint. No DB write.</div>
+
+        <div class="box" style="--box:#dff0ff;left:405px;top:234px;width:198px">RETURNING<br />ANONYMOUS<br />WITHIN TTL</div>
+        <div class="wire" style="left:612px;top:276px;width:228px"></div>
+        <div class="label" style="left:855px;top:250px;width:380px">CUBIQO REMEMBERS LIGHTLY<br />LIKE A FRIEND, NOT A DATABASE</div>
+        <div class="mini" style="left:854px;top:304px">Use local signals and summary only. Nudge to sign up before memory expires.</div>
+
+        <div class="box" style="--box:#cfe2ff;left:405px;top:390px;width:198px">SIGNED-IN<br />RETURNING<br />ENGAGED USER</div>
+        <div class="wire" style="left:612px;top:432px;width:228px"></div>
+        <div class="label" style="left:855px;top:406px;width:380px">DURABLE MEMORY + JOURNAL<br />PROFILE IS UPDATED OVER TIME</div>
+        <div class="mini" style="left:854px;top:462px">Supabase reads profile, memory_events, user_ai_profile, journal insights, signals.</div>
+
+        <div class="box" style="--box:#c8f0ff;left:72px;top:440px;width:160px">DB / ENV<br />LOCAL FILES<br />RUNTIME CONFIG</div>
+        <div class="box" style="--box:#c8f0ff;left:72px;top:586px;width:160px">APIS<br />AUTH<br />VOICE<br />VISION</div>
+        <div class="wire" style="left:232px;top:488px;width:180px;transform:rotate(13deg)"></div>
+        <div class="wire" style="left:232px;top:636px;width:194px;transform:rotate(-17deg)"></div>
+
+        <div class="label" style="left:405px;top:526px;width:300px;color:#257d50">UNDERSTANDING + CLASSIFICATION<br />RGY IS ONE POSSIBLE OUTPUT</div>
+        <div class="label" style="left:814px;top:526px;width:340px;color:#a65c00">DECIDE: CHAT, MEMORY, JOURNAL, ONBOARDING, OR CAPSULE</div>
+
+        <div class="box" style="--box:#f0dcff;left:426px;top:594px;width:160px">NORMAL<br />CONVERSATION</div>
+        <div class="wire" style="left:592px;top:638px;width:102px"></div>
+        <div class="box" style="--box:#f0dcff;left:706px;top:594px;width:170px">MEMORY<br />UPDATE<br />PROFILE HINT</div>
+        <div class="wire" style="left:884px;top:638px;width:102px"></div>
+        <div class="box" style="--box:#f0dcff;left:998px;top:594px;width:170px">RGY SIGNAL<br />IF STRONG<br />ENOUGH</div>
+        <div class="wire curve" style="left:1168px;top:638px"></div>
+        <div class="box" style="--box:#dff8e9;left:1240px;top:594px;width:180px">CAPSULE<br />READY + SAVED<br />PHASE 1 ENDS</div>
+
+        <div class="box" style="--box:#fff3c8;left:706px;top:692px;width:238px;min-height:52px">OUTPUT: useful response now, not execution</div>
+        <div class="box" style="--box:#ffe2e0;left:980px;top:692px;width:250px;min-height:52px">Guardrails: no payments, no final send/submit/push</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">User States</div>
+          <h2>What happens for each user type</h2>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card blue">
+          <h3>1. Anonymous first-timer</h3>
+          <p>No account, no durable profile, no server memory. CubiQo starts with a clean conversational opener and creates a temporary local session.</p>
+          <div class="stack">
+            <div class="stack-row"><b>Storage</b><span><code>localStorage.cubiqo_session</code> only.</span></div>
+            <div class="stack-row"><b>Memory</b><span>None at first. Light summary can form inside the browser session.</span></div>
+            <div class="stack-row"><b>Goal</b><span>Not assumed. CubiQo detects, asks, and learns gradually.</span></div>
+            <div class="stack-row"><b>Capsule</b><span>Can create a local capsule preview, but durable save requires sign-in.</span></div>
+          </div>
+        </div>
+
+        <div class="card cyan">
+          <h3>2. Anonymous returning user</h3>
+          <p>The user comes back before local memory expires. CubiQo can reference the last topic lightly and invite account creation when value is clear.</p>
+          <div class="stack">
+            <div class="stack-row"><b>Storage</b><span>Local TTL memory, recent signals, optional last summary.</span></div>
+            <div class="stack-row"><b>Greeting</b><span>Specific but not creepy: "Still thinking about the store idea?"</span></div>
+            <div class="stack-row"><b>Conversion</b><span>"Want me to keep this longer?" only after enough value exists.</span></div>
+            <div class="stack-row"><b>Migration</b><span>On sign-up, local memory migrates into Supabase tables.</span></div>
+          </div>
+        </div>
+
+        <div class="card green">
+          <h3>3. Signed-in engaged user</h3>
+          <p>Durable memory, profile, journal insights, and prior signals become part of the context bundle before CubiQo answers.</p>
+          <div class="stack">
+            <div class="stack-row"><b>Storage</b><span>Supabase: profile, signals, memory events, user AI profile, journal.</span></div>
+            <div class="stack-row"><b>Greeting</b><span>Text-first greeting; voice only after audio unlock.</span></div>
+            <div class="stack-row"><b>Understanding</b><span>Language, time, location if permitted, user style, recurring blockers.</span></div>
+            <div class="stack-row"><b>Capsule</b><span>Strong activity signals become durable RGY capsules.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Engineering Layers</div>
+          <h2>What sits where</h2>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card purple">
+          <h3>Frontend</h3>
+          <ul class="list">
+            <li>Landing chat surface.</li>
+            <li>Anonymous local session manager.</li>
+            <li>Voice input capture and audio unlock gate.</li>
+            <li>Image/camera upload frame capture after permission.</li>
+            <li>Right-side RGY preview panel only when a signal exists.</li>
+            <li>Sign-up migration trigger for local memory.</li>
+          </ul>
+        </div>
+
+        <div class="card blue">
+          <h3>API Routes</h3>
+          <ul class="list">
+            <li><code>/api/agent/stream</code> - conversational answer with context bundle.</li>
+            <li><code>/api/agent/greet</code> - text greeting; voice after browser unlock.</li>
+            <li><code>/api/agent/onboard</code> - light profile bootstrap for signed-in users.</li>
+            <li><code>/api/rgy/classify</code> - safety plus understanding plus RGY signal detection.</li>
+            <li><code>/api/perception/vision</code> - structured visual context from image/screenshot.</li>
+            <li><code>/api/memory/session-close</code> - writes summaries and commitments.</li>
+          </ul>
+        </div>
+
+        <div class="card green">
+          <h3>Supabase Tables</h3>
+          <ul class="list">
+            <li><code>profiles</code> - display name, language, timezone, consent hints, onboarding state.</li>
+            <li><code>signals</code> - RGY activity signals and capsule source records.</li>
+            <li><code>memory_events</code> - session summaries, commitments, blockers, outcomes, episodes.</li>
+            <li><code>user_ai_profile</code> - CubiQo's inferred understanding with confidence and corrections.</li>
+            <li><code>journal_entries</code> - user-authored journal plus extracted memory insights.</li>
+            <li><code>user_permissions</code> - mic, camera, memory, location, push statuses.</li>
+            <li><code>safety_patterns</code> and <code>system_prompts</code> - config-driven safety and behavior.</li>
+          </ul>
+        </div>
+
+        <div class="card yellow">
+          <h3>Config and Env</h3>
+          <ul class="list">
+            <li><code>OPENAI_API_KEY</code> - conversation, structured understanding, vision, STT as configured.</li>
+            <li><code>ELEVENLABS_API_KEY</code> - optional TTS after user interaction unlock.</li>
+            <li><code>NEXT_PUBLIC_SUPABASE_URL</code> and keys - auth and DB access.</li>
+            <li><code>NEXT_PUBLIC_BASE_URL</code> - required; never silently fallback to production.</li>
+            <li><code>RGY_MODEL</code>, <code>OPENAI_MODEL</code>, <code>UTILITY_MODEL</code> - runtime model routing.</li>
+            <li><code>HISTORY_WINDOW_SIZE</code>, <code>MEMORY_EVENT_LIMIT</code> - tunable limits.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Memory Model</div>
+          <h2>User memory before and after sign-up</h2>
+        </div>
+        <p>
+          This is the center of Phase 1. CubiQo needs a trustworthy understanding of the user before it can safely route
+          goals in later phases.
+        </p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Memory lane</th>
+            <th>Anonymous</th>
+            <th>Signed-in</th>
+            <th>Update rule</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Session memory</td>
+            <td>localStorage with short TTL</td>
+            <td>Conversation/session state plus DB summary</td>
+            <td>Updated during chat; summarized at session boundary</td>
+          </tr>
+          <tr>
+            <td>RGY signals</td>
+            <td>Local preview only</td>
+            <td><code>signals</code> rows</td>
+            <td>Written when a strong activity signal appears</td>
+          </tr>
+          <tr>
+            <td>Memory events</td>
+            <td>Not server-side until signup</td>
+            <td><code>memory_events</code></td>
+            <td>Commitments, blockers, outcomes, pivotal episodes, session summaries</td>
+          </tr>
+          <tr>
+            <td>User AI profile</td>
+            <td>Not durable</td>
+            <td><code>user_ai_profile</code></td>
+            <td>Bootstrapped on onboarding; refreshed after meaningful sessions</td>
+          </tr>
+          <tr>
+            <td>Journal</td>
+            <td>Not durable</td>
+            <td><code>journal_entries</code></td>
+            <td>User-authored; extracted into memory only with consent and care</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Understanding and Classification</div>
+          <h2>RGY is an output, not the whole brain</h2>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card mint">
+          <h3>Conversation</h3>
+          <p>Normal chat stays normal chat. CubiQo answers, asks clarifying questions, reflects preferences, and may update light memory.</p>
+          <span class="pill">No capsule required</span>
+        </div>
+        <div class="card yellow">
+          <h3>Memory update</h3>
+          <p>If the user reveals stable facts, preferences, commitments, or blockers, CubiQo records them with confidence and source.</p>
+          <span class="pill">Profile + memory</span>
+        </div>
+        <div class="card purple">
+          <h3>RGY capsule</h3>
+          <p>If a meaningful activity signal emerges, CubiQo writes color, keyword, intent hint, safety state, confidence, and summary.</p>
+          <span class="pill">Capsule-ready</span>
+        </div>
+      </div>
+
+      <div class="boundary">
+        <h3>Classification contract</h3>
+        <p>
+          Safety always runs first. Then CubiQo decides whether the input is ordinary conversation, onboarding material,
+          a memory event, a journal insight, a question needing fresh context, or a true RGY signal. Only the last path
+          creates a capsule.
+        </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Guardrails</div>
+          <h2>The two hard rules still apply in Phase 1</h2>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card red">
+          <h3>1. Do not touch payments</h3>
+          <p>Phase 1 does not initiate purchases, billing, checkout, payment setup, or financial transactions. It can discuss concepts but does not act.</p>
+        </div>
+        <div class="card red">
+          <h3>2. Do not final-submit anything</h3>
+          <p>No autonomous send, submit, publish, push, deploy, or final external action. The user keeps the last button in later phases too.</p>
+        </div>
+      </div>
+
+      <div class="boundary">
+        <h3>Safety layers included here</h3>
+        <p>
+          Input safety, output safety for sensitive outputs, consent checks before sensors, RLS for user-owned rows, and no silent global connector fallback.
+          These are Phase 1 foundations because trust starts before any external execution exists.
+        </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Phase 1 Build Scope</div>
+          <h2>What to build now</h2>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card green">
+          <h3>Must build</h3>
+          <ul class="list">
+            <li>Anonymous local memory with TTL and sign-up migration.</li>
+            <li>Signed-in onboarding conversation.</li>
+            <li><code>memory_events</code> and <code>user_ai_profile</code> tables with RLS.</li>
+            <li><code>user_permissions</code> table for mic, camera, memory, location, push.</li>
+            <li>Text-first greeting and audio unlock before TTS playback.</li>
+            <li>Reliable STT path and optional Web Speech fallback.</li>
+            <li>Vision route returning structured visual context, not just a caption.</li>
+            <li>Understanding/classification route with RGY as one possible result.</li>
+            <li>Capsule save boundary: color, keyword, confidence, status, summary.</li>
+          </ul>
+        </div>
+
+        <div class="card orange">
+          <h3>Explicitly not Phase 1</h3>
+          <ul class="list">
+            <li>Task execution and route planning.</li>
+            <li>Structured execution workspace.</li>
+            <li>Domain-specific execution flows.</li>
+            <li>Browser automation for acting on external sites.</li>
+            <li>Publishing, submitting, deploying, or final-button actions.</li>
+            <li>Commercial systems, checkout, and revenue analytics.</li>
+            <li>Market watch, background briefings, intervention systems.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Master Checklist</div>
+          <h2>Phase 1 done means this works</h2>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Definition of done</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Anonymous first visit</td>
+            <td>New local session created. No DB write. Neutral greeting. User can chat normally.</td>
+          </tr>
+          <tr>
+            <td>Anonymous return</td>
+            <td>Within TTL, CubiQo references prior topic lightly. After TTL, clean slate.</td>
+          </tr>
+          <tr>
+            <td>Sign-up migration</td>
+            <td>Local signals and summary migrate into Supabase. localStorage clears after successful write.</td>
+          </tr>
+          <tr>
+            <td>Onboarding</td>
+            <td>Signed-in user gets short conversational onboarding. Primary goal and initial user_ai_profile are written.</td>
+          </tr>
+          <tr>
+            <td>Memory</td>
+            <td>Session summaries, commitments, blockers, journal insights, and pivotal episodes are saved with source and confidence.</td>
+          </tr>
+          <tr>
+            <td>Permissions</td>
+            <td>Mic/camera/location/memory preferences are recorded and respected before each use.</td>
+          </tr>
+          <tr>
+            <td>Understanding</td>
+            <td>System separates ordinary chat, memory updates, journal insights, onboarding facts, and RGY signals.</td>
+          </tr>
+          <tr>
+            <td>RGY capsule</td>
+            <td>Strong signal creates durable capsule record with color, keyword, intent hint, confidence, and summary.</td>
+          </tr>
+          <tr>
+            <td>Safety</td>
+            <td>Input safety, output safety, RLS, no silent fallback, no payments, and no final submissions verified.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Coverage Audit</div>
+          <h2>Does this cover the full Phase A plan?</h2>
+        </div>
+        <p>
+          Yes as a Phase A master, with one important boundary: the main body explains the foundation from landing conversation
+          to capsule readiness. This checklist captures the rest of Phase A as implementation scope, while explicitly parking
+          subscription, Tier 4 affiliate networks, browser-extension attribution, and Amazon PA API for later.
+        </p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Area from the larger plan</th>
+            <th>Status in this master doc</th>
+            <th>Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Input: voice, text, image, camera, browser context</td>
+            <td><span class="status yes">Covered</span></td>
+            <td>Included as the Phase 1 perception layer, with permissions before sensors.</td>
+          </tr>
+          <tr>
+            <td>Perception layer: STT, vision, screenshot understanding</td>
+            <td><span class="status yes">Covered</span></td>
+            <td>Included, with structured visual context as a target rather than plain captions.</td>
+          </tr>
+          <tr>
+            <td>Context layer: time, language, location, memory, user profile</td>
+            <td><span class="status yes">Covered</span></td>
+            <td>Included as the context bundle for signed-in and anonymous states.</td>
+          </tr>
+          <tr>
+            <td>Daily context / fresh world state</td>
+            <td><span class="status partial">Phase A expansion</span></td>
+            <td>Profile slots and context concept are included; cron-backed digest/source tracking becomes an expansion item.</td>
+          </tr>
+          <tr>
+            <td>RGY classification</td>
+            <td><span class="status yes">Covered</span></td>
+            <td>Reframed correctly: RGY is one output of Understanding + Classification, not every message.</td>
+          </tr>
+          <tr>
+            <td>Signals and capsule creation</td>
+            <td><span class="status yes">Covered</span></td>
+            <td>Phase 1 ends at a saved, structured capsule with color, keyword, status, summary, and confidence.</td>
+          </tr>
+          <tr>
+            <td>Memory events and AI-maintained user profile</td>
+            <td><span class="status yes">Covered</span></td>
+            <td>Included as core Phase 1 tables and behavior.</td>
+          </tr>
+          <tr>
+            <td>Journal influence on user understanding</td>
+            <td><span class="status yes">Covered</span></td>
+            <td>Included as a memory lane, with extracted insights feeding memory only with care.</td>
+          </tr>
+          <tr>
+            <td>Anonymous local memory and sign-up migration</td>
+            <td><span class="status yes">Covered</span></td>
+            <td>Included for first-time, returning, and signed-in user flows.</td>
+          </tr>
+          <tr>
+            <td>Onboarding conversation</td>
+            <td><span class="status yes">Covered</span></td>
+            <td>Included as a required signed-in bootstrap path, not a form.</td>
+          </tr>
+          <tr>
+            <td>Permissions and consent</td>
+            <td><span class="status yes">Covered</span></td>
+            <td>Included as a first-class layer and Supabase table.</td>
+          </tr>
+          <tr>
+            <td>Input and output safety</td>
+            <td><span class="status yes">Covered</span></td>
+            <td>Included as Phase 1 trust foundations.</td>
+          </tr>
+          <tr>
+            <td>Audio greeting and ElevenLabs</td>
+            <td><span class="status partial">Partial</span></td>
+            <td>Text-first greeting and audio unlock are included. Voice generation implementation belongs in build tickets.</td>
+          </tr>
+          <tr>
+            <td>Rate limiting and API usage cost protection</td>
+            <td><span class="status partial">Phase A expansion</span></td>
+            <td>Cost protection is part of Phase A. Paid subscription packaging remains later.</td>
+          </tr>
+          <tr>
+            <td>Background briefings, interventions, market watch, cron refreshes</td>
+            <td><span class="status partial">Phase A expansion</span></td>
+            <td>These sit after capsule creation, so they are not in the pre-capsule visual but are included in the Phase A checklist.</td>
+          </tr>
+          <tr>
+            <td>Execution workspace / dashboard after capsule</td>
+            <td><span class="status later">Later</span></td>
+            <td>The workspace that acts on capsules should be a separate Phase B document.</td>
+          </tr>
+          <tr>
+            <td>Commerce recommendations, cards, coupons, tracked links</td>
+            <td><span class="status partial">Phase A expansion</span></td>
+            <td>Include quality gate, transparent cards, Tier 1 partners, coupons/rates, and click tracking after memory is trustworthy.</td>
+          </tr>
+          <tr>
+            <td>Direct partners, broad networks, product APIs, postbacks</td>
+            <td><span class="status partial">Mixed</span></td>
+            <td>Tier 1 direct partners and postbacks can be Phase A. Tier 4 networks and Amazon PA API are later.</td>
+          </tr>
+          <tr>
+            <td>Subscription checkout and paid tiers</td>
+            <td><span class="status later">Later</span></td>
+            <td>Explicitly parked for later, per current strategy.</td>
+          </tr>
+          <tr>
+            <td>Admin monetization dashboard</td>
+            <td><span class="status partial">Phase A expansion</span></td>
+            <td>Basic admin/cost/recommendation metrics are useful once cards and tracking exist.</td>
+          </tr>
+          <tr>
+            <td>GDPR export/delete, offline fallback, PWA/mobile hardening</td>
+            <td><span class="status partial">Partial</span></td>
+            <td>The trust need is noted. Full product/legal implementation should become separate tickets.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Phase A Checklist</div>
+          <h2>Master implementation checklist</h2>
+        </div>
+        <p>
+          This is the end-to-end checklist for Phase A. Items marked "Later" are deliberately not part of Phase A execution:
+          subscription checkout, Tier 4 affiliate networks, browser-extension attribution, and Amazon PA API.
+        </p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Workstream</th>
+            <th>Phase A scope</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Anonymous first visit</td>
+            <td>Create <code>cubiqo_session</code> locally, no DB write, neutral greeting, clean state.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Anonymous return</td>
+            <td>Use local TTL memory, update visit count, greet with last topic when appropriate, expire after TTL.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Anonymous conversion</td>
+            <td>Trigger "want me to keep this?" only after enough value: repeated exchanges, green signal, or commitment.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Sign-up migration</td>
+            <td>Migrate local signals and summaries into <code>signals</code>, <code>memory_events</code>, and <code>profiles</code>.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Onboarding</td>
+            <td>Three-question conversational bootstrap that writes primary goal, goal domain, initial memory, and user AI profile.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Perception</td>
+            <td>Text pass-through, reliable STT, image/camera/screenshot to structured visual context.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Permissions</td>
+            <td>Track mic, camera, memory, location, push, and tracking consent in <code>user_permissions</code>.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Context assembly</td>
+            <td>Build context from time, timezone, language, location if allowed, memory, journal, profile, and recent signals.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Understanding + classification</td>
+            <td>Decide between chat, memory update, journal insight, onboarding fact, fresh context question, or RGY signal.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>RGY capsule</td>
+            <td>Create durable capsule when signal is strong: color, keyword, intent hint, confidence, safety state, summary.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Memory architecture</td>
+            <td>Create <code>memory_events</code>, add keywords, confidence, source, user confirmation, archived_at, and episode support.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>User AI profile</td>
+            <td>Create <code>user_ai_profile</code> with inferred fields, confidence map, corrections, open loops, and session count.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Journal memory bridge</td>
+            <td>Extract commitments, blockers, goals, and mood signals from journal entries into memory with user-respecting rules.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Multilingual</td>
+            <td>Store <code>language_preference</code> and <code>script_preference</code>; match Hinglish, Spanglish, and language switching.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Voice output</td>
+            <td>Text first; voice after user interaction unlock; no silent autoplay dependency.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Safety</td>
+            <td>Input safety, output safety, crisis/hard-block/age-gate patterns, RLS, and no unsafe global fallbacks.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Guardrails</td>
+            <td>No payments. No autonomous final send, submit, publish, push, deploy, or external final action.</td>
+            <td><span class="status yes">Core</span></td>
+          </tr>
+          <tr>
+            <td>Usage and cost protection</td>
+            <td>Create <code>user_api_usage</code> and <code>api_usage_events</code>; enforce fair-use/rate limits without subscription checkout.</td>
+            <td><span class="status partial">Expansion</span></td>
+          </tr>
+          <tr>
+            <td>Daily context</td>
+            <td>Add generated_at/expires_at/source-backed daily context. Use live search only when user asks current/latest/news/price/law.</td>
+            <td><span class="status partial">Expansion</span></td>
+          </tr>
+          <tr>
+            <td>Background capsules</td>
+            <td>After green signal, create/update <code>capsule_briefings</code>, retry failures, and source research safely.</td>
+            <td><span class="status partial">Expansion</span></td>
+          </tr>
+          <tr>
+            <td>Interventions</td>
+            <td>Use commitments, stale goals, inactivity, open loops, and market watch to suggest timely nudges without over-pushing.</td>
+            <td><span class="status partial">Expansion</span></td>
+          </tr>
+          <tr>
+            <td>Job/cron reliability</td>
+            <td>Add <code>job_runs</code> locks/idempotency, retry queues, cron health, and duplicate-prevention.</td>
+            <td><span class="status partial">Expansion</span></td>
+          </tr>
+          <tr>
+            <td>Recommendation quality gate</td>
+            <td>Only show a card when intent and relevance are high, no better free option is hidden, and disclosure is clear.</td>
+            <td><span class="status partial">Expansion</span></td>
+          </tr>
+          <tr>
+            <td>Transparent recommendation cards</td>
+            <td>Support Get started, Save, I already have this, Find cheaper, Compare options, Tell me more, and visible disclosure.</td>
+            <td><span class="status partial">Expansion</span></td>
+          </tr>
+          <tr>
+            <td>Tier 1 direct partners</td>
+            <td>Seed curated partners such as Shopify, Printify, Fiverr, HubSpot, Canva, Notion, Coursera, Udemy, Webflow, and similar.</td>
+            <td><span class="status partial">Expansion</span></td>
+          </tr>
+          <tr>
+            <td>Coupon and rate search</td>
+            <td>Compare options, fetch better rates, find working coupons, and explain why a recommendation is useful.</td>
+            <td><span class="status partial">Expansion</span></td>
+          </tr>
+          <tr>
+            <td>Tracking and attribution</td>
+            <td>Use <code>recommendation_events</code>, <code>affiliate_clicks</code>, <code>saved_recommendations</code>, promo codes, postbacks, and self-reporting.</td>
+            <td><span class="status partial">Expansion</span></td>
+          </tr>
+          <tr>
+            <td>Admin/ops visibility</td>
+            <td>Track DAU, signal count, memory writes, card CTR, saves, bad recommendations, API cost, cron health, and route errors.</td>
+            <td><span class="status partial">Expansion</span></td>
+          </tr>
+          <tr>
+            <td>GDPR/export/delete</td>
+            <td>Provide user export, account delete, local session clearing, and minimal sensitive logging.</td>
+            <td><span class="status partial">Expansion</span></td>
+          </tr>
+          <tr>
+            <td>Error and offline states</td>
+            <td>Handle Supabase/OpenAI/network failures gracefully; queue unsent local messages where safe.</td>
+            <td><span class="status partial">Expansion</span></td>
+          </tr>
+          <tr>
+            <td>PWA/mobile hardening</td>
+            <td>Add install prompt, mobile audio gesture handling, camera facing-mode, and push constraints.</td>
+            <td><span class="status partial">Expansion</span></td>
+          </tr>
+          <tr>
+            <td>Subscription checkout</td>
+            <td>Stripe checkout, paid tiers, and subscription packaging.</td>
+            <td><span class="status later">Later</span></td>
+          </tr>
+          <tr>
+            <td>Tier 4 affiliate networks</td>
+            <td>Impact/CJ/ShareASale-style broad network expansion.</td>
+            <td><span class="status later">Later</span></td>
+          </tr>
+          <tr>
+            <td>Browser-extension attribution</td>
+            <td>Extension-based checkout/domain attribution.</td>
+            <td><span class="status later">Later</span></td>
+          </tr>
+          <tr>
+            <td>Amazon PA API</td>
+            <td>Amazon product cards, ASIN lookup, price/review metadata.</td>
+            <td><span class="status later">Later</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Single Source</div>
+          <h2>How to use this doc</h2>
+        </div>
+      </div>
+      <p>
+        This file is now the Phase A master visual and engineering scope: <code>docs/cubiqo-capability-engine-future-state.html</code>.
+        Use the top sections for the clean pre-capsule architecture and the bottom checklist for the full Phase A implementation map.
+      </p>
+      <a class="download" href="http://127.0.0.1:8765/cubiqo-capability-engine-future-state.html?download=1" download>Download this master HTML</a>
+      <a class="download" href="http://127.0.0.1:8765/cubiqo-phase-a-master-architecture.pdf?download=1" download>Download the PDF version</a>
+    </section>
+  </main>
+</body>
+</html>

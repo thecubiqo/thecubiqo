@@ -142,7 +142,11 @@ export const V1_AGENT_TOOLS = [
   'task_plan_create',
   'content_brief_create',
   'web_search',
-  'parallel_web_search'
+  'parallel_web_search',
+  'duo_project_create',
+  'duo_task_create',
+  'duo_task_update',
+  'duo_timeline_log'
 ];
 
 export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentOptions = {}) {
@@ -325,6 +329,72 @@ export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentO
           queries.map(async (q) => { const r = await webSearch(q, 5); return { query: q, results: r.results, provider: r.provider, error: r.error }; })
         );
         return { searches, totalResults: searches.reduce((n, s) => n + s.results.length, 0) };
+      }
+    }),
+    duo_project_create: tracedTool({
+      trace,
+      name: 'duo_project_create',
+      description: 'Create a durable Duo Project to group related tasks and track progress. Returns project ID and trace ID.',
+      inputSchema: z.object({
+        title: z.string().min(1).max(200),
+        domain: z.string().min(1).max(50),
+        successCriteria: z.array(z.string()).optional(),
+        metadata: z.any().optional()
+      }),
+      execute: async (input) => {
+        const { duoProjectCreate } = await import('./user-context-tools');
+        return duoProjectCreate(options.authToken, input);
+      }
+    }),
+    duo_task_create: tracedTool({
+      trace,
+      name: 'duo_task_create',
+      description: 'Create a specific task within a Duo Project. Requires project_id and trace_id.',
+      inputSchema: z.object({
+        projectId: z.string().uuid(),
+        traceId: z.string().uuid(),
+        title: z.string().min(1).max(200),
+        description: z.string().optional(),
+        routePreference: z.array(z.string()).optional(),
+        dependencies: z.array(z.string().uuid()).optional(),
+        approvalRequired: z.boolean().optional()
+      }),
+      execute: async (input) => {
+        const { duoTaskCreate } = await import('./user-context-tools');
+        return duoTaskCreate(options.authToken, input);
+      }
+    }),
+    duo_task_update: tracedTool({
+      trace,
+      name: 'duo_task_update',
+      description: 'Update the status or result of a Duo Task.',
+      inputSchema: z.object({
+        taskId: z.string().uuid(),
+        status: z.enum(['pending', 'running', 'completed', 'failed', 'skipped', 'blocked']).optional(),
+        assignedRoute: z.string().optional(),
+        evidence: z.any().optional(),
+        result: z.string().optional(),
+        metadata: z.any().optional()
+      }),
+      execute: async ({ taskId, ...updates }) => {
+        const { duoTaskUpdate } = await import('./user-context-tools');
+        return duoTaskUpdate(options.authToken, taskId, updates);
+      }
+    }),
+    duo_timeline_log: tracedTool({
+      trace,
+      name: 'duo_timeline_log',
+      description: 'Log an event to the Duo Project timeline for observability.',
+      inputSchema: z.object({
+        projectId: z.string().uuid(),
+        traceId: z.string().uuid(),
+        eventType: z.string(),
+        message: z.string(),
+        payload: z.any().optional()
+      }),
+      execute: async (input) => {
+        const { duoTimelineLog } = await import('./user-context-tools');
+        return duoTimelineLog(options.authToken, input);
       }
     })
   };

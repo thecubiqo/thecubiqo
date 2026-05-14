@@ -365,7 +365,7 @@ const JournalPage = () => {
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = false;
-    recognition.lang = 'en-US';
+    recognition.lang = localStorage.getItem('cubiqo_language_preference') || navigator.language || 'en-US';
     recognition.onresult = (event) => {
       let finalTranscript = '';
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
@@ -3699,6 +3699,7 @@ const DemoPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [aiResponse, setAiResponse] = useState("");
+  const [recommendationCards, setRecommendationCards] = useState([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
@@ -3807,6 +3808,135 @@ const DemoPage = () => {
   const listeningActiveRef = useRef(false);
   const listeningSilenceTimerRef = useRef(null);
   const callBackendRef = useRef(null);
+  const audioUnlockedRef = useRef(false);
+
+  const unlockAudioPlayback = () => {
+    audioUnlockedRef.current = true;
+    try {
+      localStorage.setItem('cubiqo_audio_unlocked', '1');
+    } catch {}
+  };
+
+  const isAudioPlaybackUnlocked = () => {
+    if (audioUnlockedRef.current) return true;
+    try {
+      return localStorage.getItem('cubiqo_audio_unlocked') === '1';
+    } catch {
+      return false;
+    }
+  };
+
+  const processRecommendationCards = async (responseText, signalId = null) => {
+    if (!responseText) return responseText;
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const recRes = await fetch('/api/recommendations/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionData?.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
+        },
+        body: JSON.stringify({ responseText, signalId })
+      });
+      const recPayload = await recRes.json().catch(() => ({}));
+      if (Array.isArray(recPayload.cards)) setRecommendationCards(recPayload.cards);
+      if (recPayload.enrichedText) return recPayload.enrichedText;
+    } catch (error) {
+      console.warn('Recommendation post-processing failed:', error.message);
+    }
+    return responseText;
+  };
+
+  const applyOutputSafety = async (responseText, userInput) => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const safetyRes = await fetch('/api/safety/output', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionData?.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
+        },
+        body: JSON.stringify({ input: userInput, output: responseText })
+      });
+      const payload = await safetyRes.json().catch(() => ({}));
+      return payload.safeText || responseText;
+    } catch (error) {
+      console.warn('Output safety check failed:', error.message);
+      return responseText;
+    }
+  };
+
+  const migratePhaseALocalSession = async (session) => {
+    const sessionUser = session?.user;
+    if (!sessionUser?.id || typeof window === 'undefined') return;
+
+    let localSession = null;
+    try {
+      localSession = JSON.parse(localStorage.getItem('cubiqo_session') || 'null');
+    } catch {
+      localSession = null;
+    }
+
+    if (!localSession || localSession.migrated_user_id === sessionUser.id) return;
+
+    const signalsToMigrate = Array.isArray(localSession.signals) ? localSession.signals.slice(-5) : [];
+    const latestSignal = signalsToMigrate[signalsToMigrate.length - 1] || null;
+    const summary = localSession.last_summary
+      || latestSignal?.keyword
+      || visitMemory[visitMemory.length - 1]?.user_message
+      || null;
+
+    try {
+      await supabase.from('profiles').upsert({
+        id: sessionUser.id,
+        display_name: localSession.name || sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0] || null,
+        voice_preference: localSession.voice_preference === 'voice' ? 'voice' : 'text',
+        language_preference: localSession.language_preference || navigator.language || 'en',
+        primary_goal: latestSignal?.keyword || undefined,
+        onboarding_done: Boolean(latestSignal?.keyword),
+        last_seen_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+
+      if (localSession.permissions) {
+        await supabase.from('user_permissions').upsert({
+          user_id: sessionUser.id,
+          mic: localSession.permissions.mic || 'pending',
+          camera: localSession.permissions.camera || 'pending',
+          memory: localSession.permissions.memory || 'pending',
+          location: localSession.permissions.location || 'pending',
+          push: localSession.permissions.push || 'pending',
+          tracking: localSession.permissions.tracking || 'pending',
+          metadata: { migrated_from: 'localStorage' },
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      }
+
+      if (summary) {
+        await supabase.from('memory_events').insert({
+          user_id: sessionUser.id,
+          event_type: latestSignal?.keyword ? 'goal_update' : 'session_summary',
+          summary: String(summary).slice(0, 800),
+          keywords: signalsToMigrate.map(signal => signal.keyword).filter(Boolean).slice(0, 10),
+          weight: latestSignal?.keyword ? 3 : 2,
+          confidence: 0.72,
+          source: 'anonymous_migration',
+          user_confirmed: false,
+          metadata: { local_session_id: localSession.session_id || null }
+        });
+      }
+
+      localStorage.removeItem('cubiqo_session');
+    } catch (error) {
+      console.warn('Phase A local session migration failed:', error.message);
+      try {
+        localStorage.setItem('cubiqo_session', JSON.stringify({
+          ...localSession,
+          migration_failed_at: new Date().toISOString()
+        }));
+      } catch {}
+    }
+  };
 
   const ensureUserProfile = async (session) => {
     const sessionUser = session?.user;
@@ -3827,6 +3957,7 @@ const DemoPage = () => {
     }
 
     setProfileSyncError('');
+    await migratePhaseALocalSession(session);
     return true;
   };
 
@@ -4038,7 +4169,7 @@ const DemoPage = () => {
     const rec = new SR();
     rec.continuous = true;
     rec.interimResults = true;
-    rec.lang = 'en-US';
+    rec.lang = localStorage.getItem('cubiqo_language_preference') || navigator.language || 'en-US';
     const clearListeningSilenceTimer = () => {
       if (listeningSilenceTimerRef.current) {
         clearTimeout(listeningSilenceTimerRef.current);
@@ -4326,6 +4457,7 @@ const DemoPage = () => {
     if (!cleanInput) return;
     setLastUserMessage(cleanInput);
     setAiResponse('');
+    setRecommendationCards([]);
     setConversationError('');
     setAgentTrace([]);
     setAgentMode('idle');
@@ -4452,6 +4584,9 @@ const DemoPage = () => {
           responseText = 'I checked what I could, but I do not have enough evidence to answer that yet.';
           setAiResponse(responseText);
         }
+        responseText = await applyOutputSafety(responseText, cleanInput);
+        responseText = await processRecommendationCards(responseText, signalId);
+        setAiResponse(responseText);
         const isConversationDelegated = false;
         const nextAgentTrace = liveTrace;
         if (!liveTrace.length) setAgentTrace([]);
@@ -4459,13 +4594,13 @@ const DemoPage = () => {
         if (streamRes.ok) setModelUsed('agent-stream-v1');
 
         // ── Speak the agentic response via ElevenLabs if voice mode is on ──
-        if (speakerEnabled && responseText) {
+        if (speakerEnabled && responseText && isAudioPlaybackUnlocked()) {
           fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: responseText.slice(0, 500) })
           }).then(r => r.json()).then(ttsData => {
-            if (ttsData.audio_url) {
+            if (ttsData.audio_url && isAudioPlaybackUnlocked()) {
               if (!audioRef.current) audioRef.current = new Audio();
               audioRef.current.src = ttsData.audio_url;
               audioRef.current.volume = 1;
@@ -4486,7 +4621,7 @@ const DemoPage = () => {
           if (capturedSignal) await rememberSignal(capturedSignal);
         }
         try {
-          if (agentData.audio_url) {
+          if (agentData.audio_url && isAudioPlaybackUnlocked()) {
             if (!audioRef.current) audioRef.current = new Audio();
             audioRef.current.src = agentData.audio_url;
             audioRef.current.volume = 1;
@@ -4529,7 +4664,9 @@ const DemoPage = () => {
       if (!res.ok) throw new Error(`Conversation failed with ${res.status}`);
       const data = await res.json();
       const responseText = data.response || "I am here. Say that once more and I will stay with it.";
-      setAiResponse(responseText);
+      const safeResponseText = await applyOutputSafety(responseText, cleanInput);
+      const enrichedResponseText = await processRecommendationCards(safeResponseText);
+      setAiResponse(enrichedResponseText);
       if (data.keywords) setKeywords(normalizeKeywords(data.keywords));
       if (data.model_used) setModelUsed(data.model_used);
       if (data.rgy && !rgyClassifiedThisTurn) {
@@ -4540,7 +4677,7 @@ const DemoPage = () => {
         if (capturedSignal) await rememberSignal(capturedSignal);
       }
       try {
-        if (data.audio_url) {
+        if (data.audio_url && isAudioPlaybackUnlocked()) {
           if (!audioRef.current) audioRef.current = new Audio();
           audioRef.current.src = data.audio_url;
           audioRef.current.volume = 1;
@@ -4565,7 +4702,7 @@ const DemoPage = () => {
         setSpeakingAudioLevel(0);
       }
       try {
-        await rememberConversation(cleanInput, responseText, data);
+        await rememberConversation(cleanInput, enrichedResponseText, data);
       } catch (memoryError) {
         console.warn('Optional conversation memory failed:', memoryError.message);
       }
@@ -4623,12 +4760,14 @@ const DemoPage = () => {
     e.preventDefault();
     const text = chatInput.trim();
     if (!text || isProcessing) return;
+    unlockAudioPlayback();
     setChatInput('');
     setIsProcessing(true);
     callBackend(text, { agentFirst: true });
   };
 
   const toggleListening = async () => {
+    unlockAudioPlayback();
     // Unlock audio context for iOS/Safari
     if (audioRef.current) {
       audioRef.current.volume = 0;
@@ -4987,6 +5126,83 @@ const DemoPage = () => {
                   <div style={{ color: pageTheme.responseText, fontSize: '0.95rem', lineHeight: 1.55, fontWeight: 300 }}>
                     {aiResponse}
                     {isStreaming && <span className="cq-cursor" aria-hidden="true" />}
+                  </div>
+                )}
+                {recommendationCards.length > 0 && (
+                  <div style={{ display: 'flex', gap: 10, overflowX: 'auto', marginTop: 12, paddingBottom: 2 }}>
+                    {recommendationCards.map(card => (
+                      <div key={card.id} style={{
+                        minWidth: 220,
+                        maxWidth: 260,
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        background: 'rgba(255,255,255,0.055)',
+                        borderRadius: 8,
+                        padding: 12,
+                        color: pageTheme.responseText
+                      }}>
+                        {card.imageUrl && (
+                          <img
+                            src={card.imageUrl}
+                            alt=""
+                            style={{ width: 72, height: 72, objectFit: 'contain', borderRadius: 6, marginBottom: 8, background: 'rgba(255,255,255,0.06)' }}
+                          />
+                        )}
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 4 }}>{card.entityName}</div>
+                        {card.tagline && <div style={{ fontSize: '0.76rem', color: pageTheme.responseMuted, lineHeight: 1.35, marginBottom: 8 }}>{card.tagline}</div>}
+                        {card.price && (
+                          <div style={{ fontSize: '0.86rem', fontWeight: 700, marginBottom: 6 }}>
+                            {card.price.currency === 'GBP' ? '£' : card.price.currency === 'USD' ? '$' : `${card.price.currency} `}
+                            {Number(card.price.amount).toFixed(2)}
+                          </div>
+                        )}
+                        {card.rating != null && (
+                          <div style={{ fontSize: '0.72rem', color: '#f59e0b', marginBottom: 6 }}>
+                            ★ {Number(card.rating).toFixed(1)}
+                            {card.reviewCount != null ? ` (${Number(card.reviewCount).toLocaleString()})` : ''}
+                          </div>
+                        )}
+                        {(card.isPrime || card.primeEligible) && (
+                          <div style={{ fontSize: '0.7rem', color: '#60a5fa', marginBottom: 6 }}>Prime eligible</div>
+                        )}
+                        {card.promoCode && <div style={{ fontSize: '0.72rem', marginBottom: 8 }}>Promo: <strong>{card.promoCode}</strong></div>}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          <a href={card.trackedUrl} target="_blank" rel="noreferrer" style={{
+                            color: pageTheme.responseText,
+                            textDecoration: 'none',
+                            border: '1px solid rgba(255,255,255,0.18)',
+                            borderRadius: 6,
+                            padding: '6px 8px',
+                            fontSize: '0.72rem'
+                          }}>{card.tier === 3 ? 'View product' : 'Get started'}</a>
+                          <button type="button" onClick={async () => {
+                            const { data: sessionData } = await supabase.auth.getSession();
+                            await fetch('/api/recommendations/save', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                ...(sessionData?.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
+                              },
+                              body: JSON.stringify({ recommendationEventId: card.id })
+                            });
+                          }} style={{ border: 0, borderRadius: 6, padding: '6px 8px', fontSize: '0.72rem' }}>Save</button>
+                          <button type="button" onClick={async () => {
+                            const { data: sessionData } = await supabase.auth.getSession();
+                            await fetch('/api/recommendations/have', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                ...(sessionData?.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
+                              },
+                              body: JSON.stringify({ recommendationEventId: card.id })
+                            });
+                            setRecommendationCards(prev => prev.filter(item => item.id !== card.id));
+                          }} style={{ border: 0, borderRadius: 6, padding: '6px 8px', fontSize: '0.72rem' }}>I have this</button>
+                        </div>
+                        <div style={{ color: pageTheme.responseMuted, fontSize: '0.64rem', lineHeight: 1.3, marginTop: 8 }}>
+                          {card.disclosure || 'CubiQo may earn a commission. Your price does not change.'}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
                 {(agentMode !== 'idle' || agentTrace.length > 0) && (
