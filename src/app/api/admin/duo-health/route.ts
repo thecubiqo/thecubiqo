@@ -10,11 +10,11 @@ export async function GET(request: NextRequest) {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const [projects, activeProjects, failedTasks, queuedJobs, deadJobs, approvals] = await Promise.all([
     auth.supabase.from('duo_projects').select('*', { count: 'exact', head: true }).gte('created_at', since),
-    auth.supabase.from('duo_projects').select('*', { count: 'exact', head: true }).in('status', ['planning', 'working', 'waiting_user', 'waiting_approval']),
+    auth.supabase.from('duo_projects').select('*', { count: 'exact', head: true }).in('status', ['planning', 'working', 'paused', 'blocked']),
     auth.supabase.from('duo_tasks').select('*', { count: 'exact', head: true }).eq('status', 'failed').gte('updated_at', since),
     auth.supabase.from('agent_job_queue').select('*', { count: 'exact', head: true }).eq('status', 'queued'),
     auth.supabase.from('dead_letter_jobs').select('*', { count: 'exact', head: true }).gte('created_at', since),
-    auth.supabase.from('duo_approvals').select('*', { count: 'exact', head: true }).eq('status', 'requested')
+    auth.supabase.from('action_approvals').select('*', { count: 'exact', head: true }).eq('status', 'requested')
   ]);
 
   return NextResponse.json({
