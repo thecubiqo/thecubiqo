@@ -9,6 +9,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "lint": "tsc --noEmit",
+    "test": "node --test tests/phase-ab-alignment.test.mjs",
     "typecheck": "tsc --noEmit",
     "verify:cqai": "node scripts/verify-cqai-e2e.mjs"
   },

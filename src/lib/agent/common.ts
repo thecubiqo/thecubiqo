@@ -70,16 +70,20 @@ export async function writeToolCall(
     apiCostGbp?: number;
   }
 ) {
-  await auth.supabase.from('duo_tool_calls').insert({
+  await auth.supabase.from('agent_tool_calls').insert({
+    user_id: auth.user.id,
     project_id: input.projectId,
     task_id: input.taskId || null,
     trace_id: input.traceId,
     tool_name: input.toolName,
     route_used: input.route || 'manual',
+    attempt_number: 1,
     status: input.status,
-    input_summary: input.input ? JSON.stringify(input.input).slice(0, 500) : null,
-    result_summary: input.output ? JSON.stringify(input.output).slice(0, 500) : null,
+    input: input.input || {},
+    output: input.output || {},
     failure_reason: input.error || null,
+    fallback_tool: null,
+    evidence: input.output || {},
     api_cost_gbp: input.apiCostGbp || 0,
     completed_at: input.status === 'started' ? null : new Date().toISOString()
   });

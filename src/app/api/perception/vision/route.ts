@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
+import { shouldUseProviderMock } from "@/next/lib/providers/live-provider-guard";
 import { getBearerToken, getSupabaseAdmin } from "../../_lib/supabase-admin";
 
 type VisionSource = "upload" | "camera" | "screenshot" | "browser";
@@ -15,6 +17,18 @@ type VisionBody = {
   permission?: "granted" | "denied" | "pending";
   prompt?: string;
 };
+
+const visionBodySchema = z.object({
+  imageBase64: z.string().max(5_600_000).optional(),
+  image: z.string().max(5_600_000).optional(),
+  image_url: z.string().max(5_600_000).optional(),
+  imageUrl: z.string().max(5_600_000).optional(),
+  mime_type: z.string().max(80).optional(),
+  mimeType: z.string().max(80).optional(),
+  source: z.enum(["upload", "camera", "screenshot", "browser"]).optional(),
+  permission: z.enum(["granted", "denied", "pending"]).optional(),
+  prompt: z.string().max(1000).optional(),
+});
 
 type AuthedContext = {
   userId: string | null;
@@ -138,7 +152,11 @@ function coerceVisionJson(text: string) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => ({}))) as VisionBody;
+  const parsed = visionBodySchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid vision payload", issues: parsed.error.flatten() }, { status: 400 });
+  }
+  const body = parsed.data as VisionBody;
   const source = body.source ?? "upload";
   const imageUrl = normalizeImageUrl(body);
 
@@ -161,7 +179,7 @@ export async function POST(request: NextRequest) {
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  if (!apiKey || shouldUseProviderMock()) {
     return NextResponse.json({
       description: "[Visual context unavailable]",
       structured_context: {
@@ -171,10 +189,10 @@ export async function POST(request: NextRequest) {
         possible_goal: "needs confirmation",
         confidence: 0,
         needs_user_confirmation: true,
-        safety_notes: ["OPENAI_API_KEY is not configured"],
+        safety_notes: [shouldUseProviderMock() ? "Vision provider mocked for tests" : "OPENAI_API_KEY is not configured"],
       },
       confidence: 0,
-      error: "OPENAI_API_KEY is not configured",
+      error: shouldUseProviderMock() ? "Vision provider mocked for tests" : "OPENAI_API_KEY is not configured",
     });
   }
 

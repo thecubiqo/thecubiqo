@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireApiUser } from '../../../../_lib/supabase-admin';
 import { writeTimeline } from '@/next/lib/agent/common';
 
 export const runtime = 'nodejs';
+
+const paramsSchema = z.object({ id: z.string().uuid() });
 
 export async function POST(
   request: NextRequest,
@@ -11,16 +14,18 @@ export async function POST(
   const auth = await requireApiUser(request);
   if (auth.error) return auth.error;
 
-  const { id } = await params;
+  const parsed = paramsSchema.safeParse(await params);
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid approval id' }, { status: 400 });
+  const { id } = parsed.data;
   const now = new Date().toISOString();
 
-  // action_approvals is the canonical approval table (no separate duo_approvals)
   const { data: approval, error } = await auth.supabase
-    .from('action_approvals')
+    .from('duo_approvals')
     .update({ status: 'approved', decided_at: now, updated_at: now })
     .eq('id', id)
     .eq('user_id', auth.user.id)
-    .select('id,trace_id,project_id,task_id,preview_content')
+    .gt('expires_at', now)
+    .select('id,trace_id,project_id,task_id,preview_content,reversible')
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -44,5 +49,5 @@ export async function POST(
     });
   }
 
-  return NextResponse.json({ approval });
+  return NextResponse.json({ approval: { ...approval, reversible: Boolean(approval.reversible) } });
 }

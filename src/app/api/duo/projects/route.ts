@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireApiUser } from '../../_lib/supabase-admin';
 import { createDuoProject } from '@/next/lib/agent/entry-gate';
 
 export const runtime = 'nodejs';
+
+const createProjectSchema = z.object({
+  goal: z.string().max(4000).optional(),
+  capsuleId: z.string().uuid().optional(),
+  signalId: z.string().uuid().optional(),
+  domain: z.string().max(80).optional(),
+  verbosity: z.enum(['concise', 'normal', 'detailed']).optional(),
+  budgetGateGbp: z.number().min(0).max(500).optional(),
+  constraints: z.record(z.unknown()).optional(),
+});
 
 export async function GET(request: NextRequest) {
   const auth = await requireApiUser(request);
@@ -24,7 +35,11 @@ export async function POST(request: NextRequest) {
   const auth = await requireApiUser(request);
   if (auth.error) return auth.error;
 
-  const body = await request.json().catch(() => ({}));
+  const parsed = createProjectSchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid Duo project payload', issues: parsed.error.flatten() }, { status: 400 });
+  }
+  const body = parsed.data;
   const result = await createDuoProject(auth, {
     goal: body.goal,
     capsuleId: body.capsuleId,

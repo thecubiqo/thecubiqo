@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireApiUser } from '../../../../_lib/supabase-admin';
 import { writeTimeline } from '@/next/lib/agent/common';
 
 export const runtime = 'nodejs';
+
+const paramsSchema = z.object({ id: z.string().uuid() });
+const rejectBodySchema = z.object({
+  note: z.string().max(1000).optional(),
+  reason: z.string().max(1000).optional(),
+});
 
 export async function POST(
   request: NextRequest,
@@ -11,17 +18,22 @@ export async function POST(
   const auth = await requireApiUser(request);
   if (auth.error) return auth.error;
 
-  const { id } = await params;
-  const body = await request.json().catch(() => ({}));
+  const parsedParams = paramsSchema.safeParse(await params);
+  if (!parsedParams.success) return NextResponse.json({ error: 'Invalid approval id' }, { status: 400 });
+  const { id } = parsedParams.data;
+  const parsedBody = rejectBodySchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsedBody.success) {
+    return NextResponse.json({ error: 'Invalid rejection payload', issues: parsedBody.error.flatten() }, { status: 400 });
+  }
+  const body = parsedBody.data;
   const now = new Date().toISOString();
   const note = String(body.note || body.reason || '').slice(0, 1000);
 
-  // action_approvals is the canonical approval table — status 'denied' per check constraint
   const { data: approval, error } = await auth.supabase
-    .from('action_approvals')
+    .from('duo_approvals')
     .update({
-      status: 'denied',
-      on_reject_note: note || 'Draft kept, nothing sent.',
+      status: 'rejected',
+      rejection_note: note || 'Draft kept, nothing sent.',
       decided_at: now,
       updated_at: now
     })

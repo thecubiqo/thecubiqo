@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 import { getBearerToken, getSupabaseAdmin } from "../../_lib/supabase-admin";
 
@@ -22,6 +23,31 @@ type OnboardingBody = {
   currentAnswer?: string;
   complete?: boolean;
 };
+
+const onboardingBodySchema = z.object({
+  message: z.string().max(2000).optional(),
+  step: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  accumulated: z.object({
+    goal: z.string().max(2000).optional(),
+    product_type: z.string().max(2000).optional(),
+    blocker: z.string().max(2000).optional(),
+  }).optional(),
+  answers: z.array(z.union([
+    z.string().max(2000),
+    z.object({
+      id: z.string().max(120).optional(),
+      question: z.string().max(500).optional(),
+      answer: z.string().max(2000),
+    }),
+  ])).max(3).optional(),
+  messages: z.array(z.object({
+    role: z.string().max(40),
+    content: z.string().max(2000),
+  })).max(10).optional(),
+  current_answer: z.string().max(2000).optional(),
+  currentAnswer: z.string().max(2000).optional(),
+  complete: z.boolean().optional(),
+});
 
 const QUESTIONS = [
   "What is your main focus right now?",
@@ -171,7 +197,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: authError }, { status: 401 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as OnboardingBody;
+  const parsed = onboardingBodySchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid onboarding payload", issues: parsed.error.flatten() }, { status: 400 });
+  }
+  const body = parsed.data as OnboardingBody;
   const answers = normalizeAnswers(body);
 
   if (answers.length < 3 && !body.complete) {

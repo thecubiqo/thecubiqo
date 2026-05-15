@@ -704,6 +704,25 @@ END $$;
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// MIGRATION 6 — RGY schema additions
+// user_ai_profile: rgy_ratio, rgy_dominance, rgy_trend
+// capsule_briefings: color, keyword, intent
+// ─────────────────────────────────────────────────────────────────────────────
+const MIGRATION_6_RGY_SCHEMA = `
+-- RGY behavioural fingerprint on user_ai_profile
+ALTER TABLE public.user_ai_profile
+  ADD COLUMN IF NOT EXISTS rgy_ratio      jsonb DEFAULT '{"green":0,"red":0,"yellow":0}',
+  ADD COLUMN IF NOT EXISTS rgy_dominance  text  DEFAULT 'balanced',
+  ADD COLUMN IF NOT EXISTS rgy_trend      text  DEFAULT 'stabilising';
+
+-- RGY capsule fingerprint on capsule_briefings
+ALTER TABLE public.capsule_briefings
+  ADD COLUMN IF NOT EXISTS color    text DEFAULT 'yellow',
+  ADD COLUMN IF NOT EXISTS keyword  text,
+  ADD COLUMN IF NOT EXISTS intent   text;
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SQL statement splitter — handles $$ dollar-quoted blocks correctly
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -764,6 +783,7 @@ const MIGRATIONS = [
   { name: 'Migration 3 — Phase B core tables (PB-01 to PB-13)',                 sql: MIGRATION_3_PHASE_B_CORE },
   { name: 'Migration 4 — Phase B ops tables (PB-14 to PB-22)',                  sql: MIGRATION_4_PHASE_B_OPS },
   { name: 'Migration 5 — duo_tasks status constraint (waiting_approval + ready)', sql: MIGRATION_5_DUO_TASKS_STATUS_CONSTRAINT },
+  { name: 'Migration 6 — RGY schema (rgy_ratio/dominance/trend + capsule color/keyword/intent)', sql: MIGRATION_6_RGY_SCHEMA },
 ];
 
 async function run() {
@@ -831,6 +851,12 @@ async function run() {
     ['duo_timeline_events', 'trace_id'],
     ['action_approvals',    'preview_content'],
     ['action_approvals',    'project_id'],
+    ['user_ai_profile',     'rgy_ratio'],
+    ['user_ai_profile',     'rgy_dominance'],
+    ['user_ai_profile',     'rgy_trend'],
+    ['capsule_briefings',   'color'],
+    ['capsule_briefings',   'keyword'],
+    ['capsule_briefings',   'intent'],
   ];
 
   const { rows: colRows } = await client.query(

@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
 
   const workerId = `worker-${crypto.randomUUID()}`;
   const now = new Date().toISOString();
-  // agent_job_queue uses 'state' (not 'status') per schema
   const { data: jobs, error } = await supabase
     .from('agent_job_queue')
     .select('*')
@@ -29,11 +28,12 @@ export async function GET(request: NextRequest) {
 
   const results: any[] = [];
   for (const job of jobs || []) {
-    // Lock the job (no locked_until column — use locked_at as the lock timestamp)
+    // Lock the job. Phase B canonical fields are state, locked_at, locked_by.
     await supabase
       .from('agent_job_queue')
       .update({
         state: 'running',
+        status: 'running',
         locked_by: workerId,
         locked_at: new Date().toISOString(),
         attempts: Number(job.attempts || 0) + 1,
@@ -42,8 +42,7 @@ export async function GET(request: NextRequest) {
       .eq('id', job.id)
       .eq('state', 'queued'); // only lock if not already grabbed by another worker
 
-    // Resolve userId from payload (agent_job_queue has no user_id column)
-    const payloadUserId = job.payload?.userId || job.payload?.user_id;
+    const payloadUserId = job.user_id || job.payload?.userId || job.payload?.user_id;
 
     try {
       let result: any = { status: 'skipped', message: 'No executable task on job' };
@@ -55,6 +54,7 @@ export async function GET(request: NextRequest) {
         .from('agent_job_queue')
         .update({
           state: result.status === 'failed' ? 'failed' : 'completed',
+          status: result.status === 'failed' ? 'failed' : 'completed',
           last_error: result.status === 'failed' ? result.message : null,
           updated_at: new Date().toISOString()
         })
@@ -78,6 +78,7 @@ export async function GET(request: NextRequest) {
         .from('agent_job_queue')
         .update({
           state: attempts >= Number(job.max_attempts || 3) ? 'dead' : 'queued',
+          status: attempts >= Number(job.max_attempts || 3) ? 'dead' : 'queued',
           last_error: message,
           run_after: new Date(Date.now() + attempts * 60_000).toISOString(),
           updated_at: new Date().toISOString()

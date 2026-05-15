@@ -55,9 +55,10 @@ export async function writeOutcome(
 
   if (outcomeError) return { status: 'failed' as const, reason: outcomeError.message };
 
-  // status check constraint: planning|working|paused|blocked|done|failed
-  // 'shot' and 'abandoned' map to 'failed'; actual outcome is in duo_outcomes
-  const dbStatus = input.outcome === 'done' || input.outcome === 'success' || input.outcome === 'partial' ? 'done' : 'failed';
+  // status check constraint: planning|working|paused|blocked|done|failed.
+  // Outcome values remain success|partial|failed|shot|abandoned; successful
+  // and partial outcomes close the project as done.
+  const dbStatus = input.outcome === 'success' || input.outcome === 'partial' ? 'done' : 'failed';
   const now = new Date().toISOString();
   await auth.supabase
     .from('duo_projects')
@@ -99,7 +100,7 @@ export async function writeOutcome(
     const prevCount = Number(playbook?.use_count || 0);
     const prevRate  = Number(playbook?.success_rate ?? 0.5);
     const newCount  = prevCount + 1;
-    const isSuccess = input.outcome === 'success' || input.outcome === 'done';
+    const isSuccess = input.outcome === 'success';
     // Rolling average: new_rate = (prev_rate * prev_count + this_result) / new_count
     const newRate = (prevRate * prevCount + (isSuccess ? 1 : 0)) / newCount;
     await auth.supabase

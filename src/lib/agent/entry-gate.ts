@@ -120,8 +120,8 @@ export async function createDuoProject(auth: AgentAuth, input: DuoGoalInput) {
     project_id: project.id,
     trace_id: traceId,
     job_type: 'duo_project_created',
-    status: 'queued',
-    payload: { taskCount: tasks.length },
+    state: 'queued',
+    payload: { taskCount: tasks.length, userId: auth.user.id },
     idempotency_key: `project-created:${project.id}`
   });
 

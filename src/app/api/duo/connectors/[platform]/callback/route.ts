@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin, jsonError } from '../../../../_lib/supabase-admin';
+import { shouldUseProviderMock } from '@/next/lib/providers/live-provider-guard';
 
 export const runtime = 'nodejs';
 
@@ -43,20 +44,20 @@ export async function GET(
   const tokenUrl = config.tokenUrl.replace('{shop}', shop || '');
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
 
-  // Exchange authorization code for tokens
-  const tokenRes = await fetch(tokenUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({
-      client_id: clientId,
-      client_secret: clientSecret,
-      code,
-      redirect_uri: `${baseUrl}/api/duo/connectors/${normalized}/callback`,
-    }),
-  }).catch(() => null);
-
-  if (!tokenRes?.ok) return jsonError('Token exchange failed', 502);
-  const tokens = await tokenRes.json().catch(() => null);
+  const tokens = shouldUseProviderMock()
+    ? { access_token: `mock-${normalized}-token`, refresh_token: null, expires_in: 3600, scope: '' }
+    : await fetch(tokenUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code,
+          redirect_uri: `${baseUrl}/api/duo/connectors/${normalized}/callback`,
+        }),
+      })
+        .then(async (tokenRes) => tokenRes.ok ? tokenRes.json() : null)
+        .catch(() => null);
   if (!tokens?.access_token) return jsonError('No access token in response', 502);
 
   const expiresAt = tokens.expires_in
@@ -113,12 +114,15 @@ export async function GET(
 
   if (connectorError || !connector) return jsonError('Failed to save connector', 500);
 
-  // Store tokens in connector_secrets (service role only — never returned to client)
-  // TODO: encrypt tokens at rest using SUPABASE_VAULT_KEY before storing
+  // Store tokens in connector_secrets. This table is service-role only; until
+  // Vault/KMS is wired, the column names explicitly mark plaintext material.
   await supabase.from('connector_secrets').upsert({
+    user_id: stateData.userId,
     connector_id: connector.id,
-    encrypted_access_token: tokens.access_token,
-    encrypted_refresh_token: tokens.refresh_token || null,
+    platform: normalized,
+    secret_ref: `${normalized}:${connector.id}:oauth`,
+    access_token_plaintext: tokens.access_token,
+    refresh_token_plaintext: tokens.refresh_token || null,
     token_expires_at: expiresAt,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'connector_id' });

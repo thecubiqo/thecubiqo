@@ -12,7 +12,7 @@ export const ROUTE_ORDER: DuoRoute[] = [
   'manual'
 ];
 
-const FINAL_ACTION_RE = /\b(final send|send email|submit|publish|checkout|payment|pay now|deploy production|delete account)\b/i;
+const FINAL_ACTION_RE = /\b(final send|send email|submit|publish|checkout|payment|pay now|deploy production|delete account|post to|push to|push production|git push)\b/i;
 
 function routeScore(route: DuoRoute) {
   const index = ROUTE_ORDER.indexOf(route);
@@ -38,7 +38,7 @@ async function connectorAvailable(auth: AgentAuth, platform?: string | null) {
 
 async function hasRepeatedRouteFailure(auth: AgentAuth, taskId: string, route: DuoRoute) {
   const { count } = await auth.supabase
-    .from('duo_tool_calls')
+    .from('agent_tool_calls')
     .select('*', { count: 'exact', head: true })
     .eq('task_id', taskId)
     .eq('route_used', route)

@@ -17,29 +17,20 @@ function previewForTask(task: any, route: string) {
 async function createApproval(auth: AgentAuth, task: any, route: string) {
   const preview = previewForTask(task, route);
 
-  // action_approvals is the canonical approval table for Phase B (no separate duo_approvals)
   const { data: approval, error } = await auth.supabase
-    .from('action_approvals')
+    .from('duo_approvals')
     .insert({
       user_id: auth.user.id,
       trace_id: task.trace_id,
       project_id: task.project_id,
       task_id: task.id,
-      action_type: 'duo_external_action',
-      tool_name: route,
       status: 'requested',
-      title: `Approve: ${task.title}`,
-      summary: task.description || task.title,
+      approval_type: 'external_action',
       preview_content: preview,
-      payload: {
-        platform: task.connector_platform || route,
-        route,
-        risk_level: task.risk_level || 'medium'
-      },
-      risk_level: (['low', 'medium', 'high'].includes(task.risk_level) ? task.risk_level : 'high') as 'low' | 'medium' | 'high',
+      platform: task.connector_platform || route,
+      endpoint: route,
+      risk_level: task.risk_level || 'medium',
       reversible: false,
-      requires_user_confirmation: task.risk_level === 'critical' || task.risk_level === 'high',
-      user_confirmation_state: task.risk_level === 'critical' ? 'pending' : 'not_required',
       warning_message: 'CubiQo will not perform final send, submit, publish, checkout, payment, or deploy actions without explicit approval.',
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     })
@@ -48,6 +39,18 @@ async function createApproval(auth: AgentAuth, task: any, route: string) {
 
   if (error) throw new Error(error.message);
   return approval.id as string;
+}
+
+async function latestApproval(auth: AgentAuth, taskId: string) {
+  const { data } = await auth.supabase
+    .from('duo_approvals')
+    .select('id,status,expires_at,reversible')
+    .eq('task_id', taskId)
+    .eq('user_id', auth.user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data || null;
 }
 
 export async function executeTask(auth: AgentAuth, taskId: string): Promise<DuoExecutionResult> {
@@ -64,6 +67,18 @@ export async function executeTask(auth: AgentAuth, taskId: string): Promise<DuoE
 
   if (task.status === 'completed') {
     return { status: 'already_executed', taskId, message: 'Task was already completed' };
+  }
+
+  if (task.status === 'waiting_approval') {
+    const approval = await latestApproval(auth, task.id);
+    if (approval?.expires_at && new Date(approval.expires_at).getTime() <= Date.now()) {
+      await auth.supabase
+        .from('duo_tasks')
+        .update({ status: 'blocked', last_error: 'Approval expired', updated_at: new Date().toISOString() })
+        .eq('id', task.id)
+        .eq('user_id', auth.user.id);
+      return { status: 'blocked', taskId, message: 'Approval expired' };
+    }
   }
 
   const budget = await checkBudgetGate(auth, {
@@ -86,14 +101,16 @@ export async function executeTask(auth: AgentAuth, taskId: string): Promise<DuoE
   }
 
   const decision = await decideRoute(auth, task);
+  const approved = task.status === 'ready' && (await latestApproval(auth, task.id))?.status === 'approved';
+  const approvalRequired = approved ? false : decision.approvalRequired;
   await auth.supabase
     .from('duo_tasks')
     .update({
       selected_route: decision.selectedRoute,
       assigned_route: decision.selectedRoute,
       fallback_route: decision.fallbackRoute,
-      approval_required: decision.approvalRequired,
-      status: decision.approvalRequired ? 'waiting_approval' : 'running',
+      approval_required: approvalRequired,
+      status: approvalRequired ? 'waiting_approval' : 'running',
       attempts: Number(task.attempts || 0) + 1,
       updated_at: new Date().toISOString(),
       metadata: { ...(task.metadata || {}), routeDecision: decision }
@@ -110,7 +127,7 @@ export async function executeTask(auth: AgentAuth, taskId: string): Promise<DuoE
     payload: { ...decision }
   });
 
-  if (decision.approvalRequired) {
+  if (approvalRequired) {
     const approvalId = await createApproval(auth, task, decision.selectedRoute);
     await writeTimeline(auth, {
       projectId: task.project_id,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getBearerToken, getSupabaseAdmin } from '../_lib/supabase-admin';
 import { getVoicePlatformDefaults } from '../_lib/platform-settings';
 import { isPro } from '@/next/lib/billing/gates';
+import { shouldUseProviderMock } from '@/next/lib/providers/live-provider-guard';
 
 export const runtime = 'nodejs';
 export const maxDuration = 15;
@@ -52,6 +53,9 @@ export async function POST(request: NextRequest) {
   }
 
   const apiKey = getApiKey();
+  if (shouldUseProviderMock()) {
+    return NextResponse.json({ audio_url: null, mocked: true, error: 'ElevenLabs mocked for tests' });
+  }
   if (!apiKey) return NextResponse.json({ audio_url: null, error: 'No ElevenLabs key configured' });
   if (!text)   return NextResponse.json({ audio_url: null, error: 'No text provided' });
 

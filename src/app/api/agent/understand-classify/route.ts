@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import type { ClassifyOutcome, ClassifyResult, MemoryEventType, PermissionState } from '@/next/types/cubiqo';
 import { classifyRgyActivity, capsuleOnly, type RgyClassification } from '@/next/lib/rgy/classifier';
 import { getBearerToken, getSupabaseAdmin, safeTableMissing } from '../../_lib/supabase-admin';
@@ -15,6 +16,16 @@ const GOAL_RE = /\b(i want to|i need to|my goal|trying to|planning to|launch|bui
 
 const signalSelect =
   'id,signal_id,user_id,color,keyword,normalized_keyword,intent_status,suggested_intents,confirmed_intents,matching_enabled,confidence,shown_in_panel,editable_by_user,source,display_state,metadata,created_at,updated_at,corrected_at,raw_input';
+
+const understandBodySchema = z.object({
+  input: z.string().max(8000).optional(),
+  text: z.string().max(8000).optional(),
+  message: z.string().max(8000).optional(),
+  source: z.string().max(80).optional(),
+  permissions: z.record(z.enum(['granted', 'denied', 'pending'])).optional(),
+  visual_context: z.unknown().optional(),
+  structured_context: z.unknown().optional(),
+}).passthrough();
 
 type AuthedContext =
   | { status: 'anonymous'; supabase: ReturnType<typeof getSupabaseAdmin>; user: null }
@@ -301,7 +312,11 @@ function responseResult(
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => ({}));
+  const parsed = understandBodySchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid classify payload', issues: parsed.error.flatten() }, { status: 400 });
+  }
+  const body = parsed.data;
   const input = String(body.input || body.message || '').trim();
   if (!input) {
     return NextResponse.json({ error: 'input is required' }, { status: 400 });
