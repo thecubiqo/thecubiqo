@@ -5436,146 +5436,83 @@ const DemoPage = () => {
           {/* Scrollable content area */}
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 18, paddingRight: 4, marginRight: -4 }}>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.5, textTransform: 'uppercase' }}>Workspace</div>
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-                width: '100%',
-                background: trayTheme.card,
-                border: `1px solid ${trayTheme.cardBorder}`,
-                borderRadius: 14,
-                padding: '12px 14px',
-                color: trayTheme.text,
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-              onMouseOver={e => e.currentTarget.style.background = trayTheme.cardHover}
-              onMouseOut={e => e.currentTarget.style.background = trayTheme.card}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><LayoutDashboard size={15} /> Dashboard</span>
-              <span style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.2, textTransform: 'uppercase' }}>QA</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/journal')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-                width: '100%',
-                background: trayTheme.card,
-                border: `1px solid ${trayTheme.cardBorder}`,
-                borderRadius: 14,
-                padding: '12px 14px',
-                color: trayTheme.text,
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-              onMouseOver={e => e.currentTarget.style.background = trayTheme.cardHover}
-              onMouseOut={e => e.currentTarget.style.background = trayTheme.card}
-            >
-              <span style={{ fontSize: '0.84rem' }}>Daily Journal</span>
-              <span aria-hidden="true" style={{
-                width: 22,
-                height: 22,
-                borderRadius: 8,
-                background: 'radial-gradient(circle at 35% 35%, rgba(251,191,36,0.92), rgba(249,115,22,0.35) 58%, rgba(255,255,255,0.04) 100%)',
-                border: '1px solid rgba(251,191,36,0.26)',
-                boxShadow: '0 0 18px rgba(251,191,36,0.22)'
-              }} />
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/actions')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-                width: '100%',
-                background: trayTheme.card,
-                border: `1px solid ${trayTheme.cardBorder}`,
-                borderRadius: 14,
-                padding: '12px 14px',
-                color: trayTheme.text,
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-              onMouseOver={e => e.currentTarget.style.background = trayTheme.cardHover}
-              onMouseOut={e => e.currentTarget.style.background = trayTheme.card}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><ShieldCheck size={15} /> V2 Actions</span>
-              <span style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.2, textTransform: 'uppercase' }}>QA</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setJobPipelineOpen(true); setLeftPanelOpen(false); }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-                width: '100%',
-                background: trayTheme.card,
-                border: `1px solid rgba(34,197,94,0.28)`,
-                borderRadius: 14,
-                padding: '12px 14px',
-                color: trayTheme.text,
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-              onMouseOver={e => e.currentTarget.style.background = trayTheme.cardHover}
-              onMouseOut={e => e.currentTarget.style.background = trayTheme.card}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><Briefcase size={15} style={{ color: '#22c55e' }} /> Job Pipeline</span>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
-            </button>
-          </div>
+          {/* ── CubiQo system drawer (left side) ──
+              Mental model: hero + this drawer = "CubiQo the AI" as one product.
+              Everything here is about the AI itself — its connections, what
+              it remembers about you, how it talks, what devices it runs on.
+              RGY/Capsules/Chatrooms live in the RIGHT drawer, not here. */}
+          {(() => {
+            const navItemStyle = {
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              width: '100%',
+              background: trayTheme.card,
+              border: `1px solid ${trayTheme.cardBorder}`,
+              borderRadius: 14,
+              padding: '12px 14px',
+              color: trayTheme.text,
+              cursor: 'pointer',
+              textAlign: 'left'
+            };
+            const navHover = e => { e.currentTarget.style.background = trayTheme.cardHover; };
+            const navOut = e => { e.currentTarget.style.background = trayTheme.card; };
+            const go = (path) => { setLeftPanelOpen(false); navigate(path); };
+            return (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.5, textTransform: 'uppercase' }}>CubiQo</div>
 
-          {/* ── Settings section ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.5, textTransform: 'uppercase' }}>Settings</div>
+                  <button type="button" onClick={() => setLeftPanelOpen(false)} style={navItemStyle} onMouseOver={navHover} onMouseOut={navOut}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><Send size={15} /> Chat</span>
+                    <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>Voice · text · vision</span>
+                  </button>
 
-            {/* Preferences → settings modal (voice, AI provider, ColorLock) */}
-            <button
-              type="button"
-              onClick={() => { setActiveModal('settings'); setLeftPanelOpen(false); }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%', background: trayTheme.card, border: `1px solid ${trayTheme.cardBorder}`, borderRadius: 14, padding: '12px 14px', color: trayTheme.text, cursor: 'pointer', textAlign: 'left' }}
-              onMouseOver={e => e.currentTarget.style.background = trayTheme.cardHover}
-              onMouseOut={e => e.currentTarget.style.background = trayTheme.card}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><SlidersHorizontal size={15} /> Preferences</span>
-              <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>Voice · AI · Thresholds</span>
-            </button>
+                  <button type="button" onClick={() => go('/journal')} style={navItemStyle} onMouseOver={navHover} onMouseOut={navOut}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><BookOpen size={15} /> Daily Journal</span>
+                  </button>
 
-            {/* Connectors → integrations modal (Gmail, Calendar, Shopify…) */}
-            <button
-              type="button"
-              onClick={() => { setActiveModal('integrations'); setLeftPanelOpen(false); }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%', background: trayTheme.card, border: `1px solid ${trayTheme.cardBorder}`, borderRadius: 14, padding: '12px 14px', color: trayTheme.text, cursor: 'pointer', textAlign: 'left' }}
-              onMouseOver={e => e.currentTarget.style.background = trayTheme.cardHover}
-              onMouseOut={e => e.currentTarget.style.background = trayTheme.card}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><Globe2 size={15} /> Connectors</span>
-              <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>Calendar · Slack · Linear</span>
-            </button>
+                  <button type="button" onClick={() => go('/connectors')} style={navItemStyle} onMouseOver={navHover} onMouseOut={navOut}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><Globe2 size={15} /> Apps</span>
+                    <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>Gmail · Shopify · …</span>
+                  </button>
+                </div>
 
-            {/* System Health — live dot from /api/diagnostics */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: trayTheme.card, border: `1px solid ${trayTheme.cardBorder}`, borderRadius: 14, padding: '12px 14px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem', color: trayTheme.text }}><Activity size={15} /> System Health</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: diagHealth === null ? '#f59e0b' : diagHealth ? '#22c55e' : '#ef4444', boxShadow: `0 0 6px ${diagHealth === null ? '#f59e0b' : diagHealth ? '#22c55e' : '#ef4444'}` }} />
-                <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>{diagHealth === null ? 'checking…' : diagHealth ? 'All OK' : 'Issue detected'}</span>
-              </span>
-            </div>
-          </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ color: trayTheme.title, fontSize: '0.66rem', letterSpacing: 1.5, textTransform: 'uppercase' }}>Account</div>
+
+                  <button type="button" onClick={() => go('/profile')} style={navItemStyle} onMouseOver={navHover} onMouseOut={navOut}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><User size={15} /> Profile</span>
+                  </button>
+
+                  <button type="button" onClick={() => go('/account/memory')} style={navItemStyle} onMouseOver={navHover} onMouseOut={navOut}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><BrainCircuit size={15} /> Memory</span>
+                    <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>What I remember</span>
+                  </button>
+
+                  <button type="button" onClick={() => go('/settings')} style={navItemStyle} onMouseOver={navHover} onMouseOut={navOut}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><SlidersHorizontal size={15} /> Settings</span>
+                    <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>Voice · AI · Thresholds</span>
+                  </button>
+
+                  <button type="button" onClick={() => go('/account/surfaces')} style={navItemStyle} onMouseOver={navHover} onMouseOut={navOut}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><Monitor size={15} /> Surfaces</span>
+                    <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>Devices I run on</span>
+                  </button>
+
+                  {/* System Health — live dot from /api/diagnostics */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: trayTheme.card, border: `1px solid ${trayTheme.cardBorder}`, borderRadius: 14, padding: '12px 14px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem', color: trayTheme.text }}><Activity size={15} /> System Health</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: diagHealth === null ? '#f59e0b' : diagHealth ? '#22c55e' : '#ef4444', boxShadow: `0 0 6px ${diagHealth === null ? '#f59e0b' : diagHealth ? '#22c55e' : '#ef4444'}` }} />
+                      <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>{diagHealth === null ? 'checking…' : diagHealth ? 'All OK' : 'Issue detected'}</span>
+                    </span>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
           {/* ── Display section ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -5754,6 +5691,48 @@ const DemoPage = () => {
             <div style={{ marginTop: 12, padding: '12px 13px', borderRadius: 16, background: `rgba(${active.rgb},0.07)`, border: `1px solid ${active.hex}24`, color: 'rgba(255,255,255,0.62)', fontSize: '0.76rem', lineHeight: 1.45 }}>
               Intent is optional until you confirm one or more: Socialize, Collaborate, Trade.
             </div>
+          </div>
+
+          {/* RGY UNIVERSE entry points — DuoMode + Chatrooms full-screen pages */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+            <button
+              type="button"
+              onClick={() => { setRightPanelOpen(false); navigate('/duo'); }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                padding: '11px 12px', borderRadius: 14,
+                border: `1px solid ${active.hex}3a`,
+                background: `linear-gradient(135deg, rgba(${active.rgb},0.14) 0%, rgba(${active.rgb},0.04) 100%)`,
+                color: '#fff', cursor: 'pointer', textAlign: 'left'
+              }}
+              onMouseOver={e => { e.currentTarget.style.background = `linear-gradient(135deg, rgba(${active.rgb},0.24) 0%, rgba(${active.rgb},0.08) 100%)`; }}
+              onMouseOut={e => { e.currentTarget.style.background = `linear-gradient(135deg, rgba(${active.rgb},0.14) 0%, rgba(${active.rgb},0.04) 100%)`; }}
+            >
+              <span>
+                <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, letterSpacing: 0.4 }}>DuoMode</span>
+                <span style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: '0.64rem', marginTop: 2 }}>Capsules · tasks</span>
+              </span>
+              <span style={{ color: active.hex, fontSize: '0.85rem' }}>→</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setRightPanelOpen(false); navigate('/chatrooms'); }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                padding: '11px 12px', borderRadius: 14,
+                border: `1px solid ${active.hex}3a`,
+                background: `linear-gradient(135deg, rgba(${active.rgb},0.14) 0%, rgba(${active.rgb},0.04) 100%)`,
+                color: '#fff', cursor: 'pointer', textAlign: 'left'
+              }}
+              onMouseOver={e => { e.currentTarget.style.background = `linear-gradient(135deg, rgba(${active.rgb},0.24) 0%, rgba(${active.rgb},0.08) 100%)`; }}
+              onMouseOut={e => { e.currentTarget.style.background = `linear-gradient(135deg, rgba(${active.rgb},0.14) 0%, rgba(${active.rgb},0.04) 100%)`; }}
+            >
+              <span>
+                <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, letterSpacing: 0.4 }}>Chatrooms</span>
+                <span style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: '0.64rem', marginTop: 2 }}>RGY social</span>
+              </span>
+              <span style={{ color: active.hex, fontSize: '0.85rem' }}>→</span>
+            </button>
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', paddingRight: 2 }}>
