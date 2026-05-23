@@ -3808,6 +3808,7 @@ const DemoPage = () => {
   const listeningActiveRef = useRef(false);
   const listeningSilenceTimerRef = useRef(null);
   const callBackendRef = useRef(null);
+  const toggleListeningRef = useRef(null);
   const audioUnlockedRef = useRef(false);
   const voiceReplyRequestedRef = useRef(false);
 
@@ -4419,42 +4420,38 @@ const DemoPage = () => {
   const playListeningCue = async () => {
     const audio = audioRef.current;
     if (!audio) return;
-
     stopAudioAnalysis();
     setSpeakingAudioLevel(0);
-    let fallbackSpoken = false;
-    let fallbackTimer = null;
     try {
-      fallbackTimer = setTimeout(() => {
-        fallbackSpoken = true;
-        speakBrowserListeningCue();
-      }, 900);
-
-      const res = await fetch('/api/voice-cue', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cue: 'listening' })
-      });
-      const data = await res.json();
-      if (!data.audio_url) throw new Error(data.error || 'No listening cue audio');
-      if (fallbackTimer) clearTimeout(fallbackTimer);
-      if (fallbackSpoken) return;
-
+      // Abort if ElevenLabs takes longer than 3.5 s — visual "I am listening." is enough
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3500);
+      let res, data;
+      try {
+        res = await fetch('/api/voice-cue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cue: 'listening' }),
+          signal: controller.signal
+        });
+        data = await res.json();
+      } finally {
+        clearTimeout(timeout);
+      }
+      if (!data?.audio_url) return; // silent — text label is already showing
       await new Promise((resolve) => {
         audio.pause();
         audio.currentTime = 0;
         audio.onplay = null;
         audio.onpause = null;
         audio.src = data.audio_url;
-        audio.volume = 0.78;
+        audio.volume = 0.82;
         audio.onended = resolve;
         audio.onerror = resolve;
         audio.play().catch(resolve);
       });
-    } catch (error) {
-      if (fallbackTimer) clearTimeout(fallbackTimer);
-      if (!fallbackSpoken) await speakBrowserListeningCue();
-      console.warn('ElevenLabs listening cue unavailable:', error.message);
+    } catch {
+      // silent fail — "I am listening." text is on screen
     } finally {
       setSpeakingAudioLevel(0);
     }
@@ -4674,7 +4671,13 @@ const DemoPage = () => {
               audioRef.current.volume = 1;
               audioRef.current.onplay = () => { setIsSpeaking(true); startAudioAnalysis(); };
               audioRef.current.onpause = stopAudioAnalysis;
-              audioRef.current.onended = () => { setIsSpeaking(false); stopAudioAnalysis(); };
+              audioRef.current.onended = () => {
+                setIsSpeaking(false); stopAudioAnalysis();
+                // Auto-restart listening after AI finishes speaking (voice conversation mode)
+                if (voiceReplyRequestedRef.current === false && toggleListeningRef.current) {
+                  setTimeout(() => toggleListeningRef.current?.(), 400);
+                }
+              };
               audioRef.current.play().catch(() => { setIsSpeaking(false); stopAudioAnalysis(); });
             } else {
               speakBrowserResponse(responseText);
@@ -4877,9 +4880,12 @@ const DemoPage = () => {
       voiceReplyRequestedRef.current = true;
       setSpeakerEnabled(true);
       try {
+        // Play "I am listening" FIRST, then start recognition so it
+        // doesn't time out while the cue audio is playing
+        await playListeningCue().catch(() => null);
+        if (!listeningActiveRef.current) return; // user cancelled during cue
         recognitionRef.current?.start();
         startMicAnalysis();
-        playListeningCue().catch(() => null);
       } catch (e) {
         // Fallback: simulate for browsers without mic/Speech API
         setSpeakerEnabled(true);
@@ -4895,6 +4901,8 @@ const DemoPage = () => {
       }
     }
   };
+  // Keep ref in sync so async callbacks (e.g. TTS onended) can trigger a new listen cycle
+  toggleListeningRef.current = toggleListening;
 
   const colorMap = {
     green: { label: 'Green', desc: 'Sattva / Growth', hex: '#22c55e', rgb: '34,197,94', aura: 'rgba(34,197,94,0.15)' },
