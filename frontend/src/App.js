@@ -5469,6 +5469,11 @@ const DemoPage = () => {
                     <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>Voice · text · vision</span>
                   </button>
 
+                  <button type="button" onClick={() => go('/messenger')} style={navItemStyle} onMouseOver={navHover} onMouseOut={navOut}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><Mail size={15} /> CQ Messenger</span>
+                    <span style={{ color: trayTheme.muted, fontSize: '0.7rem' }}>Private 1:1 DMs</span>
+                  </button>
+
                   <button type="button" onClick={() => go('/journal')} style={navItemStyle} onMouseOver={navHover} onMouseOut={navOut}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.84rem' }}><BookOpen size={15} /> Daily Journal</span>
                   </button>
@@ -5728,8 +5733,8 @@ const DemoPage = () => {
               onMouseOut={e => { e.currentTarget.style.background = `linear-gradient(135deg, rgba(${active.rgb},0.14) 0%, rgba(${active.rgb},0.04) 100%)`; }}
             >
               <span>
-                <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, letterSpacing: 0.4 }}>Chatrooms</span>
-                <span style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: '0.64rem', marginTop: 2 }}>RGY social</span>
+                <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, letterSpacing: 0.4 }}>RGY Chats</span>
+                <span style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: '0.64rem', marginTop: 2 }}>Public rooms</span>
               </span>
               <span style={{ color: active.hex, fontSize: '0.85rem' }}>→</span>
             </button>
