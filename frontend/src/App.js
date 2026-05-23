@@ -12,6 +12,7 @@ import { supabase } from "./lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CubiQoOverlays } from "@/next/components/overlays/CubiQoOverlays";
 
 const SignalIcon = ({ size = 18 }) => (
   <img
@@ -6056,6 +6057,9 @@ function App() {
           <Route path="/actions" element={<ActionConsolePage />} />
         </Routes>
       </BrowserRouter>
+      {/* Global overlay-card stack — approval (z500), question (z490),
+          RGY context (z470). Floats over hero + drawers; never replaces. */}
+      <CubiQoOverlays />
     </div>
   );
 }

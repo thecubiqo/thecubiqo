@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { postProcessResponse } from "@/next/lib/commerce/recommendation-postprocessor";
 import { getBearerToken, getSupabaseAdmin } from "../../_lib/supabase-admin";
-import { isPro } from "@/next/lib/billing/gates";
+// CF-03: removed isPro import — Phase A doc §6 mandates affiliates-only.
 
 export const runtime = "nodejs";
 
@@ -27,9 +27,8 @@ export async function POST(request: NextRequest) {
   if (!userId) {
     return NextResponse.json({ error: "Auth required" }, { status: 401 });
   }
-  if (!(await isPro(userId))) {
-    return NextResponse.json({ enrichedText: responseText, cards: [], code: "PRO_REQUIRED" }, { status: 402 });
-  }
+  // CF-03 — Phase A doc §6: recommendation cards are NOT Pro-gated.
+  // All signed-in users see recommendation cards when intent + relevance qualify.
 
   const result = await postProcessResponse(
     responseText,

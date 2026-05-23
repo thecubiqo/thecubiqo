@@ -15,7 +15,7 @@ import { getDomainAddendum } from '@/next/lib/ai/domain-addendums';
 import { detectPatterns, formatPatternsForBriefing } from '@/next/lib/ai/pattern-detector';
 import { webSearch } from '../../_lib/web-search';
 import { getModel } from '@/next/lib/config/llm';
-import { isPro } from '@/next/lib/billing/gates';
+// CF-01: removed isPro import — Phase A doc §6 mandates affiliates-only.
 
 export const runtime = 'nodejs';
 export const maxDuration = 55;
@@ -353,9 +353,8 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = adminClient();
-  if (!(await isPro(user_id))) {
-    return NextResponse.json({ error: 'Pro subscription required', code: 'PRO_REQUIRED' }, { status: 402 });
-  }
+  // CF-01 — Phase A doc §6: background briefings are NOT Pro-gated.
+  // Affiliates-only monetisation; all signed-in users get briefings.
 
   // 1. Insert briefing row (status: running)
   const { data: briefingRow, error: insertError } = await supabase
