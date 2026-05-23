@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import CubiQoNextShell from '@/next/components/CubiQoNextShell';
 
-export default function AppRootRedirect() {
-  redirect('/chat');
+export default function AppPage() {
+  return <CubiQoNextShell />;
 }
