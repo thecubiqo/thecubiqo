@@ -3809,6 +3809,7 @@ const DemoPage = () => {
   const listeningSilenceTimerRef = useRef(null);
   const callBackendRef = useRef(null);
   const audioUnlockedRef = useRef(false);
+  const voiceReplyRequestedRef = useRef(false);
 
   const unlockAudioPlayback = () => {
     audioUnlockedRef.current = true;
@@ -4213,8 +4214,10 @@ const DemoPage = () => {
         setIsProcessing(true);
         callBackendRef.current?.(text);
       } else if (wasManualStop) {
+        voiceReplyRequestedRef.current = false;
         setConversationError('');
       } else {
+        voiceReplyRequestedRef.current = false;
         setConversationError('No speech detected. Tap again or type below.');
       }
     };
@@ -4304,6 +4307,57 @@ const DemoPage = () => {
     setSpeakingAudioLevel(0);
   };
 
+  const speakBrowserText = (text, options = {}) => new Promise((resolve) => {
+    const synth = window.speechSynthesis;
+    const Utterance = window.SpeechSynthesisUtterance;
+    if (!synth || !Utterance) return resolve(false);
+
+    try {
+      synth.cancel();
+      const utterance = new Utterance(String(text || '').slice(0, 500));
+      const voices = synth.getVoices?.() || [];
+      const preferredVoice = voices.find(voice => /river|aria|jenny|sonia|natural|neural|english/i.test(`${voice.name} ${voice.voiceURI}`))
+        || voices.find(voice => /en[-_]/i.test(voice.lang))
+        || voices[0];
+      if (preferredVoice) utterance.voice = preferredVoice;
+      utterance.lang = preferredVoice?.lang || navigator.language || 'en-US';
+      utterance.rate = options.rate ?? 0.9;
+      utterance.pitch = options.pitch ?? 0.82;
+      utterance.volume = options.volume ?? 0.9;
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+        setSpeakingAudioLevel(0.2);
+      };
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        setSpeakingAudioLevel(0);
+        resolve(true);
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        setSpeakingAudioLevel(0);
+        resolve(false);
+      };
+      synth.speak(utterance);
+    } catch {
+      setIsSpeaking(false);
+      setSpeakingAudioLevel(0);
+      resolve(false);
+    }
+  });
+
+  const speakBrowserListeningCue = () => speakBrowserText('I am listening.', {
+    rate: 0.82,
+    pitch: 0.72,
+    volume: 0.78
+  });
+
+  const speakBrowserResponse = (text) => speakBrowserText(text, {
+    rate: 0.92,
+    pitch: 0.82,
+    volume: 0.95
+  });
+
   const startMicAnalysis = async () => {
     const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextCtor || !navigator.mediaDevices?.getUserMedia) return;
@@ -4368,7 +4422,14 @@ const DemoPage = () => {
 
     stopAudioAnalysis();
     setSpeakingAudioLevel(0);
+    let fallbackSpoken = false;
+    let fallbackTimer = null;
     try {
+      fallbackTimer = setTimeout(() => {
+        fallbackSpoken = true;
+        speakBrowserListeningCue();
+      }, 900);
+
       const res = await fetch('/api/voice-cue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -4376,6 +4437,8 @@ const DemoPage = () => {
       });
       const data = await res.json();
       if (!data.audio_url) throw new Error(data.error || 'No listening cue audio');
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      if (fallbackSpoken) return;
 
       await new Promise((resolve) => {
         audio.pause();
@@ -4389,6 +4452,8 @@ const DemoPage = () => {
         audio.play().catch(resolve);
       });
     } catch (error) {
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      if (!fallbackSpoken) await speakBrowserListeningCue();
       console.warn('ElevenLabs listening cue unavailable:', error.message);
     } finally {
       setSpeakingAudioLevel(0);
@@ -4585,7 +4650,7 @@ const DemoPage = () => {
           setAiResponse(responseText);
         }
         responseText = await applyOutputSafety(responseText, cleanInput);
-        responseText = await processRecommendationCards(responseText, signalId);
+        responseText = await processRecommendationCards(responseText);
         setAiResponse(responseText);
         const isConversationDelegated = false;
         const nextAgentTrace = liveTrace;
@@ -4594,10 +4659,13 @@ const DemoPage = () => {
         if (streamRes.ok) setModelUsed('agent-stream-v1');
 
         // ── Speak the agentic response via ElevenLabs if voice mode is on ──
-        if (speakerEnabled && responseText && isAudioPlaybackUnlocked()) {
+        if ((speakerEnabled || voiceReplyRequestedRef.current) && responseText && isAudioPlaybackUnlocked()) {
           fetch('/api/tts', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...(initialToken ? { Authorization: `Bearer ${initialToken}` } : {})
+            },
             body: JSON.stringify({ text: responseText.slice(0, 500) })
           }).then(r => r.json()).then(ttsData => {
             if (ttsData.audio_url && isAudioPlaybackUnlocked()) {
@@ -4608,8 +4676,11 @@ const DemoPage = () => {
               audioRef.current.onpause = stopAudioAnalysis;
               audioRef.current.onended = () => { setIsSpeaking(false); stopAudioAnalysis(); };
               audioRef.current.play().catch(() => { setIsSpeaking(false); stopAudioAnalysis(); });
+            } else {
+              speakBrowserResponse(responseText);
             }
-          }).catch(() => null);
+          }).catch(() => speakBrowserResponse(responseText));
+          voiceReplyRequestedRef.current = false;
         }
 
         const agentData = { rgy: null, audio_url: null };
@@ -4677,26 +4748,35 @@ const DemoPage = () => {
         if (capturedSignal) await rememberSignal(capturedSignal);
       }
       try {
-        if (data.audio_url && isAudioPlaybackUnlocked()) {
-          if (!audioRef.current) audioRef.current = new Audio();
-          audioRef.current.src = data.audio_url;
-          audioRef.current.volume = 1;
-          audioRef.current.onplay = () => {
-            setIsSpeaking(true);
-            startAudioAnalysis();
-          };
-          audioRef.current.onpause = stopAudioAnalysis;
-          audioRef.current.onended = () => {
-            setIsSpeaking(false);
-            stopAudioAnalysis();
-          };
-          audioRef.current.play().catch(e => {
-            console.error("Audio play failed:", e);
-            setIsSpeaking(false);
-            stopAudioAnalysis();
-          });
+        if ((speakerEnabled || voiceReplyRequestedRef.current) && isAudioPlaybackUnlocked()) {
+          if (!data.audio_url) {
+            speakBrowserResponse(enrichedResponseText);
+          } else {
+            if (!audioRef.current) audioRef.current = new Audio();
+            audioRef.current.src = data.audio_url;
+            audioRef.current.volume = 1;
+            audioRef.current.onplay = () => {
+              setIsSpeaking(true);
+              startAudioAnalysis();
+            };
+            audioRef.current.onpause = stopAudioAnalysis;
+            audioRef.current.onended = () => {
+              setIsSpeaking(false);
+              stopAudioAnalysis();
+            };
+            audioRef.current.play().catch(e => {
+              console.error("Audio play failed:", e);
+              setIsSpeaking(false);
+              stopAudioAnalysis();
+            });
+          }
+          voiceReplyRequestedRef.current = false;
         }
       } catch (playbackError) {
+        if (voiceReplyRequestedRef.current) {
+          speakBrowserResponse(enrichedResponseText);
+          voiceReplyRequestedRef.current = false;
+        }
         console.warn('Optional response voice playback failed:', playbackError.message);
         setIsSpeaking(false);
         setSpeakingAudioLevel(0);
@@ -4761,9 +4841,10 @@ const DemoPage = () => {
     const text = chatInput.trim();
     if (!text || isProcessing) return;
     unlockAudioPlayback();
+    voiceReplyRequestedRef.current = false;
     setChatInput('');
     setIsProcessing(true);
-    callBackend(text, { agentFirst: true });
+    callBackend(text);
   };
 
   const toggleListening = async () => {
@@ -4778,6 +4859,7 @@ const DemoPage = () => {
     if (speakerEnabled) {
       manualStopRef.current = true;
       listeningActiveRef.current = false;
+      voiceReplyRequestedRef.current = false;
       setConversationError('');
       setSpeakerEnabled(false);
       stopMicAnalysis();
@@ -4792,12 +4874,12 @@ const DemoPage = () => {
       transcriptRef.current = '';
       manualStopRef.current = false;
       listeningActiveRef.current = true;
+      voiceReplyRequestedRef.current = true;
       setSpeakerEnabled(true);
       try {
-        await playListeningCue();
-        if (!listeningActiveRef.current) return;
         recognitionRef.current?.start();
         startMicAnalysis();
+        playListeningCue().catch(() => null);
       } catch (e) {
         // Fallback: simulate for browsers without mic/Speech API
         setSpeakerEnabled(true);
@@ -5289,6 +5371,12 @@ const DemoPage = () => {
                 <Send size={17} />
               </button>
             </form>
+
+            {speakerEnabled && !conversationError && (
+              <div style={{ color: 'rgba(251,191,36,0.92)', fontSize: '0.74rem', letterSpacing: 2, textTransform: 'uppercase', animation: 'pulse 1.6s ease-in-out infinite' }}>
+                I am listening.
+              </div>
+            )}
 
             {conversationError && (
               <div style={{ color: 'rgba(251,191,36,0.82)', fontSize: '0.74rem', letterSpacing: 1, textTransform: 'uppercase' }}>

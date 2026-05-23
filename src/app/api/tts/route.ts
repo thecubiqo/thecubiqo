@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBearerToken, getSupabaseAdmin } from '../_lib/supabase-admin';
 import { getVoicePlatformDefaults } from '../_lib/platform-settings';
-import { isPro } from '@/next/lib/billing/gates';
 import { shouldUseProviderMock } from '@/next/lib/providers/live-provider-guard';
 
 export const runtime = 'nodejs';
@@ -44,14 +43,13 @@ export async function POST(request: NextRequest) {
   const token = getBearerToken(request);
 
   if (!token || !supabase) {
-    return NextResponse.json({ audio_url: null, error: 'Pro subscription required', code: 'PRO_REQUIRED' }, { status: 402 });
+    return NextResponse.json({ audio_url: null, error: 'Auth required' }, { status: 401 });
   }
 
   const { data: { user } } = await supabase.auth.getUser(token);
-  if (!user?.id || !(await isPro(user.id))) {
-    return NextResponse.json({ audio_url: null, error: 'Pro subscription required', code: 'PRO_REQUIRED' }, { status: 402 });
+  if (!user?.id) {
+    return NextResponse.json({ audio_url: null, error: 'Invalid session' }, { status: 401 });
   }
-
   const apiKey = getApiKey();
   if (shouldUseProviderMock()) {
     return NextResponse.json({ audio_url: null, mocked: true, error: 'ElevenLabs mocked for tests' });
