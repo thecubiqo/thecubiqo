@@ -32,6 +32,18 @@
       "schedule": "0 7 * * *"
     },
     {
+      "path": "/api/cron/briefings",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/rgy-eval",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/proactive",
+      "schedule": "0 9 * * *"
+    },
+    {
       "path": "/api/cron/interventions",
       "schedule": "0 */2 * * *"
     },

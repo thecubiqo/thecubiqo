@@ -12,7 +12,7 @@ export const ROUTE_ORDER: DuoRoute[] = [
   'manual'
 ];
 
-const FINAL_ACTION_RE = /\b(final send|send email|submit|publish|checkout|payment|pay now|deploy production|delete account|post to|push to|push production|git push)\b/i;
+const FINAL_ACTION_RE = /\b(final send|send email|submit|publish|checkout|payment|pay now|deploy production|delete account|post|push|post to|push to|push production|git push)\b/i;
 
 function routeScore(route: DuoRoute) {
   const index = ROUTE_ORDER.indexOf(route);

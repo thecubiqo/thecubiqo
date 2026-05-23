@@ -4,17 +4,38 @@
  * Uses direct connection (port 5432) — not PgBouncer — for DDL safety.
  */
 
+import { readFileSync } from 'node:fs';
 import pg from 'pg';
 const { Client } = pg;
 
-// Primary: Supabase session-mode pooler (resolves in Bash sandbox; fine for DDL)
-// Port 5432 = session mode (supports DDL, multi-statement), 6543 = transaction mode
+function loadEnvFile(path) {
+  try {
+    const text = readFileSync(path, 'utf8');
+    for (const line of text.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#') || !trimmed.includes('=')) continue;
+      const index = trimmed.indexOf('=');
+      const key = trimmed.slice(0, index);
+      const value = trimmed.slice(index + 1).trim().replace(/^['"]|['"]$/g, '');
+      if (!(key in process.env)) process.env[key] = value;
+    }
+  } catch {
+    // Optional env file.
+  }
+}
+
+loadEnvFile(process.env.PHASE_AB_ENV_FILE || '.env.vercel.goodfeatureslegacy.local');
+loadEnvFile('.env.local');
+
+const databaseUrl = process.env.DATABASE_URL?.trim().replace(/^['"]|['"]$/g, '');
+if (!databaseUrl) {
+  throw new Error(
+    'DATABASE_URL is required. Pull the branch env with `vercel env pull .env.vercel.goodfeatureslegacy.local --environment=preview --git-branch goodfeatureslegacy`.'
+  );
+}
+
 const DB = {
-  host: 'aws-1-us-east-1.pooler.supabase.com',
-  port: 5432,
-  user: 'postgres.oszlufrjvibrdauuppzj',
-  password: 'Codex@shared26',
-  database: 'postgres',
+  connectionString: databaseUrl,
   ssl: { rejectUnauthorized: false },
 };
 
@@ -774,22 +795,462 @@ function splitStatements(sql) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// MIGRATION 7 — Profile extensions (Social identity + AI identity + onboarding)
+// ─────────────────────────────────────────────────────────────────────────────
+const MIGRATION_7_PROFILE_EXTENSIONS = `
+-- Social Layer identity
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS age_range             text,
+  ADD COLUMN IF NOT EXISTS cq_number             text,
+  ADD COLUMN IF NOT EXISTS username              text,
+  ADD COLUMN IF NOT EXISTS username_set          boolean     DEFAULT false,
+  ADD COLUMN IF NOT EXISTS cubiqo_phone_number   text,
+  ADD COLUMN IF NOT EXISTS phone_call_consent    boolean     DEFAULT false,
+  ADD COLUMN IF NOT EXISTS sms_consent           boolean     DEFAULT false,
+  ADD COLUMN IF NOT EXISTS cubiqo_email          text,
+  ADD COLUMN IF NOT EXISTS email_briefing_consent boolean    DEFAULT false,
+  ADD COLUMN IF NOT EXISTS email_briefing_time   time,
+  ADD COLUMN IF NOT EXISTS preferred_briefing_time time      DEFAULT '08:00';
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_cq_number_key' AND conrelid = 'public.profiles'::regclass) THEN
+    ALTER TABLE public.profiles ADD CONSTRAINT profiles_cq_number_key UNIQUE (cq_number);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_username_key' AND conrelid = 'public.profiles'::regclass) THEN
+    ALTER TABLE public.profiles ADD CONSTRAINT profiles_username_key UNIQUE (username);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS profiles_cq_number_idx ON public.profiles(cq_number) WHERE cq_number IS NOT NULL;
+CREATE INDEX IF NOT EXISTS profiles_username_idx ON public.profiles(lower(username)) WHERE username IS NOT NULL;
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MIGRATION 8 — user_ai_profile RGY scoring + onboarding intake fields
+// ─────────────────────────────────────────────────────────────────────────────
+const MIGRATION_8_USER_AI_PROFILE_RGY = `
+ALTER TABLE public.user_ai_profile
+  ADD COLUMN IF NOT EXISTS rgy_score           numeric(5,2) DEFAULT 50.00,
+  ADD COLUMN IF NOT EXISTS rgy_questioned_rate numeric(5,4) DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS rgy_map             jsonb        DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS occupation          text,
+  ADD COLUMN IF NOT EXISTS goal_domain         text,
+  ADD COLUMN IF NOT EXISTS primary_drive_list  text[],
+  ADD COLUMN IF NOT EXISTS interests           text[],
+  ADD COLUMN IF NOT EXISTS global_constraints  jsonb        DEFAULT '{}';
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_ai_profile_rgy_dominance_check' AND conrelid = 'public.user_ai_profile'::regclass) THEN
+    ALTER TABLE public.user_ai_profile ADD CONSTRAINT user_ai_profile_rgy_dominance_check CHECK (rgy_dominance IN ('green','red','yellow','balanced'));
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS user_ai_profile_rgy_score_idx ON public.user_ai_profile(rgy_score);
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MIGRATION 9 — Memory soft-delete
+// ─────────────────────────────────────────────────────────────────────────────
+const MIGRATION_9_MEMORY_SOFT_DELETE = `
+ALTER TABLE public.memory_events
+  ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+
+CREATE INDEX IF NOT EXISTS memory_events_active_idx
+  ON public.memory_events(user_id, weight DESC, created_at DESC)
+  WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS memory_events_purge_eligible_idx
+  ON public.memory_events(deleted_at)
+  WHERE deleted_at IS NOT NULL;
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MIGRATION 10 — Social layer (DMs, chatrooms, friends)
+// ─────────────────────────────────────────────────────────────────────────────
+const MIGRATION_10_SOCIAL_LAYER = `
+CREATE TABLE IF NOT EXISTS public.cq_threads (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.cq_thread_members (
+  thread_id uuid REFERENCES public.cq_threads(id) ON DELETE CASCADE,
+  user_id   uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  joined_at timestamptz DEFAULT now(),
+  PRIMARY KEY (thread_id, user_id)
+);
+ALTER TABLE public.cq_thread_members ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'cq_thread_members' AND policyname = 'Users read own thread memberships') THEN
+    EXECUTE 'CREATE POLICY "Users read own thread memberships" ON public.cq_thread_members FOR SELECT USING (auth.uid() = user_id)';
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS cq_thread_members_user_idx ON public.cq_thread_members(user_id);
+
+CREATE TABLE IF NOT EXISTS public.cq_messages (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  thread_id    uuid REFERENCES public.cq_threads(id) ON DELETE CASCADE NOT NULL,
+  sender_id    uuid REFERENCES auth.users(id),
+  message_type text NOT NULL CHECK (message_type IN ('text','file','audio','video')),
+  content      text,
+  storage_path text,
+  reply_to_id  uuid REFERENCES public.cq_messages(id),
+  read_at      timestamptz,
+  delivered_at timestamptz DEFAULT now(),
+  created_at   timestamptz DEFAULT now()
+);
+ALTER TABLE public.cq_messages ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'cq_messages' AND policyname = 'Thread members read messages') THEN
+    EXECUTE 'CREATE POLICY "Thread members read messages" ON public.cq_messages FOR SELECT USING (EXISTS (SELECT 1 FROM public.cq_thread_members WHERE thread_id = cq_messages.thread_id AND user_id = auth.uid()))';
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'cq_messages' AND policyname = 'Users send own messages') THEN
+    EXECUTE 'CREATE POLICY "Users send own messages" ON public.cq_messages FOR INSERT WITH CHECK (auth.uid() = sender_id AND EXISTS (SELECT 1 FROM public.cq_thread_members WHERE thread_id = cq_messages.thread_id AND user_id = auth.uid()))';
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS cq_messages_thread_created_idx ON public.cq_messages(thread_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.cq_chatrooms (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name         text NOT NULL,
+  slug         text UNIQUE,
+  rgy_color    text NOT NULL CHECK (rgy_color IN ('green','red','yellow')),
+  intent       text NOT NULL CHECK (intent IN ('socialize','collaborate','barter_trade')),
+  topic_tag    text,
+  description  text,
+  member_count int DEFAULT 0,
+  created_at   timestamptz DEFAULT now()
+);
+INSERT INTO public.cq_chatrooms (name, slug, rgy_color, intent, description) VALUES
+  ('Green Socials',    'green-socials',    'green',  'socialize',    'Celebrate wins and connect with others on a high'),
+  ('Green Builders',   'green-builders',   'green',  'collaborate',  'Find accountability partners and collaborators'),
+  ('Green Marketplace','green-marketplace','green',  'barter_trade', 'Trade skills and services with momentum'),
+  ('Yellow Commons',   'yellow-commons',   'yellow', 'socialize',    'Chat and find others in the middle ground'),
+  ('Yellow Workshop',  'yellow-workshop',  'yellow', 'collaborate',  'Work through blockers with accountability'),
+  ('Yellow Exchange',  'yellow-exchange',  'yellow', 'barter_trade', 'Swap help, advice, and micro-tasks'),
+  ('Red Lounge',       'red-lounge',       'red',    'socialize',    'Honest space for hard days — no toxic positivity'),
+  ('Red Squad',        'red-squad',        'red',    'collaborate',  'Find a recovery buddy to climb back together'),
+  ('Red Rescue',       'red-rescue',       'red',    'barter_trade', 'Offer or receive small acts of help')
+ON CONFLICT (slug) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS public.cq_chatroom_messages (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  chatroom_id      uuid REFERENCES public.cq_chatrooms(id) ON DELETE CASCADE NOT NULL,
+  sender_id        uuid REFERENCES auth.users(id),
+  username_at_send text NOT NULL,
+  content          text NOT NULL,
+  reply_to_id      uuid REFERENCES public.cq_chatroom_messages(id),
+  created_at       timestamptz DEFAULT now()
+);
+ALTER TABLE public.cq_chatroom_messages ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'cq_chatroom_messages' AND policyname = 'Authenticated users read chatroom messages') THEN
+    EXECUTE 'CREATE POLICY "Authenticated users read chatroom messages" ON public.cq_chatroom_messages FOR SELECT USING (auth.uid() IS NOT NULL)';
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'cq_chatroom_messages' AND policyname = 'Users write own chatroom messages') THEN
+    EXECUTE 'CREATE POLICY "Users write own chatroom messages" ON public.cq_chatroom_messages FOR INSERT WITH CHECK (auth.uid() = sender_id)';
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS cq_chatroom_messages_room_created_idx ON public.cq_chatroom_messages(chatroom_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.cq_friendships (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  requester_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  addressee_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  status       text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','declined','blocked')),
+  thread_id    uuid REFERENCES public.cq_threads(id),
+  created_at   timestamptz DEFAULT now(),
+  responded_at timestamptz,
+  CONSTRAINT cq_friendships_pair_unique UNIQUE (requester_id, addressee_id)
+);
+ALTER TABLE public.cq_friendships ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'cq_friendships' AND policyname = 'Users manage own friendships') THEN
+    EXECUTE 'CREATE POLICY "Users manage own friendships" ON public.cq_friendships FOR ALL USING (auth.uid() = requester_id OR auth.uid() = addressee_id)';
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS cq_friendships_addressee_status_idx ON public.cq_friendships(addressee_id, status) WHERE status = 'pending';
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MIGRATION 11 — Notifications system
+// ─────────────────────────────────────────────────────────────────────────────
+const MIGRATION_11_NOTIFICATIONS = `
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id                uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  type                   text NOT NULL,
+  title                  text NOT NULL,
+  body                   text,
+  action_url             text,
+  action_label           text,
+  secondary_action_url   text,
+  secondary_action_label text,
+  channel                text[] DEFAULT ARRAY['in_app'],
+  read_at                timestamptz,
+  actioned_at            timestamptz,
+  created_at             timestamptz DEFAULT now(),
+  expires_at             timestamptz
+);
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'notifications' AND policyname = 'Users read own notifications') THEN
+    EXECUTE 'CREATE POLICY "Users read own notifications" ON public.notifications FOR SELECT USING (auth.uid() = user_id)';
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'notifications' AND policyname = 'Users update own notifications') THEN
+    EXECUTE 'CREATE POLICY "Users update own notifications" ON public.notifications FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)';
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS notifications_user_unread_idx ON public.notifications(user_id, created_at DESC) WHERE read_at IS NULL;
+CREATE INDEX IF NOT EXISTS notifications_user_created_idx ON public.notifications(user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.notification_preferences (
+  user_id       uuid REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  preferences   jsonb DEFAULT '{}',
+  dnd_start     time,
+  dnd_end       time,
+  briefing_call boolean DEFAULT false,
+  urgent_call   boolean DEFAULT false,
+  wakeup_call   boolean DEFAULT false,
+  updated_at    timestamptz DEFAULT now()
+);
+ALTER TABLE public.notification_preferences ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'notification_preferences' AND policyname = 'Users manage own notification preferences') THEN
+    EXECUTE 'CREATE POLICY "Users manage own notification preferences" ON public.notification_preferences FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)';
+  END IF;
+END $$;
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MIGRATION 12 — Proactive AI + Impact Layer
+// ─────────────────────────────────────────────────────────────────────────────
+const MIGRATION_12_PROACTIVE_AI = `
+CREATE TABLE IF NOT EXISTS public.capsule_outcomes (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id       uuid REFERENCES public.duo_projects(id) ON DELETE SET NULL,
+  user_id          uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  success_criteria text,
+  outcome          text CHECK (outcome IN ('success','partial','stalled','abandoned')),
+  completion_days  int,
+  tasks_completed  int,
+  tasks_stalled    int,
+  primary_blocker  text,
+  user_rating      int CHECK (user_rating BETWEEN 1 AND 5),
+  ai_notes         text,
+  created_at       timestamptz DEFAULT now()
+);
+ALTER TABLE public.capsule_outcomes ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'capsule_outcomes' AND policyname = 'Users read own capsule outcomes') THEN
+    EXECUTE 'CREATE POLICY "Users read own capsule outcomes" ON public.capsule_outcomes FOR SELECT USING (auth.uid() = user_id)';
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS capsule_outcomes_user_idx ON public.capsule_outcomes(user_id, outcome, created_at DESC);
+
+ALTER TABLE public.duo_projects
+  ADD COLUMN IF NOT EXISTS success_metrics  jsonb,
+  ADD COLUMN IF NOT EXISTS check_frequency  text DEFAULT 'weekly',
+  ADD COLUMN IF NOT EXISTS success_status   text DEFAULT 'on_track',
+  ADD COLUMN IF NOT EXISTS success_notes    text;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'duo_projects_success_status_check' AND conrelid = 'public.duo_projects'::regclass) THEN
+    ALTER TABLE public.duo_projects ADD CONSTRAINT duo_projects_success_status_check CHECK (success_status IN ('on_track','at_risk','off_track','achieved','abandoned'));
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS duo_projects_success_status_idx ON public.duo_projects(user_id, success_status) WHERE success_status IN ('at_risk','off_track');
+
+ALTER TABLE public.duo_tasks
+  ADD COLUMN IF NOT EXISTS estimated_minutes_saved int;
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MIGRATION 13 — Feature profile extensions (RGY Chatrooms + MediaGen)
+// ─────────────────────────────────────────────────────────────────────────────
+const MIGRATION_13_FEATURE_PROFILE_EXTENSIONS = `
+-- RGY Chatrooms: RED tier age gate flag (no raw DOB stored)
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS red_tier_age_confirmed  boolean DEFAULT false;
+
+-- MediaGen: uncensored local generation consent flag
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS uncensored_media_enabled boolean DEFAULT false;
+
+-- cq_chatroom_members — explicit room membership join table
+CREATE TABLE IF NOT EXISTS public.cq_chatroom_members (
+  chatroom_id     uuid REFERENCES public.cq_chatrooms(id) ON DELETE CASCADE,
+  user_id         uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  joined_at       timestamptz DEFAULT now(),
+  location_opt_in boolean DEFAULT false,
+  PRIMARY KEY (chatroom_id, user_id)
+);
+ALTER TABLE public.cq_chatroom_members ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'cq_chatroom_members' AND policyname = 'Users manage own chatroom memberships') THEN
+    EXECUTE 'CREATE POLICY "Users manage own chatroom memberships" ON public.cq_chatroom_members FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)';
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS cq_chatroom_members_room_idx ON public.cq_chatroom_members(chatroom_id);
+
+-- cq_chatroom_reactions — emoji reactions on chatroom messages
+CREATE TABLE IF NOT EXISTS public.cq_chatroom_reactions (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id uuid REFERENCES public.cq_chatroom_messages(id) ON DELETE CASCADE NOT NULL,
+  user_id    uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  emoji      text NOT NULL CHECK (char_length(emoji) <= 8),
+  created_at timestamptz DEFAULT now(),
+  UNIQUE (message_id, user_id, emoji)
+);
+ALTER TABLE public.cq_chatroom_reactions ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'cq_chatroom_reactions' AND policyname = 'Authenticated users manage reactions') THEN
+    EXECUTE 'CREATE POLICY "Authenticated users manage reactions" ON public.cq_chatroom_reactions FOR ALL USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() = user_id)';
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS cq_chatroom_reactions_msg_idx ON public.cq_chatroom_reactions(message_id);
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MIGRATION 7 — Phase B alignment (canonical state/tool-call tables)
+// ─────────────────────────────────────────────────────────────────────────────
+const MIGRATION_7_PHASE_B_ALIGNMENT = readFileSync(
+  new URL('../supabase/migrations/20260516000000_phase_b_alignment.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_15_ONBOARDING = readFileSync(
+  new URL('../supabase/migrations/20260520_onboarding.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_16_RGY_SYSTEM = readFileSync(
+  new URL('../supabase/migrations/20260520_rgy_system.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_17_RGY_CHATROOMS = readFileSync(
+  new URL('../supabase/migrations/20260520_rgy_chatrooms.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_18_NOTIFICATIONS_PUSH = readFileSync(
+  new URL('../supabase/migrations/20260520_notifications_push.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_19_DUOMODE_FIDELITY = readFileSync(
+  new URL('../supabase/migrations/20260520_duomode_fidelity.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_20_BYOD = readFileSync(
+  new URL('../supabase/migrations/20260520_byod.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_21_SOCIAL_LAYER_EXT = readFileSync(
+  new URL('../supabase/migrations/20260520_social_layer_ext.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_22_MEDIA_GEN = readFileSync(
+  new URL('../supabase/migrations/20260520_media_gen.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_23_PLATFORM_ARCHITECTURE = readFileSync(
+  new URL('../supabase/migrations/20260516_platform_architecture.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_24_CONNECTOR_REGISTRY = readFileSync(
+  new URL('../supabase/migrations/20260515_connector_registry.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_25_USER_CONNECTORS_EXTENDED = readFileSync(
+  new URL('../supabase/migrations/20260515_user_connectors_extended.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_26_EXTENSION_TABLES = readFileSync(
+  new URL('../supabase/migrations/20260515_extension_tables.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_27_DUO_MODE_PATCH = readFileSync(
+  new URL('../supabase/migrations/20260516_duo_mode_patch.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_28_PHASE_AB_PROD_COMPATIBILITY = readFileSync(
+  new URL('../supabase/migrations/20260523010000_phase_ab_prod_compatibility.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_29_SECURITY_WATCHDOG = readFileSync(
+  new URL('../supabase/migrations/20260520_security_watchdog.sql', import.meta.url),
+  'utf8',
+);
+
+const MIGRATION_30_PHASE_AB_FEATURE_DB_HARDENING = readFileSync(
+  new URL('../supabase/migrations/20260523011000_phase_ab_feature_db_hardening.sql', import.meta.url),
+  'utf8',
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Runner
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MIGRATIONS = [
-  { name: 'Migration 1 — Phase A catch-up (PA-01 to PA-04)',                    sql: MIGRATION_1_PHASE_A_CATCHUP },
-  { name: 'Migration 2 — Phase B consolidation (PB-S-01 to PB-S-04)',           sql: MIGRATION_2_PHASE_B_CONSOLIDATION },
-  { name: 'Migration 3 — Phase B core tables (PB-01 to PB-13)',                 sql: MIGRATION_3_PHASE_B_CORE },
-  { name: 'Migration 4 — Phase B ops tables (PB-14 to PB-22)',                  sql: MIGRATION_4_PHASE_B_OPS },
-  { name: 'Migration 5 — duo_tasks status constraint (waiting_approval + ready)', sql: MIGRATION_5_DUO_TASKS_STATUS_CONSTRAINT },
-  { name: 'Migration 6 — RGY schema (rgy_ratio/dominance/trend + capsule color/keyword/intent)', sql: MIGRATION_6_RGY_SCHEMA },
+  { name: 'Migration 1  — Phase A catch-up (PA-01 to PA-04)',                                               sql: MIGRATION_1_PHASE_A_CATCHUP },
+  { name: 'Migration 2  — Phase B consolidation (PB-S-01 to PB-S-04)',                                      sql: MIGRATION_2_PHASE_B_CONSOLIDATION },
+  { name: 'Migration 3  — Phase B core tables (PB-01 to PB-13)',                                            sql: MIGRATION_3_PHASE_B_CORE },
+  { name: 'Migration 4  — Phase B ops tables (PB-14 to PB-22)',                                             sql: MIGRATION_4_PHASE_B_OPS },
+  { name: 'Migration 5  — duo_tasks status constraint (waiting_approval + ready)',                           sql: MIGRATION_5_DUO_TASKS_STATUS_CONSTRAINT },
+  { name: 'Migration 6  — RGY schema (rgy_ratio/dominance/trend + capsule color/keyword/intent)',            sql: MIGRATION_6_RGY_SCHEMA },
+  { name: 'Migration 7  — Phase B alignment (agent_job_queue.state + agent_tool_calls)',                     sql: MIGRATION_7_PHASE_B_ALIGNMENT },
+  { name: 'Migration 8  — Profile extensions (cq_number, username, AI identity phone/email, age_range)',    sql: MIGRATION_7_PROFILE_EXTENSIONS },
+  { name: 'Migration 9  — user_ai_profile RGY scoring (rgy_score, rgy_questioned_rate, rgy_map)',           sql: MIGRATION_8_USER_AI_PROFILE_RGY },
+  { name: 'Migration 10 — Memory soft-delete (deleted_at + purge indexes)',                                  sql: MIGRATION_9_MEMORY_SOFT_DELETE },
+  { name: 'Migration 11 — Social layer (cq_threads, cq_messages, cq_chatrooms, cq_friendships)',            sql: MIGRATION_10_SOCIAL_LAYER },
+  { name: 'Migration 12 — Notifications (notifications + notification_preferences)',                         sql: MIGRATION_11_NOTIFICATIONS },
+  { name: 'Migration 13 — Proactive AI (capsule_outcomes + duo_projects success cols + tasks impact)',      sql: MIGRATION_12_PROACTIVE_AI },
+  { name: 'Migration 14 — Feature profile extensions (red_tier_age_confirmed, uncensored_media_enabled, cq_chatroom_members, cq_chatroom_reactions)', sql: MIGRATION_13_FEATURE_PROFILE_EXTENSIONS },
+  { name: 'Migration 15 — Onboarding progress/events (Sprint 2)',                                            sql: MIGRATION_15_ONBOARDING },
+  { name: 'Migration 16 — RGY operational status system (Sprint 2)',                                         sql: MIGRATION_16_RGY_SYSTEM },
+  { name: 'Migration 17 — RGY chatroom snapshots/aggregates (Sprint 2)',                                     sql: MIGRATION_17_RGY_CHATROOMS },
+  { name: 'Migration 18 — Notification API compatibility (Sprint 3)',                                        sql: MIGRATION_18_NOTIFICATIONS_PUSH },
+  { name: 'Migration 19 — DuoMode fidelity checker tables (Sprint 3)',                                       sql: MIGRATION_19_DUOMODE_FIDELITY },
+  { name: 'Migration 20 — BYOD Supabase connections (Sprint 6)',                                             sql: MIGRATION_20_BYOD },
+  { name: 'Migration 21 — Social follow/feed/reactions extension (Sprint 6)',                                sql: MIGRATION_21_SOCIAL_LAYER_EXT },
+  { name: 'Migration 22 — Media generation queue/cache (Sprint 6)',                                          sql: MIGRATION_22_MEDIA_GEN },
+  { name: 'Migration 23 — Surface sessions/router/handoff compatibility (SA-01 to SA-04)',                  sql: MIGRATION_23_PLATFORM_ARCHITECTURE },
+  { name: 'Migration 24 — Connector registry and seeded platform map (Apps Mapping)',                        sql: MIGRATION_24_CONNECTOR_REGISTRY },
+  { name: 'Migration 25 — User connector extensions and service-role token storage (Apps Mapping)',          sql: MIGRATION_25_USER_CONNECTORS_EXTENDED },
+  { name: 'Migration 26 — Extension sessions, instructions, and OAuth states (Apps Mapping)',                sql: MIGRATION_26_EXTENSION_TABLES },
+  { name: 'Migration 27 — DuoMode B4 status/realtime patch and analytics events',                            sql: MIGRATION_27_DUO_MODE_PATCH },
+  { name: 'Migration 28 — Phase A/B production compatibility patch',                                          sql: MIGRATION_28_PHASE_AB_PROD_COMPATIBILITY },
+  { name: 'Migration 29 — Security watchdog tables and policies',                                             sql: MIGRATION_29_SECURITY_WATCHDOG },
+  { name: 'Migration 30 — Phase A/B feature-level DB hardening',                                               sql: MIGRATION_30_PHASE_AB_FEATURE_DB_HARDENING },
 ];
 
 async function run() {
   const client = new Client(DB);
 
-  console.log('Connecting to Supabase (session-mode pooler)…');
+  const target = new URL(databaseUrl);
+  console.log(`Connecting to Supabase (${target.host})…`);
   await client.connect();
   console.log('Connected.\n');
 
@@ -818,11 +1279,35 @@ async function run() {
   console.log('─── Verification ───────────────────────────────');
   const CHECK_TABLES = [
     'job_runs', 'duo_task_edges', 'duo_artifacts', 'duo_external_refs',
-    'duo_outcomes', 'duo_tool_calls', 'stream_events', 'duo_dashboard_widgets',
+    'duo_outcomes', 'duo_tool_calls', 'agent_tool_calls', 'stream_events', 'duo_dashboard_widgets',
     'user_connectors', 'connector_secrets', 'tool_capabilities',
     'platform_automation_policy', 'tool_candidates', 'playbooks',
     'agent_job_queue', 'budget_policies', 'self_reports', 'self_heal_proposals',
-    'security_events',
+    'security_events', 'duo_questions', 'duo_blockers', 'duo_access_requests',
+    // Migrations 7–12
+    'cq_threads', 'cq_thread_members', 'cq_messages',
+    'cq_chatrooms', 'cq_chatroom_messages', 'cq_friendships',
+    'notifications', 'notification_preferences', 'capsule_outcomes',
+    // Migration 13
+    'cq_chatroom_members', 'cq_chatroom_reactions',
+    // Sprint 2 canonical features
+    'onboarding_progress', 'onboarding_events',
+    'rgy_status', 'rgy_transitions', 'rgy_rules',
+    'chatroom_rgy_snapshots', 'chatroom_rgy_aggregates',
+    // Sprint 3 canonical features
+    'duo_acceptance_tests', 'duo_test_runs', 'duo_test_results',
+    // Sprint 6 canonical features
+    'byod_connections', 'byod_sync_log',
+    'social_connections', 'social_activity_feed', 'social_reactions',
+    'media_generations', 'media_generation_queue',
+    // Platform Architecture SA-01 to SA-04
+    'surface_sessions',
+    // Apps Mapping connector framework
+    'connector_registry', 'extension_instructions', 'extension_sessions', 'oauth_states',
+    // Conversion engine analytics
+    'analytics_events',
+    // Security watchdog + consent audit
+    'security_rate_limits', 'security_ip_blocklist', 'tracking_consent_events',
   ];
 
   const { rows } = await client.query(
@@ -847,6 +1332,9 @@ async function run() {
     ['duo_projects',        'verbosity'],
     ['duo_tasks',           'selected_route'],
     ['duo_tasks',           'idempotency_key'],
+    ['agent_job_queue',     'state'],
+    ['agent_tool_calls',    'route_used'],
+    ['agent_tool_calls',    'api_cost_gbp'],
     ['duo_timeline_events', 'summary'],
     ['duo_timeline_events', 'trace_id'],
     ['action_approvals',    'preview_content'],
@@ -857,6 +1345,83 @@ async function run() {
     ['capsule_briefings',   'color'],
     ['capsule_briefings',   'keyword'],
     ['capsule_briefings',   'intent'],
+    // Migrations 7–12 column checks
+    ['profiles',            'cq_number'],
+    ['profiles',            'username'],
+    ['profiles',            'age_range'],
+    ['profiles',            'cubiqo_phone_number'],
+    ['profiles',            'preferred_briefing_time'],
+    ['user_ai_profile',     'rgy_score'],
+    ['user_ai_profile',     'rgy_questioned_rate'],
+    ['user_ai_profile',     'rgy_map'],
+    ['memory_events',       'deleted_at'],
+    ['duo_projects',        'success_status'],
+    ['duo_projects',        'success_metrics'],
+    ['duo_tasks',           'estimated_minutes_saved'],
+    // Migration 13 column checks
+    ['profiles',            'red_tier_age_confirmed'],
+    ['profiles',            'uncensored_media_enabled'],
+    // Sprint 2 column checks
+    ['profiles',            'onboarding_done'],
+    ['profiles',            'age_range'],
+    ['onboarding_progress', 'answer_data'],
+    ['rgy_status',          'score'],
+    ['rgy_status',          'evaluated_at'],
+    ['rgy_transitions',     'triggered_at'],
+    ['chatroom_rgy_snapshots', 'rgy_score'],
+    ['chatroom_rgy_aggregates', 'health_score'],
+    // Sprint 3 column checks
+    ['notifications',       'dismissed_at'],
+    ['notifications',       'metadata'],
+    ['push_notifications',  'metadata'],
+    ['duo_test_runs',      'overall_pass'],
+    ['duo_test_results',   'duration_ms'],
+    // Sprint 6 column checks
+    ['byod_connections',   'encrypted_service_role_key'],
+    ['byod_connections',   'encryption_iv'],
+    ['byod_connections',   'encryption_tag'],
+    ['byod_connections',   'key_version'],
+    ['byod_sync_log',      'sync_type'],
+    ['social_connections', 'last_interaction_at'],
+    ['social_activity_feed', 'actor_id'],
+    ['social_reactions',   'target_type'],
+    ['media_generations',  'provider'],
+    ['media_generations',  'storage_url'],
+    ['media_generation_queue', 'generation_id'],
+    ['media_generation_queue', 'run_after'],
+    // Platform Architecture SA-01 to SA-04
+    ['surface_sessions',   'last_heartbeat'],
+    ['surface_sessions',   'capabilities'],
+    ['duo_tasks',          'assigned_surface'],
+    ['duo_tasks',          'requires_capabilities'],
+    ['duo_tasks',          'user_constraint'],
+    ['duo_projects',       'user_constraints'],
+    ['user_ai_profile',    'global_constraints'],
+    ['duo_artifacts',      'type'],
+    ['duo_artifacts',      'produced_by'],
+    ['duo_artifacts',      'consumed_by'],
+    ['duo_artifacts',      'expires_at'],
+    ['duo_artifacts',      'consumed_at'],
+    // Apps Mapping connector framework
+    ['connector_registry', 'adapter_type'],
+    ['connector_registry', 'oauth_default_scopes'],
+    ['user_connectors',    'adapter_type'],
+    ['user_connectors',    'token_expires_at'],
+    ['user_connectors',    'ob_item_id'],
+    ['user_connectors',    'health_status'],
+    ['connector_secrets',  'access_token_encrypted'],
+    ['connector_secrets',  'api_key_encrypted'],
+    ['extension_instructions', 'actions'],
+    ['extension_sessions', 'token'],
+    ['oauth_states',      'expires_at'],
+    ['analytics_events',  'event_type'],
+    ['analytics_events',  'anon_session_id'],
+    ['security_rate_limits', 'identifier'],
+    ['security_rate_limits', 'blocked_until'],
+    ['security_ip_blocklist', 'ip_address'],
+    ['security_ip_blocklist', 'reason'],
+    ['tracking_consent_events', 'consent_state'],
+    ['tracking_consent_events', 'consent_scope'],
   ];
 
   const { rows: colRows } = await client.query(

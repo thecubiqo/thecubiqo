@@ -24,8 +24,11 @@ export async function POST(request: NextRequest) {
   if (!responseText) return NextResponse.json({ enrichedText: "", cards: [] });
 
   const userId = await getUserId(request, supabase);
-  if (!userId || !(await isPro(userId))) {
-    return NextResponse.json({ enrichedText: responseText, cards: [], code: "PRO_REQUIRED" });
+  if (!userId) {
+    return NextResponse.json({ error: "Auth required" }, { status: 401 });
+  }
+  if (!(await isPro(userId))) {
+    return NextResponse.json({ enrichedText: responseText, cards: [], code: "PRO_REQUIRED" }, { status: 402 });
   }
 
   const result = await postProcessResponse(

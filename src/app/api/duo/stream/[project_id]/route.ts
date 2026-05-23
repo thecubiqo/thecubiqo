@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server';
 import { requireApiUser } from '../../../_lib/supabase-admin';
 
 export const runtime = 'nodejs';
-export const maxDuration = 55;
+export const dynamic = 'force-dynamic';
+export const maxDuration = 800;
 
 export async function GET(
   request: NextRequest,

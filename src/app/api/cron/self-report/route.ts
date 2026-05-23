@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   const [projects, tasks, toolCalls, failures] = await Promise.all([
     supabase.from('duo_projects').select('*', { count: 'exact', head: true }).gte('created_at', `${today}T00:00:00.000Z`),
     supabase.from('duo_tasks').select('*', { count: 'exact', head: true }).gte('created_at', `${today}T00:00:00.000Z`),
-    supabase.from('duo_tool_calls').select('*', { count: 'exact', head: true }).gte('started_at', `${today}T00:00:00.000Z`),
+    supabase.from('agent_tool_calls').select('*', { count: 'exact', head: true }).gte('started_at', `${today}T00:00:00.000Z`),
     supabase.from('duo_tasks').select('*', { count: 'exact', head: true }).eq('status', 'failed').gte('updated_at', `${today}T00:00:00.000Z`)
   ]);
 

@@ -313,6 +313,7 @@ export async function memoryRead(authToken?: string, limit = 6) {
     .select('id,event_type,summary,keywords,weight,created_at')
     .eq('user_id', auth.user.id)
     .is('archived_at', null)
+    .is('deleted_at', null)
     .order('weight', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(Math.min(Math.max(limit, 1), maxLimit));
