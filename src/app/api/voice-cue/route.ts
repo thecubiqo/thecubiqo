@@ -7,12 +7,13 @@ const FALLBACK_VOICE_ID = 'SAz9YHcvj6GT2YYXdXww';
 const FALLBACK_MODEL_ID = 'eleven_flash_v2_5';
 const LISTENING_CUE_TEXT = 'I am listening.';
 
-// Surreal neutral voice settings — same defaults as /api/tts
+// Relaxed neutral voice settings — slower pace, higher stability for a
+// calm, present cue. Matches the "I am listening" gentle-presence vibe.
 const VOICE_SETTINGS = {
-  stability: 0.76,
-  similarity_boost: 0.58,
-  style: 0.05,
-  speed: 0.92,
+  stability: 0.84,
+  similarity_boost: 0.62,
+  style: 0.03,
+  speed: 0.82,
   use_speaker_boost: false,
 };
 

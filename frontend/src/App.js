@@ -3809,6 +3809,16 @@ const DemoPage = () => {
   const listeningActiveRef = useRef(false);
   const listeningSilenceTimerRef = useRef(null);
   const listeningStartedAtRef = useRef(0);
+  // Voice-convo state:
+  //   cueAlreadySpokenRef     → has the "I am listening" cue been spoken yet
+  //                             in this browser session? Played once per session.
+  //   skipNextCueRef          → set when auto-restarting mic after AI finishes
+  //                             speaking, so we don't re-greet between turns.
+  //   conversationActiveRef   → user is in continuous voice convo mode.
+  //                             True from first tap until user explicitly stops.
+  const cueAlreadySpokenRef = useRef(false);
+  const skipNextCueRef = useRef(false);
+  const conversationActiveRef = useRef(false);
   const callBackendRef = useRef(null);
   const toggleListeningRef = useRef(null);
   const audioUnlockedRef = useRef(false);
@@ -4215,21 +4225,36 @@ const DemoPage = () => {
       listeningStartedAtRef.current = 0;
       stopMicAnalysis();
       transcriptRef.current = '';
-      setSpeakerEnabled(false);
+
       if (text) {
+        // Keep speaker enabled — we're staying in the conversation. The AI
+        // response handler will auto-restart recognition silently when it
+        // finishes speaking. Do not setSpeakerEnabled(false) here.
         setIsProcessing(true);
         callBackendRef.current?.(text);
       } else if (wasManualStop) {
+        // User explicitly tapped to stop — exit conversation mode.
+        conversationActiveRef.current = false;
         voiceReplyRequestedRef.current = false;
+        setSpeakerEnabled(false);
         setConversationError('');
       } else if (heldFor < 3000) {
-        // Recognition ended too fast — usually a mobile gesture race or denied
-        // mic permission. Don't shame the user with "No speech detected" when
-        // they didn't even get a chance to speak. Silently reset.
+        // Mobile gesture race or denied mic permission — silent reset.
+        conversationActiveRef.current = false;
         voiceReplyRequestedRef.current = false;
+        setSpeakerEnabled(false);
         setConversationError('');
+      } else if (conversationActiveRef.current) {
+        // Genuine silence in continuous mode — restart mic silently, the user
+        // may just be thinking. The recognition will time out again if they
+        // really are done; that's when we exit.
+        skipNextCueRef.current = true;
+        listeningActiveRef.current = true;
+        listeningStartedAtRef.current = Date.now();
+        try { recognitionRef.current?.start(); startMicAnalysis(); } catch {}
       } else {
         voiceReplyRequestedRef.current = false;
+        setSpeakerEnabled(false);
         setConversationError('No speech detected. Tap again or type below.');
       }
     };
@@ -4403,9 +4428,17 @@ const DemoPage = () => {
         setIsSpeaking(false);
         stopAudioAnalysis();
         resolve(true);
-        // Auto-restart listening for ChatGPT-style continuous voice convo
-        if (toggleListeningRef.current && voiceReplyRequestedRef.current === false) {
-          setTimeout(() => toggleListeningRef.current?.(), 400);
+        // Auto-restart listening silently for continuous voice convo.
+        // skipNextCueRef = true → toggleListening won't re-play "I am
+        // listening" between turns; user just sees the listening glow.
+        if (conversationActiveRef.current && toggleListeningRef.current) {
+          skipNextCueRef.current = true;
+          setTimeout(() => {
+            if (!conversationActiveRef.current) return;
+            if (!speakerEnabled && !listeningActiveRef.current) {
+              toggleListeningRef.current?.();
+            }
+          }, 400);
         }
       };
       audio.onerror = () => {
@@ -4526,6 +4559,17 @@ const DemoPage = () => {
   };
 
   const playListeningCue = async () => {
+    // Skip cue between conversation turns (auto-restart) or if we've already
+    // greeted the user this session. The first manual tap of the session is
+    // the only time the cue ever plays — after that the experience is silent
+    // and continuous, like a normal phone call.
+    if (skipNextCueRef.current) {
+      skipNextCueRef.current = false;
+      return;
+    }
+    if (cueAlreadySpokenRef.current) return;
+    cueAlreadySpokenRef.current = true;
+
     const audio = audioRef.current;
     if (!audio) return;
     stopAudioAnalysis();
@@ -4943,11 +4987,27 @@ const DemoPage = () => {
       } catch {}
     }
 
-    if (isProcessing) return;
+    // Tap-to-interrupt: if AI is currently speaking, stop the audio and
+    // immediately start listening for the user's interruption. Skips the cue
+    // because we're mid-conversation. This is the ChatGPT-voice barge-in
+    // pattern — the user can cut the AI off whenever they want.
+    if (isSpeaking) {
+      try { audioRef.current?.pause(); } catch {}
+      const synth = window.speechSynthesis;
+      if (synth) try { synth.cancel(); } catch {}
+      setIsSpeaking(false);
+      stopAudioAnalysis();
+      skipNextCueRef.current = true;
+      // Fall through to the "start recognition" branch below — do not return.
+    } else if (isProcessing) {
+      return;
+    }
 
-    if (speakerEnabled) {
+    if (speakerEnabled && !isSpeaking) {
+      // Second tap when idle-listening — user explicitly ending convo.
       manualStopRef.current = true;
       listeningActiveRef.current = false;
+      conversationActiveRef.current = false;
       voiceReplyRequestedRef.current = false;
       setConversationError('');
       setSpeakerEnabled(false);
@@ -4965,6 +5025,7 @@ const DemoPage = () => {
     manualStopRef.current = false;
     listeningActiveRef.current = true;
     voiceReplyRequestedRef.current = true;
+    conversationActiveRef.current = true;
     listeningStartedAtRef.current = Date.now();
     setConversationError('');
     setSpeakerEnabled(true);

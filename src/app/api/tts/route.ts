@@ -28,14 +28,16 @@ function getApiKey() {
  */
 function voiceSettings(color?: string) {
   const c = String(color || 'neutral').toLowerCase();
+  // All speeds reduced ~10% from prior generation per UX feedback —
+  // CubiQo should feel relaxed and present, never rushed.
   if (c === 'green')
-    return { stability: 0.70, similarity_boost: 0.60, style: 0.08, speed: 0.96, use_speaker_boost: false };
+    return { stability: 0.74, similarity_boost: 0.62, style: 0.07, speed: 0.92, use_speaker_boost: false };
   if (c === 'red')
-    return { stability: 0.82, similarity_boost: 0.56, style: 0.02, speed: 0.88, use_speaker_boost: false };
+    return { stability: 0.86, similarity_boost: 0.58, style: 0.02, speed: 0.80, use_speaker_boost: false };
   if (c === 'yellow')
-    return { stability: 0.78, similarity_boost: 0.58, style: 0.06, speed: 0.86, use_speaker_boost: false };
+    return { stability: 0.82, similarity_boost: 0.60, style: 0.05, speed: 0.80, use_speaker_boost: false };
   // neutral / default
-  return   { stability: 0.76, similarity_boost: 0.58, style: 0.04, speed: 0.92, use_speaker_boost: false };
+  return   { stability: 0.80, similarity_boost: 0.60, style: 0.03, speed: 0.86, use_speaker_boost: false };
 }
 
 async function resolveVoiceConfig() {
