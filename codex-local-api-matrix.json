@@ -1,0 +1,86 @@
+[
+  {
+    "name": "app page",
+    "expected": 200,
+    "actual": 200,
+    "passed": true,
+    "ms": 687
+  },
+  {
+    "name": "login page",
+    "expected": 200,
+    "actual": 200,
+    "passed": true,
+    "ms": 165
+  },
+  {
+    "name": "connectors page",
+    "expected": 200,
+    "actual": 200,
+    "passed": true,
+    "ms": 249
+  },
+  {
+    "name": "duo page",
+    "expected": 200,
+    "actual": 200,
+    "passed": true,
+    "ms": 232
+  },
+  {
+    "name": "billing status public",
+    "expected": 200,
+    "actual": 200,
+    "passed": true,
+    "ms": 495
+  },
+  {
+    "name": "connectors protected",
+    "expected": 401,
+    "actual": 401,
+    "passed": true,
+    "ms": 840
+  },
+  {
+    "name": "duo projects protected",
+    "expected": 401,
+    "actual": 401,
+    "passed": true,
+    "ms": 1028
+  },
+  {
+    "name": "profile protected",
+    "expected": 401,
+    "actual": 401,
+    "passed": true,
+    "ms": 698
+  },
+  {
+    "name": "notifications protected",
+    "expected": 401,
+    "actual": 401,
+    "passed": true,
+    "ms": 759
+  },
+  {
+    "name": "onboarding protected",
+    "expected": 401,
+    "actual": 401,
+    "passed": true,
+    "ms": 801
+  },
+  {
+    "name": "vision invalid payload",
+    "expected": 400,
+    "actual": 400,
+    "passed": true,
+    "ms": 694
+  },
+  {
+    "name": "classify invalid payload",
+    "expected": 400,
+    "actual": 400,
+    "passed": true,
+    "ms": 666
+  }
+]

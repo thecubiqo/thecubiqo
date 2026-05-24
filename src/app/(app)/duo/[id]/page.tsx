@@ -32,6 +32,7 @@ import {
 import { ArtifactPane, type DuoArtifactView } from '@/next/components/duo/ArtifactPane';
 import { FidelityReport as FidelityReportPanel } from '@/next/components/duo/FidelityReport';
 import { TaskGraph, type DuoTaskEdgeView, type DuoTaskView } from '@/next/components/duo/TaskGraph';
+import { PlanReview } from '@/next/components/duo/PlanReview';
 import type { FidelityReport as FidelityReportData } from '@/next/types/duo-fidelity';
 import { useDuoStream } from '@/next/hooks/useDuoStream';
 import { authHeaders } from '@/next/lib/supabase-browser';
@@ -360,8 +361,26 @@ export default function DuoProjectPage() {
     );
   }
 
+  // Plan Review modal — spec SCREEN 8: shown when project.status === 'planning'
+  const showPlanReview = project?.status === 'planning' && allTasks.length > 0;
+
   return (
     <div className="flex h-full flex-col bg-slate-950">
+      {showPlanReview && (
+        <div className="fixed inset-0 z-40 grid place-items-center bg-black/70 p-4">
+          <div className="w-full max-w-2xl rounded-xl border border-slate-800 bg-neutral-950 p-6">
+            <div className="mb-4">
+              <p className="text-[0.65rem] uppercase tracking-[0.2em] text-slate-500">Review your plan</p>
+              <h3 className="text-lg font-semibold text-slate-100">{project?.title || project?.goal || 'Project'}</h3>
+              <p className="mt-1 text-xs text-slate-400">
+                Approve to let CubiQo begin execution. Tasks flagged as approval-required must be acknowledged.
+              </p>
+            </div>
+            <PlanReview projectId={id} tasks={allTasks as any} onApproved={load} />
+          </div>
+        </div>
+      )}
+
       {/* Header bar */}
       <header className={`flex shrink-0 items-center gap-3 border-b border-slate-800 px-4 py-2.5 ${tone.border}`}>
         <span className={`h-2 w-2 rounded-full ${tone.dot}`} />

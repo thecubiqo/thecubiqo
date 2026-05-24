@@ -1,0 +1,38 @@
+[
+  {
+    "url": "http://127.0.0.1:3000/app",
+    "requests": 10,
+    "success": 10,
+    "codes": "{\"200\":10}",
+    "p50": 316,
+    "p95": 758,
+    "max": 1085
+  },
+  {
+    "url": "http://127.0.0.1:3000/connectors",
+    "requests": 10,
+    "success": 10,
+    "codes": "{\"200\":10}",
+    "p50": 326,
+    "p95": 379,
+    "max": 381
+  },
+  {
+    "url": "http://127.0.0.1:3000/api/billing/status",
+    "requests": 10,
+    "success": 10,
+    "codes": "{\"200\":10}",
+    "p50": 275,
+    "p95": 424,
+    "max": 766
+  },
+  {
+    "url": "http://127.0.0.1:3000/api/connectors",
+    "requests": 10,
+    "success": 10,
+    "codes": "{\"401\":10}",
+    "p50": 328,
+    "p95": 508,
+    "max": 855
+  }
+]

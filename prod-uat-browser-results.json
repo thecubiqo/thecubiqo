@@ -1,0 +1,122 @@
+[
+  {
+    "page": "app",
+    "viewport": "desktop",
+    "status": 200,
+    "ok": true,
+    "ms": 12865,
+    "title": "CubiQo",
+    "bodyChars": 534,
+    "consoleErrors": [],
+    "requestFailures": [],
+    "screenshot": "C:\\Users\\avloy\\OneDrive\\Documents\\New project 5\\prod-uat-screenshots\\app-desktop.png"
+  },
+  {
+    "page": "connectors",
+    "viewport": "desktop",
+    "status": 200,
+    "ok": true,
+    "ms": 1654,
+    "title": "CubiQo",
+    "bodyChars": 275,
+    "consoleErrors": [],
+    "requestFailures": [],
+    "screenshot": "C:\\Users\\avloy\\OneDrive\\Documents\\New project 5\\prod-uat-screenshots\\connectors-desktop.png"
+  },
+  {
+    "page": "login",
+    "viewport": "desktop",
+    "status": 200,
+    "ok": true,
+    "ms": 1142,
+    "title": "CubiQo",
+    "bodyChars": 60,
+    "consoleErrors": [],
+    "requestFailures": [],
+    "screenshot": "C:\\Users\\avloy\\OneDrive\\Documents\\New project 5\\prod-uat-screenshots\\login-desktop.png"
+  },
+  {
+    "page": "duo",
+    "viewport": "desktop",
+    "status": 200,
+    "ok": true,
+    "ms": 1242,
+    "title": "CubiQo",
+    "bodyChars": 163,
+    "consoleErrors": [],
+    "requestFailures": [],
+    "screenshot": "C:\\Users\\avloy\\OneDrive\\Documents\\New project 5\\prod-uat-screenshots\\duo-desktop.png"
+  },
+  {
+    "page": "onboarding",
+    "viewport": "desktop",
+    "status": 200,
+    "ok": true,
+    "ms": 1330,
+    "title": "CubiQo",
+    "bodyChars": 414,
+    "consoleErrors": [],
+    "requestFailures": [],
+    "screenshot": "C:\\Users\\avloy\\OneDrive\\Documents\\New project 5\\prod-uat-screenshots\\onboarding-desktop.png"
+  },
+  {
+    "page": "app",
+    "viewport": "mobile",
+    "status": 200,
+    "ok": true,
+    "ms": 9220,
+    "title": "CubiQo",
+    "bodyChars": 534,
+    "consoleErrors": [],
+    "requestFailures": [],
+    "screenshot": "C:\\Users\\avloy\\OneDrive\\Documents\\New project 5\\prod-uat-screenshots\\app-mobile.png"
+  },
+  {
+    "page": "connectors",
+    "viewport": "mobile",
+    "status": 200,
+    "ok": true,
+    "ms": 1259,
+    "title": "CubiQo",
+    "bodyChars": 236,
+    "consoleErrors": [],
+    "requestFailures": [],
+    "screenshot": "C:\\Users\\avloy\\OneDrive\\Documents\\New project 5\\prod-uat-screenshots\\connectors-mobile.png"
+  },
+  {
+    "page": "login",
+    "viewport": "mobile",
+    "status": 200,
+    "ok": true,
+    "ms": 857,
+    "title": "CubiQo",
+    "bodyChars": 60,
+    "consoleErrors": [],
+    "requestFailures": [],
+    "screenshot": "C:\\Users\\avloy\\OneDrive\\Documents\\New project 5\\prod-uat-screenshots\\login-mobile.png"
+  },
+  {
+    "page": "duo",
+    "viewport": "mobile",
+    "status": 200,
+    "ok": true,
+    "ms": 1154,
+    "title": "CubiQo",
+    "bodyChars": 124,
+    "consoleErrors": [],
+    "requestFailures": [],
+    "screenshot": "C:\\Users\\avloy\\OneDrive\\Documents\\New project 5\\prod-uat-screenshots\\duo-mobile.png"
+  },
+  {
+    "page": "onboarding",
+    "viewport": "mobile",
+    "status": 200,
+    "ok": true,
+    "ms": 1211,
+    "title": "CubiQo",
+    "bodyChars": 375,
+    "consoleErrors": [],
+    "requestFailures": [],
+    "screenshot": "C:\\Users\\avloy\\OneDrive\\Documents\\New project 5\\prod-uat-screenshots\\onboarding-mobile.png"
+  }
+]

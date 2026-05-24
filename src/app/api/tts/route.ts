@@ -17,12 +17,25 @@ function getApiKey() {
   return '';
 }
 
+/**
+ * Voice settings per RGY mode — CubiQo-AV-Personality.md §Four Voice States.
+ *   Neutral: calm, present, slightly curious — measured pace (default).
+ *   GREEN  : energetic, forward-moving — slightly faster pace.
+ *   RED    : deliberate, steady, grounding — slower, counter-tones user.
+ *   YELLOW : gentle, inviting, playful — slowest, counter-tones high-energy.
+ * What changes: stability (consistency), style (expressiveness), speed.
+ * What does NOT change: similarity_boost stays close to the canonical voice.
+ */
 function voiceSettings(color?: string) {
-  if (color === 'green')
-    return { stability: 0.70, similarity_boost: 0.60, style: 0.08, speed: 0.94, use_speaker_boost: false };
-  if (color === 'red')
-    return { stability: 0.82, similarity_boost: 0.56, style: 0.02, speed: 0.90, use_speaker_boost: false };
-  return   { stability: 0.76, similarity_boost: 0.58, style: 0.05, speed: 0.92, use_speaker_boost: false };
+  const c = String(color || 'neutral').toLowerCase();
+  if (c === 'green')
+    return { stability: 0.70, similarity_boost: 0.60, style: 0.08, speed: 0.96, use_speaker_boost: false };
+  if (c === 'red')
+    return { stability: 0.82, similarity_boost: 0.56, style: 0.02, speed: 0.88, use_speaker_boost: false };
+  if (c === 'yellow')
+    return { stability: 0.78, similarity_boost: 0.58, style: 0.06, speed: 0.86, use_speaker_boost: false };
+  // neutral / default
+  return   { stability: 0.76, similarity_boost: 0.58, style: 0.04, speed: 0.92, use_speaker_boost: false };
 }
 
 async function resolveVoiceConfig() {
