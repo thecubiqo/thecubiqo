@@ -1,14 +1,12 @@
 /**
- * Chatrooms list endpoint — used by RightPanel + /chatrooms directory page.
+ * Public RGY chatrooms list — used by RightPanel + /chatrooms directory page.
  *
- * Returns the RGY chatrooms the user can see (public rooms, tier-filtered
- * by age-gate for red), with last-message preview + unread count. If the
- * `chatrooms` table is not yet migrated, returns an empty list with a
- * `migrationPending` flag so the UI can render the canonical empty state
- * instead of breaking.
+ * Canonical schema: cq_chatrooms with rgy_color + intent + seed of 9 rooms
+ * (migration 20260516004000_social_layer.sql §4).
  *
- * Source: CubiQo-UI-Architecture.md APP SHELL §Right Drawer + SCREEN 11
- *         CubiQo-PhaseA.md §5.3 RGY Chatrooms
+ * Red-tier rooms are filtered out unless profiles.red_tier_age_confirmed.
+ *
+ * Source: CubiQo-PhaseA.md §5.3 RGY Chatrooms + UI Architecture §Right Drawer.
  */
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -21,7 +19,6 @@ export async function GET(request: NextRequest) {
   if ('error' in auth) return auth.error;
   const { supabase, user } = auth;
 
-  // Filter REDS unless red_tier_age_confirmed
   const { data: profile } = await supabase
     .from('profiles')
     .select('red_tier_age_confirmed')
@@ -31,13 +28,13 @@ export async function GET(request: NextRequest) {
   const includeRed = Boolean(profile?.red_tier_age_confirmed);
 
   let query = supabase
-    .from('chatrooms')
-    .select('id, name, color, tier, description, member_count, last_message_preview, last_activity_at')
-    .order('last_activity_at', { ascending: false })
-    .limit(50);
+    .from('cq_chatrooms')
+    .select('id, name, slug, rgy_color, intent, topic_tag, description, member_count, created_at')
+    .order('rgy_color', { ascending: true })
+    .order('intent', { ascending: true });
 
   if (!includeRed) {
-    query = query.neq('color', 'red');
+    query = query.neq('rgy_color', 'red');
   }
 
   const { data: rooms, error } = await query;
@@ -49,24 +46,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Best-effort unread counts (don't fail the list if the join table is missing)
-  let unreadMap: Record<string, number> = {};
-  try {
-    const { data: unread } = await supabase
-      .from('chatroom_membership')
-      .select('chatroom_id, unread_count')
-      .eq('user_id', user.id);
-    if (Array.isArray(unread)) {
-      unreadMap = Object.fromEntries(unread.map((r: any) => [r.chatroom_id, r.unread_count ?? 0]));
-    }
-  } catch {
-    /* membership table optional */
-  }
+  // Map canonical column names to the shape the UI expects (color + tier + last_message_preview)
+  const mapped = (rooms || []).map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    slug: r.slug,
+    color: r.rgy_color,
+    tier: r.rgy_color,
+    intent: r.intent,
+    topic_tag: r.topic_tag,
+    description: r.description,
+    member_count: r.member_count ?? 0,
+    unread_count: 0, // TODO: derive from cq_chatroom_membership read pointers
+    last_activity_at: null,
+    created_at: r.created_at
+  }));
 
-  return NextResponse.json({
-    rooms: (rooms || []).map((r: any) => ({
-      ...r,
-      unread_count: unreadMap[r.id] ?? 0
-    }))
-  });
+  return NextResponse.json({ rooms: mapped });
 }

@@ -30,6 +30,9 @@ import {
   X
 } from 'lucide-react';
 import { ArtifactPane, type DuoArtifactView } from '@/next/components/duo/ArtifactPane';
+import { FidelityReport as FidelityReportPanel } from '@/next/components/duo/FidelityReport';
+import { TaskGraph, type DuoTaskEdgeView, type DuoTaskView } from '@/next/components/duo/TaskGraph';
+import type { FidelityReport as FidelityReportData } from '@/next/types/duo-fidelity';
 import { useDuoStream } from '@/next/hooks/useDuoStream';
 import { authHeaders } from '@/next/lib/supabase-browser';
 import { apiGet, apiSend, formatDate, statusTone } from '../../_components/client-api';
@@ -176,6 +179,8 @@ export default function DuoProjectPage() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [fidelity, setFidelity] = useState<FidelityReportData | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   // Chat pane state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -198,10 +203,26 @@ export default function DuoProjectPage() {
       } catch {
         /* artifact endpoint optional */
       }
+      // Try fidelity report (optional, surfaced in Advanced view)
+      try {
+        const fid = await apiGet<FidelityReportData>(`/api/duo/projects/${id}/fidelity`);
+        if (fid) setFidelity(fid);
+      } catch {
+        /* fidelity may not exist until first run */
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load project');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function runFidelity() {
+    try {
+      const fid = await apiSend<FidelityReportData>(`/api/duo/projects/${id}/fidelity`, 'POST', {});
+      if (fid) setFidelity(fid);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not run fidelity check');
     }
   }
 
@@ -575,6 +596,48 @@ export default function DuoProjectPage() {
                 </div>
               </div>
             )}
+
+            {/* Advanced view — TaskGraph DAG + Fidelity report */}
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setAdvancedOpen(o => !o)}
+                className="mb-2 text-[0.65rem] uppercase tracking-[0.2em] text-slate-500 hover:text-slate-300"
+              >
+                {advancedOpen ? '▾ Hide advanced view' : '▸ Show advanced view (graph + fidelity)'}
+              </button>
+              {advancedOpen && (
+                <div className="space-y-3 rounded-lg border border-slate-800 bg-neutral-950 p-3">
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-[0.6rem] font-bold tracking-[0.2em] text-slate-500">TASK GRAPH</span>
+                    </div>
+                    <TaskGraph
+                      tasks={allTasks as DuoTaskView[]}
+                      edges={(payload?.edges || []) as DuoTaskEdgeView[]}
+                      onExecute={executeTask}
+                    />
+                  </div>
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-[0.6rem] font-bold tracking-[0.2em] text-slate-500">FIDELITY</span>
+                      <button
+                        type="button"
+                        onClick={runFidelity}
+                        className="rounded border border-slate-700 px-2 py-0.5 text-[0.65rem] text-slate-300 hover:bg-slate-900"
+                      >
+                        Run check
+                      </button>
+                    </div>
+                    {fidelity ? (
+                      <FidelityReportPanel report={fidelity} />
+                    ) : (
+                      <div className="text-xs text-slate-500">No fidelity report yet.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Outcomes section if any */}
             {(payload?.outcomes?.length ?? 0) > 0 && (
