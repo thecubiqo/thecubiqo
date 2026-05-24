@@ -4150,11 +4150,49 @@ const DemoPage = () => {
     e.preventDefault();
     setAuthLoading(true); setAuthError('');
     setProfileSyncError('');
-    const { data, error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
+    // Pass the prod callback URL explicitly so Supabase doesn't fall back
+    // to a Site URL that may be localhost in the dashboard config.
+    const emailRedirectTo = typeof window !== 'undefined'
+      ? `${window.location.origin}/auth/callback`
+      : undefined;
+    const { data, error } = await supabase.auth.signUp({
+      email: authEmail,
+      password: authPassword,
+      options: { emailRedirectTo }
+    });
     if (error) setAuthError(error.message);
     else {
       const profileReady = await ensureUserProfile(data.session);
-      setAuthError(data.session && profileReady ? 'Account created and profile synced.' : 'Account created. Confirm your email, then sign in to sync your profile.');
+      setAuthError(
+        data.session && profileReady
+          ? 'Account created and profile synced.'
+          : "Check your email — we sent a confirmation link to " + authEmail + ". Open it on the same device to finish."
+      );
+    }
+    setAuthLoading(false);
+  };
+  // OAuth providers — Google + Apple via Supabase. Failure surfaces as
+  // an inline error (most often: provider not yet enabled in Supabase
+  // Dashboard → Authentication → Providers).
+  const handleOAuth = async (provider) => {
+    setAuthLoading(true); setAuthError('');
+    const redirectTo = typeof window !== 'undefined'
+      ? `${window.location.origin}/auth/callback`
+      : undefined;
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo }
+      });
+      if (error) {
+        setAuthError(
+          /not enabled|not configured/i.test(error.message)
+            ? `${provider === 'google' ? 'Google' : 'Apple'} sign-in isn't enabled yet. Use email + password for now.`
+            : error.message
+        );
+      }
+    } catch (err) {
+      setAuthError(err?.message || `${provider} sign-in failed`);
     }
     setAuthLoading(false);
   };
@@ -6119,12 +6157,82 @@ const DemoPage = () => {
               )}
               {activeModal === 'auth' && (
                 <form onSubmit={authView === 'login' ? handleSignIn : handleSignUp} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {/* OAuth providers — industry-standard pattern. Top of the
+                      modal so they're the first option users see. */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => handleOAuth('google')}
+                      disabled={authLoading}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        padding: '12px', background: '#fff', border: '1px solid rgba(0,0,0,0.08)',
+                        borderRadius: 13, color: '#1f1f1f', fontSize: '0.86rem', fontWeight: 600,
+                        cursor: authLoading ? 'not-allowed' : 'pointer', opacity: authLoading ? 0.6 : 1,
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="#4285F4" d="M16.51 8.18c0-.57-.05-1.12-.15-1.66H9v3.14h4.21c-.18.99-.74 1.83-1.57 2.39v1.99h2.54c1.49-1.37 2.34-3.39 2.34-5.86z"/>
+                        <path fill="#34A853" d="M9 16.5c2.12 0 3.9-.7 5.2-1.9l-2.54-1.96c-.7.47-1.6.75-2.66.75-2.05 0-3.78-1.38-4.4-3.24H1.97v2.04C3.27 14.78 5.95 16.5 9 16.5z"/>
+                        <path fill="#FBBC05" d="M4.6 10.15c-.16-.47-.25-.97-.25-1.5s.09-1.03.25-1.5V5.11H1.97A7.49 7.49 0 0 0 1.5 8.65a7.5 7.5 0 0 0 .47 3.54L4.6 10.15z"/>
+                        <path fill="#EA4335" d="M9 4.42c1.16 0 2.2.4 3.02 1.18l2.25-2.25C12.9 2.1 11.12 1.5 9 1.5c-3.05 0-5.73 1.72-7.03 4.11l2.63 2.04C5.22 5.79 6.95 4.42 9 4.42z"/>
+                      </svg>
+                      Continue with Google
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOAuth('apple')}
+                      disabled={authLoading}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        padding: '12px', background: '#000', border: '1px solid rgba(255,255,255,0.18)',
+                        borderRadius: 13, color: '#fff', fontSize: '0.86rem', fontWeight: 600,
+                        cursor: authLoading ? 'not-allowed' : 'pointer', opacity: authLoading ? 0.6 : 1
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13.6 3.2c-.3-.4-.7-.7-1.2-.9-.5-.2-1-.3-1.5-.3-.4 0-.8.1-1.2.2-.4.1-.7.3-.9.5-.3.2-.5.4-.8.4-.2 0-.5-.1-.8-.4-.3-.2-.6-.4-1-.5-.4-.1-.8-.2-1.2-.2-.6 0-1.1.1-1.6.4s-.9.6-1.2 1.1c-.6.8-.9 1.8-.9 3 0 1 .2 2 .5 2.9.4 1 .9 1.9 1.5 2.6.5.6 1 1 1.6 1 .3 0 .6-.1.9-.2.3-.1.6-.2.9-.2.3 0 .6.1.9.2.3.1.6.2 1 .2.6 0 1.2-.4 1.7-1 .4-.4.7-.9.9-1.4-.6-.3-1-.7-1.3-1.2-.3-.5-.5-1.1-.5-1.7 0-.7.2-1.3.5-1.8.3-.5.7-.9 1.2-1.1zM11.5 1.8c.3-.4.6-.8.7-1.3.1-.4.2-.7.2-1V0c-.4.1-.8.2-1.2.5-.4.2-.7.6-.9.9-.3.4-.5.8-.6 1.3 0 .2-.1.5-.1.7 0 .1 0 .1.1.1.5 0 1-.1 1.4-.4.2-.3.3-.6.4-.9z"/>
+                      </svg>
+                      Continue with Apple
+                    </button>
+                  </div>
+
+                  {/* divider */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: authTheme.muted, fontSize: '0.72rem', margin: '4px 0' }}>
+                    <div style={{ flex: 1, height: 1, background: authTheme.fieldBorder }} />
+                    <span style={{ letterSpacing: 1 }}>OR</span>
+                    <div style={{ flex: 1, height: 1, background: authTheme.fieldBorder }} />
+                  </div>
+
+                  {/* Strong-contrast Sign in / Sign up segmented control */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 8, padding: 4, borderRadius: 16, background: authTheme.segment, border: `1px solid ${authTheme.fieldBorder}` }}>
-                    {['login', 'signup'].map(v => (
-                      <button key={v} type="button" onClick={() => { setAuthView(v); setAuthError(''); }} style={{ padding: '10px 8px', borderRadius: 12, cursor: 'pointer', border: 'none', background: authView === v ? authTheme.segmentActive : 'transparent', color: authView === v ? authTheme.text : authTheme.muted, fontSize: '0.86rem', fontWeight: 500, boxShadow: authView === v ? '0 8px 24px rgba(0,0,0,0.12)' : 'none' }}>
-                        {v === 'login' ? 'Sign in' : 'Sign up'}
-                      </button>
-                    ))}
+                    {['login', 'signup'].map(v => {
+                      const active = authView === v;
+                      return (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => { setAuthView(v); setAuthError(''); }}
+                          style={{
+                            padding: '11px 8px',
+                            borderRadius: 12,
+                            cursor: 'pointer',
+                            border: active ? '1px solid rgba(34,211,238,0.55)' : '1px solid transparent',
+                            background: active
+                              ? 'linear-gradient(135deg, rgba(34,211,238,0.30) 0%, rgba(124,58,237,0.30) 100%)'
+                              : 'transparent',
+                            color: active ? '#fff' : authTheme.muted,
+                            fontSize: '0.9rem',
+                            fontWeight: active ? 700 : 500,
+                            boxShadow: active ? '0 4px 16px rgba(34,211,238,0.25)' : 'none',
+                            transition: 'all 0.18s ease'
+                          }}
+                        >
+                          {v === 'login' ? 'Sign in' : 'Sign up'}
+                        </button>
+                      );
+                    })}
                   </div>
                   {[{ label: 'Email', val: authEmail, set: setAuthEmail, type: 'email', Icon: Mail }, { label: 'Password', val: authPassword, set: setAuthPassword, type: 'password', Icon: Lock }].map(({ label, val, set, type, Icon }) => (
                     <div key={label} style={{ position: 'relative' }}>
