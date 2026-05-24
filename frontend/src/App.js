@@ -4370,6 +4370,103 @@ const DemoPage = () => {
     volume: 0.95
   });
 
+  /**
+   * Unified LLM-response voice playback.
+   * Used by every chat path so we never accidentally drop voice.
+   *
+   * Try premium ElevenLabs via /api/tts; if it 401s / 5xxs / no audio / network
+   * fails, fall back to the browser SpeechSynthesis voice. Either way the user
+   * always hears something. Logs each step so devtools shows the path taken.
+   *
+   * `data.audio_url` (from /api/converse) is honoured first when present —
+   * saves an extra /api/tts round-trip on that path.
+   */
+  const playLlmResponseAudio = async (responseText, options = {}) => {
+    if (!responseText) return;
+    if (!isAudioPlaybackUnlocked()) {
+      console.warn('[voice] audio playback not unlocked, skipping');
+      return;
+    }
+
+    const { inlineAudioUrl, token, color } = options;
+    const audio = audioRef.current || (audioRef.current = new Audio());
+
+    // Reset any cue/prior playback before we attach new handlers
+    try { audio.pause(); audio.currentTime = 0; } catch {}
+
+    const playUrl = async (url) => new Promise((resolve) => {
+      audio.src = url;
+      audio.volume = 1;
+      audio.onplay = () => { setIsSpeaking(true); startAudioAnalysis(); };
+      audio.onpause = () => stopAudioAnalysis();
+      audio.onended = () => {
+        setIsSpeaking(false);
+        stopAudioAnalysis();
+        resolve(true);
+        // Auto-restart listening for ChatGPT-style continuous voice convo
+        if (toggleListeningRef.current && voiceReplyRequestedRef.current === false) {
+          setTimeout(() => toggleListeningRef.current?.(), 400);
+        }
+      };
+      audio.onerror = () => {
+        console.warn('[voice] audio element onerror');
+        setIsSpeaking(false);
+        stopAudioAnalysis();
+        resolve(false);
+      };
+      audio.play().catch((e) => {
+        console.warn('[voice] audio.play() rejected:', e?.message || e);
+        setIsSpeaking(false);
+        stopAudioAnalysis();
+        resolve(false);
+      });
+    });
+
+    let played = false;
+
+    // Path 1 — inline audio from /api/converse (already MP3 base64)
+    if (inlineAudioUrl) {
+      console.log('[voice] using inline audio_url from response');
+      played = await playUrl(inlineAudioUrl);
+    }
+
+    // Path 2 — /api/tts (premium ElevenLabs)
+    if (!played) {
+      try {
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ text: String(responseText).slice(0, 500), color: color || 'yellow' })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (data.audio_url) {
+          console.log('[voice] /api/tts ok, playing');
+          played = await playUrl(data.audio_url);
+        } else {
+          console.warn('[voice] /api/tts no audio_url:', data.error || `HTTP ${res.status}`);
+        }
+      } catch (err) {
+        console.warn('[voice] /api/tts fetch failed:', err?.message || err);
+      }
+    }
+
+    // Path 3 — browser SpeechSynthesis (always available, free, less premium)
+    if (!played) {
+      console.log('[voice] falling back to browser SpeechSynthesis');
+      try {
+        const ok = await speakBrowserResponse(responseText);
+        if (!ok) console.warn('[voice] browser SpeechSynthesis failed too');
+      } catch (err) {
+        console.warn('[voice] browser TTS threw:', err?.message || err);
+      }
+    }
+
+    voiceReplyRequestedRef.current = false;
+  };
+
   const startMicAnalysis = async () => {
     const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextCtor || !navigator.mediaDevices?.getUserMedia) return;
@@ -4679,35 +4776,12 @@ const DemoPage = () => {
         setAgentMode('read-only');
         if (streamRes.ok) setModelUsed('agent-stream-v1');
 
-        // ── Speak the agentic response via ElevenLabs if voice mode is on ──
-        if ((speakerEnabled || voiceReplyRequestedRef.current) && responseText && isAudioPlaybackUnlocked()) {
-          fetch('/api/tts', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(initialToken ? { Authorization: `Bearer ${initialToken}` } : {})
-            },
-            body: JSON.stringify({ text: responseText.slice(0, 500) })
-          }).then(r => r.json()).then(ttsData => {
-            if (ttsData.audio_url && isAudioPlaybackUnlocked()) {
-              if (!audioRef.current) audioRef.current = new Audio();
-              audioRef.current.src = ttsData.audio_url;
-              audioRef.current.volume = 1;
-              audioRef.current.onplay = () => { setIsSpeaking(true); startAudioAnalysis(); };
-              audioRef.current.onpause = stopAudioAnalysis;
-              audioRef.current.onended = () => {
-                setIsSpeaking(false); stopAudioAnalysis();
-                // Auto-restart listening after AI finishes speaking (voice conversation mode)
-                if (voiceReplyRequestedRef.current === false && toggleListeningRef.current) {
-                  setTimeout(() => toggleListeningRef.current?.(), 400);
-                }
-              };
-              audioRef.current.play().catch(() => { setIsSpeaking(false); stopAudioAnalysis(); });
-            } else {
-              speakBrowserResponse(responseText);
-            }
-          }).catch(() => speakBrowserResponse(responseText));
-          voiceReplyRequestedRef.current = false;
+        // ── Speak the agentic response via unified voice helper ──
+        if ((speakerEnabled || voiceReplyRequestedRef.current) && responseText) {
+          playLlmResponseAudio(responseText, {
+            token: initialToken,
+            color: activeColor
+          }).catch((err) => console.warn('[voice] playLlmResponseAudio threw:', err?.message || err));
         }
 
         const agentData = { rgy: null, audio_url: null };
@@ -4774,39 +4848,14 @@ const DemoPage = () => {
         const capturedSignal = signalFromRgy({ ...data.rgy, color: normalizedColor }, data.keywords || {}, cleanInput);
         if (capturedSignal) await rememberSignal(capturedSignal);
       }
-      try {
-        if ((speakerEnabled || voiceReplyRequestedRef.current) && isAudioPlaybackUnlocked()) {
-          if (!data.audio_url) {
-            speakBrowserResponse(enrichedResponseText);
-          } else {
-            if (!audioRef.current) audioRef.current = new Audio();
-            audioRef.current.src = data.audio_url;
-            audioRef.current.volume = 1;
-            audioRef.current.onplay = () => {
-              setIsSpeaking(true);
-              startAudioAnalysis();
-            };
-            audioRef.current.onpause = stopAudioAnalysis;
-            audioRef.current.onended = () => {
-              setIsSpeaking(false);
-              stopAudioAnalysis();
-            };
-            audioRef.current.play().catch(e => {
-              console.error("Audio play failed:", e);
-              setIsSpeaking(false);
-              stopAudioAnalysis();
-            });
-          }
-          voiceReplyRequestedRef.current = false;
-        }
-      } catch (playbackError) {
-        if (voiceReplyRequestedRef.current) {
-          speakBrowserResponse(enrichedResponseText);
-          voiceReplyRequestedRef.current = false;
-        }
-        console.warn('Optional response voice playback failed:', playbackError.message);
-        setIsSpeaking(false);
-        setSpeakingAudioLevel(0);
+      if ((speakerEnabled || voiceReplyRequestedRef.current) && enrichedResponseText) {
+        // /api/converse returns audio_url inline — use it first, fall through to
+        // /api/tts then browser TTS via the unified helper.
+        playLlmResponseAudio(enrichedResponseText, {
+          inlineAudioUrl: data.audio_url,
+          token: initialToken,
+          color: activeColor
+        }).catch((err) => console.warn('[voice] playLlmResponseAudio threw:', err?.message || err));
       }
       try {
         await rememberConversation(cleanInput, enrichedResponseText, data);
