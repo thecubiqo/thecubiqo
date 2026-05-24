@@ -3808,6 +3808,7 @@ const DemoPage = () => {
   const manualStopRef = useRef(false);
   const listeningActiveRef = useRef(false);
   const listeningSilenceTimerRef = useRef(null);
+  const listeningStartedAtRef = useRef(0);
   const callBackendRef = useRef(null);
   const toggleListeningRef = useRef(null);
   const audioUnlockedRef = useRef(false);
@@ -4207,8 +4208,11 @@ const DemoPage = () => {
       clearListeningSilenceTimer();
       const text = transcriptRef.current.trim();
       const wasManualStop = manualStopRef.current;
+      const startedAt = listeningStartedAtRef.current || 0;
+      const heldFor = startedAt ? Date.now() - startedAt : 0;
       manualStopRef.current = false;
       listeningActiveRef.current = false;
+      listeningStartedAtRef.current = 0;
       stopMicAnalysis();
       transcriptRef.current = '';
       setSpeakerEnabled(false);
@@ -4216,6 +4220,12 @@ const DemoPage = () => {
         setIsProcessing(true);
         callBackendRef.current?.(text);
       } else if (wasManualStop) {
+        voiceReplyRequestedRef.current = false;
+        setConversationError('');
+      } else if (heldFor < 3000) {
+        // Recognition ended too fast — usually a mobile gesture race or denied
+        // mic permission. Don't shame the user with "No speech detected" when
+        // they didn't even get a chance to speak. Silently reset.
         voiceReplyRequestedRef.current = false;
         setConversationError('');
       } else {
@@ -4423,6 +4433,8 @@ const DemoPage = () => {
     if (!audio) return;
     stopAudioAnalysis();
     setSpeakingAudioLevel(0);
+
+    let elevenLabsWorked = false;
     try {
       // Abort if ElevenLabs takes longer than 3.5 s — visual "I am listening." is enough
       const controller = new AbortController();
@@ -4439,22 +4451,33 @@ const DemoPage = () => {
       } finally {
         clearTimeout(timeout);
       }
-      if (!data?.audio_url) return; // silent — text label is already showing
-      await new Promise((resolve) => {
-        audio.pause();
-        audio.currentTime = 0;
-        audio.onplay = null;
-        audio.onpause = null;
-        audio.src = data.audio_url;
-        audio.volume = 0.82;
-        audio.onended = resolve;
-        audio.onerror = resolve;
-        audio.play().catch(resolve);
-      });
+      if (data?.audio_url) {
+        await new Promise((resolve) => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.onplay = () => { elevenLabsWorked = true; };
+          audio.onpause = null;
+          audio.src = data.audio_url;
+          audio.volume = 0.82;
+          audio.onended = resolve;
+          audio.onerror = resolve;
+          audio.play().catch(resolve);
+        });
+      } else if (data?.error) {
+        // Diagnostic: log so we can see quota_exceeded / no-key in console
+        console.warn('[voice-cue]', data.error);
+      }
     } catch {
-      // silent fail — "I am listening." text is on screen
+      // fetch / abort path — fall through to browser TTS
     } finally {
       setSpeakingAudioLevel(0);
+    }
+
+    // Fallback: when ElevenLabs is over-quota / no-key / failed, use the
+    // browser's built-in SpeechSynthesis so the user always hears the cue.
+    // The browser voice is less premium but always available and free.
+    if (!elevenLabsWorked) {
+      try { await speakBrowserListeningCue(); } catch {}
     }
   };
 
@@ -4852,14 +4875,27 @@ const DemoPage = () => {
   };
 
   const toggleListening = async () => {
+    // CRITICAL: do all audio + mic + recognition work synchronously inside this
+    // user gesture. Mobile browsers (Chrome Android, iOS Safari) only honour
+    // .play() and getUserMedia() calls that happen on the SAME tick as the
+    // user tap — any await before them kills the gesture and the OS denies
+    // both audio playback and mic permission.
     unlockAudioPlayback();
-    // Unlock audio context for iOS/Safari
     if (audioRef.current) {
-      audioRef.current.volume = 0;
-      audioRef.current.play().catch(() => {});
+      // Pre-warm the audio element with a silent data URL inside the gesture.
+      // Calling .play() with no src is a no-op on mobile; setting a tiny valid
+      // src first lets the element become "user-unlocked" for later writes.
+      try {
+        if (!audioRef.current.src) {
+          audioRef.current.src = 'data:audio/mp3;base64,/+MYxAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+        }
+        audioRef.current.volume = 0;
+        audioRef.current.play().catch(() => {});
+      } catch {}
     }
-    
+
     if (isProcessing) return;
+
     if (speakerEnabled) {
       manualStopRef.current = true;
       listeningActiveRef.current = false;
@@ -4870,37 +4906,33 @@ const DemoPage = () => {
       recognitionRef.current?.stop?.();
       return;
     }
-    if (!speakerEnabled) {
-      if (!recognitionRef.current) {
-        setConversationError('Voice input unavailable in this browser. Use the text field instead.');
-        return;
-      }
-      transcriptRef.current = '';
-      manualStopRef.current = false;
-      listeningActiveRef.current = true;
-      voiceReplyRequestedRef.current = true;
-      setSpeakerEnabled(true);
-      try {
-        // Play "I am listening" FIRST, then start recognition so it
-        // doesn't time out while the cue audio is playing
-        await playListeningCue().catch(() => null);
-        if (!listeningActiveRef.current) return; // user cancelled during cue
-        recognitionRef.current?.start();
-        startMicAnalysis();
-      } catch (e) {
-        // Fallback: simulate for browsers without mic/Speech API
-        setSpeakerEnabled(true);
-        setTimeout(() => {
-          const fake = 'simulated voice input about balance and focus';
-          transcriptRef.current = fake;
-          recognitionRef.current?.dispatchEvent && recognitionRef.current.dispatchEvent(new Event('end'));
-          // manual fallback
-          setSpeakerEnabled(false);
-          setIsProcessing(true);
-          callBackend(fake);
-        }, 3000);
-      }
+
+    if (!recognitionRef.current) {
+      setConversationError('Voice input unavailable in this browser. Use the text field instead.');
+      return;
     }
+
+    transcriptRef.current = '';
+    manualStopRef.current = false;
+    listeningActiveRef.current = true;
+    voiceReplyRequestedRef.current = true;
+    listeningStartedAtRef.current = Date.now();
+    setConversationError('');
+    setSpeakerEnabled(true);
+
+    // STEP 1 (sync, in-gesture): start recognition so the browser keeps the
+    // mic permission grant attached to this tap.
+    try {
+      recognitionRef.current.start();
+    } catch (err) {
+      // start() throws if already running — safe to ignore
+    }
+    startMicAnalysis();
+
+    // STEP 2 (fire-and-forget): play the cue. The audio element was unlocked
+    // above, so when fetch resolves and we set .src + .play(), mobile honours
+    // it because the same element already passed the unlock gate.
+    playListeningCue().catch(() => {});
   };
   // Keep ref in sync so async callbacks (e.g. TTS onended) can trigger a new listen cycle
   toggleListeningRef.current = toggleListening;
