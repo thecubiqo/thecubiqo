@@ -16,34 +16,25 @@ const domains: CapabilityDomain[] = [
     currentV1: [
       'understand target roles, industries, locations, compensation, resume strengths, gaps, and application strategy',
       'draft resumes, cover letters, recruiter messages, LinkedIn summaries, interview prep, and application plans',
-      'plan a job-search cadence, match criteria, resume tailoring strategy, and approval points without claiming jobs were scanned or applications were submitted',
       'explain which job-hunt capabilities are present versus missing from the current repo'
     ],
     requiredContext: [
       'resume and work history',
       'target titles, seniority, salary, locations, remote/hybrid preference',
       'preferred job boards and employer sites',
-      'search cadence, match-score threshold, and priority sources: LinkedIn, Indeed, Dice, Workday, Greenhouse, Lever, ZipRecruiter, and Wellfound',
       'visa/work authorization constraints when relevant',
       'application rules: easy apply only, direct site apply, recruiter outreach, or all',
-      'salary-field rules, custom essay-question handling, and final-submit approval preference',
       'approval preference before any submission or message'
     ],
     preferredV2Path: [
       'use job/search APIs or approved partner connectors first',
       'use browser/extension only when a target site has no suitable API and the user approves the visible session',
-      'run a managed 12-hour per-profile search schedule only after the user configures sources and threshold',
-      'store only job tracker state, resume versions, cover-letter versions, match scores, screenshots, and audit records in CubiQo; do not custom-build a job-board crawler'
+      'store only job tracker state in CubiQo; do not custom-build a job-board crawler'
     ],
     v2ToolsRequired: [
       'job source connectors or compliant search APIs for fresh postings',
       'job tracker tables for searches, saved jobs, application status, resume versions, and outreach',
-      'per-profile 12-hour cron/search schedule with user-set source list and match threshold',
-      'full JD capture and semantic scoring against the saved job profile and base resume',
-      'tailored resume version and role-specific cover letter generation, saved as append-only Supabase versions',
-      'application tracking fields: company, role, JD URL, resume version, cover letter version, applied_at, status, and approval_id',
       'browser extension or approved browser session for user-visible site applications',
-      'complex-form handler that pre-fills from the saved profile, screenshots every step, and flags essays or salary fields for user input',
       'resume/profile parser and job-to-resume matching scorer',
       'approval card before every apply, upload, message, or profile update',
       'audit log of every job action and submitted field'
@@ -213,37 +204,30 @@ const domains: CapabilityDomain[] = [
     currentV1: [
       'plan campaigns, content calendars, hooks, captions, offers, and affiliate positioning',
       'draft 10/10/10 style campaign plans without posting',
-      'prepare creative briefs for GFXTools or design generation',
-      'plan weekly content calendars, batch approvals, and reporting without claiming posts were scheduled or analytics were pulled'
+      'prepare creative briefs for GFXTools or design generation'
     ],
     requiredContext: [
       'brand, offer, audience, platforms, accounts, cadence, and region',
       'affiliate products, payout rules, disclosure requirements, and link tracking',
-      'creative style, compliance rules, and approval flow',
-      'active Shopify products, ready GFXTools assets, posting frequency, target platforms, and weekly reporting goals'
+      'creative style, compliance rules, and approval flow'
     ],
     preferredV2Path: [
       'use social platform APIs where available',
       'use GFXTools or image-generation APIs for creative work',
-      'build weekly calendars from active Shopify products, ready GFXTools assets, and user-set frequency/platforms',
-      'use managed scheduler/cron only after explicit account connection and batch approval'
+      'use managed scheduler/cron only after explicit account connection and approval'
     ],
     v2ToolsRequired: [
       'social account connectors or approved browser sessions',
       'GFXTools integration',
-      'campaign/task/report tables plus a content calendar table for pending, approved, posted, and failed items',
+      'campaign/task/report tables',
       'scheduler/cron runner',
-      'weekly batch approval card with approve-all, edit-single, and remove-single controls',
-      'platform analytics readers for impressions, engagement, reach, and top post summaries',
-      'approval and audit log before every post or schedule'
+      'approval and audit log before every post'
     ],
     blockedUntilV2: [
       'posting to social accounts',
       'running the 10/10/10 automation',
-      'building or firing a weekly calendar without connected products/assets and user cadence',
       'creating public ads',
-      'publishing affiliate links',
-      'claiming weekly analytics without platform API data'
+      'publishing affiliate links'
     ],
     safeDefaultStrategy:
       'V1 drafts and plans. V2 schedules or posts only after account connection and approval.'

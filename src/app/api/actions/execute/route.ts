@@ -3,10 +3,6 @@ import { requireApiUser, type ApiUserContext } from '../../_lib/supabase-admin';
 import { getActionCapability } from '../../_lib/v2-capabilities';
 import { completeApproval, normalizeActionType, normalizePayload, normalizeToolName, requireApprovedAction, writeAudit } from '../../_lib/v2-actions';
 import {
-  getHardStopReason,
-  getUrlAllowlistDecision
-} from '../../_lib/guardrails';
-import {
   closeBrowserSession,
   createBrowserSession,
   isBrowserAction,
@@ -35,10 +31,7 @@ import {
   getPodApprovalPreviewCard,
   getPodConnectorStatuses,
   isPodAction,
-  listPodBusinessState,
-  preparePrintifyDesign,
-  prepareShopifyProduct,
-  resizeGfxAsset
+  listPodBusinessState
 } from '../../_lib/pod-business-workflows';
 import {
   getSocialApprovalPreviewCard,
@@ -48,31 +41,6 @@ import {
   prepareSocialPost,
   scheduleSocialPost
 } from '../../_lib/social-workflows';
-import {
-  assignShopifyCollection,
-  connectAfterShip,
-  connectDirectProvider,
-  connectShopifyStore,
-  createBundle,
-  createProviderDesign,
-  createShopifyCollection,
-  createShopifyProduct,
-  isShopifyPodOperationAction,
-  listCommerceState,
-  mutateShopifyProduct,
-  readAfterShipReturns,
-  readAfterShipTracking,
-  readAnalytics,
-  readBundles,
-  readFulfilmentProviders,
-  readInventory,
-  readMarketplaceStatus,
-  readOrderSummary,
-  readProviderProductStatus,
-  readShopifyStoreStatus,
-  syncProviderProduct,
-  updateInventory
-} from '../../_lib/shopify-pod-operations';
 
 export const runtime = 'nodejs';
 
@@ -108,24 +76,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   }
 
-  if (request.nextUrl.searchParams.get('commerce_state') === '1') {
-    const result = await listCommerceState(auth);
-    if ('error' in result && result.error) return result.error instanceof Response ? result.error : NextResponse.json({ error: result.error instanceof Error ? result.error.message : 'Commerce state failed' }, { status: 500 });
-    return NextResponse.json(result);
-  }
-
   return NextResponse.json({ error: 'Unsupported execute query' }, { status: 400 });
 }
 
 async function handleSocialConnectorStatusAction(auth: ApiUserContext, actionType: string, toolName: string) {
   if (actionType !== 'social_connector_status') return null;
-  const statusesResult = await getSocialConnectorStatuses(auth);
-  if ('error' in statusesResult && statusesResult.error) {
-    return statusesResult.error instanceof Response
-      ? statusesResult.error
-      : NextResponse.json({ error: statusesResult.error.message }, { status: 500 });
-  }
-  const statuses = statusesResult.connectors;
+  const statuses = getSocialConnectorStatuses().connectors;
   await writeAudit(auth, {
     actionType,
     toolName,
@@ -362,144 +318,21 @@ async function handlePodAction(
         actionType,
         toolName,
         status: 'completed',
-        message: 'Processed approved GFXTools job and saved structured asset state',
-        input: { briefId: payload.briefId || payload.brief_id || payload.podDesignBriefId || payload.pod_design_brief_id },
+        message: 'Prepared approved GFXTools job payload; no external call was performed',
+        input: { podDesignBriefId: payload.podDesignBriefId || payload.pod_design_brief_id },
         result: {
           job: created.job,
-          asset: created.asset,
           previewCard: created.previewCard,
           connector: created.connector,
-          externalCallPerformed: created.externalCallPerformed
+          externalCallPerformed: false
         }
       });
       await completeApproval(auth, approvalId, true);
       return NextResponse.json({
         executed: true,
         job: created.job,
-        asset: created.asset,
         previewCard: created.previewCard,
         connector: created.connector,
-        externalCallPerformed: created.externalCallPerformed
-      });
-    }
-
-    if (actionType === 'gfxtools_asset_resize') {
-      const resized = await resizeGfxAsset(auth, approvalId, payload, previewCard);
-      if ('error' in resized && resized.error) return resized.error instanceof Response ? resized.error : NextResponse.json({ error: resized.error.message }, { status: 500 });
-      if ('blocked' in resized && resized.blocked) {
-        await writeAudit(auth, {
-          approvalId,
-          actionType,
-          toolName,
-          status: 'blocked',
-          message: resized.blocked,
-          input: { assetId: payload.assetId || payload.asset_id }
-        });
-        return NextResponse.json({ error: resized.blocked, executed: false }, { status: resized.status || 400 });
-      }
-      if (!('asset' in resized)) return NextResponse.json({ error: 'GFXTools asset could not be resized', executed: false }, { status: 500 });
-      await writeAudit(auth, {
-        approvalId,
-        actionType,
-        toolName,
-        status: 'completed',
-        message: 'Generated platform-sized variants and emitted asset_ready event',
-        input: { assetId: payload.assetId || payload.asset_id },
-        result: {
-          asset: resized.asset,
-          assetReadyEvent: resized.event,
-          previewCard: resized.previewCard,
-          externalCallPerformed: false
-        }
-      });
-      await completeApproval(auth, approvalId, true);
-      return NextResponse.json({
-        executed: true,
-        asset: resized.asset,
-        assetReadyEvent: resized.event,
-        previewCard: resized.previewCard,
-        externalCallPerformed: false
-      });
-    }
-
-    if (actionType === 'shopify_product_prepare') {
-      const prepared = await prepareShopifyProduct(auth, approvalId, payload, previewCard);
-      if ('error' in prepared && prepared.error) return prepared.error instanceof Response ? prepared.error : NextResponse.json({ error: prepared.error.message }, { status: 500 });
-      if ('blocked' in prepared && prepared.blocked) {
-        await writeAudit(auth, {
-          approvalId,
-          actionType,
-          toolName,
-          status: 'blocked',
-          message: prepared.blocked,
-          input: { assetId: payload.assetId || payload.asset_id }
-        });
-        return NextResponse.json({ error: prepared.blocked, executed: false }, { status: prepared.status || 400 });
-      }
-      if (!('preparation' in prepared)) return NextResponse.json({ error: 'Shopify product preparation could not be saved', executed: false }, { status: 500 });
-      await writeAudit(auth, {
-        approvalId,
-        actionType,
-        toolName,
-        status: 'completed',
-        message: 'Prepared approved Shopify product payload',
-        input: { assetId: payload.assetId || payload.asset_id },
-        result: {
-          preparation: prepared.preparation,
-          connector: prepared.connector,
-          previewCard: prepared.previewCard,
-          assetId: prepared.preparation.assetId,
-          service: 'shopify',
-          externalCallPerformed: false
-        }
-      });
-      await completeApproval(auth, approvalId, true);
-      return NextResponse.json({
-        executed: true,
-        preparation: prepared.preparation,
-        connector: prepared.connector,
-        previewCard: prepared.previewCard,
-        externalCallPerformed: false
-      });
-    }
-
-    if (actionType === 'printify_design_prepare') {
-      const prepared = await preparePrintifyDesign(auth, approvalId, payload, previewCard);
-      if ('error' in prepared && prepared.error) return prepared.error instanceof Response ? prepared.error : NextResponse.json({ error: prepared.error.message }, { status: 500 });
-      if ('blocked' in prepared && prepared.blocked) {
-        await writeAudit(auth, {
-          approvalId,
-          actionType,
-          toolName,
-          status: 'blocked',
-          message: prepared.blocked,
-          input: { assetId: payload.assetId || payload.asset_id }
-        });
-        return NextResponse.json({ error: prepared.blocked, executed: false }, { status: prepared.status || 400 });
-      }
-      if (!('preparation' in prepared)) return NextResponse.json({ error: 'Printify design preparation could not be saved', executed: false }, { status: 500 });
-      await writeAudit(auth, {
-        approvalId,
-        actionType,
-        toolName,
-        status: 'completed',
-        message: 'Prepared approved Printify design payload',
-        input: { assetId: payload.assetId || payload.asset_id },
-        result: {
-          preparation: prepared.preparation,
-          connector: prepared.connector,
-          previewCard: prepared.previewCard,
-          assetId: prepared.preparation.assetId,
-          service: 'printify',
-          externalCallPerformed: false
-        }
-      });
-      await completeApproval(auth, approvalId, true);
-      return NextResponse.json({
-        executed: true,
-        preparation: prepared.preparation,
-        connector: prepared.connector,
-        previewCard: prepared.previewCard,
         externalCallPerformed: false
       });
     }
@@ -516,146 +349,6 @@ async function handlePodAction(
       input: payload
     });
     return NextResponse.json({ error: error instanceof Error ? error.message : 'POD workflow failed', executed: false }, { status: 400 });
-  }
-}
-
-const COMMERCE_READ_ACTIONS = new Set([
-  'shopify_store_status',
-  'fulfilment_provider_read',
-  'provider_product_status',
-  'shopify_inventory_read',
-  'shopify_orders_read',
-  'shopify_order_summary',
-  'aftership_tracking_read',
-  'aftership_returns_read',
-  'shopify_analytics_read',
-  'shopify_bundles_read',
-  'marketplace_status_read'
-]);
-
-async function handleShopifyPodOperationAction(
-  auth: ApiUserContext,
-  actionType: string,
-  toolName: string,
-  body: Record<string, any>
-) {
-  if (!isShopifyPodOperationAction(actionType)) {
-    return null;
-  }
-
-  const capability = getActionCapability(actionType);
-  if (!capability || (!COMMERCE_READ_ACTIONS.has(actionType) && capability.status !== 'active')) {
-    await writeAudit(auth, {
-      actionType,
-      toolName,
-      status: 'blocked',
-      message: 'Commerce workflow blocked because the capability is locked',
-      input: { actionType },
-      result: {
-        capabilityStatus: capability?.status || 'missing',
-        requirements: capability?.requirements || []
-      }
-    });
-    return NextResponse.json({ error: 'Commerce workflow is locked until this capability is active', executed: false, capability }, { status: 501 });
-  }
-
-  if (COMMERCE_READ_ACTIONS.has(actionType)) {
-    const payload = normalizePayload(body.payload);
-    const readMap: Record<string, () => Promise<any>> = {
-      shopify_store_status: () => readShopifyStoreStatus(auth),
-      fulfilment_provider_read: () => readFulfilmentProviders(auth),
-      provider_product_status: () => readProviderProductStatus(auth),
-      shopify_inventory_read: () => readInventory(auth),
-      shopify_orders_read: () => readOrderSummary(auth, payload),
-      shopify_order_summary: () => readOrderSummary(auth, payload),
-      aftership_tracking_read: () => readAfterShipTracking(auth),
-      aftership_returns_read: () => readAfterShipReturns(auth),
-      shopify_analytics_read: () => readAnalytics(auth, payload),
-      shopify_bundles_read: () => readBundles(auth),
-      marketplace_status_read: () => readMarketplaceStatus(auth)
-    };
-    const result = await readMap[actionType]();
-    if ('error' in result && result.error) return result.error instanceof Response ? result.error : NextResponse.json({ error: result.error.message }, { status: 500 });
-    await writeAudit(auth, {
-      actionType,
-      toolName,
-      status: 'completed',
-      message: 'Commerce read-only action completed without customer PII or external mutation',
-      input: payload,
-      result: { ...result, performedExternalAction: false }
-    });
-    return NextResponse.json({ executed: true, readOnly: true, result, performedExternalAction: false });
-  }
-
-  const approvalId = String(body.approvalId ?? body.approval_id ?? '').trim();
-  const approvalCheck = await requireApprovedAction(auth, approvalId, actionType);
-  if (approvalCheck.error) return approvalCheck.error;
-
-  const payload = normalizePayload(approvalCheck.approval?.payload);
-  const previewCard = getPodApprovalPreviewCard(approvalCheck.approval);
-  try {
-    const writeMap: Record<string, () => Promise<any>> = {
-      shopify_store_connect: () => connectShopifyStore(auth, approvalId, payload, previewCard),
-      pod_provider_connect: () => connectDirectProvider(auth, approvalId, payload, previewCard),
-      aftership_connect: () => connectAfterShip(auth, approvalId, payload, previewCard),
-      shopify_product_create: () => createShopifyProduct(auth, approvalId, payload, previewCard),
-      shopify_product_publish: () => mutateShopifyProduct(auth, approvalId, 'shopify_product_publish', payload, previewCard),
-      shopify_product_update: () => mutateShopifyProduct(auth, approvalId, 'shopify_product_update', payload, previewCard),
-      shopify_product_archive: () => mutateShopifyProduct(auth, approvalId, 'shopify_product_archive', payload, previewCard),
-      design_create: () => createProviderDesign(auth, approvalId, payload, previewCard),
-      product_sync: () => syncProviderProduct(auth, approvalId, payload, previewCard),
-      shopify_collection_create: () => createShopifyCollection(auth, approvalId, payload, previewCard),
-      shopify_collection_assign: () => assignShopifyCollection(auth, approvalId, payload, previewCard),
-      shopify_inventory_update: () => updateInventory(auth, approvalId, payload, previewCard),
-      shopify_bundle_create: () => createBundle(auth, approvalId, payload, previewCard)
-    };
-
-    const runner = writeMap[actionType];
-    if (!runner) return null;
-    const result = await runner();
-    if ('error' in result && result.error) return result.error instanceof Response ? result.error : NextResponse.json({ error: result.error.message }, { status: 500 });
-    if ('blocked' in result && result.blocked) {
-      await writeAudit(auth, {
-        approvalId,
-        actionType,
-        toolName,
-        status: 'blocked',
-        message: result.blocked,
-        input: payload,
-        result: result.details || {}
-      });
-      return NextResponse.json({ error: result.blocked, executed: false, details: result.details || {} }, { status: result.status || 400 });
-    }
-
-    const productId = result.product?.productId || result.product?.product_id || payload.productId || payload.product_id || null;
-    const provider = result.provider || payload.provider || payload.fulfillmentProvider || payload.fulfillment_provider || null;
-    await writeAudit(auth, {
-      approvalId,
-      actionType,
-      toolName,
-      status: 'completed',
-      message: 'Approved commerce operation completed through the server action boundary',
-      input: {
-        productId,
-        provider,
-        assetId: payload.assetId || payload.asset_id,
-        service: payload.service || null
-      },
-      result
-    });
-    await completeApproval(auth, approvalId, true);
-    return NextResponse.json({ executed: true, result });
-  } catch (error) {
-    await completeApproval(auth, approvalId, false);
-    await writeAudit(auth, {
-      approvalId,
-      actionType,
-      toolName,
-      status: 'failed',
-      message: error instanceof Error ? error.message : 'Commerce workflow failed',
-      input: payload
-    });
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Commerce workflow failed', executed: false }, { status: 400 });
   }
 }
 
@@ -835,86 +528,24 @@ async function handleBrowserAction(
   const approvalCheck = await requireApprovedAction(auth, approvalId, actionType);
   if (approvalCheck.error) return approvalCheck.error;
 
-  const approval = approvalCheck.approval;
-  const payload = {
-    ...normalizeBrowserPayload(body.payload),
-    ...normalizeBrowserPayload(approval?.payload)
-  };
-  const approvedBrowserSessionId = normalizeBrowserSessionId(
-    approval?.browser_session_id ?? approval?.payload?.browser_session_id
-  );
-  if (actionType !== 'browser_open') {
-    if (!browserSessionId || !approvedBrowserSessionId || browserSessionId !== approvedBrowserSessionId) {
-      await writeAudit(auth, {
-        approvalId,
-        browserSessionId: browserSessionId || null,
-        actionType,
-        toolName,
-        status: 'blocked',
-        message: 'Browser action blocked because the session id did not match the approval record',
-        input: { browserSessionId, approvedBrowserSessionId },
-        blockReason: browserSessionId ? 'session_hijack_attempt' : 'no_approval_record'
-      });
-      return NextResponse.json(
-        { error: 'Browser session approval mismatch', executed: false, blockReason: 'session_hijack_attempt' },
-        { status: 403 }
-      );
-    }
-  }
-
+  const payload = normalizeBrowserPayload(body.payload);
   try {
     if (actionType === 'browser_open') {
-      const openPayload = {
-        ...payload,
-        browser_session_id: approvedBrowserSessionId || payload.browser_session_id
-      };
-      const urlDecision = getUrlAllowlistDecision(openPayload);
-      const untrustedUrlConfirmed = Boolean(
-        (approval?.requires_user_confirmation || approval?.payload?.requires_user_confirmation) &&
-          (approval?.user_confirmation_state || approval?.payload?.user_confirmation_state) === 'confirmed'
-      );
-      if (!urlDecision.ok && !untrustedUrlConfirmed) {
-        await writeAudit(auth, {
-          approvalId,
-          browserSessionId: approvedBrowserSessionId || null,
-          actionType,
-          toolName,
-          status: 'blocked',
-          message: 'Browser open blocked because the URL is not allowlisted',
-          input: { url: urlDecision.rawUrl, hostname: urlDecision.hostname },
-          blockReason: urlDecision.reason || 'suspicious_url'
-        });
-        return NextResponse.json(
-          {
-            error: 'This domain is not on your trusted list. Request an approval with extra confirmation before navigating there.',
-            executed: false,
-            requiresUserConfirmation: true,
-            blockReason: urlDecision.reason || 'suspicious_url'
-          },
-          { status: 403 }
-        );
-      }
-
-      const opened = await createBrowserSession(auth, approvalId, openPayload);
+      const opened = await createBrowserSession(auth, approvalId, payload);
       if ('error' in opened && opened.error) return opened.error instanceof Response ? opened.error : NextResponse.json({ error: opened.error.message }, { status: 500 });
       if (!('session' in opened)) return NextResponse.json({ error: 'Browser session could not be opened', executed: false }, { status: 500 });
-      await auth.supabase
-        .from('action_approvals')
-        .update({ browser_session_id: opened.session.id, updated_at: new Date().toISOString() })
-        .eq('id', approvalId)
-        .eq('user_id', auth.user.id);
       await writeAudit(auth, {
         approvalId,
         browserSessionId: opened.session.id,
         actionType,
         toolName,
         status: 'completed',
-        message: 'Stagehand Browserbase session opened',
+        message: 'Browser session container opened',
         input: { url: opened.session.targetUrl },
-        result: { session: opened.session, performedExternalBrowserAction: true }
+        result: { session: opened.session, performedExternalBrowserAction: false }
       });
       await completeApproval(auth, approvalId, true);
-      return NextResponse.json({ executed: true, browserSession: opened.session, performedExternalBrowserAction: true });
+      return NextResponse.json({ executed: true, browserSession: opened.session, performedExternalBrowserAction: false });
     }
 
     if (!browserSessionId) {
@@ -950,10 +581,9 @@ async function handleBrowserAction(
       actionType,
       toolName,
       status: 'completed',
-      message: 'Browser action executed in isolated Stagehand session',
+      message: 'Browser action recorded in isolated session container',
       input: normalizePayload(body.payload),
-      result: recorded.action,
-      screenshotUrl: typeof recorded.action.screenshotUrl === 'string' ? recorded.action.screenshotUrl : null
+      result: recorded.action
     });
     await completeApproval(auth, approvalId, true);
     return NextResponse.json({ executed: true, browserSession: recorded.session, action: recorded.action });
@@ -1128,22 +758,6 @@ export async function POST(request: NextRequest) {
 
   const capability = getActionCapability(actionType);
   const toolName = normalizeToolName(body.toolName ?? body.tool_name, actionType);
-  const payload = normalizePayload(body.payload);
-  const hardStopReason = getHardStopReason(actionType, payload);
-  if (hardStopReason) {
-    await writeAudit(auth, {
-      actionType,
-      toolName,
-      status: 'blocked',
-      message: `Action blocked by hard stop: ${hardStopReason}`,
-      input: { actionType, payload },
-      blockReason: hardStopReason
-    });
-    return NextResponse.json(
-      { error: 'This action is blocked by non-overridable safety guardrails', executed: false, blockReason: hardStopReason },
-      { status: 403 }
-    );
-  }
 
   const socialConnectorStatusResponse = await handleSocialConnectorStatusAction(auth, actionType, toolName);
   if (socialConnectorStatusResponse) return socialConnectorStatusResponse;
@@ -1162,9 +776,6 @@ export async function POST(request: NextRequest) {
 
   const podResponse = await handlePodAction(auth, actionType, toolName, body);
   if (podResponse) return podResponse;
-
-  const commerceResponse = await handleShopifyPodOperationAction(auth, actionType, toolName, body);
-  if (commerceResponse) return commerceResponse;
 
   const socialResponse = await handleSocialAction(auth, actionType, toolName, body);
   if (socialResponse) return socialResponse;

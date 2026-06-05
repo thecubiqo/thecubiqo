@@ -19,9 +19,6 @@ import {
   rgySignalWrite,
   taskPlanCreate
 } from './user-context-tools';
-import { webSearch, searchConfigured } from '../../app/api/_lib/web-search';
-import { CASUAL_TERMS, GATED_TERMS, GOAL_TERMS } from '../rgy/term-registry';
-import { getChatParams, getModel } from '../config/llm';
 
 export type AgentTraceItem = {
   tool: string;
@@ -33,7 +30,11 @@ export type CubiQoAgentOptions = {
   authToken?: string;
 };
 
-function hits(input: string, terms: readonly string[]) {
+const goalTerms = ['linkedin', 'career', 'yoga', 'wellness', 'build', 'ship', 'launch', 'job', 'resume', 'routine', 'business', 'pod'];
+const casualTerms = ['instagram', 'facebook', 'fb', 'insta', 'comfort', 'chat', 'friends', 'mood', 'movie'];
+const gatedTerms = ['grindr', 'tinder', 'adult', 'explicit', 'nsfw', 'hookup'];
+
+function hits(input: string, terms: string[]) {
   const lower = input.toLowerCase();
   return terms.filter((term) => lower.includes(term));
 }
@@ -76,15 +77,6 @@ function summarizeOutput(toolName: string, output: unknown) {
   if (toolName === 'memory_write_safe_summary') return 'saved safe user-owned memory summary';
   if (toolName === 'task_plan_create') return 'created an in-session task plan';
   if (toolName === 'content_brief_create') return 'created an in-session content brief';
-  if (toolName === 'web_search') {
-    const results = (output as { results?: unknown[] }).results || [];
-    const provider = (output as { provider?: string }).provider || 'unknown';
-    return `${results.length} web result${results.length === 1 ? '' : 's'} via ${provider}`;
-  }
-  if (toolName === 'parallel_web_search') {
-    const searches = (output as { searches?: unknown[] }).searches || [];
-    return `${searches.length} parallel search${searches.length === 1 ? '' : 'es'} completed`;
-  }
   return 'completed';
 }
 
@@ -140,13 +132,7 @@ export const V1_AGENT_TOOLS = [
   'memory_read',
   'memory_write_safe_summary',
   'task_plan_create',
-  'content_brief_create',
-  'web_search',
-  'parallel_web_search',
-  'duo_project_create',
-  'duo_task_create',
-  'duo_task_update',
-  'duo_timeline_log'
+  'content_brief_create'
 ];
 
 export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentOptions = {}) {
@@ -198,9 +184,9 @@ export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentO
         text: z.string().min(1).max(2000)
       }),
       execute: async ({ text }) => ({
-        green: hits(text, GOAL_TERMS),
-        yellow: hits(text, CASUAL_TERMS),
-        red: hits(text, GATED_TERMS)
+        green: hits(text, goalTerms),
+        yellow: hits(text, casualTerms),
+        red: hits(text, gatedTerms)
       })
     }),
     capability_plan: tracedTool({
@@ -298,109 +284,11 @@ export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentO
         audience: z.string().max(120).optional()
       }),
       execute: async (input) => contentBriefCreate(input)
-    }),
-    web_search: tracedTool({
-      trace,
-      name: 'web_search',
-      description: 'Search the live internet for real-time information. Use for current events, job market trends, company research, product pricing, and anything requiring up-to-date facts not in the repo or memory.',
-      inputSchema: z.object({
-        query: z.string().min(2).max(200),
-        maxResults: z.number().int().min(1).max(10).optional()
-      }),
-      execute: async ({ query, maxResults }) => {
-        if (!searchConfigured()) {
-          return { error: 'No search API configured (TAVILY_API_KEY, BRAVE_SEARCH_API_KEY, or SERPER_API_KEY required)', results: [], provider: 'none' };
-        }
-        return webSearch(query, maxResults || 5);
-      }
-    }),
-    parallel_web_search: tracedTool({
-      trace,
-      name: 'parallel_web_search',
-      description: 'Run multiple web searches in parallel for research tasks. Returns combined results from up to 4 queries simultaneously.',
-      inputSchema: z.object({
-        queries: z.array(z.string().min(2).max(200)).min(1).max(4)
-      }),
-      execute: async ({ queries }) => {
-        if (!searchConfigured()) {
-          return { error: 'No search API configured', searches: [] };
-        }
-        const searches = await Promise.all(
-          queries.map(async (q) => { const r = await webSearch(q, 5); return { query: q, results: r.results, provider: r.provider, error: r.error }; })
-        );
-        return { searches, totalResults: searches.reduce((n, s) => n + s.results.length, 0) };
-      }
-    }),
-    duo_project_create: tracedTool({
-      trace,
-      name: 'duo_project_create',
-      description: 'Create a durable Duo Project to group related tasks and track progress. Returns project ID and trace ID.',
-      inputSchema: z.object({
-        title: z.string().min(1).max(200),
-        domain: z.string().min(1).max(50),
-        successCriteria: z.array(z.string()).optional(),
-        metadata: z.any().optional()
-      }),
-      execute: async (input) => {
-        const { duoProjectCreate } = await import('./user-context-tools');
-        return duoProjectCreate(options.authToken, input);
-      }
-    }),
-    duo_task_create: tracedTool({
-      trace,
-      name: 'duo_task_create',
-      description: 'Create a specific task within a Duo Project. Requires project_id and trace_id.',
-      inputSchema: z.object({
-        projectId: z.string().uuid(),
-        traceId: z.string().uuid(),
-        title: z.string().min(1).max(200),
-        description: z.string().optional(),
-        routePreference: z.array(z.string()).optional(),
-        dependencies: z.array(z.string().uuid()).optional(),
-        approvalRequired: z.boolean().optional()
-      }),
-      execute: async (input) => {
-        const { duoTaskCreate } = await import('./user-context-tools');
-        return duoTaskCreate(options.authToken, input);
-      }
-    }),
-    duo_task_update: tracedTool({
-      trace,
-      name: 'duo_task_update',
-      description: 'Update the status or result of a Duo Task.',
-      inputSchema: z.object({
-        taskId: z.string().uuid(),
-        status: z.enum(['pending', 'running', 'completed', 'failed', 'skipped', 'blocked']).optional(),
-        assignedRoute: z.string().optional(),
-        evidence: z.any().optional(),
-        result: z.string().optional(),
-        metadata: z.any().optional()
-      }),
-      execute: async ({ taskId, ...updates }) => {
-        const { duoTaskUpdate } = await import('./user-context-tools');
-        return duoTaskUpdate(options.authToken, taskId, updates);
-      }
-    }),
-    duo_timeline_log: tracedTool({
-      trace,
-      name: 'duo_timeline_log',
-      description: 'Log an event to the Duo Project timeline for observability.',
-      inputSchema: z.object({
-        projectId: z.string().uuid(),
-        traceId: z.string().uuid(),
-        eventType: z.string(),
-        message: z.string(),
-        payload: z.any().optional()
-      }),
-      execute: async (input) => {
-        const { duoTimelineLog } = await import('./user-context-tools');
-        return duoTimelineLog(options.authToken, input);
-      }
     })
   };
 
   return new ToolLoopAgent({
-    model: getModel('chat'),
+    model: process.env.AI_GATEWAY_MODEL || process.env.OPENAI_MODEL || 'openai/gpt-5.4',
     tools,
     instructions: [
       'You are CubiQo V1 inside cq.ai.',
@@ -415,7 +303,7 @@ export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentO
       'When a tool is unavailable or blocked, say that clearly.',
       'Keep answers concise and specific.'
     ].join('\n'),
-    stopWhen: stepCountIs(Math.max(5, getChatParams().maxSteps))
+    stopWhen: stepCountIs(5)
   });
 }
 
@@ -537,9 +425,9 @@ export async function buildFallbackAgentAnswer(
     return `I inspected the repo. CubiQo is currently ${stack.stack.framework} with React ${stack.stack.react}, Supabase ${stack.stack.supabase}, and AI SDK ${stack.stack.ai}. The active app routes include ${stack.routes.map(route => route.route).join(', ')}.`;
   }
   const rgy = {
-    green: hits(message, GOAL_TERMS),
-    yellow: hits(message, CASUAL_TERMS),
-    red: hits(message, GATED_TERMS)
+    green: hits(message, goalTerms),
+    yellow: hits(message, casualTerms),
+    red: hits(message, gatedTerms)
   };
   trace.push({ tool: 'classify_rgy', status: 'completed', summary: 'classified RGY keywords' });
   return `I can handle this conversationally in V1. I classified the active signal as ${rgy.red.length ? 'red' : rgy.green.length ? 'green' : 'yellow'} and I will stay read-only unless you approve a later V2 action system.`;

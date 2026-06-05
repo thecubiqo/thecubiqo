@@ -1,11 +1,5 @@
 import { NextResponse } from 'next/server';
 import { ApiUserContext, missingMigrationResponse, safeTableMissing } from './supabase-admin';
-import {
-  SOCIAL_PLATFORM_REGISTRY,
-  canonicalSocialPlatform,
-  getSocialPlatform,
-  type SocialPlatformId
-} from '@/next/lib/social/social-platform-registry';
 
 export const SOCIAL_ACTION_TYPES = [
   'social_post_prepare',
@@ -16,12 +10,19 @@ export type SocialActionType = typeof SOCIAL_ACTION_TYPES[number];
 
 type SocialErrorResult = { error: Response | Error };
 type SocialBlockedResult = { blocked: string; status?: number };
-type SocialPlatform = SocialPlatformId;
+
+const SOCIAL_PLATFORMS = ['linkedin', 'instagram', 'x', 'tiktok', 'facebook', 'pinterest'] as const;
+type SocialPlatform = typeof SOCIAL_PLATFORMS[number];
 
 type ConnectorState = 'disconnected' | 'configured_unverified' | 'connected';
 
 export function isSocialAction(actionType: string): actionType is SocialActionType {
   return SOCIAL_ACTION_TYPES.includes(actionType as SocialActionType);
+}
+
+function cleanEnv(...values: Array<string | undefined>) {
+  const value = values.find(Boolean);
+  return value ? value.trim().replace(/^['"]|['"]$/g, '') : '';
 }
 
 function normalizeText(value: unknown, max = 1000) {
@@ -55,7 +56,8 @@ function getPayloadField(payload: Record<string, unknown>, camel: string, snake:
 }
 
 function normalizePlatform(value: unknown): SocialPlatform | null {
-  return canonicalSocialPlatform(value);
+  const raw = normalizeText(value, 40).toLowerCase().replace(/^twitter$/, 'x');
+  return SOCIAL_PLATFORMS.includes(raw as SocialPlatform) ? raw as SocialPlatform : null;
 }
 
 function normalizePlatforms(value: unknown) {
@@ -93,50 +95,33 @@ export function getSocialApprovalPreviewCard(approval: Record<string, any> | und
   return normalizePreviewCard(payload.previewCard || payload.preview_card);
 }
 
-function connectorStatus(provider: SocialPlatform, account?: Record<string, any> | null) {
-  const registry = getSocialPlatform(provider);
-  const label = registry?.label || provider;
-  const state: ConnectorState = account?.status === 'active' ? 'connected' : 'disconnected';
+function connectorStatus(provider: SocialPlatform) {
+  const configs = {
+    linkedin: { label: 'LinkedIn', present: [cleanEnv(process.env.LINKEDIN_ACCESS_TOKEN)] },
+    instagram: { label: 'Instagram', present: [cleanEnv(process.env.INSTAGRAM_ACCESS_TOKEN, process.env.META_ACCESS_TOKEN)] },
+    x: { label: 'X/Twitter', present: [cleanEnv(process.env.X_ACCESS_TOKEN, process.env.TWITTER_ACCESS_TOKEN)] },
+    tiktok: { label: 'TikTok', present: [cleanEnv(process.env.TIKTOK_ACCESS_TOKEN)] },
+    facebook: { label: 'Facebook', present: [cleanEnv(process.env.FACEBOOK_ACCESS_TOKEN, process.env.META_ACCESS_TOKEN)] },
+    pinterest: { label: 'Pinterest', present: [cleanEnv(process.env.PINTEREST_ACCESS_TOKEN)] }
+  }[provider];
+
+  const state: ConnectorState = configs.present.every(Boolean) ? 'configured_unverified' : 'disconnected';
   return {
     provider,
-    label,
+    label: configs.label,
     state,
-    connected: state === 'connected',
-    accountId: account?.id || null,
-    accountHandle: account?.account_handle || null,
-    credentialStatus: state === 'connected' ? 'stored_server_side' : 'missing',
+    connected: false,
+    credentialStatus: state === 'disconnected' ? 'missing' : 'present_server_side_unverified',
     checkedAt: new Date().toISOString(),
-    source: 'social_accounts',
+    source: 'server_env_only',
     note: state === 'disconnected'
-      ? `Connect a ${label} account to enable scheduling for this platform.`
-      : `${label} is connected for this user.`
+      ? `${configs.label} credentials are not configured server-side.`
+      : `${configs.label} credentials exist server-side, but no provider verification call has confirmed connection yet.`
   };
 }
 
-async function readUserSocialAccounts(auth: ApiUserContext) {
-  const { data, error } = await auth.supabase
-    .from('social_accounts')
-    .select('id,platform,account_label,account_handle,status,connection_type,scopes,metadata,connected_at,last_used_at')
-    .eq('user_id', auth.user.id);
-
-  if (error) {
-    if (safeTableMissing(error)) return { accounts: [], tableMissing: true };
-    return { error };
-  }
-  return { accounts: data || [], tableMissing: false };
-}
-
-export async function getSocialConnectorStatuses(auth: ApiUserContext, platforms?: SocialPlatform[]) {
-  const read = await readUserSocialAccounts(auth);
-  if ('error' in read && read.error) return { connectors: [], error: read.error };
-  const accounts = 'accounts' in read ? read.accounts : [];
-  const list = (platforms?.length ? platforms : SOCIAL_PLATFORM_REGISTRY.map(item => item.id)).map(provider => {
-    const account = accounts.find((item: Record<string, any>) => item.platform === provider && item.status === 'active') || null;
-    const status = connectorStatus(provider, account);
-    return read.tableMissing
-      ? { ...status, source: 'social_accounts_missing_migration', note: 'Run the Sprint 2 social_accounts migration before connecting platforms.' }
-      : status;
-  });
+export function getSocialConnectorStatuses(platforms?: SocialPlatform[]) {
+  const list = (platforms?.length ? platforms : SOCIAL_PLATFORMS).map(connectorStatus);
   return { connectors: list };
 }
 
@@ -145,8 +130,6 @@ function mapSocialDraft(row: Record<string, any>) {
     id: row.id,
     approvalId: row.approval_id,
     gfxToolsJobId: row.gfx_tools_job_id,
-    gfxAssetId: row.gfx_asset_id,
-    assetReadyEventId: row.asset_ready_event_id,
     assetUrl: row.asset_url,
     assetType: row.asset_type,
     assetSource: row.asset_source,
@@ -212,39 +195,17 @@ function mapFireLog(row: Record<string, any>) {
   };
 }
 
-function mapQueuedSocialPost(row: Record<string, any>) {
-  return {
-    id: row.id,
-    approvalId: row.approval_id,
-    browserSessionId: row.browser_session_id,
-    platform: row.platform,
-    content: row.content,
-    mediaUrls: row.media_urls || [],
-    status: row.status,
-    previewScreenshotUrl: row.preview_screenshot_url,
-    publishedUrl: row.published_url,
-    accessibilityTreeSnapshot: row.accessibility_tree_snapshot || null,
-    error: row.error,
-    metadata: row.metadata || {},
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    publishedAt: row.published_at,
-    cancelledAt: row.cancelled_at
-  };
-}
-
 export async function listSocialState(auth: ApiUserContext): Promise<{
   connectors: ReturnType<typeof connectorStatus>[];
   drafts: ReturnType<typeof mapSocialDraft>[];
   distributionRules: ReturnType<typeof mapDistributionRule>[];
   scheduledPosts: ReturnType<typeof mapScheduledPost>[];
   fireLogs: ReturnType<typeof mapFireLog>[];
-  queuedPosts: ReturnType<typeof mapQueuedSocialPost>[];
 } | SocialErrorResult> {
-  const [draftsResult, rulesResult, scheduledResult, logsResult, queuedPostsResult] = await Promise.all([
+  const [draftsResult, rulesResult, scheduledResult, logsResult] = await Promise.all([
     auth.supabase
       .from('social_content_drafts')
-      .select('id,approval_id,gfx_tools_job_id,gfx_asset_id,asset_ready_event_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
+      .select('id,approval_id,gfx_tools_job_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
       .eq('user_id', auth.user.id)
       .order('created_at', { ascending: false })
       .limit(12),
@@ -265,76 +226,46 @@ export async function listSocialState(auth: ApiUserContext): Promise<{
       .select('id,approval_id,scheduled_post_id,platform,asset_url,status,message,result,created_at')
       .eq('user_id', auth.user.id)
       .order('created_at', { ascending: false })
-      .limit(24),
-    auth.supabase
-      .from('social_posts')
-      .select('id,approval_id,browser_session_id,platform,content,media_urls,status,preview_screenshot_url,published_url,accessibility_tree_snapshot,error,metadata,created_at,updated_at,published_at,cancelled_at')
-      .eq('user_id', auth.user.id)
-      .order('created_at', { ascending: false })
       .limit(24)
   ]);
 
-  for (const result of [draftsResult, rulesResult, scheduledResult, logsResult, queuedPostsResult]) {
+  for (const result of [draftsResult, rulesResult, scheduledResult, logsResult]) {
     if (result.error) {
       if (safeTableMissing(result.error)) return { error: missingMigrationResponse('social', 'social_content_distribution') };
       return { error: result.error };
     }
   }
 
-  const connectorStatuses = await getSocialConnectorStatuses(auth);
-  if ('error' in connectorStatuses && connectorStatuses.error) return { error: connectorStatuses.error };
-
   return {
-    ...connectorStatuses,
+    ...getSocialConnectorStatuses(),
     drafts: (draftsResult.data || []).map(mapSocialDraft),
     distributionRules: (rulesResult.data || []).map(mapDistributionRule),
     scheduledPosts: (scheduledResult.data || []).map(mapScheduledPost),
-    fireLogs: (logsResult.data || []).map(mapFireLog),
-    queuedPosts: (queuedPostsResult.data || []).map(mapQueuedSocialPost)
+    fireLogs: (logsResult.data || []).map(mapFireLog)
   };
 }
 
 async function loadGfxToolsOutput(auth: ApiUserContext, id: string) {
   const { data, error } = await auth.supabase
-    .from('gfx_assets')
-    .select('id,gfxtools_job_id,asset_url,asset_type,status,platform_variants')
+    .from('gfxtools_jobs')
+    .select('id,job_payload,external_job_id,external_call_performed,status')
     .eq('id', id)
     .eq('user_id', auth.user.id)
     .maybeSingle();
   if (error) {
-    if (safeTableMissing(error)) return { error: missingMigrationResponse('social', 'gfx_assets') };
+    if (safeTableMissing(error)) return { error: missingMigrationResponse('social', 'gfxtools_jobs') };
     return { error };
   }
-  if (!data) return { blocked: 'GFXTools asset not found for this user.', status: 404 };
-  if (data.status !== 'ready') return { blocked: `GFXTools asset is ${data.status}; only ready assets can start social preparation.`, status: 400 };
-  const variants = Array.isArray(data.platform_variants) ? data.platform_variants : [];
-  if (!variants.length) return { blocked: 'GFXTools asset has no platform variants. Run gfxtools_asset_resize first.', status: 400 };
-  const outputUrl = normalizeUrl(data.asset_url);
-  if (!outputUrl) return { blocked: 'GFXTools asset is ready but missing asset_url.', status: 400 };
-
-  const { data: event, error: eventError } = await auth.supabase
-    .from('asset_ready_events')
-    .select('id,asset_id,event_type,consumed_at,created_at')
-    .eq('asset_id', data.id)
-    .eq('user_id', auth.user.id)
-    .eq('event_type', 'asset_ready')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (eventError) {
-    if (safeTableMissing(eventError)) return { error: missingMigrationResponse('social', 'asset_ready_events') };
-    return { error: eventError };
+  if (!data) return { blocked: 'GFXTools job not found for this user.', status: 404 };
+  const jobPayload = normalizeJsonObject(data.job_payload);
+  const outputUrl = normalizeUrl(jobPayload.outputUrl || jobPayload.output_url || jobPayload.generatedAssetUrl || jobPayload.generated_asset_url || jobPayload.imageUrl || jobPayload.videoUrl);
+  if (!outputUrl) {
+    return {
+      blocked: 'GFXTools job output is missing. Prepare content with an image/video URL or attach a GFXTools job that has a real output asset.',
+      status: 400
+    };
   }
-  if (!event) return { blocked: 'No asset_ready event exists for this asset. Social preparation only starts from the asset_ready handoff.', status: 400 };
-
-  return {
-    gfxAssetId: data.id,
-    gfxToolsJobId: data.gfxtools_job_id,
-    assetReadyEventId: event.id,
-    outputUrl,
-    assetType: data.asset_type,
-    platformVariants: variants
-  };
+  return { gfxToolsJobId: data.id, outputUrl, jobPayload };
 }
 
 function platformVariant(platform: SocialPlatform, base: { topic: string; product: string; audience: string; cta: string; assetUrl: string }, index: number) {
@@ -355,11 +286,6 @@ function platformVariant(platform: SocialPlatform, base: { topic: string; produc
       hashtags: ['#AI', '#POD', '#BrandBuild'],
       cta: base.cta || 'Reply with the next drop idea.'
     },
-    threads: {
-      caption: `${base.topic} for ${base.audience}: ${base.product} concept ${n}, written as a conversational launch note.`,
-      hashtags: ['#AI', '#POD', '#BrandBuild'],
-      cta: base.cta || 'Reply with the next angle you want to see.'
-    },
     tiktok: {
       caption: `Drop concept ${n}: ${base.product} for ${base.audience}. Hook: the uniform for people building with AI before everyone else catches up.`,
       hashtags: ['#AITok', '#ClothingBrand', '#POD', '#StartupLife'],
@@ -374,21 +300,6 @@ function platformVariant(platform: SocialPlatform, base: { topic: string; produc
       caption: `${base.product} concept board: ${base.topic} for ${base.audience}. Minimal, premium, AI-native apparel direction. Variant ${n}.`,
       hashtags: ['#ApparelDesign', '#PODDesign', '#AIArt', '#BrandMoodboard'],
       cta: base.cta || 'Pin this for the launch moodboard.'
-    },
-    youtube: {
-      caption: `${base.topic} for ${base.audience}. Use this ${base.product} concept as a short-form video or community post angle. Variant ${n}.`,
-      hashtags: ['#BrandBuild', '#POD', '#AI'],
-      cta: base.cta || 'Subscribe for the next product build.'
-    },
-    reddit: {
-      caption: `${base.topic} for ${base.audience}: sharing a ${base.product} concept and looking for direct feedback on positioning, audience, and design direction. Variant ${n}.`,
-      hashtags: [],
-      cta: base.cta || 'What would you change before launch?'
-    },
-    bluesky: {
-      caption: `${base.topic} for ${base.audience}: ${base.product} concept ${n}, built around a cleaner signal for the launch.`,
-      hashtags: ['#POD', '#BrandBuild'],
-      cta: base.cta || 'Reply with the sharper angle.'
     }
   };
   return table[platform];
@@ -427,16 +338,22 @@ export async function prepareSocialPost(
   const platforms = normalizePlatforms(payload.platforms);
   if (!platforms.length) return { blocked: 'At least one supported platform is required.', status: 400 };
 
-  const gfxAssetId = normalizeNullableText(getPayloadField(payload, 'assetId', 'asset_id'), 80) || normalizeNullableText(getPayloadField(payload, 'gfxAssetId', 'gfx_asset_id'), 80);
-  if (!gfxAssetId) return { blocked: 'asset_id is required. Social preparation only starts from a ready GFXTools asset.', status: 400 };
+  const gfxToolsJobId = normalizeNullableText(getPayloadField(payload, 'gfxToolsJobId', 'gfx_tools_job_id'), 80);
+  let assetUrl = normalizeUrl(getPayloadField(payload, 'assetUrl', 'asset_url'));
+  let assetSource = 'url';
+  let assetType = normalizeText(getPayloadField(payload, 'assetType', 'asset_type'), 40) || 'image';
 
-  const output = await loadGfxToolsOutput(auth, gfxAssetId);
-  if ('error' in output) return { error: output.error };
-  if ('blocked' in output && output.blocked) return { blocked: output.blocked, status: output.status };
-  if (!output.outputUrl) return { blocked: 'GFXTools asset output is missing.', status: 400 };
-  const assetUrl = String(output.outputUrl);
-  const assetSource = 'gfx_asset';
-  const assetType = normalizeText(output.assetType, 40) || 'image';
+  if (gfxToolsJobId) {
+    const output = await loadGfxToolsOutput(auth, gfxToolsJobId);
+    if ('error' in output) return { error: output.error };
+    if ('blocked' in output && output.blocked) return { blocked: output.blocked, status: output.status };
+    if (!output.outputUrl) return { blocked: 'GFXTools job output is missing.', status: 400 };
+    assetUrl = String(output.outputUrl);
+    assetSource = 'gfx_tools_job';
+    assetType = 'gfx_tools_job';
+  }
+
+  if (!assetUrl) return { blocked: 'A real image/video asset URL or GFXTools job output is required before preparing social content.', status: 400 };
 
   const variants = buildVariants(payload, platforms, assetUrl);
   const contentContext = {
@@ -452,9 +369,7 @@ export async function prepareSocialPost(
     .insert({
       user_id: auth.user.id,
       approval_id: approvalId,
-      gfx_tools_job_id: output.gfxToolsJobId || null,
-      gfx_asset_id: output.gfxAssetId,
-      asset_ready_event_id: output.assetReadyEventId,
+      gfx_tools_job_id: gfxToolsJobId,
       asset_url: assetUrl,
       asset_type: assetType,
       asset_source: assetSource,
@@ -463,7 +378,7 @@ export async function prepareSocialPost(
       content_context: contentContext,
       preview_card: approvalPreviewCard
     })
-    .select('id,approval_id,gfx_tools_job_id,gfx_asset_id,asset_ready_event_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
+    .select('id,approval_id,gfx_tools_job_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
     .single();
 
   if (error) {
@@ -477,7 +392,7 @@ export async function prepareSocialPost(
 async function loadSocialDraft(auth: ApiUserContext, id: string) {
   const { data, error } = await auth.supabase
     .from('social_content_drafts')
-    .select('id,approval_id,gfx_tools_job_id,gfx_asset_id,asset_ready_event_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
+    .select('id,approval_id,gfx_tools_job_id,asset_url,asset_type,asset_source,platforms,variants,content_context,preview_card,status,created_at,updated_at')
     .eq('id', id)
     .eq('user_id', auth.user.id)
     .maybeSingle();
@@ -519,9 +434,7 @@ export async function scheduleSocialPost(
   const startAt = startAtRaw && !Number.isNaN(new Date(startAtRaw).getTime())
     ? new Date(startAtRaw)
     : new Date();
-  const connectorStatuses = await getSocialConnectorStatuses(auth, platforms);
-  if ('error' in connectorStatuses && connectorStatuses.error) return { error: connectorStatuses.error };
-  const connectors = connectorStatuses.connectors;
+  const connectors = getSocialConnectorStatuses(platforms).connectors;
   const missing = connectors.filter(item => item.state === 'disconnected').map(item => item.provider);
   const status = missing.length ? 'paused_missing_credentials' : 'active';
   const rulePayload = {

@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
-import { randomUUID } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -152,10 +151,6 @@ async function verifyTable({ url, anonKey, serviceRoleKey }, table) {
   };
 }
 
-function isRequiredTableHealthy(tableResult) {
-  return tableResult.ok || tableResult.optional === true;
-}
-
 async function createConfirmedTestUser({ url, anonKey, serviceRoleKey }) {
   if (!serviceRoleKey) throw new Error('Service role key is required for CRUD verification');
   const email = `codex-crud-${Date.now()}@example.invalid`;
@@ -241,9 +236,6 @@ async function verifyUserOwnedCrud(config) {
       jobReviewDirectInsertDenied: false,
       jobReviewServerInsertWithApproval: false,
       jobReviewServerApproveWithSubmitApproval: false,
-      anonJobApplicationInsertDenied: false,
-      jobApplicationDirectInsertDenied: false,
-      jobApplicationServerInsertWithApproval: false,
       anonJobProfileInsertDenied: false,
       jobProfileDirectUpsertDenied: false,
       jobProfileServerUpsertWithApproval: false,
@@ -257,14 +249,6 @@ async function verifyUserOwnedCrud(config) {
       anonGfxToolsJobInsertDenied: false,
       gfxToolsJobDirectInsertDenied: false,
       gfxToolsJobServerInsertWithApproval: false,
-      anonGfxAssetInsertDenied: false,
-      gfxAssetDirectInsertDenied: false,
-      gfxAssetServerInsertWithApproval: false,
-      assetReadyEventServerInsertWithApproval: false,
-      shopifyPreparationDirectInsertDenied: false,
-      shopifyPreparationServerInsertWithApproval: false,
-      printifyPreparationDirectInsertDenied: false,
-      printifyPreparationServerInsertWithApproval: false,
       anonSocialDraftInsertDenied: false,
       socialDraftDirectInsertDenied: false,
       socialDraftServerInsertWithApproval: false,
@@ -272,18 +256,7 @@ async function verifyUserOwnedCrud(config) {
       socialRuleDirectInsertDenied: false,
       socialRuleServerInsertWithApproval: false,
       socialScheduledPostServerInsertWithApproval: false,
-      socialFireLogServerInsertWithApproval: false,
-      anonSocialPostInsertDenied: false,
-      socialPostDirectInsertDenied: false,
-      socialPostServerInsertWithApproval: false,
-      anonStoreConnectionInsertDenied: false,
-      storeConnectionDirectInsertDenied: false,
-      storeConnectionServerInsertWithToken: false,
-      storeConnectionTokenHiddenFromUserRead: false,
-      connectorOauthStateServerInsert: false,
-      podProductDirectInsertDenied: false,
-      podProductServerInsertWithApproval: false,
-      podProductRead: false
+      socialFireLogServerInsertWithApproval: false
     },
     rls: { anonJournalInsertDenied: false, anonSignalInsertDenied: false },
     error: null
@@ -354,28 +327,9 @@ async function verifyUserOwnedCrud(config) {
     });
     result.rls.anonSignalInsertDenied = !anonSignal.response.ok;
 
-    const directSignalInsert = await requestJson(`${config.url}/rest/v1/signals`, {
+    const signalInsert = await requestJson(`${config.url}/rest/v1/signals?select=id,user_id,color,keyword,confirmed_intents`, {
       method: 'POST',
-      headers: userHeaders(config, accessToken),
-      body: JSON.stringify({
-        user_id: userId,
-        color: 'green',
-        keyword: 'direct should fail',
-        normalized_keyword: 'direct-should-fail',
-        intent_status: 'pending',
-        source: 'e2e'
-      })
-    });
-    result.rls.userSignalInsertDenied = !directSignalInsert.response.ok;
-
-    const signalInsert = await requestJson(`${config.url}/rest/v1/signals?select=id,signal_id,user_id,color,keyword,confirmed_intents,matching_enabled`, {
-      method: 'POST',
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: `Bearer ${config.serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation'
-      },
+      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
       body: JSON.stringify({
         user_id: userId,
         color: 'green',
@@ -384,16 +338,16 @@ async function verifyUserOwnedCrud(config) {
         intent_status: 'confirmed',
         suggested_intents: ['collaborate'],
         confirmed_intents: ['collaborate'],
-        source: 'taxonomy'
+        source: 'e2e'
       })
     });
     const signalRow = Array.isArray(signalInsert.body) ? signalInsert.body[0] : null;
-    result.signals.inserted = signalInsert.response.ok && signalRow?.id && signalRow?.signal_id && signalRow.user_id === userId && signalRow.matching_enabled === true;
+    result.signals.inserted = signalInsert.response.ok && signalRow?.id && signalRow.user_id === userId;
 
-    const signalRead = signalRow?.id ? await requestJson(`${config.url}/rest/v1/signals?id=eq.${signalRow.id}&select=id,user_id,color,keyword,confirmed_intents,matching_enabled&limit=1`, {
+    const signalRead = signalRow?.id ? await requestJson(`${config.url}/rest/v1/signals?id=eq.${signalRow.id}&select=id,user_id,color,keyword,confirmed_intents&limit=1`, {
       headers: userHeaders(config, accessToken)
     }) : null;
-    result.signals.read = Boolean(signalRead?.response.ok && Array.isArray(signalRead.body) && signalRead.body[0]?.id === signalRow.id && signalRead.body[0]?.matching_enabled === true);
+    result.signals.read = Boolean(signalRead?.response.ok && Array.isArray(signalRead.body) && signalRead.body[0]?.id === signalRow.id);
 
     const signalDelete = signalRow?.id ? await requestJson(`${config.url}/rest/v1/signals?id=eq.${signalRow.id}`, {
       method: 'DELETE',
@@ -886,95 +840,6 @@ async function verifyUserOwnedCrud(config) {
       approvedReviewRow.external_submission_performed === false
     );
 
-    const anonJobApplication = await requestJson(`${config.url}/rest/v1/job_applications`, {
-      method: 'POST',
-      headers: {
-        apikey: config.anonKey,
-        Authorization: `Bearer ${config.anonKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        browser_session_id: browserSessionRow?.id || crypto.randomUUID(),
-        platform: 'linkedin',
-        job_url: 'https://www.linkedin.com/jobs/view/anon-blocked',
-        status: 'in_progress'
-      })
-    });
-    result.v2.anonJobApplicationInsertDenied = !anonJobApplication.response.ok;
-
-    const jobApplyApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type,browser_session_id`, {
-      method: 'POST',
-      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-      body: JSON.stringify({
-        user_id: userId,
-        action_type: 'job_apply',
-        tool_name: 'job_apply',
-        title: 'Prepare job apply workflow test',
-        summary: 'Open a persistent browser session and stop at the review screen before final submit.',
-        payload: {
-          job_url: 'https://www.linkedin.com/jobs/view/e2e-product-manager',
-          platform: 'linkedin',
-          stopBeforeSubmit: true
-        },
-        browser_session_id: crypto.randomUUID(),
-        risk_level: 'high'
-      })
-    });
-    const jobApplyApproval = Array.isArray(jobApplyApprovalInsert.body) ? jobApplyApprovalInsert.body[0] : null;
-    if (jobApplyApproval?.id) {
-      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${jobApplyApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
-        method: 'PATCH',
-        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
-      });
-    }
-
-    const directJobApplication = jobApplyApproval?.id ? await requestJson(`${config.url}/rest/v1/job_applications?select=id,user_id,approval_id`, {
-      method: 'POST',
-      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-      body: JSON.stringify({
-        user_id: userId,
-        approval_id: jobApplyApproval.id,
-        browser_session_id: jobApplyApproval.browser_session_id || browserSessionRow?.id || crypto.randomUUID(),
-        platform: 'linkedin',
-        job_url: 'https://www.linkedin.com/jobs/view/direct-blocked',
-        status: 'in_progress'
-      })
-    }) : null;
-    result.v2.jobApplicationDirectInsertDenied = Boolean(directJobApplication && !directJobApplication.response.ok);
-
-    const serverJobApplication = jobApplyApproval?.id ? await requestJson(`${config.url}/rest/v1/job_applications?select=id,user_id,approval_id,browser_session_id,platform,job_url,status,screenshot_url`, {
-      method: 'POST',
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: `Bearer ${config.serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation'
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        approval_id: jobApplyApproval.id,
-        browser_session_id: jobApplyApproval.browser_session_id || browserSessionRow?.id || crypto.randomUUID(),
-        platform: 'linkedin',
-        job_url: 'https://www.linkedin.com/jobs/view/e2e-product-manager',
-        job_title: 'E2E Product Manager',
-        company: 'Example Jobs Co',
-        status: 'ready_to_submit',
-        screenshot_url: 'https://example.com/e2e-job-apply-review.png',
-        metadata: { stop_before_submit: true, finalSubmitAutonomous: false }
-      })
-    }) : null;
-    const jobApplicationRow = Array.isArray(serverJobApplication?.body) ? serverJobApplication.body[0] : null;
-    result.v2.jobApplicationServerInsertWithApproval = Boolean(
-      serverJobApplication?.response.ok &&
-      jobApplicationRow?.id &&
-      jobApplicationRow.user_id === userId &&
-      jobApplicationRow.approval_id === jobApplyApproval?.id &&
-      jobApplicationRow.status === 'ready_to_submit' &&
-      jobApplicationRow.screenshot_url
-    );
-
     const anonJobProfile = await requestJson(`${config.url}/rest/v1/job_profiles`, {
       method: 'POST',
       headers: {
@@ -1358,248 +1223,6 @@ async function verifyUserOwnedCrud(config) {
       gfxJobRow.external_call_performed === false
     );
 
-    const anonGfxAsset = await requestJson(`${config.url}/rest/v1/gfx_assets`, {
-      method: 'POST',
-      headers: {
-        apikey: config.anonKey,
-        Authorization: `Bearer ${config.anonKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        asset_url: 'https://example.com/anon-asset.png',
-        asset_type: 'image',
-        status: 'ready'
-      })
-    });
-    result.v2.anonGfxAssetInsertDenied = !anonGfxAsset.response.ok;
-
-    const directGfxAsset = gfxApproval?.id ? await requestJson(`${config.url}/rest/v1/gfx_assets?select=id,user_id,approval_id`, {
-      method: 'POST',
-      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-      body: JSON.stringify({
-        user_id: userId,
-        approval_id: gfxApproval.id,
-        gfxtools_job_id: gfxJobRow?.id || null,
-        asset_url: 'https://example.com/direct-asset.png',
-        asset_type: 'image',
-        dimensions: { width: 1080, height: 1080 },
-        status: 'ready'
-      })
-    }) : null;
-    result.v2.gfxAssetDirectInsertDenied = Boolean(directGfxAsset && !directGfxAsset.response.ok);
-
-    const serverGfxAsset = gfxApproval?.id ? await requestJson(`${config.url}/rest/v1/gfx_assets?select=id,user_id,approval_id,gfxtools_job_id,asset_url,asset_type,status,platform_variants`, {
-      method: 'POST',
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: `Bearer ${config.serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation'
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        approval_id: gfxApproval.id,
-        pod_design_brief_id: podBriefRow?.id || null,
-        gfxtools_job_id: gfxJobRow?.id || null,
-        external_job_id: 'e2e-gfx-job',
-        asset_url: 'https://example.com/e2e-ready-asset.png',
-        asset_type: 'image',
-        dimensions: { width: 1080, height: 1080 },
-        platform_variants: [
-          { platform: 'instagram', variant: 'square', width: 1080, height: 1080, assetUrl: 'https://example.com/e2e-ready-asset.png?w=1080&h=1080' },
-          { platform: 'linkedin', variant: 'feed', width: 1200, height: 627, assetUrl: 'https://example.com/e2e-ready-asset.png?w=1200&h=627' }
-        ],
-        status: 'ready',
-        connector_state: 'disconnected'
-      })
-    }) : null;
-    const gfxAssetRow = Array.isArray(serverGfxAsset?.body) ? serverGfxAsset.body[0] : null;
-    result.v2.gfxAssetServerInsertWithApproval = Boolean(
-      serverGfxAsset?.response.ok &&
-      gfxAssetRow?.id &&
-      gfxAssetRow.user_id === userId &&
-      gfxAssetRow.approval_id === gfxApproval?.id &&
-      gfxAssetRow.status === 'ready' &&
-      Array.isArray(gfxAssetRow.platform_variants) &&
-      gfxAssetRow.platform_variants.length > 0
-    );
-
-    const resizeApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
-      method: 'POST',
-      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-      body: JSON.stringify({
-        user_id: userId,
-        action_type: 'gfxtools_asset_resize',
-        tool_name: 'gfxtools_asset_resize',
-        title: 'Resize GFX asset test',
-        summary: 'Approve platform variants and asset-ready event.',
-        payload: { previewCard: { assetId: gfxAssetRow?.id || null } },
-        risk_level: 'medium'
-      })
-    });
-    const resizeApproval = Array.isArray(resizeApprovalInsert.body) ? resizeApprovalInsert.body[0] : null;
-    if (resizeApproval?.id) {
-      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${resizeApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
-        method: 'PATCH',
-        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
-      });
-    }
-
-    const serverAssetReadyEvent = resizeApproval?.id && gfxAssetRow?.id ? await requestJson(`${config.url}/rest/v1/asset_ready_events?select=id,user_id,approval_id,asset_id,event_type`, {
-      method: 'POST',
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: `Bearer ${config.serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation'
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        approval_id: resizeApproval.id,
-        asset_id: gfxAssetRow.id,
-        event_type: 'asset_ready',
-        payload: { source: 'verify:cqai' }
-      })
-    }) : null;
-    const assetReadyEventRow = Array.isArray(serverAssetReadyEvent?.body) ? serverAssetReadyEvent.body[0] : null;
-    result.v2.assetReadyEventServerInsertWithApproval = Boolean(
-      serverAssetReadyEvent?.response.ok &&
-      assetReadyEventRow?.id &&
-      assetReadyEventRow.user_id === userId &&
-      assetReadyEventRow.approval_id === resizeApproval?.id &&
-      assetReadyEventRow.asset_id === gfxAssetRow?.id
-    );
-
-    const shopifyApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
-      method: 'POST',
-      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-      body: JSON.stringify({
-        user_id: userId,
-        action_type: 'shopify_product_prepare',
-        tool_name: 'shopify_product_prepare',
-        title: 'Prepare Shopify product test',
-        summary: 'Approve Shopify product payload preparation.',
-        payload: { previewCard: { assetId: gfxAssetRow?.id || null, service: 'shopify' } },
-        risk_level: 'high'
-      })
-    });
-    const shopifyApproval = Array.isArray(shopifyApprovalInsert.body) ? shopifyApprovalInsert.body[0] : null;
-    if (shopifyApproval?.id) {
-      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${shopifyApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
-        method: 'PATCH',
-        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
-      });
-    }
-
-    const directShopifyPreparation = shopifyApproval?.id && gfxAssetRow?.id ? await requestJson(`${config.url}/rest/v1/shopify_product_preparations?select=id,user_id,approval_id`, {
-      method: 'POST',
-      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-      body: JSON.stringify({
-        user_id: userId,
-        approval_id: shopifyApproval.id,
-        asset_id: gfxAssetRow.id,
-        product_payload: { title: 'Direct client should fail' },
-        preview_card: { title: 'Direct client should fail' }
-      })
-    }) : null;
-    result.v2.shopifyPreparationDirectInsertDenied = Boolean(directShopifyPreparation && !directShopifyPreparation.response.ok);
-
-    const serverShopifyPreparation = shopifyApproval?.id && gfxAssetRow?.id ? await requestJson(`${config.url}/rest/v1/shopify_product_preparations?select=id,user_id,approval_id,asset_id,status,external_call_performed`, {
-      method: 'POST',
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: `Bearer ${config.serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation'
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        approval_id: shopifyApproval.id,
-        asset_id: gfxAssetRow.id,
-        connector_state: 'disconnected',
-        product_payload: { title: 'E2E Shopify product', assetId: gfxAssetRow.id },
-        preview_card: { service: 'shopify', assetId: gfxAssetRow.id },
-        status: 'blocked_missing_credentials',
-        external_call_performed: false
-      })
-    }) : null;
-    const shopifyRow = Array.isArray(serverShopifyPreparation?.body) ? serverShopifyPreparation.body[0] : null;
-    result.v2.shopifyPreparationServerInsertWithApproval = Boolean(
-      serverShopifyPreparation?.response.ok &&
-      shopifyRow?.id &&
-      shopifyRow.user_id === userId &&
-      shopifyRow.approval_id === shopifyApproval?.id &&
-      shopifyRow.asset_id === gfxAssetRow?.id &&
-      shopifyRow.external_call_performed === false
-    );
-
-    const printifyApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
-      method: 'POST',
-      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-      body: JSON.stringify({
-        user_id: userId,
-        action_type: 'printify_design_prepare',
-        tool_name: 'printify_design_prepare',
-        title: 'Prepare Printify design test',
-        summary: 'Approve Printify design payload preparation.',
-        payload: { previewCard: { assetId: gfxAssetRow?.id || null, service: 'printify' } },
-        risk_level: 'high'
-      })
-    });
-    const printifyApproval = Array.isArray(printifyApprovalInsert.body) ? printifyApprovalInsert.body[0] : null;
-    if (printifyApproval?.id) {
-      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${printifyApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
-        method: 'PATCH',
-        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
-      });
-    }
-
-    const directPrintifyPreparation = printifyApproval?.id && gfxAssetRow?.id ? await requestJson(`${config.url}/rest/v1/printify_design_preparations?select=id,user_id,approval_id`, {
-      method: 'POST',
-      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-      body: JSON.stringify({
-        user_id: userId,
-        approval_id: printifyApproval.id,
-        asset_id: gfxAssetRow.id,
-        design_payload: { productTemplate: 'Direct client should fail' },
-        preview_card: { title: 'Direct client should fail' }
-      })
-    }) : null;
-    result.v2.printifyPreparationDirectInsertDenied = Boolean(directPrintifyPreparation && !directPrintifyPreparation.response.ok);
-
-    const serverPrintifyPreparation = printifyApproval?.id && gfxAssetRow?.id ? await requestJson(`${config.url}/rest/v1/printify_design_preparations?select=id,user_id,approval_id,asset_id,status,external_call_performed`, {
-      method: 'POST',
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: `Bearer ${config.serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation'
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        approval_id: printifyApproval.id,
-        asset_id: gfxAssetRow.id,
-        connector_state: 'disconnected',
-        design_payload: { productTemplate: 'premium t-shirt', assetId: gfxAssetRow.id },
-        preview_card: { service: 'printify', assetId: gfxAssetRow.id },
-        status: 'blocked_missing_credentials',
-        external_call_performed: false
-      })
-    }) : null;
-    const printifyRow = Array.isArray(serverPrintifyPreparation?.body) ? serverPrintifyPreparation.body[0] : null;
-    result.v2.printifyPreparationServerInsertWithApproval = Boolean(
-      serverPrintifyPreparation?.response.ok &&
-      printifyRow?.id &&
-      printifyRow.user_id === userId &&
-      printifyRow.approval_id === printifyApproval?.id &&
-      printifyRow.asset_id === gfxAssetRow?.id &&
-      printifyRow.external_call_performed === false
-    );
-
     const anonSocialDraft = await requestJson(`${config.url}/rest/v1/social_content_drafts`, {
       method: 'POST',
       headers: {
@@ -1628,9 +1251,7 @@ async function verifyUserOwnedCrud(config) {
         payload: {
           previewCard: {
             title: 'Social draft preparation preview',
-            assetId: gfxAssetRow?.id || null,
-            assetReadyEventId: assetReadyEventRow?.id || null,
-            assetUrl: gfxAssetRow?.asset_url || 'https://example.com/e2e-ready-asset.png',
+            assetUrl: 'https://example.com/e2e-social.png',
             platforms: ['linkedin', 'instagram', 'x']
           }
         },
@@ -1673,11 +1294,9 @@ async function verifyUserOwnedCrud(config) {
       body: JSON.stringify({
         user_id: userId,
         approval_id: socialPrepareApproval.id,
-        gfx_asset_id: gfxAssetRow?.id || null,
-        asset_ready_event_id: assetReadyEventRow?.id || null,
-        asset_url: gfxAssetRow?.asset_url || 'https://example.com/e2e-ready-asset.png',
+        asset_url: 'https://example.com/e2e-social.png',
         asset_type: 'image',
-        asset_source: 'gfx_asset',
+        asset_source: 'url',
         platforms: ['linkedin', 'instagram', 'x'],
         variants: {
           linkedin: [{ platform: 'linkedin', variantIndex: 0, caption: 'E2E LinkedIn caption', hashtags: ['#AI'], cta: 'Review' }],
@@ -1696,94 +1315,6 @@ async function verifyUserOwnedCrud(config) {
       socialDraftRow.approval_id === socialPrepareApproval?.id &&
       Array.isArray(socialDraftRow.platforms) &&
       socialDraftRow.platforms.includes('linkedin')
-    );
-
-    const anonSocialPost = await requestJson(`${config.url}/rest/v1/social_posts`, {
-      method: 'POST',
-      headers: {
-        apikey: config.anonKey,
-        Authorization: `Bearer ${config.anonKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        platform: 'linkedin',
-        content: 'Anon social post should fail.'
-      })
-    });
-    result.v2.anonSocialPostInsertDenied = !anonSocialPost.response.ok;
-
-    const socialQueueApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type,browser_session_id`, {
-      method: 'POST',
-      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-      body: JSON.stringify({
-        user_id: userId,
-        action_type: 'social_post_queue',
-        tool_name: 'social_post_queue',
-        title: 'Queue social post test',
-        summary: 'Approve browser-based social post composition.',
-        payload: {
-          platform: 'linkedin',
-          content: 'E2E social queue draft',
-          previewCard: {
-            title: 'Social queue preview',
-            platform: 'linkedin',
-            willNotDo: ['No autonomous publish']
-          }
-        },
-        browser_session_id: randomUUID(),
-        risk_level: 'high'
-      })
-    });
-    const socialQueueApproval = Array.isArray(socialQueueApprovalInsert.body) ? socialQueueApprovalInsert.body[0] : null;
-    if (socialQueueApproval?.id) {
-      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${socialQueueApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
-        method: 'PATCH',
-        headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
-      });
-    }
-
-    const directSocialPost = socialQueueApproval?.id ? await requestJson(`${config.url}/rest/v1/social_posts?select=id,user_id,approval_id`, {
-      method: 'POST',
-      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-      body: JSON.stringify({
-        user_id: userId,
-        approval_id: socialQueueApproval.id,
-        browser_session_id: socialQueueApproval.browser_session_id,
-        platform: 'linkedin',
-        content: 'Direct client social queue insert should fail.'
-      })
-    }) : null;
-    result.v2.socialPostDirectInsertDenied = Boolean(directSocialPost && !directSocialPost.response.ok);
-
-    const serverSocialPost = socialQueueApproval?.id ? await requestJson(`${config.url}/rest/v1/social_posts?select=id,user_id,approval_id,browser_session_id,platform,content,status,preview_screenshot_url`, {
-      method: 'POST',
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: `Bearer ${config.serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation'
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        approval_id: socialQueueApproval.id,
-        browser_session_id: socialQueueApproval.browser_session_id,
-        platform: 'linkedin',
-        content: 'E2E queued LinkedIn post',
-        status: 'ready',
-        preview_screenshot_url: 'https://example.com/social-preview.png',
-        metadata: { finalPublishAutonomous: false, source: 'verify:cqai' }
-      })
-    }) : null;
-    const socialPostRow = Array.isArray(serverSocialPost?.body) ? serverSocialPost.body[0] : null;
-    result.v2.socialPostServerInsertWithApproval = Boolean(
-      serverSocialPost?.response.ok &&
-      socialPostRow?.id &&
-      socialPostRow.user_id === userId &&
-      socialPostRow.approval_id === socialQueueApproval?.id &&
-      socialPostRow.status === 'ready' &&
-      socialPostRow.platform === 'linkedin'
     );
 
     const anonSocialRule = await requestJson(`${config.url}/rest/v1/social_distribution_rules`, {
@@ -1937,178 +1468,6 @@ async function verifyUserOwnedCrud(config) {
       socialFireLogRow.approval_id === socialScheduleApproval?.id &&
       socialFireLogRow.status === 'blocked'
     );
-
-    const anonStoreConnection = await requestJson(`${config.url}/rest/v1/store_connections`, {
-      method: 'POST',
-      headers: {
-        apikey: config.anonKey,
-        Authorization: `Bearer ${config.anonKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        platform: 'shopify',
-        shop_domain: 'anon-should-fail.myshopify.com',
-        access_token: 'anon-token-should-fail',
-        scope: 'read_products'
-      })
-    });
-    result.v2.anonStoreConnectionInsertDenied = !anonStoreConnection.response.ok;
-
-    const directStoreConnection = await requestJson(`${config.url}/rest/v1/store_connections`, {
-      method: 'POST',
-      headers: userHeaders(config, accessToken),
-      body: JSON.stringify({
-        user_id: userId,
-        platform: 'shopify',
-        shop_domain: 'direct-should-fail.myshopify.com',
-        access_token: 'direct-token-should-fail',
-        scope: 'read_products'
-      })
-    });
-    result.v2.storeConnectionDirectInsertDenied = !directStoreConnection.response.ok;
-
-    const serverStoreConnection = await requestJson(`${config.url}/rest/v1/store_connections?select=id,user_id,platform,shop_domain,access_token,status`, {
-      method: 'POST',
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: `Bearer ${config.serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation'
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        platform: 'shopify',
-        shop_domain: 'verify-cqai.myshopify.com',
-        access_token: 'v1:verify-cqai-encrypted-placeholder',
-        scope: 'read_products,write_products',
-        metadata: { token_hint: 'v1:...', source: 'verify:cqai' }
-      })
-    });
-    const storeConnectionRow = Array.isArray(serverStoreConnection.body) ? serverStoreConnection.body[0] : null;
-    result.v2.storeConnectionServerInsertWithToken = Boolean(
-      serverStoreConnection.response.ok &&
-      storeConnectionRow?.id &&
-      storeConnectionRow.user_id === userId &&
-      storeConnectionRow.platform === 'shopify' &&
-      typeof storeConnectionRow.access_token === 'string' &&
-      storeConnectionRow.access_token !== 'direct-token-should-fail'
-    );
-
-    const userStoreConnectionRead = storeConnectionRow?.id ? await requestJson(`${config.url}/rest/v1/store_connections?id=eq.${storeConnectionRow.id}&select=id,platform,shop_domain,access_token`, {
-      headers: userHeaders(config, accessToken)
-    }) : null;
-    result.v2.storeConnectionTokenHiddenFromUserRead = Boolean(
-      userStoreConnectionRead?.response.ok &&
-      Array.isArray(userStoreConnectionRead.body) &&
-      userStoreConnectionRead.body.length === 0
-    );
-
-    const serverOauthState = await requestJson(`${config.url}/rest/v1/connector_oauth_states?select=id,user_id,platform,state,shop_domain`, {
-      method: 'POST',
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: `Bearer ${config.serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation'
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        platform: 'shopify',
-        state: `verify-${randomUUID()}`,
-        shop_domain: 'verify-cqai.myshopify.com',
-        redirect_uri: 'http://localhost:3000/api/connectors/shopify/callback',
-        expires_at: new Date(Date.now() + 300000).toISOString()
-      })
-    });
-    const oauthStateRow = Array.isArray(serverOauthState.body) ? serverOauthState.body[0] : null;
-    result.v2.connectorOauthStateServerInsert = Boolean(
-      serverOauthState.response.ok &&
-      oauthStateRow?.id &&
-      oauthStateRow.user_id === userId &&
-      oauthStateRow.platform === 'shopify'
-    );
-
-    const podProductApprovalInsert = await requestJson(`${config.url}/rest/v1/action_approvals?select=id,user_id,status,action_type`, {
-      method: 'POST',
-      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-      body: JSON.stringify({
-        user_id: userId,
-        action_type: 'pod_product_create',
-        tool_name: 'pod_product_create',
-        title: 'POD product API connector test',
-        summary: 'Create a POD product only after explicit approval.',
-        payload: {
-          previewCard: {
-            title: 'Verify POD product preview',
-            willCreate: ['Printify product draft', 'Shopify product draft']
-          }
-        },
-        risk_level: 'high'
-      })
-    });
-    const podProductApproval = Array.isArray(podProductApprovalInsert.body) ? podProductApprovalInsert.body[0] : null;
-    if (podProductApproval?.id) {
-      await requestJson(`${config.url}/rest/v1/action_approvals?id=eq.${podProductApproval.id}&user_id=eq.${userId}&status=eq.requested`, {
-        method: 'PATCH',
-        headers: userHeaders(config, accessToken),
-        body: JSON.stringify({ status: 'approved', decided_at: new Date().toISOString() })
-      });
-    }
-
-    const directPodProduct = podProductApproval?.id ? await requestJson(`${config.url}/rest/v1/pod_products?select=id,user_id,approval_id`, {
-      method: 'POST',
-      headers: userHeaders(config, accessToken, { Prefer: 'return=representation' }),
-      body: JSON.stringify({
-        user_id: userId,
-        approval_id: podProductApproval.id,
-        title: 'Direct client should fail',
-        description: 'Client-side POD writes are blocked.',
-        status: 'ready'
-      })
-    }) : null;
-    result.v2.podProductDirectInsertDenied = Boolean(directPodProduct && !directPodProduct.response.ok);
-
-    const serverPodProduct = podProductApproval?.id ? await requestJson(`${config.url}/rest/v1/pod_products?select=id,user_id,approval_id,title,status,shopify_product_id,printify_product_id`, {
-      method: 'POST',
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: `Bearer ${config.serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation'
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        approval_id: podProductApproval.id,
-        title: 'E2E POD product',
-        description: 'Server-boundary POD product connector test.',
-        print_provider_id: '29',
-        blueprint_id: '12',
-        media_assets: ['https://example.com/e2e-pod.png'],
-        shop_domain: 'verify-cqai.myshopify.com',
-        shopify_product_id: 'shopify-verify-product',
-        printify_product_id: 'printify-verify-product',
-        status: 'ready',
-        preview_payload: { source: 'verify:cqai', publishRequiresUser: true }
-      })
-    }) : null;
-    const podProductRow = Array.isArray(serverPodProduct?.body) ? serverPodProduct.body[0] : null;
-    result.v2.podProductServerInsertWithApproval = Boolean(
-      serverPodProduct?.response.ok &&
-      podProductRow?.id &&
-      podProductRow.user_id === userId &&
-      podProductRow.approval_id === podProductApproval?.id &&
-      podProductRow.status === 'ready'
-    );
-
-    const podProductRead = podProductRow?.id ? await requestJson(`${config.url}/rest/v1/pod_products?id=eq.${podProductRow.id}&select=id,user_id,title,status&limit=1`, {
-      headers: userHeaders(config, accessToken)
-    }) : null;
-    result.v2.podProductRead = Boolean(
-      podProductRead?.response.ok &&
-      Array.isArray(podProductRead.body) &&
-      podProductRead.body[0]?.id === podProductRow.id
-    );
   } catch (error) {
     result.error = error.message || String(error);
   } finally {
@@ -2150,7 +1509,7 @@ function makeMockResponse() {
 }
 
 async function callLocalConverse(message) {
-  const handler = require(path.join(repoRoot, 'src', 'server', 'legacy', 'converse.cjs'));
+  const handler = require(path.join(repoRoot, 'api', 'converse.js'));
   const { res, result } = makeMockResponse();
   await handler(
     { method: 'POST', body: { message, model: 'local', diagnostics: true }, query: {} },
@@ -2234,134 +1593,6 @@ function verifyFrontendSecretBoundary() {
   };
 }
 
-function verifyJobApplicationPacketContract() {
-  const workflowPath = path.join(repoRoot, 'src', 'app', 'api', '_lib', 'job-workflows.ts');
-  const appPath = path.join(repoRoot, 'frontend', 'src', 'App.js');
-  const workflow = fs.existsSync(workflowPath) ? fs.readFileSync(workflowPath, 'utf8') : '';
-  const app = fs.existsSync(appPath) ? fs.readFileSync(appPath, 'utf8') : '';
-  const checks = [
-    { name: 'reads_resume_content_column', ok: workflow.includes(".select('resume_content')") },
-    { name: 'builds_application_packet', ok: workflow.includes('function buildApplicationPacket') },
-    { name: 'includes_recruiter_message', ok: workflow.includes('recruiterMessage') },
-    { name: 'includes_missing_answer_prompts', ok: workflow.includes('missingAnswerPrompts') },
-    { name: 'requires_final_user_submit', ok: workflow.includes('finalSubmitRequiresUser: true') },
-    { name: 'ui_shows_recruiter_note', ok: app.includes('Recruiter note:') },
-    { name: 'ui_shows_missing_prompt', ok: app.includes('Needs user answer:') }
-  ];
-
-  return {
-    ok: checks.every(item => item.ok),
-    checks
-  };
-}
-
-function verifyJobTrackerContract() {
-  const routePath = path.join(repoRoot, 'src', 'app', 'api', 'jobs', 'pipeline', 'route.ts');
-  const appPath = path.join(repoRoot, 'frontend', 'src', 'App.js');
-  const jobPipelinePath = path.join(repoRoot, 'frontend', 'src', 'components', 'JobPipeline.js');
-  const migrationPath = path.join(repoRoot, 'supabase', 'migrations', '20260511000000_job_application_tracker_statuses.sql');
-  const closureMigrationPath = path.join(repoRoot, 'supabase', 'migrations', '20260511010000_resume_tracker_closure.sql');
-  const route = fs.existsSync(routePath) ? fs.readFileSync(routePath, 'utf8') : '';
-  const app = fs.existsSync(appPath) ? fs.readFileSync(appPath, 'utf8') : '';
-  const jobPipeline = fs.existsSync(jobPipelinePath) ? fs.readFileSync(jobPipelinePath, 'utf8') : '';
-  const migration = fs.existsSync(migrationPath) ? fs.readFileSync(migrationPath, 'utf8') : '';
-  const closureMigration = fs.existsSync(closureMigrationPath) ? fs.readFileSync(closureMigrationPath, 'utf8') : '';
-  const requiredStatuses = [
-    'discovered', 'matched', 'saved', 'drafted', 'tailoring', 'questions_needed',
-    'ready', 'ready_to_apply', 'applying', 'ready_to_submit', 'submitted',
-    'applied', 'response', 'interview', 'offer', 'failed', 'cancelled',
-    'rejected', 'withdrawn'
-  ];
-  const checks = [
-    { name: 'pipeline_patch_exists', ok: route.includes('export async function PATCH') },
-    { name: 'tracker_statuses_cover_full_lifecycle', ok: requiredStatuses.every(status => route.includes(`'${status}'`)) },
-    { name: 'stores_tracker_status_metadata', ok: route.includes('tracker_status') && route.includes('tracker_updated_at') },
-    { name: 'legacy_db_status_compatible', ok: route.includes("if (status === 'applied' || status === 'response') return 'submitted'") },
-    { name: 'ui_has_tracker_status_controls', ok: app.includes('updateJobTrackerStatus') && app.includes('trackerStatuses') },
-    { name: 'job_pipeline_uses_tracker_status_as_display_status', ok: route.includes('rawStatus') && route.includes('status: trackerStatus') },
-    { name: 'job_pipeline_renders_tailored_resume_badge', ok: jobPipeline.includes('Tailored resume saved') && jobPipeline.includes('tailoredResumeId') },
-    { name: 'migration_extends_status_constraints', ok: migration.includes('job_applications_status_check') && closureMigration.includes("'questions_needed'") && closureMigration.includes("'ready_to_apply'") }
-  ];
-
-  return {
-    ok: checks.every(item => item.ok),
-    checks
-  };
-}
-
-function verifyResumeTailoringContract() {
-  const migrationPath = path.join(repoRoot, 'supabase', 'migrations', '20260511010000_resume_tracker_closure.sql');
-  const easyApplyPath = path.join(repoRoot, 'src', 'app', 'api', 'jobs', 'easy-apply', 'route.ts');
-  const profileWorkflowPath = path.join(repoRoot, 'src', 'app', 'api', '_lib', 'job-profile-workflows.ts');
-  const migration = fs.existsSync(migrationPath) ? fs.readFileSync(migrationPath, 'utf8') : '';
-  const easyApply = fs.existsSync(easyApplyPath) ? fs.readFileSync(easyApplyPath, 'utf8') : '';
-  const profileWorkflow = fs.existsSync(profileWorkflowPath) ? fs.readFileSync(profileWorkflowPath, 'utf8') : '';
-  const checks = [
-    { name: 'resume_versions_has_company', ok: migration.includes('company text') },
-    { name: 'resume_versions_has_match_score', ok: migration.includes('match_score integer') },
-    { name: 'resume_versions_has_jd_keywords', ok: migration.includes('jd_keywords text[]') },
-    { name: 'resume_versions_has_cover_letter_content', ok: migration.includes('cover_letter_content text') },
-    { name: 'approved_resume_write_persists_tailoring_fields', ok: ['company', 'match_score', 'jd_keywords', 'cover_letter_content'].every(token => profileWorkflow.includes(token)) },
-    { name: 'easy_apply_appends_tailored_resume_version', ok: easyApply.includes(".from('resume_versions')") && easyApply.includes('tailoredResumeVersionId') },
-    { name: 'base_resume_not_updated', ok: !easyApply.includes(".from('resume_versions')\n        .update") && profileWorkflow.includes('insert({') }
-  ];
-
-  return {
-    ok: checks.every(item => item.ok),
-    checks
-  };
-}
-
-function verifyJobHandoffChecklistContract() {
-  const handoffPath = path.join(repoRoot, 'src', 'lib', 'jobs', 'application-handoff.ts');
-  const checklistRoutePath = path.join(repoRoot, 'src', 'app', 'api', 'actions', 'job-apply', 'checklist', 'route.ts');
-  const jobApplyRoutePath = path.join(repoRoot, 'src', 'app', 'api', 'actions', 'job-apply', 'route.ts');
-  const appPath = path.join(repoRoot, 'frontend', 'src', 'App.js');
-  const handoff = fs.existsSync(handoffPath) ? fs.readFileSync(handoffPath, 'utf8') : '';
-  const checklistRoute = fs.existsSync(checklistRoutePath) ? fs.readFileSync(checklistRoutePath, 'utf8') : '';
-  const jobApplyRoute = fs.existsSync(jobApplyRoutePath) ? fs.readFileSync(jobApplyRoutePath, 'utf8') : '';
-  const app = fs.existsSync(appPath) ? fs.readFileSync(appPath, 'utf8') : '';
-  const checks = [
-    { name: 'handoff_builder_exists', ok: handoff.includes('buildJobApplicationHandoffChecklist') },
-    { name: 'covers_final_user_cta', ok: handoff.includes('finalSubmitAutonomous: false') && handoff.includes('User presses final CTA') },
-    { name: 'flags_missing_sensitive_fields', ok: handoff.includes('custom essay answers') && handoff.includes('salary and work-authorization confirmations') },
-    { name: 'authenticated_checklist_endpoint', ok: checklistRoute.includes('requireApiUser') && checklistRoute.includes('job_apply_handoff_checklist') },
-    { name: 'job_apply_persists_handoff', ok: jobApplyRoute.includes('handoff_checklist') && jobApplyRoute.includes('handoffChecklist') },
-    { name: 'ui_can_open_checklist', ok: app.includes('loadJobHandoffChecklist') && app.includes('Open checklist') },
-    { name: 'ui_displays_tracker_handoff', ok: app.includes('Handoff checklist') && app.includes('providerLabel') }
-  ];
-
-  return {
-    ok: checks.every(item => item.ok),
-    checks
-  };
-}
-
-function verifyJobComplexFormContract() {
-  const sharedPath = path.join(repoRoot, 'src', 'app', 'api', 'actions', 'job-apply', 'platforms', 'shared.ts');
-  const routePath = path.join(repoRoot, 'src', 'app', 'api', 'actions', 'job-apply', 'route.ts');
-  const appPath = path.join(repoRoot, 'frontend', 'src', 'App.js');
-  const platformFiles = ['linkedin.ts', 'indeed.ts', 'dice.ts', 'ats.ts', 'generic.ts']
-    .map(file => path.join(repoRoot, 'src', 'app', 'api', 'actions', 'job-apply', 'platforms', file));
-  const shared = fs.existsSync(sharedPath) ? fs.readFileSync(sharedPath, 'utf8') : '';
-  const route = fs.existsSync(routePath) ? fs.readFileSync(routePath, 'utf8') : '';
-  const app = fs.existsSync(appPath) ? fs.readFileSync(appPath, 'utf8') : '';
-  const platformSources = platformFiles.map(file => fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '').join('\n');
-  const checks = [
-    { name: 'audited_step_receipts_exist', ok: shared.includes('auditedBrowserStep') && shared.includes('job_apply_step_receipt') },
-    { name: 'step_screenshots_audited', ok: shared.includes('screenshotUrl: receipt.screenshot') && shared.includes('captureReviewReceipt(input)') },
-    { name: 'user_input_prompts_flag_sensitive_fields', ok: shared.includes('Salary expectation') && shared.includes('Work authorization') && shared.includes('Custom essay questions') },
-    { name: 'platforms_use_audited_browser_step', ok: ['linkedin-open-easy-apply', 'indeed-start-apply', 'dice-start-apply', 'company-site-field-audit', 'start-ats-form'].every(token => platformSources.includes(token)) },
-    { name: 'job_apply_persists_step_receipts', ok: route.includes('step_receipts') && route.includes('user_input_prompts') },
-    { name: 'ui_displays_step_receipts_and_prompts', ok: app.includes('Step receipts') && app.includes('Needs user confirmation:') }
-  ];
-
-  return {
-    ok: checks.every(item => item.ok),
-    checks
-  };
-}
-
 async function main() {
   const config = readAppSupabaseConfig();
   if (!config.url || !config.anonKey) {
@@ -2370,16 +1601,6 @@ async function main() {
 
   const signup = await verifySignup(config);
   const tables = [];
-  const optionalTables = new Set([
-    // Phase 8 code tolerates this table missing until the live Supabase
-    // project receives the job scan reporting migration.
-    'job_scan_runs',
-    // Commerce hardcoding Sprint 2 tables are runtime-migration dependent.
-    // They become required once the Sprint 2 migration is applied.
-    'social_accounts',
-    'pod_providers',
-    'platform_settings'
-  ]);
   for (const table of [
     'profiles',
     'user_activity_keywords',
@@ -2395,61 +1616,20 @@ async function main() {
     'browser_sessions',
     'job_listings',
     'job_application_reviews',
-    'job_applications',
     'job_profiles',
     'resume_versions',
-    'job_scan_runs',
-    'social_accounts',
     'pod_design_briefs',
     'gfxtools_jobs',
-    'gfx_assets',
-    'asset_ready_events',
-    'shopify_product_preparations',
-    'printify_design_preparations',
-    'commerce_connector_secrets',
-    'shopify_store_connections',
-    'fulfillment_provider_statuses',
-    'shopify_products',
-    'provider_designs',
-    'provider_product_syncs',
-    'shopify_collections',
-    'shopify_collection_assignments',
-    'shopify_inventory_levels',
-    'shopify_inventory_adjustments',
-    'shopify_order_summaries',
-    'aftership_connections',
-    'aftership_tracking_snapshots',
-    'aftership_return_snapshots',
-    'shopify_analytics_snapshots',
-    'shopify_bundles',
-    'marketplace_status_snapshots',
-    'commerce_events',
     'social_content_drafts',
     'social_distribution_rules',
     'social_scheduled_posts',
-    'social_post_fire_logs',
-    'social_posts',
-    'store_connections',
-    'connector_oauth_states',
-    'pod_products',
-    'pod_providers',
-    'platform_settings'
+    'social_post_fire_logs'
   ]) {
-    const result = await verifyTable(config, table);
-    if (optionalTables.has(table) && !result.ok) {
-      result.optional = true;
-      result.needsMigration = true;
-    }
-    tables.push(result);
+    tables.push(await verifyTable(config, table));
   }
   const userOwnedCrud = await verifyUserOwnedCrud(config);
   const rgy = await verifyRgy();
   const frontendSecretBoundary = verifyFrontendSecretBoundary();
-  const jobApplicationPacketContract = verifyJobApplicationPacketContract();
-  const jobTrackerContract = verifyJobTrackerContract();
-  const resumeTailoringContract = verifyResumeTailoringContract();
-  const jobHandoffChecklistContract = verifyJobHandoffChecklistContract();
-  const jobComplexFormContract = verifyJobComplexFormContract();
 
   const report = {
     supabaseProject: config.url,
@@ -2458,12 +1638,7 @@ async function main() {
     userOwnedCrud,
     rgy,
     frontendSecretBoundary,
-    jobApplicationPacketContract,
-    jobTrackerContract,
-    resumeTailoringContract,
-    jobHandoffChecklistContract,
-    jobComplexFormContract,
-    passed: signup.ok && tables.every(isRequiredTableHealthy) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok && jobApplicationPacketContract.ok && jobTrackerContract.ok && resumeTailoringContract.ok && jobHandoffChecklistContract.ok && jobComplexFormContract.ok
+    passed: signup.ok && tables.every(table => table.ok) && userOwnedCrud.ok && rgy.every(item => item.ok) && frontendSecretBoundary.ok
   };
 
   console.log(JSON.stringify(report, null, 2));

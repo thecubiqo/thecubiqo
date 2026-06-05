@@ -1,48 +1,8 @@
 # goodfeatureslegacy Preview Contract
 
-Date: 2026-05-10
+Date: 2026-05-07
 Branch: `goodfeatureslegacy`
 Production branches: leave `origin/QA`, `origin/main`, and prod-track untouched except explicit bugfix work.
-
-## Latest Commerce Hardcoding Sprint 1
-
-- Removed the developer-store fallback from the Shopify/POD operations layer. If no store is supplied or connected for the signed-in user, commerce actions now stop with a clear "connect a Shopify store" error.
-- Removed product-level source defaults for `['CubiQo', 'POD']` and `$29.00`. Product tags now come from the action payload or the user's store metadata/settings; price only appears when the payload or store defaults provide one.
-- Stopped silently converting unknown fulfilment/direct-provider values to Printify. Unsupported or missing providers now block and ask for an explicit supported provider.
-- Removed the personal Shopify store reference from the V2 capability manifest.
-- Added migration `supabase/migrations/20260511020000_commerce_multitenant_sprint1.sql` with per-store default fields on `shopify_store_connections`:
-  - `default_product_tags`
-  - `default_product_price`
-  - `default_product_title`
-  - `default_collection_title`
-- Regression gates:
-  - `npm run typecheck`: pass
-  - `npm run build`: pass after clearing a stale Windows/OneDrive `.next` file lock
-  - `npm run verify:cqai`: pass
-
-Database note: apply `20260511020000_commerce_multitenant_sprint1.sql` to the goodfeatureslegacy Supabase project before relying on per-store product defaults in live preview.
-
-## Latest Career Closure Patch - Phases 9-10
-
-- Resume tailoring now appends richer resume-version metadata:
-  - `company`
-  - `match_score`
-  - `jd_keywords`
-  - `cover_letter_content`
-- The base resume is still never modified. Tailored output is stored as a new resume version.
-- `/api/jobs/easy-apply` mirrors tailored resume metadata into `resume_versions` when a user stages an application.
-- `/api/actions/execute` `resume_version_write` also accepts and stores the same fields after approval.
-- Job tracker lifecycle now supports the broader product statuses:
-  - `discovered`, `matched`, `saved`, `drafted`, `tailoring`, `questions_needed`, `ready`, `ready_to_apply`, `applying`, `ready_to_submit`, `submitted`, `applied`, `response`, `interview`, `offer`, `failed`, `cancelled`, `rejected`, `withdrawn`
-- `/api/jobs/pipeline` returns tracker-facing `status` plus `rawStatus` for runtime compatibility.
-- `JobPipeline` renders a visible tailored-resume badge when `tailoringStatus` or `tailoredResumeId` exists.
-- New migration: `supabase/migrations/20260511010000_resume_tracker_closure.sql`.
-- Regression gates:
-  - `npm run typecheck`: pass
-  - `npm run build`: pass
-  - `npm run verify:cqai`: pass
-
-Database note: apply `20260511010000_resume_tracker_closure.sql` to the goodfeatureslegacy Supabase project before expecting the live preview to persist the four new resume-version columns.
 
 ## Visible UI Surfaces
 
@@ -52,17 +12,6 @@ Database note: apply `20260511010000_resume_tracker_closure.sql` to the goodfeat
 - Dashboard: shows only durable surfaces and counts: account, conversations, RGY signals/legacy keywords, journals.
 - Daily Journal: quick intake first, then a 15-minute Core-guided session with typed or browser speech-captured answers, then summary save.
 - RGY panel: MVP capsule only: color + keyword + optional confirmed intent.
-
-## V2 UI Reality
-
-- Job hunt, social distribution, and business/POD work stay inside CubiQo's existing chat and approval cards.
-- Shopify/Printify direct API connectors are visible only inside `/actions`; they are not browser automation and they do not expose raw tokens.
-- The only additional durable V2 surfaces are:
-  - Job tracker panel: Supabase-backed table of applications, statuses, resume version, cover letter version, and approval id.
-  - Content calendar view: Supabase-backed view of scheduled, posted, failed, and pending-approval content.
-  - Daily/weekly report delivery in the existing CubiQo chat.
-- No separate agent dashboard is required for V2.
-- No incomplete workflow buttons should be shown for job submission, browser execution, posting, platform analytics, or provider writes until the exact approval path and provider integration are tested.
 
 ## RGY MVP Contract
 
@@ -78,16 +27,14 @@ Database note: apply `20260511010000_resume_tracker_closure.sql` to the goodfeat
 
 - Job Hunter
 - Website launcher
-- Full Ecomm launchpad as a polished end-to-end product launcher
+- Ecomm launchpad
 - CQ-to-CQ
 - Social Army 10/10/10
 - BYO keys
 - Biometrics/camera awareness
 - Self-healer/full reporting
-- Browser workflows beyond the Stagehand demo/action container, coder/write-agent actions
+- Live browser execution, coder/write-agent actions
 - Signal match route/button
-
-Visible now: the Shopify connector card, Printify connector card, and POD product approval cards are allowed in `/actions` because they are backed by server routes, encrypted token storage, approval gates, and regression tests.
 
 Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Signal match, RGY matching, or intent matching.
 
@@ -95,9 +42,6 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 
 - Added Supabase migration for `signals`.
 - Added `/api/signals` for user-owned RGY signal create/list/update/delete.
-- Added `/api/rgy/classify` for the RGY mode-reader classifier: safety layer first, taxonomy lookup before LLM, LLM fallback only when taxonomy is unclear, and server-side signal creation only.
-- Tightened `signals` schema for the classifier contract: `signal_id`, `matching_enabled`, `confidence`, `shown_in_panel`, `editable_by_user`, `corrected_at`, and `raw_input`.
-- Tightened signal RLS so anonymous and direct authenticated browser/client inserts are denied; server routes create signals after validating the user.
 - Added `/api/journal/guide` for guided-journal questions and LLM/local summary fallback.
 - Updated conversation RGY output to return keyword, suggested intents, confirmed intents, and `matching_enabled: false`.
 - Updated dashboard counts/features to expose only live/code-ready surfaces.
@@ -110,13 +54,9 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Added `/actions` as the V2 Action Console inside the CubiQo shell. It exposes only completed QA-backed actions: approval cards, approve/cancel, approved task creation, in-app report schedules, in-app self/daily reports, and audit viewing.
 - Added `/api/actions/capabilities` as the V2 capability manifest. It marks active, read-only, and locked tools explicitly so incomplete workflows cannot look connected.
 - Added `/api/actions/execute` as the generic V2 action boundary. Locked tools return `501`, write a blocked audit entry, and do not execute.
-- Added Stagehand/Browserbase browser automation through the existing `/api/actions/execute` boundary: approved `browser_open` creates an isolated Browserbase session, approved `browser_act`/click/type/extract/screenshot run through Stagehand, and every browser audit row carries `browser_session_id` when a session exists.
-- Added hard browser guardrails: prod/QA targets, payment/billing/checkout, `send_email`, autonomous social publish, and deploy are blocked with non-overridable audit entries. Untrusted URLs require an extra warning confirmation before navigation.
-- Added signed browser visual receipts: screenshots are uploaded to Supabase Storage and returned to the client only as 1-hour signed URLs.
-- Added `/api/actions/browser-demo` as the first safe real browser workflow: approval -> example.com open -> accessibility-tree extraction -> signed screenshot -> audit -> session close.
+- Added browser-control foundation through `/api/actions/execute`: approved `browser_open` creates an isolated `browser_sessions` row, approved browser click/type/extract/screenshot intents are recorded against that session, and every browser audit row carries `browser_session_id` when a session exists.
 - Added the active `/api/actions/capabilities` parent capability `browser_control`; browser action approvals are only requestable while that manifest marks the control plane active.
-- Added a visible active browser session strip and Stop session button in `/actions`. Stop closes the user-owned Stagehand session through `/api/actions/execute` and writes a cancel audit row.
-- Added browser audit debug UI: failed browser actions can show the captured accessibility snapshot under "What the browser saw"; successful screenshots appear as signed visual receipt links.
+- Added a visible active browser session strip and Stop session button in `/actions`. Stop closes the user-owned session through `/api/actions/execute` and writes a cancel audit row.
 - Added V2 job application workflow tools through `/api/actions/execute`: approved `job_search_save` stores extracted LinkedIn/Indeed/Dice listings, approved `job_application_prepare` creates an exact review card payload, and approved `job_application_submit_approved` marks the prepared package approved for visible submission without auto-submitting externally.
 - Added user-owned, server-controlled Supabase tables `job_listings` and `job_application_reviews`. Users can read their own rows; direct browser-client inserts/updates are denied so approval/audit cannot be bypassed.
 - Added job workflow UI inside `/actions`: saved jobs, application review cards, and approval cards remain in the same CubiQo Action Console.
@@ -128,19 +68,7 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - Added POD connector, design brief, and GFXTools payload UI inside `/actions`. Connector status never shows connected unless a real server-side verification path exists.
 - Added V2 social content pipeline through `/api/actions/execute`: read-only social connector state, approved `social_post_prepare`, and approved `social_post_schedule_approved`.
 - Added user-owned, server-controlled Supabase tables `social_content_drafts`, `social_distribution_rules`, `social_scheduled_posts`, and `social_post_fire_logs`. Users can read their own rows; direct browser-client writes are denied so approval/audit cannot be bypassed.
-- Upgraded the V2 POD connector layer with first-class asset handoff: `gfx_assets`, `asset_ready_events`, `shopify_product_preparations`, and `printify_design_preparations`.
-- Added approved `gfxtools_asset_resize`, `shopify_product_prepare`, and `printify_design_prepare` actions. All route through `/api/actions/execute`, require an approved action card, and write audit rows.
-- Tightened the social pipeline contract: `social_post_prepare` now starts from a ready GFX asset with populated platform variants and an `asset_ready` event. Pending or failed assets are blocked.
 - Added social connector, draft, distribution rule, scheduled post, and fire-log UI inside `/actions`. Connector status never shows connected unless real provider verification exists, and missing credentials create blocked logs rather than fake posts.
-- Added V2 Shopify/POD operations schema for full commerce state: server-only connector secrets, Shopify store connections, fulfillment provider manifests, Shopify products, provider designs, provider syncs, collections, inventory, order/analytics summaries, AfterShip snapshots, bundles, marketplace status, and commerce handoff events.
-- Added V2 Shopify/POD operations tools through `/api/actions/execute`: `shopify_store_connect`, `shopify_store_status`, `shopify_product_create`, `shopify_product_publish`, `shopify_product_update`, `shopify_product_archive`, `fulfilment_provider_read`, `pod_provider_connect`, `design_create`, `product_sync`, `provider_product_status`, collection tools, inventory tools, orders/analytics reads, AfterShip reads, bundles, and marketplace status reads.
-- Added Shopify/POD operations UI inside `/actions`: approved product creation/publish/archive, direct POD design creation, provider sync, collection creation, inventory adjustment, bundle creation, Shopify products, fulfillment provider manifest, and commerce handoff events.
-- Connector safety rule is enforced in the operations layer: credentials stay server-side; missing credentials return disconnected or blocked states; Shopify-app POD providers are read/routing-only; direct API providers are Printify, Printful, and Gelato; AfterShip is read-only in V2.
-- Added the direct Shopify/Printify API connector silo, separate from browser automation: Shopify OAuth start/callback, Printify key validation, encrypted server-side token storage, sanitized connector status, and approval-gated POD product creation/publish routes.
-- Added `store_connections`, `connector_oauth_states`, and `pod_products` for direct API connector state. Direct client writes are denied; server-boundary writes are verified; connector status never returns `access_token`.
-- Added `token-vault.ts` with AES-256-GCM encryption for Shopify/Printify tokens at rest.
-- Added `shopify-client.ts` and `printify-client.ts` for server-only provider calls. Shopify billing/payment/checkout/transaction endpoints are hard-blocked and audit-logged.
-- Added `/actions` UI cards for Shopify connection, Printify connection, POD API product creation, and POD publish gate. Product publish remains a separate user approval and is never autonomous.
 - Updated approval requests so non-end-to-end tools cannot receive fake approvals.
 - Updated the main CubiQo response surface with a component-library based "What I checked" collapsible that shows V1 tool activity inside the existing window.
 - Removed CubiQo runtime command execution. V1 no longer exposes `run_check`, no longer reads from the repo `scripts` directory, and no longer reports package scripts as product capability.
@@ -157,29 +85,6 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - V2 write/action tools must stay hidden until approval UI, feature flags, audit logging, safe failure states, and regression tests exist.
 - Browser/extension fallback is allowed only for user-visible, approved sessions with stop/cancel controls and domain boundaries.
 - External account integrations require server-side token storage and must never show fake connected statuses.
-
-## V2 Job Hunt Additions To Prompt Scope
-
-- Per user job-search profile, CubiQo should support a managed 12-hour scan schedule after approval.
-- Supported target sources: LinkedIn, Indeed, Dice, Workday, Greenhouse, Lever, ZipRecruiter, and Wellfound, using compliant APIs/connectors first.
-- Each JD must be scored against the saved profile and base resume; only roles above the user-set threshold are surfaced.
-- For each matched role, CubiQo should pull full JD text where permitted, generate a tailored resume version, and generate a role-specific cover letter.
-- Resume and cover-letter outputs are append-only Supabase versions; the base resume is never overwritten.
-- Complex company-site forms use browser control only after approval, pre-fill from saved profile, screenshot every step to the audit log, and flag custom essays or salary fields for user input.
-- Application tracking stores company, role, JD URL, resume version, cover letter version, applied_at, status, and approval_id.
-- Status flow: `applied` -> `response` -> `interview` -> `offer` -> `rejected` -> `withdrawn`.
-- Daily reports include a pipeline summary.
-- CubiQo never applies or submits without an approval card and approval audit record.
-
-## V2 Social Calendar Additions To Prompt Scope
-
-- Weekly content calendars should be built from active Shopify products, ready GFXTools assets, and user-set posting frequency/platforms.
-- Calendar state is stored in Supabase and rendered in the content calendar view.
-- Batch approval should surface the full week in one approval card.
-- The user can approve all, edit individual posts, or remove individual posts before scheduling fires.
-- Weekly reporting should pull platform analytics where connected: impressions, engagement, reach, and top post.
-- Weekly report output should be plain language and include a recommendation for the best-performing content type.
-- Missing platform credentials or missing GFXTools ready assets block scheduling/reporting truthfully; no fake connected state and no fake analytics.
 
 ## Closure Checklist
 
@@ -257,18 +162,11 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 | V2 locked execution boundary | Closed | `/api/actions/execute` returns `501` and writes blocked audit logs for locked tools. |
 | V2 active action visibility | Closed | `/actions` renders active/read-only/locked capability states from the manifest. |
 | Browser control parent capability | Closed | `/api/actions/capabilities` exposes active `browser_control`; browser actions are approved through the existing action boundary. |
-| Stagehand dependency | Closed | `@browserbasehq/stagehand` is installed directly; Puppeteer, Playwright, and Selenium were not added as direct app dependencies. |
-| Stagehand wrapper | Closed | `src/app/api/_lib/stagehand-client.ts` owns the raw Stagehand instance and exports only typed open/act/extract/screenshot/close helpers. |
-| Browser session manager | Closed | `browser_sessions` tracks user-owned active/cancelled/closed sessions with mode, target/current URL, allowed origin, heartbeat timestamps, provider session id, metadata, and RLS. |
-| Browser open boundary | Closed | `browser_open` requires a requested/approved approval card before `/api/actions/execute` creates a real Stagehand Browserbase session. |
-| Browser act/extract/screenshot boundary | Closed | Each action requires its own approval and matching active `browser_session_id`; execution runs through Stagehand and writes audit. |
-| Browser URL allowlist | Closed | `example.com`, LinkedIn, Indeed, Dice, Wellfound, Greenhouse, and Lever are allowlisted; unlisted domains require secondary confirmation and suspicious URL audit. |
-| Browser hard stops | Closed | Prod/QA target URLs, payments/billing/checkout, email send, autonomous social publish, and deploy are blocked regardless of approval/capability flags. |
+| Browser session manager | Closed for foundation | `browser_sessions` tracks user-owned active/cancelled sessions with target/current URL, allowed origin, timestamps, metadata, and RLS. |
+| Browser open boundary | Closed for foundation | `browser_open` requires a requested/approved approval card before `/api/actions/execute` creates a session. |
+| Browser click/type/extract/screenshot boundary | Closed for foundation | Each action requires its own approval and active `browser_session_id`; execution records the intent and audit trail only. |
 | Browser audit session ID | Closed | `action_audit_logs.browser_session_id` is populated for session-scoped browser approval/audit rows. |
-| Browser screenshot receipt | Closed | `browser_screenshot` stores private Supabase Storage screenshots and returns only a 1-hour signed URL. |
-| Browser accessibility debug | Closed | Stagehand action failures capture an accessibility snapshot to `action_audit_logs.accessibility_tree_snapshot`; `/actions` renders it in an expandable debug panel. |
 | Browser stop/cancel button | Closed | `/actions` shows a visible active-session strip with Stop session, routed through `/api/actions/execute`. |
-| Safe browser demo | Closed | `/api/actions/browser-demo` creates an approval card, opens example.com, extracts visible content, stores a screenshot receipt, audits the run, and closes the session. |
 | Job search save | Closed for V2 foundation | Approved `job_search_save` saves LinkedIn, Indeed, and Dice extracted listings to `job_listings` through `/api/actions/execute`. |
 | Job application prepare | Closed for V2 foundation | Approved `job_application_prepare` creates a review card showing the exact candidate/job/cover letter/answers payload before submission approval. |
 | Job application submit approved | Closed for V2 foundation | Approved `job_application_submit_approved` marks a prepared package approved for visible submission and audits it; it does not auto-submit to job boards. |
@@ -284,20 +182,6 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 | Social post prepare | Closed for V2 foundation | Approved `social_post_prepare` generates platform-aware drafts from an approved asset URL or GFXTools output and saves them to `social_content_drafts`. |
 | Social cadence/schedule | Closed for V2 foundation | Approved `social_post_schedule_approved` creates user-configurable interval/platform/variant rules, scheduled post rows, and blocked fire logs when credentials are missing. |
 | Social workflow RLS | Closed | Anonymous and direct client writes are denied for `social_content_drafts`, `social_distribution_rules`, `social_scheduled_posts`, and `social_post_fire_logs`; server-boundary writes pass after approval. |
-| GFX asset records | Closed for V2 foundation | Approved GFXTools flow saves structured `gfx_assets` rows with `asset_id`, `asset_url`, `asset_type`, dimensions, status, and connector state. Missing or failed connector output is stored as failed, not faked as ready. |
-| GFX platform variants | Closed for V2 foundation | Approved `gfxtools_asset_resize` populates Instagram, LinkedIn, X, TikTok, and Facebook variant records and emits an `asset_ready` event. |
-| Shopify product preparation | Closed for V2 foundation | Approved `shopify_product_prepare` saves a Shopify product payload from a ready asset. Missing credentials produce blocked/disconnected state; no fake connected status. |
-| Printify design preparation | Closed for V2 foundation | Approved `printify_design_prepare` saves a Printify design/template payload from a ready asset. Missing credentials produce blocked/disconnected state; no fake connected status. |
-| Asset-to-social handoff | Closed | Social draft preparation requires `asset_id` plus `asset_ready` event. Pending/failed assets and direct URL-only handoff are blocked in the action path. |
-| Shopify store connect/status | Closed for V2 foundation | `shopify_store_connect` validates/stores credentials server-side only when connector encryption is configured; `shopify_store_status` returns real state and counts or disconnected/blocked state. QA schema is applied and table reachability passes. |
-| Shopify product create | Closed for V2 foundation | Approved `shopify_product_create` creates/prepares a draft product from a ready asset and selected provider; missing Shopify credentials create blocked local state, not fake external success. |
-| Shopify product lifecycle | Closed for V2 foundation | Approved publish/update/archive actions require preview cards, write audit rows, and publish emits `product_published` event. |
-| POD provider management | Closed for V2 foundation | `fulfilment_provider_read` returns direct API providers plus Shopify-app provider manifest; app providers are routing-only, direct providers require server-side credentials. |
-| Direct POD design/sync | Closed for V2 foundation | Approved `design_create` targets Printify/Printful/Gelato only; approved `product_sync` records provider-to-Shopify sync state without fake provider ids. |
-| Collections/inventory | Closed for V2 foundation | Approved collection create/assign and inventory update record before/after state through `/api/actions/execute`. |
-| Orders/analytics read-only | Closed for V2 foundation | Order and analytics reads store aggregate-only summaries and no raw customer PII. |
-| AfterShip read-only | Closed for V2 foundation | `aftership_connect` stores server-side credentials when encrypted; tracking/returns reads are read-only snapshots. |
-| Bundles/marketplaces | Closed for V2 foundation | Bundle create requires approval; marketplace status remains read-only in V2. |
 | Live browser/POD/social/camera/coder execution | Deferred intentionally | Locked until provider/API/browser runtime integrations, action-specific approval UX, and regression tests exist. |
 
 ## V2 Security Review Notes
@@ -322,8 +206,7 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 - V2 browser session manager: `/api/actions/execute`, `browser_sessions`, and `action_audit_logs.browser_session_id`. This opens/tracks/stops isolated browser workflow containers and records approved browser intents only.
 - V2 job workflow tools: `/api/actions/execute`, `job_listings`, and `job_application_reviews`. This saves extracted job listings, prepares application review cards, and approves packages for visible submission only.
 - V2 job profile/resume tools: `/api/actions/execute`, `job_profiles`, and `resume_versions`. This stores approved career profile context and append-only resume versions in Supabase only.
-- V2 POD business connector tools: `/api/actions/execute`, `pod_design_briefs`, `gfxtools_jobs`, `gfx_assets`, `asset_ready_events`, `shopify_product_preparations`, and `printify_design_preparations`. This reports read-only connector state, stores approved POD creative briefs, submits approved GFXTools jobs when configured, stores asset status truthfully, creates platform variants, and prepares Shopify/Printify payloads.
-- V2 Shopify/POD operations tools: `/api/actions/execute`, `commerce_connector_secrets`, `shopify_store_connections`, `fulfillment_provider_statuses`, `shopify_products`, `provider_designs`, `provider_product_syncs`, `shopify_collections`, `shopify_inventory_*`, `shopify_order_summaries`, `aftership_*`, `shopify_analytics_snapshots`, `shopify_bundles`, `marketplace_status_snapshots`, and `commerce_events`. This keeps credentials server-side, blocks missing providers truthfully, and emits commerce handoff events for later social/daily-report use.
+- V2 POD business connector tools: `/api/actions/execute`, `pod_design_briefs`, and `gfxtools_jobs`. This reports read-only connector state, stores approved POD creative briefs, and prepares GFXTools payloads without external calls.
 - V2 social content/distribution tools: `/api/actions/execute`, `social_content_drafts`, `social_distribution_rules`, `social_scheduled_posts`, and `social_post_fire_logs`. This prepares platform-aware draft variants, stores approved cadence rules, records scheduled post rows, and blocks missing-credential platforms truthfully without client-side platform API calls.
 - V2 Action Console: `/actions`, linked from the left tray and dashboard feature card.
 - V2 Action Console now shows the capability boundary from the manifest instead of vague future-work text.
@@ -332,15 +215,15 @@ Note: CQ-to-CQ is friend/contact messenger only. It is not the same thing as Sig
 
 Current blocker:
 
-- No active Supabase schema blocker remains for the QA project. Base tables plus V2 approval/audit/task/report/browser/job/profile/resume/POD/social/commerce tables are applied and verified against `https://oszlufrjvibrdauuppzj.supabase.co`.
-- Live browser/job external submission/POD external call/social platform posting/payment/camera/coder execution tools are intentionally locked or blocked unless their provider integrations, credentials, and action-specific approval UX are present.
+- No active Supabase schema blocker remains for the QA project. Base tables plus V2 approval/audit/task/report/browser/job/profile/resume/POD tables are applied and verified against `https://oszlufrjvibrdauuppzj.supabase.co`.
+- Live browser/job external submission/POD external call/social platform posting/payment/camera/coder execution tools are intentionally locked in the capability manifest until their provider integrations and action-specific approval UX are ready.
 
 ## Regression Gate Before Push
 
 Commands:
 
 ```bash
-node -c src/server/legacy/converse.cjs
+node -c api/converse.js
 npm run typecheck
 npm run build
 npm run verify:cqai
@@ -348,22 +231,18 @@ npm run verify:cqai
 
 Latest result:
 
-- `node -c src/server/legacy/converse.cjs`: pass
+- `node -c api/converse.js`: pass
 - `npm run typecheck`: pass
 - `npm run build`: pass; routes expose `/`, `/app`, `/actions`, `/auth/callback`, `/dashboard`, `/journal`, and API routes only. `/signal` is not routable.
 - `npm run build`: known warning remains for `/api/agent` because V1 repo inspection performs runtime filesystem reads. This is intentional for read-only self-inspection and should be watched before production promotion.
 - Local route smoke on `127.0.0.1:3037`: `/`, `/app`, `/dashboard`, `/journal`, and `/actions` returned `200`.
-- `npm run verify:cqai`: pass against QA Supabase. The verifier now checks the Shopify/POD operations tables in addition to the prior V2 schema.
+- `npm run verify:cqai`: pass against QA Supabase. The verifier now uses admin-created confirmed test users only and does not send public signup/magic-link emails.
 - E2E save/read/delete: pass for authenticated `journal_entries` and `signals`.
 - RLS denial: pass; anonymous writes to `journal_entries` and `signals` are denied.
 - V2 job profile/resume regression: pass; `job_profiles` and `resume_versions` are reachable, anonymous/direct client writes are denied, approved server-boundary writes pass, and two resume versions can coexist without overwrite.
 - V2 POD connector regression: pass; `pod_design_briefs` and `gfxtools_jobs` are reachable, anonymous/direct client writes are denied, approved server-boundary writes pass, connector status does not fake connected state, and GFXTools preparation keeps `externalCallPerformed = false`.
 - V2 social distribution regression: pass; `social_content_drafts`, `social_distribution_rules`, `social_scheduled_posts`, and `social_post_fire_logs` are reachable, anonymous/direct client writes are denied, approved server-boundary writes pass, schedule cadence is user-configurable, missing platform credentials produce blocked logs, and external platform calls remain false.
-- V2 POD asset regression: pass; `gfx_assets`, `asset_ready_events`, `shopify_product_preparations`, and `printify_design_preparations` are reachable. Anonymous/direct client writes are denied, service-boundary writes with approval pass, and social draft creation is tied to ready asset handoff state.
-- V2 Shopify/POD operations regression: pass; `commerce_connector_secrets`, `shopify_store_connections`, `fulfillment_provider_statuses`, `shopify_products`, `provider_designs`, `provider_product_syncs`, `shopify_collections`, `shopify_collection_assignments`, `shopify_inventory_levels`, `shopify_inventory_adjustments`, `shopify_order_summaries`, `aftership_connections`, `aftership_tracking_snapshots`, `aftership_return_snapshots`, `shopify_analytics_snapshots`, `shopify_bundles`, `marketplace_status_snapshots`, and `commerce_events` are reachable in QA.
 - Voice cue route: verified wired to ElevenLabs config (`River neutral/androgynous`, `eleven_flash_v2_5`) but audio generation is currently blocked by ElevenLabs quota; route returns `elevenlabs_error` when the key is present and provider fails.
-- RGY classifier migration: applied to QA Supabase via `20260510050000_rgy_classifier_contract.sql`.
-- RGY classifier acceptance smoke: pass on local preview. Covered `yoga`, `I want to build a startup`, `movie night with friends`, `looking for someone to hang out with`, `adult apps nearby`, crisis override, hard block, user-confirmed matching, multi-intent confirmation, keyword edit/user correction, anonymous rejection, and cross-user isolation.
 
 ## Preview Deployment
 
@@ -466,31 +345,6 @@ Latest job workflow foundation smoke on `127.0.0.1:3045`:
 - `/api/actions/execute?job_state=1`: passed; returned user-owned saved jobs and review cards.
 - Audit: passed; completed audit rows existed for `job_search_save`, `job_application_prepare`, and `job_application_submit_approved`.
 
-Latest Stagehand/Browserbase live smoke on `127.0.0.1:3032`:
-
-- Vercel env: Browserbase values added to Development and Preview branch `goodfeatureslegacy`; Production was not touched.
-- Local env: `.env.local` has Browserbase project/key and `SUPABASE_STORAGE_BUCKET=browser-screenshots`; `.env.local` remains uncommitted.
-- `/api/actions/browser-demo`: passed; created pending approval, required explicit approval, opened a real Browserbase/Stagehand session, navigated to `https://example.com`, extracted the title/paragraph, uploaded a screenshot receipt to Supabase Storage, returned a signed URL, and closed the session.
-- Schema compatibility: passed; browser-open approvals no longer pre-write `browser_session_id` before the matching `browser_sessions` row exists, preserving the audit FK.
-- Stagehand model: passed with default `openai/gpt-4.1-mini`; override is documented as `STAGEHAND_MODEL_NAME`.
-
-Hosted goodfeatureslegacy preview smoke:
-
-- Preview URL: `https://cubiqo-repo-pbjxcf3ua-cubiqo-projects-d7156840.vercel.app`.
-- `/api/actions/capabilities`: passed; hosted preview returns the V2 action manifest, with `browser_open`, `browser_extract`, `browser_screenshot`, and `browser_act` active.
-- `/actions`: passed; hosted preview returns HTTP 200.
-- `/api/actions/browser-demo`: passed; pending approval returned HTTP 202, approval update returned HTTP 200, approved execution returned HTTP 200 with `executed: true`.
-- Browser session proof: `browser_session_id=7c0ecd8e-9f33-45fa-bf0c-e7cfb304d206`; extracted `Example Domain` content from `https://example.com`.
-- Screenshot proof: signed Supabase Storage URL returned from `browser-screenshots/7c0ecd8e-9f33-45fa-bf0c-e7cfb304d206/1778410720348.png`.
-- Audit proof: `action_audit_logs` contains completed `browser_demo` and `browser_close` rows with the same `browser_session_id`; `browser_demo` row has the screenshot URL.
-- Hard stop proof: hosted `send_email` action returned HTTP 403 and wrote `blocked_email_send` to the audit log.
-
-Live DB migration status:
-
-- `20260510000000_stagehand_browser_automation.sql` applied to `https://oszlufrjvibrdauuppzj.supabase.co`.
-- Verified durable columns: `action_approvals.browser_session_id`, `requires_user_confirmation`, `user_confirmation_state`, `warning_message`; `action_audit_logs.browser_session_id`, `accessibility_tree_snapshot`, `block_reason`, `screenshot_url`; `browser_sessions.session_mode`, `last_active_at`, `expired_at`, `provider_session_id`.
-- Legacy root `api/` functions moved to `src/server/legacy` so Vercel preview routes `/api/actions/*` to the Next.js App Router handlers instead of the old voice cue function.
-
 Prod voice check:
 
 - `https://www.cubiqo.ai/api/voice-cue`: reaches ElevenLabs and returns a quota error with `River neutral/androgynous` / `eleven_flash_v2_5`. Current prod code labels provider as `none`, while this branch labels the same condition as `elevenlabs_error`.
@@ -504,195 +358,5 @@ Resolved schema blocker:
 - V2 approval-gated writes passed: denied actions do not execute, approved task writes execute, report schedule/report writes execute, and user-forged audit inserts are denied.
 - V2 browser foundation passed: anonymous browser session writes are denied, direct user browser session writes are denied even after approval, server-boundary insert with an approved `browser_open` passes, and `browser_sessions` is reachable in QA Supabase.
 - V2 job workflow foundation passed: `job_listings` and `job_application_reviews` are reachable, anonymous/direct client writes are denied, server-boundary writes pass after approval, and approved application package state keeps `external_submission_performed = false`.
-
-Latest job_apply workflow smoke on `127.0.0.1:3032`:
-
-- Supabase migration `20260510000001_job_apply_workflow.sql` applied to the goodfeatureslegacy QA database; `job_applications` is reachable with user-owned read RLS and server-boundary writes only.
-- `/api/actions/capabilities`: passed; `job_apply`, `browser_open`, `browser_extract`, `browser_screenshot`, and `browser_act` are active. `send_email`, `social_post_publish`, `deploy`, `payment`, and `linkedin_automation` remain locked or hard-stopped.
-- `job_apply` approval card: passed; approval now reserves `browser_session_id` on the approval row and keeps it out of approval payload so the DB audit trigger does not require a browser session before approval exists.
-- Platform flag gate: passed; LinkedIn apply returned `403 platform_not_enabled` while `JOB_APPLY_LINKEDIN_ENABLED` is not set.
-- Session integrity: passed; mismatched `browser_session_id` returned `403 session_hijack_attempt`.
-- Hard stop regression: passed; `send_email` still returned `403 blocked_email_send`.
-- Suspicious URL warning: passed; non-allowlisted job URL created a pending second-confirmation approval and first approval captured `secondaryConfirmationComplete: true`.
-- Ghost session expiry: passed; stale persistent browser session auto-closed and recorded expiry before browser extraction ran.
-- `job_apply` browser-session anchor: passed; an approved `job_apply` row can now create a persistent `browser_sessions` row, so platform-enabled apply workflows will not fail the `browser_open` trigger at session creation.
-- `/actions`: passed; page returned HTTP 200 and includes job apply approval/tracker UI states.
-- Final submit safety: implemented as a separate `/api/actions/job-apply/confirm` route. Platform scripts stop at review/ready-to-submit and do not click final submit; the user confirmation button is the only path to final submit.
-
-Latest social_post_queue workflow smoke on `127.0.0.1:3046`:
-
-- Supabase migration `20260510000002_social_post_queue.sql` applied to the goodfeatureslegacy QA database; `social_posts` is reachable with user-owned read RLS and server-boundary writes only.
-- `/api/actions/capabilities`: passed; `social_post_queue` is active and `social_post_publish` remains locked.
-- Platform flag gate: passed; LinkedIn queue returned `403 platform_not_enabled` while platform automation flags are not enabled.
-- Instagram media guard: passed; empty `media_urls` returned `400 media_required` before any browser session opened.
-- Session integrity: passed; mismatched `browser_session_id` returned `403 session_hijack_attempt`.
-- Publish gate: passed; direct publish call without `confirm: user_confirmed_publish` returned `403 publish_confirmation_required`.
-- Hard stop regression: passed; `send_email` returned `403 blocked_email_send` and `payment` returned `403 blocked_payment_action`.
-- `/actions` rendered after sign-in and shows the social queue card, platform selector, queued social post tracker, and copy that final publish remains a separate user button.
-- `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the social queue implementation.
-
-Latest Shopify/POD API connector smoke:
-
-- Architecture boundary: direct API connector silo only. No Stagehand, Browserbase, browser sessions, or browser automation were added for Shopify/Printify.
-- Supabase migration `20260510000003_shopify_pod_connectors.sql` applied to the goodfeatureslegacy QA database.
-- New tables verified reachable by the server boundary: `store_connections`, `connector_oauth_states`, and `pod_products`.
-- Token safety: anonymous and signed-in direct writes to `store_connections` are denied; server-boundary insert passes; user reads cannot retrieve `access_token`.
-- Capabilities: `shopify_read`, `shopify_write`, `printify_read`, and `printify_write` are active. `shopify_billing`, `payment`, `send_email`, and `deploy` remain locked or hard-stopped.
-- Shopify OAuth: auth and callback routes exist; requested scopes are product/order/inventory only and do not include billing or payment scopes.
-- Shopify client: Admin API calls retrieve/decrypt tokens server-side only. Billing/payment/checkout paths are hard-blocked and audit-logged as `blocked_shopify_billing`.
-- Printify client: API keys are validated server-side, encrypted before storage, and never echoed back to the client.
-- POD product flow: `pod_product_create` requires an approved action and writes linked Printify/Shopify draft IDs to `pod_products`; direct client writes are denied.
-- Publish gate: `pod_product_publish` is a separate approved action. CubiQo does not publish products autonomously.
-- `/actions` includes Shopify connection, Printify connection, and POD API product creation cards without showing raw tokens.
-- `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Shopify/POD connector implementation.
-
-Latest role-agnostic career Phase 1 smoke:
-
-- Scope: Phase 1 only. Removed BA/PM assumption language and hardcoded job-search defaults without removing BA/PM/Scrum detection terms, so BA users still route into career mode.
-- `/api/agent/stream`: passed; career prompt now adapts to any role/domain/industry and asks for the target role when unclear.
-- `job_search_queries`: passed static validation; tool schema no longer defaults to `Business Analyst`, `remote`, or `Agile/SQL/Jira`. Missing role returns a clarification payload instead of silently generating BA searches.
-- `DuoModeDashboard`: passed; career persona copy is now industry-agnostic while job resolver terms still include BA/PM/Scrum as valid career signals.
-- `JobPipeline`: passed; visible static header label is now `Your Jobs · Latest` and fallback job locations no longer say `Remote-US`.
-- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 1 patch.
-
-Latest role-agnostic career Phase 2 smoke:
-
-- Scope: Phase 2 only. Replaced opinionated BA-shaped JD analysis with `structureJobDescription`, which extracts title, salary, years, work mode, location, and JD sections without hardcoded skill opinions.
-- Atomic route update: passed; `/api/agent/stream` still exposes `jd_analyze`, but it now calls `structureJobDescription` instead of the removed `analyzeJobDescription`.
-- Non-BA JD smoke: passed; React Engineer JD returned structural required text with no `business analyst`, `BRD`, `UAT`, or `Agile/Scrum` leakage.
-- Search URL smoke: passed; LinkedIn remote filter `f_WT=2` is absent for `Dallas hybrid` and present for `remote USA`.
-- Verification: `npm run typecheck`, `npm run build`, `npm run verify:cqai`, and a direct `structureJobDescription`/`buildJobSearchQueries` smoke passed after the Phase 2 patch.
-
-Latest role-agnostic career Phase 3 smoke:
-
-- Scope: Phase 3 only. Added `career_profile_read` to the streaming agent so CubiQo can read the signed-in user's saved job profile before generating search queries when the target role is unclear.
-- Auth boundary: passed static review; missing bearer token returns a clear `Not signed in` tool result with a prompt hint instead of attempting anonymous profile access.
-- Profile source: passed static review; the tool reads existing `/api/actions/execute?job_state=1`, which already returns user-owned `job_profiles` and resume versions through the server boundary.
-- Career prompt: passed; career mode now instructs the agent to call `career_profile_read` before asking/searching when role intent is unclear.
-- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 3 patch.
-
-Latest role-agnostic career Phase 4 smoke:
-
-- Scope: Phase 4 only. `JobPipeline` now fetches `/api/actions/execute?job_state=1` with the signed-in bearer token and derives the header label from the saved job profile.
-- Dynamic label: passed static validation; profile roles, first preferred location, first work mode, and `Latest` are rendered when available. Missing profile falls back to `Your Jobs · Latest`.
-- Empty state: passed; no-job copy is neutral and says to set a job goal or scan for recent matches, with no BA/SM/PO wording.
-- Static leak check: passed; `JobPipeline.js` has no `BA · SM`, `recent BA`, or `Remote-US` text.
-- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 4 patch.
-
-Latest role-agnostic career Phase 5 smoke:
-
-- Scope: Phase 5 only. Added `src/lib/jobs/job-provider-registry.ts` as the shared provider manifest for scan/apply capability metadata.
-- Registry contents: passed; LinkedIn, Indeed, Dice, Monster, Greenhouse, Lever, Workday, ZipRecruiter, Wellfound, and Company Site are registered with scan/apply/generic-form/final-CTA metadata.
-- Job scan wiring: passed static validation; `/api/cron/job-scan` now builds scan providers from the registry instead of maintaining its own source list.
-- Job apply wiring: passed static validation; `/api/actions/job-apply` now resolves provider from requested platform or URL through the registry. Registered but inactive apply providers return a clear `job_provider_apply_not_active` boundary.
-- Registry smoke: passed; LinkedIn and Workday URLs resolve correctly, `company_site` is scan-registered, and Workday remains scan-only until the generic apply adapter phase.
-- Verification: `npm run typecheck`, `npm run build`, `npm run verify:cqai`, and a direct provider-registry smoke passed after the Phase 5 patch.
-
-Latest role-agnostic career Phase 6 smoke:
-
-- Scope: Phase 6 only. Added a generic `company_site` job-apply adapter for employer websites and unrecognized career-site URLs.
-- Safety boundary: passed static validation; generic apply still goes through `/api/actions/job-apply`, approved `job_apply` records, Browserbase/Stagehand session creation, URL allowlist/secondary confirmation, audit logging, screenshots, and the separate final user submit route.
-- Generic adapter: passed static validation; it finds the apply flow, identifies required/custom fields, fills only clear non-sensitive fields from approved profile data, stops before final submit, and returns a review screenshot receipt.
-- Provider registry: passed; `company_site` now has `supportsApply: true`, `supportsGenericForm: true`, `requiresFinalUserCta: true`, and `adapter: generic_browser`.
-- UI copy: passed; `/actions` job URL input now accepts LinkedIn, Indeed, Dice, ATS, or company careers URLs and detects generic URLs as `company_site`.
-- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 6 patch.
-
-Latest role-agnostic career QA reconciliation patch:
-
-- QA interpretation: passed; `ba`, `business analyst`, `analyst`, `scrum`, `scrum master`, `pm`, `po`, and `product owner` intentionally remain as career detection terms. They route the user into career mode; they no longer force BA/PM assumptions.
-- Query builder shape: passed; `buildJobSearchQueries` now accepts one object input with optional `role`, `targetTitles`, `location`, `workMode`, `skills`, `seniority`, and `recency`.
-- Missing role guard: passed; an empty input returns `{ clarificationNeeded: true, error: "Role unclear", action: "ask_user" }` instead of generating any fallback BA query.
-- Recency filters: passed; `24h`, `3d`, `7d`, and `30d` map to LinkedIn `f_TPR` and Indeed `fromage` filters. Default recency is `24h`.
-- Remote filter regression: passed; LinkedIn `f_WT=2` is added only when the combined location/work mode includes `remote`. Hybrid and onsite searches do not silently become remote-only.
-- Job Pipeline failure state: passed; pipeline load errors now clear stale rows, show a visible error card, and expose a retry button. Empty state remains neutral and role-agnostic.
-- Verification: `npm run typecheck`, `npm run build`, `npm run verify:cqai`, and a direct `buildJobSearchQueries` smoke passed after the QA reconciliation patch.
-
-Latest role-agnostic career Phase 7 patch:
-
-- Scope: Phase 7 resume tailoring/versioning boundary. `easy-apply` may generate a role-specific tailoring preview, but it no longer writes directly to `resume_versions`.
-- Approval boundary: passed static validation; durable resume saves remain behind the existing approved `resume_version_write` action in `/api/actions/execute`.
-- BA fallback removal: passed; `easy-apply` no longer falls back to `Business Analyst` when profile roles are missing. It uses saved target roles if available and otherwise stays generic.
-- Preview storage: passed; job/application metadata can carry `tailoring_preview`, `atsScore`, `coverLetter`, and `resume_version_write_required: true` so the UI can show what would be saved before approval.
-- Detection terms: passed; BA/Scrum/PO terms remain career-mode triggers in `CAREER_TERMS` and `JOB_KEYS`, but they are not role assumptions.
-- Answer seeding resilience: passed; default application-answer seeding is best-effort again, so a missing/changed RPC does not break the answers endpoint.
-- Verification: `npm run typecheck`, `npm run build`, `npm run verify:cqai`, and a direct static smoke for no direct resume insert/no BA fallback passed after the Phase 7 patch.
-
-Latest role-agnostic career Phase 8 patch:
-
-- Scope: Phase 8 job scan/matching cadence. The 12-hour scan worker now refuses incomplete profiles instead of falling back to generic `"remote job"` searches.
-- Profile settings: passed static validation; approved `job_profile_write` now persists scan settings: `scanEnabled`, `scoreThreshold`, `scanPlatforms`, `scanRecency`, and `scanCadenceHours`.
-- Scan query construction: passed; scan queries are derived from saved target roles/skills plus recency intent. Missing target role/skill returns a clear skipped profile result.
-- Scan reporting: migration-ready; each platform scan writes `job_scan_runs` with listings found, listings saved, threshold, query, search URL, recency, and skipped reason when the live Supabase project has the Phase 8 reporting table applied. Runtime safely continues without that table.
-- UI surface: passed; `/actions` job profile card now shows scan on/off, recency, score threshold, and source count from the saved profile.
-- Regression harness: passed; `verify:cqai` now checks `job_scan_runs` as an optional migration-dependent table in addition to required job profile, listing, application, and resume tables.
-- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 8 patch.
-
-Latest role-agnostic career Phase 9 patch:
-
-- Scope: Phase 9 application packet generation. `job_application_prepare` now builds a fuller review packet instead of only storing a thin resume/cover-letter payload.
-- Resume source fix: passed; the prepare flow reads the real `resume_versions.resume_content` column, not a non-existent `content` column.
-- Packet contents: passed static validation; review cards include fit score/source, resume notes, cover-letter draft, recruiter message, saved application answers, missing-answer prompts, and `finalSubmitRequiresUser: true`.
-- Safety boundary: passed; generated packets remain review-only. Durable resume saves still require `resume_version_write`, and external submission remains behind the separate final user action.
-- UI surface: passed; `/actions` application review cards show fit, answer count, prompt count, recruiter note preview, and the first missing user-answer prompt.
-- Regression harness: passed; `verify:cqai` now includes a Phase 9 application-packet contract check so the packet fields and real resume column do not silently regress.
-- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 9 patch.
-
-Latest role-agnostic career Phase 10 patch:
-
-- Scope: Phase 10 application tracking lifecycle. The job tracker now exposes the product-facing statuses `saved`, `drafted`, `ready`, `applied`, `response`, `interview`, `offer`, `rejected`, and `withdrawn`.
-- Pipeline API: passed static validation; `/api/jobs/pipeline` now returns normalized `trackerStatus`, lifecycle buckets, and accepts signed-in `PATCH` updates for user-owned listings/applications.
-- DB compatibility: passed; tracker updates store the product-facing status in `metadata.tracker_status` and keep legacy-safe raw statuses underneath until the Phase 10 constraint migration is applied.
-- Migration: added `20260511000000_job_application_tracker_statuses.sql` to extend job listing/application status constraints and add tracker-status indexes.
-- UI surface: passed; `/actions` Job Apply Tracker shows lifecycle counts and status buttons for applied, response, interview, offer, rejected, and withdrawn.
-- Regression harness: passed; `verify:cqai` now includes a Phase 10 tracker contract check for the API route, UI controls, metadata storage, and migration.
-- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Phase 10 patch.
-
-Latest role-agnostic career Phase 11 patch:
-
-- Scope: Phase 11 application handoff checklist. CubiQo can now generate a visible, provider-aware handoff checklist for LinkedIn, Indeed, Dice, Greenhouse, Lever, and generic company-site application flows.
-- Shared contract: added `src/lib/jobs/application-handoff.ts` so the checklist is built from the provider registry instead of scattered platform text.
-- API surface: added authenticated `/api/actions/job-apply/checklist`; it writes a `job_apply_handoff_checklist` audit entry and returns the exact checklist without running browser automation.
-- Job apply handoff: passed static validation; `/api/actions/job-apply` now stores `metadata.handoff_checklist` on prepared application rows and includes it in the ready-to-submit response.
-- UI surface: passed; `/actions` can open the checklist before approval and shows stored handoff steps inside the Job Apply Tracker.
-- Safety boundary: passed; checklist explicitly keeps final submit as user-only, flags custom essay/salary/work-authorization inputs, and does not bypass the existing approval/browser-session boundary.
-- Regression harness: passed; `verify:cqai` now includes a Phase 11 handoff checklist contract check for the builder, endpoint, job-apply metadata, and UI display.
-
-Latest role-agnostic career Phase 12 patch:
-
-- Scope: Phase 12 complex browser-form receipts. Platform job-apply scripts now record audited browser-step receipts instead of only a final receipt.
-- Browser receipts: passed static validation; LinkedIn, Indeed, Dice, Greenhouse/Lever ATS, and generic company-site flows use `auditedBrowserStep`, capture a signed screenshot after each major step, and write `job_apply_step_receipt` audit rows.
-- User prompts: passed; job apply now flags salary expectation, work authorization, custom essay questions, contact details, and resume version gaps as user-confirmation prompts. CubiQo does not invent these values.
-- Metadata: passed; `/api/actions/job-apply` stores `metadata.step_receipts` and `metadata.user_input_prompts` on the application row and returns them in the ready-to-submit response.
-- UI surface: passed; `/actions` Job Apply Tracker shows "Needs user confirmation" and expandable "Step receipts" links for each application workflow.
-- Safety boundary: unchanged; final submit remains a separate user action, and successful browser steps still run only after the existing approved `job_apply` boundary and session integrity checks.
-
-Latest commerce/social hardcoding Sprint 2 patch:
-
-- Scope: Sprint 2 configuration layer. Social platforms and POD providers now follow the same pattern as job providers: source code defines the supported registry, Supabase rows define what this user has actually connected or enabled.
-- Social registry: added `src/lib/social/social-platform-registry.ts` for LinkedIn, X/Twitter, Instagram, Threads, TikTok, Facebook, and Pinterest. Browser queue support is explicitly marked only where an adapter exists.
-- Social accounts: added migration `20260511030000_social_pod_registry_sprint2.sql` with `social_accounts`. Social queue and publish now require an active user-owned `social_accounts` row instead of scattered `SOCIAL_QUEUE_*` env flags.
-- Social connector status: `/api/actions/execute` social connector status now reads user platform connection state from `social_accounts`; it does not report an env var as a connected user account.
-- POD registry: added `src/lib/pod/pod-provider-registry.ts` and `pod_providers` seed rows for Printify, Printful, Gelato, Apliiq, CustomCat, Teelaunch, ShineOn, Spreadconnect, Only Caps, CJdropshipping, and Zendrop.
-- POD provider manifest: fulfilment provider status now merges the code registry with `pod_providers` table values, so provider URLs/capabilities can be adjusted without editing the operations route.
-- Migration requirement: apply `supabase/migrations/20260511030000_social_pod_registry_sprint2.sql` to the goodfeatureslegacy Supabase DB before expecting social account or provider registry reads to be durable.
-- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Sprint 2 source changes. The verifier marks `social_accounts` and `pod_providers` as optional/needs-migration until the live goodfeatureslegacy Supabase DB receives this migration.
-
-Latest commerce hardcoding Sprint 3 patch:
-
-- Scope: Sprint 3 default cleanup. Commerce fallbacks now come from one shared Shopify API version helper and a neutral `platform_settings` commerce-default row, with per-store/action payloads still taking priority.
-- Shopify API version: `shopify-client` and `shopify-pod-operations` both import `shopifyApiVersion()` from `src/lib/shopify/constants.ts`; the default is `2025-10`, overridable by `SHOPIFY_API_VERSION`.
-- Platform defaults: added migration `20260511040000_commerce_defaults_sprint3.sql` with `platform_settings.commerce_defaults` for neutral product, collection, bundle, tag, and price defaults.
-- Product defaults: `pod-product`, `shopify_product_create`, and `shopify_product_prepare` now use payload values first, store defaults second, and neutral platform defaults last. No CubiQo-branded product default remains.
-- Collection/bundle defaults: collection and bundle preparation now fall back to `New Collection` and `New Bundle` through platform settings instead of `Untitled ...` literals.
-- Migration requirement: apply `supabase/migrations/20260511040000_commerce_defaults_sprint3.sql` to the goodfeatureslegacy Supabase DB before expecting the settings table to be durable.
-- Verification: `npm run typecheck`, `npm run build`, and `npm run verify:cqai` passed after the Sprint 3 source changes.
-
-Latest registry contract expansion:
-
-- Scope: Registry schema compatibility for downstream Duo Mode, scheduler, and adapter consumers.
-- Social registry: added YouTube, Reddit, and Bluesky. Every social registry entry now exposes the spec fields `browserStartUrl`, `apiAvailable`, `composerSelector`, `maxPostLength`, `supportsScheduling`, and `requiresBusinessAccount`.
-- POD registry: every provider entry now exposes `id`, `integrationType`, and `supportsAutomation`, while keeping the older `provider` and `connectionType` aliases for current route compatibility.
-- DB migration: added `20260511050000_registry_contract_expansion.sql` to allow `youtube`, `reddit`, and `bluesky` in `social_accounts.platform` and to mark provider automation metadata.
-- Verification: run `npm run typecheck`, `npm run build`, and `npm run verify:cqai` before pushing this patch.
 
 Do not push this branch for review unless this contract stays current and regression remains green.

@@ -146,17 +146,3 @@ frontend/node_modules/.cache/default-development/0.pack
 *.env
 *.env.*
 .env*.local
-
-# Claude Code session files
-.claude/
-
-# Supabase temp files
-supabase/.temp/
-
-# Log files
-*.log
-*.err.log
-*.out.log
-
-# Dev server helpers
-docs/serve-docs.cjs

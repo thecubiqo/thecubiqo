@@ -1,23 +1,11 @@
-import { NextResponse } from 'next/server';
-import {
-  accessibilitySnapshot,
-  act as stagehandAct,
-  closeSession as closeStagehandSession,
-  extract as stagehandExtract,
-  openSession as openStagehandSession,
-  screenshot as stagehandScreenshot,
-  type BrowserSessionMode
-} from './stagehand-client';
 import { ApiUserContext, missingMigrationResponse, safeTableMissing } from './supabase-admin';
-import { writeAudit } from './v2-actions';
 
 export const BROWSER_ACTION_TYPES = [
   'browser_open',
   'browser_click',
   'browser_type',
   'browser_extract',
-  'browser_screenshot',
-  'browser_act'
+  'browser_screenshot'
 ] as const;
 
 export type BrowserActionType = typeof BROWSER_ACTION_TYPES[number];
@@ -48,81 +36,29 @@ function sanitizeUrl(value: unknown) {
   };
 }
 
-function normalizeSessionMode(value: unknown): BrowserSessionMode {
-  return value === 'persistent' ? 'persistent' : 'disposable';
-}
-
-function isMissingColumn(error: { message?: string } | null) {
-  return Boolean(error?.message && /column .* does not exist|Could not find .* column/i.test(error.message));
-}
-
-function minutesSince(value: string | null | undefined) {
-  if (!value) return 0;
-  const at = new Date(value).getTime();
-  if (!Number.isFinite(at)) return 0;
-  return (Date.now() - at) / 60000;
-}
-
 export function mapBrowserSession(row: Record<string, any>) {
   return {
     id: row.id,
     approvalId: row.approval_id,
     status: row.status,
-    sessionMode: row.session_mode || row.metadata?.session_mode || 'disposable',
     targetUrl: row.target_url,
     currentUrl: row.current_url,
     allowedOrigin: row.allowed_origin,
-    providerSessionId: row.provider_session_id || row.metadata?.provider_session_id || null,
     startedAt: row.started_at,
     endedAt: row.ended_at,
-    expiredAt: row.expired_at || null,
-    lastActivityAt: row.last_active_at || row.last_activity_at,
+    lastActivityAt: row.last_activity_at,
     metadata: row.metadata || {}
   };
 }
 
 type BrowserSession = ReturnType<typeof mapBrowserSession>;
 type BrowserErrorResult = { error: Response | Error };
-type BrowserBlockedResult = { blocked: string; code?: string };
+type BrowserBlockedResult = { blocked: string };
 
-async function updateSessionRow(
-  auth: ApiUserContext,
-  browserSessionId: string,
-  values: Record<string, unknown>
-) {
+export async function listBrowserSessions(auth: ApiUserContext, status = 'active'): Promise<{ sessions: BrowserSession[] } | BrowserErrorResult> {
   const { data, error } = await auth.supabase
     .from('browser_sessions')
-    .update(values)
-    .eq('id', browserSessionId)
-    .eq('user_id', auth.user.id)
-    .select('*')
-    .maybeSingle();
-
-  if (!isMissingColumn(error)) return { data, error };
-
-  const {
-    session_mode,
-    last_active_at,
-    expired_at,
-    provider_session_id,
-    ...legacyValues
-  } = values;
-  return auth.supabase
-    .from('browser_sessions')
-    .update(legacyValues)
-    .eq('id', browserSessionId)
-    .eq('user_id', auth.user.id)
-    .select('*')
-    .maybeSingle();
-}
-
-export async function listBrowserSessions(
-  auth: ApiUserContext,
-  status = 'active'
-): Promise<{ sessions: BrowserSession[] } | BrowserErrorResult> {
-  const { data, error } = await auth.supabase
-    .from('browser_sessions')
-    .select('*')
+    .select('id,approval_id,status,target_url,current_url,allowed_origin,started_at,ended_at,last_activity_at,metadata')
     .eq('user_id', auth.user.id)
     .eq('status', status)
     .order('created_at', { ascending: false })
@@ -142,80 +78,33 @@ export async function createBrowserSession(
   payload: Record<string, unknown>
 ): Promise<{ session: BrowserSession } | BrowserErrorResult> {
   const target = sanitizeUrl(payload.url || payload.targetUrl || payload.target_url);
-  const sessionMode = normalizeSessionMode(payload.session_mode || payload.sessionMode);
-  const browserSessionId =
-    typeof payload.browser_session_id === 'string' && payload.browser_session_id.trim()
-      ? payload.browser_session_id.trim()
-      : crypto.randomUUID();
-
   const metadata = {
-    runtime: 'stagehand_browserbase',
+    runtime: 'foundation',
     isolation: 'user-session',
-    session_mode: sessionMode,
+    note: 'Browser runtime is approval-gated. This foundation records the container before a visible browser engine attaches.',
     requested_action: 'browser_open'
   };
 
-  const insertRow = {
-    id: browserSessionId,
-    user_id: auth.user.id,
-    approval_id: approvalId,
-    status: 'active',
-    target_url: target.url,
-    current_url: target.url,
-    allowed_origin: target.origin,
-    session_mode: sessionMode,
-    last_active_at: new Date().toISOString(),
-    metadata
-  };
-
-  let { data, error } = await auth.supabase
+  const { data, error } = await auth.supabase
     .from('browser_sessions')
-    .insert(insertRow)
-    .select('*')
+    .insert({
+      user_id: auth.user.id,
+      approval_id: approvalId,
+      status: 'active',
+      target_url: target.url,
+      current_url: target.url,
+      allowed_origin: target.origin,
+      metadata
+    })
+    .select('id,approval_id,status,target_url,current_url,allowed_origin,started_at,ended_at,last_activity_at,metadata')
     .single();
-
-  if (isMissingColumn(error)) {
-    const { session_mode, last_active_at, ...legacyInsertRow } = insertRow;
-    const retry = await auth.supabase.from('browser_sessions').insert(legacyInsertRow).select('*').single();
-    data = retry.data;
-    error = retry.error;
-  }
 
   if (error) {
     if (safeTableMissing(error)) return { error: missingMigrationResponse('browser-control', 'browser_sessions') };
     return { error };
   }
 
-  try {
-    const opened = await openStagehandSession({
-      browser_session_id: browserSessionId,
-      sessionMode,
-      url: target.url
-    });
-    const update = await updateSessionRow(auth, browserSessionId, {
-      provider_session_id: opened.provider_session_id,
-      last_active_at: new Date().toISOString(),
-      last_activity_at: new Date().toISOString(),
-      metadata: {
-        ...(data.metadata || metadata),
-        provider_session_id: opened.provider_session_id,
-        debug_url: opened.debug_url,
-        opened_at: new Date().toISOString()
-      }
-    });
-    if (update.error) return { error: update.error };
-    return { session: mapBrowserSession(update.data || data) };
-  } catch (error) {
-    await updateSessionRow(auth, browserSessionId, {
-      status: 'failed',
-      ended_at: new Date().toISOString(),
-      metadata: {
-        ...(data.metadata || metadata),
-        error: error instanceof Error ? error.message : String(error)
-      }
-    });
-    return { error: error instanceof Error ? error : new Error(String(error)) };
-  }
+  return { session: mapBrowserSession(data) };
 }
 
 export async function getActiveBrowserSession(
@@ -224,7 +113,7 @@ export async function getActiveBrowserSession(
 ): Promise<{ session: BrowserSession } | BrowserErrorResult | BrowserBlockedResult> {
   const { data, error } = await auth.supabase
     .from('browser_sessions')
-    .select('*')
+    .select('id,approval_id,status,target_url,current_url,allowed_origin,started_at,ended_at,last_activity_at,metadata')
     .eq('id', browserSessionId)
     .eq('user_id', auth.user.id)
     .maybeSingle();
@@ -238,32 +127,7 @@ export async function getActiveBrowserSession(
     return { blocked: 'Active browser session not found' };
   }
 
-  const session = mapBrowserSession(data);
-  const limit = session.sessionMode === 'persistent' ? 5 : 2;
-  if (minutesSince(session.lastActivityAt) > limit) {
-    await closeBrowserSession(auth, browserSessionId, {
-      status: 'closed',
-      reason: 'session_expired_heartbeat'
-    });
-    return {
-      blocked: 'Browser session expired from inactivity',
-      code: 'SESSION_EXPIRED'
-    };
-  }
-
-  return { session };
-}
-
-function browserActionInstruction(actionType: BrowserActionType, payload: Record<string, unknown>) {
-  if (actionType === 'browser_click') {
-    return String(payload.action || payload.description || `click ${payload.selector || payload.label || 'the requested element'}`);
-  }
-  if (actionType === 'browser_type') {
-    const text = String(payload.text || payload.value || '');
-    const target = String(payload.selector || payload.field || payload.description || 'the requested field');
-    return String(payload.action || `type "${text}" into ${target}`);
-  }
-  return String(payload.action || payload.description || payload.intent || '').trim();
+  return { session: mapBrowserSession(data) };
 }
 
 export async function recordBrowserAction(
@@ -282,130 +146,63 @@ export async function recordBrowserAction(
     actionType,
     at: now,
     selector: String(actionPayload.selector || '').slice(0, 180) || null,
-    description: String(actionPayload.description || actionPayload.intent || actionPayload.action || '').slice(0, 240) || null
+    description: String(actionPayload.description || actionPayload.intent || '').slice(0, 240) || null
   };
 
-  let actionResult: Record<string, unknown>;
-  try {
-    if (actionType === 'browser_extract') {
-      const instruction = String(actionPayload.instruction || actionPayload.description || 'extract the key page content');
-      actionResult = {
-        extractedContent: await stagehandExtract({ browser_session_id: browserSessionId, instruction })
-      };
-    } else if (actionType === 'browser_screenshot') {
-      const receipt = await stagehandScreenshot({ auth, browser_session_id: browserSessionId });
-      actionResult = {
-        screenshotUrl: receipt.signed_url,
-        storagePath: receipt.storage_path
-      };
-    } else {
-      const action = browserActionInstruction(actionType, actionPayload);
-      if (!action) throw new Error('Browser action description is required');
-      actionResult = {
-        stagehandResult: await stagehandAct({ browser_session_id: browserSessionId, action })
-      };
-    }
-  } catch (error) {
-    let snapshot: unknown = null;
-    try {
-      snapshot = await accessibilitySnapshot(browserSessionId);
-    } catch {
-      snapshot = null;
-    }
-    await writeAudit(auth, {
-      approvalId: session.approvalId,
-      browserSessionId,
-      actionType,
-      toolName: actionType,
-      status: 'failed',
-      message: error instanceof Error ? error.message : String(error),
-      input: actionPayload,
-      accessibilityTreeSnapshot: (snapshot || null) as Record<string, unknown> | string | null
-    });
-    throw error;
-  }
+  const { data, error } = await auth.supabase
+    .from('browser_sessions')
+    .update({
+      last_activity_at: now,
+      metadata: {
+        ...session.metadata,
+        last_action: nextAction,
+        last_actions: [...lastActions.slice(-9), nextAction]
+      }
+    })
+    .eq('id', browserSessionId)
+    .eq('user_id', auth.user.id)
+    .eq('status', 'active')
+    .select('id,approval_id,status,target_url,current_url,allowed_origin,started_at,ended_at,last_activity_at,metadata')
+    .maybeSingle();
 
-  const update = await updateSessionRow(auth, browserSessionId, {
-    last_active_at: now,
-    last_activity_at: now,
-    metadata: {
-      ...session.metadata,
-      last_action: nextAction,
-      last_actions: [...lastActions.slice(-9), nextAction]
-    }
-  });
-
-  if (update.error) return { error: update.error };
-  if (!update.data) return { blocked: 'Active browser session not found' };
+  if (error) return { error };
+  if (!data) return { blocked: 'Active browser session not found' };
 
   return {
-    session: mapBrowserSession(update.data),
+    session: mapBrowserSession(data),
     action: {
       actionType,
       browserSessionId,
-      executionMode: 'stagehand_browserbase',
-      performedExternalBrowserAction: true,
-      ...actionResult
+      executionMode: 'foundation_recorded',
+      performedExternalBrowserAction: false,
+      message: 'Browser action was approval-gated and recorded in the isolated session container. A visible browser runtime can attach to this foundation later.'
     }
   };
 }
 
 export async function closeBrowserSession(
   auth: ApiUserContext,
-  browserSessionId: string,
-  options: {
-    status?: 'cancelled' | 'closed' | 'failed';
-    reason?: string;
-    persistentMidAuth?: boolean;
-  } = {}
+  browserSessionId: string
 ): Promise<{ session: BrowserSession } | BrowserErrorResult | BrowserBlockedResult> {
   const now = new Date().toISOString();
-  const reason = options.reason || (options.status === 'closed' ? 'session_closed' : 'session_cancelled');
-
-  await closeStagehandSession({ browser_session_id: browserSessionId, force: true });
-
-  const update = await updateSessionRow(auth, browserSessionId, {
-    status: options.status || 'cancelled',
-    ended_at: now,
-    expired_at: reason === 'session_expired_heartbeat' ? now : null,
-    last_active_at: now,
-    last_activity_at: now
-  });
-
-  if (update.error) {
-    if (safeTableMissing(update.error)) return { error: missingMigrationResponse('browser-control', 'browser_sessions') };
-    return { error: update.error };
-  }
-
-  if (!update.data) return { blocked: 'Active browser session not found' };
-
-  const session = mapBrowserSession(update.data);
-  await writeAudit(auth, {
-    approvalId: session.approvalId,
-    browserSessionId,
-    actionType: 'browser_close',
-    toolName: 'browser_close',
-    status: options.status === 'failed' ? 'failed' : 'completed',
-    message: reason,
-    result: { sessionStatus: session.status },
-    blockReason: reason === 'session_expired_heartbeat' ? reason : null
-  });
-
-  if (options.persistentMidAuth) {
-    await writeAudit(auth, {
-      approvalId: session.approvalId,
-      browserSessionId,
-      actionType: 'browser_close',
-      toolName: 'browser_close',
+  const { data, error } = await auth.supabase
+    .from('browser_sessions')
+    .update({
       status: 'cancelled',
-      message: 'persistent_session_cancelled_mid_auth'
-    });
+      ended_at: now,
+      last_activity_at: now
+    })
+    .eq('id', browserSessionId)
+    .eq('user_id', auth.user.id)
+    .in('status', ['active', 'closing'])
+    .select('id,approval_id,status,target_url,current_url,allowed_origin,started_at,ended_at,last_activity_at,metadata')
+    .maybeSingle();
+
+  if (error) {
+    if (safeTableMissing(error)) return { error: missingMigrationResponse('browser-control', 'browser_sessions') };
+    return { error };
   }
 
-  return { session };
-}
-
-export function browserErrorResponse(error: Response | Error) {
-  if (error instanceof Response) return error;
-  return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!data) return { blocked: 'Active browser session not found' };
+  return { session: mapBrowserSession(data) };
 }

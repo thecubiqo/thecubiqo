@@ -1,9 +1,12 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { repoListRoutes, repoReadFile, repoSearch, repoStackSummary, runtimeStatus } from './repo-inspection';
-import { CASUAL_TERMS, GATED_TERMS, GOAL_TERMS } from '../rgy/term-registry';
 
-function hits(input: string, terms: readonly string[]) {
+const goalTerms = ['linkedin', 'career', 'yoga', 'wellness', 'build', 'ship', 'launch', 'job', 'resume'];
+const casualTerms = ['instagram', 'facebook', 'fb', 'insta', 'comfort', 'chat', 'friends', 'mood'];
+const gatedTerms = ['grindr', 'tinder', 'adult', 'explicit', 'nsfw', 'hookup'];
+
+function hits(input: string, terms: string[]) {
   const lower = input.toLowerCase();
   return terms.filter((term) => lower.includes(term));
 }
@@ -44,9 +47,9 @@ export const cubiqoTools = {
       text: z.string().describe('User text or assistant text to classify')
     }),
     execute: async ({ text }) => ({
-      green: hits(text, GOAL_TERMS),
-      yellow: hits(text, CASUAL_TERMS),
-      red: hits(text, GATED_TERMS)
+      green: hits(text, goalTerms),
+      yellow: hits(text, casualTerms),
+      red: hits(text, gatedTerms)
     })
   })
 };

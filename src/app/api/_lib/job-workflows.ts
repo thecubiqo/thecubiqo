@@ -1,12 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ApiUserContext, missingMigrationResponse, safeTableMissing } from './supabase-admin';
 import { getActiveBrowserSession, normalizeBrowserSessionId } from './browser-sessions';
-import { tailorApplicationForJob } from './llm-tailoring';
-import {
-  isKnownJobProviderId,
-  resolveJobProviderForUrl,
-  type JobProviderId
-} from '@/next/lib/jobs/job-provider-registry';
 
 export const JOB_ACTION_TYPES = [
   'job_search_save',
@@ -16,7 +10,8 @@ export const JOB_ACTION_TYPES = [
 
 export type JobActionType = typeof JOB_ACTION_TYPES[number];
 
-type JobSource = JobProviderId | 'ats' | 'other';
+const JOB_SOURCES = ['linkedin', 'indeed', 'dice'] as const;
+type JobSource = typeof JOB_SOURCES[number];
 
 type JobErrorResult = { error: Response | Error };
 type JobBlockedResult = { blocked: string; status?: number };
@@ -44,27 +39,14 @@ function normalizeJsonArray(value: unknown) {
   return value.slice(0, 20);
 }
 
-function normalizeAnswerRows(value: unknown) {
-  return normalizeJsonArray(value)
-    .map(answer => normalizeJsonObject(answer))
-    .map((answer, index) => ({
-      question: normalizeText(answer.question, 300) || `Application question ${index + 1}`,
-      answer: normalizeText(answer.answer, 1200),
-      platformHint: normalizeText(answer.platform_hint || answer.platformHint, 80) || 'all',
-      source: normalizeText(answer.source, 80) || 'saved_answer'
-    }))
-    .filter(answer => answer.question && answer.answer);
-}
-
 export function normalizeJobSource(value: unknown, urlValue?: unknown): JobSource | null {
   const direct = normalizeText(value, 40).toLowerCase();
-  if (isKnownJobProviderId(direct)) return direct;
-  if (direct === 'ats' || direct === 'other') return direct;
+  if (JOB_SOURCES.includes(direct as JobSource)) return direct as JobSource;
 
-  const url = normalizeText(urlValue, 1000);
-  const provider = resolveJobProviderForUrl(url);
-  if (provider) return provider.id;
-  if (url) return 'company_site';
+  const url = normalizeText(urlValue, 1000).toLowerCase();
+  if (url.includes('linkedin.')) return 'linkedin';
+  if (url.includes('indeed.')) return 'indeed';
+  if (url.includes('dice.')) return 'dice';
   return null;
 }
 
@@ -134,27 +116,6 @@ function mapApplicationReview(row: Record<string, any>) {
     submittedAt: row.submitted_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at
-  };
-}
-
-export function mapJobApplication(row: Record<string, any>) {
-  return {
-    id: row.id,
-    approvalId: row.approval_id,
-    browserSessionId: row.browser_session_id,
-    platform: row.platform,
-    jobUrl: row.job_url,
-    jobTitle: row.job_title,
-    company: row.company,
-    status: row.status,
-    screenshotUrl: row.screenshot_url,
-    accessibilityTreeSnapshot: row.accessibility_tree_snapshot || null,
-    error: row.error,
-    metadata: row.metadata || {},
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    submittedAt: row.submitted_at,
-    cancelledAt: row.cancelled_at
   };
 }
 
@@ -236,7 +197,7 @@ export async function saveJobSearch(
 
   if (!rows.length) {
     return {
-      blocked: 'No valid job listings were found in the payload. Each listing needs a title, company, and recognizable job URL or platform.',
+      blocked: 'No valid LinkedIn, Indeed, or Dice job listings were found in the payload. Each listing needs source, title, and company.',
       status: 400
     };
   }
@@ -260,9 +221,8 @@ export async function saveJobSearch(
 export async function listJobWorkflowState(auth: ApiUserContext): Promise<{
   listings: ReturnType<typeof mapJobListing>[];
   reviews: ReturnType<typeof mapApplicationReview>[];
-  applications: ReturnType<typeof mapJobApplication>[];
 } | JobErrorResult> {
-  const [listingsResult, reviewsResult, applicationsResult] = await Promise.all([
+  const [listingsResult, reviewsResult] = await Promise.all([
     auth.supabase
       .from('job_listings')
       .select('id,approval_id,browser_session_id,source_platform,source_url,external_id,title,company,location,description,employment_type,compensation,posted_at,discovered_at,apply_url,status,raw,created_at,updated_at')
@@ -272,12 +232,6 @@ export async function listJobWorkflowState(auth: ApiUserContext): Promise<{
     auth.supabase
       .from('job_application_reviews')
       .select('id,approval_id,submit_approval_id,browser_session_id,job_listing_id,source_platform,target_url,status,candidate_name,candidate_email,candidate_phone,resume_summary,cover_letter,answers,submission_payload,external_submission_performed,prepared_at,approved_at,submitted_at,created_at,updated_at')
-      .eq('user_id', auth.user.id)
-      .order('created_at', { ascending: false })
-      .limit(20),
-    auth.supabase
-      .from('job_applications')
-      .select('id,approval_id,browser_session_id,platform,job_url,job_title,company,status,screenshot_url,accessibility_tree_snapshot,error,metadata,created_at,updated_at,submitted_at,cancelled_at')
       .eq('user_id', auth.user.id)
       .order('created_at', { ascending: false })
       .limit(20)
@@ -291,15 +245,10 @@ export async function listJobWorkflowState(auth: ApiUserContext): Promise<{
     if (safeTableMissing(reviewsResult.error)) return { error: missingMigrationResponse('job-workflows', 'job_application_reviews') };
     return { error: reviewsResult.error };
   }
-  if (applicationsResult.error) {
-    if (safeTableMissing(applicationsResult.error)) return { error: missingMigrationResponse('job-apply', 'job_applications') };
-    return { error: applicationsResult.error };
-  }
 
   return {
     listings: (listingsResult.data || []).map(mapJobListing),
-    reviews: (reviewsResult.data || []).map(mapApplicationReview),
-    applications: (applicationsResult.data || []).map(mapJobApplication)
+    reviews: (reviewsResult.data || []).map(mapApplicationReview)
   };
 }
 
@@ -321,8 +270,7 @@ async function loadJobListing(auth: ApiUserContext, jobListingId: string) {
 
 function buildSubmissionPayload(listing: ReturnType<typeof mapJobListing>, payload: Record<string, unknown>) {
   const candidate = normalizeJsonObject(payload.candidate);
-  const answers = normalizeAnswerRows(payload.answers);
-  const applicationPacket = normalizeJsonObject(payload.applicationPacket || payload.application_packet);
+  const answers = normalizeJsonArray(payload.answers).map(answer => normalizeJsonObject(answer));
   const review = {
     sourcePlatform: listing.sourcePlatform,
     targetUrl: normalizeUrl(payload.targetUrl || payload.target_url || listing.applyUrl || listing.sourceUrl),
@@ -341,100 +289,11 @@ function buildSubmissionPayload(listing: ReturnType<typeof mapJobListing>, paylo
     resumeSummary: normalizeNullableText(payload.resumeSummary || payload.resume_summary, 5000),
     coverLetter: normalizeNullableText(payload.coverLetter || payload.cover_letter, 8000),
     answers,
-    recruiterMessage: normalizeNullableText(payload.recruiterMessage || payload.recruiter_message || applicationPacket.recruiterMessage || applicationPacket.recruiter_message, 3000),
-    missingAnswerPrompts: normalizeJsonArray(payload.missingAnswerPrompts || payload.missing_answer_prompts || applicationPacket.missingAnswerPrompts || applicationPacket.missing_answer_prompts).map(item => normalizeJsonObject(item)),
-    applicationPacket,
     attachments: normalizeJsonArray(payload.attachments).map(item => normalizeJsonObject(item)),
     disclaimer: 'Review only. CubiQo will not submit this to a job board without a later explicit approval and visible runtime.'
   };
 
   return review;
-}
-
-function profileField(profile: Record<string, any> | null | undefined, key: string) {
-  return normalizeText(profile?.[key] ?? profile?.profile_payload?.[key] ?? profile?.metadata?.[key], 500);
-}
-
-function buildRecruiterMessage(input: {
-  listing: ReturnType<typeof mapJobListing>;
-  profile: Record<string, any> | null;
-  autoTailoring: { score?: number; scoreSummary?: string; tailoredResumeSummary?: string };
-}) {
-  const firstRole = Array.isArray(input.profile?.target_roles) ? input.profile?.target_roles?.[0] : '';
-  const skills = Array.isArray(input.profile?.skills) ? input.profile.skills.slice(0, 3).filter(Boolean).join(', ') : '';
-  const fit = input.autoTailoring.score
-    ? `The role looks like a ${input.autoTailoring.score}% fit based on my profile and the job description.`
-    : 'The role aligns with my current career target and experience.';
-  const roleLine = firstRole ? `I have been targeting ${firstRole} roles` : 'I am exploring roles aligned with this opportunity';
-  const skillLine = skills ? `, with recent focus on ${skills}` : '';
-
-  return [
-    `Hi ${input.listing.company || 'there'} team,`,
-    `${roleLine}${skillLine}. ${fit}`,
-    `I am interested in the ${input.listing.title} role and would appreciate consideration for the next step.`,
-    'Best regards'
-  ].join('\n');
-}
-
-function buildMissingAnswerPrompts(listing: ReturnType<typeof mapJobListing>, profile: Record<string, any> | null, savedAnswers: Array<Record<string, any>>) {
-  const lowerDescription = `${listing.description || ''} ${listing.raw ? JSON.stringify(listing.raw) : ''}`.toLowerCase();
-  const savedText = savedAnswers.map(answer => `${answer.question || ''} ${answer.answer || ''}`).join(' ').toLowerCase();
-  const prompts: Array<{ field: string; question: string; reason: string; requiredUserInput: boolean }> = [];
-
-  const maybeAdd = (field: string, question: string, reason: string, profileValue?: string) => {
-    if (profileValue || savedText.includes(field.toLowerCase())) return;
-    prompts.push({ field, question, reason, requiredUserInput: true });
-  };
-
-  if (/\b(portfolio|github|website|work samples?)\b/.test(lowerDescription)) {
-    maybeAdd('portfolio_url', 'What portfolio, GitHub, or work-sample URL should CubiQo use for this role?', 'The job description appears to ask for proof-of-work links.', profileField(profile, 'portfolio_url') || profileField(profile, 'github_url'));
-  }
-  if (/\b(certification|certified|pmp|csm|scrum|license|licensed)\b/.test(lowerDescription)) {
-    maybeAdd('certifications', 'Which certifications or licenses should be listed for this application?', 'The role mentions certifications or licensing.', profileField(profile, 'certifications'));
-  }
-  if (/\b(salary|compensation|pay range|expected pay|desired pay)\b/.test(lowerDescription)) {
-    maybeAdd('salary_expectation', 'What salary or compensation answer should CubiQo use for this role?', 'Salary or compensation may require your explicit judgment.', profileField(profile, 'salary_expectation'));
-  }
-  if (/\b(sponsorship|visa|work authorization|authorized to work|citizen)\b/.test(lowerDescription)) {
-    maybeAdd('work_authorization', 'What work authorization answer should CubiQo use?', 'Work authorization must come from your confirmed profile or direct answer.', profileField(profile, 'work_authorization'));
-  }
-  if (/\b(essay|why are you interested|why this company|tell us about|describe a time)\b/.test(lowerDescription)) {
-    maybeAdd('custom_essay', 'Do you want to provide a custom answer for the role-specific written question?', 'Custom essay answers should be user-confirmed, not invented.', '');
-  }
-
-  return prompts.slice(0, 5);
-}
-
-function buildApplicationPacket(input: {
-  listing: ReturnType<typeof mapJobListing>;
-  profile: Record<string, any> | null;
-  savedAnswers: Array<Record<string, any>>;
-  submissionPayload: ReturnType<typeof buildSubmissionPayload>;
-  autoTailoring: { score?: number; scoreSummary?: string; tailoredResumeSummary?: string; coverLetter?: string; tailoringSource?: string };
-}) {
-  const missingAnswerPrompts = buildMissingAnswerPrompts(input.listing, input.profile, input.savedAnswers);
-  const recruiterMessage = input.submissionPayload.recruiterMessage || buildRecruiterMessage({
-    listing: input.listing,
-    profile: input.profile,
-    autoTailoring: input.autoTailoring
-  });
-
-  return {
-    job: input.submissionPayload.job,
-    fit: {
-      score: input.autoTailoring.score ?? null,
-      summary: input.autoTailoring.scoreSummary || null,
-      source: input.autoTailoring.tailoringSource || 'user_payload_or_local'
-    },
-    resumeNotes: input.submissionPayload.resumeSummary,
-    coverLetterDraft: input.submissionPayload.coverLetter,
-    recruiterMessage,
-    applicationAnswers: input.submissionPayload.answers,
-    missingAnswerPrompts,
-    saveResumeRequiresAction: Boolean(input.autoTailoring.tailoredResumeSummary),
-    finalSubmitRequiresUser: true,
-    externalSubmissionPerformed: false
-  };
 }
 
 export async function prepareJobApplication(
@@ -454,85 +313,7 @@ export async function prepareJobApplication(
   const sessionCheck = await requireActiveBrowserSessionIfProvided(auth, browserSessionId);
   if (!('browserSessionId' in sessionCheck)) return sessionCheck;
 
-  // Auto-tailor resume and cover letter with LLM if not provided. The result
-  // stays inside the review packet; durable resume saves require
-  // resume_version_write.
-  let autoTailoring: { score?: number; scoreSummary?: string; tailoredResumeSummary?: string; coverLetter?: string; tailoringSource?: string } = {};
-  let profile: Record<string, any> | null = null;
-  let savedAnswers: Array<Record<string, any>> = [];
-  const hasResume = Boolean(payload.resumeSummary || payload.resume_summary);
-  const hasCoverLetter = Boolean(payload.coverLetter || payload.cover_letter);
-  try {
-    const [{ data: profileRow }, { data: latestResume }, { data: answersRow }] = await Promise.all([
-      auth.supabase
-        .from('job_profiles')
-        .select('target_roles,skills,experience_summary,metadata,profile_payload,salary_expectation')
-        .eq('user_id', auth.user.id)
-        .maybeSingle(),
-      auth.supabase
-        .from('resume_versions')
-        .select('resume_content')
-        .eq('user_id', auth.user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      auth.supabase
-        .from('application_answers')
-        .select('question,answer,platform_hint')
-        .eq('user_id', auth.user.id)
-        .order('display_order', { ascending: true })
-        .limit(50)
-    ]);
-    profile = profileRow || null;
-    savedAnswers = answersRow || [];
-    if ((!hasResume || !hasCoverLetter) && profile) {
-      autoTailoring = await tailorApplicationForJob({
-        jobTitle: listing.title,
-        jobCompany: listing.company,
-        jobDescription: listing.description || '',
-        profileRoles: Array.isArray(profile.target_roles) ? profile.target_roles : [],
-        profileSkills: Array.isArray(profile.skills) ? profile.skills : [],
-        profileExperience: profile.experience_summary || '',
-        baseResume: latestResume?.resume_content || ''
-      });
-    }
-  } catch { /* profile/answer enrichment is best-effort */ }
-
-  if (!hasResume && autoTailoring.tailoredResumeSummary) {
-    payload = { ...payload, resumeSummary: autoTailoring.tailoredResumeSummary };
-  }
-  if (!hasCoverLetter && autoTailoring.coverLetter) {
-    payload = { ...payload, coverLetter: autoTailoring.coverLetter };
-  }
-  if (!payload.answers && savedAnswers.length) {
-    payload = {
-      ...payload,
-      answers: savedAnswers.map(answer => ({
-        question: answer.question,
-        answer: answer.answer,
-        platform_hint: answer.platform_hint,
-        source: 'saved_application_answer'
-      }))
-    };
-  }
-
-  const baseSubmissionPayload = buildSubmissionPayload(listing, payload);
-  const applicationPacket = buildApplicationPacket({
-    listing,
-    profile,
-    savedAnswers,
-    submissionPayload: baseSubmissionPayload,
-    autoTailoring
-  });
-  const submissionPayload = {
-    ...baseSubmissionPayload,
-    recruiterMessage: applicationPacket.recruiterMessage,
-    missingAnswerPrompts: applicationPacket.missingAnswerPrompts,
-    applicationPacket: {
-      ...applicationPacket,
-      generatedAt: new Date().toISOString()
-    }
-  };
+  const submissionPayload = buildSubmissionPayload(listing, payload);
   const { data, error } = await auth.supabase
     .from('job_application_reviews')
     .insert({
@@ -573,19 +354,11 @@ export async function prepareJobApplication(
       candidate: submissionPayload.candidate,
       resumeSummary: submissionPayload.resumeSummary,
       coverLetter: submissionPayload.coverLetter,
-      recruiterMessage: submissionPayload.recruiterMessage,
       answers: submissionPayload.answers,
-      missingAnswerPrompts: submissionPayload.missingAnswerPrompts,
-      applicationPacket: submissionPayload.applicationPacket,
       attachments: submissionPayload.attachments,
       targetUrl: submissionPayload.targetUrl,
       willSubmitExternally: false,
-      nextRequiredAction: 'Approve job_application_submit_approved after reviewing this exact payload.',
-      autoTailoring: autoTailoring.tailoringSource ? {
-        score: autoTailoring.score,
-        scoreSummary: autoTailoring.scoreSummary,
-        source: autoTailoring.tailoringSource
-      } : null
+      nextRequiredAction: 'Approve job_application_submit_approved after reviewing this exact payload.'
     }
   };
 }
