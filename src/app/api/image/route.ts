@@ -2,84 +2,85 @@ export const maxDuration = 60;
 export const runtime = 'nodejs';
 
 const RUNPOD_API_KEY = process.env.RUNPOD_API_KEY!;
-const RUNPOD_ENDPOINT_ID = process.env.RUNPOD_ENDPOINT_ID!; // set after ComfyUI endpoint is created
+const RUNPOD_ENDPOINT_ID = process.env.RUNPOD_ENDPOINT_ID!;
 
 // POST /api/image
-// body: { mode: 'edit' | 'generate', prompt: string, imageBase64?: string, maskBase64?: string }
+// body: { mode: 'edit'|'generate', prompt: string, imageBase64?: string, maskBase64?: string, negativePrompt?: string }
 export async function POST(request: Request) {
   if (!RUNPOD_API_KEY || !RUNPOD_ENDPOINT_ID) {
-    return Response.json(
-      { error: 'Image service not configured. Add RUNPOD_API_KEY and RUNPOD_ENDPOINT_ID to env vars.' },
-      { status: 503 }
-    );
+    return Response.json({ error: 'Image service not configured.' }, { status: 503 });
   }
 
-  const { mode = 'generate', prompt, imageBase64, maskBase64 } = await request.json();
-
+  const { mode = 'generate', prompt, imageBase64, maskBase64, negativePrompt = 'bad quality, blurry, watermark, text, ugly, deformed' } = await request.json();
   if (!prompt) return Response.json({ error: 'prompt is required' }, { status: 400 });
-  if (mode === 'edit' && !imageBase64) return Response.json({ error: 'imageBase64 required for edit mode' }, { status: 400 });
 
-  // Build ComfyUI workflow input
-  const workflowInput =
-    mode === 'edit'
+  // A1111 API format — same shape for txt2img and img2img/inpaint
+  const input =
+    mode === 'edit' && imageBase64
       ? {
-          workflow: 'inpaint',
+          // img2img inpainting
           prompt,
-          image: imageBase64,
+          negative_prompt: negativePrompt,
+          init_images: [imageBase64],
           mask: maskBase64 || null,
-          model: 'pony_diffusion_xl',
-          steps: 30,
-          cfg: 7,
-          use_ip_adapter: true,      // preserves likeness
-          use_adetailer: true,        // fixes faces
-          upscale: true,
-        }
-      : {
-          workflow: 'txt2img',
-          prompt,
-          model: 'pony_diffusion_xl',
-          steps: 30,
-          cfg: 7,
+          inpainting_fill: 1,
+          inpaint_full_res: true,
+          denoising_strength: 0.75,
           width: 1024,
           height: 1024,
-          use_adetailer: true,
-          upscale: true,
+          num_inference_steps: 30,
+          guidance_scale: 7.5,
+          sampler_name: 'DPM++ 2M Karras',
+          seed: -1,
+        }
+      : {
+          // txt2img
+          prompt,
+          negative_prompt: negativePrompt,
+          width: 1024,
+          height: 1024,
+          num_inference_steps: 30,
+          guidance_scale: 7.5,
+          sampler_name: 'DPM++ 2M Karras',
+          seed: -1,
         };
 
-  // Submit job to RunPod serverless endpoint
-  const submitRes = await fetch(`https://api.runpod.io/v2/${RUNPOD_ENDPOINT_ID}/run`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${RUNPOD_API_KEY}`,
-    },
-    body: JSON.stringify({ input: workflowInput }),
-  });
+  const submitRes = await fetch(
+    `https://api.runpod.io/v2/${RUNPOD_ENDPOINT_ID}/run`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${RUNPOD_API_KEY}`,
+      },
+      body: JSON.stringify({ input }),
+    }
+  );
 
   if (!submitRes.ok) {
-    const err = await submitRes.text();
-    return Response.json({ error: `RunPod submit failed: ${err}` }, { status: 502 });
+    return Response.json({ error: `RunPod submit failed: ${await submitRes.text()}` }, { status: 502 });
   }
 
   const { id: jobId } = await submitRes.json();
-
-  // Poll for result (max 55s to stay within maxDuration)
   const deadline = Date.now() + 55_000;
-  while (Date.now() < deadline) {
-    await new Promise(r => setTimeout(r, 2000));
 
-    const statusRes = await fetch(`https://api.runpod.io/v2/${RUNPOD_ENDPOINT_ID}/status/${jobId}`, {
-      headers: { Authorization: `Bearer ${RUNPOD_API_KEY}` },
-    });
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, 2500));
+    const statusRes = await fetch(
+      `https://api.runpod.io/v2/${RUNPOD_ENDPOINT_ID}/status/${jobId}`,
+      { headers: { Authorization: `Bearer ${RUNPOD_API_KEY}` } }
+    );
     const status = await statusRes.json();
 
     if (status.status === 'COMPLETED') {
-      return Response.json({ imageBase64: status.output?.image, jobId });
+      // A1111 returns images as base64 array
+      const imageBase64Out = status.output?.images?.[0] || status.output?.image;
+      return Response.json({ imageBase64: imageBase64Out, jobId, mode });
     }
     if (status.status === 'FAILED') {
-      return Response.json({ error: 'Image generation failed', detail: status.error }, { status: 500 });
+      return Response.json({ error: 'Generation failed', detail: status.error }, { status: 500 });
     }
   }
 
-  return Response.json({ error: 'Timed out waiting for image', jobId }, { status: 504 });
+  return Response.json({ error: 'Timed out', jobId }, { status: 504 });
 }
