@@ -34,10 +34,10 @@ const agentTools = {
     execute: async ({ app, action, params }) => {
       if (!process.env.COMPOSIO_API_KEY) return { error: 'Composio not configured. Add COMPOSIO_API_KEY.' };
       try {
-        const { getToolset } = await import('@/next/lib/composio');
-        const toolset = getToolset();
+        const { getComposio } = await import('@/next/lib/composio');
+        const composio = getComposio();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = await (toolset as any).executeAction(action, params);
+        const result = await (composio as any).actions.execute({ action, input: params });
         return { result, app, action };
       } catch (e) {
         return { error: String(e), app, action };

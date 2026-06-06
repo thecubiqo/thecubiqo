@@ -1,22 +1,23 @@
-import { OpenAIToolSet } from 'composio-core';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _composio: any = null;
 
-let _toolset: OpenAIToolSet | null = null;
-
-export function getToolset(): OpenAIToolSet {
-  if (!_toolset) {
+export function getComposio() {
+  if (!_composio) {
     if (!process.env.COMPOSIO_API_KEY) throw new Error('COMPOSIO_API_KEY not set');
-    _toolset = new OpenAIToolSet({ apiKey: process.env.COMPOSIO_API_KEY });
+    // Dynamically imported to avoid type conflicts between providers
+    const { Composio } = require('@composio/core');
+    const { VercelProvider } = require('@composio/vercel');
+    _composio = new Composio({
+      apiKey: process.env.COMPOSIO_API_KEY,
+      provider: new VercelProvider(),
+    });
   }
-  return _toolset;
+  return _composio;
 }
 
-// Returns tools for a specific set of apps — keeps prompt lean
-export async function getTools(apps: string[]) {
-  return getToolset().getTools({ apps });
-}
-
-// Execute a tool action returned by the LLM
-export async function executeTool(name: string, input: Record<string, unknown>) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (getToolset() as any).executeAction(name, input);
+// Get Vercel AI SDK compatible tools for a user session
+export async function getUserTools(userId: string) {
+  const composio = getComposio();
+  const session = await composio.create(userId);
+  return session.tools();
 }
