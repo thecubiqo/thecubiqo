@@ -3713,6 +3713,83 @@ const DemoPage = () => {
   const [signals, setSignals] = useState([]);
   const [signalSyncStatus, setSignalSyncStatus] = useState('');
   const [selectedKeywordColor, setSelectedKeywordColor] = useState('green');
+
+  // ── Agentic Dashboard ─────────────────────────────────────────────────────
+  const [agentDashboardOpen, setAgentDashboardOpen] = useState(false);
+  const [agentTasks, setAgentTasks] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cubiqo_agent_tasks') || '[]'); } catch { return []; }
+  });
+  const [agentTaskInput, setAgentTaskInput] = useState('');
+  const addAgentTask = (label) => {
+    if (!label.trim()) return;
+    const tasks = [...agentTasks, { id: Date.now(), label: label.trim(), color: null }];
+    setAgentTasks(tasks);
+    localStorage.setItem('cubiqo_agent_tasks', JSON.stringify(tasks));
+    setAgentTaskInput('');
+  };
+  const removeAgentTask = (id) => {
+    const tasks = agentTasks.filter(t => t.id !== id);
+    setAgentTasks(tasks);
+    localStorage.setItem('cubiqo_agent_tasks', JSON.stringify(tasks));
+  };
+  const [activeDashboard, setActiveDashboard] = useState(null);
+  const [dashboardState, setDashboardState] = useState({});
+  const [dashboardMessages, setDashboardMessages] = useState({});
+  const [dashboardInput, setDashboardInput] = useState('');
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [projectIds, setProjectIds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cubiqo_project_ids') || '{}'); } catch { return {}; }
+  });
+  const refreshDuoState = async (projectId, taskId) => {
+    try {
+      const res = await fetch(`/api/duo/projects/${projectId}`);
+      const json = await res.json();
+      if (!json.error) setDashboardState(s => ({ ...s, [taskId]: json }));
+    } catch {}
+  };
+  const openDashboard = async (task) => {
+    setActiveDashboard(task);
+    const taskId = String(task.id);
+    setDashboardLoading(true);
+    try {
+      let projectId = projectIds[taskId];
+      if (!projectId) {
+        const res = await fetch('/api/duo/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ goal: task.label }) });
+        const json = await res.json();
+        if (json.project) {
+          projectId = json.project.id;
+          const newMap = { ...projectIds, [taskId]: projectId };
+          setProjectIds(newMap);
+          localStorage.setItem('cubiqo_project_ids', JSON.stringify(newMap));
+          if (json.opening_message) setDashboardMessages(m => ({ ...m, [taskId]: [{ role: 'assistant', content: json.opening_message }] }));
+        }
+      }
+      if (projectId) await refreshDuoState(projectId, taskId);
+    } catch (e) { console.error('openDashboard', e); }
+    finally { setDashboardLoading(false); }
+  };
+  const closeDashboard = () => setActiveDashboard(null);
+  const chatWithDuo = async (message, extras = {}) => {
+    if (!activeDashboard) return;
+    const taskId = String(activeDashboard.id);
+    const projectId = projectIds[taskId];
+    if (!projectId) return;
+    setDashboardMessages(m => ({ ...m, [taskId]: [...(m[taskId] || []), { role: 'user', content: message }] }));
+    setDashboardInput('');
+    setDashboardLoading(true);
+    try {
+      const res = await fetch(`/api/duo/projects/${projectId}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, ...extras }) });
+      const json = await res.json();
+      if (json.reply) setDashboardMessages(m => ({ ...m, [taskId]: [...(m[taskId] || []), { role: 'assistant', content: json.reply }] }));
+      await refreshDuoState(projectId, taskId);
+    } catch (e) { console.error('chatWithDuo', e); }
+    finally { setDashboardLoading(false); }
+  };
+  const sendDashboardMessage = () => dashboardInput.trim() && chatWithDuo(dashboardInput.trim());
+  const submitAnswer = (questionId, answer) => chatWithDuo(answer, { question_id: questionId });
+  const submitApproval = (approvalId, decision) => chatWithDuo(decision === 'approved' ? '✓ Approved' : '✗ Denied', { approval_id: approvalId, approval_decision: decision });
+  // ── End Agentic Dashboard ─────────────────────────────────────────────────
+
   const [rgyCapsule, setRgyCapsule] = useState({
     color: 'yellow',
     signal: 'YELLOW',
@@ -5830,8 +5907,136 @@ const DemoPage = () => {
 
         </div>
 
+        {/* DUOMODE DASHBOARD OVERLAY */}
+        {activeDashboard && (() => {
+          const taskId = String(activeDashboard.id);
+          const raw = dashboardState[taskId];
+          const msgs = dashboardMessages[taskId] || [];
+          const tasks = raw?.tasks || [];
+          const questions = (raw?.questions || []).filter(q => q.status === 'pending' || q.is_blocking);
+          const approvals = (raw?.approvals || []).filter(a => a.status === 'pending');
+          const artifacts = raw?.artifacts || [];
+          const timeline = raw?.timeline || [];
+          const sc = { done:'#22c55e', working:'#f59e0b', pending:'rgba(255,255,255,0.2)', blocked:'#ef4444', skipped:'rgba(255,255,255,0.1)' };
+          return (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+            <div style={{ width: '92%', height: '90%', background: 'rgba(6,6,14,0.98)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 24, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 48px 120px rgba(0,0,0,0.9)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+                <div style={{ width: 9, height: 9, borderRadius: '50%', background: activeDashboard.color || 'rgba(255,255,255,0.3)' }} />
+                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>DuoMode</span>
+                <span style={{ flex: 1, color: '#fff', fontSize: '0.92rem', fontWeight: 600 }}>{activeDashboard.label}</span>
+                {dashboardLoading && <span style={{ color: '#f59e0b', fontSize: '0.68rem', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700 }}>● Working</span>}
+                {!dashboardLoading && raw && <span style={{ color: '#22c55e', fontSize: '0.68rem', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700 }}>● Active</span>}
+                <button onClick={closeDashboard} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}>×</button>
+              </div>
+              <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+                <div style={{ width: 240, borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+                  <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.3)', fontSize: '0.64rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>Chat</div>
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {msgs.length === 0 && !dashboardLoading && <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.75rem', textAlign: 'center', marginTop: 20 }}>Loading your plan…</div>}
+                    {msgs.map((msg, i) => (
+                      <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                        <div style={{ maxWidth: '90%', padding: '8px 11px', borderRadius: msg.role === 'user' ? '12px 12px 3px 12px' : '12px 12px 12px 3px', background: msg.role === 'user' ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: msg.role === 'user' ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.7)', fontSize: '0.77rem', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                      </div>
+                    ))}
+                    {dashboardLoading && <div style={{ padding: '8px 11px', borderRadius: '12px 12px 12px 3px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem' }}>thinking…</div>}
+                  </div>
+                  <div style={{ padding: '8px 10px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 6 }}>
+                    <input value={dashboardInput} onChange={e => setDashboardInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendDashboardMessage()} placeholder="Ask anything…" style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8, padding: '7px 9px', color: '#fff', fontSize: '0.75rem', outline: 'none' }} />
+                    <button onClick={sendDashboardMessage} disabled={dashboardLoading} style={{ padding: '7px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', fontSize: '0.8rem' }}>→</button>
+                  </div>
+                </div>
+                <div style={{ width: 320, borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', flexShrink: 0, overflowY: 'auto' }}>
+                  <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.3)', fontSize: '0.64rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>Task Board</div>
+                  <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    {tasks.map(task => (
+                      <div key={task.id} style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: `1px solid ${sc[task.status] || 'rgba(255,255,255,0.07)'}22` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: sc[task.status] || 'rgba(255,255,255,0.2)', flexShrink: 0, display: 'inline-block' }} />
+                          <span style={{ flex: 1, color: 'rgba(255,255,255,0.82)', fontSize: '0.77rem', fontWeight: 500 }}>{task.title}</span>
+                          <span style={{ fontSize: '0.62rem', color: sc[task.status], fontWeight: 700, textTransform: 'capitalize' }}>{task.status}</span>
+                        </div>
+                        {task.description && <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', lineHeight: 1.4, paddingLeft: 14, marginTop: 4 }}>{task.description}</div>}
+                      </div>
+                    ))}
+                    {questions.map(q => (
+                      <div key={q.id} style={{ padding: '11px', borderRadius: 10, border: '1px solid rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.07)' }}>
+                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.6rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700, marginBottom: 5 }}>Needs Your Input</div>
+                        <div style={{ color: '#fff', fontSize: '0.77rem', fontWeight: 500, marginBottom: 8 }}>{q.prompt}</div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <input placeholder="Your answer…" onKeyDown={e => e.key === 'Enter' && submitAnswer(q.id, e.target.value)} style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, padding: '6px 9px', color: '#fff', fontSize: '0.73rem', outline: 'none' }} />
+                          <button onClick={e => submitAnswer(q.id, e.target.previousSibling.value)} style={{ padding: '6px 11px', borderRadius: 7, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.4)', color: '#fff', cursor: 'pointer', fontSize: '0.73rem' }}>Submit</button>
+                        </div>
+                      </div>
+                    ))}
+                    {approvals.map(a => (
+                      <div key={a.id} style={{ padding: '11px', borderRadius: 10, border: '1px solid rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.07)' }}>
+                        <div style={{ color: '#f59e0b', fontSize: '0.6rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700, marginBottom: 5 }}>⚡ Needs Approval</div>
+                        <div style={{ color: '#fff', fontSize: '0.77rem', fontWeight: 500, marginBottom: 5 }}>{a.title}</div>
+                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem', marginBottom: 8 }}>{a.action_summary}</div>
+                        <div style={{ display: 'flex', gap: 7 }}>
+                          <button onClick={() => submitApproval(a.id, 'approved')} style={{ flex: 1, padding: '7px', borderRadius: 7, background: '#22c55e22', border: '1px solid #22c55e44', color: '#22c55e', cursor: 'pointer', fontSize: '0.73rem', fontWeight: 600 }}>Approve</button>
+                          <button onClick={() => submitApproval(a.id, 'denied')} style={{ flex: 1, padding: '7px', borderRadius: 7, background: '#ef444422', border: '1px solid #ef444444', color: '#ef4444', cursor: 'pointer', fontSize: '0.73rem', fontWeight: 600 }}>Deny</button>
+                        </div>
+                      </div>
+                    ))}
+                    {tasks.length === 0 && !dashboardLoading && <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.77rem', textAlign: 'center', marginTop: 20 }}>Plan loading…</div>}
+                  </div>
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  <div style={{ padding: '10px 18px', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.3)', fontSize: '0.64rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>Output</div>
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+                    {artifacts.length === 0 && timeline.length === 0 && <div style={{ color: 'rgba(255,255,255,0.15)', fontSize: '0.82rem', textAlign: 'center', marginTop: 40 }}>Output appears here as CubiQo works</div>}
+                    {artifacts.map((a, i) => (
+                      <div key={i} style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', marginBottom: 8 }}>
+                        <div style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 500, marginBottom: 3 }}>{a.title}</div>
+                        {a.content && <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.74rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{a.content.slice(0, 300)}</div>}
+                        {a.external_url && <a href={a.external_url} target="_blank" rel="noreferrer" style={{ color: '#60a5fa', fontSize: '0.72rem' }}>{a.external_url}</a>}
+                      </div>
+                    ))}
+                    {timeline.slice(0, 8).map((t, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'flex-start' }}>
+                        <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.68rem', marginTop: 1, flexShrink: 0 }}>·</span>
+                        <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.74rem', lineHeight: 1.4 }}>{t.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          );
+        })()}
+
         {/* RIGHT PANEL */}
         <div data-testid="signal-match-panel" style={{ ...panelBase, right: '28px', width: '372px', maxWidth: 'calc(100vw - 56px)', transform: rightPanelOpen ? 'translateX(0)' : 'translateX(130%)', opacity: rightPanelOpen ? 1 : 0, pointerEvents: rightPanelOpen ? 'auto' : 'none', padding: '28px 22px' }}>
+
+          {/* Panel toggle: RGY | Agentic */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            <button onClick={() => setAgentDashboardOpen(false)} style={{ flex: 1, padding: '6px 0', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase', background: !agentDashboardOpen ? 'rgba(255,255,255,0.12)' : 'transparent', color: !agentDashboardOpen ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'all 0.2s' }}>RGY</button>
+            <button onClick={() => setAgentDashboardOpen(true)} style={{ flex: 1, padding: '6px 0', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase', background: agentDashboardOpen ? 'rgba(255,255,255,0.12)' : 'transparent', color: agentDashboardOpen ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'all 0.2s' }}>Agentic</button>
+          </div>
+
+          {agentDashboardOpen ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.64rem', letterSpacing: 2.4, textTransform: 'uppercase', fontWeight: 700, marginBottom: 14 }}>Agentic Dashboard</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 18 }}>
+                {agentTasks.length === 0 && <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.78rem', padding: '16px 0', textAlign: 'center' }}>No dashboards yet. Add one below.</div>}
+                {agentTasks.map(task => (
+                  <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 13px', borderRadius: 11, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: task.color || 'rgba(255,255,255,0.18)', flexShrink: 0 }} />
+                    <span style={{ flex: 1, color: 'rgba(255,255,255,0.85)', fontSize: '0.81rem', fontWeight: 500 }}>{task.label}</span>
+                    <span onClick={() => openDashboard(task)} style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', cursor: 'pointer', padding: '2px 5px' }}>→</span>
+                    <button onClick={e => { e.stopPropagation(); removeAgentTask(task.id); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.15)', cursor: 'pointer', fontSize: '0.9rem', padding: '0 2px' }}>×</button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 7 }}>
+                <input value={agentTaskInput} onChange={e => setAgentTaskInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addAgentTask(agentTaskInput)} placeholder="Add a dashboard…" style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 9, padding: '8px 12px', color: '#fff', fontSize: '0.79rem', outline: 'none' }} />
+                <button onClick={() => addAgentTask(agentTaskInput)} style={{ padding: '8px 13px', borderRadius: 9, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', cursor: 'pointer', fontSize: '1rem' }}>+</button>
+              </div>
+            </div>
+          ) : (<>
 
           {/* Signal Aura Indicator (Replaces Tabs) */}
           <div style={{ position: 'relative', height: '52px', marginBottom: 14, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -6096,6 +6301,7 @@ const DemoPage = () => {
           <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '20px 0' }} />
 
           {/* Philosophy note removed as per request */}
+          </>)}{/* end RGY/Agentic conditional */}
         </div>
 
         {/* MODALS */}
