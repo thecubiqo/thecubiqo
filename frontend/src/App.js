@@ -2316,71 +2316,90 @@ const DemoPage = () => {
   const [dashboardAnswers, setDashboardAnswers] = useState({}); // pending question answers
   const [dashboardApprovals, setDashboardApprovals] = useState({}); // pending approvals
 
-  const callDashboardAgent = async (topic, taskId, answers = {}, approvals = {}, prevState = null) => {
-    setDashboardLoading(true);
+  // projectId maps agentTasks item id → duo_projects uuid
+  const [projectIds, setProjectIds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cubiqo_project_ids') || '{}'); } catch { return {}; }
+  });
+
+  const getDuoState = (taskId) => dashboardState[taskId] || null;
+
+  const refreshDuoState = async (projectId, taskId) => {
     try {
-      const res = await fetch('/api/dashboard-agent', {
-        method: 'POST',
+      const res = await fetch(`/api/duo/projects/${projectId}`, {
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, answers, approvals, previousState: prevState }),
       });
       const json = await res.json();
-      if (json.state) {
-        setDashboardState(s => ({ ...s, [taskId]: json.state }));
-        if (json.isFirstLoad && json.state.openingMessage) {
-          setDashboardMessages(m => ({
-            ...m,
-            [taskId]: [{ role: 'assistant', content: json.state.openingMessage }],
-          }));
-        }
-      }
-    } catch (e) {
-      console.error('Dashboard agent error', e);
-    } finally {
-      setDashboardLoading(false);
-    }
+      if (!json.error) setDashboardState(s => ({ ...s, [taskId]: json }));
+    } catch {}
   };
 
-  const openDashboard = (task) => {
+  const openDashboard = async (task) => {
     setActiveDashboard(task);
     const taskId = String(task.id);
-    if (!dashboardState[taskId]) {
-      callDashboardAgent(task.label, taskId);
-    }
+    setDashboardLoading(true);
+    try {
+      let projectId = projectIds[taskId];
+      if (!projectId) {
+        // Create new DuoMode project in DB
+        const res = await fetch('/api/duo/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ goal: task.label }),
+        });
+        const json = await res.json();
+        if (json.project) {
+          projectId = json.project.id;
+          const newMap = { ...projectIds, [taskId]: projectId };
+          setProjectIds(newMap);
+          localStorage.setItem('cubiqo_project_ids', JSON.stringify(newMap));
+          if (json.opening_message) {
+            setDashboardMessages(m => ({ ...m, [taskId]: [{ role: 'assistant', content: json.opening_message }] }));
+          }
+        }
+      }
+      if (projectId) await refreshDuoState(projectId, taskId);
+    } catch (e) { console.error('openDashboard error', e); }
+    finally { setDashboardLoading(false); }
   };
+
   const closeDashboard = () => setActiveDashboard(null);
 
-  const sendDashboardMessage = async () => {
-    if (!dashboardInput.trim() || dashboardLoading || !activeDashboard) return;
+  const chatWithDuo = async (message, extras = {}) => {
+    if (!activeDashboard) return;
     const taskId = String(activeDashboard.id);
-    const userMsg = { role: 'user', content: dashboardInput.trim() };
-    setDashboardMessages(m => ({ ...m, [taskId]: [...(m[taskId] || []), userMsg] }));
+    const projectId = projectIds[taskId];
+    if (!projectId) return;
+
+    setDashboardMessages(m => ({ ...m, [taskId]: [...(m[taskId] || []), { role: 'user', content: message }] }));
     setDashboardInput('');
-    // Re-run agent with the new message as an answer
-    await callDashboardAgent(
-      activeDashboard.label, taskId,
-      { ...dashboardAnswers[taskId], userMessage: dashboardInput.trim() },
-      dashboardApprovals[taskId] || {},
-      dashboardState[taskId] || null
-    );
+    setDashboardLoading(true);
+    try {
+      const res = await fetch(`/api/duo/projects/${projectId}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, ...extras }),
+      });
+      const json = await res.json();
+      if (json.reply) {
+        setDashboardMessages(m => ({ ...m, [taskId]: [...(m[taskId] || []), { role: 'assistant', content: json.reply }] }));
+      }
+      await refreshDuoState(projectId, taskId);
+    } catch (e) { console.error('chatWithDuo error', e); }
+    finally { setDashboardLoading(false); }
   };
 
-  const submitAnswer = async (questionId, answer) => {
-    if (!activeDashboard) return;
-    const taskId = String(activeDashboard.id);
-    const newAnswers = { ...(dashboardAnswers[taskId] || {}), [questionId]: answer };
-    setDashboardAnswers(a => ({ ...a, [taskId]: newAnswers }));
-    setDashboardMessages(m => ({ ...m, [taskId]: [...(m[taskId] || []), { role: 'user', content: answer }] }));
-    await callDashboardAgent(activeDashboard.label, taskId, newAnswers, dashboardApprovals[taskId] || {}, dashboardState[taskId]);
+  const sendDashboardMessage = () => dashboardInput.trim() && chatWithDuo(dashboardInput.trim());
+
+  const submitAnswer = (questionId, answer) => {
+    setDashboardMessages(m => {
+      const taskId = String(activeDashboard?.id);
+      return { ...m, [taskId]: [...(m[taskId] || []), { role: 'user', content: answer }] };
+    });
+    chatWithDuo(answer, { question_id: questionId });
   };
 
-  const submitApproval = async (approvalId, decision) => {
-    if (!activeDashboard) return;
-    const taskId = String(activeDashboard.id);
-    const newApprovals = { ...(dashboardApprovals[taskId] || {}), [approvalId]: decision };
-    setDashboardApprovals(a => ({ ...a, [taskId]: newApprovals }));
-    setDashboardMessages(m => ({ ...m, [taskId]: [...(m[taskId] || []), { role: 'user', content: decision === 'approved' ? '✓ Approved' : '✗ Denied' }] }));
-    await callDashboardAgent(activeDashboard.label, taskId, dashboardAnswers[taskId] || {}, newApprovals, dashboardState[taskId]);
+  const submitApproval = (approvalId, decision) => {
+    chatWithDuo(decision === 'approved' ? '✓ Approved' : '✗ Denied', { approval_id: approvalId, approval_decision: decision });
   };
   const [rgyCapsule, setRgyCapsule] = useState({
     color: 'yellow',
@@ -4029,7 +4048,22 @@ const DemoPage = () => {
         {/* DASHBOARD OVERLAY — DuoMode 3-panel */}
         {activeDashboard && (() => {
           const taskId = String(activeDashboard.id);
-          const state = dashboardState[taskId];
+          const raw = dashboardState[taskId]; // DB state: { project, tasks, questions, blockers, approvals, artifacts, timeline, widgets }
+          const state = raw ? {
+            tasks: raw.tasks || [],
+            questions: raw.questions || [],
+            approvals: raw.approvals || [],
+            blockers: raw.blockers || [],
+            artifacts: raw.artifacts || [],
+            timeline: raw.timeline || [],
+            intent: raw.project?.goal || '',
+            nextStep: '',
+            output: raw.artifacts?.length ? {
+              type: 'list',
+              title: 'Artifacts',
+              data: { items: raw.artifacts.map((a) => ({ title: a.title, detail: a.content?.slice(0, 120), meta: a.artifact_type })) }
+            } : { type: 'empty', title: 'Output', data: { message: 'CubiQo is working on this…' } },
+          } : null;
           const msgs = dashboardMessages[taskId] || [];
           const statusColor = { done: '#22c55e', working: '#f59e0b', pending: 'rgba(255,255,255,0.2)', blocked: '#ef4444' };
           const statusLabel = { done: 'Done', working: 'Working', pending: 'Pending', blocked: 'Blocked' };
