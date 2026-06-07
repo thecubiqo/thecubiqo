@@ -61,13 +61,13 @@ const BoardUpdateSchema = z.object({
 });
 
 // POST /api/duo/projects/[id]/chat — chat that reads + writes project board state
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const userId = await getUserId(request.headers.get('authorization'));
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { message, question_id, approval_id, approval_decision } = await request.json();
   const supabase = db();
-  const projectId = params.id;
+  const { id: projectId } = await params;
 
   // Load full project state for context
   const [
@@ -119,7 +119,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
   const userMessage = message || (approval_decision ? `Decision: ${approval_decision}` : 'Continue');
 
   const { object: update } = await generateObject({
-    model: anthropic('claude-sonnet-4-6'),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    model: anthropic('claude-sonnet-4-6') as any,
     system: `You are CubiQo operating in DuoMode for project: "${project.goal}"
 
 Current board state:
@@ -140,8 +141,9 @@ Rules:
     schema: BoardUpdateSchema,
   });
 
-  // Apply all board updates
-  const writes: Promise<unknown>[] = [];
+  // Apply all board updates — Supabase returns PromiseLike (PostgrestFilterBuilder), not full Promise
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const writes: PromiseLike<any>[] = [];
 
   if (update.task_updates?.length) {
     for (const tu of update.task_updates) {
