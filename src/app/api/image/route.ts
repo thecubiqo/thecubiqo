@@ -46,7 +46,7 @@ export async function POST(request: Request) {
         };
 
   const submitRes = await fetch(
-    `https://api.runpod.io/v2/${RUNPOD_ENDPOINT_ID}/run`,
+    `https://api.runpod.ai/v2/${RUNPOD_ENDPOINT_ID}/run`,
     {
       method: 'POST',
       headers: {
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
   while (Date.now() < deadline) {
     await new Promise(r => setTimeout(r, 2500));
     const statusRes = await fetch(
-      `https://api.runpod.io/v2/${RUNPOD_ENDPOINT_ID}/status/${jobId}`,
+      `https://api.runpod.ai/v2/${RUNPOD_ENDPOINT_ID}/status/${jobId}`,
       { headers: { Authorization: `Bearer ${RUNPOD_API_KEY}` } }
     );
     const status = await statusRes.json();
