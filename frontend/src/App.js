@@ -3785,8 +3785,7 @@ const DemoPage = () => {
                 <button onClick={() => addAgentTask(agentTaskInput)} style={{ padding: '9px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', cursor: 'pointer', fontSize: '1rem', fontWeight: 300 }}>+</button>
               </div>
             </div>
-          ) : (
-          <div>{/* original RGY panel below */}
+          ) : (<>
 
           {/* Signal Aura Indicator (Replaces Tabs) */}
           <div style={{ position: 'relative', height: '52px', marginBottom: 14, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -3948,8 +3947,7 @@ const DemoPage = () => {
           <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '20px 0' }} />
 
           {/* Philosophy note removed as per request */}
-          </div>{/* end RGY mode */}
-          )}{/* end agentDashboardOpen conditional */}
+          </>)}{/* end agentDashboardOpen conditional */}
         </div>
 
         {/* MODALS */}
