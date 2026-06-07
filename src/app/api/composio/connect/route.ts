@@ -47,8 +47,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { redirectUrl } = await initiateConnection(userId, app as ComposioApp);
-    return Response.json({ app, redirectUrl, message: `Open redirectUrl in a browser to connect ${app}` });
+    const result = await initiateConnection(userId, app as ComposioApp);
+    if (result.error) return Response.json({ error: result.error }, { status: 500 });
+    return Response.json({
+      app,
+      oauthUrl: result.oauthUrl,
+      linkToken: result.linkToken,
+      accountId: result.accountId,
+      message: `Open oauthUrl in a browser to connect ${app}`,
+    });
   } catch (err) {
     return Response.json({ error: String(err) }, { status: 500 });
   }
