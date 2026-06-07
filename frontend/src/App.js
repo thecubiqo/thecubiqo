@@ -2289,6 +2289,23 @@ const DemoPage = () => {
   const [signals, setSignals] = useState([]);
   const [signalSyncStatus, setSignalSyncStatus] = useState('');
   const [selectedKeywordColor, setSelectedKeywordColor] = useState('green');
+  const [agentDashboardOpen, setAgentDashboardOpen] = useState(false);
+  const [agentTasks, setAgentTasks] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cubiqo_agent_tasks') || '[]'); } catch { return []; }
+  });
+  const [agentTaskInput, setAgentTaskInput] = useState('');
+  const addAgentTask = (label) => {
+    if (!label.trim()) return;
+    const tasks = [...agentTasks, { id: Date.now(), label: label.trim(), color: null }];
+    setAgentTasks(tasks);
+    localStorage.setItem('cubiqo_agent_tasks', JSON.stringify(tasks));
+    setAgentTaskInput('');
+  };
+  const removeAgentTask = (id) => {
+    const tasks = agentTasks.filter(t => t.id !== id);
+    setAgentTasks(tasks);
+    localStorage.setItem('cubiqo_agent_tasks', JSON.stringify(tasks));
+  };
   const [rgyCapsule, setRgyCapsule] = useState({
     color: 'yellow',
     signal: 'YELLOW',
@@ -3726,6 +3743,51 @@ const DemoPage = () => {
         {/* RIGHT PANEL */}
         <div data-testid="signal-match-panel" style={{ ...panelBase, right: '28px', width: '372px', maxWidth: 'calc(100vw - 56px)', transform: rightPanelOpen ? 'translateX(0)' : 'translateX(130%)', opacity: rightPanelOpen ? 1 : 0, pointerEvents: rightPanelOpen ? 'auto' : 'none', padding: '28px 22px' }}>
 
+          {/* Panel mode toggle */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+            <button onClick={() => setAgentDashboardOpen(false)} style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase', background: !agentDashboardOpen ? 'rgba(255,255,255,0.12)' : 'transparent', color: !agentDashboardOpen ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'all 0.2s' }}>RGY</button>
+            <button onClick={() => setAgentDashboardOpen(true)} style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase', background: agentDashboardOpen ? 'rgba(255,255,255,0.12)' : 'transparent', color: agentDashboardOpen ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'all 0.2s' }}>Agentic</button>
+          </div>
+
+          {/* AGENTIC DASHBOARD */}
+          {agentDashboardOpen ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.64rem', letterSpacing: 2.4, textTransform: 'uppercase', fontWeight: 700, marginBottom: 16 }}>Agentic Dashboard</div>
+
+              {/* Task list */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+                {agentTasks.length === 0 && (
+                  <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.78rem', padding: '20px 0', textAlign: 'center' }}>No dashboards yet. Add one below or ask CubiQo.</div>
+                )}
+                {agentTasks.map(task => (
+                  <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', transition: 'background 0.18s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.09)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                  >
+                    {/* Optional color dot — no logic, purely visual */}
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: task.color || 'rgba(255,255,255,0.18)', flexShrink: 0 }} />
+                    <span style={{ flex: 1, color: 'rgba(255,255,255,0.85)', fontSize: '0.82rem', fontWeight: 500 }}>{task.label}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem' }}>→</span>
+                    <button onClick={e => { e.stopPropagation(); removeAgentTask(task.id); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.18)', cursor: 'pointer', fontSize: '0.9rem', padding: '0 2px', lineHeight: 1 }} title="Remove">×</button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add task inline */}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  value={agentTaskInput}
+                  onChange={e => setAgentTaskInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addAgentTask(agentTaskInput)}
+                  placeholder="Add a dashboard..."
+                  style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '9px 13px', color: '#fff', fontSize: '0.8rem', outline: 'none' }}
+                />
+                <button onClick={() => addAgentTask(agentTaskInput)} style={{ padding: '9px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', cursor: 'pointer', fontSize: '1rem', fontWeight: 300 }}>+</button>
+              </div>
+            </div>
+          ) : (
+          <div>{/* original RGY panel below */}
+
           {/* Signal Aura Indicator (Replaces Tabs) */}
           <div style={{ position: 'relative', height: '52px', marginBottom: 14, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <div style={{ 
@@ -3886,6 +3948,8 @@ const DemoPage = () => {
           <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '20px 0' }} />
 
           {/* Philosophy note removed as per request */}
+          </div>{/* end RGY mode */}
+          )}{/* end agentDashboardOpen conditional */}
         </div>
 
         {/* MODALS */}
