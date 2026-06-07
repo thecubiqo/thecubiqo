@@ -3813,6 +3813,11 @@ const DemoPage = () => {
   const [profileSyncError, setProfileSyncError] = useState('');
   const [uiVisible, setUiVisible] = useState(true);
   const [chatInput, setChatInput] = useState('');
+  const [imageAttachment, setImageAttachment] = useState(null);   // base64 for API
+  const [imagePreview, setImagePreview] = useState(null);         // data URL for display
+  const [imageGenResult, setImageGenResult] = useState(null);     // last generated image
+  const [imageLoading, setImageLoading] = useState(false);
+  const imageInputRef = useRef(null);
   const [lastUserMessage, setLastUserMessage] = useState('');
   const [conversationError, setConversationError] = useState('');
   const [agentMode, setAgentMode] = useState('idle');
@@ -5071,15 +5076,88 @@ const DemoPage = () => {
   };
   callBackendRef.current = callBackend;
 
-  const handleTextSubmit = (e) => {
+  const handleTextSubmit = async (e) => {
     e.preventDefault();
     const text = chatInput.trim();
+
+    // Image mode: if a photo is attached, send to image API first
+    if (imageAttachment) {
+      if (isProcessing || imageLoading) return;
+      setImageLoading(true);
+      setChatInput('');
+      const prompt = text || 'Enhance this photo beautifully.';
+      try {
+        const res = await fetch('/api/image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'edit',
+            prompt,
+            imageBase64: imageAttachment,
+            negativePrompt: 'bad quality, blurry, watermark, text, ugly, deformed',
+          }),
+        });
+        const data = await res.json();
+        if (data.imageBase64) {
+          setImageGenResult(`data:image/png;base64,${data.imageBase64}`);
+          setAiResponse('Here\'s the edited image ↑');
+        } else {
+          setAiResponse(`Image generation failed: ${data.error || 'unknown error'}`);
+        }
+      } catch (err) {
+        setAiResponse(`Image error: ${String(err)}`);
+      } finally {
+        setImageAttachment(null);
+        setImagePreview(null);
+        setImageLoading(false);
+      }
+      return;
+    }
+
     if (!text || isProcessing) return;
     unlockAudioPlayback();
     voiceReplyRequestedRef.current = false;
     setChatInput('');
     setIsProcessing(true);
     callBackend(text);
+  };
+
+  const handleImagePick = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target.result;
+      setImagePreview(dataUrl);
+      // Strip the "data:...;base64," prefix — API wants raw base64
+      setImageAttachment(dataUrl.split(',')[1]);
+    };
+    reader.readAsDataURL(file);
+    // Reset so same file can be re-selected
+    e.target.value = '';
+  };
+
+  const handleGenerateImage = async (prompt) => {
+    if (imageLoading) return;
+    setImageLoading(true);
+    try {
+      const res = await fetch('/api/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'generate', prompt }),
+      });
+      const data = await res.json();
+      if (data.imageBase64) {
+        setImageGenResult(`data:image/png;base64,${data.imageBase64}`);
+        setAiResponse('Generated image ↑');
+      } else {
+        setAiResponse(`Failed to generate: ${data.error || 'unknown error'}`);
+      }
+    } catch (err) {
+      setAiResponse(`Generate error: ${String(err)}`);
+    } finally {
+      setImageLoading(false);
+    }
   };
 
   const toggleListening = async () => {
@@ -5610,30 +5688,77 @@ const DemoPage = () => {
               </div>
             )}
 
+            {/* Last generated image result */}
+            {imageGenResult && (
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <img src={imageGenResult} alt="Generated" style={{ width: '100%', maxWidth: 360, borderRadius: 14, border: '1px solid rgba(255,255,255,0.1)', objectFit: 'cover' }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <a href={imageGenResult} download="cubiqo-generated.png" style={{ padding: '5px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.72rem', textDecoration: 'none', cursor: 'pointer' }}>Download</a>
+                  <button onClick={() => setImageGenResult(null)} style={{ padding: '5px 14px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', fontSize: '0.72rem', cursor: 'pointer' }}>Dismiss</button>
+                </div>
+              </div>
+            )}
+
+            {/* Attached image preview */}
+            {imagePreview && (
+              <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
+                <img src={imagePreview} alt="Attached" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.12)' }} />
+                <span style={{ flex: 1, color: 'rgba(255,255,255,0.5)', fontSize: '0.73rem' }}>Photo attached — type a prompt or send to edit</span>
+                <button onClick={() => { setImageAttachment(null); setImagePreview(null); }} style={{ padding: '3px 9px', borderRadius: 7, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: '0.68rem', cursor: 'pointer' }}>Remove</button>
+              </div>
+            )}
+
             <form onSubmit={handleTextSubmit} onClick={e => e.stopPropagation()} style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+              width: '100%', display: 'flex', alignItems: 'center', gap: 8,
               background: pageTheme.inputBg, backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
-              border: `1px solid ${pageTheme.inputBorder}`, borderRadius: 20,
+              border: `1px solid ${imageAttachment ? 'rgba(139,92,246,0.4)' : pageTheme.inputBorder}`, borderRadius: 20,
               padding: 8, boxShadow: '0 20px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)'
             }}>
+              {/* Hidden file input */}
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleImagePick}
+              />
+              {/* Image upload button */}
+              <button
+                type="button"
+                title={imageAttachment ? 'Image attached' : 'Attach photo for editing'}
+                onClick={() => imageInputRef.current?.click()}
+                style={{
+                  width: 36, height: 36, borderRadius: 10, border: `1px solid ${imageAttachment ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                  background: imageAttachment ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.04)',
+                  color: imageAttachment ? '#a78bfa' : 'rgba(255,255,255,0.35)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+                  transition: 'all 0.2s'
+                }}
+              >
+                {imageLoading ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Camera size={14} />}
+              </button>
               <input
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
-                disabled={isProcessing}
-                placeholder="Type to CubiQo"
+                disabled={isProcessing || imageLoading}
+                placeholder={imageAttachment ? 'Describe the edit (or send as-is)…' : 'Type to CubiQo'}
                 style={{
                   flex: 1, minWidth: 0, height: 42, border: 'none', outline: 'none',
                   background: 'transparent', color: pageTheme.inputText, padding: '0 10px',
                   fontSize: '0.92rem'
                 }}
               />
-              <button type="submit" title="Send message" aria-label="Send message" disabled={isProcessing || !chatInput.trim()} style={{
-                width: 42, height: 42, borderRadius: 14, border: '1px solid rgba(255,255,255,0.1)',
-                background: chatInput.trim() && !isProcessing ? 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)' : 'rgba(255,255,255,0.05)',
-                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: chatInput.trim() && !isProcessing ? 'pointer' : 'not-allowed',
-                opacity: chatInput.trim() && !isProcessing ? 1 : 0.45
-              }}>
+              <button type="submit" title="Send message" aria-label="Send message"
+                disabled={(isProcessing || imageLoading) || (!chatInput.trim() && !imageAttachment)}
+                style={{
+                  width: 42, height: 42, borderRadius: 14, border: '1px solid rgba(255,255,255,0.1)',
+                  background: (chatInput.trim() || imageAttachment) && !isProcessing && !imageLoading
+                    ? 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%)'
+                    : 'rgba(255,255,255,0.05)',
+                  color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: (chatInput.trim() || imageAttachment) && !isProcessing && !imageLoading ? 'pointer' : 'not-allowed',
+                  opacity: (chatInput.trim() || imageAttachment) && !isProcessing && !imageLoading ? 1 : 0.45
+                }}>
                 <Send size={17} />
               </button>
             </form>
