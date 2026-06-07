@@ -2,6 +2,8 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateObject } from 'ai';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { getConnectedApps } from '@/next/lib/composio';
+import { buildMethodContext, METHOD_SELECTION_SYSTEM_PROMPT } from '@/next/lib/method-planner';
 
 export const maxDuration = 60;
 export const runtime = 'nodejs';
@@ -107,6 +109,20 @@ export async function POST(request: Request) {
   const personaContext = buildPersonaContext(persona);
   const isFirstLoad = !previousState;
 
+  // Load connected Composio apps to inform method selection
+  let methodContext = '';
+  if (persona?.userId && process.env.COMPOSIO_API_KEY) {
+    try {
+      const connectedApps = await getConnectedApps(persona.userId);
+      const connectedSlugs = connectedApps.filter(a => a.status === 'ACTIVE').map(a => a.toolkit);
+      methodContext = buildMethodContext(connectedSlugs);
+    } catch {
+      methodContext = buildMethodContext([]);
+    }
+  } else {
+    methodContext = buildMethodContext([]);
+  }
+
   const SYSTEM = `You are CubiQo — an agentic AI companion operating in DuoMode.
 
 You are running a personalised dashboard for the topic: "${topic}"
@@ -122,6 +138,11 @@ ${Object.entries(approvals).map(([k, v]) => `${k}: ${v}`).join('\n') || 'None ye
 
 PREVIOUS STATE:
 ${previousState ? JSON.stringify(previousState, null, 2) : 'This is the first load — start fresh.'}
+
+EXECUTION METHODS AVAILABLE FOR THIS USER:
+${methodContext}
+
+${METHOD_SELECTION_SYSTEM_PROMPT}
 
 YOUR BEHAVIOUR:
 - You start working IMMEDIATELY on dashboard open — never wait for the user to type first
