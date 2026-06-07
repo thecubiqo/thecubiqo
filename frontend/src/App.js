@@ -5087,9 +5087,22 @@ const DemoPage = () => {
       setChatInput('');
       const prompt = text || 'Enhance this photo beautifully.';
       try {
+        // Require auth — image API rejects unauthenticated requests
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        if (!token) {
+          setAiResponse('Please sign in to use image editing. Your photos are only processed for signed-in users.');
+          setImageAttachment(null);
+          setImagePreview(null);
+          setImageLoading(false);
+          return;
+        }
         const res = await fetch('/api/image', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
           body: JSON.stringify({
             mode: 'edit',
             prompt,
@@ -5141,9 +5154,19 @@ const DemoPage = () => {
     if (imageLoading) return;
     setImageLoading(true);
     try {
+      // Require auth — image API rejects unauthenticated requests
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        setAiResponse('Please sign in to generate images.');
+        return;
+      }
       const res = await fetch('/api/image', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ mode: 'generate', prompt }),
       });
       const data = await res.json();
@@ -5701,10 +5724,19 @@ const DemoPage = () => {
 
             {/* Attached image preview */}
             {imagePreview && (
-              <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-                <img src={imagePreview} alt="Attached" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.12)' }} />
-                <span style={{ flex: 1, color: 'rgba(255,255,255,0.5)', fontSize: '0.73rem' }}>Photo attached — type a prompt or send to edit</span>
-                <button onClick={() => { setImageAttachment(null); setImagePreview(null); }} style={{ padding: '3px 9px', borderRadius: 7, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: '0.68rem', cursor: 'pointer' }}>Remove</button>
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <img src={imagePreview} alt="Attached" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.12)' }} />
+                  <span style={{ flex: 1, color: 'rgba(255,255,255,0.5)', fontSize: '0.73rem' }}>Photo attached — type a prompt or send to edit</span>
+                  <button onClick={() => { setImageAttachment(null); setImagePreview(null); }} style={{ padding: '3px 9px', borderRadius: 7, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: '0.68rem', cursor: 'pointer' }}>Remove</button>
+                </div>
+                {/* Privacy disclosure */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 6px', background: 'rgba(139,92,246,0.06)', borderRadius: 7, border: '1px solid rgba(139,92,246,0.15)' }}>
+                  <span style={{ fontSize: '0.7rem' }}>🔒</span>
+                  <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.67rem', lineHeight: 1.4 }}>
+                    Sent securely over HTTPS to a GPU for processing. Never stored by CubiQo.
+                  </span>
+                </div>
               </div>
             )}
 
