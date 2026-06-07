@@ -8,6 +8,14 @@ import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { z } from 'zod';
 
+// ── RGY voice layer (Layer 4 of the 8-layer RGY architecture) ────────────────
+// Same colour signal, different voice expression. The model never changes.
+const RGY_VOICE: Record<string, string> = {
+  green: 'Tone: forward-moving, goal-oriented, focused on progress and momentum. Be concise and action-first.',
+  yellow: 'Tone: warm, relaxed, unhurried. Casual and social energy — like a knowledgeable friend, not a coach.',
+  red: 'Tone: discreet, careful, gate-aware. Hold the zone\'s character; do not volunteer unsolicited judgements.',
+};
+
 export const maxDuration = 60;
 export const runtime = 'nodejs';
 
@@ -147,14 +155,67 @@ export async function POST(request: Request) {
   };
   const hasTools = Object.keys(tools).length > 0;
 
-  // Safe-tier system prompt — includes method selection protocol
+  // ── RGY Layer 4: load current zone and inject voice tone ──────────────────
+  let rgyVoice = RGY_VOICE.yellow; // default: relaxed
+  if (userId) {
+    try {
+      const rgySupabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      // Get the most recent confirmed signal colour for this user
+      const { data: signal } = await rgySupabase
+        .from('signals')
+        .select('color')
+        .eq('user_id', userId)
+        .neq('display_state', 'deleted')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (signal?.color && RGY_VOICE[signal.color]) {
+        rgyVoice = RGY_VOICE[signal.color];
+      }
+    } catch { /* non-fatal — keep default yellow voice */ }
+  }
+
+  // ── Zone-keyed memory recall: load recent memories filtered by current zone ─
+  let zoneMemory = '';
+  if (userId) {
+    try {
+      const memSupabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const currentZone = rgyVoice === RGY_VOICE.green ? 'green'
+        : rgyVoice === RGY_VOICE.red ? 'red' : 'yellow';
+      // Fetch zone-keyed memories (zone-matched first, then recency)
+      const { data: memories } = await memSupabase
+        .from('memory_events')
+        .select('summary, keywords, color, weight')
+        .eq('user_id', userId)
+        .is('archived_at', null)
+        .order('weight', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(8);
+      if (memories?.length) {
+        const sorted = (memories as Array<{ summary: string; color?: string; weight?: number; keywords?: string[] }>)
+          .sort((a, b) => (a.color === currentZone ? -1 : 1) - (b.color === currentZone ? -1 : 1));
+        const snippets = sorted.slice(0, 5).map(m => `• ${m.summary}`).join('\n');
+        zoneMemory = `\nUser context (zone-keyed memory):\n${snippets}`;
+      }
+    } catch { /* non-fatal */ }
+  }
+
+  // Safe-tier system prompt — includes RGY voice, zone memory, and method selection protocol
   const systemPrompt = [
     'You are CubiQo — a multi-surface AI companion. Be direct and genuinely useful.',
+    rgyVoice,
+    zoneMemory,
     '',
     methodContext,
     '',
     METHOD_SELECTION_SYSTEM_PROMPT,
-  ].join('\n').trim();
+  ].filter(Boolean).join('\n').trim();
 
   const chatParams = getChatParams();
   const result = streamText({

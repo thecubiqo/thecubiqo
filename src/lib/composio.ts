@@ -15,13 +15,19 @@
 let _composio: any = null;
 
 export const COMPOSIO_APPS = {
-  GMAIL:        'gmail',
-  LINKEDIN:     'linkedin',
-  GOOGLE_DRIVE: 'googledrive',
-  GITHUB:       'github',
-  SLACK:        'slack',
-  NOTION:       'notion',
-  TWITTER:      'twitter',
+  GMAIL:             'gmail',
+  LINKEDIN:          'linkedin',
+  GOOGLE_DRIVE:      'googledrive',
+  GITHUB:            'github',
+  SLACK:             'slack',
+  NOTION:            'notion',
+  TWITTER:           'twitter',
+  SUPABASE:          'supabase',
+  GOOGLE_CALENDAR:   'googlecalendar',
+  CANVA:             'canva',
+  FIGMA:             'figma',
+  INSTAGRAM:         'instagram',
+  YOUTUBE:           'youtube',
 } as const;
 
 export type ComposioApp = typeof COMPOSIO_APPS[keyof typeof COMPOSIO_APPS];

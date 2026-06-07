@@ -51,23 +51,25 @@ async function recentlyNudged(supabase: any, userId: string, type: string) {
 async function findIntervention(supabase: any, user: any) {
   const userId = user.id;
 
+  // Find commitments due SOON (in the next 48h) — nudge before the deadline, not after it.
   const { data: commitment } = await supabase
     .from("memory_events")
     .select("id,summary,expires_at")
     .eq("user_id", userId)
     .eq("event_type", "commitment")
-    .lt("expires_at", new Date().toISOString())
-    .gt("expires_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
-    .order("expires_at", { ascending: false })
+    .gte("expires_at", new Date().toISOString())
+    .lte("expires_at", new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString())
+    .order("expires_at", { ascending: true })
     .limit(1)
     .maybeSingle();
 
-  if (commitment && !(await recentlyNudged(supabase, userId, "commitment_expired"))) {
+  if (commitment && !(await recentlyNudged(supabase, userId, "commitment_due_soon"))) {
+    const hoursLeft = Math.round((new Date(commitment.expires_at).getTime() - Date.now()) / 3_600_000);
     return {
-      type: "commitment_expired",
+      type: "commitment_due_soon",
       signal_id: null,
-      message: `You had this commitment open: ${commitment.summary.slice(0, 140)}. Is it done or still blocked?`,
-      metadata: { memory_event_id: commitment.id },
+      message: `You have a commitment due in ~${hoursLeft}h: ${commitment.summary.slice(0, 140)}. On track?`,
+      metadata: { memory_event_id: commitment.id, hours_until_due: hoursLeft },
     };
   }
 

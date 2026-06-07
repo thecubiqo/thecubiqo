@@ -3,6 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { authHeaders } from '@/next/lib/supabase-browser';
 
+// Composio-managed platforms — these go through /api/composio/connect
+// and use managed OAuth credentials, not our own OAuth app credentials.
+const COMPOSIO_PLATFORMS = new Set([
+  'gmail', 'linkedin', 'googledrive', 'github', 'slack', 'notion', 'twitter',
+  'supabase', 'googlecalendar', 'canva', 'figma', 'instagram', 'youtube',
+]);
+
 type OAuthStatus = 'idle' | 'opening' | 'waiting' | 'success' | 'error';
 
 export function useOAuthPopup(onSuccess?: (platform: string) => void) {
@@ -37,13 +44,29 @@ export function useOAuthPopup(onSuccess?: (platform: string) => void) {
     try {
       const headers = await authHeaders();
       if (!headers.Authorization) throw new Error('Authentication required');
-      const res = await fetch('/api/connectors/oauth/start', {
-        method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform, shopName }),
-      });
-      if (!res.ok) throw new Error('Failed to start OAuth');
-      const { authUrl } = (await res.json()) as { authUrl: string };
+
+      // Route Composio-managed platforms to /api/composio/connect
+      let authUrl: string;
+      if (COMPOSIO_PLATFORMS.has(platform.toLowerCase())) {
+        const res = await fetch('/api/composio/connect', {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ app: platform.toLowerCase() }),
+        });
+        if (!res.ok) throw new Error('Failed to start Composio OAuth');
+        const data = (await res.json()) as { oauthUrl?: string; error?: string };
+        if (!data.oauthUrl) throw new Error(data.error || 'No OAuth URL returned');
+        authUrl = data.oauthUrl;
+      } else {
+        const res = await fetch('/api/connectors/oauth/start', {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ platform, shopName }),
+        });
+        if (!res.ok) throw new Error('Failed to start OAuth');
+        const data = (await res.json()) as { authUrl: string };
+        authUrl = data.authUrl;
+      }
 
       const width = 520;
       const height = 680;

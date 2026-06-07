@@ -13,6 +13,7 @@ export const runtime = 'nodejs';
 
 const SUPPORTED_APPS: ComposioApp[] = [
   'gmail', 'linkedin', 'googledrive', 'github', 'slack', 'notion', 'twitter',
+  'supabase', 'googlecalendar', 'canva', 'figma', 'instagram', 'youtube',
 ];
 
 async function getAuthenticatedUserId(authHeader: string | null): Promise<string | null> {
