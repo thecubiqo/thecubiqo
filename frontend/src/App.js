@@ -2306,6 +2306,63 @@ const DemoPage = () => {
     setAgentTasks(tasks);
     localStorage.setItem('cubiqo_agent_tasks', JSON.stringify(tasks));
   };
+
+  // Active dashboard overlay
+  const [activeDashboard, setActiveDashboard] = useState(null); // { id, label, color }
+  const [dashboardMessages, setDashboardMessages] = useState({}); // { [taskId]: [{role,content}] }
+  const [dashboardInput, setDashboardInput] = useState('');
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+
+  const openDashboard = (task) => setActiveDashboard(task);
+  const closeDashboard = () => setActiveDashboard(null);
+
+  const sendDashboardMessage = async () => {
+    if (!dashboardInput.trim() || dashboardLoading || !activeDashboard) return;
+    const taskId = String(activeDashboard.id);
+    const userMsg = { role: 'user', content: dashboardInput.trim() };
+    const prev = dashboardMessages[taskId] || [];
+    setDashboardMessages(m => ({ ...m, [taskId]: [...prev, userMsg] }));
+    setDashboardInput('');
+    setDashboardLoading(true);
+    try {
+      const res = await fetch('/api/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...prev, userMsg],
+          sessionId: `dashboard_${taskId}`,
+          dashboardContext: activeDashboard.label,
+        }),
+      });
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let reply = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(Boolean);
+        for (const line of lines) {
+          if (line.startsWith('0:')) {
+            try { reply += JSON.parse(line.slice(2)); } catch {}
+          }
+        }
+      }
+      if (reply) {
+        setDashboardMessages(m => ({
+          ...m,
+          [taskId]: [...(m[taskId] || []), { role: 'assistant', content: reply }],
+        }));
+      }
+    } catch (e) {
+      setDashboardMessages(m => ({
+        ...m,
+        [taskId]: [...(m[taskId] || []), { role: 'assistant', content: 'Something went wrong. Try again.' }],
+      }));
+    } finally {
+      setDashboardLoading(false);
+    }
+  };
   const [rgyCapsule, setRgyCapsule] = useState({
     color: 'yellow',
     signal: 'YELLOW',
@@ -3767,7 +3824,7 @@ const DemoPage = () => {
                     {/* Optional color dot — no logic, purely visual */}
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: task.color || 'rgba(255,255,255,0.18)', flexShrink: 0 }} />
                     <span style={{ flex: 1, color: 'rgba(255,255,255,0.85)', fontSize: '0.82rem', fontWeight: 500 }}>{task.label}</span>
-                    <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem' }}>→</span>
+                    <span onClick={() => openDashboard(task)} style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', cursor: 'pointer', padding: '2px 6px' }}>→</span>
                     <button onClick={e => { e.stopPropagation(); removeAgentTask(task.id); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.18)', cursor: 'pointer', fontSize: '0.9rem', padding: '0 2px', lineHeight: 1 }} title="Remove">×</button>
                   </div>
                 ))}
@@ -3949,6 +4006,56 @@ const DemoPage = () => {
           {/* Philosophy note removed as per request */}
           </>)}{/* end agentDashboardOpen conditional */}
         </div>
+
+        {/* DASHBOARD OVERLAY */}
+        {activeDashboard && (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', animation: 'fadeIn 0.2s ease-out' }}>
+            <div style={{ width: '90%', height: '90%', background: 'rgba(8,8,16,0.97)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 24, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 40px 120px rgba(0,0,0,0.8)' }}>
+
+              {/* Dashboard header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: activeDashboard.color || 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
+                <span style={{ flex: 1, color: '#fff', fontSize: '0.96rem', fontWeight: 600, letterSpacing: 0.3 }}>{activeDashboard.label}</span>
+                <button onClick={closeDashboard} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '1rem' }}>×</button>
+              </div>
+
+              {/* Messages */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {(dashboardMessages[String(activeDashboard.id)] || []).length === 0 && (
+                  <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.84rem', textAlign: 'center', marginTop: 40 }}>
+                    Ask CubiQo anything about <span style={{ color: 'rgba(255,255,255,0.5)' }}>{activeDashboard.label}</span>
+                  </div>
+                )}
+                {(dashboardMessages[String(activeDashboard.id)] || []).map((msg, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                    <div style={{ maxWidth: '75%', padding: '12px 16px', borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px', background: msg.role === 'user' ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: msg.role === 'user' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.75)', fontSize: '0.84rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                      {msg.content}
+                    </div>
+                  </div>
+                ))}
+                {dashboardLoading && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    <div style={{ padding: '12px 16px', borderRadius: '16px 16px 16px 4px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)', fontSize: '0.84rem' }}>thinking…</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Input */}
+              <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 10, flexShrink: 0 }}>
+                <input
+                  value={dashboardInput}
+                  onChange={e => setDashboardInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendDashboardMessage()}
+                  placeholder={`Ask about ${activeDashboard.label}...`}
+                  style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '12px 16px', color: '#fff', fontSize: '0.84rem', outline: 'none' }}
+                />
+                <button onClick={sendDashboardMessage} disabled={dashboardLoading || !dashboardInput.trim()} style={{ padding: '12px 20px', borderRadius: 12, background: dashboardLoading ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.12)', color: dashboardLoading ? 'rgba(255,255,255,0.3)' : '#fff', cursor: dashboardLoading ? 'not-allowed' : 'pointer', fontSize: '0.84rem', fontWeight: 500 }}>
+                  {dashboardLoading ? '...' : 'Send'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* MODALS */}
         {activeModal && (
