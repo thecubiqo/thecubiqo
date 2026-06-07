@@ -53,29 +53,28 @@ async function getAuthenticatedUserId(authHeader: string | null): Promise<string
 }
 
 // ── Stealth browser tool (BrowserBase/Stagehand) ────────────────────────────
-const browserTool = isBrowserAvailable()
-  ? tool({
-      description:
-        'Navigate the web using a stealth cloud browser (BrowserBase). ' +
-        'Use this for websites that have no API — e.g. custom company career portals, web forms, etc. ' +
-        'This uses real Chrome fingerprints on cloud IPs — much harder to detect than local Puppeteer. ' +
-        'DO NOT use this for LinkedIn or Gmail if those are connected via Composio — prefer the API.',
-      parameters: z.object({
-        startUrl: z.string().url().describe('URL to navigate to'),
-        task: z.string().describe(
-          'Natural-language instruction for what to do on the page. ' +
-          'Example: "Fill in the application form with name=Aditya Vyas, email=a@b.com, then click Submit"'
-        ),
-        extractInstruction: z.string().optional().describe(
-          'Optional: what structured data to extract after completing the task. ' +
-          'Example: "Extract the confirmation number and application status"'
-        ),
-      }),
-      execute: async ({ startUrl, task, extractInstruction }) => {
-        return runBrowserTask({ startUrl, task, extractInstruction, timeoutMs: 45_000 });
-      },
-    })
-  : null;
+// Always defined — guarded at runtime inside execute so the type stays stable.
+const browserTool = tool({
+  description:
+    'Navigate the web using a stealth cloud browser (BrowserBase). ' +
+    'Use this for websites that have no API — e.g. custom company career portals, web forms, etc. ' +
+    'This uses real Chrome fingerprints on cloud IPs — much harder to detect than local Puppeteer. ' +
+    'DO NOT use this for LinkedIn or Gmail if those are connected via Composio — prefer the API.',
+  inputSchema: z.object({
+    startUrl: z.string().describe('URL to navigate to (must be a valid URL)'),
+    task: z.string().describe(
+      'Natural-language instruction for what to do on the page. ' +
+      'Example: "Fill in the application form with name=Aditya Vyas, email=a@b.com, then click Submit"'
+    ),
+    extractInstruction: z.string().optional().describe(
+      'Optional: what structured data to extract after completing the task. ' +
+      'Example: "Extract the confirmation number and application status"'
+    ),
+  }),
+  execute: async ({ startUrl, task, extractInstruction }) => {
+    return runBrowserTask({ startUrl, task, extractInstruction, timeoutMs: 45_000 });
+  },
+});
 
 // ── Main route ───────────────────────────────────────────────────────────────
 export async function POST(request: Request) {
@@ -140,11 +139,11 @@ export async function POST(request: Request) {
     methodContext = buildMethodContext([]);
   }
 
-  // Build tool map: Composio tools + optional browser tool
+  // Build tool map: Composio tools + stealth browser (when BrowserBase configured)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tools: Record<string, any> = {
     ...composioTools,
-    ...(browserTool ? { navigate_web: browserTool } : {}),
+    ...(isBrowserAvailable() ? { navigate_web: browserTool } : {}),
   };
   const hasTools = Object.keys(tools).length > 0;
 
