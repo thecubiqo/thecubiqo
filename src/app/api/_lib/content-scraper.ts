@@ -1,3 +1,5 @@
+import { assertSafeUrl } from './ssrf-guard';
+
 export type ScrapeResult = {
   url: string;
   title: string;
@@ -31,19 +33,47 @@ function extractTitle(html: string): string {
 }
 
 export async function scrapeUrl(url: string): Promise<ScrapeResult> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10_000);
   const fetchedAt = new Date().toISOString();
 
+  // SSRF guard: the URL is caller-supplied (and can be steered by prompt
+  // injection). Block internal hosts, private/metadata IPs, and DNS rebinding
+  // before issuing any request. allowHttp because legit pages may be plain http.
+  const safe = await assertSafeUrl(url, { allowHttp: true });
+  if (!safe.ok) {
+    return { url, title: '', bodyText: '', wordCount: 0, fetchedAt, error: `blocked: ${safe.reason}` };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+
   try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': USER_AGENT, Accept: 'text/html,application/xhtml+xml,*/*' },
-      signal: controller.signal,
-    });
+    // Follow redirects MANUALLY, re-validating every hop so a public URL cannot
+    // 30x-bounce us into an internal/metadata target (redirect-based SSRF).
+    let current = safe.url.toString();
+    let res: Response | null = null;
+    for (let hop = 0; hop < 4; hop++) {
+      res = await fetch(current, {
+        headers: { 'User-Agent': USER_AGENT, Accept: 'text/html,application/xhtml+xml,*/*' },
+        signal: controller.signal,
+        redirect: 'manual',
+      });
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get('location');
+        if (!location) break;
+        const next = await assertSafeUrl(new URL(location, current).toString(), { allowHttp: true });
+        if (!next.ok) {
+          clearTimeout(timer);
+          return { url, title: '', bodyText: '', wordCount: 0, fetchedAt, error: `blocked redirect: ${next.reason}` };
+        }
+        current = next.url.toString();
+        continue;
+      }
+      break;
+    }
     clearTimeout(timer);
 
-    if (!res.ok) {
-      return { url, title: '', bodyText: '', wordCount: 0, fetchedAt, error: `HTTP ${res.status}` };
+    if (!res || !res.ok) {
+      return { url, title: '', bodyText: '', wordCount: 0, fetchedAt, error: `HTTP ${res?.status ?? 'no_response'}` };
     }
 
     const html = await res.text();

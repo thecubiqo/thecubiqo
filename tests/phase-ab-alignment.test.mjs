@@ -122,7 +122,7 @@ test('Sprint 2 onboarding routes match canonical profile and memory schema', () 
   const config = read('src/lib/onboarding/step-config.ts');
   const migration = read('supabase/migrations/20260520_onboarding.sql');
 
-  for (const step of ['welcome', 'personal_context', 'goals', 'tone_preference', 'connector_setup', 'first_message']) {
+  for (const step of ['welcome', 'right_now', 'about_you', 'how_you_work', 'connector_setup', 'first_message']) {
     assert.match(config, new RegExp(`id: '${step}'`));
   }
   assert.match(progress, /\.from\('onboarding_progress'\)/);
@@ -279,7 +279,10 @@ test('Sprint 5 shared components and Duo stream hook are present and API-bound',
   assert.match(taskGraph, /can_parallelize/);
   assert.match(fidelity, /score >= 80/);
   assert.match(approval, /No automatic undo/);
-  assert.match(artifact, /sandbox="allow-same-origin"/);
+  // Artifact iframe must be FULLY sandboxed: the sandbox attribute grants no
+  // allow-* token (matches the empty attribute, not the explanatory comment).
+  assert.match(artifact, /sandbox=""/);
+  assert.doesNotMatch(artifact, /sandbox="[^"]*allow/);
   assert.match(artifact, /<code>\{content\}<\/code>/);
   assert.match(rgyBadge, /green/);
   assert.match(rgyBar, /healthScore/);
@@ -373,11 +376,13 @@ test('Sprint 7 proactive AI and cron layer are wired without live providers', ()
 
   assert.match(proactiveCron, /evaluateProactiveTriggers/);
   assert.match(proactiveCron, /dispatchNotification/);
-  assert.match(proactiveCron, /x-cubiqo-internal/);
+  // Cron auth is centralized in isAuthorizedCron (accepts x-cubiqo-internal / Bearer).
+  assert.match(proactiveCron, /isAuthorizedCron/);
   assert.match(proactiveCron, /\.from\('job_runs'\)/);
   assert.doesNotMatch(proactiveCron, /fetch\(/);
   assert.match(rgyCron, /updateRGYStatus/);
-  assert.match(rgyCron, /x-cron-secret/);
+  // Cron auth centralized in isAuthorizedCron (accepts x-cron-secret / x-cubiqo-internal / Bearer).
+  assert.match(rgyCron, /isAuthorizedCron/);
   assert.match(briefingsCron, /generateMorningBriefing/);
   assert.match(briefingsCron, /dispatchNotification/);
 

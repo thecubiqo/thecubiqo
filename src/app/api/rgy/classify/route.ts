@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { capsuleOnly, classifyRgyActivity, type RgyClassification } from '@/next/lib/rgy/classifier';
 import { missingMigrationResponse, requireApiUser, safeTableMissing } from '../../_lib/supabase-admin';
+import { canWriteSignalColor } from '../../_lib/rgy-age-gate';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -48,8 +49,16 @@ async function saveClassification(
   input: string,
   result: RgyClassification
 ) {
+  // HARD RULE: red signals are only written for age-confirmed adults. If the
+  // classifier reads red but the user is not confirmed, persist NOTHING — the
+  // capsule is still returned with age_gate_required so the UI can prompt.
+  // The DB trigger enforce_red_signal_age_gate is the backstop for this.
+  if (!(await canWriteSignalColor(auth.supabase, auth.user.id, result.color))) {
+    return { data: null, error: null, ageGated: true as const };
+  }
+
   // The classifier may suggest intent, but never confirms intent and never
-  // enables matching. The DB trigger enforces the same gate as a backstop.
+  // enables matching.
   const payload = {
     user_id: auth.user.id,
     color: result.color,
@@ -131,7 +140,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: save.error.message }, { status: 500 });
   }
 
-  const signal = mapSignal(save.data);
+  // Red read for a non-age-confirmed user: no signal persisted (hard rule).
+  const signal = save.data ? mapSignal(save.data) : null;
 
   return NextResponse.json({
     capsule: capsuleOnly(result),
@@ -141,7 +151,7 @@ export async function POST(request: NextRequest) {
     confidence: result.confidence,
     reasoning: result.reasoning,
     source: result.source,
-    age_gate_required: result.age_gate_required,
+    age_gate_required: result.age_gate_required || ('ageGated' in save && save.ageGated === true),
     signal
   });
 }

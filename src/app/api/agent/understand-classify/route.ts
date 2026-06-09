@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { ClassifyOutcome, ClassifyResult, MemoryEventType, PermissionState } from '@/next/types/cubiqo';
 import { classifyRgyActivity, capsuleOnly, type RgyClassification } from '@/next/lib/rgy/classifier';
 import { getBearerToken, getSupabaseAdmin, safeTableMissing } from '../../_lib/supabase-admin';
+import { canWriteSignalColor } from '../../_lib/rgy-age-gate';
 import { guardPermission } from '@/next/lib/agent/permission-guard';
 
 export const runtime = 'nodejs';
@@ -238,6 +239,9 @@ async function bootstrapOnboarding(auth: AuthedContext, input: string) {
 
 async function saveSignal(auth: AuthedContext, input: string, result: RgyClassification) {
   if (auth.status !== 'authenticated') return null;
+  // HARD RULE: red signals are only written for age-confirmed adults.
+  // If red and not confirmed, persist nothing (the capsule is still returned).
+  if (!(await canWriteSignalColor(auth.supabase, auth.user.id, result.color))) return null;
   const normalized = normalizeKeyword(result.keyword);
   const payload = {
     user_id: auth.user.id,

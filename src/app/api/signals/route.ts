@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { missingMigrationResponse, requireApiUser, safeTableMissing } from '../_lib/supabase-admin';
+import { canWriteSignalColor } from '../_lib/rgy-age-gate';
 
 const COLORS = ['green', 'yellow', 'red'] as const;
 const INTENTS = ['socialize', 'collaborate', 'trade'] as const;
@@ -135,6 +136,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Signal keyword is required' }, { status: 400 });
   }
 
+  // HARD RULE: red signals require age confirmation.
+  if (!(await canWriteSignalColor(auth.supabase, auth.user.id, payload.color))) {
+    return NextResponse.json(
+      { error: 'Red-tier signals require age confirmation.', code: 'age_gate_required' },
+      { status: 403 }
+    );
+  }
+
   const existing = await auth.supabase
     .from('signals')
     .select('id')
@@ -190,6 +199,15 @@ export async function PATCH(request: NextRequest) {
     source: 'user_correction',
     corrected_at: new Date().toISOString()
   };
+
+  // HARD RULE: red signals require age confirmation (covers correcting a signal to red).
+  if (!(await canWriteSignalColor(auth.supabase, auth.user.id, payload.color))) {
+    return NextResponse.json(
+      { error: 'Red-tier signals require age confirmation.', code: 'age_gate_required' },
+      { status: 403 }
+    );
+  }
+
   const { data, error } = await auth.supabase
     .from('signals')
     .update(payload)

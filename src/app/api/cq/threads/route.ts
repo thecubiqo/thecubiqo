@@ -74,29 +74,30 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // 4. Latest message + unread count per thread
+  // 4. Latest message preview + unread count per thread — SINGLE index-backed
+  //    round-trip. (Replaces an unbounded fetch of every message across up to
+  //    100 threads, which undercounted past Supabase's default row cap and
+  //    corrupted the sort.) See migration 20260609000002 — get_thread_summaries.
   const messagePreviews: Record<string, { preview: string; updated_at: string }> = {};
   const unreadCounts: Record<string, number> = {};
   try {
-    const { data: msgs } = await supabase
-      .from('cq_messages')
-      .select('thread_id, content, created_at, sender_id, read_at')
-      .in('thread_id', threadIds)
-      .order('created_at', { ascending: false });
-    for (const m of msgs || []) {
-      if (m.thread_id && !messagePreviews[m.thread_id]) {
-        messagePreviews[m.thread_id] = {
-          preview: (m.content || '').slice(0, 120),
-          updated_at: m.created_at
-        };
-      }
-      // Count unread: messages not sent by us that haven't been read yet
-      if (m.thread_id && m.sender_id !== user.id && !m.read_at) {
-        unreadCounts[m.thread_id] = (unreadCounts[m.thread_id] ?? 0) + 1;
+    const { data: summaries, error: summaryError } = await supabase.rpc('get_thread_summaries', {
+      p_user_id: user.id,
+      p_thread_ids: threadIds,
+    });
+    if (!summaryError && Array.isArray(summaries)) {
+      for (const s of summaries as Array<{ thread_id: string; last_preview: string | null; last_at: string | null; unread_count: number }>) {
+        if (s.last_at) {
+          messagePreviews[s.thread_id] = {
+            preview: (s.last_preview || '').slice(0, 120),
+            updated_at: s.last_at,
+          };
+        }
+        unreadCounts[s.thread_id] = Number(s.unread_count) || 0;
       }
     }
   } catch {
-    /* message read optional */
+    /* summaries optional — list still renders */
   }
 
   // 5. Compose

@@ -257,6 +257,19 @@ export async function rgySignalWrite(
   const keyword = normalizeKeyword(input.keyword);
   if (!keyword) return { status: 'blocked', reason: 'RGY keyword is required' };
 
+  // HARD RULE: red signals require age confirmation.
+  const color = normalizeColor(input.color);
+  if (color === 'red') {
+    const { data: profile } = await auth.supabase
+      .from('profiles')
+      .select('red_tier_age_confirmed')
+      .eq('id', auth.user.id)
+      .maybeSingle();
+    if (profile?.red_tier_age_confirmed !== true) {
+      return { status: 'blocked', reason: 'Red-tier signals require age confirmation.' };
+    }
+  }
+
   const suggestedIntents = normalizeIntentSet(input.suggestedIntents);
   const confirmedIntents = normalizeIntentSet(input.confirmedIntents);
   const intentStatus = confirmedIntents.length
