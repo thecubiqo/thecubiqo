@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin, cleanEnv, requireApiUser } from '../../_lib/supabase-admin';
+import { isAuthorizedCron } from '../../_lib/cron-auth';
 import { buildProviderSearchUrl, enabledScanProviders, type JobProvider } from '@/next/lib/jobs/job-provider-registry';
 import { getModel, getScoringParams } from '@/next/lib/config/llm';
 import { cfg } from '@/next/lib/config/runtime';
 
-const CRON_SECRET = cleanEnv(process.env.CRON_SECRET);
+export const runtime = 'nodejs';
+export const maxDuration = 120;
 const RECENCY_TEXT: Record<string, string> = {
   '24h': 'posted in the last 24 hours',
   '3d': 'posted in the last 3 days',
@@ -77,13 +79,6 @@ async function recordScanRun(
     })
     .throwOnError()
     .catch(() => null);
-}
-
-function verifyCronSecret(request: NextRequest) {
-  const auth = request.headers.get('authorization') || '';
-  const token = auth.replace(/^Bearer\s+/i, '').trim();
-  if (!CRON_SECRET) return false;
-  return token === CRON_SECRET;
 }
 
 async function scoreListing(listing: Record<string, any>, profile: Record<string, any>): Promise<number> {
@@ -239,7 +234,7 @@ export async function GET(request: NextRequest) {
       .limit(1);
     profiles = data || [];
   } else {
-    if (!verifyCronSecret(request)) {
+    if (!isAuthorizedCron(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

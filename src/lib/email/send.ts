@@ -27,10 +27,14 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
   const key = process.env.RESEND_API_KEY;
 
   if (!key) {
-    // Dev-only fallback — log subject only, never recipient addresses (PII).
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[email:dev]', { subject: opts.subject });
+    // In production a missing key must surface as a REAL failure — never a silent
+    // "success" that drops the email. No-op only in non-prod (local dev).
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[email] RESEND_API_KEY not configured — email NOT sent');
+      return { ok: false, error: 'Email provider not configured' };
     }
+    // Dev-only fallback — log subject only, never recipient addresses (PII).
+    console.log('[email:dev]', { subject: opts.subject });
     return { ok: true, id: 'dev-noop' };
   }
 

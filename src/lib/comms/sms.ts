@@ -18,10 +18,14 @@ export type SmsResult =
 
 export async function sendSms(to: string, body: string): Promise<SmsResult> {
   if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) {
-    // Dev-only, masked: never log full phone numbers or message bodies (PII).
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[sms:dev]', { to: to.length > 4 ? `***${to.slice(-4)}` : '***' });
+    // In production a missing credential must surface as a REAL failure — never a
+    // silent "success" that drops the message. No-op only in non-prod (local dev).
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[sms] Twilio not configured — message NOT sent');
+      return { ok: false, error: 'SMS/WhatsApp provider not configured' };
     }
+    // Dev-only, masked: never log full phone numbers or message bodies (PII).
+    console.log('[sms:dev]', { to: to.length > 4 ? `***${to.slice(-4)}` : '***' });
     return { ok: true, sid: 'dev-noop' };
   }
 

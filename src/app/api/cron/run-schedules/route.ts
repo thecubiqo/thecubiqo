@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin, cleanEnv } from '../../_lib/supabase-admin';
 import { getModel, getTailoringParams } from '@/next/lib/config/llm';
+import { isAuthorizedCron } from '../../_lib/cron-auth';
 
-const CRON_SECRET = cleanEnv(process.env.CRON_SECRET);
-
-function verifyCronSecret(request: NextRequest) {
-  const auth = request.headers.get('authorization') || '';
-  const token = auth.replace(/^Bearer\s+/i, '').trim();
-  if (!CRON_SECRET) return false;
-  return token === CRON_SECRET;
-}
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 function nextRunAt(cadence: string, timezone: string) {
   const now = new Date();
@@ -123,7 +118,7 @@ function buildLocalReport(data: Record<string, any>, cadence: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  if (!verifyCronSecret(request)) {
+  if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

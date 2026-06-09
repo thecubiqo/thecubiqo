@@ -173,6 +173,11 @@ export async function POST(request: NextRequest) {
   }
 
   const ctx = await getAuthedContext(request);
+  // Vision runs on the platform's model key — never process for anonymous callers
+  // (cost abuse + unauthenticated image processing). Require a signed-in user.
+  if (!ctx.userId) {
+    return NextResponse.json({ error: "Authentication required for vision analysis." }, { status: 401 });
+  }
   const permission = await assertVisionPermission(ctx, source, body.permission);
   if (!permission.ok) {
     return NextResponse.json({ error: permission.error }, { status: permission.status });

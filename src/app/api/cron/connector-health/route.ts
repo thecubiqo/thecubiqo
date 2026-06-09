@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from '../../_lib/supabase-admin';
 import { isAuthorizedCron } from '../../_lib/cron-auth';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 // Light health checks per platform — verify token is still valid
 const HEALTH_CHECK_URLS: Record<string, string> = {

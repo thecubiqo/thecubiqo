@@ -4,6 +4,7 @@ import { isAuthorizedCron } from '../../_lib/cron-auth';
 import { sendReportEmail, reportHtml } from '@/next/lib/email/send';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 const OWNER_EMAIL = 'aditya@cubiqo.ai';
 
