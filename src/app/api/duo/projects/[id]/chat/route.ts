@@ -1,4 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
+import { getModel } from '@/next/lib/config/llm';
 import { generateObject } from 'ai';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
@@ -120,7 +121,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { object: update } = await generateObject({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    model: anthropic('claude-sonnet-4-6') as any,
+    model: anthropic(getModel('claude_agent')) as any, // claude_agent = Sonnet — duo chat needs full reasoning capability
     system: `You are CubiQo operating in DuoMode for project: "${project.goal}"
 
 Current board state:

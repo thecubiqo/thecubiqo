@@ -45,15 +45,33 @@ export async function POST(request: NextRequest) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     if (session.client_reference_id && session.customer) {
-      await supabase.from("subscriptions").upsert(
-        {
-          user_id: session.client_reference_id,
-          stripe_customer_id: String(session.customer),
-          status: "trialing",
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id" },
-      );
+      // Do NOT regress an already-enriched subscription back to bare 'trialing'.
+      // Stripe does not guarantee event ordering, so customer.subscription.*
+      // (which carries the real status + period boundaries) may have already
+      // landed. If a richer row exists, only refresh the customer link; the
+      // authoritative status/period come from the subscription.* handler below.
+      const { data: existingSub } = await supabase
+        .from("subscriptions")
+        .select("stripe_subscription_id")
+        .eq("user_id", session.client_reference_id)
+        .maybeSingle();
+
+      if (existingSub?.stripe_subscription_id) {
+        await supabase
+          .from("subscriptions")
+          .update({ stripe_customer_id: String(session.customer), updated_at: new Date().toISOString() })
+          .eq("user_id", session.client_reference_id);
+      } else {
+        await supabase.from("subscriptions").upsert(
+          {
+            user_id: session.client_reference_id,
+            stripe_customer_id: String(session.customer),
+            status: "trialing",
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" },
+        );
+      }
     }
   }
 

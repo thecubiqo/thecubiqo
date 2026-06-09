@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApiUser, cleanEnv } from '../../../_lib/supabase-admin';
 
@@ -34,7 +35,21 @@ export async function GET(request: NextRequest) {
     ? SCOPES
     : SCOPES.filter(s => !s.includes('calendar'));
 
-  const state = Buffer.from(JSON.stringify({ userId: auth.user.id, ts: Date.now() })).toString('base64url');
+  // CSRF protection: persist a single-use random nonce server-side bound to this
+  // user, and send ONLY the nonce in `state`. The callback derives the user from
+  // this stored row — never from attacker-supplied state — preventing the
+  // account-binding / login-CSRF attack the old base64-userId state allowed.
+  const nonce = randomUUID();
+  const { error: stateErr } = await auth.supabase.from('oauth_states').insert({
+    state: nonce,
+    user_id: auth.user.id,
+    platform: 'google',
+    expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+  });
+  if (stateErr) {
+    return NextResponse.json({ error: 'Could not initialise OAuth state', detail: stateErr.message }, { status: 500 });
+  }
+  const state = nonce;
   const redirectUri = `${baseUrl}/api/connectors/google/callback`;
 
   const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');

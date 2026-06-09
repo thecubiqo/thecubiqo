@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin, requireApiUser, cleanEnv } from '../../../_lib/supabase-admin';
+import { getSupabaseAdmin, cleanEnv } from '../../../_lib/supabase-admin';
+import { encGoogleToken } from '../_token';
 
 export const runtime = 'nodejs';
 
@@ -24,12 +25,32 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${baseUrl}/settings/connectors?error=missing_params`);
   }
 
-  let state: { userId: string; ts: number };
-  try {
-    state = JSON.parse(Buffer.from(stateB64, 'base64url').toString());
-  } catch {
+  const admin = getSupabaseAdmin();
+  if (!admin) {
+    return NextResponse.redirect(`${baseUrl}/settings/connectors?error=db_unavailable`);
+  }
+
+  // CSRF / account-binding protection: `state` is a single-use nonce we stored
+  // in oauth_states during /google/auth. Look it up, verify it exists and is
+  // unexpired, derive the user from the STORED row (never from the inbound
+  // payload), then delete it so it can't be replayed.
+  const nonce = stateB64;
+  const { data: stateRow } = await admin
+    .from('oauth_states')
+    .select('user_id, expires_at')
+    .eq('state', nonce)
+    .eq('platform', 'google')
+    .maybeSingle();
+
+  if (!stateRow) {
     return NextResponse.redirect(`${baseUrl}/settings/connectors?error=invalid_state`);
   }
+  // One-time use: remove regardless of outcome below.
+  await admin.from('oauth_states').delete().eq('state', nonce).eq('platform', 'google');
+  if (stateRow.expires_at && new Date(stateRow.expires_at).getTime() < Date.now()) {
+    return NextResponse.redirect(`${baseUrl}/settings/connectors?error=state_expired`);
+  }
+  const state = { userId: stateRow.user_id as string };
 
   const clientId = cleanEnv(process.env.GOOGLE_CLIENT_ID);
   const clientSecret = cleanEnv(process.env.GOOGLE_CLIENT_SECRET);
@@ -73,21 +94,18 @@ export async function GET(request: NextRequest) {
     }
   } catch { /* non-fatal */ }
 
-  const admin = getSupabaseAdmin();
-  if (!admin) {
-    return NextResponse.redirect(`${baseUrl}/settings/connectors?error=db_unavailable`);
-  }
-
   const expiresAt = new Date(Date.now() + (expires_in || 3600) * 1000).toISOString();
 
+  // Encrypt high-privilege Gmail/Calendar tokens at rest (AES-256-GCM) — never
+  // store them in plaintext. Read paths decrypt via decGoogleToken().
   await admin
     .from('google_oauth_tokens')
     .upsert(
       {
         user_id: state.userId,
         google_email: googleEmail,
-        access_token,
-        refresh_token: refresh_token || null,
+        access_token: encGoogleToken(access_token),
+        refresh_token: encGoogleToken(refresh_token),
         expires_at: expiresAt,
         scopes: scope ? scope.split(' ') : [],
         active: true

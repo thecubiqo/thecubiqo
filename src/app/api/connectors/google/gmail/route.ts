@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApiUser } from '../../../_lib/supabase-admin';
+import { encGoogleToken, decGoogleToken } from '../_token';
 
 export const runtime = 'nodejs';
 
@@ -10,7 +11,9 @@ async function getGoogleToken(supabase: any, userId: string) {
     .eq('user_id', userId)
     .eq('active', true)
     .maybeSingle();
-  return data;
+  if (!data) return data;
+  // Tokens are stored encrypted at rest — decrypt for use (legacy plaintext tolerated).
+  return { ...data, access_token: decGoogleToken(data.access_token), refresh_token: decGoogleToken(data.refresh_token) };
 }
 
 async function refreshIfNeeded(supabase: any, userId: string, token: any): Promise<string | null> {
@@ -40,7 +43,7 @@ async function refreshIfNeeded(supabase: any, userId: string, token: any): Promi
 
   await supabase
     .from('google_oauth_tokens')
-    .update({ access_token: json.access_token, expires_at: newExpiry })
+    .update({ access_token: encGoogleToken(json.access_token), expires_at: newExpiry })
     .eq('user_id', userId);
 
   return json.access_token;

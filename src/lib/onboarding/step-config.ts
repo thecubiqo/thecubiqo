@@ -4,42 +4,42 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 'welcome',
     title: 'Welcome',
-    description: 'Meet CubiQo and set the tone for the first session.',
+    description: 'Meet CubiQo.',
     skippable: false,
     order: 1
   },
   {
-    id: 'personal_context',
-    title: 'Personal Context',
-    description: 'Tell CubiQo who you are and what kind of life it is joining.',
+    id: 'right_now',
+    title: 'Right Now',
+    description: 'What are you actively working on today? This is the most important step.',
     skippable: false,
     order: 2
   },
   {
-    id: 'goals',
-    title: 'Current Goals',
-    description: 'Set the main outcome CubiQo should help you move toward.',
-    skippable: false,
+    id: 'about_you',
+    title: 'About You',
+    description: 'A little background so CubiQo can personalise over time.',
+    skippable: true,
     order: 3
   },
   {
-    id: 'tone_preference',
-    title: 'Communication Style',
-    description: 'Choose how direct, warm, or structured CubiQo should sound.',
+    id: 'how_you_work',
+    title: 'How You Work',
+    description: 'How direct or warm should CubiQo sound? Any constraints to know about?',
     skippable: true,
     order: 4
   },
   {
     id: 'connector_setup',
-    title: 'Connect Your Tools',
-    description: 'Link supported tools or skip until a task needs one.',
+    title: 'Connect Tools',
+    description: 'Link accounts so CubiQo can act — not just advise. Skip until a task needs one.',
     skippable: true,
     order: 5
   },
   {
     id: 'first_message',
     title: 'First Message',
-    description: 'Send the first message so CubiQo can start with real context.',
+    description: 'Send your first message. CubiQo will start with full context already loaded.',
     skippable: false,
     order: 6
   }

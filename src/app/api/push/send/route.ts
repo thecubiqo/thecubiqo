@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireApiUser, cleanEnv } from '../../_lib/supabase-admin';
+import { requireApiUser, getSupabaseAdmin, cleanEnv } from '../../_lib/supabase-admin';
 import { cfg } from '@/next/lib/config/runtime';
 
 export const runtime = 'nodejs';
@@ -71,10 +71,34 @@ async function deliverPush(
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireApiUser(request);
-  if (auth.error) return auth.error;
+  // Two legitimate callers:
+  //   1. Real user requests — authenticated with a Bearer JWT (requireApiUser).
+  //   2. Internal fan-out from crons / the agent — authenticated with
+  //      `x-cubiqo-internal: CRON_SECRET` + `x-user-id` (or body.userId).
+  // Previously only path (1) was accepted, so EVERY cron-originated push 401'd
+  // silently and the entire proactive-notification surface was dead. Support both.
+  const body = await request.json().catch(() => ({} as Record<string, any>));
 
-  const body = await request.json().catch(() => ({}));
+  const cronSecret = cleanEnv(process.env.CRON_SECRET);
+  const internalHeader = request.headers.get('x-cubiqo-internal');
+
+  let supabase: ReturnType<typeof getSupabaseAdmin>;
+  let userId: string;
+
+  if (cronSecret && internalHeader === cronSecret) {
+    const admin = getSupabaseAdmin();
+    if (!admin) return NextResponse.json({ error: 'Server not configured' }, { status: 500 });
+    const target = request.headers.get('x-user-id') || body.userId;
+    if (!target) return NextResponse.json({ error: 'x-user-id required for internal push' }, { status: 400 });
+    supabase = admin;
+    userId = String(target);
+  } else {
+    const auth = await requireApiUser(request);
+    if (auth.error) return auth.error;
+    supabase = auth.supabase;
+    userId = auth.user.id;
+  }
+
   const title = String(body.title || 'CubiQo').slice(0, cfg.pushTitleMaxLength);
   const message = String(body.message || '').slice(0, cfg.pushMessageMaxLength);
   const actionUrl = body.url ? String(body.url).slice(0, 500) : '/';
@@ -84,8 +108,8 @@ export async function POST(request: NextRequest) {
   const vapidSubject = cleanEnv(process.env.VAPID_SUBJECT);
 
   // Always log the notification in DB
-  await auth.supabase.from('push_notifications').insert({
-    user_id: auth.user.id,
+  await supabase.from('push_notifications').insert({
+    user_id: userId,
     title,
     message,
     action_url: actionUrl,
@@ -100,10 +124,10 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const { data: subs } = await auth.supabase
+  const { data: subs } = await supabase
     .from('push_subscriptions')
     .select('id,endpoint,p256dh,auth_key,max_per_day,quiet_hours_start,quiet_hours_end,timezone')
-    .eq('user_id', auth.user.id)
+    .eq('user_id', userId)
     .eq('active', true);
 
   if (!subs?.length) {
@@ -119,10 +143,10 @@ export async function POST(request: NextRequest) {
   // Check daily push count
   const dayStart = new Date();
   dayStart.setUTCHours(0, 0, 0, 0);
-  const { count: todayCount } = await auth.supabase
+  const { count: todayCount } = await supabase
     .from('push_notifications')
     .select('*', { count: 'exact', head: true })
-    .eq('user_id', auth.user.id)
+    .eq('user_id', userId)
     .gte('created_at', dayStart.toISOString());
 
   if ((todayCount ?? 0) >= maxPerDay) {
@@ -149,7 +173,7 @@ export async function POST(request: NextRequest) {
     subs.map(async (sub: { id: string; endpoint: string; p256dh: string; auth_key: string }) => {
       const r = await deliverPush(sub.endpoint, sub.p256dh, sub.auth_key, payloadStr, vapidPublic, vapidPrivatePem);
       if (!r.ok && r.error === 'subscription_expired') {
-        await auth.supabase.from('push_subscriptions').update({ active: false }).eq('id', sub.id);
+        await supabase.from('push_subscriptions').update({ active: false }).eq('id', sub.id);
       }
       return { endpoint: sub.endpoint.slice(-30), ...r };
     })
@@ -158,7 +182,7 @@ export async function POST(request: NextRequest) {
   const sent = results.filter(r => r.ok).length;
 
   if (sent > 0) {
-    await auth.supabase.from('push_notifications').update({ delivered: true }).eq('user_id', auth.user.id).eq('title', title);
+    await supabase.from('push_notifications').update({ delivered: true }).eq('user_id', userId).eq('title', title);
   }
 
   return NextResponse.json({ sent, total: subs.length, results });

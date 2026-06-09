@@ -4,6 +4,15 @@ import { getSupabaseAdmin } from "../../_lib/supabase-admin";
 
 export const runtime = "nodejs";
 
+// Constant-time string compare — avoids leaking the shared secret via response
+// timing on the affiliate postback secret check.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return mismatch === 0;
+}
+
 export async function POST(request: NextRequest) {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
@@ -21,7 +30,8 @@ export async function POST(request: NextRequest) {
         .maybeSingle()
     : { data: null };
 
-  if ((!expected || partnerToken !== expected) && !partner) {
+  const secretOk = Boolean(expected) && timingSafeEqual(partnerToken, expected);
+  if (!secretOk && !partner) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

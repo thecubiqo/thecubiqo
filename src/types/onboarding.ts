@@ -1,10 +1,14 @@
 export type OnboardingStepId =
   | 'welcome'
+  | 'right_now'      // what are you working on right now + blocker
+  | 'about_you'      // occupation, interests
+  | 'how_you_work'   // tone preference, constraints
+  | 'connector_setup'
+  | 'first_message'
+  // legacy ids — kept so old onboarding_progress rows don't break
   | 'personal_context'
   | 'goals'
-  | 'tone_preference'
-  | 'connector_setup'
-  | 'first_message';
+  | 'tone_preference';
 
 export type OnboardingStep = {
   id: OnboardingStepId;
@@ -40,4 +44,6 @@ export type OnboardingCompletionProfile = {
   languagePreference?: string;
   rgyMap?: Record<string, 'green' | 'yellow' | 'red'>;
   contextSummary?: string;
+  // New fields from updated wizard
+  constraints?: string;
 };

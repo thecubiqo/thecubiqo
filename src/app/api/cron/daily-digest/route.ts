@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getModel } from "@/next/lib/config/llm";
 import { getSupabaseAdmin } from "../../_lib/supabase-admin";
+import { isAuthorizedCron } from "../../_lib/cron-auth";
 import { searchConfigured, webSearch } from "../../_lib/web-search";
 
 export const runtime = "nodejs";
 export const maxDuration = 55;
 
+// Accept both Vercel Bearer cron auth and internal-header auth (see cron-auth).
 function assertCron(request: NextRequest) {
-  const expected = process.env.CRON_SECRET || "";
-  return Boolean(expected && request.headers.get("x-cubiqo-internal") === expected);
+  return isAuthorizedCron(request);
 }
 
 function todayKey() {

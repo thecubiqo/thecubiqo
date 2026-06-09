@@ -74,6 +74,18 @@
     {
       "path": "/api/cron/self-heal",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/morning-briefing",
+      "schedule": "5 * * * *"
+    },
+    {
+      "path": "/api/cron/capsule-advance",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/opportunity-scout",
+      "schedule": "0 8 * * *"
     }
   ]
 }

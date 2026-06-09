@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { ClassifyOutcome, ClassifyResult, MemoryEventType, PermissionState } from '@/next/types/cubiqo';
 import { classifyRgyActivity, capsuleOnly, type RgyClassification } from '@/next/lib/rgy/classifier';
 import { getBearerToken, getSupabaseAdmin, safeTableMissing } from '../../_lib/supabase-admin';
+import { guardPermission } from '@/next/lib/agent/permission-guard';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -345,7 +346,14 @@ export async function POST(request: NextRequest) {
 
   const writes: Record<string, unknown> = {};
   if (outcome === 'memory_update' || outcome === 'journal_insight') {
-    writes.memory = await writeMemory(auth, input, outcome);
+    // ── Permission gate: check memory permission before writing ──────────────
+    const userId = auth.status === 'authenticated' ? auth.user.id : null;
+    const memDenied = await guardPermission(auth.supabase, userId, 'memory');
+    if (!memDenied) {
+      writes.memory = await writeMemory(auth, input, outcome);
+    } else {
+      writes.memory = { skipped: true, reason: 'memory_permission_denied' };
+    }
   }
   if (outcome === 'onboarding_fact') {
     writes.onboarding = await bootstrapOnboarding(auth, input);

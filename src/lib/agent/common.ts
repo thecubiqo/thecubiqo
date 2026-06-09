@@ -32,17 +32,25 @@ export async function writeTimeline(
     apiCostGbp?: number;
   }
 ) {
-  await auth.supabase.from('duo_timeline_events').insert({
+  // NOTE: duo_timeline_events has NO `summary` column (see migration
+  // 20260514000000). Writing one made PostgREST reject every insert silently,
+  // wiping the durable activity/audit trail. Columns below all exist; we also
+  // capture the error so future schema drift surfaces instead of vanishing.
+  const { error: timelineError } = await auth.supabase.from('duo_timeline_events').insert({
     project_id: input.projectId,
+    user_id: auth.user.id,
     task_id: input.taskId || null,
     trace_id: input.traceId,
     event_type: input.eventType,
     message: input.message,
-    summary: input.message,
+    description: input.message,
     payload: input.payload || {},
     metadata: input.payload || {},
     api_cost_gbp: input.apiCostGbp || 0
   });
+  if (timelineError) {
+    console.warn('[writeTimeline] duo_timeline_events insert failed:', timelineError.message);
+  }
 
   await auth.supabase.from('stream_events').insert({
     project_id: input.projectId,
@@ -101,13 +109,22 @@ export async function recordBudgetEvent(
     metadata?: Record<string, unknown>;
   }
 ) {
-  // budget_events schema: trace_id, project_id, user_id, provider, tool_name, cost_gbp
-  await auth.supabase.from('budget_events').insert({
+  // budget_events real schema (migration 20260514000000): user_id, project_id,
+  // task_id, trace_id, event_type (NOT NULL), amount_gbp, reason, metadata.
+  // The previous insert used provider/tool_name/cost_gbp (which don't exist) and
+  // omitted the NOT NULL event_type, so every spend-ledger write was silently
+  // rejected. This is the audit trail behind cost-spike alerting — it must land.
+  const { error } = await auth.supabase.from('budget_events').insert({
     user_id: auth.user.id,
     project_id: input.projectId || null,
+    task_id: input.taskId || null,
     trace_id: input.traceId || null,
-    provider: input.eventType,              // event type stored as provider label
-    tool_name: input.reason || null,        // reason stored as tool_name
-    cost_gbp: input.amountGbp || 0,
+    event_type: input.eventType,
+    amount_gbp: input.amountGbp || 0,
+    reason: input.reason || null,
+    metadata: input.metadata || {},
   });
+  if (error) {
+    console.warn('[recordBudgetEvent] budget_events insert failed:', error.message);
+  }
 }

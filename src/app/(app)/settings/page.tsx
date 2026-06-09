@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, CreditCard, Database, PlugZap, RefreshCw, Save, ShieldCheck, Unplug } from 'lucide-react';
+import { Bell, CreditCard, Database, Phone, PlugZap, RefreshCw, Save, ShieldCheck, Sunrise, Unplug } from 'lucide-react';
 import { apiGet, apiSend, statusTone } from '../_components/client-api';
+import { VerifyContact } from '@/next/components/profile/VerifyContact';
+import { CommsDashboard } from '@/next/components/comms/CommsDashboard';
 
 export default function SettingsPage() {
   const [billing, setBilling] = useState<Record<string, any> | null>(null);
@@ -98,6 +100,28 @@ export default function SettingsPage() {
 
       {error && <div className="mb-4 rounded-lg border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">{error}</div>}
       {notice && <div className="mb-4 rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">{notice}</div>}
+
+      {/* Contact verification — phone + email */}
+      <section className="mb-4 rounded-lg border border-slate-800 bg-neutral-950 p-4">
+        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-100">
+          <Phone className="h-4 w-4 text-cyan-200" />
+          Contact & Verification
+        </div>
+        <VerifyContact />
+      </section>
+
+      {/* CubiQo proactive comms — morning briefings, SMS, email */}
+      <section className="mb-4 rounded-lg border border-slate-800 bg-neutral-950 p-4">
+        <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-100">
+          <Sunrise className="h-4 w-4 text-amber-300" />
+          CubiQo Outbound — Morning Briefings
+        </div>
+        <p className="mb-4 text-xs text-slate-500">
+          CubiQo messages <em>you</em> — wake-up briefings, task nudges, reminders.
+          Set it up here and it shows up in your SMS and inbox every morning.
+        </p>
+        <CommsDashboard />
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-lg border border-slate-800 bg-neutral-950 p-4">

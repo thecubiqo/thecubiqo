@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { closeBrowserSession, createBrowserSession } from '../../../_lib/browser-sessions';
 import { getActionCapability } from '../../../_lib/v2-capabilities';
-import { type ApiUserContext, missingMigrationResponse, requireApiUser, safeTableMissing } from '../../../_lib/supabase-admin';
+import { type ApiUserContext, isAdminUser, missingMigrationResponse, requireApiUser, safeTableMissing } from '../../../_lib/supabase-admin';
 import { normalizePayload, writeAudit } from '../../../_lib/v2-actions';
 import { postViaSocialApi, socialApiCredentialStatus, type SocialApiPlatform } from '../../../_lib/social-api-client';
 import {
@@ -268,7 +268,16 @@ export async function POST(request: NextRequest) {
   // Prefer direct API publish over Stagehand browser automation
   const apiStatus = socialApiCredentialStatus(canonical as SocialApiPlatform);
 
-  if (apiStatus.configured) {
+  // SECURITY: the direct-API path posts via SHARED server env tokens (not
+  // per-user — social_accounts has no token column), so for a non-admin user it
+  // would publish their content to the OWNER's social account. Restrict it to
+  // the admin/owner (single-tenant intent of the global-connectors flag);
+  // every other user falls through to the per-user browser-automation path.
+  const ownerCheck = apiStatus.configured
+    ? await isAdminUser(auth.supabase, auth.user.id)
+    : { admin: false };
+
+  if (apiStatus.configured && ownerCheck.admin) {
     // Direct API path
     const apiResult = await postViaSocialApi({
       platform: canonical as SocialApiPlatform,

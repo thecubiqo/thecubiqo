@@ -1,7 +1,8 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Mic, RotateCcw, Send, ShieldCheck, Sparkles } from 'lucide-react';
 import { authHeaders } from '@/next/lib/supabase-browser';
 import { apiGet } from '../_components/client-api';
@@ -45,7 +46,10 @@ function colorTone(color?: string | null) {
   return { dot: 'bg-amber-400', border: 'border-amber-400/40', text: 'text-amber-200', label: 'YELLOW' };
 }
 
-export default function ChatPage() {
+function ChatPageInner() {
+  const searchParams = useSearchParams();
+  const prefillMessage = searchParams.get('q') || '';
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -54,12 +58,13 @@ export default function ChatPage() {
       createdAt: new Date().toISOString()
     }
   ]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(prefillMessage);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState('');
   const [activeSignal, setActiveSignal] = useState<Signal | null>(null);
   const [recordingSupported] = useState(() => typeof window !== 'undefined' && 'webkitSpeechRecognition' in window);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const autoFiredRef = useRef(false);
 
   const history = useMemo(
     () => messages.filter(m => m.id !== 'welcome').map(({ role, content }) => ({ role, content })),
@@ -79,6 +84,24 @@ export default function ChatPage() {
   useEffect(() => {
     refreshSignal();
   }, []);
+
+  // Auto-fire the prefill message once on mount (from onboarding ?q= param)
+  useEffect(() => {
+    if (prefillMessage && !autoFiredRef.current) {
+      autoFiredRef.current = true;
+      // Small delay so the page and auth are fully settled
+      const timer = setTimeout(() => {
+        const fakeEvent = { preventDefault: () => {} } as FormEvent;
+        setInput(prefillMessage);
+        // Use a synthetic submit after the input state settles
+        setTimeout(() => {
+          const form = document.querySelector('form');
+          form?.requestSubmit();
+        }, 100);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [prefillMessage]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -270,5 +293,13 @@ export default function ChatPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="flex h-full items-center justify-center text-slate-500 text-sm">Loading chat…</div>}>
+      <ChatPageInner />
+    </Suspense>
   );
 }

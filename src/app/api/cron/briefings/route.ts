@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/next/app/api/_lib/supabase-admin';
+import { isAuthorizedCron } from '@/next/app/api/_lib/cron-auth';
 import { dispatchNotification } from '@/next/lib/notifications/dispatcher';
 import { generateMorningBriefing } from '@/next/lib/proactive/nudge-generator';
 
 export const runtime = 'nodejs';
 export const maxDuration = 55;
 
+// Accept both Vercel Bearer cron auth and internal-header auth (see cron-auth).
 function hasInternalSecret(request: NextRequest) {
-  const expected = process.env.CRON_SECRET;
-  if (!expected) return false;
-  return request.headers.get('x-cubiqo-internal') === expected || request.headers.get('x-cron-secret') === expected;
+  return isAuthorizedCron(request);
 }
 
 function todayKey() {

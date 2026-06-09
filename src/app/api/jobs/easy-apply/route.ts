@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApiUser, safeTableMissing, missingMigrationResponse, cleanEnv } from '../../_lib/supabase-admin';
+import { assertSafeUrl } from '../../_lib/ssrf-guard';
 import { createBrowserSession, closeBrowserSession } from '../../_lib/browser-sessions';
 import { writeAudit } from '../../_lib/v2-actions';
 import { tailorApplicationForJob } from '../../_lib/llm-tailoring';
@@ -113,6 +114,16 @@ export async function POST(request: NextRequest) {
 
   const targetUrl = jobUrl || listing?.source_url;
   if (!targetUrl) return NextResponse.json({ error: 'No job URL available' }, { status: 400 });
+
+  // SSRF guard: job_url is caller-controlled and drives a real cloud browser.
+  // Block internal/metadata/private targets so this can't be turned into a
+  // server-side request-forgery / internal-network drive primitive. Public
+  // career sites (the intended use) pass through unchanged.
+  const safeTarget = await assertSafeUrl(targetUrl, { allowHttp: true });
+  if (!safeTarget.ok) {
+    return NextResponse.json({ error: `Job URL not allowed (${safeTarget.reason})` }, { status: 400 });
+  }
+  const navUrl = safeTarget.url.toString();
 
   const platform = detectPlatform(targetUrl);
 
@@ -242,7 +253,7 @@ export async function POST(request: NextRequest) {
 
   // Create browser session
   const sessionResult = await createBrowserSession(auth, '' as string, {
-    url: targetUrl,
+    url: navUrl,
     browser_session_id: sessionId,
     session_mode: 'persistent'
   });
@@ -260,7 +271,7 @@ export async function POST(request: NextRequest) {
     await stagehand.init();
 
     const page = (stagehand as any).page;
-    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await page.goto(navUrl, { waitUntil: 'domcontentloaded', timeout: 25000 });
 
     // Platform-specific Easy Apply
     if (platform === 'linkedin') {

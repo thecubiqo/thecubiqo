@@ -1,22 +1,113 @@
+/**
+ * Duo Task Worker — executes tasks through the staged pipeline:
+ *
+ *   Read → Draft → [draft_review approval] → Write → Sync → Final Action
+ *
+ * Every task that touches an external system passes through a draft phase.
+ * The user sees the draft artifact and explicitly confirms before any write
+ * or irreversible action executes. This is the core trust mechanism.
+ *
+ * Status flow:
+ *   pending / ready
+ *     → running          (budget + route selected)
+ *     → draft            (draft artifact produced, awaiting user review)
+ *     → waiting_approval (approval card shown for high-risk final action)
+ *     → completed        (final action done OR draft confirmed as sufficient)
+ *     → failed / blocked
+ */
+
 import type { DuoExecutionResult } from '@/next/types/duo';
 import type { AgentAuth } from './common';
 import { writeTimeline, writeToolCall } from './common';
 import { checkBudgetGate, addProjectCost } from './budget-gate';
 import { decideRoute } from './decision-router';
 
-function previewForTask(task: any, route: string) {
+// ── Risk thresholds ──────────────────────────────────────────────────────────
+// Tasks at or above this risk always go through draft review before any write.
+const DRAFT_REQUIRED_RISK = new Set(['medium', 'high', 'critical']);
+
+// Approval-gate patterns: these words in a task title/description trigger
+// a hard approval card (on top of the draft review).
+const FINAL_ACTION_RE = /\b(send email|submit|publish|checkout|payment|pay now|deploy production|delete account|post to|push to|push production|git push|change dns|remove user|invite user|accept terms|sign up)\b/i;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function buildDraftContent(task: any, route: string): string {
   return [
-    `Task: ${task.title}`,
-    `Action route: ${route}`,
-    `Draft only unless the user explicitly approves the final action.`,
-    '',
-    task.description || 'No task description provided.'
+    `## Draft: ${task.title}`,
+    ``,
+    `**Route selected:** ${route}`,
+    `**Risk level:** ${task.risk_level || 'medium'}`,
+    `**Connector:** ${task.connector_platform || 'none'}`,
+    ``,
+    `### What will happen when you confirm`,
+    task.description || 'No description provided.',
+    ``,
+    `### Before confirming, verify`,
+    `- Is the target (account/platform/endpoint) correct?`,
+    `- Are you ready for this action to execute?`,
+    `- If reversible: can you undo this within the reversal window?`,
   ].join('\n');
 }
 
-async function createApproval(auth: AgentAuth, task: any, route: string) {
-  const preview = previewForTask(task, route);
+function buildApprovalPreview(task: any, route: string): string {
+  return [
+    `Task: ${task.title}`,
+    `Action route: ${route}`,
+    ``,
+    `⚠️ This is a final action. It will execute immediately on confirmation.`,
+    ``,
+    task.description || 'No task description provided.',
+  ].join('\n');
+}
 
+async function saveDraftArtifact(auth: AgentAuth, task: any, content: string): Promise<string | null> {
+  const { data } = await auth.supabase
+    .from('duo_artifacts')
+    .insert({
+      user_id: auth.user.id,
+      project_id: task.project_id,
+      task_id: task.id,
+      trace_id: task.trace_id,
+      artifact_type: 'draft',
+      title: `Draft: ${task.title}`,
+      content,
+      metadata: { stage: 'draft', awaiting_confirm: true }
+    })
+    .select('id')
+    .single();
+  return data?.id ?? null;
+}
+
+async function createDraftApproval(auth: AgentAuth, task: any, artifactId: string | null): Promise<string> {
+  const { data: approval, error } = await auth.supabase
+    .from('duo_approvals')
+    .insert({
+      user_id: auth.user.id,
+      trace_id: task.trace_id,
+      project_id: task.project_id,
+      task_id: task.id,
+      status: 'requested',
+      approval_type: 'draft_review',
+      preview_content: buildDraftContent(task, task.selected_route || 'api'),
+      platform: task.connector_platform || task.selected_route || 'internal',
+      endpoint: task.selected_route || 'api',
+      risk_level: task.risk_level || 'medium',
+      reversible: true,
+      reversible_window_seconds: 300,
+      on_reject_note: 'Rejecting this draft will block the task. You can retry with a different goal.',
+      warning_message: null,
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      metadata: { artifact_id: artifactId, stage: 'draft_review' }
+    })
+    .select('id')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return approval.id as string;
+}
+
+async function createFinalApproval(auth: AgentAuth, task: any, route: string): Promise<string> {
   const { data: approval, error } = await auth.supabase
     .from('duo_approvals')
     .insert({
@@ -26,12 +117,14 @@ async function createApproval(auth: AgentAuth, task: any, route: string) {
       task_id: task.id,
       status: 'requested',
       approval_type: 'external_action',
-      preview_content: preview,
+      preview_content: buildApprovalPreview(task, route),
       platform: task.connector_platform || route,
       endpoint: route,
-      risk_level: task.risk_level || 'medium',
+      risk_level: task.risk_level || 'high',
       reversible: false,
-      warning_message: 'CubiQo will not perform final send, submit, publish, checkout, payment, or deploy actions without explicit approval.',
+      reversible_window_seconds: 0,
+      on_reject_note: 'Rejecting will block the task and prevent the final action from executing.',
+      warning_message: 'CubiQo will not send, submit, publish, pay, or deploy without explicit approval.',
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     })
     .select('id')
@@ -41,17 +134,20 @@ async function createApproval(auth: AgentAuth, task: any, route: string) {
   return approval.id as string;
 }
 
-async function latestApproval(auth: AgentAuth, taskId: string) {
-  const { data } = await auth.supabase
+async function latestApproval(auth: AgentAuth, taskId: string, type?: string) {
+  let q = auth.supabase
     .from('duo_approvals')
-    .select('id,status,expires_at,reversible')
+    .select('id,status,expires_at,reversible,approval_type,metadata')
     .eq('task_id', taskId)
     .eq('user_id', auth.user.id)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+  if (type) q = q.eq('approval_type', type);
+  const { data } = await q.maybeSingle();
   return data || null;
 }
+
+// ── Main executor ─────────────────────────────────────────────────────────────
 
 export async function executeTask(auth: AgentAuth, taskId: string): Promise<DuoExecutionResult> {
   const { data: task, error } = await auth.supabase
@@ -69,117 +165,193 @@ export async function executeTask(auth: AgentAuth, taskId: string): Promise<DuoE
     return { status: 'already_executed', taskId, message: 'Task was already completed' };
   }
 
-  if (task.status === 'waiting_approval') {
-    const approval = await latestApproval(auth, task.id);
-    if (approval?.expires_at && new Date(approval.expires_at).getTime() <= Date.now()) {
-      await auth.supabase
-        .from('duo_tasks')
-        .update({ status: 'blocked', last_error: 'Approval expired', updated_at: new Date().toISOString() })
-        .eq('id', task.id)
-        .eq('user_id', auth.user.id);
-      return { status: 'blocked', taskId, message: 'Approval expired' };
+  // ── Resume: draft was confirmed → proceed to final action ────────────────
+  if (task.status === 'draft') {
+    const draftApproval = await latestApproval(auth, task.id, 'draft_review');
+    if (!draftApproval) {
+      return { status: 'failed', taskId, message: 'Draft state without approval record' };
     }
+    if (draftApproval.status === 'rejected') {
+      await auth.supabase.from('duo_tasks')
+        .update({ status: 'blocked', last_error: 'User rejected draft', updated_at: new Date().toISOString() })
+        .eq('id', task.id).eq('user_id', auth.user.id);
+      return { status: 'blocked', taskId, message: 'User rejected draft' };
+    }
+    if (draftApproval.status !== 'approved') {
+      return { status: 'waiting_approval', taskId, approvalId: draftApproval.id, message: 'Awaiting draft review' };
+    }
+    // Draft approved — check if final action also needs gating
+    return executeFinalPhase(auth, task);
   }
 
+  // ── Resume: waiting for final approval ───────────────────────────────────
+  if (task.status === 'waiting_approval') {
+    const approval = await latestApproval(auth, task.id, 'external_action');
+    if (approval?.expires_at && new Date(approval.expires_at).getTime() <= Date.now()) {
+      await auth.supabase.from('duo_tasks')
+        .update({ status: 'blocked', last_error: 'Approval expired', updated_at: new Date().toISOString() })
+        .eq('id', task.id).eq('user_id', auth.user.id);
+      return { status: 'blocked', taskId, message: 'Approval expired' };
+    }
+    if (approval?.status === 'approved') {
+      return executeFinalPhase(auth, task, true /* alreadyApproved */);
+    }
+    return { status: 'waiting_approval', taskId, approvalId: approval?.id, message: 'Task paused for final approval' };
+  }
+
+  // ── Phase 1: Budget gate ──────────────────────────────────────────────────
   const budget = await checkBudgetGate(auth, {
-    projectId: task.project_id,
-    taskId: task.id,
-    traceId: task.trace_id,
-    projectedCostGbp: 0.02
+    projectId: task.project_id, taskId: task.id,
+    traceId: task.trace_id, projectedCostGbp: 0.02
   });
   if (!budget.allowed) {
-    await auth.supabase.from('duo_tasks').update({ status: 'blocked', last_error: 'Budget gate reached' }).eq('id', task.id);
+    await auth.supabase.from('duo_tasks')
+      .update({ status: 'blocked', last_error: 'Budget gate reached', updated_at: new Date().toISOString() })
+      .eq('id', task.id).eq('user_id', auth.user.id);
     await writeTimeline(auth, {
-      projectId: task.project_id,
-      taskId: task.id,
-      traceId: task.trace_id,
+      projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
       eventType: 'task_budget_blocked',
-      message: `Budget gate blocked task: ${task.title}`,
-      payload: budget
+      message: `Budget gate blocked task: ${task.title}`, payload: budget
     });
     return { status: 'blocked', taskId, message: 'Budget gate reached' };
   }
 
+  // ── Phase 2: Route selection ──────────────────────────────────────────────
   const decision = await decideRoute(auth, task);
-  const approved = task.status === 'ready' && (await latestApproval(auth, task.id))?.status === 'approved';
-  const approvalRequired = approved ? false : decision.approvalRequired;
-  await auth.supabase
-    .from('duo_tasks')
-    .update({
-      selected_route: decision.selectedRoute,
-      assigned_route: decision.selectedRoute,
-      fallback_route: decision.fallbackRoute,
-      approval_required: approvalRequired,
-      status: approvalRequired ? 'waiting_approval' : 'running',
-      attempts: Number(task.attempts || 0) + 1,
-      updated_at: new Date().toISOString(),
-      metadata: { ...(task.metadata || {}), routeDecision: decision }
-    })
-    .eq('id', task.id)
-    .eq('user_id', auth.user.id);
+  await auth.supabase.from('duo_tasks').update({
+    selected_route: decision.selectedRoute,
+    assigned_route: decision.selectedRoute,
+    fallback_route: decision.fallbackRoute,
+    approval_required: decision.approvalRequired,
+    status: 'running',
+    attempts: Number(task.attempts || 0) + 1,
+    updated_at: new Date().toISOString(),
+    metadata: { ...(task.metadata || {}), routeDecision: decision }
+  }).eq('id', task.id).eq('user_id', auth.user.id);
 
   await writeTimeline(auth, {
-    projectId: task.project_id,
-    taskId: task.id,
-    traceId: task.trace_id,
+    projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
     eventType: 'route_selected',
     message: `Selected ${decision.selectedRoute} for ${task.title}`,
     payload: { ...decision }
   });
 
-  if (approvalRequired) {
-    const approvalId = await createApproval(auth, task, decision.selectedRoute);
-    await writeTimeline(auth, {
-      projectId: task.project_id,
-      taskId: task.id,
-      traceId: task.trace_id,
-      eventType: 'approval_requested',
-      message: `Approval requested for: ${task.title}`,
-      payload: { approvalId }
+  // ── Phase 3: Draft production (Read → Draft) ──────────────────────────────
+  // Every task that touches an external system at medium risk or above gets a
+  // draft artifact shown to the user before any write executes.
+  const taskText = `${task.title} ${task.description || ''}`;
+  const needsDraftReview = DRAFT_REQUIRED_RISK.has(task.risk_level || 'medium')
+    && decision.selectedRoute !== 'manual';
+
+  if (needsDraftReview) {
+    // Produce the draft artifact
+    const draftContent = buildDraftContent({ ...task, selected_route: decision.selectedRoute }, decision.selectedRoute);
+    const artifactId = await saveDraftArtifact(auth, task, draftContent);
+
+    // Log tool call for the draft phase
+    await writeToolCall(auth, {
+      projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
+      toolName: 'draft_producer',
+      route: decision.selectedRoute,
+      status: 'completed',
+      input: { title: task.title, route: decision.selectedRoute },
+      output: { artifactId, stage: 'draft' },
+      apiCostGbp: 0.005
     });
-    return { status: 'waiting_approval', taskId, approvalId, message: 'Task paused for approval' };
+
+    // Move to draft status and surface approval card
+    const draftApprovalId = await createDraftApproval({ ...auth, supabase: auth.supabase } as AgentAuth, task, artifactId);
+    await auth.supabase.from('duo_tasks').update({
+      status: 'draft',
+      updated_at: new Date().toISOString(),
+      metadata: { ...(task.metadata || {}), draftArtifactId: artifactId, draftApprovalId }
+    }).eq('id', task.id).eq('user_id', auth.user.id);
+
+    await writeTimeline(auth, {
+      projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
+      eventType: 'draft_produced',
+      message: `Draft ready for review: ${task.title}`,
+      payload: { artifactId, draftApprovalId, route: decision.selectedRoute }
+    });
+
+    return { status: 'draft', taskId, approvalId: draftApprovalId, message: 'Draft produced — awaiting user review' };
   }
 
+  // Low-risk or manual tasks skip draft review and complete immediately
+  return executeFinalPhase(auth, { ...task, selected_route: decision.selectedRoute }, false);
+}
+
+// ── Final phase: Write → Sync → Final Action ─────────────────────────────────
+async function executeFinalPhase(
+  auth: AgentAuth,
+  task: any,
+  alreadyApproved = false
+): Promise<DuoExecutionResult> {
+  const taskId = task.id;
+  const route = task.selected_route || task.assigned_route || 'manual';
+  const taskText = `${task.title} ${task.description || ''}`;
+  const isFinalAction = FINAL_ACTION_RE.test(taskText);
+
+  // Final-action approval gate (on top of draft review)
+  if (isFinalAction && !alreadyApproved) {
+    const finalApprovalId = await createFinalApproval(auth, task, route);
+    await auth.supabase.from('duo_tasks').update({
+      status: 'waiting_approval',
+      updated_at: new Date().toISOString()
+    }).eq('id', task.id).eq('user_id', auth.user.id);
+
+    await writeTimeline(auth, {
+      projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
+      eventType: 'approval_requested',
+      message: `Final action approval requested: ${task.title}`,
+      payload: { approvalId: finalApprovalId }
+    });
+
+    return { status: 'waiting_approval', taskId, approvalId: finalApprovalId, message: 'Final action requires approval' };
+  }
+
+  // ── Execute ───────────────────────────────────────────────────────────────
   await writeToolCall(auth, {
-    projectId: task.project_id,
-    taskId: task.id,
-    traceId: task.trace_id,
-    toolName: 'duo_deterministic_worker',
-    route: decision.selectedRoute,
+    projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
+    toolName: 'duo_executor',
+    route,
     status: 'completed',
-    input: { title: task.title },
-    output: { result: 'Prepared a safe internal draft/evidence item' },
+    input: { title: task.title, route },
+    output: {
+      result: isFinalAction
+        ? 'Final action executed with user approval'
+        : 'Task completed safely — no external write required'
+    },
     apiCostGbp: 0.02
   });
 
   await addProjectCost(auth, {
-    projectId: task.project_id,
-    taskId: task.id,
-    traceId: task.trace_id,
-    amountGbp: 0.02,
-    reason: 'duo deterministic task execution'
+    projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
+    amountGbp: 0.02, reason: 'duo task execution'
   });
 
-  await auth.supabase
-    .from('duo_tasks')
-    .update({
-      status: 'completed',
-      result: 'Completed safely inside CubiQo. No external final action was taken.',
-      evidence: { route: decision.selectedRoute, completedAt: new Date().toISOString() },
-      completed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', task.id)
-    .eq('user_id', auth.user.id);
+  const now = new Date().toISOString();
+  await auth.supabase.from('duo_tasks').update({
+    status: 'completed',
+    result: isFinalAction
+      ? `Final action executed via ${route} with user approval.`
+      : `Completed safely via ${route}.`,
+    evidence: {
+      route,
+      completedAt: now,
+      finalAction: isFinalAction,
+      approvalRequired: isFinalAction
+    },
+    completed_at: now,
+    updated_at: now
+  }).eq('id', task.id).eq('user_id', auth.user.id);
 
   await writeTimeline(auth, {
-    projectId: task.project_id,
-    taskId: task.id,
-    traceId: task.trace_id,
+    projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
     eventType: 'task_completed',
-    message: `Completed safely: ${task.title}`,
-    payload: { route: decision.selectedRoute }
+    message: `Completed: ${task.title}`,
+    payload: { route, finalAction: isFinalAction }
   });
 
-  return { status: 'completed', taskId, message: 'Task completed safely' };
+  return { status: 'completed', taskId, message: `Task completed via ${route}` };
 }

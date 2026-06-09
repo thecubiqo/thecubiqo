@@ -16,8 +16,11 @@ const FALLBACKS: Record<string, string[]> = {
 };
 
 export async function POST(request: NextRequest) {
-  const authResult = await requireApiUser(request);
-  if (authResult instanceof NextResponse) return authResult;
+  // requireApiUser returns { error } on failure (never a bare NextResponse), so
+  // the old `instanceof NextResponse` check was dead code and let unauthenticated
+  // callers reach the billable OpenAI relay. Use the repo's standard pattern.
+  const auth = await requireApiUser(request);
+  if (auth.error) return auth.error;
 
   let body: {
     capsule: { color?: string; keyword?: string; confirmed_intents?: string[]; suggested_intents?: string[] };

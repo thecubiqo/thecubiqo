@@ -1,4 +1,6 @@
 import { ExternalLink, FileText } from 'lucide-react';
+import type { DuoProjectView } from '@/next/types/duo-view';
+import { ProjectView } from './ProjectView';
 
 export type DuoArtifactView = {
   id?: string;
@@ -42,6 +44,17 @@ export function ArtifactPane({ artifact, isLoading = false }: Props) {
   const content = artifact.content || artifact.storage_path || '';
   const title = artifact.title || 'Artifact';
 
+  // Live capsule dashboard — the proactive view CubiQo keeps fresh while open.
+  // Content is a JSON-encoded DuoProjectView; render it as structured UI.
+  if (type === 'view' || type === 'dashboard') {
+    try {
+      const parsed = JSON.parse(content) as DuoProjectView;
+      return <ProjectView view={parsed} />;
+    } catch {
+      // Fall through to plain-text rendering if the payload isn't valid JSON.
+    }
+  }
+
   if (type.includes('code') || type.includes('json') || type.includes('sql') || type.includes('typescript')) {
     return (
       <div className="overflow-hidden rounded-lg border border-slate-800 bg-neutral-950">
@@ -58,12 +71,25 @@ export function ArtifactPane({ artifact, isLoading = false }: Props) {
     return (
       <div className="overflow-hidden rounded-lg border border-slate-800 bg-neutral-950">
         <div className="border-b border-slate-800 px-3 py-2 text-xs font-medium text-slate-300">{title}</div>
-        <iframe title={title} srcDoc={safeDoc} sandbox="allow-same-origin" className="h-80 w-full bg-slate-950" />
+        {/* Fully sandboxed (no allow-same-origin / allow-scripts): artifact HTML
+            is agent-generated and must never run script or touch our origin. */}
+        <iframe title={title} srcDoc={safeDoc} sandbox="" className="h-80 w-full bg-slate-950" />
       </div>
     );
   }
 
-  if (type.includes('url') || /^https?:\/\//i.test(content)) {
+  const isHttpUrl = /^https?:\/\//i.test(content);
+  if (type.includes('url') || isHttpUrl) {
+    // Only ever render http(s) links. Reject javascript:/data:/file: schemes that
+    // could ride in via an agent-produced "url" artifact.
+    if (!isHttpUrl) {
+      return (
+        <div className="rounded-lg border border-slate-800 bg-neutral-950 p-4 text-sm text-slate-300">
+          <div className="mb-1 font-medium text-slate-100">{title}</div>
+          <p className="break-all text-slate-400">{content}</p>
+        </div>
+      );
+    }
     return (
       <a
         href={content}

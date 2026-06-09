@@ -4,6 +4,8 @@ import { getChatParams, getModel } from '@/next/lib/config/llm';
 import { getUserTools, getConnectedApps } from '@/next/lib/composio';
 import { isBrowserAvailable, runBrowserTask } from '@/next/lib/browser-agent';
 import { buildMethodContext, METHOD_SELECTION_SYSTEM_PROMPT } from '@/next/lib/method-planner';
+import { runSafetyLayer } from '@/next/lib/rgy/classifier';
+import { assertSafeUrl } from '@/next/app/api/_lib/ssrf-guard';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { z } from 'zod';
@@ -80,49 +82,92 @@ const browserTool = tool({
     ),
   }),
   execute: async ({ startUrl, task, extractInstruction }) => {
-    return runBrowserTask({ startUrl, task, extractInstruction, timeoutMs: 45_000 });
+    // SSRF guard: an LLM/prompt-injection could steer this at internal hosts or
+    // cloud metadata. Block anything that isn't a public http(s) target.
+    const safe = await assertSafeUrl(startUrl, { allowHttp: true });
+    if (!safe.ok) {
+      return { error: `Refused to navigate: URL not allowed (${safe.reason}). Only public web pages are permitted.` };
+    }
+    return runBrowserTask({ startUrl: safe.url.toString(), task, extractInstruction, timeoutMs: 45_000 });
   },
 });
 
 // ── Main route ───────────────────────────────────────────────────────────────
 export async function POST(request: Request) {
   const { messages }: { messages: UIMessage[] } = await request.json();
+  const authHeader = request.headers.get('authorization');
+  const userId = await getAuthenticatedUserId(authHeader);
   const tier = classifyTier(messages);
 
-  // ── Adult tier → Venice.ai ───────────────────────────────────────────────
-  if (tier === 'adult' && venice) {
-    const veniceMessages = messages.map(m => ({
-      role: m.role as 'user' | 'assistant' | 'system',
-      content: extractText(m) || '...',
-    }));
+  // ── Adult tier → Venice.ai (strictly gated) ──────────────────────────────
+  // The uncensored, no-refusals model is served ONLY to an authenticated,
+  // age-confirmed user whose message passes the safety layer (crisis and
+  // illegal-facilitation are blocked even here). Anonymous/unverified traffic —
+  // and anyone who merely typed a trigger word — falls through to the safe tier.
+  // This closes the prior age-gate/compliance bypass.
+  if (tier === 'adult' && venice && userId) {
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('red_tier_age_confirmed')
+      .eq('id', userId)
+      .maybeSingle();
 
-    const stream = await venice.chat.completions.create({
-      model: 'venice-uncensored',
-      messages: [{ role: 'system', content: ADULT_SYSTEM }, ...veniceMessages],
-      stream: true,
-      max_tokens: 2048,
-    });
+    if (profile?.red_tier_age_confirmed === true) {
+      const lastUser = [...messages].reverse().find(m => m.role === 'user');
+      const lastUserText = lastUser ? extractText(lastUser) : '';
+      const safety = await runSafetyLayer(lastUserText, admin);
 
-    const encoder = new TextEncoder();
-    const readable = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of stream) {
-            const delta = chunk.choices[0]?.delta?.content || '';
-            if (delta) controller.enqueue(encoder.encode(`0:${JSON.stringify(delta)}\n`));
-          }
-          controller.enqueue(encoder.encode(`d:{"finishReason":"stop"}\n`));
-        } finally { controller.close(); }
-      },
-    });
+      if (safety.status === 'crisis' || safety.status === 'blocked') {
+        const enc = new TextEncoder();
+        return new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(enc.encode(`0:${JSON.stringify(safety.message)}\n`));
+              controller.enqueue(enc.encode(`d:{"finishReason":"stop"}\n`));
+              controller.close();
+            },
+          }),
+          { headers: { 'Content-Type': 'text/event-stream', 'x-cubiqo-tier': 'blocked' } }
+        );
+      }
 
-    return new Response(readable, {
-      headers: { 'Content-Type': 'text/event-stream', 'x-cubiqo-tier': 'adult' },
-    });
+      const veniceMessages = messages.map(m => ({
+        role: m.role as 'user' | 'assistant' | 'system',
+        content: extractText(m) || '...',
+      }));
+
+      const stream = await venice.chat.completions.create({
+        model: 'venice-uncensored',
+        messages: [{ role: 'system', content: ADULT_SYSTEM }, ...veniceMessages],
+        stream: true,
+        max_tokens: 2048,
+      });
+
+      const encoder = new TextEncoder();
+      const readable = new ReadableStream({
+        async start(controller) {
+          try {
+            for await (const chunk of stream) {
+              const delta = chunk.choices[0]?.delta?.content || '';
+              if (delta) controller.enqueue(encoder.encode(`0:${JSON.stringify(delta)}\n`));
+            }
+            controller.enqueue(encoder.encode(`d:{"finishReason":"stop"}\n`));
+          } finally { controller.close(); }
+        },
+      });
+
+      return new Response(readable, {
+        headers: { 'Content-Type': 'text/event-stream', 'x-cubiqo-tier': 'adult' },
+      });
+    }
+    // Not age-confirmed → fall through to the safe tier below.
   }
 
   // ── Safe tier — load user tools ──────────────────────────────────────────
-  const userId = await getAuthenticatedUserId(request.headers.get('authorization'));
 
   // Build method context (which apps are connected, what's available)
   let methodContext = '';
@@ -151,31 +196,56 @@ export async function POST(request: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tools: Record<string, any> = {
     ...composioTools,
-    ...(isBrowserAvailable() ? { navigate_web: browserTool } : {}),
+    // Browser tool only for authenticated users — it drives a cloud browser and
+    // must not be reachable anonymously.
+    ...(isBrowserAvailable() && userId ? { navigate_web: browserTool } : {}),
   };
   const hasTools = Object.keys(tools).length > 0;
 
-  // ── RGY Layer 4: load current zone and inject voice tone ──────────────────
+  // ── RGY Layer 4 + user tone preference ───────────────────────────────────
+  // RGY zone sets behavioural context; user tone preference sets expression style.
+  // Both are injected — they are complementary, not competing.
   let rgyVoice = RGY_VOICE.yellow; // default: relaxed
+  let userToneNote = ''; // explicit preference from onboarding (direct / warm / structured)
+
   if (userId) {
     try {
       const rgySupabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       );
-      // Get the most recent confirmed signal colour for this user
-      const { data: signal } = await rgySupabase
-        .from('signals')
-        .select('color')
-        .eq('user_id', userId)
-        .neq('display_state', 'deleted')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (signal?.color && RGY_VOICE[signal.color]) {
-        rgyVoice = RGY_VOICE[signal.color];
+
+      // Load RGY zone + user tone preference in parallel
+      const [signalRes, aiProfileRes] = await Promise.all([
+        rgySupabase
+          .from('signals')
+          .select('color')
+          .eq('user_id', userId)
+          .neq('display_state', 'deleted')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        rgySupabase
+          .from('user_ai_profile')
+          .select('communication_style')
+          .eq('user_id', userId)
+          .maybeSingle(),
+      ]);
+
+      if (signalRes.data?.color && RGY_VOICE[signalRes.data.color]) {
+        rgyVoice = RGY_VOICE[signalRes.data.color];
       }
-    } catch { /* non-fatal — keep default yellow voice */ }
+
+      const style = aiProfileRes.data?.communication_style;
+      if (style && style !== 'unknown' && style !== 'balanced') {
+        const TONE_NOTES: Record<string, string> = {
+          direct:     'User preference: be direct and concise. Skip pleasantries, lead with the answer.',
+          warm:       'User preference: warm and conversational tone. Like a knowledgeable friend, not a coach.',
+          structured: 'User preference: structured output. Use clear headers, bullet points, and numbered steps.',
+        };
+        userToneNote = TONE_NOTES[style] ?? '';
+      }
+    } catch { /* non-fatal — keep defaults */ }
   }
 
   // ── Zone-keyed memory recall: load recent memories filtered by current zone ─
@@ -206,11 +276,12 @@ export async function POST(request: Request) {
     } catch { /* non-fatal */ }
   }
 
-  // Safe-tier system prompt — includes RGY voice, zone memory, and method selection protocol
+  // Safe-tier system prompt — RGY zone + user tone preference + zone memory + method selection
   const systemPrompt = [
     'You are CubiQo — a multi-surface AI companion. Be direct and genuinely useful.',
-    rgyVoice,
-    zoneMemory,
+    rgyVoice,                // RGY zone behavioural context (green/yellow/red)
+    userToneNote,            // Explicit user preference from onboarding (direct/warm/structured)
+    zoneMemory,              // Zone-keyed memory snippets
     '',
     methodContext,
     '',
@@ -220,7 +291,9 @@ export async function POST(request: Request) {
   const chatParams = getChatParams();
   const result = streamText({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    model: (hasTools ? anthropic('claude-sonnet-4-6') : getModel('chat')) as any,
+    // With tools → needs Claude's tool-use capability (claude_agent role = Sonnet by default).
+    // Without tools → cheaper OpenAI chat model via getModel('chat') role.
+    model: (hasTools ? anthropic(getModel('claude_agent')) : getModel('chat')) as any,
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
     stopWhen: stepCountIs(chatParams.maxSteps),

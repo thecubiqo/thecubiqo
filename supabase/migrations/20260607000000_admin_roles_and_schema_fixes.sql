@@ -22,6 +22,7 @@ create unique index if not exists admin_roles_user_role_active_idx
 alter table public.admin_roles enable row level security;
 
 -- Only admins can see admin_roles (service role bypasses RLS)
+drop policy if exists "admin_roles: service role only" on public.admin_roles;
 create policy "admin_roles: service role only"
   on public.admin_roles
   for all
@@ -81,6 +82,7 @@ create table if not exists public.self_heal_proposals (
 
 alter table public.self_heal_proposals enable row level security;
 
+drop policy if exists "self_heal_proposals: admins read/write" on public.self_heal_proposals;
 create policy "self_heal_proposals: admins read/write"
   on public.self_heal_proposals
   for all

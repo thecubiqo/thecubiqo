@@ -25,11 +25,20 @@ async function withTimeout<T>(promise: Promise<T>, fallback: T, timeoutMs = MIDD
 }
 
 function clientIp(request: NextRequest) {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown'
-  );
+  // SECURITY: never trust the LEFTMOST x-forwarded-for hop — it is fully
+  // client-controlled, so reading it lets an attacker rotate the rate-limit key
+  // on every request and fully defeat the limiter (CWE-348). On Vercel the
+  // platform sets `x-real-ip` to the real TCP peer and APPENDS the true client
+  // IP to the RIGHT of x-forwarded-for. Prefer x-real-ip; otherwise take the
+  // right-most XFF entry (the hop added by our trusted proxy).
+  const realIp = request.headers.get('x-real-ip')?.trim();
+  if (realIp) return realIp;
+  const xff = request.headers.get('x-forwarded-for');
+  if (xff) {
+    const parts = xff.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1];
+  }
+  return 'unknown';
 }
 
 function rateKey(pathname: string) {

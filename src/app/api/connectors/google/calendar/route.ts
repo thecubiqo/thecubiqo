@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApiUser } from '../../../_lib/supabase-admin';
+import { encGoogleToken, decGoogleToken } from '../_token';
 
 export const runtime = 'nodejs';
 
@@ -13,19 +14,23 @@ async function getValidToken(supabase: any, userId: string): Promise<string | nu
 
   if (!token) return null;
 
+  // Tokens are encrypted at rest — decrypt before use (legacy plaintext tolerated).
+  const accessToken = decGoogleToken(token.access_token);
+  const refreshToken = decGoogleToken(token.refresh_token);
+
   const expiresAt = new Date(token.expires_at).getTime();
-  if (Date.now() < expiresAt - 60000) return token.access_token;
+  if (accessToken && Date.now() < expiresAt - 60000) return accessToken;
 
   const clientId = process.env.GOOGLE_CLIENT_ID || '';
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
-  if (!token.refresh_token || !clientId || !clientSecret) return null;
+  if (!refreshToken || !clientId || !clientSecret) return null;
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'refresh_token',
-      refresh_token: token.refresh_token,
+      refresh_token: refreshToken,
       client_id: clientId,
       client_secret: clientSecret
     })
@@ -33,7 +38,7 @@ async function getValidToken(supabase: any, userId: string): Promise<string | nu
   if (!res.ok) return null;
   const json = await res.json();
   const newExpiry = new Date(Date.now() + (json.expires_in || 3600) * 1000).toISOString();
-  await supabase.from('google_oauth_tokens').update({ access_token: json.access_token, expires_at: newExpiry }).eq('user_id', userId);
+  await supabase.from('google_oauth_tokens').update({ access_token: encGoogleToken(json.access_token), expires_at: newExpiry }).eq('user_id', userId);
   return json.access_token;
 }
 

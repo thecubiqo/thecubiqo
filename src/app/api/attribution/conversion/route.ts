@@ -1,56 +1,72 @@
+/**
+ * POST /api/attribution/conversion
+ *
+ * Marks a recommendation the AUTHENTICATED user actually converted on. This
+ * feeds the affiliate analytics ledger, so it must be locked down:
+ *   • Requires auth (was previously fully open → anyone could inject conversions).
+ *   • Verifies the recommendation_event belongs to the caller (no IDOR).
+ *   • Only UPDATES a pre-existing click owned by the user — it never fabricates
+ *     a brand-new affiliate_clicks row (the old INSERT branch let an attacker
+ *     stuff the ledger with fake clicks). No real click → 404.
+ *   • Labels the source honestly as user-reported, not a verified network postback.
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 
-import { getSupabaseAdmin } from "../../_lib/supabase-admin";
+import { requireApiUser } from "../../_lib/supabase-admin";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const auth = await requireApiUser(request);
+  if (auth.error) return auth.error;
+
   const body = await request.json().catch(() => null);
   const recommendationEventId = body?.recommendationEventId || body?.recommendation_event_id;
   if (!recommendationEventId) {
     return NextResponse.json({ error: "Missing recommendationEventId" }, { status: 400 });
   }
 
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return NextResponse.json({ error: "Config error" }, { status: 500 });
-
-  const { data: recEvent } = await supabase
+  // Ownership check: the event must belong to the authenticated user.
+  const { data: recEvent } = await auth.supabase
     .from("recommendation_events")
     .select("id,user_id,affiliate_link_id,session_id")
     .eq("id", recommendationEventId)
+    .eq("user_id", auth.user.id)
     .maybeSingle();
 
   if (!recEvent) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const conversionPayload = {
-      recommendation_event_id: recEvent.id,
-      affiliate_link_id: recEvent.affiliate_link_id,
-      user_id: recEvent.user_id,
-      session_id: recEvent.session_id,
+  // Only update an existing click that already belongs to this user.
+  const { data: click } = await auth.supabase
+    .from("affiliate_clicks")
+    .select("id")
+    .eq("recommendation_event_id", recEvent.id)
+    .eq("user_id", auth.user.id)
+    .order("clicked_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!click?.id) {
+    // No genuine prior click → do not fabricate one. Reject instead.
+    return NextResponse.json({ error: "No click to convert" }, { status: 404 });
+  }
+
+  await auth.supabase
+    .from("affiliate_clicks")
+    .update({
       converted: true,
       conversion_at: new Date().toISOString(),
-      conversion_source: "network_postback",
+      conversion_source: "user_reported",
       metadata: {
         attribution_method: "browser_extension",
         merchant: body.merchant ?? null,
         extension_version: body.extensionVersion ?? null,
         url_path: body.urlPath ?? null,
       },
-    };
-
-  const { data: click } = await supabase
-    .from("affiliate_clicks")
-    .select("id")
-    .eq("recommendation_event_id", recEvent.id)
-    .order("clicked_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (click?.id) {
-    await supabase.from("affiliate_clicks").update(conversionPayload).eq("id", click.id);
-  } else {
-    await supabase.from("affiliate_clicks").insert(conversionPayload);
-  }
+    })
+    .eq("id", click.id)
+    .eq("user_id", auth.user.id);
 
   return NextResponse.json({ received: true });
 }

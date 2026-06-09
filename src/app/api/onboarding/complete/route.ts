@@ -20,7 +20,9 @@ const completionSchema = z.object({
       timezone: z.string().max(80).optional(),
       languagePreference: z.string().max(32).optional(),
       rgyMap: z.record(rgyColorSchema).optional(),
-      contextSummary: z.string().max(800).optional()
+      contextSummary: z.string().max(800).optional(),
+      // New fields from updated wizard
+      constraints: z.string().max(600).optional(),
     })
     .passthrough()
     .optional()
@@ -110,42 +112,71 @@ export async function POST(request: NextRequest) {
   }
 
   const memoryRows = [
+    // "Right now" — highest weight, always injected into chat context
     profile.primaryGoal
       ? {
           user_id: auth.user.id,
           event_type: 'goal_update',
-          summary: truncate(`Primary onboarding goal: ${profile.primaryGoal}`),
+          summary: truncate(`Currently working on: ${profile.primaryGoal}`),
           keywords: [profile.primaryGoal, profile.goalDomain].filter(Boolean),
-          weight: 3,
+          weight: 4,   // boosted — this is the most actionable context
           source: 'onboarding',
           user_confirmed: true,
-          metadata: { goalDomain: profile.goalDomain ?? null }
+          metadata: { goalDomain: profile.goalDomain ?? null, type: 'right_now' }
         }
       : null,
+    // Blocker — second highest
     profile.whatBlocks
       ? {
           user_id: auth.user.id,
           event_type: 'blocker',
-          summary: truncate(`Initial blocker: ${profile.whatBlocks}`),
+          summary: truncate(`Current blocker: ${profile.whatBlocks}`),
           keywords: [profile.whatBlocks, profile.primaryGoal].filter(Boolean),
-          weight: 2,
+          weight: 3,
           source: 'onboarding',
           user_confirmed: true,
           metadata: {}
         }
       : null,
+    // Constraints — injected so method selector respects them
+    (profile as any).constraints
+      ? {
+          user_id: auth.user.id,
+          event_type: 'preference',
+          summary: truncate(`Constraints: ${(profile as any).constraints}`),
+          keywords: [],
+          weight: 3,
+          source: 'onboarding',
+          user_confirmed: true,
+          metadata: { type: 'constraints' }
+        }
+      : null,
+    // Full context summary
     contextSummary
       ? {
           user_id: auth.user.id,
           event_type: 'preference',
-          summary: truncate(`Onboarding context: ${contextSummary}`),
+          summary: truncate(`Background: ${contextSummary}`),
           keywords: [profile.occupation, profile.goalDomain, ...(profile.interests ?? [])].filter(Boolean),
           weight: 2,
           source: 'onboarding',
           user_confirmed: true,
           metadata: { tone: profile.tone ?? null, drives }
         }
-      : null
+      : null,
+    // First message — seed as a session_summary memory so context persists across sessions
+    firstMessage?.trim()
+      ? {
+          user_id: auth.user.id,
+          event_type: 'session_summary',
+          summary: truncate(`First message at onboarding: ${firstMessage.trim()}`),
+          keywords: [],
+          weight: 2,
+          source: 'onboarding',
+          user_confirmed: true,
+          metadata: { type: 'first_message' }
+        }
+      : null,
   ].filter(Boolean);
 
   if (memoryRows.length) {
@@ -194,5 +225,10 @@ export async function POST(request: NextRequest) {
     metadata: { first_message: firstMessage?.slice(0, 200) ?? null }
   });
 
-  return NextResponse.json({ ok: true, redirectTo: '/chat' });
+  // Return the first message so the client can pre-populate chat and fire it immediately
+  return NextResponse.json({
+    ok: true,
+    redirectTo: '/chat',
+    firstMessage: firstMessage?.trim() || null,
+  });
 }

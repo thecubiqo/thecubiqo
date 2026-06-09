@@ -183,6 +183,14 @@ export default function DuoProjectPage() {
   const [fidelity, setFidelity] = useState<FidelityReportData | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
+  // Proactive engine state: the capsule's live project-level view + the engine's
+  // last reported activity. `projectView` is the dashboard shown by default;
+  // `engineState` drives the "CubiQo working" indicator.
+  const [projectView, setProjectView] = useState<DuoArtifactView | null>(null);
+  const [engineState, setEngineState] = useState<string>('idle');
+  const tickingRef = useRef(false);
+  const selectedTaskRef = useRef<string | null>(null);
+
   // Chat pane state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -197,10 +205,14 @@ export default function DuoProjectPage() {
     try {
       const data = await apiGet<ProjectPayload>(`/api/duo/projects/${id}`);
       setPayload(data);
-      // Try latest artifact (project-level)
+      // Latest project-level live view (the dashboard shown on open).
       try {
         const art = await apiGet<{ artifact?: DuoArtifactView }>(`/api/duo/projects/${id}/artifact`);
-        if (art?.artifact) setArtifact(art.artifact);
+        if (art?.artifact) {
+          setProjectView(art.artifact);
+          // Only take over the pane if the user isn't currently inspecting a task.
+          if (!selectedTaskRef.current) setArtifact(art.artifact);
+        }
       } catch {
         /* artifact endpoint optional */
       }
@@ -244,6 +256,84 @@ export default function DuoProjectPage() {
   useEffect(() => {
     chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
+
+  // Keep a ref of the selected task so async loaders don't clobber the pane
+  // when the user is inspecting a task while the live view refreshes.
+  useEffect(() => {
+    selectedTaskRef.current = selectedTaskId;
+  }, [selectedTaskId]);
+
+  // ── Proactive heartbeat ─────────────────────────────────────────────────────
+  // One engine step: advance the goal + refresh the live view. Returns the
+  // engine's high-level state so the loop knows when to stop.
+  async function tick(): Promise<string | null> {
+    try {
+      const res = await apiSend<any>(`/api/duo/projects/${id}/tick`, 'POST', {});
+      if (!res) return null;
+      setEngineState(res.state || 'idle');
+      if (res.viewUpdated) {
+        try {
+          const art = await apiGet<{ artifact?: DuoArtifactView }>(`/api/duo/projects/${id}/artifact`);
+          if (art?.artifact) {
+            setProjectView(art.artifact);
+            if (!selectedTaskRef.current) setArtifact(art.artifact);
+          }
+        } catch {
+          /* view refresh is best-effort */
+        }
+      }
+      if (res.executedTaskId) {
+        // A task changed state — refresh the board (tasks/timeline/outcomes).
+        try {
+          const data = await apiGet<ProjectPayload>(`/api/duo/projects/${id}`);
+          setPayload(data);
+        } catch {
+          /* board refresh is best-effort */
+        }
+      }
+      return res.state || null;
+    } catch {
+      return null;
+    }
+  }
+
+  // While the capsule is open and active, nudge the engine on a cadence so
+  // CubiQo keeps working the goal and refreshing the live view. Pauses when the
+  // tab is hidden; stops on terminal / all-done / budget-reached states.
+  useEffect(() => {
+    const status = payload?.project?.status;
+    if (!id || !status) return;
+    if (['planning', 'done', 'shot', 'failed', 'cancelled', 'archived'].includes(status)) return;
+
+    let stopped = false;
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const run = async () => {
+      if (stopped || document.hidden || tickingRef.current) return;
+      tickingRef.current = true;
+      try {
+        const state = await tick();
+        if (state && ['terminal', 'all_done', 'budget_reached'].includes(state)) {
+          stopped = true;
+          if (interval) clearInterval(interval);
+        }
+      } finally {
+        tickingRef.current = false;
+      }
+    };
+
+    run(); // kick immediately on open
+    interval = setInterval(run, 7000);
+    const onVisible = () => { if (!document.hidden) run(); };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      stopped = true;
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, payload?.project?.status]);
 
   async function loadTaskArtifact(taskId: string) {
     setSelectedTaskId(taskId);
@@ -343,7 +433,9 @@ export default function DuoProjectPage() {
 
   const tone = capsuleTone(project?.color);
   const cost = Number(project?.api_cost_gbp || 0);
-  const cap = Number(project?.budget_gate_gbp || 2);
+  // Default must match the backend's project-creation default (entry-gate = £5),
+  // otherwise the budget bar misreports the remaining headroom.
+  const cap = Number(project?.budget_gate_gbp || 5);
   const budgetPct = Math.min(100, Math.round((cost / Math.max(cap, 0.01)) * 100));
 
   if (loading && !payload) {
@@ -406,6 +498,23 @@ export default function DuoProjectPage() {
               />
             </div>
           </div>
+
+          {/* Engine activity — CubiQo proactively working the goal */}
+          {(engineState === 'advanced' || engineState === 'idle') && project?.status === 'active' && (
+            <span className="inline-flex items-center gap-1 rounded-md border border-cyan-400/40 bg-cyan-400/10 px-2 py-0.5 text-[0.65rem] text-cyan-200">
+              <Loader2 className="h-2.5 w-2.5 animate-spin" /> working
+            </span>
+          )}
+          {engineState === 'budget_reached' && (
+            <span className="inline-flex items-center gap-1 rounded-md border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[0.65rem] text-amber-200">
+              budget reached
+            </span>
+          )}
+          {engineState === 'awaiting_user' && (
+            <span className="inline-flex items-center gap-1 rounded-md border border-violet-400/40 bg-violet-400/10 px-2 py-0.5 text-[0.65rem] text-violet-200">
+              needs you
+            </span>
+          )}
 
           {/* Stream status */}
           <span
@@ -584,16 +693,33 @@ export default function DuoProjectPage() {
 
         {/* RIGHT — Artifact pane (flex-1, fills) */}
         <section className="flex min-w-0 flex-1 flex-col bg-slate-950">
-          <div className="border-b border-slate-800 px-4 py-2 text-[0.6rem] font-bold tracking-[0.2em] text-slate-500">
-            ARTIFACT {artifact ? `· ${artifact.title || 'Latest'}` : ''}
+          <div className="flex items-center justify-between border-b border-slate-800 px-4 py-2">
+            <span className="text-[0.6rem] font-bold tracking-[0.2em] text-slate-500">
+              {selectedTaskId ? 'ARTIFACT' : 'LIVE VIEW'}
+              {artifact ? ` · ${artifact.title || 'Latest'}` : ''}
+            </span>
+            {selectedTaskId && projectView && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedTaskId(null);
+                  setArtifact(projectView);
+                }}
+                className="rounded border border-slate-700 px-2 py-0.5 text-[0.6rem] text-slate-300 hover:bg-slate-900"
+              >
+                ← Live view
+              </button>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto p-4">
             {artifact ? (
               <ArtifactPane artifact={artifact} />
             ) : (
-              <div className="rounded-lg border border-dashed border-slate-800 p-6 text-sm text-slate-500">
-                Select a task on the left to see its artifact. CubiQo writes drafts, files, code, and reports here as it
-                works.
+              <div className="flex items-center gap-3 rounded-lg border border-dashed border-slate-800 p-6 text-sm text-slate-500">
+                <Loader2 className="h-4 w-4 animate-spin text-cyan-300" />
+                {project?.status === 'planning'
+                  ? 'Approve the plan to let CubiQo start working — the live view will appear here.'
+                  : 'CubiQo is preparing your live view… it updates automatically as work progresses. Select a task to inspect its artifact.'}
               </div>
             )}
 

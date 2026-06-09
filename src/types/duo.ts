@@ -25,6 +25,7 @@ export type DuoTaskStatus =
   | 'pending'
   | 'ready'
   | 'running'
+  | 'draft'            // draft artifact produced, awaiting user review
   | 'waiting_user'
   | 'waiting_approval'
   | 'completed'
@@ -73,8 +74,9 @@ export interface DuoRouteDecision {
 }
 
 export interface DuoExecutionResult {
-  status: 'completed' | 'waiting_approval' | 'blocked' | 'failed' | 'already_executed';
+  status: 'completed' | 'draft' | 'waiting_approval' | 'blocked' | 'failed' | 'already_executed';
   taskId: string;
   approvalId?: string;
+  artifactId?: string;
   message: string;
 }

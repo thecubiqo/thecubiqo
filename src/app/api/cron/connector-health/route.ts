@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '../../_lib/supabase-admin';
+import { isAuthorizedCron } from '../../_lib/cron-auth';
 
 export const runtime = 'nodejs';
 
@@ -36,8 +37,7 @@ async function checkConnector(
 }
 
 export async function GET(request: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get('x-cubiqo-internal') !== secret) {
+  if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -7,6 +7,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getBearerToken, getSupabaseAdmin } from "../_lib/supabase-admin";
+import { guardPermission } from "@/next/lib/agent/permission-guard";
 
 const VALID_EVENT_TYPES = [
   "session_summary", "goal_update", "commitment", "blocker",
@@ -66,6 +67,10 @@ export async function POST(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser(token);
   if (!user) return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+
+  // ── Permission gate: memory write requires memory permission ───────────────
+  const memoryDenied = await guardPermission(supabase, user.id, 'memory');
+  if (memoryDenied) return memoryDenied;
 
   let body: Record<string, unknown>;
   try { body = await request.json(); }

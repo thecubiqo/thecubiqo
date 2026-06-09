@@ -1,4 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
+import { getModel } from '@/next/lib/config/llm';
 import { generateObject } from 'ai';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
@@ -160,7 +161,7 @@ Return a complete dashboard state as structured JSON.`;
   try {
     const result = await generateObject({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      model: anthropic('claude-sonnet-4-6') as any,
+      model: anthropic(getModel('claude_agent')) as any, // claude_agent role — Sonnet by default, override via CLAUDE_AGENT_MODEL
       system: SYSTEM,
       prompt: isFirstLoad
         ? `Open the dashboard for "${topic}". Generate a personalised plan and start executing. Show what you know about the user in your opening message.`

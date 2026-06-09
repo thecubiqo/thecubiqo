@@ -1,4 +1,7 @@
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
+import { NextRequest } from 'next/server';
+import { getBearerToken, getSupabaseAdmin } from '../_lib/supabase-admin';
+import { guardPermission } from '@/next/lib/agent/permission-guard';
 
 export const maxDuration = 30;
 export const runtime = 'nodejs';
@@ -8,9 +11,27 @@ const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'SAz9YHcvj6GT2YYXdXww'; // R
 
 // POST /api/voice?mode=stt  — body: { audio: base64string, mimeType?: string }
 // POST /api/voice?mode=tts  — body: { text: string }
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const url = new URL(request.url);
   const mode = url.searchParams.get('mode') || 'tts';
+
+  // ── Permission gates ───────────────────────────────────────────────────────
+  // STT: requires mic permission (user must have granted mic access)
+  // TTS: no gate — playback doesn't require mic permission
+  if (mode === 'stt') {
+    const supabase = getSupabaseAdmin();
+    const token = getBearerToken(request);
+    let userId: string | null = null;
+    if (supabase && token) {
+      const { data } = await supabase.auth.getUser(token);
+      userId = data?.user?.id ?? null;
+    }
+    // Only enforce for authenticated users (anonymous STT is allowed but untracked)
+    if (userId) {
+      const denied = await guardPermission(supabase, userId, 'mic');
+      if (denied) return denied;
+    }
+  }
 
   if (mode === 'stt') {
     const { audio, mimeType = 'audio/webm' } = await request.json();
