@@ -40,7 +40,8 @@ export async function GET() {
       anthropic: hasEnv(process.env.ANTHROPIC_API_KEY, process.env.ANTHROPIC_KEY, process.env.CLAUDE_API_KEY),
       openrouter: hasEnv(process.env.OPENROUTER_API_KEY, process.env.OPENROUTER_KEY),
       elevenlabs: hasEnv(process.env.ELEVENLABS_API_KEY, process.env.ELEVEN_LABS_API_KEY, process.env.XI_API_KEY),
-      keyEncryption: hasEnv(process.env.KEY_ENCRYPTION_SECRET, process.env.BYO_KEY_ENCRYPTION_SECRET),
+      connectorEncryption: hasEnv(process.env.ENCRYPTION_SECRET),     // token-vault (OAuth/connector tokens)
+      byodEncryption: hasEnv(process.env.BYOD_ENCRYPTION_KEY),        // BYO model keys (64-hex)
       // ── Agentic layer (tools, autonomous execution, connectors) ─────────────
       cronSecret: hasEnv(process.env.CRON_SECRET),                 // worker + all crons fire
       composio: hasEnv(process.env.COMPOSIO_API_KEY),              // connector tool actions
@@ -60,9 +61,9 @@ export async function GET() {
       hasEnv(process.env.COMPOSIO_API_KEY)
         ? null
         : 'AGENTIC: set COMPOSIO_API_KEY — without it the agent has no connector tools (cannot take real actions).',
-      hasEnv(process.env.KEY_ENCRYPTION_SECRET, process.env.BYO_KEY_ENCRYPTION_SECRET)
+      hasEnv(process.env.ENCRYPTION_SECRET)
         ? null
-        : 'AGENTIC: set KEY_ENCRYPTION_SECRET — without it connector secrets cannot be encrypted/decrypted, so connected apps fail.',
+        : 'AGENTIC: set ENCRYPTION_SECRET (any string >=16 chars) — without it connector OAuth tokens cannot be stored/used, so connected apps fail.',
       (hasEnv(process.env.BROWSERBASE_API_KEY) && hasEnv(process.env.BROWSERBASE_PROJECT_ID))
         ? null
         : 'AGENTIC: set BROWSERBASE_API_KEY + BROWSERBASE_PROJECT_ID for web/browser actions on sites without an API.'
