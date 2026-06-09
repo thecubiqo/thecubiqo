@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ApiUserContext, missingMigrationResponse, safeTableMissing } from './supabase-admin';
+import { resolveStorageUrl } from './storage-url';
 import { getActiveBrowserSession, normalizeBrowserSessionId } from './browser-sessions';
 import { tailorApplicationForJob } from './llm-tailoring';
 import {
@@ -296,10 +297,17 @@ export async function listJobWorkflowState(auth: ApiUserContext): Promise<{
     return { error: applicationsResult.error };
   }
 
+  const applications = await Promise.all(
+    (applicationsResult.data || []).map(async (row: Record<string, any>) => {
+      const mapped = mapJobApplication(row);
+      return { ...mapped, screenshotUrl: await resolveStorageUrl(auth.supabase, mapped.screenshotUrl) };
+    })
+  );
+
   return {
     listings: (listingsResult.data || []).map(mapJobListing),
     reviews: (reviewsResult.data || []).map(mapApplicationReview),
-    applications: (applicationsResult.data || []).map(mapJobApplication)
+    applications
   };
 }
 

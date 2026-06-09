@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ApiUserContext, missingMigrationResponse, safeTableMissing } from './supabase-admin';
+import { resolveStorageUrls } from './storage-url';
 import {
   SOCIAL_PLATFORM_REGISTRY,
   canonicalSocialPlatform,
@@ -284,13 +285,20 @@ export async function listSocialState(auth: ApiUserContext): Promise<{
   const connectorStatuses = await getSocialConnectorStatuses(auth);
   if ('error' in connectorStatuses && connectorStatuses.error) return { error: connectorStatuses.error };
 
+  const queuedPosts = await Promise.all(
+    (queuedPostsResult.data || []).map(async (row: Record<string, any>) => {
+      const mapped = mapQueuedSocialPost(row);
+      return { ...mapped, mediaUrls: await resolveStorageUrls(auth.supabase, mapped.mediaUrls) };
+    })
+  );
+
   return {
     ...connectorStatuses,
     drafts: (draftsResult.data || []).map(mapSocialDraft),
     distributionRules: (rulesResult.data || []).map(mapDistributionRule),
     scheduledPosts: (scheduledResult.data || []).map(mapScheduledPost),
     fireLogs: (logsResult.data || []).map(mapFireLog),
-    queuedPosts: (queuedPostsResult.data || []).map(mapQueuedSocialPost)
+    queuedPosts
   };
 }
 

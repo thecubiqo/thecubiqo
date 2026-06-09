@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApiUser } from '../_lib/supabase-admin';
+import { resolveStorageUrl } from '../_lib/storage-url';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -59,15 +60,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Storage upload failed: ${storageError.message}` }, { status: 500 });
   }
 
-  const { data: publicUrl } = supabase.storage.from('cubiqo-uploads').getPublicUrl(storagePath);
+  // Private bucket: store the PATH, generate a short-lived signed URL on read.
+  const signedUrl = await resolveStorageUrl(supabase, storagePath);
 
-  // Record in file_uploads table
+  // Record in file_uploads table (public_url column kept = storage path for
+  // back-compat with the schema; the usable URL is signed on read).
   const { data: record, error: dbError } = await supabase
     .from('file_uploads')
     .insert({
       user_id: auth.user.id,
       storage_path: storagePath,
-      public_url: publicUrl.publicUrl,
+      public_url: storagePath,
       filename: file.name,
       content_type: file.type,
       size_bytes: file.size,
@@ -81,12 +84,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       uploaded: true,
       storagePath,
-      publicUrl: publicUrl.publicUrl,
+      url: signedUrl,
       warning: 'File saved but DB record failed'
     });
   }
 
-  return NextResponse.json({ uploaded: true, file: record });
+  return NextResponse.json({ uploaded: true, file: { ...record, url: signedUrl } });
 }
 
 export async function GET(request: NextRequest) {
@@ -109,5 +112,13 @@ export async function GET(request: NextRequest) {
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json({ files: data || [] });
+  // Sign each file's stored path/URL on read (private bucket).
+  const files = await Promise.all(
+    (data || []).map(async (row: Record<string, any>) => ({
+      ...row,
+      url: await resolveStorageUrl(auth.supabase, row.storage_path || row.public_url),
+    }))
+  );
+
+  return NextResponse.json({ files });
 }

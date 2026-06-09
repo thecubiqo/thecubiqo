@@ -301,8 +301,8 @@ export async function POST(request: NextRequest) {
         .from('cubiqo-uploads')
         .upload(path, screenshotBuffer, { contentType: 'image/png', upsert: true });
       if (stored) {
-        const { data: pub } = auth.supabase.storage.from('cubiqo-uploads').getPublicUrl(path);
-        screenshotUrl = pub.publicUrl;
+        // Private bucket: persist the storage PATH; readers sign-on-read.
+        screenshotUrl = path;
       }
     }
 

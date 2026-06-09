@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApiUser, safeTableMissing, missingMigrationResponse } from '../../_lib/supabase-admin';
+import { resolveStorageUrl } from '../../_lib/storage-url';
 
 export const runtime = 'nodejs';
 
@@ -112,9 +113,15 @@ export async function GET(request: NextRequest) {
     applications = apps || [];
   }
 
+  // Sign each application's screenshot path once (private bucket), reuse below.
+  const signedShot: Record<string, string | null> = {};
+  await Promise.all(applications.map(async (a: any) => {
+    signedShot[a.id] = await resolveStorageUrl(auth.supabase, a.screenshot_url);
+  }));
+
   const appsByListing = applications.reduce((acc, app) => {
     if (!acc[app.listing_id]) acc[app.listing_id] = [];
-    acc[app.listing_id].push(app);
+    acc[app.listing_id].push({ ...app, screenshot_url: signedShot[app.id] ?? app.screenshot_url });
     return acc;
   }, {} as Record<string, any[]>);
 
@@ -152,7 +159,7 @@ export async function GET(request: NextRequest) {
     platform: app.platform,
     applyUrl: app.apply_url,
     submittedAt: app.submitted_at,
-    screenshotUrl: app.screenshot_url,
+    screenshotUrl: signedShot[app.id] ?? app.screenshot_url,
     error: app.error,
     metadata: app.metadata || {},
     createdAt: app.created_at

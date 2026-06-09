@@ -12,6 +12,7 @@ import {
   type SocialQueuePlatform
 } from '../platforms/shared';
 import { getSocialPlatform, normalizeSocialQueuePlatform } from '@/next/lib/social/social-platform-registry';
+import { resolveStorageUrls } from '../../../_lib/storage-url';
 
 export const runtime = 'nodejs';
 
@@ -260,7 +261,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'social_post_queue is not active', capability }, { status: 501 });
   }
 
-  const mediaUrls = normalizeMediaUrls(post.media_urls);
+  // Private bucket: sign any cubiqo-uploads media refs so the external platform
+  // (and our automation) can fetch them; external URLs pass through unchanged.
+  const mediaUrls = await resolveStorageUrls(auth.supabase, normalizeMediaUrls(post.media_urls));
   if (canonicalPlatform(platform) === 'instagram' && !mediaUrls.length) {
     return NextResponse.json({ error: 'Instagram requires media before publish', blockReason: 'media_required' }, { status: 400 });
   }
