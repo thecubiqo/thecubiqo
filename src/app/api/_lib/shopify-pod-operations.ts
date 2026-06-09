@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { ApiUserContext, cleanEnv, missingMigrationResponse, safeTableMissing } from './supabase-admin';
+import { getEncryptionKey32 } from '@/next/lib/crypto/encryption-secret';
 import { getCommercePlatformDefaults } from './platform-settings';
 import {
   DIRECT_POD_PROVIDER_IDS,
@@ -101,8 +102,9 @@ function maskSecret(secret: string) {
 }
 
 function encryptionKey() {
-  const raw = cleanEnv(process.env.CONNECTOR_ENCRYPTION_KEY, process.env.CUBIQO_CONNECTOR_KEY);
-  return raw ? crypto.createHash('sha256').update(raw).digest() : null;
+  // Unified: resolves ENCRYPTION_SECRET (and CONNECTOR_ENCRYPTION_KEY/
+  // CUBIQO_CONNECTOR_KEY back-compat aliases) → 32-byte AES key, or null.
+  return getEncryptionKey32();
 }
 
 function encryptSecret(secret: string) {

@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+import { getEncryptionKey32 } from '../crypto/encryption-secret';
 
 const ALGORITHM = 'aes-256-gcm';
 
@@ -9,11 +10,15 @@ export interface EncryptedPayload {
 }
 
 function getKey(): Buffer {
+  // Prefer an explicit 64-hex BYOD key; otherwise derive from the shared
+  // ENCRYPTION_SECRET so setting one var unlocks BYO key storage too.
   const keyHex = process.env.BYOD_ENCRYPTION_KEY;
-  if (!keyHex || keyHex.length !== 64 || !/^[a-f0-9]+$/i.test(keyHex)) {
-    throw new Error('BYOD_ENCRYPTION_KEY must be 64 hex characters (32 bytes)');
+  if (keyHex && keyHex.length === 64 && /^[a-f0-9]+$/i.test(keyHex)) {
+    return Buffer.from(keyHex, 'hex');
   }
-  return Buffer.from(keyHex, 'hex');
+  const derived = getEncryptionKey32();
+  if (derived) return derived;
+  throw new Error('Set ENCRYPTION_SECRET (>=16 chars) or BYOD_ENCRYPTION_KEY (64 hex) for BYO key storage');
 }
 
 export function encryptKey(plaintext: string): EncryptedPayload {

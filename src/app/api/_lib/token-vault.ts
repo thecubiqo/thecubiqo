@@ -1,14 +1,14 @@
 import crypto from 'crypto';
-import { cleanEnv } from './supabase-admin';
+import { getEncryptionKey32 } from '@/next/lib/crypto/encryption-secret';
 
 const TOKEN_VERSION = 'v1';
 
 function getEncryptionKey() {
-  const secret = cleanEnv(process.env.ENCRYPTION_SECRET);
-  if (!secret || secret.length < 16) {
-    throw new Error('ENCRYPTION_SECRET is required for connector token storage');
+  const key = getEncryptionKey32();
+  if (!key) {
+    throw new Error('ENCRYPTION_SECRET (>=16 chars) is required for connector token storage');
   }
-  return crypto.createHash('sha256').update(secret).digest();
+  return key;
 }
 
 function maskToken(token: string) {
