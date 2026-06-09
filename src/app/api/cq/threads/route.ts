@@ -74,12 +74,13 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // 4. Latest message per thread (best-effort)
+  // 4. Latest message + unread count per thread
   const messagePreviews: Record<string, { preview: string; updated_at: string }> = {};
+  const unreadCounts: Record<string, number> = {};
   try {
     const { data: msgs } = await supabase
       .from('cq_messages')
-      .select('thread_id, content, created_at')
+      .select('thread_id, content, created_at, sender_id, read_at')
       .in('thread_id', threadIds)
       .order('created_at', { ascending: false });
     for (const m of msgs || []) {
@@ -88,6 +89,10 @@ export async function GET(request: NextRequest) {
           preview: (m.content || '').slice(0, 120),
           updated_at: m.created_at
         };
+      }
+      // Count unread: messages not sent by us that haven't been read yet
+      if (m.thread_id && m.sender_id !== user.id && !m.read_at) {
+        unreadCounts[m.thread_id] = (unreadCounts[m.thread_id] ?? 0) + 1;
       }
     }
   } catch {
@@ -107,7 +112,7 @@ export async function GET(request: NextRequest) {
       username: peer?.username || null,
       last_message_preview: preview?.preview || null,
       updated_at: preview?.updated_at || null,
-      unread_count: 0 // TODO: derive from cq_messages.read_at when read receipts ship
+      unread_count: unreadCounts[threadId] ?? 0
     };
   }).sort((a, b) => {
     // Most recent activity first

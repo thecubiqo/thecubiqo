@@ -46,6 +46,48 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  const roomIds = (rooms || []).map((r: any) => r.id);
+
+  // Load this user's read pointers + recent chatroom activity for unread counts
+  const unreadCounts: Record<string, number> = {};
+  const lastActivity: Record<string, string | null> = {};
+
+  if (roomIds.length > 0) {
+    // Get user's last_read_at per room (may be null if never read)
+    const { data: memberships } = await supabase
+      .from('cq_chatroom_members')
+      .select('chatroom_id, last_read_at')
+      .eq('user_id', user.id)
+      .in('chatroom_id', roomIds);
+
+    const lastReadMap: Record<string, string | null> = {};
+    for (const m of memberships || []) {
+      lastReadMap[m.chatroom_id] = m.last_read_at ?? null;
+    }
+
+    // Get recent messages per room to count unread + last activity
+    const { data: recentMsgs } = await supabase
+      .from('cq_chatroom_messages')
+      .select('chatroom_id, sender_id, created_at')
+      .in('chatroom_id', roomIds)
+      .order('created_at', { ascending: false });
+
+    for (const m of recentMsgs || []) {
+      // Track last activity
+      if (!lastActivity[m.chatroom_id]) {
+        lastActivity[m.chatroom_id] = m.created_at;
+      }
+      // Count unread: messages not sent by us, after our last_read_at
+      if (m.sender_id !== user.id) {
+        const lastRead = lastReadMap[m.chatroom_id];
+        const isUnread = !lastRead || new Date(m.created_at) > new Date(lastRead);
+        if (isUnread) {
+          unreadCounts[m.chatroom_id] = (unreadCounts[m.chatroom_id] ?? 0) + 1;
+        }
+      }
+    }
+  }
+
   // Map canonical column names to the shape the UI expects (color + tier + last_message_preview)
   const mapped = (rooms || []).map((r: any) => ({
     id: r.id,
@@ -57,8 +99,8 @@ export async function GET(request: NextRequest) {
     topic_tag: r.topic_tag,
     description: r.description,
     member_count: r.member_count ?? 0,
-    unread_count: 0, // TODO: derive from cq_chatroom_membership read pointers
-    last_activity_at: null,
+    unread_count: unreadCounts[r.id] ?? 0,
+    last_activity_at: lastActivity[r.id] ?? null,
     created_at: r.created_at
   }));
 
