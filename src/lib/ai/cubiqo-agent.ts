@@ -1,4 +1,5 @@
 import { ToolLoopAgent, stepCountIs, tool } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import {
   repoListRoutes,
@@ -400,10 +401,10 @@ export function createCubiQoAgent(trace: AgentTraceItem[], options: CubiQoAgentO
   };
 
   return new ToolLoopAgent({
-    model: getModel('chat'),
+    model: createOpenAI({ apiKey: process.env.OPENAI_API_KEY })(getModel('chat')),
     tools,
     instructions: [
-      'You are CubiQo V1 inside cq.ai.',
+      'You are CubiQo inside cq.ai.',
       'Default to conversation, but use tools for repo, stack, route, runtime, dashboard, implementation, or self-awareness questions.',
       'For job hunt, career, resume, new job postings, easy apply, website applications, startup ideas, market need, revenue generation, investors, business growth, ecomm, fashion brands, POD, sales, marketing, routine, memory, or contextual support, use capability_plan before answering.',
       'Treat CQ-to-CQ as friend/contact messaging only. Do not tie CQ messenger to Signal matching, RGY matching, or intent matching.',

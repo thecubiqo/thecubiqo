@@ -321,6 +321,24 @@ export async function getLatestView(auth: AgentAuth, projectId: string) {
   return data || null;
 }
 
+/**
+ * Ensure a project has at least one live-view artifact so the dashboard pane is
+ * never empty (e.g. right after creation, before any heartbeat/cron tick). Builds
+ * a deterministic fallback view from current tasks — NO LLM call, NO task
+ * execution. No-op if a view already exists.
+ */
+export async function ensureInitialView(auth: AgentAuth, projectId: string): Promise<string | null> {
+  const existing = await getLatestView(auth, projectId);
+  if (existing) return existing.id;
+  const { data: project } = await auth.supabase
+    .from('duo_projects').select('*').eq('id', projectId).eq('user_id', auth.user.id).maybeSingle();
+  if (!project) return null;
+  const { data: tasks } = await auth.supabase
+    .from('duo_tasks').select('*').eq('project_id', projectId).order('created_at');
+  const view = buildFallbackView(project as TaskRow, (tasks || []) as TaskRow[]);
+  return persistView(auth, project as TaskRow, view);
+}
+
 /** Emit a lightweight stream event so the open dashboard refreshes promptly. */
 async function emitStream(auth: AgentAuth, projectId: string, traceId: string | null, eventType: string, payload: Record<string, unknown>) {
   try {
@@ -356,8 +374,10 @@ export async function advanceCapsule(auth: AgentAuth, projectId: string): Promis
     return { state: 'terminal', remaining: 0, viewUpdated: false, message: 'Project not found' };
   }
 
-  // Respect the plan-review gate: do not auto-run an unapproved plan.
+  // Respect the plan-review gate: do not auto-run an unapproved plan — but still
+  // make sure the dashboard shows the planned tasks instead of an empty spinner.
   if (project.status === 'planning') {
+    await ensureInitialView(auth, projectId).catch(() => null);
     return { state: 'awaiting_plan_approval', remaining: 0, viewUpdated: false, message: 'Plan awaiting your approval' };
   }
 

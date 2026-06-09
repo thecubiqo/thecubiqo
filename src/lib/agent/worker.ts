@@ -149,6 +149,59 @@ async function latestApproval(auth: AgentAuth, taskId: string, type?: string) {
 
 // ── Main executor ─────────────────────────────────────────────────────────────
 
+// ── Dependency orchestration ─────────────────────────────────────────────────
+// A task's prerequisites are its incoming 'blocks' edges in duo_task_edges.
+async function prerequisitesComplete(auth: AgentAuth, taskId: string): Promise<boolean> {
+  const { data: incoming } = await auth.supabase
+    .from('duo_task_edges')
+    .select('from_task_id')
+    .eq('to_task_id', taskId)
+    .eq('edge_type', 'blocks');
+  const prereqIds = [...new Set((incoming || []).map((e: any) => e.from_task_id).filter(Boolean))] as string[];
+  if (!prereqIds.length) return true;
+  const { data: prereqs } = await auth.supabase
+    .from('duo_tasks').select('id,status').in('id', prereqIds);
+  return (prereqs || []).length === prereqIds.length
+    && (prereqs || []).every((t: any) => t.status === 'completed');
+}
+
+// After a task completes, enqueue any dependents whose prerequisites are now ALL
+// done. Upsert on the unique idempotency_key so each dependent runs exactly once.
+async function enqueueUnblockedDependents(auth: AgentAuth, completedTaskId: string, projectId: string, traceId: string) {
+  const { data: edges } = await auth.supabase
+    .from('duo_task_edges')
+    .select('to_task_id')
+    .eq('from_task_id', completedTaskId)
+    .eq('edge_type', 'blocks');
+  const dependentIds = [...new Set((edges || []).map((e: any) => e.to_task_id).filter(Boolean))] as string[];
+  for (const depId of dependentIds) {
+    if (!(await prerequisitesComplete(auth, depId))) continue;
+    const { data: dep } = await auth.supabase
+      .from('duo_tasks').select('id,status').eq('id', depId).maybeSingle();
+    if (!dep || !['pending', 'ready'].includes(dep.status)) continue;
+    await auth.supabase.from('agent_job_queue').upsert({
+      user_id: auth.user.id,
+      project_id: projectId,
+      task_id: depId,
+      trace_id: traceId,
+      job_type: 'execute_task',
+      state: 'queued',
+      status: 'queued',
+      locked_by: null,
+      payload: { userId: auth.user.id, taskId: depId },
+      idempotency_key: `execute-task:${depId}`,
+    }, { onConflict: 'idempotency_key' });
+    await auth.supabase.from('duo_tasks')
+      .update({ status: 'ready', updated_at: new Date().toISOString() })
+      .eq('id', depId).eq('user_id', auth.user.id).eq('status', 'pending');
+    await writeTimeline(auth, {
+      projectId, taskId: depId, traceId,
+      eventType: 'task_unblocked',
+      message: 'Prerequisites complete — task queued for execution',
+    });
+  }
+}
+
 export async function executeTask(auth: AgentAuth, taskId: string): Promise<DuoExecutionResult> {
   const { data: task, error } = await auth.supabase
     .from('duo_tasks')
@@ -197,6 +250,24 @@ export async function executeTask(auth: AgentAuth, taskId: string): Promise<DuoE
       return executeFinalPhase(auth, task, true /* alreadyApproved */);
     }
     return { status: 'waiting_approval', taskId, approvalId: approval?.id, message: 'Task paused for final approval' };
+  }
+
+  // ── Project-status guard ────────────────────────────────────────────────────
+  // Only execute tasks for an APPROVED (active) project — never run a plan the
+  // user hasn't approved through the plan-review gate (no autonomous spend before
+  // consent). Tasks are enqueued at approval, but this is the hard backstop.
+  const { data: proj } = await auth.supabase
+    .from('duo_projects').select('status').eq('id', task.project_id).maybeSingle();
+  if (proj && !['active', 'working', 'running'].includes(String(proj.status))) {
+    return { status: 'blocked', taskId, message: `Project is ${proj.status} — not executing` };
+  }
+
+  // ── Dependency guard ───────────────────────────────────────────────────────
+  // Never execute a task whose prerequisites aren't all completed. Defense in
+  // depth: dependents are normally only enqueued once their prereqs finish, but
+  // this guarantees correct ordering and prevents wasted autonomous spend.
+  if (!(await prerequisitesComplete(auth, task.id))) {
+    return { status: 'blocked', taskId, message: 'Waiting on prerequisite tasks' };
   }
 
   // ── Phase 1: Budget gate ──────────────────────────────────────────────────
@@ -352,6 +423,9 @@ async function executeFinalPhase(
     message: `Completed: ${task.title}`,
     payload: { route, finalAction: isFinalAction }
   });
+
+  // Cascade: enqueue any dependents now unblocked by this task's completion.
+  await enqueueUnblockedDependents(auth, task.id, task.project_id, task.trace_id);
 
   return { status: 'completed', taskId, message: `Task completed via ${route}` };
 }

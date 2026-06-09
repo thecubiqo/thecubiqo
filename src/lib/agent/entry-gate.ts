@@ -4,6 +4,7 @@ import { inferDomainFromText, normalizeTraceId, slugTitle, writeTimeline } from 
 import { interpretGoal } from './goal-interpreter';
 import { buildTaskGraph } from './task-graph-builder';
 import { matchPlaybook } from './playbook-matcher';
+import { ensureInitialView } from './capsule-engine';
 
 async function loadApprovedCapsule(auth: AgentAuth, capsuleId: string) {
   const { data, error } = await auth.supabase
@@ -115,29 +116,12 @@ export async function createDuoProject(auth: AgentAuth, input: DuoGoalInput) {
   const taskPlans = buildTaskGraph(interpretation);
   const tasks = await createTasks(auth, project.id, traceId, taskPlans);
 
-  // Enqueue execute_task jobs for the initial READY wave — tasks with no
-  // dependencies. (Previously a single 'duo_project_created' job was enqueued,
-  // which the worker silently skips since it only runs 'execute_task' jobs, so
-  // nothing ever auto-executed.) Dependent tasks are NOT enqueued here to avoid
-  // out-of-order execution; the worker's budget + approval gates still apply.
-  const readyTitles = new Set(
-    taskPlans.filter(p => !(p.dependsOnTitles && p.dependsOnTitles.length)).map(p => p.title)
-  );
-  const readyJobs = tasks
-    .filter(t => readyTitles.has(t.title))
-    .map(t => ({
-      user_id: auth.user.id,
-      project_id: project.id,
-      task_id: t.id,
-      trace_id: traceId,
-      job_type: 'execute_task',
-      state: 'queued',
-      payload: { userId: auth.user.id, taskId: t.id },
-      idempotency_key: `execute-task:${t.id}`
-    }));
-  if (readyJobs.length) {
-    await auth.supabase.from('agent_job_queue').insert(readyJobs);
-  }
+  // The project starts in 'planning' behind the plan-review gate. Tasks are
+  // enqueued for execution ONLY after the user approves the plan (see the
+  // approve route) — never here — so nothing auto-runs (or spends) before
+  // consent. Materialise the live-view dashboard now so the pane shows the
+  // proposed plan immediately instead of an empty spinner.
+  await ensureInitialView(auth, project.id).catch(() => null);
 
   await writeTimeline(auth, {
     projectId: project.id,

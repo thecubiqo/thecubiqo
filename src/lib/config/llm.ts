@@ -48,13 +48,16 @@ export function getModel(role: LlmRole): string {
   const models: Record<LlmRole, string> = {
     // ── OpenAI / OpenRouter ────────────────────────────────────────────────────
     // Env overrides let you hot-swap a cheaper or newer model without a deploy.
+    // NOTE: these are BARE OpenAI model ids — every consumer wraps them in
+    // createOpenAI(...) or sends them in a direct OpenAI REST body. Do NOT use
+    // gateway-prefixed slugs ("openai/…") here or those consumers 404.
     agent:     env('OPENAI_MODEL', 'AGENT_MODEL')                       || 'gpt-4.1-mini',
-    chat:      env('CHAT_MODEL', 'OPENAI_MODEL', 'AI_GATEWAY_MODEL')    || 'openai/gpt-5.4',
+    chat:      env('CHAT_MODEL', 'OPENAI_MODEL')                        || 'gpt-4.1',
     utility:   env('UTILITY_MODEL')                                      || 'gpt-4o-mini',
-    stagehand: env('STAGEHAND_MODEL_NAME', 'STAGEHAND_MODEL', 'OPENAI_MODEL') || 'openai/gpt-4.1-mini',
+    stagehand: env('STAGEHAND_MODEL_NAME', 'STAGEHAND_MODEL', 'OPENAI_MODEL') || 'gpt-4.1-mini',
     scoring:   env('JOB_SCORING_MODEL', 'UTILITY_MODEL')                || 'gpt-4o-mini',
     tailoring: env('TAILORING_MODEL', 'OPENAI_MODEL')                   || 'gpt-4o-mini',
-    rgy:       env('RGY_MODEL', 'OPENAI_MODEL', 'AI_MODEL')             || 'gpt-5.4',
+    rgy:       env('RGY_MODEL', 'OPENAI_MODEL', 'AI_MODEL')             || 'gpt-4.1',
 
     // ── Anthropic / Claude ─────────────────────────────────────────────────────
     // Default to Haiku for high-frequency, low-cost inference. Override per-env

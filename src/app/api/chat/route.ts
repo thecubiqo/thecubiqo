@@ -1,5 +1,6 @@
 import { convertToModelMessages, stepCountIs, streamText, tool, type UIMessage } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
 import { getChatParams, getModel } from '@/next/lib/config/llm';
 import { getUserTools, getConnectedApps } from '@/next/lib/composio';
 import { isBrowserAvailable, runBrowserTask } from '@/next/lib/browser-agent';
@@ -291,9 +292,13 @@ export async function POST(request: Request) {
   const chatParams = getChatParams();
   const result = streamText({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // With tools → needs Claude's tool-use capability (claude_agent role = Sonnet by default).
-    // Without tools → cheaper OpenAI chat model via getModel('chat') role.
-    model: (hasTools ? anthropic(getModel('claude_agent')) : getModel('chat')) as any,
+    // With tools → Claude's tool-use capability (claude_agent role = Sonnet by default).
+    // Without tools → OpenAI chat model wrapped in createOpenAI so it uses
+    // OPENAI_API_KEY directly (a bare string would route through the AI gateway,
+    // which needs AI_GATEWAY_API_KEY and silently fails without it).
+    model: (hasTools
+      ? anthropic(getModel('claude_agent'))
+      : createOpenAI({ apiKey: process.env.OPENAI_API_KEY })(getModel('chat'))) as any,
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
     stopWhen: stepCountIs(chatParams.maxSteps),
