@@ -40,16 +40,32 @@ export async function GET() {
       anthropic: hasEnv(process.env.ANTHROPIC_API_KEY, process.env.ANTHROPIC_KEY, process.env.CLAUDE_API_KEY),
       openrouter: hasEnv(process.env.OPENROUTER_API_KEY, process.env.OPENROUTER_KEY),
       elevenlabs: hasEnv(process.env.ELEVENLABS_API_KEY, process.env.ELEVEN_LABS_API_KEY, process.env.XI_API_KEY),
-      keyEncryption: hasEnv(process.env.KEY_ENCRYPTION_SECRET, process.env.BYO_KEY_ENCRYPTION_SECRET)
+      keyEncryption: hasEnv(process.env.KEY_ENCRYPTION_SECRET, process.env.BYO_KEY_ENCRYPTION_SECRET),
+      // ── Agentic layer (tools, autonomous execution, connectors) ─────────────
+      cronSecret: hasEnv(process.env.CRON_SECRET),                 // worker + all crons fire
+      composio: hasEnv(process.env.COMPOSIO_API_KEY),              // connector tool actions
+      browserbase: hasEnv(process.env.BROWSERBASE_API_KEY) && hasEnv(process.env.BROWSERBASE_PROJECT_ID),
+      venice: hasEnv(process.env.VENICE_API_KEY),
+      twilio: hasEnv(process.env.TWILIO_ACCOUNT_SID) && hasEnv(process.env.TWILIO_AUTH_TOKEN) && hasEnv(process.env.TWILIO_FROM_NUMBER),
+      resend: hasEnv(process.env.RESEND_API_KEY)
     },
     recommendations: [
       supabase.ok ? null : 'Apply migrations and confirm Supabase service role connectivity.',
       hasEnv(process.env.OPENAI_API_KEY, process.env.OPENAI_KEY, process.env.AI_API_KEY)
         ? null
         : 'Configure an OpenAI API key or set a valid provider order.',
+      hasEnv(process.env.CRON_SECRET)
+        ? null
+        : 'AGENTIC: set CRON_SECRET — without it the agent worker + all crons return 401, so no task ever auto-executes.',
+      hasEnv(process.env.COMPOSIO_API_KEY)
+        ? null
+        : 'AGENTIC: set COMPOSIO_API_KEY — without it the agent has no connector tools (cannot take real actions).',
       hasEnv(process.env.KEY_ENCRYPTION_SECRET, process.env.BYO_KEY_ENCRYPTION_SECRET)
         ? null
-        : 'Configure KEY_ENCRYPTION_SECRET before enabling BYO key storage.'
+        : 'AGENTIC: set KEY_ENCRYPTION_SECRET — without it connector secrets cannot be encrypted/decrypted, so connected apps fail.',
+      (hasEnv(process.env.BROWSERBASE_API_KEY) && hasEnv(process.env.BROWSERBASE_PROJECT_ID))
+        ? null
+        : 'AGENTIC: set BROWSERBASE_API_KEY + BROWSERBASE_PROJECT_ID for web/browser actions on sites without an API.'
     ].filter(Boolean)
   });
 }
