@@ -53,5 +53,15 @@ export async function sendSms(to: string, body: string): Promise<SmsResult> {
 /** Send via WhatsApp (Twilio WhatsApp sandbox or Business number) */
 export function sendWhatsApp(to: string, body: string): Promise<SmsResult> {
   const waTo = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
-  return sendSms(waTo, body); // same Twilio API; TWILIO_FROM_NUMBER should be whatsapp:+1...
+  // TWILIO_FROM_NUMBER must be set to "whatsapp:+18662414026" in Vercel env
+  return sendSms(waTo, body);
+}
+
+/**
+ * Unified send — routes to WhatsApp or SMS based on channel setting.
+ * channel: 'whatsapp' | 'sms' | 'both' | 'email'
+ */
+export function sendByChannel(channel: string, phone: string, body: string): Promise<SmsResult> {
+  if (channel === 'whatsapp') return sendWhatsApp(phone, body);
+  return sendSms(phone, body);
 }

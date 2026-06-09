@@ -15,7 +15,7 @@ import { getSupabaseAdmin } from '../../_lib/supabase-admin';
 import { isAuthorizedCron } from '../../_lib/cron-auth';
 import { getModel } from '@/next/lib/config/llm';
 import { sendEmail } from '@/next/lib/email/send';
-import { sendSms } from '@/next/lib/comms/sms';
+import { sendByChannel } from '@/next/lib/comms/sms';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 min — may need to send many users
@@ -276,9 +276,9 @@ export async function GET(request: NextRequest) {
     let sent = false;
     const errors: string[] = [];
 
-    // Send SMS
-    if ((settings.channel === 'sms' || settings.channel === 'both') && profile?.phone_verified && profile?.phone_number) {
-      const smsResult = await sendSms(profile.phone_number, short);
+    // Send SMS / WhatsApp
+    if ((settings.channel === 'sms' || settings.channel === 'whatsapp' || settings.channel === 'both') && profile?.phone_verified && profile?.phone_number) {
+      const smsResult = await sendByChannel(settings.channel, profile.phone_number, short);
       if (smsResult.ok) {
         sent = true;
       } else {
