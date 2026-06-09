@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import '../../frontend/src/index.css';
-import '../../frontend/src/App.css';
+import './globals.css';
 
 export const metadata: Metadata = {
   title: 'CubiQo',

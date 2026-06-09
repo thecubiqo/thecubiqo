@@ -66,7 +66,13 @@ export default function DuoDashboardPage() {
       const data = await apiGet<{ projects: DuoProject[] }>('/api/duo/projects');
       setProjects(data.projects || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load Duo projects');
+      const msg = err instanceof Error ? err.message : '';
+      // 401 / "Authentication required" — treat as anon, not a hard error
+      if (/auth|401|sign/i.test(msg)) {
+        setError('__anon__');
+      } else {
+        setError(msg || 'Could not load Duo projects');
+      }
     } finally {
       setLoading(false);
     }
@@ -125,7 +131,15 @@ export default function DuoDashboardPage() {
         </div>
       </div>
 
-      {error && <div className="mb-4 rounded-lg border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">{error}</div>}
+      {error && error !== '__anon__' && (
+        <div className="mb-4 rounded-lg border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">{error}</div>
+      )}
+      {error === '__anon__' && (
+        <div className="mb-4 rounded-lg border border-slate-700 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
+          <span className="font-medium text-slate-100">Sign in to see your capsules.</span>{' '}
+          <Link href="/login" className="text-cyan-300 underline-offset-2 hover:underline">Sign in / Sign up →</Link>
+        </div>
+      )}
       {loading && <div className="text-sm text-slate-400">Loading capsules…</div>}
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
