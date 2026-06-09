@@ -1,11 +1,16 @@
 import Link from 'next/link';
 import { Bot, Waypoints, MessageSquare, PlugZap, ArrowRight, Sparkles } from 'lucide-react';
+import ParticleWaveBg from '../components/ParticleWaveBg';
 
 export default function HeroPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-[#050510] text-slate-100">
+    <div className="relative flex min-h-screen flex-col bg-[#050510] text-slate-100">
+      {/* Particle wave background */}
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <ParticleWaveBg />
+      </div>
       {/* Nav */}
-      <header className="flex h-14 items-center justify-between border-b border-slate-800/60 px-6">
+      <header className="relative z-10 flex h-14 items-center justify-between border-b border-slate-800/60 px-6">
         <div className="flex items-center gap-2.5">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-cyan-500/15 text-cyan-300">
             <Bot className="h-4 w-4" />
@@ -29,7 +34,7 @@ export default function HeroPage() {
       </header>
 
       {/* Hero */}
-      <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+      <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 text-center">
         <div className="relative max-w-3xl">
           {/* Capsule pill */}
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-500/8 px-4 py-1.5">
@@ -56,7 +61,7 @@ export default function HeroPage() {
               Start for free
             </Link>
             <Link
-              href="/duo"
+              href="/chat"
               className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-6 py-3 text-base text-slate-300 hover:border-slate-600 hover:bg-slate-900"
             >
               <Waypoints className="h-4 w-4" />
@@ -120,7 +125,7 @@ export default function HeroPage() {
         <p className="mt-6 text-xs text-slate-600">No credit card · works anonymously · sign up to save</p>
       </main>
 
-      <footer className="border-t border-slate-800/60 py-5 text-center text-xs text-slate-600">
+      <footer className="relative z-10 border-t border-slate-800/60 py-5 text-center text-xs text-slate-600">
         © 2026 CubiQo · <Link href="/login" className="hover:text-slate-400">Sign in</Link> · <Link href="/chat" className="hover:text-slate-400">Open app</Link>
       </footer>
     </div>
