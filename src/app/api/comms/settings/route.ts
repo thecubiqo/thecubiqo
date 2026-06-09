@@ -13,7 +13,7 @@ const patchSchema = z.object({
   active: z.boolean().optional(),
   wake_hour: z.number().int().min(0).max(23).optional(),
   timezone: z.string().min(1).max(80).optional(),
-  channel: z.enum(['sms', 'email', 'both']).optional(),
+  channel: z.enum(['sms', 'whatsapp', 'email', 'both']).optional(),
   briefing_config: z.object({
     tasks: z.boolean().optional(),
     calendar: z.boolean().optional(),
