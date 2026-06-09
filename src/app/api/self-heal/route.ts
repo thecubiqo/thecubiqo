@@ -10,12 +10,15 @@
  *   1. Fetch recent Vercel deployment logs (last N deployments)
  *   2. LLM analysis: detect error patterns, classify root cause
  *   3. Generate patch suggestion per failure
- *   4. Persist to self_heal_events table
+ *   4. Persist each proposal to the self_heal_proposals table
  *   5. Optionally open GitHub issue (if GITHUB_TOKEN set)
+ *
+ * NOTE: this is suggestion-only — it proposes fixes and (optionally) opens
+ * GitHub issues. It does NOT create branches or auto-apply patches.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminRequest } from '../_lib/supabase-admin';
+import { requireAdminRequest, getSupabaseAdmin } from '../_lib/supabase-admin';
 import { getModel } from '@/next/lib/config/llm';
 import { generateText } from 'ai';
 
@@ -208,6 +211,24 @@ export async function POST(request: NextRequest) {
 
   const results = await Promise.all(deployments.map(analyzeDeployment));
   const issues = results.filter(r => r.severity !== 'none');
+
+  // Persist each proposal so the admin self-heal queue is populated (was a no-op).
+  if (issues.length) {
+    const admin = getSupabaseAdmin();
+    if (admin) {
+      await admin.from('self_heal_proposals').insert(
+        issues.map(r => ({
+          issue_type: 'deployment_failure',
+          severity: r.severity,
+          diagnosis: r.rootCause || r.errorSummary || 'Deployment failure',
+          proposed_fix: r.patchSuggestion || null,
+          diff_summary: r.errorSummary || null,
+          state: 'proposed',
+          status: 'open',
+        }))
+      ).then(() => {}, () => {}); // best-effort; never fail the scan on a write error
+    }
+  }
 
   return NextResponse.json({
     scanned: deployments.length,

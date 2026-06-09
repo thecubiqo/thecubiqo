@@ -153,11 +153,19 @@ export function OnboardingWizard({ onComplete }: Props) {
     setLoading(true);
     setError('');
     try {
+      // Carry the anonymous pre-signup session into the new account (best-effort).
+      let anonSession: unknown;
+      try {
+        const { getSession } = await import('@/next/lib/memory/local-session');
+        const s = getSession();
+        if (s) anonSession = { signals: s.signals, last_summary: s.last_summary, permissions: s.permissions };
+      } catch { /* no local session — ignore */ }
+
       const result = await requestJson<{ ok: boolean; firstMessage?: string; redirectTo?: string }>(
         '/api/onboarding/complete',
         {
           method: 'POST',
-          body: JSON.stringify({ profile: buildApiProfile(), firstMessage }),
+          body: JSON.stringify({ profile: buildApiProfile(), firstMessage, anonSession }),
         }
       );
       await load();

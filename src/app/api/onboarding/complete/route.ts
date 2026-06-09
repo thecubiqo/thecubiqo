@@ -27,7 +27,17 @@ const completionSchema = z.object({
     .passthrough()
     .optional()
     .default({}),
-  firstMessage: z.string().max(4000).optional()
+  firstMessage: z.string().max(4000).optional(),
+  // Anonymous pre-signup session carried over from localStorage (best-effort).
+  anonSession: z.object({
+    signals: z.array(z.object({
+      keyword: z.string().max(80),
+      color: rgyColorSchema,
+      created_at: z.string().optional(),
+    })).max(10).optional(),
+    last_summary: z.string().max(400).nullable().optional(),
+    permissions: z.record(z.enum(['granted', 'denied', 'pending'])).optional(),
+  }).optional()
 });
 
 function driveList(primaryDrive: unknown): string[] {
@@ -184,6 +194,61 @@ export async function POST(request: NextRequest) {
     if (memoryError) {
       if (safeTableMissing(memoryError)) return missingMigrationResponse('onboarding-complete', 'memory_events');
       return NextResponse.json({ error: memoryError.message }, { status: 500 });
+    }
+  }
+
+  // ── Migrate anonymous local session (signals / permissions / summary) ────────
+  // Best-effort: failures here must never block onboarding completion.
+  const anon = parsed.data.anonSession;
+  if (anon) {
+    if (anon.signals?.length) {
+      const { canWriteSignalColor } = await import('@/next/app/api/_lib/rgy-age-gate');
+      const sigRows: Record<string, unknown>[] = [];
+      for (const sig of anon.signals) {
+        const kw = sig.keyword.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, ' ').slice(0, 80);
+        if (!kw) continue;
+        // HARD RULE: do not carry over red signals unless age-confirmed.
+        if (!(await canWriteSignalColor(auth.supabase, auth.user.id, sig.color))) continue;
+        sigRows.push({
+          user_id: auth.user.id,
+          color: sig.color,
+          keyword: kw,
+          normalized_keyword: kw.replace(/\s+/g, '-'),
+          intent_status: 'pending',
+          source: 'anonymous_migration',
+          display_state: 'visible',
+          shown_in_panel: true,
+          editable_by_user: true,
+          metadata: { migrated_at: now },
+        });
+      }
+      if (sigRows.length) await auth.supabase.from('signals').insert(sigRows);
+    }
+
+    if (anon.permissions) {
+      const permUpdate: Record<string, unknown> = { user_id: auth.user.id, updated_at: now };
+      for (const [k, v] of Object.entries(anon.permissions)) {
+        if (v === 'granted' || v === 'denied') {
+          permUpdate[k] = v;
+          if (v === 'granted') permUpdate[`${k}_granted_at`] = now;
+        }
+      }
+      if (Object.keys(permUpdate).length > 2) {
+        await auth.supabase.from('user_permissions').upsert(permUpdate, { onConflict: 'user_id' });
+      }
+    }
+
+    if (anon.last_summary?.trim()) {
+      await auth.supabase.from('memory_events').insert({
+        user_id: auth.user.id,
+        event_type: 'session_summary',
+        summary: truncate(`Pre-signup context: ${anon.last_summary.trim()}`),
+        keywords: [],
+        weight: 1,
+        source: 'anonymous_migration',
+        user_confirmed: false,
+        metadata: { type: 'anon_session_summary' },
+      });
     }
   }
 

@@ -856,6 +856,7 @@ export async function POST(request: NextRequest) {
         let seenTextDelta = false;
         let errorDetected = false;
         let started = false;
+        let accumulatedText = '';
 
         try {
           while (true) {
@@ -875,6 +876,13 @@ export async function POST(request: NextRequest) {
               seenTextDelta = true;
             }
             if (chunk.includes('"type":"start"')) started = true;
+
+            // Accumulate assistant text for an output-safety backstop (checked on finish).
+            if (chunk.includes('"type":"text-delta"')) {
+              for (const m of chunk.matchAll(/"delta":"((?:[^"\\]|\\.)*)"/g)) {
+                try { accumulatedText += JSON.parse(`"${m[1]}"`); } catch { /* ignore partial */ }
+              }
+            }
 
             controller.enqueue(value);
           }
@@ -914,6 +922,22 @@ export async function POST(request: NextRequest) {
             controller.enqueue(enc.encode(`data: {"type":"finish","finishReason":"stop"}\n\n`));
             controller.enqueue(enc.encode(`data: [DONE]\n\n`));
           }
+        }
+
+        // Output-safety backstop: scan the assembled reply once the stream ends.
+        // Token streaming means we can't unsend earlier tokens, so on a flag we
+        // append a safety notice and log it server-side. Input safety already
+        // blocks crisis/illegal pre-generation; this catches model output drift.
+        if (!errorDetected && accumulatedText.trim()) {
+          try {
+            const { checkOutputSafety } = await import('@/next/lib/safety/output-safety');
+            const safety = checkOutputSafety(accumulatedText);
+            if (safety.flagged) {
+              console.warn('[agent/stream] output-safety flagged:', safety.reason);
+              controller.enqueue(enc.encode(`data: {"type":"text-delta","delta":${JSON.stringify('\n\n⚠️ ' + safety.safeText)}}\n\n`));
+              controller.enqueue(enc.encode(`data: {"type":"finish","finishReason":"stop"}\n\n`));
+            }
+          } catch { /* non-fatal */ }
         }
 
         logPhaseAUsage({

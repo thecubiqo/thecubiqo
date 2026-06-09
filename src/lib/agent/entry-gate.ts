@@ -115,15 +115,29 @@ export async function createDuoProject(auth: AgentAuth, input: DuoGoalInput) {
   const taskPlans = buildTaskGraph(interpretation);
   const tasks = await createTasks(auth, project.id, traceId, taskPlans);
 
-  await auth.supabase.from('agent_job_queue').insert({
-    user_id: auth.user.id,
-    project_id: project.id,
-    trace_id: traceId,
-    job_type: 'duo_project_created',
-    state: 'queued',
-    payload: { taskCount: tasks.length, userId: auth.user.id },
-    idempotency_key: `project-created:${project.id}`
-  });
+  // Enqueue execute_task jobs for the initial READY wave — tasks with no
+  // dependencies. (Previously a single 'duo_project_created' job was enqueued,
+  // which the worker silently skips since it only runs 'execute_task' jobs, so
+  // nothing ever auto-executed.) Dependent tasks are NOT enqueued here to avoid
+  // out-of-order execution; the worker's budget + approval gates still apply.
+  const readyTitles = new Set(
+    taskPlans.filter(p => !(p.dependsOnTitles && p.dependsOnTitles.length)).map(p => p.title)
+  );
+  const readyJobs = tasks
+    .filter(t => readyTitles.has(t.title))
+    .map(t => ({
+      user_id: auth.user.id,
+      project_id: project.id,
+      task_id: t.id,
+      trace_id: traceId,
+      job_type: 'execute_task',
+      state: 'queued',
+      payload: { userId: auth.user.id, taskId: t.id },
+      idempotency_key: `execute-task:${t.id}`
+    }));
+  if (readyJobs.length) {
+    await auth.supabase.from('agent_job_queue').insert(readyJobs);
+  }
 
   await writeTimeline(auth, {
     projectId: project.id,
