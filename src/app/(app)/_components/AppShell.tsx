@@ -10,6 +10,7 @@ import {
   Menu,
   MessageSquare,
   PlugZap,
+  Send,
   Settings,
   Sparkles,
   Smartphone,
@@ -33,6 +34,7 @@ type NavItem = { href: string; label: string; icon: typeof MessageSquare };
 const primaryNav: NavItem[] = [
   { href: '/chat', label: 'Chat', icon: MessageSquare },
   { href: '/duo', label: 'DuoMode', icon: Waypoints },
+  { href: '/messenger', label: 'Messenger', icon: Send },
   { href: '/chatrooms', label: 'Chatrooms', icon: HeartHandshake },
   { href: '/connectors', label: 'Apps', icon: PlugZap }
 ];
