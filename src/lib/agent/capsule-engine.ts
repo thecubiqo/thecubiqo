@@ -289,7 +289,9 @@ Rules: Be specific to the domain. Reflect REAL task state (do not fabricate exte
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 
-async function persistView(auth: AgentAuth, project: TaskRow, view: DuoProjectView): Promise<string | null> {
+async function persistView(auth: AgentAuth, project: TaskRow, view: DuoProjectView, rich = true): Promise<string | null> {
+  // rich=true → LLM-synthesized metrics view; rich=false → deterministic fallback.
+  // The planning loop uses this flag to upgrade the fallback to a rich view once.
   const { data } = await auth.supabase
     .from('duo_artifacts')
     .insert({
@@ -300,7 +302,7 @@ async function persistView(auth: AgentAuth, project: TaskRow, view: DuoProjectVi
       artifact_type: 'view',
       title: view.headline,
       content: JSON.stringify(view),
-      metadata: { kind: 'view', generatedAt: view.generatedAt },
+      metadata: { kind: 'view', generatedAt: view.generatedAt, rich },
     })
     .select('id')
     .single();
@@ -336,7 +338,7 @@ export async function ensureInitialView(auth: AgentAuth, projectId: string): Pro
   const { data: tasks } = await auth.supabase
     .from('duo_tasks').select('*').eq('project_id', projectId).order('created_at');
   const view = buildFallbackView(project as TaskRow, (tasks || []) as TaskRow[]);
-  return persistView(auth, project as TaskRow, view);
+  return persistView(auth, project as TaskRow, view, false); // fallback — upgraded to rich on first tick
 }
 
 /** Emit a lightweight stream event so the open dashboard refreshes promptly. */
@@ -374,10 +376,29 @@ export async function advanceCapsule(auth: AgentAuth, projectId: string): Promis
     return { state: 'terminal', remaining: 0, viewUpdated: false, message: 'Project not found' };
   }
 
-  // Respect the plan-review gate: do not auto-run an unapproved plan — but still
-  // make sure the dashboard shows the planned tasks instead of an empty spinner.
+  // Respect the plan-review gate: do not auto-RUN an unapproved plan — but DO
+  // proactively build the metrics-rich dashboard so the owner sees real data the
+  // moment they give a capsule. We upgrade the instant fallback view to the rich
+  // LLM view once (metadata.rich), then hold it steady until approval.
   if (project.status === 'planning') {
-    await ensureInitialView(auth, projectId).catch(() => null);
+    const planLatest = await getLatestView(auth, projectId);
+    if (!planLatest || !planLatest.metadata?.rich) {
+      const { data: planTasks } = await auth.supabase
+        .from('duo_tasks').select('*').eq('project_id', projectId).eq('user_id', auth.user.id).order('created_at');
+      const view = await generateView(project as TaskRow, (planTasks || []) as TaskRow[], [], []);
+      view.status = view.status || 'Awaiting your approval';
+      await persistView(auth, project as TaskRow, view, true);
+      if (process.env.ANTHROPIC_API_KEY) {
+        await addProjectCost(auth, {
+          projectId,
+          traceId: project.trace_id || crypto.randomUUID(),
+          amountGbp: VIEW_GEN_COST_GBP,
+          reason: 'capsule live view (planning)',
+        }).catch(() => null);
+      }
+      await emitStream(auth, projectId, project.trace_id, 'artifact_created', { kind: 'view' });
+      return { state: 'awaiting_plan_approval', remaining: 0, viewUpdated: true, message: 'Planning dashboard ready' };
+    }
     return { state: 'awaiting_plan_approval', remaining: 0, viewUpdated: false, message: 'Plan awaiting your approval' };
   }
 

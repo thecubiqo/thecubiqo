@@ -303,7 +303,10 @@ export default function DuoProjectPage() {
   useEffect(() => {
     const status = payload?.project?.status;
     if (!id || !status) return;
-    if (['planning', 'done', 'shot', 'failed', 'cancelled', 'archived'].includes(status)) return;
+    // Heartbeat runs for active AND planning capsules: during planning the engine
+    // only refreshes the live dashboard (no task execution) so the metrics view
+    // materialises proactively. Only truly terminal states stop the heartbeat.
+    if (['done', 'shot', 'failed', 'cancelled', 'archived'].includes(status)) return;
 
     let stopped = false;
     let interval: ReturnType<typeof setInterval> | null = null;

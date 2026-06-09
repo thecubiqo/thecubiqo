@@ -25,7 +25,7 @@ import type { AgentAuth } from '@/next/lib/agent/common';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-const RECENCY_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+const RECENCY_WINDOW_MS = 6 * 60 * 60 * 1000; // 6 hours — keep capsules iterating in the background
 const MAX_PROJECTS = 20;
 
 export async function GET(request: NextRequest) {
@@ -37,10 +37,13 @@ export async function GET(request: NextRequest) {
   if (!admin) return NextResponse.json({ error: 'Supabase admin not configured' }, { status: 500 });
 
   const cutoff = new Date(Date.now() - RECENCY_WINDOW_MS).toISOString();
+  // 'active' → advance a task + refresh the view (iterate to better data).
+  // 'planning' → refresh the metrics dashboard only (no task execution), so a
+  // just-given capsule gets its rich dashboard even with the tab closed.
   const { data: projects, error } = await admin
     .from('duo_projects')
     .select('id,user_id,status,updated_at')
-    .eq('status', 'active')
+    .in('status', ['active', 'planning'])
     .gte('updated_at', cutoff)
     .order('updated_at', { ascending: false })
     .limit(MAX_PROJECTS);
