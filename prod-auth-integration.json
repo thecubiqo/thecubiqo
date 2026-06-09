@@ -1,0 +1,103 @@
+{
+  "startedAt": "2026-05-23T06:08:48.596Z",
+  "baseUrl": "https://www.cubiqo.ai",
+  "supabaseProject": "oszlufrjvibrdauuppzj.supabase.co",
+  "tempUserEmail": "codex-prod-uat-1779516528613-6jzdwi@example.invalid",
+  "steps": [
+    {
+      "name": "create_temp_user",
+      "at": "2026-05-23T06:08:49.117Z",
+      "ok": true,
+      "userId": "bf24e3c3-ef3e-46aa-baf6-abaf4e8b8b38"
+    },
+    {
+      "name": "sign_in_temp_user",
+      "at": "2026-05-23T06:08:49.281Z",
+      "ok": true
+    },
+    {
+      "name": "profile_get",
+      "at": "2026-05-23T06:08:50.444Z",
+      "ok": true,
+      "status": 200,
+      "ms": 1162,
+      "summary": {
+        "keys": [
+          "profile",
+          "aiProfile"
+        ],
+        "profilePresent": true
+      }
+    },
+    {
+      "name": "connectors_get",
+      "at": "2026-05-23T06:08:50.789Z",
+      "ok": true,
+      "status": 200,
+      "ms": 345,
+      "summary": {
+        "keys": [
+          "connectors"
+        ],
+        "connectorsCount": 34,
+        "profilePresent": false
+      }
+    },
+    {
+      "name": "duo_projects_get",
+      "at": "2026-05-23T06:08:51.160Z",
+      "ok": true,
+      "status": 200,
+      "ms": 370,
+      "summary": {
+        "keys": [
+          "projects"
+        ],
+        "projectsCount": 0,
+        "profilePresent": false
+      }
+    },
+    {
+      "name": "onboarding_progress_get",
+      "at": "2026-05-23T06:08:51.673Z",
+      "ok": true,
+      "status": 200,
+      "ms": 513,
+      "summary": {
+        "keys": [
+          "completedSteps",
+          "skippedSteps",
+          "steps",
+          "isComplete"
+        ],
+        "onboardingStepsCount": 6,
+        "profilePresent": false
+      }
+    },
+    {
+      "name": "onboarding_progress_post_skip",
+      "at": "2026-05-23T06:08:51.980Z",
+      "ok": true,
+      "status": 200,
+      "ms": 307
+    },
+    {
+      "name": "onboarding_progress_verify_write",
+      "at": "2026-05-23T06:08:52.199Z",
+      "ok": true,
+      "status": 200,
+      "ms": 219,
+      "skippedSteps": [
+        "tone_preference"
+      ]
+    }
+  ],
+  "cleanup": {
+    "ok": true,
+    "userId": "bf24e3c3-ef3e-46aa-baf6-abaf4e8b8b38",
+    "error": null,
+    "at": "2026-05-23T06:08:52.314Z"
+  },
+  "ok": true,
+  "finishedAt": "2026-05-23T06:08:52.314Z"
+}

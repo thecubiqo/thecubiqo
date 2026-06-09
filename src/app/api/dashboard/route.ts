@@ -68,9 +68,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
   }
 
-  const [conversations, keywords, journals] = await Promise.all([
+  const [conversations, keywords, signals, journals] = await Promise.all([
     countRows(supabase, 'conversation_events', data.user.id),
     countRows(supabase, 'user_activity_keywords', data.user.id),
+    countRows(supabase, 'signals', data.user.id),
     countRows(supabase, 'journal_entries', data.user.id)
   ]);
 
@@ -82,9 +83,11 @@ export async function GET(request: NextRequest) {
     stats: {
       conversations: conversations.count || 0,
       keywords: keywords.count || 0,
+      signals: signals.count || 0,
       journals: journals.count,
       journalMigrationPending: journals.missing,
-      warnings: [conversations, keywords, journals]
+      signalMigrationPending: signals.missing,
+      warnings: [conversations, keywords, signals, journals]
         .filter(item => item.error)
         .map(item => item.error)
     },
@@ -92,15 +95,8 @@ export async function GET(request: NextRequest) {
       auth: 'live',
       dailyJournal: journals.missing ? 'code_ready_db_pending' : 'live',
       dashboard: 'live',
-      jobHunter: 'staged',
-      launchpad: 'staged',
-      commerce: 'staged',
-      socialArmy: 'admin_gated',
-      agentEngine: 'design_gated',
-      coder: 'sandbox_gated',
-      browserAutomation: 'sandbox_gated',
-      selfHeal: 'read_only_first',
-      biometricsCamera: 'consent_gated'
+      rgySignals: signals.missing ? 'code_ready_db_pending' : 'live',
+      conversation: 'live'
     }
   });
 }

@@ -1,0 +1,57 @@
+{
+  "summary": [
+    {
+      "url": "https://www.cubiqo.ai/app",
+      "count": 20,
+      "success": 20,
+      "errors": 0,
+      "statuses": [
+        200
+      ],
+      "min": 160,
+      "p50": 198,
+      "p95": 270,
+      "max": 270
+    },
+    {
+      "url": "https://www.cubiqo.ai/connectors",
+      "count": 20,
+      "success": 20,
+      "errors": 0,
+      "statuses": [
+        200
+      ],
+      "min": 55,
+      "p50": 61,
+      "p95": 254,
+      "max": 254
+    },
+    {
+      "url": "https://www.cubiqo.ai/api/billing/status",
+      "count": 20,
+      "success": 20,
+      "errors": 0,
+      "statuses": [
+        200
+      ],
+      "min": 14114,
+      "p50": 14935,
+      "p95": 15440,
+      "max": 15440
+    },
+    {
+      "url": "https://www.cubiqo.ai/api/connectors",
+      "count": 20,
+      "success": 20,
+      "errors": 0,
+      "statuses": [
+        401
+      ],
+      "min": 14200,
+      "p50": 14216,
+      "p95": 15019,
+      "max": 15019
+    }
+  ],
+  "totalRequests": 80
+}

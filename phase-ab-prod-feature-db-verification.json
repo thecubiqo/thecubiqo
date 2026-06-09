@@ -1,0 +1,353 @@
+{
+  "identity": {
+    "dbHost": "aws-1-us-east-1.pooler.supabase.com",
+    "port": "6543",
+    "user": "postgres.oszlufrjvibrdauuppzj",
+    "supabaseUrl": "https://oszlufrjvibrdauuppzj.supabase.co",
+    "vercelEnv": "production",
+    "vercelTargetEnv": "production"
+  },
+  "summary": {
+    "featuresChecked": 12,
+    "featuresPassed": 2,
+    "featuresFailed": 10,
+    "seedChecks": 9,
+    "seedChecksPassed": 7,
+    "realtimeChecksPassed": 3,
+    "rlsTablesChecked": 80,
+    "policiesInspected": 98
+  },
+  "featureResults": [
+    {
+      "group": "Phase A Core",
+      "feature": "Profiles, preferences, permissions, signup migration support",
+      "passed": false,
+      "missingTables": [],
+      "missingColumns": [
+        "user_permissions.voice_unlocked",
+        "user_permissions.camera_permission",
+        "user_permissions.location_permission"
+      ],
+      "rlsIssues": []
+    },
+    {
+      "group": "Phase A Core",
+      "feature": "Memory events + user AI profile",
+      "passed": true,
+      "missingTables": [],
+      "missingColumns": [],
+      "rlsIssues": []
+    },
+    {
+      "group": "Phase A Core",
+      "feature": "Understanding, RGY classification, capsule boundary",
+      "passed": false,
+      "missingTables": [],
+      "missingColumns": [],
+      "rlsIssues": [
+        "capsule_briefings: no policies"
+      ]
+    },
+    {
+      "group": "Phase A Core",
+      "feature": "Safety, output safety, rate/cost tracking",
+      "passed": false,
+      "missingTables": [],
+      "missingColumns": [],
+      "rlsIssues": [
+        "output_safety_log: RLS disabled",
+        "user_api_usage: RLS disabled",
+        "api_usage_events: RLS disabled",
+        "background_trigger_failures: no policies"
+      ]
+    },
+    {
+      "group": "Phase A Core",
+      "feature": "Onboarding",
+      "passed": false,
+      "missingTables": [],
+      "missingColumns": [
+        "onboarding_progress.current_step"
+      ],
+      "rlsIssues": []
+    },
+    {
+      "group": "Phase A Commerce",
+      "feature": "Recommendation, affiliate, saved cards, ledger readiness",
+      "passed": false,
+      "missingTables": [],
+      "missingColumns": [
+        "affiliate_payout_batches.status",
+        "affiliate_payout_items.conversion_id"
+      ],
+      "rlsIssues": [
+        "affiliate_clicks: no policies",
+        "affiliate_conversions: no policies",
+        "affiliate_payout_batches: no policies",
+        "affiliate_payout_items: no policies",
+        "commercial_accounts: no policies",
+        "affiliate_partner_programs: no policies"
+      ]
+    },
+    {
+      "group": "Phase A Monetisation Later/Enabled",
+      "feature": "Stripe, Amazon, tracking consent support",
+      "passed": false,
+      "missingTables": [
+        "tracking_consent_events"
+      ],
+      "missingColumns": [
+        "tracking_consent_events.consent_state"
+      ],
+      "rlsIssues": [
+        "billing_events: RLS disabled",
+        "amazon_product_cache: RLS disabled"
+      ]
+    },
+    {
+      "group": "Phase B Duo",
+      "feature": "Duo projects, tasks, questions, blockers, approvals, artifacts",
+      "passed": false,
+      "missingTables": [],
+      "missingColumns": [
+        "duo_tasks.state"
+      ],
+      "rlsIssues": []
+    },
+    {
+      "group": "Phase B Agent",
+      "feature": "Agent queue, leases, dead letters, tool calls, budgets",
+      "passed": false,
+      "missingTables": [],
+      "missingColumns": [
+        "dead_letter_jobs.job_id",
+        "budget_policies.daily_budget_gbp",
+        "budget_events.api_cost_gbp"
+      ],
+      "rlsIssues": []
+    },
+    {
+      "group": "Phase B Connectors",
+      "feature": "Connector registry, user connectors, secrets, OAuth, extension",
+      "passed": false,
+      "missingTables": [],
+      "missingColumns": [
+        "platform_automation_policy.requires_approval"
+      ],
+      "rlsIssues": [
+        "connector_registry: RLS disabled"
+      ]
+    },
+    {
+      "group": "Phase B Awareness",
+      "feature": "Repo index, self reporting, self healing, security",
+      "passed": false,
+      "missingTables": [
+        "security_rate_limits",
+        "security_ip_blocklist"
+      ],
+      "missingColumns": [
+        "self_heal_proposals.status",
+        "security_rate_limits.scope",
+        "security_ip_blocklist.reason"
+      ],
+      "rlsIssues": [
+        "repo_index_runs: RLS disabled",
+        "repo_index_files: RLS disabled"
+      ]
+    },
+    {
+      "group": "Platform / Focus",
+      "feature": "Surface sessions, notifications, BYOD, social, media generation, analytics",
+      "passed": true,
+      "missingTables": [],
+      "missingColumns": [],
+      "rlsIssues": []
+    }
+  ],
+  "seedResults": [
+    {
+      "name": "connector_registry seeded platforms",
+      "min": 25,
+      "count": 34,
+      "passed": true
+    },
+    {
+      "name": "Phase 1 connector platforms",
+      "min": 10,
+      "count": 16,
+      "passed": true
+    },
+    {
+      "name": "affiliate_links seeded partners",
+      "min": 10,
+      "count": 15,
+      "passed": true
+    },
+    {
+      "name": "system_prompts active base",
+      "min": 1,
+      "count": 0,
+      "passed": false
+    },
+    {
+      "name": "safety_patterns active rows",
+      "min": 1,
+      "count": 12,
+      "passed": true
+    },
+    {
+      "name": "tool_capabilities rows",
+      "min": 1,
+      "count": 0,
+      "passed": false
+    },
+    {
+      "name": "platform_automation_policy rows",
+      "min": 1,
+      "count": 12,
+      "passed": true
+    },
+    {
+      "name": "rgy_rules rows",
+      "min": 1,
+      "count": 5,
+      "passed": true
+    },
+    {
+      "name": "duo_acceptance_tests rows",
+      "min": 1,
+      "count": 20,
+      "passed": true
+    }
+  ],
+  "realtimeResults": [
+    {
+      "table": "duo_projects",
+      "passed": true
+    },
+    {
+      "table": "duo_tasks",
+      "passed": true
+    },
+    {
+      "table": "stream_events",
+      "passed": true
+    }
+  ],
+  "sensitivePolicyPosture": [
+    {
+      "schemaname": "public",
+      "tablename": "connector_secrets",
+      "policyname": "No direct user access to connector secrets",
+      "cmd": "ALL",
+      "qual": "false",
+      "with_check": "false"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "connector_secrets",
+      "policyname": "No user access to connector secrets",
+      "cmd": "ALL",
+      "qual": "false",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "extension_sessions",
+      "policyname": "No direct user access to extension sessions",
+      "cmd": "ALL",
+      "qual": "false",
+      "with_check": "false"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "oauth_states",
+      "policyname": "No direct user access to oauth states",
+      "cmd": "ALL",
+      "qual": "false",
+      "with_check": "false"
+    }
+  ],
+  "indexCounts": {
+    "action_approvals": 7,
+    "affiliate_clicks": 2,
+    "affiliate_conversions": 4,
+    "affiliate_links": 3,
+    "affiliate_partner_programs": 2,
+    "affiliate_payout_batches": 1,
+    "affiliate_payout_items": 1,
+    "agent_job_queue": 6,
+    "agent_tool_calls": 3,
+    "agent_worker_leases": 2,
+    "amazon_product_cache": 2,
+    "analytics_events": 3,
+    "api_usage_events": 5,
+    "background_trigger_failures": 3,
+    "billing_events": 3,
+    "budget_events": 2,
+    "budget_policies": 2,
+    "byod_connections": 4,
+    "byod_sync_log": 3,
+    "capsule_briefings": 4,
+    "chatroom_rgy_aggregates": 1,
+    "chatroom_rgy_snapshots": 4,
+    "commercial_accounts": 1,
+    "connector_registry": 4,
+    "connector_secrets": 2,
+    "dead_letter_jobs": 1,
+    "duo_access_requests": 2,
+    "duo_approvals": 1,
+    "duo_artifacts": 3,
+    "duo_blockers": 2,
+    "duo_dashboard_widgets": 1,
+    "duo_external_refs": 1,
+    "duo_outcomes": 1,
+    "duo_projects": 4,
+    "duo_questions": 2,
+    "duo_task_edges": 3,
+    "duo_tasks": 5,
+    "duo_timeline_events": 2,
+    "duo_tool_calls": 3,
+    "extension_instructions": 2,
+    "extension_sessions": 3,
+    "job_runs": 2,
+    "journal_entries": 4,
+    "media_generation_queue": 4,
+    "media_generations": 4,
+    "memory_events": 5,
+    "notification_preferences": 1,
+    "notifications": 4,
+    "oauth_states": 2,
+    "onboarding_events": 3,
+    "onboarding_progress": 3,
+    "output_safety_log": 1,
+    "platform_automation_policy": 3,
+    "profiles": 6,
+    "push_notifications": 2,
+    "push_subscriptions": 3,
+    "recommendation_events": 2,
+    "repo_index_files": 2,
+    "repo_index_runs": 1,
+    "rgy_rules": 1,
+    "rgy_status": 2,
+    "rgy_transitions": 3,
+    "safety_patterns": 1,
+    "saved_recommendations": 2,
+    "security_events": 2,
+    "self_heal_proposals": 1,
+    "self_reports": 2,
+    "signals": 5,
+    "social_activity_feed": 3,
+    "social_connections": 4,
+    "social_reactions": 4,
+    "stream_events": 3,
+    "subscriptions": 4,
+    "surface_sessions": 4,
+    "tool_capabilities": 2,
+    "user_ai_profile": 2,
+    "user_api_usage": 1,
+    "user_connectors": 4,
+    "user_permissions": 1
+  }
+}
