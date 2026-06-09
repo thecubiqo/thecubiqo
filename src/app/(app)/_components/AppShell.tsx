@@ -133,13 +133,23 @@ function LeftNavContent({
             {snapshot.rgy?.score != null ? ` · ${snapshot.rgy.score}` : ''}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={onSignOut}
-          className="w-full rounded-lg border border-slate-800 px-3 py-2 text-left text-slate-300 hover:bg-slate-900"
-        >
-          {email ? `Sign out · ${email.split('@')[0]}` : 'Sign out'}
-        </button>
+        {email ? (
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="w-full rounded-lg border border-slate-800 px-3 py-2 text-left text-slate-300 hover:bg-slate-900"
+          >
+            {`Sign out · ${email.split('@')[0]}`}
+          </button>
+        ) : (
+          <Link
+            href="/login"
+            onClick={onNavigate}
+            className="block w-full rounded-lg border border-cyan-400/40 bg-cyan-500/10 px-3 py-2 text-center font-medium text-cyan-200 hover:bg-cyan-500/20"
+          >
+            Sign in / Sign up
+          </Link>
+        )}
       </div>
     </>
   );

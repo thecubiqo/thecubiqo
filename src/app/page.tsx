@@ -1,27 +1,8 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { getBrowserSupabase } from '@/next/lib/supabase-browser';
-
-// Root entry: route into the (new) Next app — /chat when signed in, /login if not.
-// (Previously rendered the legacy CRA via CubiQoNextShell.)
+// Root entry: launch straight into the app. CubiQo is usable anonymously
+// (try-before-signup — chat + capsules work without auth), and signing in is
+// optional from inside the app. Logged-in users keep their session on /chat.
 export default function HomePage() {
-  const router = useRouter();
-  useEffect(() => {
-    const supabase = getBrowserSupabase();
-    if (!supabase) {
-      router.replace('/login');
-      return;
-    }
-    supabase.auth.getSession().then(({ data }) => {
-      router.replace(data.session ? '/chat' : '/login');
-    });
-  }, [router]);
-
-  return (
-    <div className="grid min-h-screen place-items-center bg-neutral-950 text-sm text-slate-400">
-      Loading CubiQo…
-    </div>
-  );
+  redirect('/chat');
 }
