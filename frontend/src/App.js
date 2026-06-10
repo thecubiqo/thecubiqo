@@ -3747,9 +3747,15 @@ const DemoPage = () => {
   const [projectIds, setProjectIds] = useState(() => {
     try { return JSON.parse(localStorage.getItem('cubiqo_project_ids') || '{}'); } catch { return {}; }
   });
+  // Duo API calls are auth-required — every fetch sends the session token.
+  const duoHeaders = () => {
+    const headers = { 'Content-Type': 'application/json' };
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    return headers;
+  };
   const refreshDuoState = async (projectId, taskId) => {
     try {
-      const res = await fetch(`/api/duo/projects/${projectId}`);
+      const res = await fetch(`/api/duo/projects/${projectId}`, { headers: duoHeaders() });
       const json = await res.json();
       if (!json.error) setDashboardState(s => ({ ...s, [taskId]: json }));
     } catch {}
@@ -3759,20 +3765,30 @@ const DemoPage = () => {
     const taskId = String(task.id);
     setDashboardLoading(true);
     try {
+      if (!accessToken) {
+        // Never spin forever — say exactly what is needed.
+        setDashboardState(s => ({ ...s, [taskId]: { error: 'Sign in to launch capsules — your dashboards live with your account.' } }));
+        return;
+      }
       let projectId = projectIds[taskId];
       if (!projectId) {
-        const res = await fetch('/api/duo/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ goal: task.label }) });
-        const json = await res.json();
-        if (json.project) {
-          projectId = json.project.id;
-          const newMap = { ...projectIds, [taskId]: projectId };
-          setProjectIds(newMap);
-          localStorage.setItem('cubiqo_project_ids', JSON.stringify(newMap));
-          if (json.opening_message) setDashboardMessages(m => ({ ...m, [taskId]: [{ role: 'assistant', content: json.opening_message }] }));
+        const res = await fetch('/api/duo/projects', { method: 'POST', headers: duoHeaders(), body: JSON.stringify({ goal: task.label }) });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || json.error || !json.project) {
+          setDashboardState(s => ({ ...s, [taskId]: { error: json.error || `Could not start this capsule (HTTP ${res.status}). Try again.` } }));
+          return;
         }
+        projectId = json.project.id;
+        const newMap = { ...projectIds, [taskId]: projectId };
+        setProjectIds(newMap);
+        localStorage.setItem('cubiqo_project_ids', JSON.stringify(newMap));
+        if (json.opening_message) setDashboardMessages(m => ({ ...m, [taskId]: [{ role: 'assistant', content: json.opening_message }] }));
       }
       if (projectId) await refreshDuoState(projectId, taskId);
-    } catch (e) { console.error('openDashboard', e); }
+    } catch (e) {
+      console.error('openDashboard', e);
+      setDashboardState(s => ({ ...s, [taskId]: { error: 'Connection error while starting the capsule — try again.' } }));
+    }
     finally { setDashboardLoading(false); }
   };
   const closeDashboard = () => setActiveDashboard(null);
@@ -3785,7 +3801,7 @@ const DemoPage = () => {
     setDashboardInput('');
     setDashboardLoading(true);
     try {
-      const res = await fetch(`/api/duo/projects/${projectId}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, ...extras }) });
+      const res = await fetch(`/api/duo/projects/${projectId}/chat`, { method: 'POST', headers: duoHeaders(), body: JSON.stringify({ message, ...extras }) });
       const json = await res.json();
       if (json.reply) setDashboardMessages(m => ({ ...m, [taskId]: [...(m[taskId] || []), { role: 'assistant', content: json.reply }] }));
       await refreshDuoState(projectId, taskId);
@@ -6082,6 +6098,7 @@ const DemoPage = () => {
         {activeDashboard && (() => {
           const taskId = String(activeDashboard.id);
           const raw = dashboardState[taskId];
+          const dashError = raw?.error || null;
           const msgs = dashboardMessages[taskId] || [];
           const tasks = raw?.tasks || [];
           const questions = (raw?.questions || []).filter(q => q.status === 'pending' || q.is_blocking);
@@ -6097,14 +6114,20 @@ const DemoPage = () => {
                 <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>DuoMode</span>
                 <span style={{ flex: 1, color: '#fff', fontSize: '0.92rem', fontWeight: 600 }}>{activeDashboard.label}</span>
                 {dashboardLoading && <span style={{ color: '#f59e0b', fontSize: '0.68rem', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700 }}>● Working</span>}
-                {!dashboardLoading && raw && <span style={{ color: '#22c55e', fontSize: '0.68rem', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700 }}>● Active</span>}
+                {!dashboardLoading && dashError && <span style={{ color: '#ef4444', fontSize: '0.68rem', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700 }}>● Blocked</span>}
+                {!dashboardLoading && raw && !dashError && <span style={{ color: '#22c55e', fontSize: '0.68rem', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700 }}>● Active</span>}
                 <button onClick={closeDashboard} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}>×</button>
               </div>
               <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
                 <div style={{ width: 240, borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
                   <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.3)', fontSize: '0.64rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>Chat</div>
                   <div style={{ flex: 1, overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {msgs.length === 0 && !dashboardLoading && <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.75rem', textAlign: 'center', marginTop: 20 }}>Loading your plan…</div>}
+                    {dashError && (
+                      <div style={{ margin: '16px 4px 0', padding: '11px 12px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.07)', color: 'rgba(252,165,165,0.9)', fontSize: '0.75rem', lineHeight: 1.55 }}>
+                        {dashError}
+                      </div>
+                    )}
+                    {!dashError && msgs.length === 0 && !dashboardLoading && <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.75rem', textAlign: 'center', marginTop: 20 }}>Loading your plan…</div>}
                     {msgs.map((msg, i) => (
                       <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
                         <div style={{ maxWidth: '90%', padding: '8px 11px', borderRadius: msg.role === 'user' ? '12px 12px 3px 12px' : '12px 12px 12px 3px', background: msg.role === 'user' ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: msg.role === 'user' ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.7)', fontSize: '0.77rem', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{msg.content}</div>
@@ -6151,7 +6174,7 @@ const DemoPage = () => {
                         </div>
                       </div>
                     ))}
-                    {tasks.length === 0 && !dashboardLoading && <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.77rem', textAlign: 'center', marginTop: 20 }}>Plan loading…</div>}
+                    {tasks.length === 0 && !dashboardLoading && <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.77rem', textAlign: 'center', marginTop: 20 }}>{dashError ? 'No plan — see the message in Chat.' : 'Plan loading…'}</div>}
                   </div>
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
