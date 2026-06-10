@@ -200,23 +200,23 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
     const glowMap = makeGlowSprite();
 
     scene.add(new THREE.AmbientLight("#ffffff", 0.18));
-    const leftLight = new THREE.PointLight("#5EEBFF", 12, 22);
+    const leftLight = new THREE.PointLight("#00CCFF", 14, 22);
     leftLight.position.set(-6.8, 1.2, 4.8);
     scene.add(leftLight);
-    const coreLight = new THREE.PointLight("#8D9BFF", 8, 18);
+    const coreLight = new THREE.PointLight("#6600FF", 10, 18);
     coreLight.position.set(0, 0, 3.8);
     scene.add(coreLight);
-    const rightLight = new THREE.PointLight("#FF77E8", 12, 22);
+    const rightLight = new THREE.PointLight("#FF00CC", 14, 22);
     rightLight.position.set(6.8, 1.2, 4.8);
     scene.add(rightLight);
 
-    const leftA = new THREE.Color("#5EEBFF");
-    const leftB = new THREE.Color("#72CFFF");
-    const rightA = new THREE.Color("#D29AFF");
-    const rightB = new THREE.Color("#FF77E8");
-    const purple = new THREE.Color("#A56DFF");
-    const livingGreen = new THREE.Color("#8D9BFF");
-    const signalGold = new THREE.Color("#D29AFF");
+    const leftA = new THREE.Color("#00CCFF");
+    const leftB = new THREE.Color("#0088FF");
+    const rightA = new THREE.Color("#CC44FF");
+    const rightB = new THREE.Color("#FF22EE");
+    const purple = new THREE.Color("#6622FF");
+    const livingGreen = new THREE.Color("#0099FF");
+    const signalGold = new THREE.Color("#BB44FF");
 
     const waveSystems = [];
     const filamentSystems = [];
@@ -514,7 +514,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
       const turn = i / Math.max(cuboidFrameCount - 1, 1);
       const size = 2.04 - Math.sin(turn * Math.PI) * 0.08;
       const geo = new THREE.EdgesGeometry(new THREE.BoxGeometry(size, size, size));
-      const lineColor = new THREE.Color("#8D9BFF").lerp(new THREE.Color("#D29AFF"), turn * 0.72);
+      const lineColor = new THREE.Color("#5533FF").lerp(new THREE.Color("#CC44FF"), turn * 0.72);
       const mat = new THREE.LineBasicMaterial({
         color: lineColor,
         transparent: true,
@@ -538,7 +538,7 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
     const shellPositions = new Float32Array(shellParticlesCount * 3);
     const shellColors = new Float32Array(shellParticlesCount * 3);
     const shellSeeds = new Float32Array(shellParticlesCount);
-    const shellColor = new THREE.Color("#D29AFF");
+    const shellColor = new THREE.Color("#AA33FF");
     for (let i = 0; i < shellParticlesCount; i++) {
       const idx = i * 3;
       const face = Math.floor(Math.random() * 6);
@@ -584,9 +584,9 @@ export default function ParticleWaveHD({ isVoiceMode, audioLevel = 0, presentati
     scene.add(voiceSignalGroup);
     const signalBars = [];
     const bridgeWaves = [];
-    const ruby = new THREE.Color("#FF77E8");
-    const teal = new THREE.Color("#5EEBFF");
-    const paleYellow = new THREE.Color("#D29AFF");
+    const ruby = new THREE.Color("#FF00CC");
+    const teal = new THREE.Color("#00CCFF");
+    const paleYellow = new THREE.Color("#AA44FF");
     const mix = new THREE.Color();
     const signalBarCount = 44;
     for (let i = 0; i < signalBarCount; i++) {
