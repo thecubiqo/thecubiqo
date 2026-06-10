@@ -1,6 +1,5 @@
-import { redirect } from 'next/navigation';
+import CubiQoNextShell from '@/next/components/CubiQoNextShell';
 
-// Legacy alias → new app. (Was the CRA shell.)
 export default function AppPage() {
-  redirect('/chat');
+  return <CubiQoNextShell />;
 }

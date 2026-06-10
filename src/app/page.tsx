@@ -9,7 +9,7 @@ export default function LandingPage() {
   const router = useRouter();
 
   return (
-    <div className="landing-page" onClick={() => router.push('/chat')}>
+    <div className="landing-page" onClick={() => router.push('/app')}>
       <div className="landing-visual" aria-hidden="true">
         <ParticleWaveHD isVoiceMode={false} audioLevel={0} />
       </div>
