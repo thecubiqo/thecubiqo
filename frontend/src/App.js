@@ -3708,24 +3708,31 @@ const DemoPage = () => {
   const [jobPipelineOpen, setJobPipelineOpen] = useState(false);
   const [duoModeOpen, setDuoModeOpen] = useState(false);
   const [duoModeCapsule, setDuoModeCapsule] = useState(null);
+  // Feature overlay — Next-app pages presented as overlays INSIDE /app.
+  // Nothing in this UI redirects; every screen is an overlay on the hero.
+  const [featureOverlay, setFeatureOverlay] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const [keywords, setKeywords] = useState({ green: [], yellow: [], red: [] });
   const [signals, setSignals] = useState([]);
   const [signalSyncStatus, setSignalSyncStatus] = useState('');
   const [selectedKeywordColor, setSelectedKeywordColor] = useState('green');
 
-  // ── Agentic Dashboard ─────────────────────────────────────────────────────
-  const [agentDashboardOpen, setAgentDashboardOpen] = useState(false);
+  // ── Agentic Dashboards ────────────────────────────────────────────────────
+  // Dashboards exist only after a capsule is launched (the RGY capsule is the
+  // door to agentic — there is no separate tab and no manual "add dashboard").
   const [agentTasks, setAgentTasks] = useState(() => {
     try { return JSON.parse(localStorage.getItem('cubiqo_agent_tasks') || '[]'); } catch { return []; }
   });
-  const [agentTaskInput, setAgentTaskInput] = useState('');
-  const addAgentTask = (label) => {
-    if (!label.trim()) return;
-    const tasks = [...agentTasks, { id: Date.now(), label: label.trim(), color: null }];
+  const launchCapsuleDashboard = (label, colorHex) => {
+    const clean = String(label || '').trim();
+    if (!clean) return null;
+    const existing = agentTasks.find(t => t.label.toLowerCase() === clean.toLowerCase());
+    if (existing) return existing;
+    const task = { id: Date.now(), label: clean, color: colorHex || null };
+    const tasks = [...agentTasks, task];
     setAgentTasks(tasks);
     localStorage.setItem('cubiqo_agent_tasks', JSON.stringify(tasks));
-    setAgentTaskInput('');
+    return task;
   };
   const removeAgentTask = (id) => {
     const tasks = agentTasks.filter(t => t.id !== id);
@@ -5873,14 +5880,13 @@ const DemoPage = () => {
             };
             const navHover = e => { e.currentTarget.style.background = trayTheme.cardHover; };
             const navOut = e => { e.currentTarget.style.background = trayTheme.card; };
-            // Internal BrowserRouter only defines /, /app, /auth/callback,
-            // /dashboard, /journal, /actions — every other path lives in the
-            // Next app and needs a full page load, or the client renders blank.
+            // No redirects, ever: internal routes use the in-app router; every
+            // Next-app feature opens as an OVERLAY on top of the hero.
             const INTERNAL_ROUTES = ['/', '/app', '/auth/callback', '/dashboard', '/journal', '/actions'];
             const go = (path) => {
               setLeftPanelOpen(false);
               if (INTERNAL_ROUTES.includes(path)) navigate(path);
-              else window.location.assign(path);
+              else setFeatureOverlay(path);
             };
             return (
               <>
@@ -6176,32 +6182,9 @@ const DemoPage = () => {
         {/* RIGHT PANEL */}
         <div data-testid="signal-match-panel" style={{ ...panelBase, right: '28px', width: '372px', maxWidth: 'calc(100vw - 56px)', transform: rightPanelOpen ? 'translateX(0)' : 'translateX(130%)', opacity: rightPanelOpen ? 1 : 0, pointerEvents: rightPanelOpen ? 'auto' : 'none', padding: '28px 22px' }}>
 
-          {/* Panel toggle: RGY | Agentic */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            <button onClick={() => setAgentDashboardOpen(false)} style={{ flex: 1, padding: '6px 0', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase', background: !agentDashboardOpen ? 'rgba(255,255,255,0.12)' : 'transparent', color: !agentDashboardOpen ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'all 0.2s' }}>RGY</button>
-            <button onClick={() => setAgentDashboardOpen(true)} style={{ flex: 1, padding: '6px 0', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase', background: agentDashboardOpen ? 'rgba(255,255,255,0.12)' : 'transparent', color: agentDashboardOpen ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'all 0.2s' }}>Agentic</button>
-          </div>
-
-          {agentDashboardOpen ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.64rem', letterSpacing: 2.4, textTransform: 'uppercase', fontWeight: 700, marginBottom: 14 }}>Agentic Dashboard</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 18 }}>
-                {agentTasks.length === 0 && <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.78rem', padding: '16px 0', textAlign: 'center' }}>No dashboards yet. Add one below.</div>}
-                {agentTasks.map(task => (
-                  <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 13px', borderRadius: 11, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: task.color || 'rgba(255,255,255,0.18)', flexShrink: 0 }} />
-                    <span style={{ flex: 1, color: 'rgba(255,255,255,0.85)', fontSize: '0.81rem', fontWeight: 500 }}>{task.label}</span>
-                    <span onClick={() => openDashboard(task)} style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', cursor: 'pointer', padding: '2px 5px' }}>→</span>
-                    <button onClick={e => { e.stopPropagation(); removeAgentTask(task.id); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.15)', cursor: 'pointer', fontSize: '0.9rem', padding: '0 2px' }}>×</button>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 7 }}>
-                <input value={agentTaskInput} onChange={e => setAgentTaskInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addAgentTask(agentTaskInput)} placeholder="Add a dashboard…" style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 9, padding: '8px 12px', color: '#fff', fontSize: '0.79rem', outline: 'none' }} />
-                <button onClick={() => addAgentTask(agentTaskInput)} style={{ padding: '8px 13px', borderRadius: 9, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', cursor: 'pointer', fontSize: '1rem' }}>+</button>
-              </div>
-            </div>
-          ) : (<>
+          {/* The RGY capsule IS the door to agentic — no separate tab.
+              Launched dashboards appear below the capsule entry points. */}
+          <>
 
           {/* Signal Aura Indicator (Replaces Tabs) */}
           <div style={{ position: 'relative', height: '52px', marginBottom: 14, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -6253,7 +6236,13 @@ const DemoPage = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
             <button
               type="button"
-              onClick={() => { setRightPanelOpen(false); window.location.assign('/duo'); }}
+              onClick={() => {
+                // Launching the capsule IS the door to agentic: create (or
+                // reuse) its dashboard and open the duo overlay — no redirect.
+                setRightPanelOpen(false);
+                const task = launchCapsuleDashboard(titleizeSignal(visibleSignal?.keyword || activeColor), active.hex);
+                if (task) openDashboard(task);
+              }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
                 padding: '11px 12px', borderRadius: 14,
@@ -6266,13 +6255,13 @@ const DemoPage = () => {
             >
               <span>
                 <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, letterSpacing: 0.4 }}>DuoMode</span>
-                <span style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: '0.64rem', marginTop: 2 }}>Capsules · tasks</span>
+                <span style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: '0.64rem', marginTop: 2 }}>Launch capsule</span>
               </span>
               <span style={{ color: active.hex, fontSize: '0.85rem' }}>→</span>
             </button>
             <button
               type="button"
-              onClick={() => { setRightPanelOpen(false); window.location.assign('/chatrooms'); }}
+              onClick={() => { setRightPanelOpen(false); setFeatureOverlay('/chatrooms'); }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
                 padding: '11px 12px', borderRadius: 14,
@@ -6290,6 +6279,23 @@ const DemoPage = () => {
               <span style={{ color: active.hex, fontSize: '0.85rem' }}>→</span>
             </button>
           </div>
+
+          {/* Launched dashboards — exist only after a capsule launch */}
+          {agentTasks.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.64rem', letterSpacing: 2.4, textTransform: 'uppercase', fontWeight: 700, marginBottom: 8 }}>Dashboards</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {agentTasks.map(task => (
+                  <div key={task.id} onClick={() => { setRightPanelOpen(false); openDashboard(task); }} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 13px', borderRadius: 11, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: task.color || 'rgba(255,255,255,0.18)', flexShrink: 0 }} />
+                    <span style={{ flex: 1, color: 'rgba(255,255,255,0.85)', fontSize: '0.81rem', fontWeight: 500 }}>{task.label}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', padding: '2px 5px' }}>→</span>
+                    <button onClick={e => { e.stopPropagation(); removeAgentTask(task.id); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.15)', cursor: 'pointer', fontSize: '0.9rem', padding: '0 2px' }}>×</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={{ flex: 1, overflowY: 'auto', paddingRight: 2 }}>
             <div style={{ display: 'grid', gap: 10 }}>
@@ -6466,7 +6472,7 @@ const DemoPage = () => {
           <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '20px 0' }} />
 
           {/* Philosophy note removed as per request */}
-          </>)}{/* end RGY/Agentic conditional */}
+          </>
         </div>
 
         {/* MODALS */}
@@ -6654,6 +6660,18 @@ const DemoPage = () => {
             token={accessToken || null}
             onClose={() => { setDuoModeOpen(false); setDuoModeCapsule(null); }}
           />
+        )}
+
+        {/* FEATURE OVERLAY — Next-app pages hosted as overlays (no redirects) */}
+        {featureOverlay && (
+          <div onClick={() => setFeatureOverlay(null)} style={{ position: 'fixed', inset: 0, zIndex: 360, background: 'rgba(2,2,8,0.86)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 26, animation: 'fadeIn 0.25s ease-out' }}>
+            <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: 'min(1100px, 100%)', height: '100%', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', background: '#050510', boxShadow: '0 40px 100px rgba(0,0,0,0.7)' }}>
+              <button onClick={() => setFeatureOverlay(null)} aria-label="Close overlay" style={{ position: 'absolute', top: 12, right: 12, zIndex: 2, width: 34, height: 34, borderRadius: 12, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(10,10,18,0.85)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={16} />
+              </button>
+              <iframe src={`${featureOverlay}${featureOverlay.includes('?') ? '&' : '?'}embed=1`} title="CubiQo" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />
+            </div>
+          </div>
         )}
       </div>
       <style>{`
