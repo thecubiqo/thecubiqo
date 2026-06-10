@@ -260,15 +260,14 @@ test('Sprint 4 app and auth screens are present and bound to canonical APIs', ()
 });
 
 test('Sprint 5 shared components and Duo stream hook are present and API-bound', () => {
+  // ApprovalGate/RGYBadge/ChatroomRGYBar/WaveformAnimator were removed as dead
+  // code (zero importers) — CubiQoOverlays renders approvals inline and pages
+  // render RGY tones inline. Only live components are asserted here.
   const wizard = read('src/components/onboarding/OnboardingWizard.tsx');
   const taskGraph = read('src/components/duo/TaskGraph.tsx');
   const fidelity = read('src/components/duo/FidelityReport.tsx');
-  const approval = read('src/components/duo/ApprovalGate.tsx');
   const artifact = read('src/components/duo/ArtifactPane.tsx');
-  const rgyBadge = read('src/components/rgy/RGYBadge.tsx');
-  const rgyBar = read('src/components/rgy/ChatroomRGYBar.tsx');
   const bell = read('src/components/notifications/NotificationBell.tsx');
-  const waveform = read('src/components/waveform/WaveformAnimator.tsx');
   const duoStream = read('src/hooks/useDuoStream.ts');
   const duoProject = read('src/app/(app)/duo/[id]/page.tsx');
 
@@ -278,18 +277,13 @@ test('Sprint 5 shared components and Duo stream hook are present and API-bound',
   assert.match(taskGraph, /approval_required/);
   assert.match(taskGraph, /can_parallelize/);
   assert.match(fidelity, /score >= 80/);
-  assert.match(approval, /No automatic undo/);
   // Artifact iframe must be FULLY sandboxed: the sandbox attribute grants no
   // allow-* token (matches the empty attribute, not the explanatory comment).
   assert.match(artifact, /sandbox=""/);
   assert.doesNotMatch(artifact, /sandbox="[^"]*allow/);
   assert.match(artifact, /<code>\{content\}<\/code>/);
-  assert.match(rgyBadge, /green/);
-  assert.match(rgyBar, /healthScore/);
   assert.match(bell, /\/api\/notifications\?limit=/);
   assert.match(bell, /\/api\/notifications\/\$\{id\}\/read/);
-  assert.match(waveform, /getToneForMode/);
-  assert.match(waveform, /barCount = 32/);
   assert.match(duoStream, /\/api\/duo\/stream\/\$\{projectId\}/);
   assert.match(duoStream, /authHeaders/);
   assert.match(duoProject, /TaskGraph/);
@@ -560,13 +554,7 @@ test('Focus runbook referenced implementation files are present', () => {
     'src/app/api/proactive/nudges/route.ts',
     'src/app/api/proactive/nudges/[id]/dismiss/route.ts',
     'src/app/api/tts/transcribe/route.ts',
-    'src/components/chat/VoiceInput.tsx',
-    'src/components/duo/ApprovalCard.tsx',
     'src/components/duo/PlanReview.tsx',
-    'src/components/duo/QuestionCard.tsx',
-    'src/components/landing/ExitIntentModal.tsx',
-    'src/components/landing/ScrollCTA.tsx',
-    'src/components/layout/LeftPanelNav.tsx',
     'src/hooks/useDuoBoardRealtime.ts',
     'src/lib/analytics/funnel-tracker.ts',
     'src/lib/crypto/generate-keys.ts',

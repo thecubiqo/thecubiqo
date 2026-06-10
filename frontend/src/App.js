@@ -5873,7 +5873,15 @@ const DemoPage = () => {
             };
             const navHover = e => { e.currentTarget.style.background = trayTheme.cardHover; };
             const navOut = e => { e.currentTarget.style.background = trayTheme.card; };
-            const go = (path) => { setLeftPanelOpen(false); navigate(path); };
+            // Internal BrowserRouter only defines /, /app, /auth/callback,
+            // /dashboard, /journal, /actions — every other path lives in the
+            // Next app and needs a full page load, or the client renders blank.
+            const INTERNAL_ROUTES = ['/', '/app', '/auth/callback', '/dashboard', '/journal', '/actions'];
+            const go = (path) => {
+              setLeftPanelOpen(false);
+              if (INTERNAL_ROUTES.includes(path)) navigate(path);
+              else window.location.assign(path);
+            };
             return (
               <>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -6245,7 +6253,7 @@ const DemoPage = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
             <button
               type="button"
-              onClick={() => { setRightPanelOpen(false); navigate('/duo'); }}
+              onClick={() => { setRightPanelOpen(false); window.location.assign('/duo'); }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
                 padding: '11px 12px', borderRadius: 14,
@@ -6264,7 +6272,7 @@ const DemoPage = () => {
             </button>
             <button
               type="button"
-              onClick={() => { setRightPanelOpen(false); navigate('/chatrooms'); }}
+              onClick={() => { setRightPanelOpen(false); window.location.assign('/chatrooms'); }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
                 padding: '11px 12px', borderRadius: 14,

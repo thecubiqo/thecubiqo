@@ -66,7 +66,11 @@ export default function DuoDashboardPage() {
       const data = await apiGet<{ projects: DuoProject[] }>('/api/duo/projects');
       setProjects(data.projects || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load Duo projects');
+      const message = err instanceof Error ? err.message : 'Could not load Duo projects';
+      // Anonymous visitors get a soft sign-in nudge, not an error banner.
+      setError(/401|unauthori[sz]ed|sign in|jwt|auth/i.test(message)
+        ? 'Sign in to see your capsules — your DuoMode projects live with your account.'
+        : message);
     } finally {
       setLoading(false);
     }

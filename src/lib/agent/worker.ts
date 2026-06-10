@@ -21,6 +21,7 @@ import type { AgentAuth } from './common';
 import { writeTimeline, writeToolCall } from './common';
 import { checkBudgetGate, addProjectCost } from './budget-gate';
 import { decideRoute } from './decision-router';
+import { draftWorkProduct, performExecution } from './executor';
 
 // ── Risk thresholds ──────────────────────────────────────────────────────────
 // Tasks at or above this risk always go through draft review before any write.
@@ -79,7 +80,7 @@ async function saveDraftArtifact(auth: AgentAuth, task: any, content: string): P
   return data?.id ?? null;
 }
 
-async function createDraftApproval(auth: AgentAuth, task: any, artifactId: string | null): Promise<string> {
+async function createDraftApproval(auth: AgentAuth, task: any, artifactId: string | null, previewContent?: string): Promise<string> {
   const { data: approval, error } = await auth.supabase
     .from('duo_approvals')
     .insert({
@@ -89,7 +90,7 @@ async function createDraftApproval(auth: AgentAuth, task: any, artifactId: strin
       task_id: task.id,
       status: 'requested',
       approval_type: 'draft_review',
-      preview_content: buildDraftContent(task, task.selected_route || 'api'),
+      preview_content: previewContent || buildDraftContent(task, task.selected_route || 'api'),
       platform: task.connector_platform || task.selected_route || 'internal',
       endpoint: task.selected_route || 'api',
       risk_level: task.risk_level || 'medium',
@@ -273,7 +274,7 @@ export async function executeTask(auth: AgentAuth, taskId: string): Promise<DuoE
   // ── Phase 1: Budget gate ──────────────────────────────────────────────────
   const budget = await checkBudgetGate(auth, {
     projectId: task.project_id, taskId: task.id,
-    traceId: task.trace_id, projectedCostGbp: 0.02
+    traceId: task.trace_id, projectedCostGbp: 0.05 // real LLM draft + execution
   });
   if (!budget.allowed) {
     await auth.supabase.from('duo_tasks')
@@ -311,27 +312,39 @@ export async function executeTask(auth: AgentAuth, taskId: string): Promise<DuoE
   // Every task that touches an external system at medium risk or above gets a
   // draft artifact shown to the user before any write executes.
   const taskText = `${task.title} ${task.description || ''}`;
-  const needsDraftReview = DRAFT_REQUIRED_RISK.has(task.risk_level || 'medium')
+  // External-write potential (api route + connected platform) ALWAYS requires
+  // draft review, regardless of the planner-assigned risk level — risk_level is
+  // LLM-assigned and must never be the only thing standing before a real write.
+  const isExternalWrite = decision.selectedRoute === 'api' && Boolean(task.connector_platform);
+  const needsDraftReview = (DRAFT_REQUIRED_RISK.has(task.risk_level || 'medium') || isExternalWrite)
     && decision.selectedRoute !== 'manual';
 
   if (needsDraftReview) {
-    // Produce the draft artifact
-    const draftContent = buildDraftContent({ ...task, selected_route: decision.selectedRoute }, decision.selectedRoute);
-    const artifactId = await saveDraftArtifact(auth, task, draftContent);
+    // Produce the REAL draft work product via LLM (template fallback keeps the
+    // pipeline alive when no LLM is configured or the call fails).
+    const template = buildDraftContent({ ...task, selected_route: decision.selectedRoute }, decision.selectedRoute);
+    const draft = await draftWorkProduct(auth, task, decision.selectedRoute, template);
+    const artifactId = await saveDraftArtifact(auth, task, draft.content);
 
-    // Log tool call for the draft phase
+    // Log tool call for the draft phase with the real LLM cost
     await writeToolCall(auth, {
       projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
       toolName: 'draft_producer',
       route: decision.selectedRoute,
       status: 'completed',
-      input: { title: task.title, route: decision.selectedRoute },
-      output: { artifactId, stage: 'draft' },
-      apiCostGbp: 0.005
+      input: { title: task.title, route: decision.selectedRoute, model: draft.model },
+      output: { artifactId, stage: 'draft', llmDrafted: Boolean(draft.model) },
+      apiCostGbp: draft.costGbp || 0.005
     });
+    if (draft.costGbp > 0) {
+      await addProjectCost(auth, {
+        projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
+        amountGbp: draft.costGbp, reason: 'duo task draft (LLM)'
+      });
+    }
 
-    // Move to draft status and surface approval card
-    const draftApprovalId = await createDraftApproval({ ...auth, supabase: auth.supabase } as AgentAuth, task, artifactId);
+    // Move to draft status and surface approval card showing the REAL draft
+    const draftApprovalId = await createDraftApproval({ ...auth, supabase: auth.supabase } as AgentAuth, task, artifactId, draft.content);
     await auth.supabase.from('duo_tasks').update({
       status: 'draft',
       updated_at: new Date().toISOString(),
@@ -361,7 +374,10 @@ async function executeFinalPhase(
   const taskId = task.id;
   const route = task.selected_route || task.assigned_route || 'manual';
   const taskText = `${task.title} ${task.description || ''}`;
-  const isFinalAction = FINAL_ACTION_RE.test(taskText);
+  // approval_required (planner- or route-decision-set) is enforced here, not
+  // just stored — the keyword regex alone misses phrasings like "email the
+  // venue" and must not be the only final gate in front of real execution.
+  const isFinalAction = FINAL_ACTION_RE.test(taskText) || task.approval_required === true;
 
   // Final-action approval gate (on top of draft review)
   if (isFinalAction && !alreadyApproved) {
@@ -381,37 +397,86 @@ async function executeFinalPhase(
     return { status: 'waiting_approval', taskId, approvalId: finalApprovalId, message: 'Final action requires approval' };
   }
 
-  // ── Execute ───────────────────────────────────────────────────────────────
+  // ── Execute (real work) ──────────────────────────────────────────────────
+  let outcome;
+  try {
+    outcome = await performExecution(auth, task, route);
+  } catch (err: any) {
+    const message = err?.message || 'Execution failed';
+    // Record the failure (feeds hasRepeatedRouteFailure for route fallback)
+    // but DO NOT mark the task failed here — re-throw so the job queue's
+    // retry/backoff/dead-letter plumbing engages. The task keeps its current
+    // status (draft/waiting_approval/running) and the retry re-enters cleanly.
+    await writeToolCall(auth, {
+      projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
+      toolName: 'duo_executor',
+      route,
+      status: 'failed',
+      input: { title: task.title, route },
+      output: { error: message },
+      apiCostGbp: 0
+    });
+    await auth.supabase.from('duo_tasks').update({
+      last_error: message,
+      updated_at: new Date().toISOString()
+    }).eq('id', task.id).eq('user_id', auth.user.id);
+    await writeTimeline(auth, {
+      projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
+      eventType: 'task_execution_error',
+      message: `Execution attempt failed (will retry): ${task.title}`,
+      payload: { route, error: message }
+    });
+    throw err instanceof Error ? err : new Error(message);
+  }
+
+  // Persist the real output as an artifact (the user's evidence of work done)
+  let outcomeArtifactId: string | null = null;
+  if (outcome.artifactContent) {
+    const { data: artifact } = await auth.supabase
+      .from('duo_artifacts')
+      .insert({
+        user_id: auth.user.id,
+        project_id: task.project_id,
+        task_id: task.id,
+        trace_id: task.trace_id,
+        artifact_type: outcome.artifactType,
+        title: `${outcome.artifactType === 'handoff' ? 'Handoff' : 'Result'}: ${task.title}`,
+        content: outcome.artifactContent,
+        metadata: { stage: 'execution', ...outcome.evidence }
+      })
+      .select('id')
+      .single();
+    outcomeArtifactId = artifact?.id ?? null;
+  }
+
   await writeToolCall(auth, {
     projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
     toolName: 'duo_executor',
     route,
     status: 'completed',
     input: { title: task.title, route },
-    output: {
-      result: isFinalAction
-        ? 'Final action executed with user approval'
-        : 'Task completed safely — no external write required'
-    },
-    apiCostGbp: 0.02
+    output: { result: outcome.summary, artifactId: outcomeArtifactId, toolSteps: outcome.toolSteps },
+    apiCostGbp: outcome.costGbp
   });
 
-  await addProjectCost(auth, {
-    projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
-    amountGbp: 0.02, reason: 'duo task execution'
-  });
+  if (outcome.costGbp > 0) {
+    await addProjectCost(auth, {
+      projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
+      amountGbp: outcome.costGbp, reason: 'duo task execution'
+    });
+  }
 
   const now = new Date().toISOString();
   await auth.supabase.from('duo_tasks').update({
     status: 'completed',
-    result: isFinalAction
-      ? `Final action executed via ${route} with user approval.`
-      : `Completed safely via ${route}.`,
+    result: outcome.summary,
     evidence: {
-      route,
+      ...outcome.evidence,
       completedAt: now,
       finalAction: isFinalAction,
-      approvalRequired: isFinalAction
+      approvalRequired: isFinalAction,
+      artifactId: outcomeArtifactId,
+      costGbp: outcome.costGbp
     },
     completed_at: now,
     updated_at: now
@@ -421,7 +486,7 @@ async function executeFinalPhase(
     projectId: task.project_id, taskId: task.id, traceId: task.trace_id,
     eventType: 'task_completed',
     message: `Completed: ${task.title}`,
-    payload: { route, finalAction: isFinalAction }
+    payload: { route, finalAction: isFinalAction, artifactId: outcomeArtifactId, toolSteps: outcome.toolSteps }
   });
 
   // Cascade: enqueue any dependents now unblocked by this task's completion.

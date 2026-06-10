@@ -18,7 +18,14 @@ export async function POST(
   const parsed = paramsSchema.safeParse(await params);
   if (!parsed.success) return NextResponse.json({ error: 'Invalid task id' }, { status: 400 });
   const { id } = parsed.data;
-  const result = await executeTask(auth, id);
-  const status = result.status === 'failed' ? 500 : result.status === 'blocked' ? 402 : 200;
-  return NextResponse.json(result, { status });
+  try {
+    const result = await executeTask(auth, id);
+    const status = result.status === 'failed' ? 500 : result.status === 'blocked' ? 402 : 200;
+    return NextResponse.json(result, { status });
+  } catch (err) {
+    // Transient execution failure — the queue path retries automatically; the
+    // manual path reports it so the user can retry from the UI.
+    const message = err instanceof Error ? err.message : 'Execution failed';
+    return NextResponse.json({ status: 'failed', taskId: id, message, retryable: true }, { status: 500 });
+  }
 }

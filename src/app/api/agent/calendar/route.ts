@@ -3,28 +3,38 @@
  * POST /api/agent/calendar         — create a calendar event
  * DELETE /api/agent/calendar?id=X  — delete an event
  *
- * Uses Composio's Google Calendar toolkit.
+ * Uses Composio's Google Calendar toolkit via the v0.6 SDK
+ * (composio.tools.execute — the old OpenAIToolSet API no longer exists).
  * Requires the user to have Google Calendar connected via /connectors.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireApiUser } from '../../_lib/supabase-admin';
+import { executeTool } from '@/next/lib/composio';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
-// ── Composio client (lazy, only if COMPOSIO_API_KEY is set) ─────────────────
-function getComposio() {
-  const key = process.env.COMPOSIO_API_KEY;
-  if (!key) return null;
-  // Dynamic require to avoid build errors when not installed
-  try {
-    const { OpenAIToolSet } = require('@composio/core');
-    return new OpenAIToolSet({ apiKey: key });
-  } catch {
-    return null;
+function composioConfigured() {
+  return Boolean((process.env.COMPOSIO_API_KEY || '').trim());
+}
+
+async function requireActiveConnector(auth: { supabase: any; user: { id: string } }) {
+  const { data: connector } = await auth.supabase
+    .from('user_connectors')
+    .select('status')
+    .eq('user_id', auth.user.id)
+    .eq('platform', 'googlecalendar')
+    .maybeSingle();
+  if (!connector || connector.status !== 'active') {
+    return NextResponse.json({
+      error: 'Google Calendar not connected',
+      code: 'CONNECTOR_MISSING',
+      connectUrl: '/connectors',
+    }, { status: 402 });
   }
+  return null;
 }
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
@@ -48,46 +58,31 @@ export async function GET(request: NextRequest) {
   const days = Math.min(parseInt(params.get('days') || '7', 10), 30);
   const calendarId = params.get('calendarId') || 'primary';
 
-  const composio = getComposio();
-  if (!composio) {
+  if (!composioConfigured()) {
     return NextResponse.json({ error: 'Composio not configured' }, { status: 503 });
   }
 
   try {
-    // Check connector status
-    const { data: connector } = await auth.supabase
-      .from('user_connectors')
-      .select('status, access_token')
-      .eq('user_id', auth.user.id)
-      .eq('platform', 'googlecalendar')
-      .maybeSingle();
-
-    if (!connector || connector.status !== 'active') {
-      return NextResponse.json({
-        error: 'Google Calendar not connected',
-        code: 'CONNECTOR_MISSING',
-        connectUrl: '/connectors',
-      }, { status: 402 });
-    }
+    const connectorError = await requireActiveConnector(auth);
+    if (connectorError) return connectorError;
 
     const timeMin = new Date().toISOString();
     const timeMax = new Date(Date.now() + days * 86_400_000).toISOString();
 
-    // Execute via Composio
-    const result = await composio.executeAction(
-      'GOOGLECALENDAR_LIST_EVENTS',
-      {
-        calendarId,
-        timeMin,
-        timeMax,
-        maxResults: 50,
-        singleEvents: true,
-        orderBy: 'startTime',
-      },
-      auth.user.id
-    );
+    const result = await executeTool('GOOGLECALENDAR_LIST_EVENTS', auth.user.id, {
+      calendarId,
+      timeMin,
+      timeMax,
+      maxResults: 50,
+      singleEvents: true,
+      orderBy: 'startTime',
+    });
+    if (!result.successful) {
+      return NextResponse.json({ error: result.error || 'Calendar list failed' }, { status: 502 });
+    }
 
-    const events = result?.data?.items ?? result?.items ?? [];
+    const data: any = result.data;
+    const events = data?.items ?? data?.data?.items ?? [];
     return NextResponse.json({ events, count: events.length, timeMin, timeMax });
   } catch (err: any) {
     return NextResponse.json(
@@ -109,26 +104,13 @@ export async function POST(request: NextRequest) {
 
   const { title, description, startTime, endTime, timezone, location, attendees, calendarId } = parsed.data;
 
-  const composio = getComposio();
-  if (!composio) {
+  if (!composioConfigured()) {
     return NextResponse.json({ error: 'Composio not configured' }, { status: 503 });
   }
 
   try {
-    const { data: connector } = await auth.supabase
-      .from('user_connectors')
-      .select('status')
-      .eq('user_id', auth.user.id)
-      .eq('platform', 'googlecalendar')
-      .maybeSingle();
-
-    if (!connector || connector.status !== 'active') {
-      return NextResponse.json({
-        error: 'Google Calendar not connected',
-        code: 'CONNECTOR_MISSING',
-        connectUrl: '/connectors',
-      }, { status: 402 });
-    }
+    const connectorError = await requireActiveConnector(auth);
+    if (connectorError) return connectorError;
 
     const eventBody: Record<string, unknown> = {
       calendarId,
@@ -142,13 +124,12 @@ export async function POST(request: NextRequest) {
       eventBody.attendees = attendees.map(email => ({ email }));
     }
 
-    const result = await composio.executeAction(
-      'GOOGLECALENDAR_CREATE_EVENT',
-      eventBody,
-      auth.user.id
-    );
+    const result = await executeTool('GOOGLECALENDAR_CREATE_EVENT', auth.user.id, eventBody);
+    if (!result.successful) {
+      return NextResponse.json({ error: result.error || 'Calendar create failed' }, { status: 502 });
+    }
 
-    const event = result?.data ?? result;
+    const event: any = result.data;
 
     // Write to memory so agent knows about this commitment
     await auth.supabase.from('memory_events').insert({
@@ -182,17 +163,18 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'id is required' }, { status: 400 });
   }
 
-  const composio = getComposio();
-  if (!composio) {
+  if (!composioConfigured()) {
     return NextResponse.json({ error: 'Composio not configured' }, { status: 503 });
   }
 
   try {
-    await composio.executeAction(
-      'GOOGLECALENDAR_DELETE_EVENT',
-      { calendarId, eventId },
-      auth.user.id
-    );
+    const connectorError = await requireActiveConnector(auth);
+    if (connectorError) return connectorError;
+
+    const result = await executeTool('GOOGLECALENDAR_DELETE_EVENT', auth.user.id, { calendarId, eventId });
+    if (!result.successful) {
+      return NextResponse.json({ error: result.error || 'Calendar delete failed' }, { status: 502 });
+    }
     return NextResponse.json({ ok: true, deleted: eventId });
   } catch (err: any) {
     return NextResponse.json(

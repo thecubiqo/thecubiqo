@@ -123,6 +123,31 @@ export async function initiateConnection(
 }
 
 /**
+ * Execute a single Composio tool by slug for a user (v0.6 SDK API).
+ * e.g. executeTool('GOOGLECALENDAR_LIST_EVENTS', userId, { calendarId: 'primary' })
+ */
+export async function executeTool(
+  slug: string,
+  userId: string,
+  args: Record<string, unknown>
+): Promise<{ successful: boolean; data: unknown; error?: string }> {
+  const composio = getComposio();
+  // dangerouslySkipVersionCheck mirrors what the SDK's own provider-wrapped
+  // execute fn does (createExecuteToolFn) — without it, 0.6.x throws
+  // ComposioToolVersionRequiredError when no toolkit version is pinned.
+  const result = await composio.tools.execute(slug, {
+    userId,
+    arguments: args,
+    dangerouslySkipVersionCheck: true,
+  });
+  return {
+    successful: result?.successful ?? true,
+    data: result?.data ?? result,
+    error: result?.error ?? undefined,
+  };
+}
+
+/**
  * List all connected (ACTIVE) accounts for a user.
  */
 export async function getConnectedApps(userId: string): Promise<Array<{

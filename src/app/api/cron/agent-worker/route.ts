@@ -301,6 +301,13 @@ export async function GET(request: NextRequest) {
           payload: job.payload || {},
           error_history: [{ error: message, attempts, failed_at: new Date().toISOString() }]
         });
+        // Retries exhausted — surface the failure on the task itself so it
+        // doesn't sit in draft/running limbo forever.
+        if (job.task_id && payloadUserId) {
+          await supabase.from('duo_tasks')
+            .update({ status: 'failed', last_error: message, updated_at: new Date().toISOString() })
+            .eq('id', job.task_id).eq('user_id', payloadUserId);
+        }
       }
       await supabase
         .from('agent_job_queue')

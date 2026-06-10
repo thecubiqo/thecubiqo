@@ -3,6 +3,7 @@ import type { AgentAuth } from './common';
 import { inferDomainFromText, normalizeTraceId, slugTitle, writeTimeline } from './common';
 import { interpretGoal } from './goal-interpreter';
 import { buildTaskGraph } from './task-graph-builder';
+import { planProjectLLM } from './llm-planner';
 import { matchPlaybook } from './playbook-matcher';
 import { ensureInitialView } from './capsule-engine';
 
@@ -82,7 +83,10 @@ export async function createDuoProject(auth: AgentAuth, input: DuoGoalInput) {
   if (!goal) return { status: 'rejected' as const, reason: 'A goal or approved capsule is required' };
 
   const domain = input.domain || capsule?.domain || inferDomainFromText(goal);
-  const interpretation = await interpretGoal(auth, { goal, domain });
+  // Primary: persona-grounded LLM plan (interpretation + task graph in one
+  // call). Fallback: the deterministic interpreter + template graph below.
+  const llmPlan = await planProjectLLM(auth, { goal, domain });
+  const interpretation = llmPlan?.interpretation ?? await interpretGoal(auth, { goal, domain });
   const playbook = await matchPlaybook(auth, goal, interpretation.domain);
   const traceId = normalizeTraceId();
 
@@ -113,7 +117,7 @@ export async function createDuoProject(auth: AgentAuth, input: DuoGoalInput) {
 
   if (error) return { status: 'failed' as const, reason: error.message };
 
-  const taskPlans = buildTaskGraph(interpretation);
+  const taskPlans = llmPlan?.taskPlans ?? buildTaskGraph(interpretation);
   const tasks = await createTasks(auth, project.id, traceId, taskPlans);
 
   // The project starts in 'planning' behind the plan-review gate. Tasks are
