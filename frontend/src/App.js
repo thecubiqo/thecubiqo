@@ -3739,78 +3739,51 @@ const DemoPage = () => {
     setAgentTasks(tasks);
     localStorage.setItem('cubiqo_agent_tasks', JSON.stringify(tasks));
   };
-  const [activeDashboard, setActiveDashboard] = useState(null);
-  const [dashboardState, setDashboardState] = useState({});
-  const [dashboardMessages, setDashboardMessages] = useState({});
-  const [dashboardInput, setDashboardInput] = useState('');
-  const [dashboardLoading, setDashboardLoading] = useState(false);
   const [projectIds, setProjectIds] = useState(() => {
     try { return JSON.parse(localStorage.getItem('cubiqo_project_ids') || '{}'); } catch { return {}; }
   });
-  // Duo API calls are auth-required — every fetch sends the session token.
-  const duoHeaders = () => {
-    const headers = { 'Content-Type': 'application/json' };
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-    return headers;
-  };
-  const refreshDuoState = async (projectId, taskId) => {
-    try {
-      const res = await fetch(`/api/duo/projects/${projectId}`, { headers: duoHeaders() });
-      const json = await res.json();
-      if (!json.error) setDashboardState(s => ({ ...s, [taskId]: json }));
-    } catch {}
-  };
-  const openDashboard = async (task) => {
-    setActiveDashboard(task);
+  const [duoProjectId, setDuoProjectId] = useState(null);
+  // Unified DuoMode launcher — replaces the old openDashboard path.
+  // Creates or reuses a duo_project, then opens DuoModeDashboard with the
+  // resolved projectId so WorkspacePanel can poll live workspace data.
+  const openWorkspace = async (task, signalOverride) => {
     const taskId = String(task.id);
-    setDashboardLoading(true);
-    try {
-      if (!accessToken) {
-        // Never spin forever — say exactly what is needed.
-        setDashboardState(s => ({ ...s, [taskId]: { error: 'Sign in to launch capsules — your dashboards live with your account.' } }));
-        return;
-      }
-      let projectId = projectIds[taskId];
-      if (!projectId) {
-        const res = await fetch('/api/duo/projects', { method: 'POST', headers: duoHeaders(), body: JSON.stringify({ goal: task.label }) });
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok || json.error || !json.project) {
-          setDashboardState(s => ({ ...s, [taskId]: { error: json.error || `Could not start this capsule (HTTP ${res.status}). Try again.` } }));
-          return;
-        }
-        projectId = json.project.id;
-        const newMap = { ...projectIds, [taskId]: projectId };
-        setProjectIds(newMap);
-        localStorage.setItem('cubiqo_project_ids', JSON.stringify(newMap));
-        if (json.opening_message) setDashboardMessages(m => ({ ...m, [taskId]: [{ role: 'assistant', content: json.opening_message }] }));
-      }
-      if (projectId) await refreshDuoState(projectId, taskId);
-    } catch (e) {
-      console.error('openDashboard', e);
-      setDashboardState(s => ({ ...s, [taskId]: { error: 'Connection error while starting the capsule — try again.' } }));
+    const goal   = task.label || task.keyword || task.color || 'Capsule';
+    const capsule = signalOverride || {
+      keyword: goal,
+      color: task.color?.startsWith('#')
+        ? Object.keys(colorMap).find(k => colorMap[k]?.hex === task.color) || 'yellow'
+        : task.color || 'yellow',
+      confirmed_intents: [],
+      suggested_intents: [],
+    };
+    if (!accessToken) {
+      setDuoModeCapsule(capsule);
+      setDuoProjectId(null);
+      setDuoModeOpen(true);
+      return;
     }
-    finally { setDashboardLoading(false); }
+    let projectId = projectIds[taskId];
+    if (!projectId) {
+      try {
+        const res  = await fetch('/api/duo/projects', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ goal }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (res.ok && json.project?.id) {
+          projectId = json.project.id;
+          const newMap = { ...projectIds, [taskId]: projectId };
+          setProjectIds(newMap);
+          localStorage.setItem('cubiqo_project_ids', JSON.stringify(newMap));
+        }
+      } catch {}
+    }
+    setDuoModeCapsule(capsule);
+    setDuoProjectId(projectId || null);
+    setDuoModeOpen(true);
   };
-  const closeDashboard = () => setActiveDashboard(null);
-  const chatWithDuo = async (message, extras = {}) => {
-    if (!activeDashboard) return;
-    const taskId = String(activeDashboard.id);
-    const projectId = projectIds[taskId];
-    if (!projectId) return;
-    setDashboardMessages(m => ({ ...m, [taskId]: [...(m[taskId] || []), { role: 'user', content: message }] }));
-    setDashboardInput('');
-    setDashboardLoading(true);
-    try {
-      const res = await fetch(`/api/duo/projects/${projectId}/chat`, { method: 'POST', headers: duoHeaders(), body: JSON.stringify({ message, ...extras }) });
-      const json = await res.json();
-      if (json.reply) setDashboardMessages(m => ({ ...m, [taskId]: [...(m[taskId] || []), { role: 'assistant', content: json.reply }] }));
-      await refreshDuoState(projectId, taskId);
-    } catch (e) { console.error('chatWithDuo', e); }
-    finally { setDashboardLoading(false); }
-  };
-  const sendDashboardMessage = () => dashboardInput.trim() && chatWithDuo(dashboardInput.trim());
-  const submitAnswer = (questionId, answer) => chatWithDuo(answer, { question_id: questionId });
-  const submitApproval = (approvalId, decision) => chatWithDuo(decision === 'approved' ? '✓ Approved' : '✗ Denied', { approval_id: approvalId, approval_decision: decision });
   // ── End Agentic Dashboard ─────────────────────────────────────────────────
 
   const [rgyCapsule, setRgyCapsule] = useState({
@@ -6094,113 +6067,6 @@ const DemoPage = () => {
 
         </div>
 
-        {/* DUOMODE DASHBOARD OVERLAY */}
-        {activeDashboard && (() => {
-          const taskId = String(activeDashboard.id);
-          const raw = dashboardState[taskId];
-          const dashError = raw?.error || null;
-          const msgs = dashboardMessages[taskId] || [];
-          const tasks = raw?.tasks || [];
-          const questions = (raw?.questions || []).filter(q => ['pending', 'open'].includes(q.status) || (q.is_blocking && q.status !== 'answered'));
-          const approvals = (raw?.approvals || []).filter(a => a.status === 'pending');
-          const artifacts = raw?.artifacts || [];
-          const timeline = raw?.timeline || [];
-          const sc = { done:'#22c55e', working:'#f59e0b', pending:'rgba(255,255,255,0.2)', blocked:'#ef4444', skipped:'rgba(255,255,255,0.1)' };
-          return (
-          <div style={{ position: 'absolute', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
-            <div style={{ width: '92%', height: '90%', background: 'rgba(6,6,14,0.98)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 24, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 48px 120px rgba(0,0,0,0.9)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: activeDashboard.color || 'rgba(255,255,255,0.3)' }} />
-                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>DuoMode</span>
-                <span style={{ flex: 1, color: '#fff', fontSize: '0.92rem', fontWeight: 600 }}>{activeDashboard.label}</span>
-                {dashboardLoading && <span style={{ color: '#f59e0b', fontSize: '0.68rem', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700 }}>● Working</span>}
-                {!dashboardLoading && dashError && <span style={{ color: '#ef4444', fontSize: '0.68rem', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700 }}>● Blocked</span>}
-                {!dashboardLoading && raw && !dashError && <span style={{ color: '#22c55e', fontSize: '0.68rem', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700 }}>● Active</span>}
-                <button onClick={closeDashboard} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}>×</button>
-              </div>
-              <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                <div style={{ width: 240, borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-                  <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.3)', fontSize: '0.64rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>Chat</div>
-                  <div style={{ flex: 1, overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {dashError && (
-                      <div style={{ margin: '16px 4px 0', padding: '11px 12px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.07)', color: 'rgba(252,165,165,0.9)', fontSize: '0.75rem', lineHeight: 1.55 }}>
-                        {dashError}
-                      </div>
-                    )}
-                    {!dashError && msgs.length === 0 && !dashboardLoading && <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.75rem', textAlign: 'center', marginTop: 20 }}>Loading your plan…</div>}
-                    {msgs.map((msg, i) => (
-                      <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                        <div style={{ maxWidth: '90%', padding: '8px 11px', borderRadius: msg.role === 'user' ? '12px 12px 3px 12px' : '12px 12px 12px 3px', background: msg.role === 'user' ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: msg.role === 'user' ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.7)', fontSize: '0.77rem', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{msg.content}</div>
-                      </div>
-                    ))}
-                    {dashboardLoading && <div style={{ padding: '8px 11px', borderRadius: '12px 12px 12px 3px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem' }}>thinking…</div>}
-                  </div>
-                  <div style={{ padding: '8px 10px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 6 }}>
-                    <input value={dashboardInput} onChange={e => setDashboardInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendDashboardMessage()} placeholder="Ask anything…" style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8, padding: '7px 9px', color: '#fff', fontSize: '0.75rem', outline: 'none' }} />
-                    <button onClick={sendDashboardMessage} disabled={dashboardLoading} style={{ padding: '7px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', fontSize: '0.8rem' }}>→</button>
-                  </div>
-                </div>
-                <div style={{ width: 320, borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', flexShrink: 0, overflowY: 'auto' }}>
-                  <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.3)', fontSize: '0.64rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>Task Board</div>
-                  <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-                    {tasks.map(task => (
-                      <div key={task.id} style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: `1px solid ${sc[task.status] || 'rgba(255,255,255,0.07)'}22` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: sc[task.status] || 'rgba(255,255,255,0.2)', flexShrink: 0, display: 'inline-block' }} />
-                          <span style={{ flex: 1, color: 'rgba(255,255,255,0.82)', fontSize: '0.77rem', fontWeight: 500 }}>{task.title}</span>
-                          <span style={{ fontSize: '0.62rem', color: sc[task.status], fontWeight: 700, textTransform: 'capitalize' }}>{task.status}</span>
-                        </div>
-                        {task.description && <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', lineHeight: 1.4, paddingLeft: 14, marginTop: 4 }}>{task.description}</div>}
-                      </div>
-                    ))}
-                    {questions.map(q => (
-                      <div key={q.id} style={{ padding: '11px', borderRadius: 10, border: '1px solid rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.07)' }}>
-                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.6rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700, marginBottom: 5 }}>Needs Your Input</div>
-                        <div style={{ color: '#fff', fontSize: '0.77rem', fontWeight: 500, marginBottom: 8 }}>{q.prompt}</div>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <input placeholder="Your answer…" onKeyDown={e => e.key === 'Enter' && submitAnswer(q.id, e.target.value)} style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, padding: '6px 9px', color: '#fff', fontSize: '0.73rem', outline: 'none' }} />
-                          <button onClick={e => submitAnswer(q.id, e.target.previousSibling.value)} style={{ padding: '6px 11px', borderRadius: 7, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.4)', color: '#fff', cursor: 'pointer', fontSize: '0.73rem' }}>Submit</button>
-                        </div>
-                      </div>
-                    ))}
-                    {approvals.map(a => (
-                      <div key={a.id} style={{ padding: '11px', borderRadius: 10, border: '1px solid rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.07)' }}>
-                        <div style={{ color: '#f59e0b', fontSize: '0.6rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700, marginBottom: 5 }}>⚡ Needs Approval</div>
-                        <div style={{ color: '#fff', fontSize: '0.77rem', fontWeight: 500, marginBottom: 5 }}>{a.title || a.action_type || a.approval_type || 'Action approval'}</div>
-                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem', marginBottom: 8, whiteSpace: 'pre-wrap' }}>{(a.action_summary || a.preview_content || '').slice(0, 400)}</div>
-                        <div style={{ display: 'flex', gap: 7 }}>
-                          <button onClick={() => submitApproval(a.id, 'approved')} style={{ flex: 1, padding: '7px', borderRadius: 7, background: '#22c55e22', border: '1px solid #22c55e44', color: '#22c55e', cursor: 'pointer', fontSize: '0.73rem', fontWeight: 600 }}>Approve</button>
-                          <button onClick={() => submitApproval(a.id, 'denied')} style={{ flex: 1, padding: '7px', borderRadius: 7, background: '#ef444422', border: '1px solid #ef444444', color: '#ef4444', cursor: 'pointer', fontSize: '0.73rem', fontWeight: 600 }}>Deny</button>
-                        </div>
-                      </div>
-                    ))}
-                    {tasks.length === 0 && !dashboardLoading && <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.77rem', textAlign: 'center', marginTop: 20 }}>{dashError ? 'No plan — see the message in Chat.' : 'Plan loading…'}</div>}
-                  </div>
-                </div>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                  <div style={{ padding: '10px 18px', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.3)', fontSize: '0.64rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>Output</div>
-                  <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
-                    {artifacts.length === 0 && timeline.length === 0 && <div style={{ color: 'rgba(255,255,255,0.15)', fontSize: '0.82rem', textAlign: 'center', marginTop: 40 }}>Output appears here as CubiQo works</div>}
-                    {artifacts.map((a, i) => (
-                      <div key={i} style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', marginBottom: 8 }}>
-                        <div style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 500, marginBottom: 3 }}>{a.title}</div>
-                        {a.content && <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.74rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{a.content.slice(0, 300)}</div>}
-                        {a.external_url && <a href={a.external_url} target="_blank" rel="noreferrer" style={{ color: '#60a5fa', fontSize: '0.72rem' }}>{a.external_url}</a>}
-                      </div>
-                    ))}
-                    {timeline.slice(0, 8).map((t, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'flex-start' }}>
-                        <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.68rem', marginTop: 1, flexShrink: 0 }}>·</span>
-                        <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.74rem', lineHeight: 1.4 }}>{t.message || t.title}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          );
-        })()}
 
         {/* RIGHT PANEL */}
         <div data-testid="signal-match-panel" style={{ ...panelBase, right: '28px', width: '372px', maxWidth: 'calc(100vw - 56px)', transform: rightPanelOpen ? 'translateX(0)' : 'translateX(130%)', opacity: rightPanelOpen ? 1 : 0, pointerEvents: rightPanelOpen ? 'auto' : 'none', padding: '28px 22px' }}>
@@ -6264,7 +6130,7 @@ const DemoPage = () => {
                 // reuse) its dashboard and open the duo overlay — no redirect.
                 setRightPanelOpen(false);
                 const task = launchCapsuleDashboard(titleizeSignal(visibleSignal?.keyword || activeColor), active.hex);
-                if (task) openDashboard(task);
+                if (task) openWorkspace(task);
               }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
@@ -6309,7 +6175,7 @@ const DemoPage = () => {
               <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.64rem', letterSpacing: 2.4, textTransform: 'uppercase', fontWeight: 700, marginBottom: 8 }}>Dashboards</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 {agentTasks.map(task => (
-                  <div key={task.id} onClick={() => { setRightPanelOpen(false); openDashboard(task); }} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 13px', borderRadius: 11, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
+                  <div key={task.id} onClick={() => { setRightPanelOpen(false); openWorkspace(task); }} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 13px', borderRadius: 11, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
                     <div style={{ width: 7, height: 7, borderRadius: '50%', background: task.color || 'rgba(255,255,255,0.18)', flexShrink: 0 }} />
                     <span style={{ flex: 1, color: 'rgba(255,255,255,0.85)', fontSize: '0.81rem', fontWeight: 500 }}>{task.label}</span>
                     <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', padding: '2px 5px' }}>→</span>
@@ -6421,7 +6287,11 @@ const DemoPage = () => {
                     {item.color !== 'red' && (
                       <button
                         type="button"
-                        onClick={() => { setDuoModeCapsule(item); setDuoModeOpen(true); setRightPanelOpen(false); }}
+                        onClick={() => {
+                          setRightPanelOpen(false);
+                          const t = launchCapsuleDashboard(item.keyword || item.color, colorMap[item.color]?.hex);
+                          if (t) openWorkspace(t, item);
+                        }}
                         style={{
                           marginTop: 10,
                           width: '100%',
@@ -6681,7 +6551,8 @@ const DemoPage = () => {
           <DuoModeDashboard
             capsule={duoModeCapsule}
             token={accessToken || null}
-            onClose={() => { setDuoModeOpen(false); setDuoModeCapsule(null); }}
+            projectId={duoProjectId}
+            onClose={() => { setDuoModeOpen(false); setDuoModeCapsule(null); setDuoProjectId(null); }}
           />
         )}
 
