@@ -21,6 +21,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminRequest, getSupabaseAdmin } from '../_lib/supabase-admin';
 import { getModel } from '@/next/lib/config/llm';
 import { generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 
 export const runtime = 'nodejs';
 export const maxDuration = 55;
@@ -130,10 +131,18 @@ async function analyzeDeployment(deployment: VercelDeployment): Promise<HealResu
   const logs = await fetchDeploymentLogs(deployment.uid);
   if (!logs.trim()) return { ...base, errorSummary: 'No log data available' };
 
+  // A bare model string would route through the AI gateway (needs
+  // AI_GATEWAY_API_KEY and silently fails without it), so wrap the model in
+  // createOpenAI like the chat route. Without OPENAI_API_KEY, skip straight
+  // to the same fallback the catch produces.
+  if (!process.env.OPENAI_API_KEY) {
+    return { ...base, errorSummary: 'LLM analysis failed', severity: 'low' };
+  }
+
   try {
+    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const { text } = await generateText({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      model: getModel('utility') as any,
+      model: openai(getModel('utility')),
       system: `You are an expert Next.js / Vercel deployment engineer. Analyze deployment logs and return ONLY valid JSON.`,
       prompt: `Deployment ${deployment.uid} state: ${deployment.state}\n\nLogs (truncated to 12k):\n${logs}\n\nReturn JSON:\n{"errorSummary":"<max 200 chars>","rootCause":"<max 300 chars>","patchSuggestion":"<code diff or fix instructions, max 600 chars>","severity":"critical|high|medium|low|none"}`,
       maxOutputTokens: 512,
@@ -212,21 +221,25 @@ export async function POST(request: NextRequest) {
   const results = await Promise.all(deployments.map(analyzeDeployment));
   const issues = results.filter(r => r.severity !== 'none');
 
-  // Persist each proposal so the admin self-heal queue is populated (was a no-op).
+  // Persist each proposal so the admin self-heal queue is populated.
+  let proposalsPersistError: string | null = null;
   if (issues.length) {
     const admin = getSupabaseAdmin();
     if (admin) {
-      await admin.from('self_heal_proposals').insert(
+      const { error } = await admin.from('self_heal_proposals').insert(
         issues.map(r => ({
           issue_type: 'deployment_failure',
           severity: r.severity,
+          title: (r.errorSummary || 'Deployment failure').slice(0, 120),
           diagnosis: r.rootCause || r.errorSummary || 'Deployment failure',
-          proposed_fix: r.patchSuggestion || null,
+          // Older prod shapes had NOT NULL here — always write a string.
+          proposed_fix: r.patchSuggestion || 'No automated fix proposed',
           diff_summary: r.errorSummary || null,
           state: 'proposed',
           status: 'open',
         }))
-      ).then(() => {}, () => {}); // best-effort; never fail the scan on a write error
+      );
+      if (error) proposalsPersistError = error.message;
     }
   }
 
@@ -240,6 +253,7 @@ export async function POST(request: NextRequest) {
       medium: issues.filter(i => i.severity === 'medium').length,
       low: issues.filter(i => i.severity === 'low').length,
     },
+    ...(proposalsPersistError ? { proposalsPersistError } : {}),
   });
 }
 

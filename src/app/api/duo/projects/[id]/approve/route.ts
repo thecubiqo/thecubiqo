@@ -29,7 +29,13 @@ export async function POST(
   if (project.status !== 'planning') return NextResponse.json({ error: 'Project already approved', code: 'ALREADY_APPROVED' }, { status: 409 });
 
   const now = new Date().toISOString();
-  await auth.supabase.from('duo_projects').update({ status: 'active', updated_at: now }).eq('id', project.id);
+  const { error: statusError } = await auth.supabase
+    .from('duo_projects').update({ status: 'active', updated_at: now }).eq('id', project.id);
+  if (statusError) {
+    // Never swallow this — a failed status flip silently severs the whole
+    // plan-approval → execution arrow (the worker guards on project status).
+    return NextResponse.json({ error: `Could not activate project: ${statusError.message}` }, { status: 500 });
+  }
   await auth.supabase
     .from('duo_tasks')
     .update({ status: 'ready', updated_at: now })

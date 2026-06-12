@@ -32,6 +32,30 @@ function adminClient() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Retry queue writer — feeds the retry-background-triggers cron (F7-A)
+// Columns per 20260511_proactive_intelligence.sql: signal_id, user_id, error
+// (retry_count/next_retry_at/resolved use table defaults → immediately pending)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function recordTriggerFailure(
+  supabase: any,
+  signalId: string | null | undefined,
+  userId: string | null | undefined,
+  source: string,
+  err: unknown
+): Promise<void> {
+  try {
+    await supabase.from('background_trigger_failures').insert({
+      signal_id: signalId || null,
+      user_id: userId || null,
+      error: `[${source}] ${err instanceof Error ? err.message : String(err)}`.slice(0, 2000)
+    });
+  } catch (insertErr) {
+    console.error('[background] failed to record trigger failure:', insertErr);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Browserbase daily limit circuit breaker (F7-C)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -49,7 +73,7 @@ async function checkBrowserbaseLimit(supabase: any): Promise<boolean> {
 // Load user context (memory, signals, career profile, prior briefings)
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function loadUserContext(userId: string, authToken: string, supabase: any): Promise<string> {
+async function loadUserContext(userId: string, authToken: string, supabase: any, signalId: string): Promise<string> {
   const parts: string[] = [];
 
   try {
@@ -141,6 +165,9 @@ async function loadUserContext(userId: string, authToken: string, supabase: any)
     }
   } catch (err) {
     console.error('[background] loadUserContext error:', err);
+    // Queue for the retry-background-triggers cron — briefing proceeds with
+    // partial context, but a retry can rebuild it with full context.
+    await recordTriggerFailure(supabase, signalId, userId, 'loadUserContext', err);
   }
 
   return parts.join('\n\n');
@@ -380,7 +407,7 @@ export async function POST(request: NextRequest) {
     const domain = detectDomain(capsule || {});
 
     // 3. Load user context
-    const userContext = await loadUserContext(user_id, authToken || '', supabase);
+    const userContext = await loadUserContext(user_id, authToken || '', supabase, signal_id);
 
     // 4. Detect patterns
     const patterns = await detectPatterns(user_id, domain, supabase);
@@ -496,6 +523,9 @@ export async function POST(request: NextRequest) {
 
   } catch (err: any) {
     console.error('[background] fatal error:', err);
+
+    // Queue for the retry-background-triggers cron (max 3 attempts)
+    await recordTriggerFailure(supabase, signal_id, user_id, 'background:fatal', err);
 
     // Mark briefing as failed
     await supabase

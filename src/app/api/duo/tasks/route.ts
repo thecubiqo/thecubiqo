@@ -16,13 +16,16 @@ export async function GET(request: NextRequest) {
   const { supabase, user } = auth;
 
   const url = new URL(request.url);
-  const status = url.searchParams.get('status') || 'awaiting_user';
+  // UI says "awaiting_user"; the schema value (duo_tasks_status_check) is
+  // 'waiting_user'. Map it, and select only columns duo_tasks actually has.
+  const rawStatus = url.searchParams.get('status') || 'awaiting_user';
+  const status = rawStatus === 'awaiting_user' ? 'waiting_user' : rawStatus;
   const limit = Math.min(parseInt(url.searchParams.get('limit') || '5', 10), 25);
 
   const { data: tasks, error } = await supabase
     .from('duo_tasks')
     .select(
-      'id, project_id, title, question_text, expires_at, status, created_at, capsule_color:projects_color'
+      'id, project_id, title, question_text:description, status, created_at'
     )
     .eq('user_id', user.id)
     .eq('status', status)

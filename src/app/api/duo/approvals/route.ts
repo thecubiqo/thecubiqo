@@ -16,13 +16,16 @@ export async function GET(request: NextRequest) {
   const { supabase, user } = auth;
 
   const url = new URL(request.url);
-  const status = url.searchParams.get('status') || 'pending';
+  // UI says "pending"; the schema status for an undecided approval is
+  // 'requested' (duo_approvals_status_check). Map it so cards actually show.
+  const rawStatus = url.searchParams.get('status') || 'pending';
+  const status = rawStatus === 'pending' ? 'requested' : rawStatus;
   const limit = Math.min(parseInt(url.searchParams.get('limit') || '5', 10), 25);
 
   const { data: approvals, error } = await supabase
     .from('duo_approvals')
     .select(
-      'id, project_id, task_id, action_type, preview_content, on_reject_note, reversible, reversible_window_seconds, expires_at, platform, endpoint, status, created_at, capsule_color:projects_color'
+      'id, project_id, task_id, action_type:approval_type, preview_content, on_reject_note, reversible, reversible_window_seconds, expires_at, platform, endpoint, status, created_at'
     )
     .eq('user_id', user.id)
     .eq('status', status)

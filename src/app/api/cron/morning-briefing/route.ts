@@ -68,24 +68,23 @@ function friendlyHour(h: number): string {
 async function fetchUserContext(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   userId: string,
-  cfg: { tasks: boolean; goals: boolean; blockers: boolean; calendar: boolean; custom_note: string },
-  today: string
+  cfg: { tasks: boolean; goals: boolean; blockers: boolean; calendar: boolean; custom_note: string }
 ): Promise<string> {
   if (!supabase) return '';
   const parts: string[] = [];
 
-  // Tasks due today / overdue (`today` is the user's local date, not server UTC).
+  // Open tasks (most recent first — duo_tasks has no due_date/priority columns).
   if (cfg.tasks) {
     const { data: tasks } = await supabase
       .from('duo_tasks')
-      .select('title, status, priority, due_date')
+      .select('title, status, created_at')
       .eq('user_id', userId)
-      .in('status', ['pending', 'in_progress'])
-      .or(`due_date.lte.${today},due_date.is.null`)
+      .in('status', ['pending', 'running'])
+      .order('created_at', { ascending: false })
       .limit(10);
     if (tasks?.length) {
       parts.push('OPEN TASKS:\n' + tasks.map((t: any) =>
-        `• [${t.priority ?? 'normal'}] ${t.title}${t.due_date ? ` (due ${t.due_date})` : ''}`
+        `• [${t.status}] ${t.title}`
       ).join('\n'));
     }
   }
@@ -94,10 +93,10 @@ async function fetchUserContext(
   if (cfg.goals) {
     const { data: memory } = await supabase
       .from('memory_events')
-      .select('content')
+      .select('content:summary')
       .eq('user_id', userId)
-      .eq('event_type', 'goal')
-      .eq('is_active', true)
+      .eq('event_type', 'goal_update')
+      .is('archived_at', null)
       .order('weight', { ascending: false })
       .limit(5);
     if (memory?.length) {
@@ -109,10 +108,10 @@ async function fetchUserContext(
   if (cfg.blockers) {
     const { data: blockers } = await supabase
       .from('memory_events')
-      .select('content')
+      .select('content:summary')
       .eq('user_id', userId)
-      .in('event_type', ['blocker', 'constraint', 'commitment'])
-      .eq('is_active', true)
+      .in('event_type', ['blocker', 'commitment'])
+      .is('archived_at', null)
       .order('weight', { ascending: false })
       .limit(4);
     if (blockers?.length) {
@@ -123,10 +122,10 @@ async function fetchUserContext(
   // Right-now context (highest weight session summaries)
   const { data: rightNow } = await supabase
     .from('memory_events')
-    .select('content')
+    .select('content:summary')
     .eq('user_id', userId)
     .eq('event_type', 'session_summary')
-    .eq('is_active', true)
+    .is('archived_at', null)
     .gte('weight', 3)
     .order('created_at', { ascending: false })
     .limit(2);
@@ -268,7 +267,7 @@ export async function GET(request: NextRequest) {
       calendar: settings.briefing_config?.calendar ?? true,
       custom_note: settings.briefing_config?.custom_note ?? '',
     };
-    const context = await fetchUserContext(supabase, settings.user_id, cfg, todayStr);
+    const context = await fetchUserContext(supabase, settings.user_id, cfg);
 
     // Generate briefing
     const { short, long } = await generateBriefing(firstName, settings.wake_hour, context, settings.channel);

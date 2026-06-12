@@ -48,10 +48,6 @@
       "schedule": "0 */2 * * *"
     },
     {
-      "path": "/api/cron/retry-failures",
-      "schedule": "*/5 * * * *"
-    },
-    {
       "path": "/api/cron/strategic-forgetting",
       "schedule": "0 3 * * 0"
     },

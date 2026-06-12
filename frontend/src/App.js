@@ -6101,7 +6101,7 @@ const DemoPage = () => {
           const dashError = raw?.error || null;
           const msgs = dashboardMessages[taskId] || [];
           const tasks = raw?.tasks || [];
-          const questions = (raw?.questions || []).filter(q => q.status === 'pending' || q.is_blocking);
+          const questions = (raw?.questions || []).filter(q => ['pending', 'open'].includes(q.status) || (q.is_blocking && q.status !== 'answered'));
           const approvals = (raw?.approvals || []).filter(a => a.status === 'pending');
           const artifacts = raw?.artifacts || [];
           const timeline = raw?.timeline || [];
@@ -6166,8 +6166,8 @@ const DemoPage = () => {
                     {approvals.map(a => (
                       <div key={a.id} style={{ padding: '11px', borderRadius: 10, border: '1px solid rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.07)' }}>
                         <div style={{ color: '#f59e0b', fontSize: '0.6rem', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700, marginBottom: 5 }}>⚡ Needs Approval</div>
-                        <div style={{ color: '#fff', fontSize: '0.77rem', fontWeight: 500, marginBottom: 5 }}>{a.title}</div>
-                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem', marginBottom: 8 }}>{a.action_summary}</div>
+                        <div style={{ color: '#fff', fontSize: '0.77rem', fontWeight: 500, marginBottom: 5 }}>{a.title || a.action_type || a.approval_type || 'Action approval'}</div>
+                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem', marginBottom: 8, whiteSpace: 'pre-wrap' }}>{(a.action_summary || a.preview_content || '').slice(0, 400)}</div>
                         <div style={{ display: 'flex', gap: 7 }}>
                           <button onClick={() => submitApproval(a.id, 'approved')} style={{ flex: 1, padding: '7px', borderRadius: 7, background: '#22c55e22', border: '1px solid #22c55e44', color: '#22c55e', cursor: 'pointer', fontSize: '0.73rem', fontWeight: 600 }}>Approve</button>
                           <button onClick={() => submitApproval(a.id, 'denied')} style={{ flex: 1, padding: '7px', borderRadius: 7, background: '#ef444422', border: '1px solid #ef444444', color: '#ef4444', cursor: 'pointer', fontSize: '0.73rem', fontWeight: 600 }}>Deny</button>
@@ -6191,7 +6191,7 @@ const DemoPage = () => {
                     {timeline.slice(0, 8).map((t, i) => (
                       <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'flex-start' }}>
                         <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.68rem', marginTop: 1, flexShrink: 0 }}>·</span>
-                        <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.74rem', lineHeight: 1.4 }}>{t.title}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.74rem', lineHeight: 1.4 }}>{t.message || t.title}</span>
                       </div>
                     ))}
                   </div>

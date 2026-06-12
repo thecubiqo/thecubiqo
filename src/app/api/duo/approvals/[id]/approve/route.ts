@@ -31,11 +31,24 @@ export async function POST(
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   if (approval.task_id) {
-    await auth.supabase
-      .from('duo_tasks')
-      .update({ status: 'ready', updated_at: now })
-      .eq('id', approval.task_id)
-      .eq('user_id', auth.user.id);
+    // Do NOT reset the task to 'ready' — worker.executeTask resumes gated
+    // tasks from their 'draft' / 'waiting_approval' status plus the approved
+    // approval row. Resetting caused an infinite re-draft→re-approve loop.
+    // Enqueue a resume job so the cron worker picks it up promptly.
+    // ignoreDuplicates: a re-approve must NOT reset an already-running/completed
+    // resume job back to 'queued' (double execution). One resume job per approval.
+    await auth.supabase.from('agent_job_queue').upsert({
+      user_id: auth.user.id,
+      project_id: approval.project_id,
+      task_id: approval.task_id,
+      trace_id: approval.trace_id,
+      job_type: 'execute_task',
+      state: 'queued',
+      status: 'queued',
+      locked_by: null,
+      payload: { userId: auth.user.id, taskId: approval.task_id },
+      idempotency_key: `resume:${approval.task_id}:${approval.id}`,
+    }, { onConflict: 'idempotency_key', ignoreDuplicates: true });
   }
 
   if (approval.project_id && approval.trace_id) {

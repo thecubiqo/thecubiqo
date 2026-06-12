@@ -21,19 +21,32 @@ export async function GET(
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
-  const [tasks, edges, timeline, outcomes] = await Promise.all([
+  const [tasks, edges, timeline, outcomes, artifacts, approvals, questions] = await Promise.all([
     auth.supabase.from('duo_tasks').select('*').eq('project_id', id).eq('user_id', auth.user.id).order('created_at'),
     auth.supabase.from('duo_task_edges').select('*').eq('project_id', id),
     auth.supabase.from('duo_timeline_events').select('*').eq('project_id', id).order('created_at', { ascending: false }).limit(50),
-    auth.supabase.from('duo_outcomes').select('*').eq('project_id', id).eq('user_id', auth.user.id).order('created_at', { ascending: false })
+    auth.supabase.from('duo_outcomes').select('*').eq('project_id', id).eq('user_id', auth.user.id).order('created_at', { ascending: false }),
+    auth.supabase.from('duo_artifacts').select('*').eq('project_id', id).eq('user_id', auth.user.id).order('created_at', { ascending: false }).limit(30),
+    auth.supabase.from('duo_approvals').select('*').eq('project_id', id).eq('user_id', auth.user.id).order('created_at', { ascending: false }).limit(20),
+    auth.supabase.from('duo_questions').select('*').eq('project_id', id).order('created_at', { ascending: false }).limit(20)
   ]);
+
+  // The /app capsule overlay treats 'pending' as the undecided approval state;
+  // the schema value is 'requested'. Normalize so the cards render.
+  const normalizedApprovals = (approvals.data || []).map((a: any) => ({
+    ...a,
+    status: a.status === 'requested' ? 'pending' : a.status,
+  }));
 
   return NextResponse.json({
     project,
     tasks: tasks.data || [],
     edges: edges.data || [],
     timeline: timeline.data || [],
-    outcomes: outcomes.data || []
+    outcomes: outcomes.data || [],
+    artifacts: artifacts.data || [],
+    approvals: normalizedApprovals,
+    questions: questions.data || []
   });
 }
 

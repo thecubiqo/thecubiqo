@@ -25,6 +25,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { AgentAuth } from './common';
 import { executeTask } from './worker';
 import { addProjectCost } from './budget-gate';
+import { maybeCompleteProject, idleResearchTick } from './proactivity';
 import { getModel } from '../config/llm';
 import type { DuoProjectView, ViewRow, ViewStat } from '@/next/types/duo-view';
 
@@ -289,7 +290,7 @@ Rules: Be specific to the domain. Reflect REAL task state (do not fabricate exte
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 
-async function persistView(auth: AgentAuth, project: TaskRow, view: DuoProjectView, rich = true): Promise<string | null> {
+async function persistView(auth: AgentAuth, project: TaskRow, view: DuoProjectView, rich = true, extraMeta: Record<string, unknown> = {}): Promise<string | null> {
   // rich=true → LLM-synthesized metrics view; rich=false → deterministic fallback.
   // The planning loop uses this flag to upgrade the fallback to a rich view once.
   const { data } = await auth.supabase
@@ -302,7 +303,7 @@ async function persistView(auth: AgentAuth, project: TaskRow, view: DuoProjectVi
       artifact_type: 'view',
       title: view.headline,
       content: JSON.stringify(view),
-      metadata: { kind: 'view', generatedAt: view.generatedAt, rich },
+      metadata: { kind: 'view', generatedAt: view.generatedAt, rich, ...extraMeta },
     })
     .select('id')
     .single();
@@ -442,20 +443,26 @@ export async function advanceCapsule(auth: AgentAuth, projectId: string): Promis
     }
   }
 
-  // Regenerate the view when: something was executed, no view exists yet, the
-  // view aged out, or the budget just got hit (so the owner sees why we stopped).
-  const shouldRefreshView = Boolean(executed) || !latest || viewAgeMs > VIEW_TTL_MS;
+  // Regenerate the view when there's a real reason to. CRITICAL: once the
+  // budget cap is hit, NEVER regenerate on TTL alone — that was a self-feeding
+  // loop (paid regen every 5-min cron pass forever, each bumping updated_at so
+  // the project never left the cron's recency window). When capped, refresh
+  // only ONCE to show the pause notice, then stop paying.
+  const alreadyPaused = Boolean((latest as any)?.metadata?.budgetPaused);
+  const shouldRefreshView = Boolean(executed) || !latest
+    || (viewAgeMs > VIEW_TTL_MS && !budgetReached)
+    || (budgetReached && !alreadyPaused);
   let viewArtifactId: string | null = latest?.id ?? null;
   let viewUpdated = false;
 
-  if (shouldRefreshView && !(budgetReached && latest && viewAgeMs <= VIEW_TTL_MS)) {
+  if (shouldRefreshView) {
     const view = await generateView(project, taskRows, outcomes || [], timeline || []);
     if (budgetReached) {
       view.status = 'Budget reached — paused';
       const budgetCard: ViewStat = { label: 'Budget', value: `£${cost.toFixed(2)} / £${cap.toFixed(2)}`, tone: 'warning' };
       view.stats = [budgetCard, ...view.stats].slice(0, 4);
     }
-    viewArtifactId = await persistView(auth, project, view);
+    viewArtifactId = await persistView(auth, project, view, true, budgetReached ? { budgetPaused: true } : {});
     viewUpdated = true;
     // Account the live-view LLM cost against the project budget so spend stays
     // honest and a long idle-but-open session can't quietly overrun the cap.
@@ -477,18 +484,48 @@ export async function advanceCapsule(auth: AgentAuth, projectId: string): Promis
   }
 
   // Determine the high-level state for the client.
+  // anyUserBlocked = genuine draft/approval/question waits (NOT ideation
+  // proposals, which sit at 'pending' and must not count as user-blocked).
+  const anyUserBlocked = taskRows.some(t => USER_BLOCKED.has(t.status) && t.status !== 'blocked');
   let state: CapsuleTickState;
   let message: string;
-  if (budgetReached) {
-    state = 'budget_reached';
-    message = `Budget gate reached (£${cost.toFixed(2)}/£${cap.toFixed(2)}).`;
-  } else if (executed) {
+
+  if (executed) {
     state = 'advanced';
     message = `Advanced task (${executed.status}).`;
-  } else if (remaining === 0) {
-    const anyUserBlocked = taskRows.some(t => USER_BLOCKED.has(t.status) && t.status !== 'blocked');
-    state = anyUserBlocked ? 'awaiting_user' : taskRows.every(t => DONE_STATES.has(t.status)) && taskRows.length > 0 ? 'all_done' : 'idle';
-    message = state === 'awaiting_user' ? 'Waiting on your review/approval.' : state === 'all_done' ? 'All tasks complete.' : 'No runnable tasks right now.';
+  } else if (remaining === 0 && !anyUserBlocked) {
+    // No runnable real work and nothing waiting on the user. This covers:
+    // all-done, only-ignored-proposals, and trailing-failure. Let the
+    // proactivity engine decide — its own blocking filter excludes unactioned
+    // ideation proposals, tolerates 'failed', and honours the 72h window.
+    // Runs even when budgetReached: ideation self-gates on budget, and the
+    // close itself makes no LLM call — so capped projects can still terminate.
+    const completion = await maybeCompleteProject(auth, projectId).catch(() => null);
+    if (completion?.completed) {
+      state = 'terminal';
+      message = completion.message || 'Project completed — outcome recorded.';
+    } else if (completion?.ideated) {
+      state = 'awaiting_user';
+      message = completion.message || 'Follow-up ideas proposed for your review.';
+    } else if (budgetReached) {
+      state = 'budget_reached';
+      message = `Budget gate reached (£${cost.toFixed(2)}/£${cap.toFixed(2)}).`;
+    } else {
+      // Genuinely idle with budget left → ongoing background research.
+      state = 'idle';
+      message = 'No runnable tasks right now.';
+      const researched = await idleResearchTick(auth, project).catch(() => false);
+      if (researched) message += ' Fresh research added to the dashboard.';
+    }
+  } else if (budgetReached) {
+    state = 'budget_reached';
+    message = `Budget gate reached (£${cost.toFixed(2)}/£${cap.toFixed(2)}).`;
+  } else if (anyUserBlocked) {
+    state = 'awaiting_user';
+    message = 'Waiting on your review/approval.';
+    // Keep working in the background while the user is the blocker.
+    const researched = await idleResearchTick(auth, project).catch(() => false);
+    if (researched) message += ' Fresh research added to the dashboard.';
   } else {
     state = 'idle';
     message = 'Idle.';

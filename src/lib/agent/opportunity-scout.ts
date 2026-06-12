@@ -202,10 +202,10 @@ export async function scoutForUser(auth: AgentAuth, opts: { isFounder?: boolean 
 
   const { data: goals } = await auth.supabase
     .from('memory_events')
-    .select('content')
+    .select('content:summary')
     .eq('user_id', auth.user.id)
-    .in('event_type', ['goal', 'session_summary'])
-    .eq('is_active', true)
+    .in('event_type', ['goal_update', 'session_summary'])
+    .is('archived_at', null)
     .order('weight', { ascending: false })
     .limit(4);
 

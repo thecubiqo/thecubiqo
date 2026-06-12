@@ -21,11 +21,12 @@ export async function GET(request: NextRequest) {
   const { data: existing } = await supabase.from('job_runs').select('id').eq('idempotency_key', key).maybeSingle();
   if (existing) return NextResponse.json({ skipped: true, idempotencyKey: key });
 
-  const { data: run } = await supabase
+  const { data: run, error: runInsertError } = await supabase
     .from('job_runs')
     .insert({ job_name: 'self-report', status: 'running', idempotency_key: key, metadata: { date: today } })
     .select('id')
     .single();
+  if (runInsertError) console.error('[self-report] job_runs insert failed:', runInsertError.message);
 
   // ── Gather metrics ─────────────────────────────────────────────────────────
   const since = `${today}T00:00:00.000Z`;
@@ -61,24 +62,26 @@ export async function GET(request: NextRequest) {
   };
 
   // ── Write to DB ────────────────────────────────────────────────────────────
-  await supabase.from('self_reports').upsert({
+  const degraded = metrics.failedTasks > 0 || metrics.deadLetters > 0;
+  const statusLine = degraded
+    ? `⚠️ ${metrics.failedTasks} failed tasks, ${metrics.deadLetters} dead letters`
+    : '✅ All systems nominal';
+  const summary = `CubiQo Daily Report ${today}\n\n${statusLine}\n\nActivity: ${metrics.tasksCreated} tasks, ${metrics.toolCalls} tool calls\nCost: £${metrics.costGbp}\nFailed: ${metrics.failedTasks} tasks\nDead letters: ${metrics.deadLetters}`;
+
+  const { error: reportError } = await supabase.from('self_reports').upsert({
     report_date: today,
-    active_projects: metrics.projectsCreated,
-    failed_tasks: metrics.failedTasks,
-    cron_summary: metrics,
-    generated_at: new Date().toISOString(),
+    status: degraded ? 'degraded' : 'ok',
+    summary,
+    metrics,
   }, { onConflict: 'report_date' });
 
-  await supabase.from('job_runs').update({
+  const { error: jobRunError } = await supabase.from('job_runs').update({
     status: 'completed',
+    finished_at: new Date().toISOString(),
     metadata: metrics,
   }).eq('id', run?.id);
 
   // ── Email report to owner ──────────────────────────────────────────────────
-  const statusLine = metrics.failedTasks > 0 || metrics.deadLetters > 0
-    ? `⚠️ ${metrics.failedTasks} failed tasks, ${metrics.deadLetters} dead letters`
-    : '✅ All systems nominal';
-
   const emailResult = await sendReportEmail({
     to: OWNER_EMAIL,
     subject: `CubiQo Daily Report — ${today}`,
@@ -89,13 +92,15 @@ export async function GET(request: NextRequest) {
       { heading: 'Cost (today)', body: `£${metrics.costGbp}` },
       { heading: 'Platform', body: `Total users: ${metrics.totalUsers} · Expired connectors: ${metrics.expiredConnectors}` },
     ]),
-    text: `CubiQo Daily Report ${today}\n\n${statusLine}\n\nActivity: ${metrics.tasksCreated} tasks, ${metrics.toolCalls} tool calls\nCost: £${metrics.costGbp}\nFailed: ${metrics.failedTasks} tasks\nDead letters: ${metrics.deadLetters}`,
+    text: summary,
   });
 
   return NextResponse.json({
     skipped: false,
     idempotencyKey: key,
     metrics,
+    reportError: reportError?.message ?? null,
+    jobRunError: jobRunError?.message ?? null,
     email: emailResult,
   });
 }

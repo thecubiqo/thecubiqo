@@ -62,9 +62,10 @@ export function getModel(role: LlmRole): string {
     // ── Anthropic / Claude ─────────────────────────────────────────────────────
     // Default to Haiku for high-frequency, low-cost inference. Override per-env
     // (e.g. CLAUDE_VIEW_MODEL=claude-sonnet-4-5 for richer dashboards in prod).
-    claude_view:     env('DUO_VIEW_MODEL', 'CLAUDE_VIEW_MODEL')              || 'claude-3-5-haiku-20241022',
-    claude_scout:    env('OPPORTUNITY_SCOUT_MODEL', 'CLAUDE_SCOUT_MODEL')    || 'claude-3-5-haiku-20241022',
-    claude_classify: env('CLAUDE_CLASSIFY_MODEL', 'RGY_CLASSIFY_MODEL')     || 'claude-3-5-haiku-20241022',
+    // claude-3-5-haiku-20241022 was retired by Anthropic 2026-02-19 (404s).
+    claude_view:     env('DUO_VIEW_MODEL', 'CLAUDE_VIEW_MODEL')              || 'claude-haiku-4-5',
+    claude_scout:    env('OPPORTUNITY_SCOUT_MODEL', 'CLAUDE_SCOUT_MODEL')    || 'claude-haiku-4-5',
+    claude_classify: env('CLAUDE_CLASSIFY_MODEL', 'RGY_CLASSIFY_MODEL')     || 'claude-haiku-4-5',
     claude_agent:    env('CLAUDE_AGENT_MODEL', 'ANTHROPIC_MODEL')            || 'claude-sonnet-4-5',
   };
   return models[role];

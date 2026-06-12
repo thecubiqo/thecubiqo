@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '../../_lib/supabase-admin';
 import { isAuthorizedCron } from '../../_lib/cron-auth';
+import { liveProvidersAllowed } from '@/next/lib/providers/live-provider-guard';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -21,7 +22,7 @@ async function checkConnector(
   if (!url) return true; // Unknown platform — assume available
 
   try {
-    if (process.env.TEST_ALLOW_LIVE_PROVIDERS !== 'true') return true;
+    if (!liveProvidersAllowed()) return true;
     const controller = new AbortController();
     setTimeout(() => controller.abort(), 5000);
     const res = await fetch(url, {

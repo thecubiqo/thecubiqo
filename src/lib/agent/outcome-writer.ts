@@ -23,21 +23,26 @@ export async function writeOutcome(
 
   if (error || !project) return { status: 'failed' as const, reason: error?.message || 'Project not found' };
 
-  const eventType = input.outcome === 'shot' ? 'project_shot' : 'project_outcome';
-  const { data: memory } = await auth.supabase
+  // memory_events_event_type_check allows 'outcome' (NOT 'project_outcome'/
+  // 'project_shot' — those silently failed the constraint). Keep the precise
+  // kind in metadata, and SURFACE the insert error instead of swallowing it.
+  const { data: memory, error: memoryError } = await auth.supabase
     .from('memory_events')
     .insert({
       user_id: auth.user.id,
-      event_type: eventType,
+      event_type: 'outcome',
       summary: input.summary,
       keywords: String(project.goal || project.title || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).slice(0, 12),
       weight: input.outcome === 'success' ? 3 : 2,
       source: 'duo',
       user_confirmed: true,
-      metadata: { projectId: project.id, outcome: input.outcome }
+      metadata: { projectId: project.id, outcome: input.outcome, kind: input.outcome === 'shot' ? 'project_shot' : 'project_outcome' }
     })
     .select('id')
     .single();
+  if (memoryError) {
+    console.error('[outcome-writer] memory writeback failed:', memoryError.message);
+  }
 
   const { data: outcome, error: outcomeError } = await auth.supabase
     .from('duo_outcomes')

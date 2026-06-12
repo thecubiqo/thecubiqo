@@ -27,7 +27,7 @@ import { webSearch, searchConfigured } from '@/next/app/api/_lib/web-search';
 
 // GBP per 1M tokens (input, output) — rough but real enough for budget gating.
 const COST_GBP: Record<string, { in: number; out: number }> = {
-  'claude-3-5-haiku-20241022': { in: 0.64, out: 3.2 },
+  'claude-haiku-4-5': { in: 0.8, out: 4 },
   'claude-sonnet-4-5': { in: 2.4, out: 12 },
 };
 const DEFAULT_COST = { in: 2.4, out: 12 };

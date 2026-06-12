@@ -40,44 +40,51 @@ export async function GET(request: NextRequest) {
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
+
+  if (!baseUrl) {
+    return NextResponse.json({
+      retried: 0,
+      skipped: failures.length,
+      message: 'No base URL configured (set NEXT_PUBLIC_BASE_URL, NEXT_PUBLIC_APP_URL or VERCEL_URL) — skipping retries'
+    });
+  }
 
   let retried = 0;
 
   for (const failure of failures) {
     try {
-      if (baseUrl) {
-        const res = await fetch(`${baseUrl}/api/agent/background`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-cubiqo-internal': process.env.CRON_SECRET || ''
-          },
-          body: JSON.stringify({
-            signal_id: failure.signal_id,
-            user_id: failure.user_id,
-            capsule: { keyword: 'goal' }
-          })
-        });
+      const res = await fetch(`${baseUrl}/api/agent/background`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-cubiqo-internal': process.env.CRON_SECRET || ''
+        },
+        body: JSON.stringify({
+          signal_id: failure.signal_id,
+          user_id: failure.user_id,
+          capsule: { keyword: 'goal' }
+        })
+      });
 
-        if (res.ok) {
-          await supabase
-            .from('background_trigger_failures')
-            .update({ resolved: true })
-            .eq('id', failure.id);
-        } else {
-          // Increment retry count with exponential backoff
-          const backoffMs = Math.pow(2, failure.retry_count) * 60_000;
-          await supabase
-            .from('background_trigger_failures')
-            .update({
-              retry_count: failure.retry_count + 1,
-              next_retry_at: new Date(Date.now() + backoffMs).toISOString()
-            })
-            .eq('id', failure.id);
-        }
-        retried++;
+      if (res.ok) {
+        await supabase
+          .from('background_trigger_failures')
+          .update({ resolved: true })
+          .eq('id', failure.id);
+      } else {
+        // Increment retry count with exponential backoff
+        const backoffMs = Math.pow(2, failure.retry_count) * 60_000;
+        await supabase
+          .from('background_trigger_failures')
+          .update({
+            retry_count: failure.retry_count + 1,
+            next_retry_at: new Date(Date.now() + backoffMs).toISOString()
+          })
+          .eq('id', failure.id);
       }
+      retried++;
     } catch (err) {
       console.error('[retry-triggers] error for failure', failure.id, err);
     }

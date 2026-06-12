@@ -89,25 +89,58 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   // Handle approval decision directly
   if (approval_id && approval_decision) {
-    await supabase.from('duo_approvals').update({
-      status: approval_decision,
+    // 'denied' (UI wording) maps to the schema's 'rejected'. Scope strictly to
+    // this user's approval on THIS project — the service-role client bypasses
+    // RLS, so unscoped updates would let any caller flip foreign approvals.
+    const status = approval_decision === 'approved' ? 'approved' : 'rejected';
+    const { data: decided, error: decideError } = await supabase.from('duo_approvals').update({
+      status,
       decided_at: new Date().toISOString(),
-    }).eq('id', approval_id);
+    })
+      .eq('id', approval_id)
+      .eq('project_id', projectId)
+      .eq('user_id', userId)
+      .select('id,task_id,trace_id')
+      .maybeSingle();
+
+    if (decideError || !decided) {
+      return Response.json({ error: decideError?.message || 'Approval not found on this project' }, { status: 404 });
+    }
+
+    // Resume the gated task: the worker continues from its draft /
+    // waiting_approval status once the approval row is decided.
+    if (status === 'approved' && decided.task_id) {
+      // ignoreDuplicates: never reset a running/completed resume job (double exec).
+      await supabase.from('agent_job_queue').upsert({
+        user_id: userId,
+        project_id: projectId,
+        task_id: decided.task_id,
+        trace_id: decided.trace_id,
+        job_type: 'execute_task',
+        state: 'queued',
+        status: 'queued',
+        locked_by: null,
+        payload: { userId, taskId: decided.task_id },
+        idempotency_key: `resume:${decided.task_id}:${decided.id}`,
+      }, { onConflict: 'idempotency_key', ignoreDuplicates: true });
+    }
 
     await supabase.from('duo_timeline_events').insert({
       project_id: projectId, user_id: userId,
       event_type: 'approval_decided',
-      message: `Approval ${approval_decision}`,
+      message: `Approval ${status}`,
     });
   }
 
-  // Handle question answer directly
+  // Handle question answer directly. Scope to this user+project — the
+  // service-role client bypasses RLS, so an unscoped id-only update would let
+  // any caller answer/inject into another tenant's question.
   if (question_id && message) {
     await supabase.from('duo_questions').update({
       status: 'answered',
       answer: message,
       answered_at: new Date().toISOString(),
-    }).eq('id', question_id);
+    }).eq('id', question_id).eq('project_id', projectId).eq('user_id', userId);
 
     await supabase.from('duo_timeline_events').insert({
       project_id: projectId, user_id: userId,
@@ -224,9 +257,11 @@ Rules:
   }
 
   if (update.resolve_blocker_ids?.length) {
+    // These ids come from LLM output — scope to user+project so a prompt
+    // injection can't resolve another tenant's blockers (service-role bypasses RLS).
     writes.push(supabase.from('duo_blockers').update({
       status: 'resolved', resolved_at: new Date().toISOString(),
-    }).in('id', update.resolve_blocker_ids));
+    }).in('id', update.resolve_blocker_ids).eq('project_id', projectId).eq('user_id', userId));
   }
 
   if (update.timeline_note) {

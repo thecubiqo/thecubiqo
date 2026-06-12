@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getSupabaseAdmin, cleanEnv, requireApiUser } from '../../_lib/supabase-admin';
 import { isAuthorizedCron } from '../../_lib/cron-auth';
 import { buildProviderSearchUrl, enabledScanProviders, type JobProvider } from '@/next/lib/jobs/job-provider-registry';
@@ -14,6 +15,18 @@ const RECENCY_TEXT: Record<string, string> = {
   '30d': 'posted in the last 30 days',
   any: ''
 };
+
+const jobListingsSchema = z.object({
+  listings: z.array(
+    z.object({
+      title: z.string(),
+      company: z.string().optional(),
+      url: z.string().optional(),
+      location: z.string().optional(),
+      description: z.string().optional()
+    })
+  )
+});
 
 function asArray(value: unknown) {
   return Array.isArray(value) ? value.map(item => String(item || '').trim()).filter(Boolean) : [];
@@ -81,9 +94,16 @@ async function recordScanRun(
     .catch(() => null);
 }
 
-async function scoreListing(listing: Record<string, any>, profile: Record<string, any>): Promise<number> {
+async function scoreListing(
+  listing: Record<string, any>,
+  profile: Record<string, any>,
+  threshold: number
+): Promise<{ score: number; unscored: boolean }> {
+  // When scoring is unavailable, fall back to the profile threshold so unscored
+  // listings still surface (tagged unscored) instead of being silently dropped.
+  const unscoredFallback = { score: threshold, unscored: true };
   const openaiKey = cleanEnv(process.env.OPENAI_API_KEY);
-  if (!openaiKey) return 50;
+  if (!openaiKey) return unscoredFallback;
 
   try {
     const prompt = `Score this job listing (0-100) against the candidate profile. Return only a number.
@@ -111,12 +131,14 @@ Listing:
         temperature: params.temperature
       })
     });
-    if (!res.ok) return 50;
+    if (!res.ok) return unscoredFallback;
     const json = await res.json();
-    const score = parseInt(json.choices?.[0]?.message?.content?.trim() || '50', 10);
-    return isNaN(score) ? 50 : Math.max(0, Math.min(100, score));
+    const score = parseInt(json.choices?.[0]?.message?.content?.trim() || '', 10);
+    return isNaN(score)
+      ? unscoredFallback
+      : { score: Math.max(0, Math.min(100, score)), unscored: false };
   } catch {
-    return 50;
+    return unscoredFallback;
   }
 }
 
@@ -144,14 +166,15 @@ async function searchWithStagehand(
     await (stagehand as any).page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
 
     const extracted = await (stagehand as any).extract(
-      'Extract all visible job listings. For each listing return: title, company, location, jobUrl, postedAt, and a brief description if visible. Return as JSON array.'
+      'Extract all visible job listings. For each listing return: title, company, url, location, and a brief description if visible.',
+      jobListingsSchema
     );
 
-    const listings = Array.isArray(extracted) ? extracted : (extracted as any)?.listings || [];
+    const listings: Array<Record<string, any>> = Array.isArray((extracted as any)?.listings) ? (extracted as any).listings : [];
     const results: Array<Record<string, any>> = [];
 
     for (const listing of listings.slice(0, cfg.jobScanBatchSize)) {
-      const score = await scoreListing(listing, profile);
+      const { score, unscored } = await scoreListing(listing, profile, threshold);
       if (score < threshold) continue;
 
       const { data: existing } = await admin
@@ -159,7 +182,7 @@ async function searchWithStagehand(
         .select('id')
         .eq('user_id', userId)
         .eq('source_platform', platform.id)
-        .eq('source_url', listing.jobUrl || '')
+        .eq('source_url', listing.url || '')
         .maybeSingle();
 
       if (existing) continue;
@@ -169,7 +192,7 @@ async function searchWithStagehand(
         .insert({
           user_id: userId,
           source_platform: platform.id,
-          source_url: listing.jobUrl || null,
+          source_url: listing.url || null,
           title: String(listing.title || '').slice(0, 500),
           company: String(listing.company || '').slice(0, 200),
           location: String(listing.location || '').slice(0, 200),
@@ -177,10 +200,10 @@ async function searchWithStagehand(
           status: 'discovered',
           metadata: {
             score,
+            ...(unscored ? { unscored: true } : {}),
             cron_discovered: true,
             query: context.query,
             search_url: searchUrl,
-            posted_at: listing.postedAt || null,
             scan_recency: context.recency
           }
         })
@@ -208,18 +231,6 @@ export async function GET(request: NextRequest) {
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: 'Supabase admin not configured' }, { status: 500 });
 
-  const browserbaseConfigured = !!(
-    cleanEnv(process.env.BROWSERBASE_API_KEY) &&
-    cleanEnv(process.env.BROWSERBASE_PROJECT_ID)
-  );
-
-  if (!browserbaseConfigured) {
-    return NextResponse.json({
-      skipped: true,
-      reason: 'Browserbase credentials not configured — job scan requires BROWSERBASE_API_KEY and BROWSERBASE_PROJECT_ID'
-    });
-  }
-
   const isManual = request.headers.get('x-cubiqo-manual') === '1';
   let profiles: any[] = [];
 
@@ -244,6 +255,19 @@ export async function GET(request: NextRequest) {
       .eq('scan_enabled', true)
       .limit(cfg.jobScanProfilesBatch);
     profiles = data || [];
+  }
+
+  // Config check sits after auth so unauthenticated callers can't probe env state.
+  const browserbaseConfigured = !!(
+    cleanEnv(process.env.BROWSERBASE_API_KEY) &&
+    cleanEnv(process.env.BROWSERBASE_PROJECT_ID)
+  );
+
+  if (!browserbaseConfigured) {
+    return NextResponse.json({
+      skipped: true,
+      reason: 'Browserbase credentials not configured — job scan requires BROWSERBASE_API_KEY and BROWSERBASE_PROJECT_ID'
+    });
   }
 
   if (!profiles.length) {

@@ -22,6 +22,7 @@ import { writeTimeline, writeToolCall } from './common';
 import { checkBudgetGate, addProjectCost } from './budget-gate';
 import { decideRoute } from './decision-router';
 import { draftWorkProduct, performExecution } from './executor';
+import { maybeCompleteProject } from './proactivity';
 
 // ── Risk thresholds ──────────────────────────────────────────────────────────
 // Tasks at or above this risk always go through draft review before any write.
@@ -320,6 +321,15 @@ export async function executeTask(auth: AgentAuth, taskId: string): Promise<DuoE
     && decision.selectedRoute !== 'manual';
 
   if (needsDraftReview) {
+    // Resume guard: if a draft for this task was ALREADY approved but the task
+    // got reset to ready/pending (legacy approve flows), do not burn another
+    // LLM draft and re-ask — proceed straight to the final phase, which still
+    // applies the final-action approval gate.
+    const priorDraft = await latestApproval(auth, task.id, 'draft_review');
+    if (priorDraft?.status === 'approved') {
+      return executeFinalPhase(auth, { ...task, selected_route: decision.selectedRoute });
+    }
+
     // Produce the REAL draft work product via LLM (template fallback keeps the
     // pipeline alive when no LLM is configured or the call fails).
     const template = buildDraftContent({ ...task, selected_route: decision.selectedRoute }, decision.selectedRoute);
@@ -491,6 +501,11 @@ async function executeFinalPhase(
 
   // Cascade: enqueue any dependents now unblocked by this task's completion.
   await enqueueUnblockedDependents(auth, task.id, task.project_id, task.trace_id);
+
+  // Natural completion: when this was the last real task, the proactivity
+  // engine proposes follow-up ideas, then closes the project via writeOutcome
+  // (memory writeback + playbook stats). Never let it break task completion.
+  await maybeCompleteProject(auth, task.project_id).catch(() => null);
 
   return { status: 'completed', taskId, message: `Task completed via ${route}` };
 }
