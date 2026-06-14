@@ -4224,10 +4224,19 @@ const DemoPage = () => {
     else await ensureUserProfile(data.session);
     setAuthLoading(false);
   };
+
+  const rememberAppAuthReturn = () => {
+    if (typeof window !== 'undefined') {
+      // OAuth and email links must visit /auth/callback first; this keeps the CRA app as the final destination.
+      window.sessionStorage.setItem('cubiqo_auth_return_to', '/app');
+    }
+  };
+
   const handleSignUp = async (e) => {
     e.preventDefault();
     setAuthLoading(true); setAuthError('');
     setProfileSyncError('');
+    rememberAppAuthReturn();
     // Pass the prod callback URL explicitly so Supabase doesn't fall back
     // to a Site URL that may be localhost in the dashboard config.
     const emailRedirectTo = typeof window !== 'undefined'
@@ -4254,6 +4263,7 @@ const DemoPage = () => {
   // Dashboard → Authentication → Providers).
   const handleOAuth = async (provider) => {
     setAuthLoading(true); setAuthError('');
+    rememberAppAuthReturn();
     const redirectTo = typeof window !== 'undefined'
       ? `${window.location.origin}/auth/callback`
       : undefined;
@@ -4280,6 +4290,7 @@ const DemoPage = () => {
     setMagicLinkLoading(true);
     setAuthError('');
     setProfileSyncError('');
+    rememberAppAuthReturn();
     const redirectTo = typeof window !== 'undefined'
       ? `${window.location.origin}/auth/callback`
       : undefined;
