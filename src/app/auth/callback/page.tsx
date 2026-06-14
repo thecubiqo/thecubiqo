@@ -3,8 +3,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { getBrowserSupabase } from '@/next/lib/supabase-browser';
 
-const SUCCESS_PATH = '/chat';
+const AUTH_RETURN_KEY = 'cubiqo_auth_return_to';
+const DEFAULT_SUCCESS_PATH = '/chat';
 const FAILURE_PATH = '/login?error=callback_failed';
+
+function safeReturnPath(value: string | null | undefined, fallback = DEFAULT_SUCCESS_PATH) {
+  if (!value) return fallback;
+  if (!value.startsWith('/') || value.startsWith('//') || value.includes('://')) return fallback;
+  return value;
+}
+
+function consumeReturnPath(params: URLSearchParams) {
+  const queryReturn = safeReturnPath(params.get('next'), '');
+  if (queryReturn) return queryReturn;
+
+  const storedReturn = window.sessionStorage.getItem(AUTH_RETURN_KEY);
+  window.sessionStorage.removeItem(AUTH_RETURN_KEY);
+  return safeReturnPath(storedReturn, DEFAULT_SUCCESS_PATH);
+}
 
 export default function AuthCallbackPage() {
   const didRun = useRef(false);
@@ -24,6 +40,7 @@ export default function AuthCallbackPage() {
 
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
+      const returnPath = consumeReturnPath(params);
 
       try {
         if (code) {
@@ -36,7 +53,7 @@ export default function AuthCallbackPage() {
 
         if (data.session?.user) {
           setStatus('Signed in. Opening CubiQo...');
-          window.location.replace(SUCCESS_PATH);
+          window.location.replace(returnPath);
           return;
         }
 
