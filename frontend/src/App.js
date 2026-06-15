@@ -4195,14 +4195,45 @@ const DemoPage = () => {
 
   // Supabase auth session listener
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
+    let cancelled = false;
+    let callbackHydrationTimer = null;
+    let callbackHydrationAttempts = 0;
+    const isCallbackReturn = typeof window !== 'undefined'
+      && new URLSearchParams(window.location.search).get('auth') === 'callback';
+
+    const syncAuthSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return false;
       setUser(data.session?.user ?? null);
       setAccessToken(data.session?.access_token ?? null);
       await ensureUserProfile(data.session);
       await loadUserMemory(data.session?.user);
       await loadSignals();
-    });
+      if (data.session?.user) {
+        setActiveModal(null);
+        setAuthError('');
+      }
+      return Boolean(data.session?.user);
+    };
+
+    syncAuthSession();
+
+    if (isCallbackReturn) {
+      callbackHydrationTimer = window.setInterval(async () => {
+        callbackHydrationAttempts += 1;
+        const hasSession = await syncAuthSession();
+        if (hasSession || callbackHydrationAttempts >= 12) {
+          if (callbackHydrationTimer) window.clearInterval(callbackHydrationTimer);
+          callbackHydrationTimer = null;
+          if (hasSession) {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+        }
+      }, 250);
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_e, session) => {
+      if (cancelled) return;
       setUser(session?.user ?? null);
       setAccessToken(session?.access_token ?? null);
       await ensureUserProfile(session);
@@ -4212,7 +4243,11 @@ const DemoPage = () => {
     });
     // Profile and memory helpers only depend on stable Supabase client module state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      if (callbackHydrationTimer) window.clearInterval(callbackHydrationTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSignIn = async (e) => {
@@ -4221,14 +4256,21 @@ const DemoPage = () => {
     setProfileSyncError('');
     const { data, error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
     if (error) setAuthError(error.message);
-    else await ensureUserProfile(data.session);
+    else {
+      setUser(data.session?.user ?? null);
+      setAccessToken(data.session?.access_token ?? null);
+      await ensureUserProfile(data.session);
+      await loadUserMemory(data.session?.user);
+      await loadSignals();
+      setActiveModal(null);
+    }
     setAuthLoading(false);
   };
 
   const rememberAppAuthReturn = () => {
     if (typeof window !== 'undefined') {
       // OAuth and email links must visit /auth/callback first; this keeps the CRA app as the final destination.
-      window.sessionStorage.setItem('cubiqo_auth_return_to', '/app');
+      window.sessionStorage.setItem('cubiqo_auth_return_to', '/app?auth=callback');
     }
   };
 
@@ -4284,7 +4326,13 @@ const DemoPage = () => {
     }
     setAuthLoading(false);
   };
-  const handleSignOut = async () => { await supabase.auth.signOut(); };
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setAccessToken(null);
+    setUserMemory([]);
+    setProfileSyncError('');
+  };
 
   const handleMagicLink = async () => {
     setMagicLinkLoading(true);
