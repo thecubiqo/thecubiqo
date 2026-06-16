@@ -4202,18 +4202,25 @@ const DemoPage = () => {
       && new URLSearchParams(window.location.search).get('auth') === 'callback';
 
     const syncAuthSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (cancelled) return false;
-      setUser(data.session?.user ?? null);
-      setAccessToken(data.session?.access_token ?? null);
-      await ensureUserProfile(data.session);
-      await loadUserMemory(data.session?.user);
-      await loadSignals();
-      if (data.session?.user) {
-        setActiveModal(null);
-        setAuthError('');
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (cancelled) return false;
+        setUser(data.session?.user ?? null);
+        setAccessToken(data.session?.access_token ?? null);
+        await ensureUserProfile(data.session);
+        await loadUserMemory(data.session?.user);
+        await loadSignals();
+        if (data.session?.user) {
+          setActiveModal(null);
+          setAuthError('');
+        }
+        return Boolean(data.session?.user);
+      } catch (error) {
+        if (!cancelled) {
+          setProfileSyncError('Account session is still loading. Refresh if this does not clear.');
+        }
+        return false;
       }
-      return Boolean(data.session?.user);
     };
 
     syncAuthSession();
@@ -4241,11 +4248,19 @@ const DemoPage = () => {
       await loadSignals();
       if (session?.user) setActiveModal(null);
     });
+
+    const handleVisible = () => {
+      if (!document.hidden) syncAuthSession();
+    };
+    window.addEventListener('focus', syncAuthSession);
+    document.addEventListener('visibilitychange', handleVisible);
     // Profile and memory helpers only depend on stable Supabase client module state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     return () => {
       cancelled = true;
       if (callbackHydrationTimer) window.clearInterval(callbackHydrationTimer);
+      window.removeEventListener('focus', syncAuthSession);
+      document.removeEventListener('visibilitychange', handleVisible);
       subscription.unsubscribe();
     };
   }, []);

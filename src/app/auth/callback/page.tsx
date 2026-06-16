@@ -22,6 +22,14 @@ function consumeReturnPath(params: URLSearchParams) {
   return safeReturnPath(storedReturn, DEFAULT_SUCCESS_PATH);
 }
 
+function withAppCallbackMarker(path: string) {
+  if (path !== '/app' && !path.startsWith('/app?')) return path;
+  const [pathname, query = ''] = path.split('?');
+  const params = new URLSearchParams(query);
+  params.set('auth', 'callback');
+  return `${pathname}?${params.toString()}`;
+}
+
 export default function AuthCallbackPage() {
   const didRun = useRef(false);
   const [status, setStatus] = useState('Signing you in...');
@@ -53,7 +61,7 @@ export default function AuthCallbackPage() {
 
         if (data.session?.user) {
           setStatus('Signed in. Opening CubiQo...');
-          window.location.replace(returnPath);
+          window.location.replace(withAppCallbackMarker(returnPath));
           return;
         }
 
