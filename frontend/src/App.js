@@ -58,6 +58,27 @@ const readVisitorMemory = () => {
   }
 };
 
+const AUTH_CALLBACK_STATUS_KEY = 'cubiqo_auth_callback_status';
+
+const readAuthCallbackStatus = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(AUTH_CALLBACK_STATUS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const clearAuthCallbackStatus = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(AUTH_CALLBACK_STATUS_KEY);
+  } catch {
+    // Ignore storage cleanup failures; the auth session itself is owned by Supabase.
+  }
+};
+
 const writeVisitorMemory = (events) => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(VISITOR_MEMORY_KEY, JSON.stringify(events.slice(-MEMORY_EVENT_LIMIT)));
@@ -4203,7 +4224,11 @@ const DemoPage = () => {
 
     const syncAuthSession = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
+        let { data } = await supabase.auth.getSession();
+        if (!data.session && isCallbackReturn && typeof supabase.auth.refreshSession === 'function') {
+          const refreshed = await supabase.auth.refreshSession().catch(() => null);
+          if (refreshed?.data?.session) data = refreshed.data;
+        }
         if (cancelled) return false;
         setUser(data.session?.user ?? null);
         setAccessToken(data.session?.access_token ?? null);
@@ -4211,6 +4236,7 @@ const DemoPage = () => {
         await loadUserMemory(data.session?.user);
         await loadSignals();
         if (data.session?.user) {
+          clearAuthCallbackStatus();
           setActiveModal(null);
           setAuthError('');
         }
@@ -4229,11 +4255,18 @@ const DemoPage = () => {
       callbackHydrationTimer = window.setInterval(async () => {
         callbackHydrationAttempts += 1;
         const hasSession = await syncAuthSession();
-        if (hasSession || callbackHydrationAttempts >= 12) {
+        if (hasSession || callbackHydrationAttempts >= 24) {
           if (callbackHydrationTimer) window.clearInterval(callbackHydrationTimer);
           callbackHydrationTimer = null;
           if (hasSession) {
             window.history.replaceState(null, '', window.location.pathname);
+          } else {
+            const callbackStatus = readAuthCallbackStatus();
+            if (callbackStatus?.ok === false) {
+              setProfileSyncError(`Google sign-in failed before the app opened: ${callbackStatus.error || 'callback failed'}`);
+            } else if (callbackStatus?.ok === true) {
+              setProfileSyncError('Google sign-in completed, but this browser has not exposed the saved session to CubiQo yet. Refresh this page once.');
+            }
           }
         }
       }, 250);

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getBrowserSupabase } from '@/next/lib/supabase-browser';
 
 const AUTH_RETURN_KEY = 'cubiqo_auth_return_to';
+const AUTH_CALLBACK_STATUS_KEY = 'cubiqo_auth_callback_status';
 const DEFAULT_SUCCESS_PATH = '/chat';
 const FAILURE_PATH = '/login?error=callback_failed';
 
@@ -30,6 +31,17 @@ function withAppCallbackMarker(path: string) {
   return `${pathname}?${params.toString()}`;
 }
 
+function writeCallbackStatus(status: Record<string, unknown>) {
+  try {
+    window.localStorage.setItem(
+      AUTH_CALLBACK_STATUS_KEY,
+      JSON.stringify({ ...status, at: Date.now() })
+    );
+  } catch {
+    // localStorage can be unavailable in locked-down browser modes; auth still proceeds.
+  }
+}
+
 export default function AuthCallbackPage() {
   const didRun = useRef(false);
   const [status, setStatus] = useState('Signing you in...');
@@ -52,8 +64,18 @@ export default function AuthCallbackPage() {
 
       try {
         if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          const { data: exchangeData, error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
+
+          // Force the returned PKCE session into the shared Supabase storage key before /app hydrates.
+          // This keeps the Next.js callback and legacy app shell reading the same browser session.
+          if (exchangeData.session?.access_token && exchangeData.session?.refresh_token) {
+            const { error: setSessionError } = await supabase.auth.setSession({
+              access_token: exchangeData.session.access_token,
+              refresh_token: exchangeData.session.refresh_token
+            });
+            if (setSessionError) throw setSessionError;
+          }
         }
 
         const { data, error } = await supabase.auth.getSession();
@@ -61,12 +83,18 @@ export default function AuthCallbackPage() {
 
         if (data.session?.user) {
           setStatus('Signed in. Opening CubiQo...');
-          window.location.replace(withAppCallbackMarker(returnPath));
+          const nextPath = withAppCallbackMarker(returnPath);
+          writeCallbackStatus({ ok: true, nextPath });
+          window.location.replace(nextPath);
           return;
         }
 
         throw new Error('No active session found after OAuth callback.');
-      } catch {
+      } catch (error) {
+        writeCallbackStatus({
+          ok: false,
+          error: error instanceof Error ? error.message.slice(0, 240) : 'OAuth callback failed'
+        });
         setStatus('Sign-in failed. Redirecting...');
         window.location.replace(FAILURE_PATH);
       }
