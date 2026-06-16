@@ -19,6 +19,15 @@ function clean(value?: string) {
     : '';
 }
 
+function getAuthStorageKey(url: string) {
+  try {
+    const projectRef = new URL(url).hostname.split('.')[0];
+    return projectRef ? `sb-${projectRef}-auth-token` : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function getBrowserSupabase() {
   if (browserClient) return browserClient;
   const runtimeEnv = typeof window !== 'undefined' ? window.__CUBIQO_ENV__ : undefined;
@@ -26,7 +35,14 @@ export function getBrowserSupabase() {
   const key = clean(runtimeEnv?.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   if (!url || !key) return null;
-  browserClient = createClient(url, key);
+  browserClient = createClient(url, key, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+      storageKey: getAuthStorageKey(url)
+    }
+  });
   return browserClient;
 }
 

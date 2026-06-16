@@ -25,6 +25,15 @@ const SUPABASE_ANON_KEY = cleanEnv(
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
+const getAuthStorageKey = (url) => {
+  try {
+    const projectRef = new URL(url).hostname.split('.')[0];
+    return projectRef ? `sb-${projectRef}-auth-token` : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 const supabaseConfigError = {
   message: 'Supabase is not configured for this deployment. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.'
 };
@@ -58,5 +67,12 @@ const disabledSupabaseClient = {
 };
 
 export const supabase = isSupabaseConfigured
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        storageKey: getAuthStorageKey(SUPABASE_URL)
+      }
+    })
   : disabledSupabaseClient;
